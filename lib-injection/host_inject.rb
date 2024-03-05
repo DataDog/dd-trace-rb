@@ -7,9 +7,11 @@ require 'rbconfig'
 
 ruby_api_version = RbConfig::CONFIG['ruby_version']
 
+dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+
 # Look for pre-installed tracers
 Gem.paths = {
-  'GEM_PATH' => "/opt/datadog/apm/library/ruby/#{ruby_api_version}:/opt/datadog/apm/library/ruby:#{ENV['GEM_PATH']}"
+  'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}"
 }
 
 # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
@@ -51,7 +53,7 @@ begin
     return
   end
 
-  lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file('/opt/datadog/apm/library/ruby/Gemfile.lock'))
+  lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file("#{dd_lib_injection_path}/Gemfile.lock"))
   gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
     hash[spec.name] = spec.version.to_s
     hash

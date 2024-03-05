@@ -23,12 +23,12 @@ RSpec.describe Datadog::Profiling::Component do
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
 
-      it { is_expected.to be nil }
+      it { is_expected.to eq [nil, { profiling_enabled: false }] }
     end
 
     context 'by default' do
       it 'does not build a profiler' do
-        is_expected.to be nil
+        is_expected.to eq [nil, { profiling_enabled: false }]
       end
     end
 
@@ -38,7 +38,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it 'does not build a profiler' do
-        is_expected.to be nil
+        is_expected.to eq [nil, { profiling_enabled: false }]
       end
     end
 
@@ -50,6 +50,10 @@ RSpec.describe Datadog::Profiling::Component do
         allow(profiler_setup_task).to receive(:run)
       end
 
+      it 'builds a profiler instance' do
+        expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), { profiling_enabled: true }])
+      end
+
       context 'when using the new CPU Profiling 2.0 profiler' do
         it 'initializes a ThreadContext collector' do
           allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new)
@@ -58,7 +62,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
-            .to receive(:experimental_timeline_enabled).and_return(:experimental_timeline_enabled_config)
+            .to receive(:timeline_enabled).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
 
@@ -67,7 +71,7 @@ RSpec.describe Datadog::Profiling::Component do
             max_frames: :max_frames_config,
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
-            timeline_enabled: :experimental_timeline_enabled_config,
+            timeline_enabled: :timeline_enabled_config,
           )
 
           build_profiler_component
@@ -330,7 +334,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when timeline is enabled' do
-          before { settings.profiling.advanced.experimental_timeline_enabled = true }
+          before { settings.profiling.advanced.timeline_enabled = true }
 
           it 'sets up the StackRecorder with timeline_enabled: true' do
             expect(Datadog::Profiling::StackRecorder)
@@ -341,7 +345,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         context 'when timeline is disabled' do
-          before { settings.profiling.advanced.experimental_timeline_enabled = false }
+          before { settings.profiling.advanced.timeline_enabled = false }
 
           it 'sets up the StackRecorder with timeline_enabled: false' do
             expect(Datadog::Profiling::StackRecorder)
@@ -373,7 +377,7 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(settings.profiling.advanced).to receive(:experimental_timeline_enabled).and_return(:timeline_result)
+          expect(settings.profiling.advanced).to receive(:timeline_enabled).and_return(:timeline_result)
           expect(settings.profiling.advanced).to receive(:experimental_heap_sample_rate).and_return(456)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(

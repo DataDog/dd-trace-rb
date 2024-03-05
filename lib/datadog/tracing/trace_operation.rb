@@ -137,13 +137,12 @@ module Datadog
       end
 
       def keep!
-        self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
+        self.sampled = true # Just in case the in-app sampler had decided to drop this span, we revert that decision.
       end
 
       def reject!
-        self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end

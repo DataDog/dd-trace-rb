@@ -7,7 +7,7 @@ RSpec.describe Datadog::Profiling::Tasks::Help do
   describe '#run' do
     it 'prints a help message to stdout' do
       expect($stdout).to receive(:puts) do |message|
-        expect(message).to include('Usage: ddtrace')
+        expect(message).to include('Usage: ddprofrb')
       end
 
       task.run

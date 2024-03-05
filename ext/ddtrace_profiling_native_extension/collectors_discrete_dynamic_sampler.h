@@ -67,51 +67,30 @@ typedef struct discrete_dynamic_sampler {
 
 
 // Init a new sampler with sane defaults.
-//
-// @return null if successful, a non-null string with the error message otherwise.
-const char* discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name);
+void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns);
 
 // Reset a sampler, clearing all stored state.
-//
-// @return null if successful, a non-null string with the error message otherwise.
-const char* discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler);
+void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Sets a new target_overhead for the provided sampler, resetting it in the process.
 // @param target_overhead A double representing the percentage of total time we are
 //        willing to use as overhead for the resulting sampling. Values are expected
 //        to be in the range ]0.0, 100.0].
-// @return null if successful, a non-null string with the error message otherwise.
-const char* discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead);
-
-// Result of call to should_sample.
-typedef struct {
-  // True if the event associated with this decision should be sampled, false otherwise.
-  // NOTE: If true is returned we implicitly assume the start of a sampling operation
-  //       and it is expected that a follow-up after_sample call is issued.
-  bool should_sample;
-  // Null if successful, a non-null string with the error message otherwise.
-  const char *error;
-} discrete_dynamic_sampler_should_sample_result;
+void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns);
 
 // Make a sampling decision.
 //
-// @return An instance of `discrete_dynamic_sampler_should_sample_result` with the sampling
-//         decision.
-discrete_dynamic_sampler_should_sample_result discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler);
-
-// Result of call to after_sample.
-typedef struct {
-  // How long the sampling operation we just finished took, in nanoseconds.
-  long sampling_time_ns;
-  // Null if successful, a non-null string with the error message otherwise.
-  const char *error;
-} discrete_dynamic_sampler_after_sample_result;
+// @return True if the event associated with this decision should be sampled, false
+//         otherwise.
+//
+// NOTE: If true is returned we implicitly assume the start of a sampling operation
+//       and it is expected that a follow-up after_sample call is issued.
+bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Signal the end of a sampling operation.
 //
-// @return An instance of `discrete_dynamic_sampler_after_sample_result` with the
-//         summary of the sampling operation.
-discrete_dynamic_sampler_after_sample_result discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler);
+// @return Sampling time in nanoseconds for the sample operation we just finished.
+long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Retrieve the current sampling probability ([0.0, 100.0]) being applied by this sampler.
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);

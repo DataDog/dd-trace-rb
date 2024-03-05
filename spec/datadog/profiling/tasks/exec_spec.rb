@@ -84,7 +84,7 @@ RSpec.describe Datadog::Profiling::Tasks::Exec do
 
         it 'logs an error message' do
           expect(Kernel).to receive(:warn) do |message|
-            expect(message).to include('ddtracerb exec failed')
+            expect(message).to include('ddprofrb exec failed')
           end
 
           run
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::Tasks::Exec do
 
             it 'logs an error message' do
               expect(Kernel).to receive(:warn) do |message|
-                expect(message).to include('ddtracerb exec failed')
+                expect(message).to include('ddprofrb exec failed')
               end
 
               run

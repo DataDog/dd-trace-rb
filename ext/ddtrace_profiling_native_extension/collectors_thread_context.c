@@ -82,6 +82,9 @@ static ID at_id_id;           // id of :@id in Ruby
 static ID at_resource_id;     // id of :@resource in Ruby
 static ID at_root_span_id;    // id of :@root_span in Ruby
 static ID at_type_id;         // id of :@type in Ruby
+static ID at_otel_values_id;  // id of :@otel_values in Ruby
+static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
+static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -114,6 +117,8 @@ struct thread_context_collector_state {
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
   VALUE main_thread;
+  // Used when extracting trace identifiers from otel spans. Lazily initialized.
+  VALUE otel_current_span_key;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -218,6 +223,14 @@ static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
 static VALUE _native_new_empty_thread(VALUE self);
 static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type);
+static void ddtrace_otel_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE *active_trace,
+  VALUE *root_span,
+  VALUE *numeric_span_id,
+  VALUE active_span,
+  VALUE otel_values
+);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -255,6 +268,9 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_resource_id = rb_intern_const("@resource");
   at_root_span_id = rb_intern_const("@root_span");
   at_type_id = rb_intern_const("@type");
+  at_otel_values_id = rb_intern_const("@otel_values");
+  at_parent_span_id_id = rb_intern_const("@parent_span_id");
+  at_datadog_trace_id = rb_intern_const("@datadog_trace");
 
   gc_profiling_init();
 }
@@ -282,6 +298,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_mark, 0 /* unused */);
   rb_gc_mark(state->thread_list_buffer);
   rb_gc_mark(state->main_thread);
+  rb_gc_mark(state->otel_current_span_key);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -334,6 +351,7 @@ static VALUE _native_new(VALUE klass) {
   state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   state->main_thread = rb_thread_main();
+  state->otel_current_span_key = Qnil;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
@@ -917,6 +935,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   ));
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
   rb_str_concat(result, rb_sprintf(" gc_tracking=%"PRIsVALUE, gc_tracking_as_ruby_hash(state)));
+  rb_str_concat(result, rb_sprintf(" otel_current_span_key=%"PRIsVALUE, state->otel_current_span_key));
 
   return result;
 }
@@ -1104,10 +1123,19 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
 
   VALUE root_span = rb_ivar_get(active_trace, at_root_span_id /* @root_span */);
   VALUE active_span = rb_ivar_get(active_trace, at_active_span_id /* @active_span */);
-  if (root_span == Qnil || active_span == Qnil) return;
+  // Note: On Ruby 3.x `rb_attr_get` is exactly the same as `rb_ivar_get`. For Ruby 2.x, the difference is that
+  // `rb_ivar_get` can trigger "warning: instance variable @otel_values not initialized" if warnings are enabled and
+  // opentelemetry is not in use, whereas `rb_attr_get` does the lookup without generating the warning.
+  VALUE otel_values = rb_attr_get(active_trace, at_otel_values_id /* @otel_values */);
+
+  VALUE numeric_span_id = Qnil;
+
+  if (otel_values != Qnil) ddtrace_otel_trace_identifiers_for(state, &active_trace, &root_span, &numeric_span_id, active_span, otel_values);
+
+  if (root_span == Qnil || (active_span == Qnil && numeric_span_id == Qnil)) return;
 
   VALUE numeric_local_root_span_id = rb_ivar_get(root_span, at_id_id /* @id */);
-  VALUE numeric_span_id = rb_ivar_get(active_span, at_id_id /* @id */);
+  if (active_span != Qnil && numeric_span_id == Qnil) numeric_span_id = rb_ivar_get(active_span, at_id_id /* @id */);
   if (numeric_local_root_span_id == Qnil || numeric_span_id == Qnil) return;
 
   trace_identifiers_result->local_root_span_id = NUM2ULL(numeric_local_root_span_id);
@@ -1298,4 +1326,66 @@ static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
     case(RUBY_T_FIXNUM  ): return DDOG_CHARSLICE_C("Integer");
                   default: return DDOG_CHARSLICE_C("(VM Internal, Missing class)");
   }
+}
+
+static VALUE get_otel_current_span_key(struct thread_context_collector_state *state) {
+  if (state->otel_current_span_key == Qnil) {
+    VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+    VALUE opentelemetry_module = rb_const_get(datadog_module, rb_intern("OpenTelemetry"));
+    VALUE api_module = rb_const_get(opentelemetry_module, rb_intern("API"));
+    VALUE context_module = rb_const_get(api_module, rb_intern_const("Context"));
+    VALUE current_span_key = rb_const_get(context_module, rb_intern_const("CURRENT_SPAN_KEY"));
+
+    if (current_span_key == Qnil) {
+      rb_raise(rb_eRuntimeError, "Unexpected: Missing Datadog::OpenTelemetry::API::Context::CURRENT_SPAN_KEY");
+    }
+
+    state->otel_current_span_key = current_span_key;
+  }
+
+  return state->otel_current_span_key;
+}
+
+// This method gets used when ddtrace is being used indirectly via the otel APIs. Information gets stored slightly
+// differently, and this codepath handles it.
+static void ddtrace_otel_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE *active_trace,
+  VALUE *root_span,
+  VALUE *numeric_span_id,
+  VALUE active_span,
+  VALUE otel_values
+) {
+  VALUE resolved_numeric_span_id =
+    active_span == Qnil ?
+      // For traces started from otel spans, the span id will be empty, and the @parent_span_id has the right value
+      rb_ivar_get(*active_trace, at_parent_span_id_id /* @parent_span_id */) :
+      // Regular span created by ddtrace
+      rb_ivar_get(active_span, at_id_id /* @id */);
+
+  if (resolved_numeric_span_id == Qnil) return;
+
+  VALUE otel_current_span_key = get_otel_current_span_key(state);
+  VALUE current_trace = *active_trace;
+
+  // ddtrace uses a different structure when spans are created from otel, where each otel span will have a unique ddtrace
+  // trace and span representing it. Each ddtrace trace is then connected to the previous otel span, forming a linked
+  // list. The local root span is going to be the trace/span we find at the end of this linked list.
+  while (otel_values != Qnil) {
+    VALUE otel_span = rb_hash_lookup(otel_values, otel_current_span_key);
+    if (otel_span == Qnil) break;
+    VALUE next_trace = rb_ivar_get(otel_span, at_datadog_trace_id);
+    if (next_trace == Qnil) break;
+
+    current_trace = next_trace;
+    otel_values = rb_ivar_get(current_trace, at_otel_values_id /* @otel_values */);
+  }
+
+  // We found the last trace in the linked list. This contains the local root span
+  VALUE resolved_root_span = rb_ivar_get(current_trace, at_root_span_id /* @root_span */);
+  if (resolved_root_span == Qnil) return;
+
+  *root_span = resolved_root_span;
+  *active_trace = current_trace;
+  *numeric_span_id = resolved_numeric_span_id;
 }

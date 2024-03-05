@@ -70,7 +70,6 @@ target :ddtrace do
   ignore 'lib/datadog/core/configuration/option_definition_set.rb'
   ignore 'lib/datadog/core/configuration/options.rb'
   ignore 'lib/datadog/core/configuration/settings.rb'
-  ignore 'lib/datadog/core/diagnostics/environment_logger.rb'
   ignore 'lib/datadog/core/diagnostics/health.rb'
   ignore 'lib/datadog/core/encoding.rb'
   ignore 'lib/datadog/core/environment/container.rb'

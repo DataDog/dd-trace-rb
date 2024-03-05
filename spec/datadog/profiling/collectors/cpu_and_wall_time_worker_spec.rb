@@ -1058,6 +1058,59 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     end
   end
 
+  describe '.delayed_error' do
+    it 'on allocation, raises on start' do
+      worker = described_class.allocate
+      # Simulate a delayed failure pre-initialization (i.e. during new)
+      Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_delayed_error(
+        worker,
+        'test failure'
+      )
+
+      worker.send(:initialize, **worker_settings, **options)
+
+      proc_called = Queue.new
+
+      # Start the worker
+      worker.start(on_failure_proc: proc { proc_called << true })
+
+      # We expect this to have been filled by the on_failure_proc
+      proc_called.pop
+
+      # And we expect the worker to be shutdown with a failure exception
+      expect(described_class::Testing._native_is_running?(worker)).to be false
+      exception = try_wait_until(backoff: 0.01) { worker.send(:failure_exception) }
+      expect(exception.message).to include 'test failure'
+    end
+
+    it 'raises on next iteration' do
+      proc_called = Queue.new
+
+      cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+      wait_until_running
+
+      # Make sure things are fully running by waiting for some samples
+      try_wait_until do
+        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+        samples if samples.any?
+      end
+
+      # Simulate a delayed failure while running
+      Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_delayed_error(
+        cpu_and_wall_time_worker,
+        'test failure'
+      )
+
+      # We expect this to have been filled by the on_failure_proc
+      proc_called.pop
+
+      # And we expect the worker to be shutdown with a failure exception
+      expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
+      exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
+      expect(exception.message).to include 'test failure'
+    end
+  end
+
   def wait_until_running
     try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
   end

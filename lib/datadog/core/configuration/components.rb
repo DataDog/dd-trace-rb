@@ -81,6 +81,7 @@ module Datadog
 
         def initialize(settings)
           @logger = self.class.build_logger(settings)
+          @environment_logger_extra = {}
 
           # This agent_settings is intended for use within Core. If you require
           # agent_settings within a product outside of core you should extend
@@ -90,11 +91,13 @@ module Datadog
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, logger: @logger)
 
-          @profiler = Datadog::Profiling::Component.build_profiler_component(
+          @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: @tracer,
           )
+          @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
+
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
           @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
@@ -116,7 +119,7 @@ module Datadog
             @logger.debug('Profiling is disabled')
           end
 
-          Core::Diagnostics::EnvironmentLogger.collect_and_log!
+          Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
         end
 
         # Shuts down all the components in use.
