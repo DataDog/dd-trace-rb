@@ -15,16 +15,10 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
       Datadog::Tracing::Correlation::Identifier.new(
         trace_id: trace_id,
         span_id: span_id,
-        env: env,
-        service: service,
-        version: version,
       )
     end
     let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
     let(:span_id) { Datadog::Tracing::Utils.next_id }
-    let(:env) { 'env' }
-    let(:service) { 'service' }
-    let(:version) { 'version' }
 
     before do
       allow(Datadog::Tracing).to receive(:correlation).and_return(correlation)
@@ -38,6 +32,9 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
     context 'when log injection and lograge both enabled' do
       before do
         Datadog.configure do |c|
+          c.env = 'env'
+          c.service = 'service'
+          c.version = 'version'
           c.tracing.log_injection = true
           c.tracing.instrument :lograge
         end
