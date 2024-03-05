@@ -876,3 +876,17 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
     return NULL;
   }
 #endif
+
+// This is used to workaround a VM bug. See "handle_sampling_signal" in "collectors_cpu_and_wall_time_worker" for details.
+#ifdef NO_POSTPONED_TRIGGER
+  void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
+    rb_vm_t *vm =
+      #ifndef NO_GET_VM // TODO: Inline GET_VM below once we drop support in dd-trace-rb 2.x for < Ruby 2.5
+        GET_VM();
+      #else
+        thread_struct_from_object(rb_thread_current())->vm;
+      #endif
+
+    return vm->objspace;
+  }
+#endif

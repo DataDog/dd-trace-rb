@@ -38,7 +38,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 
-void DDTRACE_EXPORT Init_ddtrace_profiling_native_extension(void) {
+void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");

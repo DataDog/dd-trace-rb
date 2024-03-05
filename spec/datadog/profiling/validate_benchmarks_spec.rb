@@ -20,4 +20,8 @@ RSpec.describe 'Profiling benchmarks' do
   describe 'profiler_sample_serialize' do
     it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_sample_serialize.rb' } }
   end
+
+  describe 'profiler_memory_sample_serialize' do
+    it('runs without raising errors') { expect_in_fork { load './benchmarks/profiler_memory_sample_serialize.rb' } }
+  end
 end
