@@ -33,6 +33,8 @@ typedef struct discrete_dynamic_sampler {
   // NOTE: This is an inverted view of the probability.
   // NOTE: A value of 0 works as +inf, effectively disabling sampling (to align with probability=0)
   unsigned long sampling_interval;
+  // Max allowed value for an individual sampling time measurement.
+  long max_sampling_time_ns;
 
   // -- Sampling State --
   // How many events have we seen since we last decided to sample.
@@ -55,6 +57,9 @@ typedef struct discrete_dynamic_sampler {
   // A negative number that we add to target_overhead to serve as extra padding to
   // try and mitigate observed overshooting of max sampling time.
   double target_overhead_adjustment;
+
+  // -- Interesting stats --
+  unsigned long sampling_time_clamps;
 } discrete_dynamic_sampler;
 
 
