@@ -17,6 +17,8 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
+#define ERR_CLOCK_FAIL "failed to get clock time"
+
 // Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
 unsigned int MAX_ALLOC_WEIGHT = 65535;
 
@@ -181,6 +183,7 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
 static VALUE stop(VALUE self_instance, VALUE optional_exception);
+static void stop_state(struct cpu_and_wall_time_worker_state *state, VALUE optional_exception);
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext);
 static void *run_sampling_trigger_loop(void *state_ptr);
 static void interrupt_sampling_trigger_loop(void *state_ptr);
@@ -213,6 +216,8 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
+static void delayed_error(struct cpu_and_wall_time_worker_state *state, const char *error);
+static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 
 // Note on sampler global state safety:
 //
@@ -284,6 +289,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_simulate_sample_from_postponed_job", _native_simulate_sample_from_postponed_job, 0);
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
+  rb_define_singleton_method(testing_module, "_native_delayed_error", _native_delayed_error, 2);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -313,7 +319,6 @@ static VALUE _native_new(VALUE klass) {
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
-  discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation");
   state->gc_tracepoint = Qnil;
   state->object_allocation_tracepoint = Qnil;
 
@@ -324,6 +329,14 @@ static VALUE _native_new(VALUE klass) {
   state->during_sample = false;
 
   reset_stats_not_thread_safe(state);
+
+  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  if (now == 0) {
+    ruby_xfree(state);
+    rb_raise(rb_eRuntimeError, ERR_CLOCK_FAIL);
+  }
+
+  discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
@@ -360,7 +373,8 @@ static VALUE _native_initialize(
     // TODO: May be nice to offer customization here? Distribute available "overhead" margin with a bias towards one or the other
     // sampler.
     dynamic_sampling_rate_set_overhead_target_percentage(&state->cpu_dynamic_sampling_rate, total_overhead_target_percentage / 2);
-    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2);
+    long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    discrete_dynamic_sampler_set_overhead_target_percentage(&state->allocation_sampler, total_overhead_target_percentage / 2, now);
   }
 
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
@@ -389,6 +403,12 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
+  // If we already got a delayed exception registered even before starting, raise before starting
+  if (state->failure_exception != Qnil) {
+    disable_tracepoints(state);
+    rb_exc_raise(state->failure_exception);
+  }
+
   struct cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
   if (old_state != NULL) {
     if (is_thread_alive(old_state->owner_thread)) {
@@ -414,7 +434,8 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
 
   // Reset the dynamic sampling rate state, if any (reminder: the monotonic clock reference may change after a fork)
   dynamic_sampling_rate_reset(&state->cpu_dynamic_sampling_rate);
-  discrete_dynamic_sampler_reset(&state->allocation_sampler);
+  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  discrete_dynamic_sampler_reset(&state->allocation_sampler, now);
 
   // This write to a global is thread-safe BECAUSE we're still holding on to the global VM lock at this point
   active_sampler_instance_state = state;
@@ -476,15 +497,19 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE
   return stop(self_instance, /* optional_exception: */ Qnil);
 }
 
-static VALUE stop(VALUE self_instance, VALUE optional_exception) {
-  struct cpu_and_wall_time_worker_state *state;
-  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
-
+static void stop_state(struct cpu_and_wall_time_worker_state *state, VALUE optional_exception) {
   atomic_store(&state->should_run, false);
   state->failure_exception = optional_exception;
 
   // Disable the tracepoints as soon as possible, so the VM doesn't keep on calling them
   disable_tracepoints(state);
+}
+
+static VALUE stop(VALUE self_instance, VALUE optional_exception) {
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  stop_state(state, optional_exception);
 
   return Qtrue;
 }
@@ -1027,9 +1052,16 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
     return;
   }
 
-  if (state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler)) {
-    state->stats.allocation_skipped++;
-    return;
+  if (state->dynamic_sampling_rate_enabled) {
+    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+    if (now == 0) {
+      delayed_error(state, ERR_CLOCK_FAIL);
+      return;
+    }
+    if (!discrete_dynamic_sampler_should_sample(&state->allocation_sampler, now)) {
+      state->stats.allocation_skipped++;
+      return;
+    }
   }
 
   // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
@@ -1042,8 +1074,14 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
 
   if (state->dynamic_sampling_rate_enabled) {
-    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions.
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler);
+    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+    if (now == 0) {
+      delayed_error(state, ERR_CLOCK_FAIL);
+      // NOTE: Not short-circuiting here to make sure cleanup happens
+    }
+    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
+    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
+    //       why we're fine with having this inside this conditional.
     state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
     state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
     state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
@@ -1055,8 +1093,12 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
-  rb_tracepoint_disable(state->gc_tracepoint);
-  rb_tracepoint_disable(state->object_allocation_tracepoint);
+  if (state->gc_tracepoint != Qnil) {
+    rb_tracepoint_disable(state->gc_tracepoint);
+  }
+  if (state->object_allocation_tracepoint != Qnil) {
+    rb_tracepoint_disable(state->object_allocation_tracepoint);
+  }
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -1091,5 +1133,21 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
+  return Qnil;
+}
+
+static void delayed_error(struct cpu_and_wall_time_worker_state *state, const char *error) {
+  // If we can't raise an immediate exception at the calling site, use the asynchronous flow through the main worker loop.
+  stop_state(state, rb_exc_new_cstr(rb_eRuntimeError, error));
+}
+
+static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg) {
+  ENFORCE_TYPE(error_msg, T_STRING);
+
+  struct cpu_and_wall_time_worker_state *state;
+  TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+  delayed_error(state, rb_string_value_cstr(&error_msg));
+
   return Qnil;
 }

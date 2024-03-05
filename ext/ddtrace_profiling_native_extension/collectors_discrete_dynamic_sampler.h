@@ -59,16 +59,16 @@ typedef struct discrete_dynamic_sampler {
 
 
 // Init a new sampler with sane defaults.
-void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name);
+void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns);
 
 // Reset a sampler, clearing all stored state.
-void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler);
+void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Sets a new target_overhead for the provided sampler, resetting it in the process.
 // @param target_overhead A double representing the percentage of total time we are
 //        willing to use as overhead for the resulting sampling. Values are expected
 //        to be in the range ]0.0, 100.0].
-void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead);
+void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns);
 
 // Make a sampling decision.
 //
@@ -77,12 +77,12 @@ void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sa
 //
 // NOTE: If true is returned we implicitly assume the start of a sampling operation
 //       and it is expected that a follow-up after_sample call is issued.
-bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler);
+bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Signal the end of a sampling operation.
 //
 // @return Sampling time in nanoseconds for the sample operation we just finished.
-long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler);
+long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Retrieve the current sampling probability ([0.0, 100.0]) being applied by this sampler.
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler);

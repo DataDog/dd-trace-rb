@@ -10,7 +10,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   subject!(:sampler) do
-    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new
+    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new((@now * 1e9).to_i)
     update_overhead_target(max_overhead_target, sampler)
     sampler
   end
