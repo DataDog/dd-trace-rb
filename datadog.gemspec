@@ -2,6 +2,10 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+# DEV: Loading gem files here is undesirable because it pollutes the application namesspace.
+# DEV: In this case, `bundle exec ruby -e 'puts defined?(Datadog)'` will return `constant`
+# DEV: even though `require 'datadog'` wasn't executed. But only the version file was loaded.
+# DEV: We should avoid loading gem files to fetch the version here.
 require 'datadog/version'
 
 Gem::Specification.new do |spec|
