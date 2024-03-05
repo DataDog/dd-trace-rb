@@ -82,6 +82,14 @@ only-profiling-gc:
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_FORCE_ENABLE_GC: "true"
 
+only-profiling-alloc:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED: "true"
+
 profiling-and-tracing:
   extends: .benchmarks
   variables:
