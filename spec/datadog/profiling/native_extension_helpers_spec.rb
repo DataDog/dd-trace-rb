@@ -1,4 +1,4 @@
-require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
+require 'ext/datadog_profiling_native_extension/native_extension_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 

@@ -77,7 +77,7 @@ module Datadog
 
     private_class_method def self.try_reading_skipped_reason_file(file_api = File)
       # This file, if it exists, is recorded by extconf.rb during compilation of the native extension
-      skipped_reason_file = "#{__dir__}/../../ext/ddtrace_profiling_native_extension/skipped_reason.txt"
+      skipped_reason_file = "#{__dir__}/../../ext/datadog_profiling_native_extension/skipped_reason.txt"
 
       begin
         return unless file_api.exist?(skipped_reason_file)
