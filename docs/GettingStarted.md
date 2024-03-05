@@ -745,7 +745,7 @@ end
 
 # In case you want to override the global configuration for a certain client instance
 connection = Faraday.new('https://example.com') do |builder|
-  builder.use(:ddtrace, **options)
+  builder.use(:datadog_tracing, **options)
   builder.adapter Faraday.default_adapter
 end
 

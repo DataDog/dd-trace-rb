@@ -11,7 +11,7 @@ module Datadog
         # https://github.com/lostisland/faraday/commit/77d7546d6d626b91086f427c56bc2cdd951353b3
         module RackBuilder
           def adapter(*args)
-            use(:ddtrace) unless @handlers.any? { |h| h.klass == Middleware }
+            use(:datadog_tracing) unless @handlers.any? { |h| h.klass == Middleware }
 
             super
           end
