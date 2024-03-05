@@ -44,8 +44,6 @@ void discrete_dynamic_sampler_reset(discrete_dynamic_sampler *sampler, long now_
     // the next event is automatically sampled by artificially locating it in the interval threshold.
     .events_since_last_sample = BASE_SAMPLING_INTERVAL - 1,
   };
-
-  return NULL;
 }
 
 void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sampler *sampler, double target_overhead, long now_ns) {
@@ -74,9 +72,7 @@ bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, l
     maybe_readjust(sampler, now_ns);
   }
 
-  return (discrete_dynamic_sampler_should_sample_result) {
-    .should_sample = should_sample,
-  };
+  return should_sample;
 }
 
 long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns) {
@@ -88,9 +84,7 @@ long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, lo
   // check if we should readjust our sampler after this sample
   maybe_readjust(sampler, now_ns);
 
-  return (discrete_dynamic_sampler_after_sample_result) {
-    .sampling_time_ns = last_sampling_time_ns,
-  };
+  return last_sampling_time_ns;
 }
 
 double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
@@ -314,9 +308,6 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
   return hash;
 }
 
-void discrete_dynamic_sampler_testing_force_fail(discrete_dynamic_sampler *sampler) {
-  sampler->error = ERR_TEST;
-}
 // ---
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 
