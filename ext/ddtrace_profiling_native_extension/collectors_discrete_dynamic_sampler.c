@@ -290,7 +290,7 @@ VALUE discrete_dynamic_sampler_state_snapshot(discrete_dynamic_sampler *sampler)
 // Below here is boilerplate to expose the above code to Ruby so that we can test it with RSpec as usual.
 
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(VALUE klass, VALUE now);
+static VALUE _native_initialize(VALUE self, VALUE now);
 static VALUE _native_reset(VALUE self, VALUE now);
 static VALUE _native_set_overhead_target_percentage(VALUE self, VALUE target_overhead, VALUE now);
 static VALUE _native_should_sample(VALUE self, VALUE now);
@@ -330,6 +330,12 @@ static const rb_data_type_t sampler_typed_data = {
 
 static VALUE _native_new(VALUE klass) {
   sampler_state *state = ruby_xcalloc(sizeof(sampler_state), 1);
+
+  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  if (now_ns == 0) {
+    rb_raise(rb_eRuntimeError, "failed to get clock time");
+  }
+  discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
 
   return TypedData_Wrap_Struct(klass, &sampler_typed_data, state);
 }

@@ -1027,24 +1027,27 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   end
 
   describe '.delayed_error' do
-    it 'raises on start' do
-      # Simulate a delayed failure pre-start (e.g. during new)
+    it 'on allocation, raises on start' do
+      worker = described_class.allocate
+      # Simulate a delayed failure pre-initialization (i.e. during new)
       Datadog::Profiling::Collectors::CpuAndWallTimeWorker::Testing._native_delayed_error(
-        cpu_and_wall_time_worker,
+        worker,
         'test failure'
       )
+
+      worker.send(:initialize, **worker_settings, **options)
 
       proc_called = Queue.new
 
       # Start the worker
-      cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+      worker.start(on_failure_proc: proc { proc_called << true })
 
       # We expect this to have been filled by the on_failure_proc
       proc_called.pop
 
       # And we expect the worker to be shutdown with a failure exception
-      expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
-      exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
+      expect(described_class::Testing._native_is_running?(worker)).to be false
+      exception = try_wait_until(backoff: 0.01) { worker.send(:failure_exception) }
       expect(exception.message).to include 'test failure'
     end
 

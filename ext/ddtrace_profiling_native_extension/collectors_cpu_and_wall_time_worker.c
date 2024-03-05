@@ -332,10 +332,10 @@ static VALUE _native_new(VALUE klass) {
 
   long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (now == 0) {
-    // NOTE: Throwing an exception on new means leaking memory as noted above so
-    //       lets let things carry on but store a delayed error.
-    delayed_error(state, ERR_CLOCK_FAIL);
+    ruby_xfree(state);
+    rb_raise(rb_eRuntimeError, ERR_CLOCK_FAIL);
   }
+
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
 
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
@@ -403,6 +403,12 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
+  // If we already got a delayed exception registered even before starting, raise before starting
+  if (state->failure_exception != Qnil) {
+    disable_tracepoints(state);
+    rb_exc_raise(state->failure_exception);
+  }
+
   struct cpu_and_wall_time_worker_state *old_state = active_sampler_instance_state;
   if (old_state != NULL) {
     if (is_thread_alive(old_state->owner_thread)) {
@@ -420,12 +426,6 @@ static VALUE _native_sampling_loop(DDTRACE_UNUSED VALUE _self, VALUE instance) {
       //    enabled, it will start firing more than once, see https://bugs.ruby-lang.org/issues/19114 for details.
       disable_tracepoints(old_state);
     }
-  }
-
-  // If we already got a delayed exception registered even before starting, raise before starting
-  if (state->failure_exception != Qnil) {
-    disable_tracepoints(state);
-    rb_exc_raise(state->failure_exception);
   }
 
   // We use `stop_thread` to distinguish when `_native_stop` was called before we actually had a chance to start. In this
