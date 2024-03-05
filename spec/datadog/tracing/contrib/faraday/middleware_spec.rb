@@ -14,7 +14,7 @@ require 'datadog/tracing/metadata/ext'
 RSpec.describe 'Faraday middleware' do
   let(:client) do
     ::Faraday.new('http://example.com') do |builder|
-      builder.use(:ddtrace, middleware_options) if use_middleware
+      builder.use(:datadog_tracing, middleware_options) if use_middleware
       builder.adapter(:test) do |stub|
         stub.get('/success') { |_| [200, response_headers, 'OK'] }
         stub.post('/failure') { |_| [500, {}, 'Boom!'] }
