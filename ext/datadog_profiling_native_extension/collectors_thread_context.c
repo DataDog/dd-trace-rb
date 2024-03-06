@@ -92,6 +92,9 @@ static ID at_span_id_id;  // id of :@span_id in Ruby
 static ID at_trace_id_id; // id of :@trace_id in Ruby
 static ID at_entries_id;  // id of :@entries in Ruby
 static ID at_context_id;  // id of :@context in Ruby
+static ID at_kind_id;     // id of :@kind in Ruby
+static ID at_name_id;     // id of :@name in Ruby
+static ID server_id;      // id of :server in Ruby
 static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
 
 // Contains state for a single ThreadContext instance
@@ -302,6 +305,9 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_trace_id_id = rb_intern_const("@trace_id");
   at_entries_id = rb_intern_const("@entries");
   at_context_id = rb_intern_const("@context");
+  at_kind_id = rb_intern_const("@kind");
+  at_name_id = rb_intern_const("@name");
+  server_id = rb_intern_const("server");
   otel_context_storage_id = rb_intern_const("__opentelemetry_context_storage__");
 
   gc_profiling_init();
@@ -1526,7 +1532,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   VALUE thread,
   struct trace_identifiers *trace_identifiers_result
 ) {
-  VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id);
+  VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
 
   // If it exists, context_storage is expected to be an Array[OpenTelemetry::Context]
   if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
@@ -1543,11 +1549,12 @@ static void otel_without_ddtrace_trace_identifiers_for(
   if (active_span_context == Qnil) return;
 
   // Get the span id and trace id from the active span...
-  VALUE active_span_id = rb_ivar_get(active_span_context, at_span_id_id);
-  VALUE active_span_trace_id = rb_ivar_get(active_span_context, at_trace_id_id);
+  VALUE active_span_id = rb_ivar_get(active_span_context, at_span_id_id /* @span_id */);
+  VALUE active_span_trace_id = rb_ivar_get(active_span_context, at_trace_id_id /* @trace_id */);
   if (active_span_id == Qnil || active_span_trace_id == Qnil || !RB_TYPE_P(active_span_id, T_STRING) || !RB_TYPE_P(active_span_trace_id, T_STRING)) return;
 
   VALUE local_root_span_id = active_span_id;
+  VALUE local_root_span = active_span_and_context.span;
 
   // Now find the oldest span starting from the active span that still has the same trace id as the active span
   for (int i = active_context_index - 1; i >= 0; i--) {
@@ -1555,13 +1562,14 @@ static void otel_without_ddtrace_trace_identifiers_for(
     VALUE span_context = span_and_context.span_context;
     if (span_context == Qnil) return;
 
-    VALUE span_id = rb_ivar_get(span_context, at_span_id_id);
-    VALUE span_trace_id = rb_ivar_get(span_context, at_trace_id_id);
+    VALUE span_id = rb_ivar_get(span_context, at_span_id_id /* @span_id */);
+    VALUE span_trace_id = rb_ivar_get(span_context, at_trace_id_id /* @trace_id */);
     if (span_id == Qnil || span_trace_id == Qnil || !RB_TYPE_P(span_id, T_STRING) || !RB_TYPE_P(span_trace_id, T_STRING)) return;
 
     if (rb_str_equal(active_span_trace_id, span_trace_id) == Qfalse) break;
 
     local_root_span_id = span_id;
+    local_root_span = span_and_context.span;
   }
 
   // Convert the span ids into uint64_t to match what the Datadog tracer does
@@ -1571,6 +1579,17 @@ static void otel_without_ddtrace_trace_identifiers_for(
   if (trace_identifiers_result->span_id == 0 || trace_identifiers_result->local_root_span_id == 0) return;
 
   trace_identifiers_result->valid = true;
+
+  if (!state->endpoint_collection_enabled) return;
+
+  VALUE root_span_type = rb_ivar_get(local_root_span, at_kind_id /* @kind */);
+  // We filter out spans that don't have `kind: :server`
+  if (root_span_type == Qnil || !RB_TYPE_P(root_span_type, T_SYMBOL) || SYM2ID(root_span_type) != server_id) return;
+
+  VALUE trace_resource = rb_ivar_get(local_root_span, at_name_id /* @name */);
+  if (!RB_TYPE_P(trace_resource, T_STRING)) return;
+
+  trace_identifiers_result->trace_endpoint = trace_resource;
 }
 
 static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE otel_current_span_key) {

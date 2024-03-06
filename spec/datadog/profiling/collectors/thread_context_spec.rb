@@ -767,6 +767,69 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 )
               end
             end
+
+            context 'when local root span kind is :server' do
+              let(:t1) do
+                Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                  otel_tracer.in_span('profiler.test', kind: :server) do |span|
+                    @t1_span_id = otel_span_id_to_i(span.context.span_id)
+                    @t1_local_root_span_id = @t1_span_id
+                    ready_queue << true
+                    sleep
+                  end
+                end
+              end
+
+              it 'includes the "trace endpoint" label' do
+                sample
+
+                expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+              end
+
+              context 'when there are multiple otel spans nested' do
+                let(:t1) do
+                  Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
+                    otel_tracer.in_span('profiler.test', kind: :server) do |root_span|
+                      @t1_local_root_span_id = otel_span_id_to_i(root_span.context.span_id)
+                      otel_tracer.in_span('profiler.test.nested.1') do
+                        otel_tracer.in_span('profiler.test.nested.2') do
+                          otel_tracer.in_span('profiler.test.nested.3') do |leaf_span|
+                            @t1_span_id = otel_span_id_to_i(leaf_span.context.span_id)
+                            ready_queue << true
+                            sleep
+                          end
+                        end
+                      end
+                    end
+                  end
+                end
+
+                it 'includes the "trace endpoint" label set to the root span name' do
+                  sample
+
+                  expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+                end
+              end
+
+              context 'when endpoint_collection_enabled is false' do
+                let(:endpoint_collection_enabled) { false }
+
+                it 'still includes "local root span id" and "span id" labels in the samples' do
+                  sample
+
+                  expect(t1_sample.labels).to include(
+                    :'local root span id' => @t1_local_root_span_id.to_i,
+                    :'span id' => @t1_span_id.to_i,
+                  )
+                end
+
+                it 'does not include the "trace endpoint" label' do
+                  sample
+
+                  expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+                end
+              end
+            end
           end
 
           context 'when trace comes from otel sdk (warning)', unless: otel_sdk_available? do
