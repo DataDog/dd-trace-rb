@@ -149,7 +149,7 @@ end
 
 <h3 id="2.0-tracing-api">Tracing API</h3>
 
-Remove option `span_type` from `Datadog::Tracing.trace` method and the following alias methods
+Remove the option `span_type` from the `Datadog::Tracing.trace` method. Additionally, the following alias methods have been removed:
 
 | 1.x                                            | Replacement in 2.0                        |
 | ---------------------------------------------- | ----------------------------------------- |
