@@ -20,7 +20,7 @@ For users with a basic implementation (configuration file + out-of-the-box instr
 
 [**Upgrade advanced usage**](#2.0-upgrading-advanced-usage)
 
-For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional may be required. See the following sections for details about what features changed and how to use them.
+For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional changes may be required. See the following sections for details about what features changed and how to use them.
 
 - [Frozen String](#2.0-frozen-string)
 - [Tracing API](#2.0-tracing-api)
