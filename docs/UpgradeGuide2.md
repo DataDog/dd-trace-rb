@@ -110,20 +110,20 @@ B3 propagation has been removed from the default propagation. If you want to con
 
 - Option `c.tracing.client_ip.enabled`: `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed. Use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
 
-- Programmatic configuration options have been made more consistent with their respective environment variables:
+- The following programmatic configuration options have been changed. Their corresponding environment variables (if any) are unchanged:
 
-  | 1.x                                                     | 2.0                                 | Environment Variable (unchanged)     |
-  | ------------------------------------------------------- | ----------------------------------- | ------------------------------------ |
-  | `tracing.distributed_tracing.propagation_extract_first` | `tracing.propagation_extract_first` | `DD_TRACE_PROPAGATION_EXTRACT_FIRST` |
-  | `tracing.distributed_tracing.propagation_extract_style` | `tracing.propagation_style_extract` | `DD_TRACE_PROPAGATION_STYLE_EXTRACT` |
-  | `tracing.distributed_tracing.propagation_inject_style`  | `tracing.propagation_style_inject`  | `DD_TRACE_PROPAGATION_STYLE_INJECT`  |
-  | `tracing.distributed_tracing.propagation_style`         | `tracing.propagation_style`         | `DD_TRACE_PROPAGATION_STYLE`         |
-  | `diagnostics.health_metrics.enabled`                    | `health_metrics.enabled`            | `DD_HEALTH_METRICS_ENABLED`          |
-  | `diagnostics.health_metrics.statsd`                     | `health_metrics.statsd`             | (none)                               |
-  | `profiling.advanced.max_events`                         | Removed                             | (none)                               |
-  | `profiling.advanced.legacy_transport_enabled`           | Removed                             | (none)                               |
-  | `profiling.advanced.force_enable_new_profiler`          | Removed                             | (none)                               |
-  | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             | (none)                               |
+  | 1.x                                                     | 2.0                                 |
+  | ------------------------------------------------------- | ----------------------------------- |
+  | `tracing.distributed_tracing.propagation_extract_first` | `tracing.propagation_extract_first` |
+  | `tracing.distributed_tracing.propagation_extract_style` | `tracing.propagation_style_extract` |
+  | `tracing.distributed_tracing.propagation_inject_style`  | `tracing.propagation_style_inject`  |
+  | `tracing.distributed_tracing.propagation_style`         | `tracing.propagation_style`         |
+  | `diagnostics.health_metrics.enabled`                    | `health_metrics.enabled`            |
+  | `diagnostics.health_metrics.statsd`                     | `health_metrics.statsd`             |
+  | `profiling.advanced.max_events`                         | Removed                             |
+  | `profiling.advanced.legacy_transport_enabled`           | Removed                             |
+  | `profiling.advanced.force_enable_new_profiler`          | Removed                             |
+  | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             |
 
 <h2 id="2.0-upgrading-advanced-usage">Upgrading Advanced Usage</h2>
 
