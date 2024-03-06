@@ -316,7 +316,7 @@ For the majority of integrations, rename the `error_handler` option to `on_error
 
 <h3 id='2.0-error-status-codes'>Option `error_status_codes`</h3>
 
-Option `error_status_codes` is introduced to various http integrations. It tags the span with an error based on http status from response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for an end-excluded range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`)
+Option `error_status_codes` has been introduced to various http integrations. It tags the span with an error based on http status from a response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use a dash for an end-excluded range (`'400-599'`) and a comma for adding element into an array (`'403,500-599'`)
 
 <h3 id='2.0-list-of-integration-changes'>List of Integration Changes</h3>
 
