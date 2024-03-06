@@ -93,7 +93,7 @@ For a list of available integrations, and their configuration options, refer to 
 | Postgres                   | `pg`                       | `>= 0.18.4`                                 | *gem not available*                         | [Link][30]       | [Link](https://github.com/ged/ruby-pg)                                       |
 | Presto                     | `presto`                   | `>= 0.5.14`                                 | `>= 0.5.14`                                 | [Link][31]       | [Link](https://github.com/treasure-data/presto-client-ruby)                  |
 | Que                        | `que`                      | `>= 1.0.0.beta2`                            | `>= 1.0.0.beta2`                            | [Link][33]       | [Link](https://github.com/que-rb/que)                                        |
-| Racecar                    | `racecar`                  | `>= 0.3.5`                                  | `>= 0.3.5`                                  | [Link][34]       | [Link](https://github.com/zendesk/racecar)                                   |
+| Racecar                    | `racecar`                  | `>= 0.3.5`                                  | `>= 1.3.5`                                  | [Link][34]       | [Link](https://github.com/zendesk/racecar)                                   |
 | Rack                       | `rack`                     | `>= 1.1`                                    | `>= 1.1`                                    | [Link][35]       | [Link](https://github.com/rack/rack)                                         |
 | Rails                      | `rails`                    | `>= 4.0`                                    | `>= 4.0`                                    | [Link][36]       | [Link](https://github.com/rails/rails)                                       |
 | Rake                       | `rake`                     | `>= 12.0`                                   | `>= 12.0`                                   | [Link][37]       | [Link](https://github.com/ruby/rake)                                         |
@@ -117,13 +117,13 @@ maintainers, Datadog APM for Ruby limits its support for these as well.
 
 #### Levels of Support
 
-| **Level**                                         | **Support provided**                                                                                                                         |
-|---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| <span id="support-unsupported">Unsupported</span> | No implementation. [Contact our customer support team for special requests.][49]                                                             |
-| <span id="support-beta">Beta</span>               | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.    |
-| <span id="support-latest">Latest</span>           | Full implementation of all features. Full support for new features, bug & security fixes.                                                    |
-| <span id="support-maintenance">Maintenance</span> | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                     |
-| <span id="support-eol">End-of-life (EOL)</span>   | No support. The version can still be used but no bugfixes will be provided.                                                                  |
+| **Level**                                         | **Support provided**                                                                                                                      |
+|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| <span id="support-unsupported">Unsupported</span> | No implementation. [Contact our customer support team for special requests.][49]                                                          |
+| <span id="support-prerelease">Pre-release</span>  | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis. |
+| <span id="support-latest">Latest</span>           | Full implementation of all features. Full support for new features, bug & security fixes.                                                 |
+| <span id="support-maintenance">Maintenance</span> | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                  |
+| <span id="support-eol">End-of-life (EOL)</span>   | No support. The version can still be used but no bugfixes will be provided.                                                               |
 
 #### Package Versioning
 
@@ -132,10 +132,10 @@ Datadog APM for Ruby practices [semantic versioning][50].
 As this relates to downgrading runtime support, it implies:
 
 - **Major version updates** (e.g. `1.0.0` to `2.0.0`) may change support for any runtime
-  from [Beta](#support-beta)/[Latest](#support-latest)
+  from [Beta](#support-prerelease)/[Latest](#support-latest)
   to [Maintenance](#support-maintenance)/[EOL](#support-eol).
 - **Minor version updates** (e.g. `1.0.0` to `1.1.0`) may change support for any runtime
-  from [Beta](#support-beta)/[Latest](#support-latest) to [Maintenance](#support-maintenance).
+  from [Beta](#support-prerelease)/[Latest](#support-latest) to [Maintenance](#support-maintenance).
 - **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
 
 #### Library version support
