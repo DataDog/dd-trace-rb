@@ -172,6 +172,11 @@ struct trace_identifiers {
   VALUE trace_endpoint;
 };
 
+struct otel_span {
+  VALUE span;
+  VALUE span_context;
+};
+
 static void thread_context_collector_typed_data_mark(void *state_ptr);
 static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
@@ -250,7 +255,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   VALUE thread,
   struct trace_identifiers *trace_identifiers_result
 );
-static VALUE otel_span_context_from(VALUE otel_context, VALUE otel_current_span_key);
+static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 
 void collectors_thread_context_init(VALUE profiling_module) {
@@ -1532,20 +1537,22 @@ static void otel_without_ddtrace_trace_identifiers_for(
   int active_context_index = RARRAY_LEN(context_storage) - 1;
   if (active_context_index < 0) return;
 
-  // If it exists, active_context_span is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
-  VALUE active_context_span = otel_span_context_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
-  if (active_context_span == Qnil) return;
+  struct otel_span active_span_and_context = otel_span_and_context_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
+  // If it exists, active_span_context is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
+  VALUE active_span_context = active_span_and_context.span_context;
+  if (active_span_context == Qnil) return;
 
   // Get the span id and trace id from the active span...
-  VALUE active_span_id = rb_ivar_get(active_context_span, at_span_id_id);
-  VALUE active_span_trace_id = rb_ivar_get(active_context_span, at_trace_id_id);
+  VALUE active_span_id = rb_ivar_get(active_span_context, at_span_id_id);
+  VALUE active_span_trace_id = rb_ivar_get(active_span_context, at_trace_id_id);
   if (active_span_id == Qnil || active_span_trace_id == Qnil || !RB_TYPE_P(active_span_id, T_STRING) || !RB_TYPE_P(active_span_trace_id, T_STRING)) return;
 
   VALUE local_root_span_id = active_span_id;
 
   // Now find the oldest span starting from the active span that still has the same trace id as the active span
   for (int i = active_context_index - 1; i >= 0; i--) {
-    VALUE span_context = otel_span_context_from(rb_ary_entry(context_storage, i), otel_current_span_key);
+    struct otel_span span_and_context = otel_span_and_context_from(rb_ary_entry(context_storage, i), otel_current_span_key);
+    VALUE span_context = span_and_context.span_context;
     if (span_context == Qnil) return;
 
     VALUE span_id = rb_ivar_get(span_context, at_span_id_id);
@@ -1566,17 +1573,19 @@ static void otel_without_ddtrace_trace_identifiers_for(
   trace_identifiers_result->valid = true;
 }
 
-static VALUE otel_span_context_from(VALUE otel_context, VALUE otel_current_span_key) {
-  if (otel_context == Qnil) return Qnil;
+static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE otel_current_span_key) {
+  struct otel_span failed = {.span = Qnil, .span_context = Qnil};
+
+  if (otel_context == Qnil) return failed;
 
   VALUE context_entries = rb_ivar_get(otel_context, at_entries_id /* @entries */);
-  if (context_entries == Qnil || !RB_TYPE_P(context_entries, T_HASH)) return Qnil;
+  if (context_entries == Qnil || !RB_TYPE_P(context_entries, T_HASH)) return failed;
 
   // If it exists, context_entries is expected to be a Hash[OpenTelemetry::Context::Key, OpenTelemetry::Trace::Span]
   VALUE span = rb_hash_lookup(context_entries, otel_current_span_key);
-  if (span == Qnil) return Qnil;
+  if (span == Qnil) return failed;
 
-  return rb_ivar_get(span, at_context_id /* @context */);
+  return (struct otel_span) {.span = span, .span_context = rb_ivar_get(span, at_context_id /* @context */)};
 }
 
 // Otel span ids are represented as a big-endian 8-byte string
