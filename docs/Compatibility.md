@@ -111,9 +111,9 @@ For a list of available integrations, and their configuration options, refer to 
 
 ### Support Policy
 
-Datadog APM for Ruby is built upon dependencies defined in specific versions of the host operating system, Ruby
+Datadog for Ruby is built upon dependencies defined in specific versions of the host operating system, Ruby
 runtime, certain Ruby libraries, and the Datadog Agent/API. When these versions are no longer supported by their
-maintainers, Datadog APM for Ruby limits its support for these as well.
+maintainers, Datadog for Ruby limits its support for these as well.
 
 #### Levels of Support
 
@@ -127,7 +127,7 @@ maintainers, Datadog APM for Ruby limits its support for these as well.
 
 #### Package Versioning
 
-Datadog APM for Ruby practices [semantic versioning][50].
+Datadog for Ruby practices [semantic versioning][50].
 
 As this relates to downgrading runtime support, it implies:
 
@@ -140,7 +140,7 @@ As this relates to downgrading runtime support, it implies:
 
 #### Library version support
 
-Datadog APM for Ruby will provide GA support for the latest major version and maintenance support for the previous major
+Datadog for Ruby will provide GA support for the latest major version and maintenance support for the previous major
 version of the library.
 
 | Gem Version | Support type                        |
@@ -152,8 +152,8 @@ version of the library.
 #### Additional suppport resources
 
 - [Datadog Customer support][49]
-- [Datadog APM for Ruby Setup Documentation][51]
-- [Datadog APM for Ruby GitHub repository][52]
+- [Datadog for Ruby Setup Documentation][51]
+- [Datadog for Ruby GitHub repository][52]
 
 [1]: https://github.com/DataDog/dd-trace-rb
 
