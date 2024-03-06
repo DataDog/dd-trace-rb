@@ -77,7 +77,7 @@ end
 
 <h4 id="2.0-type-checking">Enforce type checking</h4>
 
-Configuration options are type checked. When validation fails, it raises `ArgumentError`.
+Configuration options are type checked. When validation fails, an `ArgumentError` is raised.
 
 For example `c.env` and `c.service` now have to be `String`.
 
