@@ -123,7 +123,6 @@ maintainers, Datadog APM for Ruby limits its support for these as well.
 | <span id="support-beta">Beta</span>               | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.    |
 | <span id="support-latest">Latest</span>           | Full implementation of all features. Full support for new features, bug & security fixes.                                                    |
 | <span id="support-maintenance">Maintenance</span> | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                     |
-| <span id="support-legacy">Legacy</span>           | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.][49] |
 | <span id="support-eol">End-of-life (EOL)</span>   | No support. The version can still be used but no bugfixes will be provided.                                                                  |
 
 #### Package Versioning
@@ -134,7 +133,7 @@ As this relates to downgrading runtime support, it implies:
 
 - **Major version updates** (e.g. `1.0.0` to `2.0.0`) may change support for any runtime
   from [Beta](#support-beta)/[Latest](#support-latest)
-  to [Maintenance](#support-maintenance)/[Legacy](#support-legacy)/[EOL](#support-eol).
+  to [Maintenance](#support-maintenance)/[EOL](#support-eol).
 - **Minor version updates** (e.g. `1.0.0` to `1.1.0`) may change support for any runtime
   from [Beta](#support-beta)/[Latest](#support-latest) to [Maintenance](#support-maintenance).
 - **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
