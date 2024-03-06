@@ -542,7 +542,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             false
           end
 
-          context "when trace comes from otel sdk", if: otel_sdk_available? do
+          def self.otel_otlp_exporter_available?
+            begin
+              require 'opentelemetry-exporter-otlp'
+              true
+            rescue LoadError
+              false
+            end
+          end
+
+          context 'when trace comes from otel sdk', if: otel_sdk_available? && !otel_otlp_exporter_available? do
             let(:otel_tracer) do
               require "datadog/opentelemetry"
 
@@ -675,7 +684,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
           end
 
-          context 'when trace comes from otel sdk and the ddtrace otel support is not loaded', if: otel_sdk_available? do
+          context(
+            'when trace comes from otel sdk and the ddtrace otel support is not loaded',
+            if: otel_sdk_available? && otel_otlp_exporter_available?
+          ) do
             let(:otel_tracer) do
               if defined?(Datadog::OpenTelemetry::LOADED)
                 raise 'This test should not be run with the ddtrace otel support loaded. ' \
@@ -694,6 +706,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                   sleep
                 end
               end
+            end
+
+            after do
+              OpenTelemetry.tracer_provider.shutdown
             end
 
             def otel_span_id_to_i(span_id)
@@ -866,6 +882,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           context 'when trace comes from otel sdk (warning)', unless: otel_sdk_available? do
             it 'is not being tested' do
               skip 'Skipping OpenTelemetry tests because `opentelemetry-sdk` gem is not available'
+            end
+          end
+
+          context 'when trace comes from otel sdk (warning)', if: otel_sdk_available? do
+            not_being_tested = otel_otlp_exporter_available? ? 'otel sdk with ddtrace' : 'otel sdk without ddtrace'
+
+            it "#{not_being_tested} is not being tested" do
+              skip 'The tests for otel sdk with and without ddtrace are mutually exclusive, because ddtrace monkey ' \
+                'patches the otel sdk in a way that makes it hard to remove. To test both configurations, run this ' \
+                'spec with and without `opentelemetry-exporter-otlp` on your Gemfile (hint: can be done using appraisals).'
             end
           end
         end
