@@ -1,12 +1,10 @@
-# Upgrading ddtrace to 2.0
-
-## From 1.x to 2.0
+# Upgrading ddtrace from 1.x to 2.0
 
 Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are outlined below.
 
-[**Upgrade basic usage**](#2.0-upgrading-basic-usage)
+[**Basic Usage**](#2.0-basic-usage)
 
-For users with a basic implementation (configuration file + out-of-the-box instrumentation), only minor changes to your configuration file are required: most applications take just minutes to update. Check out the following sections for a step-by-step guide.
+In most cases, (e.g. when you use out-of-the-box instrumentation and a configuration file) only minor changes to your current setup are needed: most applications take just minutes to update.
 
 - [Requires Ruby 2.5+](#2.0-requires-ruby-2.5+)
 - [Extracts datadog-ci gem](#2.0-extracts-ci)
@@ -18,11 +16,11 @@ For users with a basic implementation (configuration file + out-of-the-box instr
 
 ---
 
-[**Upgrade advanced usage**](#2.0-upgrading-advanced-usage)
+[**Advanced Usage**](#2.0-advanced-usage)
 
-For users with an advanced implementation of `ddtrace` (custom instrumentation, sampling or processing behavior, etc), some additional changes may be required. See the following sections for details about what features changed and how to use them.
+If you have custom instrumentation, sampling or processing behavior, additional changes may be required. See the following sections for details about what features changed and how to use them.
 
-- [Frozen String](#2.0-frozen-string)
+- [Frozen String Literal](#2.0-frozen-string)
 - [Tracing API](#2.0-tracing-api)
 - [Configuration API](#2.0-configuration-api)
 - [Log Correlation](#2.0-log-correlation)
@@ -34,13 +32,13 @@ For users with an advanced implementation of `ddtrace` (custom instrumentation, 
 
 [**Upgrade Instrumentations**](#2.0-upgrade-instrumentations)
 
-Outlines the changes for our instrumentations (ie: change of support policy and option behaviour).
+Outlines the changes for our instrumentations.
 
 - [Error Handling](#2.0-error-handling)
 - [Option `error_status_codes`](#2.0-error-status-codes)
 - [List of Integration changes](#2.0-list-of-integration-changes)
 
-<h2 id="2.0-upgrading-basic-usage">Upgrading Basic Usage</h2>
+<h2 id="2.0-basic-usage">Basic Usage</h2>
 
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
@@ -93,14 +91,11 @@ Datadog.configure do |c|
 end
 ```
 
-Notes: Skipping validation with `ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']` has been removed.
-
-<!-- Here's the list of all affected options:
-[Insert all :int and :float options at release time!!!] -->
+Note that skipping validation with `ENV['DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION']` has also been removed.
 
 <h4 id="2.0-propagation-default">Propagation default</h4>
 
-B3 propagation has been removed from the default propagation. If you want to configure B3 propagation, see [document](GettingStarted.md#distributed-header-formats).
+B3 propagation has been removed from the default propagation for distributed tracing. If you want to configure B3 propagation, see [document](GettingStarted.md#distributed-header-formats).
 
 | 1.x                               | 2.0                    |
 | --------------------------------- | ---------------------- |
@@ -125,9 +120,9 @@ B3 propagation has been removed from the default propagation. If you want to con
   | `profiling.advanced.force_enable_new_profiler`          | Removed                             |
   | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             |
 
-<h2 id="2.0-upgrading-advanced-usage">Upgrading Advanced Usage</h2>
+<h2 id="2.0-advanced-usage">Advanced Usage</h2>
 
-<h3 id="2.0-frozen-string">Frozen String</h3>
+<h3 id="2.0-frozen-string">Frozen String Literal</h3>
 
 All strings are frozen by default. Make sure your code does not mutate them.
 
@@ -181,9 +176,17 @@ end
 
 <h3 id="2.0-log-correlation">Log Correlation</h3>
 
-Remove obsolete fields from `Datadog::Tracing::Correlation::Identifier`, and responds to `#env`, `#service`, `#version`, `#trace_id`, `#span_id` and `#to_log_format`. The values returned from `#trace_id` and `#span_id` change from `Integer` to `String`.
+The following fields have been from `Datadog::Tracing::Correlation::Identifier`, and it no longer responds to them
 
-If you are [manually correlating logs](GettingStarted.md#trace-correlation), check if it is still compatible.
+- `Datadog::Tracing::Correlation::Identifier#span_name`
+- `Datadog::Tracing::Correlation::Identifier#span_resource`
+- `Datadog::Tracing::Correlation::Identifier#span_service`
+- `Datadog::Tracing::Correlation::Identifier#span_type`
+- `Datadog::Tracing::Correlation::Identifier#trace_name`
+- `Datadog::Tracing::Correlation::Identifier#trace_resource`
+- `Datadog::Tracing::Correlation::Identifier#trace_service`
+
+The values returned from `Datadog::Tracing::Correlation::Identifier#trace_id` and `Datadog::Tracing::Correlation::Identifier#span_id` change from `Integer` to `String`. If you are [manually correlating logs](GettingStarted.md#trace-correlation), check if it is still compatible.
 
 ```ruby
 # === with 1.x ===
@@ -318,6 +321,13 @@ For the majority of integrations, rename the `error_handler` option to `on_error
 
 Option `error_status_codes` has been introduced to various http integrations. It tags the span with an error based on http status from a response header. Its value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use a dash for an end-excluded range (`'400-599'`) and a comma for adding element into an array (`'403,500-599'`)
 
+```ruby
+Datadog.configure do |c|
+  c.tracing.instrument :http, error_status_codes: [403, 500...600]
+  # equivalent to ENV['DD_TRACE_HTTP_ERROR_STATUS_CODES'] = '403,500-599'
+end
+```
+
 <h3 id='2.0-list-of-integration-changes'>List of Integration Changes</h3>
 
 #### ActionPack
@@ -347,7 +357,7 @@ Option `error_status_codes` has been introduced to various http integrations. It
 
 #### Excon
 
-- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behaviour when an exception (ie. `Excon::Error::Timeout`) is raised.
+- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behavior when an exception (ie. `Excon::Error::Timeout`) is raised.
 
   ```ruby
   # === with 1.x ===
@@ -365,7 +375,7 @@ Option `error_status_codes` has been introduced to various http integrations. It
 
 #### Faraday
 
-- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behaviour when an exception (ie.`Faraday::ConnectionFailed`) is raised.
+- Removed: `error_handler` option. Use `error_status_codes` option to tag span with an error based on http status from response header, the default is `400...600` (Only server errors are tagged in 1.x). Additionally, configure `on_error` option to control behavior when an exception (ie.`Faraday::ConnectionFailed`) is raised.
 
   ```ruby
   # === with 1.x ===
@@ -401,13 +411,15 @@ Option `error_status_codes` has been introduced to various http integrations. It
 
 - Support changes:
 
-  - Supports `graphql-ruby` versions `>= 2.2.6`, and the below backported versions:
-    | Branch | Version |
+  - Supports `graphql` versions `>= 2.2.6`, and the below backported versions:
+
+    | Branch   | Version             |
     | -------- | ------------------- |
-    | `2.1.x` | `>= 2.1.11, < 2.2` |
-    | `2.0.x` | `>= 2.0.28, < 2.1` |
+    | `2.1.x`  | `>= 2.1.11, < 2.2`  |
+    | `2.0.x`  | `>= 2.0.28, < 2.1`  |
     | `1.13.x` | `>= 1.13.21, < 2.0` |
-  - Do **NOT** support or patch defined-based schema.
+
+  - Does **NOT** support or patch defined-based schema.
 
 - Option `schemas` becomes optional. Providing GraphQL schemas is not required. By default, every schema is instrumented.
 
@@ -453,7 +465,7 @@ Option `error_status_codes` has been introduced to various http integrations. It
 
 <h4 id='2.0-instrumentation-rack'>Rack</h4>
 
-- The type for `request_queuing` option is `Boolean`. When enabled, the behaviour changes from 1 span to 2 spans. The original `http_server.queue` span rename to `http.proxy.request`, with an additional `http.proxy.queue` span representing the time spent in a load balancer queue before reaching application.
+- The type for `request_queuing` option is `Boolean`. When enabled, the behavior changes from 1 span to 2 spans. The original `http_server.queue` span rename to `http.proxy.request`, with an additional `http.proxy.queue` span representing the time spent in a load balancer queue before reaching application.
 
   ```ruby
   # === with 1.x ===
