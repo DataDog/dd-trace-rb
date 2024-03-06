@@ -48,7 +48,7 @@ The minimum Ruby version requirement for ddtrace 2.x is 2.5.0. For prior Ruby ve
 
 <h3 id="2.0-extracts-ci">Extracts datadog-ci gem</h3>
 
-CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed together with ddtrace.
+The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed together with ddtrace.
 
 If you are using our CI visibility product, include `datadog-ci` in your Gemfile and learn more about the [setup](https://github.com/DataDog/datadog-ci-rb).
 
