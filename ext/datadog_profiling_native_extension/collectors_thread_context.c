@@ -86,6 +86,14 @@ static ID at_otel_values_id;  // id of :@otel_values in Ruby
 static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
 static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
 
+// Used to support reading trace identifiers from the opentelemetry Ruby library when the ddtrace gem tracing
+// integration is NOT in use.
+static ID at_span_id_id;  // id of :@span_id in Ruby
+static ID at_trace_id_id; // id of :@trace_id in Ruby
+static ID at_entries_id;  // id of :@entries in Ruby
+static ID at_context_id;  // id of :@context in Ruby
+static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
+
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
@@ -237,6 +245,13 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE otel_values
 );
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples);
+static void otel_without_ddtrace_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result
+);
+static VALUE otel_span_context_from(VALUE otel_context, VALUE otel_current_span_key);
+static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -278,6 +293,11 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_otel_values_id = rb_intern_const("@otel_values");
   at_parent_span_id_id = rb_intern_const("@parent_span_id");
   at_datadog_trace_id = rb_intern_const("@datadog_trace");
+  at_span_id_id = rb_intern_const("@span_id");
+  at_trace_id_id = rb_intern_const("@trace_id");
+  at_entries_id = rb_intern_const("@entries");
+  at_context_id = rb_intern_const("@context");
+  otel_context_storage_id = rb_intern_const("__opentelemetry_context_storage__");
 
   gc_profiling_init();
 }
@@ -758,6 +778,11 @@ static void trigger_sample_for_thread(
 
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
+
+  if (!trace_identifiers_result.valid) {
+    // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
+    otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
+  }
 
   if (trace_identifiers_result.valid) {
     labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .num = trace_identifiers_result.local_root_span_id};
@@ -1372,25 +1397,31 @@ static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
   }
 }
 
+// Used to access OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY). Will raise exceptions if it fails.
+static VALUE read_otel_current_span_key_const(DDTRACE_UNUSED VALUE _unused) {
+  VALUE opentelemetry_module = rb_const_get(rb_cObject, rb_intern("OpenTelemetry"));
+  ENFORCE_TYPE(opentelemetry_module, T_MODULE);
+  VALUE trace_module = rb_const_get(opentelemetry_module, rb_intern("Trace"));
+  ENFORCE_TYPE(trace_module, T_MODULE);
+  return rb_const_get(trace_module, rb_intern("CURRENT_SPAN_KEY"));
+}
+
 static VALUE get_otel_current_span_key(struct thread_context_collector_state *state) {
   if (state->otel_current_span_key == Qnil) {
-    VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-    VALUE opentelemetry_module = rb_const_get(datadog_module, rb_intern("OpenTelemetry"));
-    VALUE api_module = rb_const_get(opentelemetry_module, rb_intern("API"));
-    VALUE context_module = rb_const_get(api_module, rb_intern_const("Context"));
-    VALUE current_span_key = rb_const_get(context_module, rb_intern_const("CURRENT_SPAN_KEY"));
+    // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
+    // gets refactored, we should not fall on our face)
+    VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
 
-    if (current_span_key == Qnil) {
-      rb_raise(rb_eRuntimeError, "Unexpected: Missing Datadog::OpenTelemetry::API::Context::CURRENT_SPAN_KEY");
-    }
+    // Marks when we failed to get the value, so we don't wasting resources trying
+    VALUE not_found_marker = Qfalse;
 
-    state->otel_current_span_key = current_span_key;
+    state->otel_current_span_key = span_key != Qnil ? span_key : not_found_marker;
   }
 
   return state->otel_current_span_key;
 }
 
-// This method gets used when ddtrace is being used indirectly via the otel APIs. Information gets stored slightly
+// This method gets used when ddtrace is being used indirectly via the opentelemetry APIs. Information gets stored slightly
 // differently, and this codepath handles it.
 static void ddtrace_otel_trace_identifiers_for(
   struct thread_context_collector_state *state,
@@ -1410,6 +1441,7 @@ static void ddtrace_otel_trace_identifiers_for(
   if (resolved_numeric_span_id == Qnil) return;
 
   VALUE otel_current_span_key = get_otel_current_span_key(state);
+  if (otel_current_span_key == Qfalse) return;
   VALUE current_trace = *active_trace;
 
   // ddtrace uses a different structure when spans are created from otel, where each otel span will have a unique ddtrace
@@ -1461,4 +1493,105 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples) {
   thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(skipped_samples));
   return Qtrue;
+}
+
+// This method differs from trace_identifiers_for/ddtrace_otel_trace_identifiers_for to support the situation where
+// the opentelemetry ruby library is being used for tracing AND the ddtrace tracing bits are not involved at all.
+//
+// Thus, in this case, we're directly reading from the opentelemetry stuff, which is different to how ddtrace tracing
+// does it.
+//
+// This is somewhat brittle: we're coupling on internal details of the opentelemetry gem to get what we need. In the
+// future maybe the otel ruby folks would be open to having a nice public way of getting this data that suits the
+// usecase of profilers.
+// Until then, the strategy below is to be extremely defensive, and if anything is out of place, we immediately return
+// and give up on getting trace data from opentelemetry. (Thus, worst case would be -- you upgrade opentelemetry and
+// profiling features relying on reading this data stop working, but you'll still get profiles and the app will be
+// otherwise undisturbed).
+//
+// Specifically, the way this works is:
+// 1. The latest entry in the opentelemetry context storage represents the current span (if any). We take the span id
+//    and trace id from this span.
+// 2. To find the local root span id, we walk the context storage backwards from the current span, and find the earliest
+//    entry in the context storage that has the same trace id as the current span; we use the found span as the local
+//    root span id.
+//    This matches the semantics of how ddtrace tracing creates a TraceOperation and assigns a local root span to it.
+static void otel_without_ddtrace_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result
+) {
+  VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id);
+
+  // If it exists, context_storage is expected to be an Array[OpenTelemetry::Context]
+  if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
+
+  VALUE otel_current_span_key = get_otel_current_span_key(state);
+  if (otel_current_span_key == Qfalse) return;
+
+  int active_context_index = RARRAY_LEN(context_storage) - 1;
+  if (active_context_index < 0) return;
+
+  // If it exists, active_context_span is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
+  VALUE active_context_span = otel_span_context_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
+  if (active_context_span == Qnil) return;
+
+  // Get the span id and trace id from the active span...
+  VALUE active_span_id = rb_ivar_get(active_context_span, at_span_id_id);
+  VALUE active_span_trace_id = rb_ivar_get(active_context_span, at_trace_id_id);
+  if (active_span_id == Qnil || active_span_trace_id == Qnil || !RB_TYPE_P(active_span_id, T_STRING) || !RB_TYPE_P(active_span_trace_id, T_STRING)) return;
+
+  VALUE local_root_span_id = active_span_id;
+
+  // Now find the oldest span starting from the active span that still has the same trace id as the active span
+  for (int i = active_context_index - 1; i >= 0; i--) {
+    VALUE span_context = otel_span_context_from(rb_ary_entry(context_storage, i), otel_current_span_key);
+    if (span_context == Qnil) return;
+
+    VALUE span_id = rb_ivar_get(span_context, at_span_id_id);
+    VALUE span_trace_id = rb_ivar_get(span_context, at_trace_id_id);
+    if (span_id == Qnil || span_trace_id == Qnil || !RB_TYPE_P(span_id, T_STRING) || !RB_TYPE_P(span_trace_id, T_STRING)) return;
+
+    if (rb_str_equal(active_span_trace_id, span_trace_id) == Qfalse) break;
+
+    local_root_span_id = span_id;
+  }
+
+  // Convert the span ids into uint64_t to match what the Datadog tracer does
+  trace_identifiers_result->span_id = otel_span_id_to_uint(active_span_id);
+  trace_identifiers_result->local_root_span_id = otel_span_id_to_uint(local_root_span_id);
+
+  if (trace_identifiers_result->span_id == 0 || trace_identifiers_result->local_root_span_id == 0) return;
+
+  trace_identifiers_result->valid = true;
+}
+
+static VALUE otel_span_context_from(VALUE otel_context, VALUE otel_current_span_key) {
+  if (otel_context == Qnil) return Qnil;
+
+  VALUE context_entries = rb_ivar_get(otel_context, at_entries_id /* @entries */);
+  if (context_entries == Qnil || !RB_TYPE_P(context_entries, T_HASH)) return Qnil;
+
+  // If it exists, context_entries is expected to be a Hash[OpenTelemetry::Context::Key, OpenTelemetry::Trace::Span]
+  VALUE span = rb_hash_lookup(context_entries, otel_current_span_key);
+  if (span == Qnil) return Qnil;
+
+  return rb_ivar_get(span, at_context_id /* @context */);
+}
+
+// Otel span ids are represented as a big-endian 8-byte string
+static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
+  if (!RB_TYPE_P(otel_span_id, T_STRING) || RSTRING_LEN(otel_span_id) != 8) { return 0; }
+
+  unsigned char *span_bytes = (unsigned char*) StringValuePtr(otel_span_id);
+
+  return \
+    ((uint64_t)span_bytes[0] << 56) |
+    ((uint64_t)span_bytes[1] << 48) |
+    ((uint64_t)span_bytes[2] << 40) |
+    ((uint64_t)span_bytes[3] << 32) |
+    ((uint64_t)span_bytes[4] << 24) |
+    ((uint64_t)span_bytes[5] << 16) |
+    ((uint64_t)span_bytes[6] <<  8) |
+    ((uint64_t)span_bytes[7]);
 }
