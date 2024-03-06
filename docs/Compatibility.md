@@ -4,31 +4,31 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported Ruby interpreters
 
-| Type  | Documentation              | Version   | Support type        | Gem version support |
-|-------|----------------------------|-----------|---------------------|---------------------|
-| MRI   | https://www.ruby-lang.org/ | 3.3       | [GA](#support-ga)   | Latest              |
-|       |                            | 3.2       | [GA](#support-ga)   | Latest              |
-|       |                            | 3.1       | [GA](#support-ga)   | Latest              |
-|       |                            | 3.0       | [GA](#support-ga)   | Latest              |
-|       |                            | 2.7       | [GA](#support-ga)   | Latest              |
-|       |                            | 2.6       | [GA](#support-ga)   | Latest              |
-|       |                            | 2.5       | [GA](#support-ga)   | Latest              |
-|       |                            | 2.4       | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.3       | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.2       | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.1       | [EOL](#support-eol) | < 2.0.0             |
-|       |                            | 2.0       | [EOL](#support-eol) | < 0.50.0            |
-|       |                            | 1.9       | [EOL](#support-eol) | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.3       | [GA](#support-ga)   | Latest              |
-|       |                            | 9.2.21.0+ | [GA](#support-ga)   | Latest              |
+| Type  | Documentation              | Version   | Support type              | Gem version support |
+|-------|----------------------------|-----------|---------------------------|---------------------|
+| MRI   | https://www.ruby-lang.org/ | 3.3       | [latest](#support-latest) | Latest              |
+|       |                            | 3.2       | [latest](#support-latest) | Latest              |
+|       |                            | 3.1       | [latest](#support-latest) | Latest              |
+|       |                            | 3.0       | [latest](#support-latest) | Latest              |
+|       |                            | 2.7       | [latest](#support-latest) | Latest              |
+|       |                            | 2.6       | [latest](#support-latest) | Latest              |
+|       |                            | 2.5       | [latest](#support-latest) | Latest              |
+|       |                            | 2.4       | [EOL](#support-eol)       | < 2.0.0             |
+|       |                            | 2.3       | [EOL](#support-eol)       | < 2.0.0             |
+|       |                            | 2.2       | [EOL](#support-eol)       | < 2.0.0             |
+|       |                            | 2.1       | [EOL](#support-eol)       | < 2.0.0             |
+|       |                            | 2.0       | [EOL](#support-eol)       | < 0.50.0            |
+|       |                            | 1.9       | [EOL](#support-eol)       | < 0.27.0            |
+| JRuby | https://www.jruby.org      | 9.3       | [latest](#support-latest) | Latest              |
+|       |                            | 9.2.21.0+ | [latest](#support-latest) | Latest              |
 
 ### Supported web servers
 
-| Type      | Documentation                     | Version      | Support type      |
-|-----------|-----------------------------------|--------------|-------------------|
-| Puma      | http://puma.io/                   | 2.16+ / 3.6+ | [GA](#support-ga) |
-| Unicorn   | https://bogomips.org/unicorn/     | 4.8+ / 5.1+  | [GA](#support-ga) |
-| Passenger | https://www.phusionpassenger.com/ | 5.0+         | [GA](#support-ga) |
+| Type      | Documentation                     | Version      | Support type              |
+|-----------|-----------------------------------|--------------|---------------------------|
+| Puma      | http://puma.io/                   | 2.16+ / 3.6+ | [latest](#support-latest) |
+| Unicorn   | https://bogomips.org/unicorn/     | 4.8+ / 5.1+  | [latest](#support-latest) |
+| Passenger | https://www.phusionpassenger.com/ | 5.0+         | [latest](#support-latest) |
 
 ### Supported tracing frameworks
 
@@ -40,8 +40,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 | OS           | Support type                        | Package version |
 |--------------|-------------------------------------|-----------------|
-| Linux x86-64 | [GA](#support-ga)                   | Latest          |
-| Linux ARM64  | [GA](#support-ga)                   | Latest          |
+| Linux x86_64 | [latest](#support-latest)           | Latest          |
+| Linux ARM64  | [latest](#support-latest)           | Latest          |
 | macOS        | Dev environments only               | Latest          |
 | MS Windows   | [Unsupported](#support-unsupported) | Latest          |
 
@@ -49,11 +49,11 @@ Need linux support for a CPU architecture not listed? [Contact our customer supp
 
 ### Supported Datadog agent versions
 
-| Datadog Agent version | Support type      | Package version |
-|-----------------------|-------------------|-----------------|
-| [7.x][53]             | [GA](#support-ga) | Latest          |
-| [6.x][53]             | [GA](#support-ga) | Latest          |
-| [5.x][54]             | [GA](#support-ga) | Latest          |
+| Datadog Agent version | Support type              | Package version |
+|-----------------------|---------------------------|-----------------|
+| [7.x][53]             | [latest](#support-latest) | Latest          |
+| [6.x][53]             | [Latest](#support-latest) | Latest          |
+| [5.x][54]             | [Latest](#support-latest) | Latest          |
 
 ## Integrations
 
@@ -117,14 +117,14 @@ maintainers, Datadog APM for Ruby limits its support for these as well.
 
 #### Levels of Support
 
-| **Level**                                              | **Support provided**                                                                                                                         |
-|--------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
-| <span id="support-unsupported">Unsupported</span>      | No implementation. [Contact our customer support team for special requests.][49]                                                             |
-| <span id="support-beta">Beta</span>                    | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.    |
-| <span id="support-ga">General Availability (GA)</span> | Full implementation of all features. Full support for new features, bug & security fixes.                                                    |
-| <span id="support-maintenance">Maintenance</span>      | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                     |
-| <span id="support-legacy">Legacy</span>                | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.][49] |
-| <span id="support-eol">End-of-life (EOL)</span>        | No support. The version can still be used but no bugfixes will be provided.                                                                  |
+| **Level**                                         | **Support provided**                                                                                                                         |
+|---------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------|
+| <span id="support-unsupported">Unsupported</span> | No implementation. [Contact our customer support team for special requests.][49]                                                             |
+| <span id="support-beta">Beta</span>               | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis.    |
+| <span id="support-latest">Latest</span>           | Full implementation of all features. Full support for new features, bug & security fixes.                                                    |
+| <span id="support-maintenance">Maintenance</span> | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                     |
+| <span id="support-legacy">Legacy</span>           | Legacy implementation. May have limited function, but no maintenance provided. [Contact our customer support team for special requests.][49] |
+| <span id="support-eol">End-of-life (EOL)</span>   | No support. The version can still be used but no bugfixes will be provided.                                                                  |
 
 #### Package Versioning
 
@@ -133,10 +133,10 @@ Datadog APM for Ruby practices [semantic versioning][50].
 As this relates to downgrading runtime support, it implies:
 
 - **Major version updates** (e.g. `1.0.0` to `2.0.0`) may change support for any runtime
-  from [Beta](#support-beta)/[GA](#support-ga)
+  from [Beta](#support-beta)/[Latest](#support-latest)
   to [Maintenance](#support-maintenance)/[Legacy](#support-legacy)/[EOL](#support-eol).
 - **Minor version updates** (e.g. `1.0.0` to `1.1.0`) may change support for any runtime
-  from [Beta](#support-beta)/[GA](#support-ga) to [Maintenance](#support-maintenance).
+  from [Beta](#support-beta)/[Latest](#support-latest) to [Maintenance](#support-maintenance).
 - **Patch version updates** (e.g. `1.0.0` to `1.0.1`) will not change support for any runtime.
 
 #### Library version support
@@ -146,7 +146,7 @@ version of the library.
 
 | Gem Version | Support type                        |
 |-------------|-------------------------------------|
-| 2.x         | [GA](#support-ga)                   |
+| 2.x         | [Latest](#support-latest)           |
 | 1.x         | [Maintenance](#support-maintenance) |
 | 0.x         | [EOL](#support-eol)                 |
 
