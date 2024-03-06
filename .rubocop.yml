@@ -238,6 +238,10 @@ Performance/RegexpMatch:
 Performance/Sum:
   Enabled: false
 
+# Requires Ruby 2.4
+Style/UnpackFirst:
+  Enabled: false
+
 # Requires Ruby 2.5
 Style/RedundantBegin:
   Enabled: false
