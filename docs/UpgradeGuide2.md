@@ -469,7 +469,7 @@ Option `error_status_codes` has been introduced to various http integrations. It
   end
   ```
 
-  Changing the name of the top-level span (`http_server.queue` -> `http.proxy.request`) would break a lot of stuff (monitors, dashboards, notebooks). The following snippet rename the top-level span back to help migration.
+  Changing the name of the top-level span (`http_server.queue` -> `http.proxy.request`) would break functionality such as monitoring, dashboards and notebooks. The following snippet renames the top-level span back to assist with migration.
 
   ```ruby
   Datadog::Tracing.before_flush(
