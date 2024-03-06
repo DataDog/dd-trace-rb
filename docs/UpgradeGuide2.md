@@ -465,23 +465,25 @@ end
 
 <h4 id='2.0-instrumentation-rack'>Rack</h4>
 
-- The type for `request_queuing` option is `Boolean`. When enabled, the behavior changes from 1 span to 2 spans. The original `http_server.queue` span rename to `http.proxy.request`, with an additional `http.proxy.queue` span representing the time spent in a load balancer queue before reaching application.
+- The type for `request_queuing` option is `Boolean`, the value can no longer be `Symbol`. When enabled, the 1.x `:exclude_request` behavior becomes the new default behavior(`include_request` was the default). The original `http_server.queue` span will be renamed to `http.proxy.request` and an additional `http.proxy.queue` span is created to represent the time spent in a load balancer queue before reaching application.
 
   ```ruby
   # === with 1.x ===
   Datadog.configure do |c|
-    c.tracing.instrument :rack, request_queuing: :include_request
+    c.tracing.instrument :rack, request_queuing: :true
     # or
-    c.tracing.instrument :rack, request_queuing: :exclude_request
+    c.tracing.instrument :rack, request_queuing: :include_request # Same as `true` in 1.x
+    # or
+    c.tracing.instrument :rack, request_queuing: :exclude_request # Becomes `true` in 2.x
   end
 
   # === with 2.0 ===
   Datadog.configure do |c|
-    c.tracing.instrument :rack, request_queuing: true
+    c.tracing.instrument :rack, request_queuing: true # :exclude_request behavior from 1.x
   end
   ```
 
-  Changing the name of the top-level span (`http_server.queue` -> `http.proxy.request`) would break functionality such as monitoring, dashboards and notebooks. The following snippet renames the top-level span back to assist with migration.
+  Changing the name of the top-level span (`http_server.queue` to `http.proxy.request`) would break functionality such as monitoring, dashboards and notebooks. The following snippet renames the top-level span back to assist with migration.
 
   ```ruby
   Datadog::Tracing.before_flush(
