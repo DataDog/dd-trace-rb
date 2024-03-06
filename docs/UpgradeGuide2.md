@@ -134,7 +134,7 @@ All strings are frozen by default. Make sure your code does not mutate them.
 <h3 id="2.0-configuration-api">Configuration API</h3>
 
 If you are [writing your own instrumentation](DevelopmentGuide.md#writing-new-integrations),
-configuration options are now lazily evaluated by default, hence remove `.lazy` from option definition.
+configuration options are now lazily evaluated by default. The `.lazy` option needs to be removed from all option configurations.
 
 ```ruby
 class MySettings < Datadog::Tracing::Contrib::Configuration::Settings
