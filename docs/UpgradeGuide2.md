@@ -119,6 +119,9 @@ B3 propagation has been removed from the default propagation for distributed tra
   | `profiling.advanced.legacy_transport_enabled`           | Removed                             |
   | `profiling.advanced.force_enable_new_profiler`          | Removed                             |
   | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             |
+  | `profiling.advanced.allocation_counting_enabled`        | Removed                             |
+  | `profiling.advanced.experimental_allocation_sample_rate` | Removed                             |
+  | `profiling.advanced.experimental_timeline_enabled`      | `profiling.advanced.timeline_enabled` |
 
 <h2 id="2.0-advanced-usage">Advanced Usage</h2>
 
