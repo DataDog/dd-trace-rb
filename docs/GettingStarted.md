@@ -1264,8 +1264,6 @@ end
 | -------------- | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | `service_name` | `DD_TRACE_RACECAR_SERVICE_NAME` | `String` | Name of application running the `racecar` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `racecar` |
 
-|
-
 ### Rack
 
 The Rack integration provides a middleware that traces all requests before they reach the underlying framework or application. It responds to the Rack minimal interface, providing reasonable values that can be retrieved at the Rack level.
@@ -2248,7 +2246,7 @@ Service C:
 
 Tracing supports the following distributed trace formats:
 
-- `Datadog`
+- `datadog`
 - `tracecontext`: [W3C Trace Context](https://www.w3.org/TR/trace-context/)
 - `b3multi`: [B3 multiple-headers](https://github.com/openzipkin/b3-propagation#multiple-headers)
 - `b3`: [B3 single-header](https://github.com/openzipkin/b3-propagation#single-header)
@@ -2259,10 +2257,10 @@ You can enable/disable the use of these formats via `Datadog.configure`:
 ```ruby
 Datadog.configure do |c|
   # List of header formats that should be extracted
-  c.tracing.propagation_style_extract = [ 'tracecontext', 'Datadog', 'b3' ]
+  c.tracing.propagation_style_extract = [ 'tracecontext', 'datadog', 'b3' ]
 
   # List of header formats that should be injected
-  c.tracing.propagation_style_inject = [ 'tracecontext', 'Datadog' ]
+  c.tracing.propagation_style_inject = [ 'tracecontext', 'datadog' ]
 end
 ```
 
@@ -2287,7 +2285,7 @@ For more details on how to activate distributed tracing for integrations, see th
 - [httpclient](#httpclient)
 - [httpx](#httpx)
 
-**Using the HTTP propagator**
+#### Using the HTTP propagator
 
 To make the process of propagating this metadata easier, you can use the `Datadog::Tracing::Contrib::HTTP` module.
 
