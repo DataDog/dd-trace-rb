@@ -54,6 +54,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
             {
               name: name,
               service: service,
+              resource: resource,
               sample_rate: sample_rate,
               max_per_second: max_per_second,
             }
@@ -61,6 +62,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
           let(:name) { nil }
           let(:service) { nil }
+          let(:resource) { nil }
           let(:sample_rate) { nil }
           let(:max_per_second) { nil }
 
@@ -109,6 +111,27 @@ RSpec.describe Datadog::Tracing::Sampling::Span::RuleParser do
 
               it 'warns and returns nil' do
                 expect(Datadog.logger).to receive(:warn).with(include(service.inspect) & include('Error'))
+                is_expected.to be_nil
+              end
+            end
+          end
+
+          context 'with resource' do
+            let(:resource) { 'resource' }
+
+            it 'sets the rule matcher resource' do
+              is_expected.to contain_exactly(
+                Datadog::Tracing::Sampling::Span::Rule.new(
+                  Datadog::Tracing::Sampling::Span::Matcher.new(resource_pattern: resource)
+                )
+              )
+            end
+
+            context 'with an invalid value' do
+              let(:resource) { { 'bad' => 'resource' } }
+
+              it 'warns and returns nil' do
+                expect(Datadog.logger).to receive(:warn).with(include(resource.inspect) & include('Error'))
                 is_expected.to be_nil
               end
             end

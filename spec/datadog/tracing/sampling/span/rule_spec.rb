@@ -7,9 +7,10 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
   let(:sample_rate) { 0.0 }
   let(:rate_limit) { 0 }
 
-  let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service) }
+  let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service, resource: span_resource) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { '' }
+  let(:span_resource) { '' }
 
   describe '#initialize' do
     subject(:rule) { described_class.new(matcher) }

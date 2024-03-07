@@ -6,9 +6,10 @@ require 'datadog/tracing/sampling/rule'
 require 'datadog/tracing/span_operation'
 
 RSpec.describe Datadog::Tracing::Sampling::Rule do
-  let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service) }
+  let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service, resource: span_resource) }
   let(:span_name) { 'operation.name' }
   let(:span_service) { nil }
+  let(:span_resource) { nil }
 
   let(:rule) { described_class.new(matcher, sampler) }
   let(:matcher) { instance_double(Datadog::Tracing::Sampling::Matcher) }
