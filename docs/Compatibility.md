@@ -38,12 +38,12 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported operating systems
 
-| OS            | Support type                        | Package version |
-|---------------|-------------------------------------|-----------------|
-| Linux x86_64  | [latest](#support-latest)           | Latest          |
-| Linux aarch64 | [latest](#support-latest)           | Latest          |
-| macOS         | Dev environments only               | Latest          |
-| MS Windows    | [Unsupported](#support-unsupported) | Latest          |
+| OS            | Support type                            | Package version |
+|---------------|-----------------------------------------|-----------------|
+| Linux x86_64  | [latest](#support-latest)               | Latest          |
+| Linux aarch64 | [latest](#support-latest)               | Latest          |
+| macOS         | Dev environments only                   | Latest          |
+| MS Windows    | [Unimplemented](#support-unimplemented) | Latest          |
 
 Need linux support for a CPU architecture not listed? [Contact our customer support team for special requests.][49]
 
@@ -117,13 +117,14 @@ maintainers, Datadog for Ruby limits its support for these as well.
 
 #### Levels of Support
 
-| **Level**                                         | **Support provided**                                                                                                                      |
-|---------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
-| <span id="support-unsupported">Unsupported</span> | No implementation. [Contact our customer support team for special requests.][49]                                                          |
-| <span id="support-prerelease">Pre-release</span>  | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis. |
-| <span id="support-latest">Latest</span>           | Full implementation of all features. Full support for new features, bug & security fixes.                                                 |
-| <span id="support-maintenance">Maintenance</span> | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                  |
-| <span id="support-eol">End-of-life (EOL)</span>   | No support. The version can still be used but no bugfixes will be provided.                                                               |
+| **Level**                                             | **Support provided**                                                                                                                      |
+|-------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------|
+| <span id="support-unsupported">Unsupported</span>     | Possibly functional, but not tested or supported. [Contact our customer support team for special requests.][49]                           |
+| <span id="support-unimplemented">Unimplemented</span> | No implementation. [Contact our customer support team for special requests.][49]                                                          |
+| <span id="support-prerelease">Pre-release</span>      | Initial implementation. May not yet contain all features. Support for new features, bug & security fixes provided on a best-effort basis. |
+| <span id="support-latest">Latest</span>               | Full implementation of all features. Full support for new features, bug & security fixes.                                                 |
+| <span id="support-maintenance">Maintenance</span>     | Full implementation of existing features. Does not receive new features. Support for critical bug & security fixes only.                  |
+| <span id="support-eol">End-of-life (EOL)</span>       | No support. The version can still be used but no bugfixes will be provided.                                                               |
 
 #### Package Versioning
 
