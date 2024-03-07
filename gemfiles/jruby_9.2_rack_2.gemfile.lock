@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.20.0)
+    ddtrace (2.0.0.dev)
       base64
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 6.0.0.1.0)
+      libdatadog (~> 6.0.0.2.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -46,7 +46,7 @@ GEM
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (6.0.0.1.0)
+    libdatadog (6.0.0.2.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)

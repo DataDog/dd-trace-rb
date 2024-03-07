@@ -120,7 +120,6 @@ module Datadog
       # @yield Optional block where new newly created {Datadog::Tracing::SpanOperation} captures the execution.
       # @yieldparam [Datadog::Tracing::SpanOperation] span_op the newly created and active [Datadog::Tracing::SpanOperation]
       # @yieldparam [Datadog::Tracing::TraceOperation] trace_op the active [Datadog::Tracing::TraceOperation]
-      # rubocop:disable Lint/UnderscorePrefixedVariableName
       # rubocop:disable Metrics/MethodLength
       def trace(
         name,
@@ -131,16 +130,13 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
-        _context: nil,
         &block
       )
         return skip_trace(name, &block) unless enabled
 
-        context, trace = nil
-
         # Resolve the trace
         begin
-          context = _context || call_context
+          context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
                     start_trace(continue_from: continue_from)
@@ -186,7 +182,6 @@ module Datadog
           )
         end
       end
-      # rubocop:enable Lint/UnderscorePrefixedVariableName
       # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
@@ -381,11 +376,13 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
+        events = SpanOperation::Events.new
+
         if block
           # Ignore start time if a block has been given
           trace.measure(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
@@ -397,7 +394,7 @@ module Datadog
           # Return the new span
           span = trace.build_span(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
@@ -407,21 +404,11 @@ module Datadog
           )
 
           span.start(start_time)
+
           span
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
-
-      def build_span_events(events = nil)
-        case events
-        when SpanOperation::Events
-          events
-        when Hash
-          SpanOperation::Events.build(events)
-        else
-          SpanOperation::Events.new
-        end
-      end
 
       def resolve_tags(tags)
         if @tags.any? && tags

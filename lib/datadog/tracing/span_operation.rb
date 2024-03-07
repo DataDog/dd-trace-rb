@@ -41,7 +41,6 @@ module Datadog
 
       def initialize(
         name,
-        child_of: nil,
         events: nil,
         on_error: nil,
         parent_id: 0,
@@ -82,12 +81,6 @@ module Datadog
 
         # Set tags if provided.
         set_tags(tags) if tags
-
-        # Only set parent if explicitly provided.
-        # We don't want it to override context-derived
-        # IDs if it's a distributed trace w/o a parent span.
-        parent = child_of
-        self.parent = parent if parent
 
         # Some other SpanOperation-specific behavior
         @events = events || Events.new
@@ -434,8 +427,11 @@ module Datadog
       # it has been finished.
       attr_reader \
         :events,
-        :parent,
         :span
+
+      # Stored only for `service_entry` calculation.
+      # Use `parent_id` for the effective parent span id.
+      attr_reader :parent
 
       # Create a Span from the operation which represents
       # the finalized measurement. We #dup here to prevent
@@ -460,8 +456,9 @@ module Datadog
         )
       end
 
-      # Set this span's parent, inheriting any properties not explicitly set.
-      # If the parent is nil, set the span as the root span.
+      # Set this span's parent, setting this span's trace_id to the parent's trace_id.
+      #
+      # If the parent is nil, set this span as the root span.
       #
       # DEV: This method creates a false expectation that
       # `self.parent.id == self.parent_id`, which is not the case
@@ -470,7 +467,7 @@ module Datadog
       # identifier. We should remove the ability to set a parent Span
       # object in the future.
       def parent=(parent)
-        @parent = parent
+        @parent = parent # Stored only for `service_entry` calculation.
 
         if parent.nil?
           @trace_id = @id

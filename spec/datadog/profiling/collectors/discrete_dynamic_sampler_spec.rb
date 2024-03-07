@@ -10,15 +10,25 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
   end
 
   subject!(:sampler) do
-    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new
+    sampler = Datadog::Profiling::Collectors::DiscreteDynamicSampler::Testing::Sampler.new(to_ns(@now))
     update_overhead_target(max_overhead_target, sampler)
     sampler
   end
 
+  def to_ns(secs)
+    (secs * 1e9).to_i
+  end
+
+  def to_sec(ns)
+    (ns / 1e9)
+  end
+
   def maybe_sample(sampling_seconds:)
-    start_ns = (@now * 1e9).to_i
-    end_ns = start_ns + (sampling_seconds * 1e9).to_i
-    sampler._native_after_sample(end_ns) / 1e9 if sampler._native_should_sample(start_ns)
+    return false unless sampler._native_should_sample(to_ns(@now))
+
+    sampler._native_after_sample(to_ns(@now + sampling_seconds))
+    @now += sampling_seconds
+    true
   end
 
   def simulate_load(duration_seconds:, events_per_second:, sampling_seconds:)
@@ -31,14 +41,13 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       # We update time at the beginning on purpose to force the last event to
       # occur at the end of the specified duration window. In other words, we
       # consciously go with end-aligned allocations in these simulated loads
-      # so that it's easier to force
+      # so that it's easier to force an adjustment to occur at the end of it.
       @now += time_between_events
-      sampling_time = maybe_sample(sampling_seconds: sampling_seconds)
-      next if sampling_time.nil?
+      sampled = maybe_sample(sampling_seconds: sampling_seconds)
+      next unless sampled
 
       num_samples += 1
-      total_sampling_seconds += sampling_time
-      @now += sampling_time
+      total_sampling_seconds += sampling_seconds
     end
     {
       sampling_ratio: num_samples.to_f / num_events,
@@ -245,19 +254,100 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(sampler_current_probability).to eq(0)
 
-    # Since that initial readjustment set probability to 0, all events in the next window will be ignored but
-    # ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we
+    # Since that initial readjustment set probability to 0, all events in the next window will be ignored
+    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
+    expect(stats[:num_samples]).to eq(0)
+
+    # Ideally we should slowly relax this over time otherwise probability = 0 would be a terminal state (if we
     # never sample again, we'll be "stuck" with the same sampling overhead view that determined probability = 0
     # in the first place since no new sampling data came in). Because of that, over a large enough window, we
     # should get some "are things still as bad as before?" probing samples.
     #
     # Question is: how long do we have to wait for probing samples? Intuitively, we need to build enough budget over
     # time for us to be able to take that probing hit assuming things remain the same. Each adjustment window
-    # with no sampling activity earns us 0.02 seconds of budget. Therefore we need 4 of these to go by before
-    # we see the next probing sample.
-    stats = simulate_load(duration_seconds: 3, events_per_second: 4, sampling_seconds: 2)
-    expect(stats[:num_samples]).to eq(0)
-    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 2)
+    # with no sampling activity earns us 0.02 seconds of budget. Therefore in theory we'd need 4 of these windows
+    # to go by before we see the next probing sample. However, an additional factor comes in -- the minimum sampling
+    # target -- and we are actually clamping the 0.08 sampling_seconds for an individual event to just 0.02 so we expect
+    # to see a sample in the next window already
+    stats = simulate_load(duration_seconds: 1, events_per_second: 4, sampling_seconds: 0.08)
     expect(stats[:num_samples]).to eq(1)
+  end
+
+  it "a weird hiccup shouldn't be able to disable sampling for whole minutes" do
+    # A normal load
+    simulate_load(duration_seconds: 60, events_per_second: 50, sampling_seconds: 0.0001)
+
+    # Followed by a a single super weird sampling event that takes an apparent 1000 seconds to complete
+    # (e.g. due to a process suspension)
+    maybe_sample(sampling_seconds: 1000)
+
+    # Followed by another normal load
+    stats = simulate_load(duration_seconds: 60, events_per_second: 50, sampling_seconds: 0.001)
+
+    # We expect the weird sample to not prevent us from sampling at least 1 sample per second from
+    # the above load
+    expect(stats[:num_samples]).to be >= 60
+  end
+
+  describe '.state_snapshot' do
+    let(:state_snapshot) { sampler._native_state_snapshot }
+
+    it 'fills a Ruby hash with relevant data from a sampler instance' do
+      # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
+      # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
+      # At an event rate of 8/sec we can sample 1/4 of total events.
+      simulate_load(duration_seconds: 120, events_per_second: 8, sampling_seconds: 0.01)
+
+      expect(state_snapshot).to match(
+        {
+          target_overhead: max_overhead_target,
+          target_overhead_adjustment: be_between(-max_overhead_target, 0),
+          events_per_sec: be_within(1).of(8),
+          sampling_time_ns: be_within(to_ns(0.001)).of(to_ns(0.01)),
+          sampling_interval: 4,
+          sampling_probability: be_within(2).of(25), # %
+          events_since_last_readjustment: be_between(0, 8),
+          samples_since_last_readjustment: be_between(0, 2),
+          max_sampling_time_ns: to_ns(1) * 0.02,
+          sampling_time_clamps: 0
+        }
+      )
+    end
+
+    context 'in a situation that triggers our minimum sampling target mechanism' do
+      let(:max_overhead_target) { 1.0 }
+
+      it 'captures time clamps accurately' do
+        # Max overhead of 1% over 1 second means a max of 0.01 seconds of sampling.
+        # With each sample taking 0.02 seconds, we can in theory only do one sample every 2 seconds.
+        # However, our minimum sampling target ensure we try at least one sample per window and we'll
+        # clamp its sampling time.
+        simulate_load(duration_seconds: 120, events_per_second: 20, sampling_seconds: 0.02)
+
+        expect(state_snapshot).to match(
+          {
+            target_overhead: max_overhead_target,
+            target_overhead_adjustment: be_between(-max_overhead_target, 0),
+            events_per_sec: be_within(1).of(20),
+            # This is clamped to 0.01
+            sampling_time_ns: be_within(to_ns(0.001)).of(to_ns(0.01)),
+            # In theory we should be sampling every 20 samples but lets make this flexible to account
+            # for our target overhead adjustment logic which may increase this
+            sampling_interval: be >= 20,
+            # Same as above. In theory 5% but overhead adjustment may push this down a bit.
+            sampling_probability: be <= 5, # %
+            events_since_last_readjustment: be_between(0, 20),
+            samples_since_last_readjustment: be_between(0, 1),
+            max_sampling_time_ns: to_ns(1) * 0.01,
+            # In theory we should be sampling every adjustment window and each of those samples should
+            # have been clamped for a grand total of 120. However, target overhead adjustment logic will
+            # be triggered given we have a consistent 2x overshooting of maximum sampling time. This
+            # adjustment logic will essentially move our target overhead to be closer to 0.5% rather than
+            # the real 1% so we'd expect approx. 120 / 2 = 60 (clamped) samples.
+            sampling_time_clamps: be_between(50, 70),
+          }
+        )
+      end
+    end
   end
 end

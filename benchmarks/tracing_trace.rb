@@ -23,11 +23,18 @@ class TracingTraceBenchmark
     end
   end
 
+  # @param [Integer] time in seconds. The default is 12 seconds because having over 105 samples allows the
+  #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
+  #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
+  # @param [Integer] warmup in seconds. The default is 2 seconds.
+  def benchmark_time(time: 12, warmup: 2)
+    VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
+  end
+
   def benchmark_no_writer
     ::Datadog::Tracing::Writer.prepend(NoopWriter)
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
       x.config(**benchmark_time)
 
       def trace(x, depth)
@@ -46,11 +53,16 @@ class TracingTraceBenchmark
     end
   end
 
+  # Because the writer runs in the background, on a timed interval, benchmark results will have
+  # dips (lower ops/sec) whenever the writer wakes up and consumes all pending traces.
+  # This is OK for our measurements, because we want to measure the full performance cost,
+  # but it creates high variability, depending on the sampled interval.
+  # This means that this benchmark will be marked as internally "unstable",
+  # but we trust it's total average result.
   def benchmark_no_network
     ::Datadog::Core::Transport::HTTP::Adapters::Net.prepend(NoopAdapter)
 
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
       x.config(**benchmark_time)
 
       def trace(x, depth)
@@ -72,7 +84,6 @@ class TracingTraceBenchmark
   def benchmark_to_digest
     Datadog::Tracing.trace('op.name') do |span, trace|
       Benchmark.ips do |x|
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
         x.config(**benchmark_time)
 
         x.report("trace.to_digest") do
@@ -88,7 +99,6 @@ class TracingTraceBenchmark
   def benchmark_log_correlation
     Datadog::Tracing.trace('op.name') do |span, trace|
       Benchmark.ips do |x|
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
         x.config(**benchmark_time)
 
         x.report("Tracing.log_correlation") do
@@ -104,7 +114,6 @@ class TracingTraceBenchmark
   def benchmark_to_digest_continue
     Datadog::Tracing.trace('op.name') do |span, trace|
       Benchmark.ips do |x|
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
         x.config(**benchmark_time)
 
         x.report("trace.to_digest - Continue") do
@@ -120,13 +129,18 @@ class TracingTraceBenchmark
 
   def benchmark_propagation_datadog
     Datadog.configure do |c|
-      c.tracing.propagation_style = ['datadog']
+      if defined?(c.tracing.distributed_tracing.propagation_extract_style)
+        # Required to run benchmarks against ddtrace 1.x.
+        # Can be removed when 2.0 is merged to master.
+        c.tracing.distributed_tracing.propagation_style = ['datadog']
+      else
+        c.tracing.propagation_style = ['datadog']
+      end
     end
 
     Datadog::Tracing.trace('op.name') do |span, trace|
       injected_trace_digest = trace.to_digest
       Benchmark.ips do |x|
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
         x.config(**benchmark_time)
 
         x.report("Propagation - Datadog") do
@@ -150,7 +164,6 @@ class TracingTraceBenchmark
     Datadog::Tracing.trace('op.name') do |span, trace|
       injected_trace_digest = trace.to_digest
       Benchmark.ips do |x|
-        benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 10.5, warmup: 2 }
         x.config(**benchmark_time)
 
         x.report("Propagation - Trace Context") do

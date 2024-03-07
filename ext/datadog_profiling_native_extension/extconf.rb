@@ -100,7 +100,7 @@ add_compiler_flag '-Wno-declaration-after-statement'
 add_compiler_flag '-Werror-implicit-function-declaration'
 
 # The native extension is not intended to expose any symbols/functions for other native libraries to use;
-# the sole exception being `Init_ddtrace_profiling_native_extension` which needs to be visible for Ruby to call it when
+# the sole exception being `Init_datadog_profiling_native_extension` which needs to be visible for Ruby to call it when
 # it `dlopen`s the library.
 #
 # By setting this compiler flag, we tell it to assume that everything is private unless explicitly stated.
@@ -237,7 +237,7 @@ Logging.message("[ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.ins
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
-EXTENSION_NAME = "ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
+EXTENSION_NAME = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
 if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   mjit_header_file_name = "rb_mjit_min_header-#{RUBY_VERSION}.h"

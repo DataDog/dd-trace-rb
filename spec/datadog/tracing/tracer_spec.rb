@@ -566,37 +566,6 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
       end
 
-      context 'with _context: option' do
-        let(:options) { { _context: context_value } }
-
-        context 'as a context' do
-          let(:context) { Datadog::Tracing::Context.new }
-          let(:context_value) { context }
-
-          it 'creates an unmanaged trace' do
-            tracer.trace 'another' do
-              expect(trace).to be_root_span
-              # This context is one-off, and isn't stored in
-              # the tracer at all. We can only see the span
-              # isn't tracked by the tracer.
-              expect(trace).to_not be(tracer.active_span)
-            end
-          end
-        end
-      end
-
-      context 'without context: option' do
-        let(:options) { {} }
-
-        it 'creates span with current context' do
-          tracer.trace 'root' do |_root_span|
-            tracer.trace 'another' do |another_span|
-              expect(trace.send(:parent)).to eq another_span
-            end
-          end
-        end
-      end
-
       context 'with child finishing after parent' do
         it "allows child span to exceed parent's end time" do
           parent = tracer.trace('parent')

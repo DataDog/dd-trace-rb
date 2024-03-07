@@ -14,7 +14,7 @@
 // up other's symbols (`RTLD_DEEPBIND`).
 //
 // But Ruby's extension loading mechanism is not configurable -- there's no way to tell it to use different flags when
-// calling `dlopen`. To get around this, this file (ddtrace_profiling_loader.c) introduces another extension
+// calling `dlopen`. To get around this, this file (datadog_profiling_loader.c) introduces another extension
 // (profiling loader) which has only a single responsibility: mimic Ruby's extension loading mechanism, but when calling
 // `dlopen` use a different set of flags.
 // This idea was shamelessly stolen from @lloeki's work in https://github.com/rubyjs/mini_racer/pull/179, big thanks!
@@ -48,7 +48,7 @@ static void unload_failed_library(void *handle);
 
 #define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
 
-void DDTRACE_EXPORT Init_ddtrace_profiling_loader(void) {
+void DDTRACE_EXPORT Init_datadog_profiling_loader(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE loader_module = rb_define_module_under(profiling_module, "Loader");
