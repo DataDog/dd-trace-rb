@@ -1264,8 +1264,6 @@ end
 | -------------- | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
 | `service_name` | `DD_TRACE_RACECAR_SERVICE_NAME` | `String` | Name of application running the `racecar` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `racecar` |
 
-|
-
 ### Rack
 
 The Rack integration provides a middleware that traces all requests before they reach the underlying framework or application. It responds to the Rack minimal interface, providing reasonable values that can be retrieved at the Rack level.

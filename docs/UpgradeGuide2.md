@@ -52,7 +52,10 @@ If you are using our CI visibility product, include `datadog-ci` in your Gemfile
 
 ```ruby
 gem 'ddtrace', '>= 2'
-gem 'datadog-ci'
+
+group :test do
+  gem 'datadog-ci'
+end
 ```
 
 If you do not want to install `datadog-ci`, make sure to remove CI-related configuration( `Datadog.configure { |c| c.ci.* }`)
@@ -107,21 +110,21 @@ B3 propagation has been removed from the default propagation for distributed tra
 
 - The following programmatic configuration options have been changed. Their corresponding environment variables (if any) are unchanged:
 
-  | 1.x                                                     | 2.0                                 |
-  | ------------------------------------------------------- | ----------------------------------- |
-  | `tracing.distributed_tracing.propagation_extract_first` | `tracing.propagation_extract_first` |
-  | `tracing.distributed_tracing.propagation_extract_style` | `tracing.propagation_style_extract` |
-  | `tracing.distributed_tracing.propagation_inject_style`  | `tracing.propagation_style_inject`  |
-  | `tracing.distributed_tracing.propagation_style`         | `tracing.propagation_style`         |
-  | `diagnostics.health_metrics.enabled`                    | `health_metrics.enabled`            |
-  | `diagnostics.health_metrics.statsd`                     | `health_metrics.statsd`             |
-  | `profiling.advanced.max_events`                         | Removed                             |
-  | `profiling.advanced.legacy_transport_enabled`           | Removed                             |
-  | `profiling.advanced.force_enable_new_profiler`          | Removed                             |
-  | `profiling.advanced.force_enable_legacy_profiler`       | Removed                             |
-  | `profiling.advanced.allocation_counting_enabled`        | Removed                             |
-  | `profiling.advanced.experimental_allocation_sample_rate` | Removed                             |
-  | `profiling.advanced.experimental_timeline_enabled`      | `profiling.advanced.timeline_enabled` |
+  | 1.x                                                      | 2.0                                   |
+  | -------------------------------------------------------- | ------------------------------------- |
+  | `tracing.distributed_tracing.propagation_extract_first`  | `tracing.propagation_extract_first`   |
+  | `tracing.distributed_tracing.propagation_extract_style`  | `tracing.propagation_style_extract`   |
+  | `tracing.distributed_tracing.propagation_inject_style`   | `tracing.propagation_style_inject`    |
+  | `tracing.distributed_tracing.propagation_style`          | `tracing.propagation_style`           |
+  | `diagnostics.health_metrics.enabled`                     | `health_metrics.enabled`              |
+  | `diagnostics.health_metrics.statsd`                      | `health_metrics.statsd`               |
+  | `profiling.advanced.max_events`                          | Removed                               |
+  | `profiling.advanced.legacy_transport_enabled`            | Removed                               |
+  | `profiling.advanced.force_enable_new_profiler`           | Removed                               |
+  | `profiling.advanced.force_enable_legacy_profiler`        | Removed                               |
+  | `profiling.advanced.allocation_counting_enabled`         | Removed                               |
+  | `profiling.advanced.experimental_allocation_sample_rate` | Removed                               |
+  | `profiling.advanced.experimental_timeline_enabled`       | `profiling.advanced.timeline_enabled` |
 
 <h2 id="2.0-advanced-usage">Advanced Usage</h2>
 
@@ -452,7 +455,7 @@ end
 
 #### OpenTracing
 
-- Removed entirely. Use `ddtrace` 1.x.
+- Removed entirely.
 
 #### PG
 
@@ -460,7 +463,7 @@ end
 
 #### Qless
 
-- Removed entirely. Use `ddtrace` 1.x.
+- Removed entirely.
 
 #### Que
 
