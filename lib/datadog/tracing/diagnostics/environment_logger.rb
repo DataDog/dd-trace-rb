@@ -108,6 +108,7 @@ module Datadog
               {
                 name: rule.matcher.name,
                 service: rule.matcher.service,
+                resource: rule.matcher.resource,
                 sample_rate: rule.sampler.sample_rate(nil)
               }
             end.compact
