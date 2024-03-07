@@ -125,15 +125,21 @@ module Datadog
                 end
 
                 # Read metadata from PG::Result
+                #
+                # It is unclear how result can be `nil` instead of a `PG::Result`
+                # Maybe a bug in the PG gem or ActiveRecord ??
+                # see: https://github.com/DataDog/dd-trace-rb/issues/3507
+                #
+                # Mitigate by guarding with `nil` check
                 if block
                   yield(propagated_sql_statement, proc do |result|
                     ret = block.call(result)
-                    annotate_span_with_result!(span, result)
+                    annotate_span_with_result!(span, result) if result
                     ret
                   end)
                 else
                   result = yield(propagated_sql_statement)
-                  annotate_span_with_result!(span, result)
+                  annotate_span_with_result!(span, result) if result
                   result
                 end
               end
