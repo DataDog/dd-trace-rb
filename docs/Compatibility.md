@@ -142,15 +142,17 @@ As this relates to downgrading runtime support, it implies:
 #### Library version support
 
 Datadog for Ruby will provide GA support for the latest major version and maintenance support for the previous major
-version of the library.
+version of the library. This support will be provided through the latest minor or patch version of the major version.
+For example, if 1.21.0 is the latest version of the library with maintenance support, bug fixes will be provided via a
+new release of 1.21.0 (or 1.20.1). Those bugfixes will not be backported as patches to previous minor versions of 1.x.
 
-| Gem Version | Support type                        |
-|-------------|-------------------------------------|
-| 2.x         | [Latest](#support-latest)           |
-| 1.x         | [Maintenance](#support-maintenance) |
-| 0.x         | [EOL](#support-eol)                 |
+| Gem Major Version | Support type                        |
+|-------------------|-------------------------------------|
+| 2.x               | [Latest](#support-latest)           |
+| 1.x               | [Maintenance](#support-maintenance) |
+| 0.x               | [EOL](#support-eol)                 |
 
-#### Additional suppport resources
+#### Additional support resources
 
 - [Datadog Customer support][49]
 - [Datadog for Ruby Setup Documentation][51]
