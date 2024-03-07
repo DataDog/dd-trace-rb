@@ -38,12 +38,12 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 ### Supported operating systems
 
-| OS           | Support type                        | Package version |
-|--------------|-------------------------------------|-----------------|
-| Linux x86_64 | [latest](#support-latest)           | Latest          |
-| Linux ARM64  | [latest](#support-latest)           | Latest          |
-| macOS        | Dev environments only               | Latest          |
-| MS Windows   | [Unsupported](#support-unsupported) | Latest          |
+| OS            | Support type                        | Package version |
+|---------------|-------------------------------------|-----------------|
+| Linux x86_64  | [latest](#support-latest)           | Latest          |
+| Linux aarch64 | [latest](#support-latest)           | Latest          |
+| macOS         | Dev environments only               | Latest          |
+| MS Windows    | [Unsupported](#support-unsupported) | Latest          |
 
 Need linux support for a CPU architecture not listed? [Contact our customer support team for special requests.][49]
 
