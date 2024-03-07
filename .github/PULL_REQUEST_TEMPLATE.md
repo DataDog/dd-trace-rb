@@ -10,7 +10,7 @@ run the test suite, write new integrations, and more.
 (If this PR is for 1.x, please delete this section)
 If this PR introduces a breaking change, update the
 https://github.com/DataDog/dd-trace-rb/blob/2.0/docs/UpgradeGuide2.md
-with either:
+in this PR with either:
 * A migration path for this change. In other words, how to continue using their application without behavior changes
 in 2.0 (e.g. environment variable 'X' renamed to 'Y').
 * That there's no alternative; we removed support for this feature.
