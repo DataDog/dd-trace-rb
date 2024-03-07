@@ -133,9 +133,8 @@ module Datadog
                 # Mitigate by guarding with `nil` check
                 if block
                   yield(propagated_sql_statement, proc do |result|
-                    ret = block.call(result)
                     annotate_span_with_result!(span, result) if result
-                    ret
+                    block.call(result)
                   end)
                 else
                   result = yield(propagated_sql_statement)
