@@ -260,9 +260,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec) do
-              conn.exec(sql_statement) do |pg_result|
-                pg_result.clear
-              end
+              conn.exec(sql_statement, &:clear)
             end
 
             it do
@@ -527,9 +525,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec_params) do
-              conn.exec_params(sql_statement, [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.exec_params(sql_statement, [1], &:clear)
             end
 
             it do
@@ -787,9 +783,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec_prepared) do
-              conn.exec_prepared('prepared select 1', [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.exec_prepared('prepared select 1', [1], &:clear)
             end
 
             it do
@@ -1056,9 +1050,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec) do
-              conn.async_exec(sql_statement) do |pg_result|
-                pg_result.clear
-              end
+              conn.async_exec(sql_statement, &:clear)
             end
 
             it do
@@ -1331,9 +1323,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec_params) do
-              conn.async_exec_params(sql_statement, [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.async_exec_params(sql_statement, [1], &:clear)
             end
 
             it do
@@ -1592,9 +1582,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec_prepared) do
-              conn.async_exec_prepared('prepared select 1', [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.async_exec_prepared('prepared select 1', [1], &:clear)
             end
 
             it do
@@ -1865,9 +1853,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec) do
-              conn.sync_exec(sql_statement) do |pg_result|
-                pg_result.clear
-              end
+              conn.sync_exec(sql_statement, &:clear)
             end
 
             it do
@@ -2129,12 +2115,9 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
-
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec_params) do
-              conn.sync_exec_params(sql_statement, [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.sync_exec_params(sql_statement, [1], &:clear)
             end
 
             it do
@@ -2389,9 +2372,7 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec_prepared) do
-              conn.sync_exec_prepared('prepared select 1', [1]) do |pg_result|
-                pg_result.clear
-              end
+              conn.sync_exec_prepared('prepared select 1', [1], &:clear)
             end
 
             it do
