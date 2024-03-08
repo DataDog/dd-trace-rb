@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'libdatadog', '~> 6.0.0.2.0'
 
   # used for CI visibility product until the next major version
-  spec.add_dependency 'datadog-ci', '~> 0.7.0'
+  spec.add_dependency 'datadog-ci', '~> 0.8.0'
 
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 end
