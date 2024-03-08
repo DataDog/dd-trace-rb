@@ -42,6 +42,8 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
+          PATCH_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
           module_function
 
           def target_version
@@ -49,11 +51,13 @@ module Datadog
           end
 
           def patch
-            require_relative 'tracer'
-            register_tracer
+            PATCH_ONLY_ONCE.run do
+              require_relative 'tracer'
+              register_tracer
 
-            patch_default_middlewares
-            setup_tracer
+              patch_default_middlewares
+              setup_tracer
+            end
           end
 
           def register_tracer
