@@ -37,6 +37,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
+        is_remote: is_remote,
       }
     end
 
@@ -59,6 +60,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:trace_state_unknown_fields) { 'any;field;really' }
 
     let(:distributed_tags) { { '_dd.p.test' => 'value' } }
+    let(:is_remote) { true }
   end
 
   shared_examples 'a span with default events' do
@@ -86,6 +88,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: nil,
           trace_state: nil,
           trace_state_unknown_fields: nil,
+          is_remote: false,
         )
       end
 
@@ -180,6 +183,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
+      end
+
+      context ':is_remote' do
+        subject(:options) { { is_remote: true } }
+        let(:is_remote) { true }
+
+        it { expect(trace_op.is_remote).to eq(is_remote) }
       end
 
       context ':rate_limiter_rate' do
@@ -1817,7 +1827,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: nil
+              trace_service: nil,
+              is_digest: false,
             )
           end
         end
@@ -1841,7 +1852,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_resource: be_a_frozen_copy_of(resource),
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: sampling_priority,
-              trace_service: be_a_frozen_copy_of(service)
+              trace_service: be_a_frozen_copy_of(service),
+              is_remote: true
             )
           end
         end
@@ -1934,7 +1946,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: nil
+              trace_service: nil,
+              is_remote: false
             )
           end
         end
@@ -1968,7 +1981,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo'
+              trace_service: 'foo',
+              is_remote: false
             )
           end
         end
@@ -2002,7 +2016,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo'
+              trace_service: 'foo',
+              is_remote: true
             )
           end
         end
@@ -2044,7 +2059,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
             trace_sampling_priority: nil,
-            trace_service: 'boo'
+            trace_service: 'boo',
+            is_remote: true
           )
         end
 
@@ -2084,6 +2100,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sampled?: sampled,
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service)
+              is_remote: true,
             )
           end
 

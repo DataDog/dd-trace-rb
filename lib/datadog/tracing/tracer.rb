@@ -325,11 +325,13 @@ module Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            is_remote: digest.is_remote,
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            is_remote: false,
           )
         end
       end
