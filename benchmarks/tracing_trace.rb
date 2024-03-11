@@ -182,7 +182,7 @@ class TracingTraceBenchmark
   def benchmark_gem_loading
     # This benchmark needs to be run in a clean environment where datadog is not loaded yet
     output, status = Bundler.with_unbundled_env do
-      Open3.capture2e('ruby', stdin_data: <<-RUBY)
+      Open3.capture2e('ruby -rbenchmark/ips', stdin_data: <<-RUBY)
         raise "Datadog is already loaded" if defined?(::Datadog)
 
         lib = File.expand_path('../lib', '#{__dir__}')
