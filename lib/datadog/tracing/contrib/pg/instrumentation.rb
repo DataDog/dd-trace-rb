@@ -126,11 +126,13 @@ module Datadog
 
                 # Read metadata from PG::Result
                 #
-                # It is unclear how result can be `nil` instead of a `PG::Result`
-                # Maybe a bug in the PG gem or ActiveRecord ??
-                # see: https://github.com/DataDog/dd-trace-rb/issues/3507
+                # It is important to guard with `nil` check, because it is possible
+                # the result is `nil` instead of `PG::Result`.
                 #
-                # Mitigate by guarding with `nil` check
+                # A non-null pointer will generally be returned except in out-of-memory conditions or
+                # serious errors such as inability to send the command to the server.
+                #
+                # see: https://www.postgresql.org/docs/current/libpq-exec.html#LIBPQ-PQEXEC
                 if block
                   yield(propagated_sql_statement, proc do |result|
                     annotate_span_with_result!(span, result) if result
