@@ -381,6 +381,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { expect(digest.span_id).to eq(0xBEE) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to eq(0) }
+      it { expect(digest.is_remote).to be true }
 
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }

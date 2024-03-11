@@ -115,6 +115,7 @@ RSpec.shared_examples 'B3 Multi distributed format' do
       it { expect(digest.trace_id).to eq(10000) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
+      it { expect(digest.is_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) do
