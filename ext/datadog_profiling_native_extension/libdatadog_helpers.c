@@ -67,7 +67,9 @@ __attribute__((warn_unused_result))
 ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
 
-  ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYM2ID verifies its input so we can do this safely
+  VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
+  ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
+  ID working_mode = SYM2ID(exporter_working_mode);
 
   ID agentless_id = rb_intern("agentless");
   ID agent_id = rb_intern("agent");

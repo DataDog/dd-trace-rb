@@ -86,6 +86,12 @@ RSpec.describe Datadog::Profiling::CrashTracker do
 
       it { is_expected.to be nil }
     end
+
+    context 'when started twice' do
+      it 'works successfully' do
+        2.times { described_class.new(exporter_configuration: [:agent, 'http://localhost:1234'], tags_as_array: [], path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary) }
+      end
+    end
   end
 
   # TODO: Maybe add an integration spec that triggers a segfault in a fork?

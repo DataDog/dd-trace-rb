@@ -6,7 +6,7 @@ require 'libdatadog'
 module ::Libdatadog
   def self.path_to_crashtracking_receiver_binary
     # TODO: Error handling when pkgconfig_folder is not detected correctly
-    File.absolute_path("#{::Libdatadog.pkgconfig_folder}/../../bin/ddog-crashtracking-receiver")
+    File.absolute_path("#{::Libdatadog.pkgconfig_folder}/../../bin/libdatadog-crashtracking-receiver")
   end
 end
 
