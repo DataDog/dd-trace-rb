@@ -260,7 +260,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec) do
-              conn.exec(sql_statement, &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec(sql_statement, &:clear) rescue nil
             end
 
             it do
@@ -525,7 +526,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec_params) do
-              conn.exec_params(sql_statement, [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec_params(sql_statement, [1], &:clear) rescue nil
             end
 
             it do
@@ -783,7 +785,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:exec_prepared) do
-              conn.exec_prepared('prepared select 1', [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec_prepared('prepared select 1', [1], &:clear) rescue nil
             end
 
             it do
@@ -1050,7 +1053,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec) do
-              conn.async_exec(sql_statement, &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec(sql_statement, &:clear) rescue nil
             end
 
             it do
@@ -1323,7 +1327,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec_params) do
-              conn.async_exec_params(sql_statement, [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec_params(sql_statement, [1], &:clear) rescue nil
             end
 
             it do
@@ -1582,7 +1587,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:async_exec_prepared) do
-              conn.async_exec_prepared('prepared select 1', [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec_prepared('prepared select 1', [1], &:clear) rescue nil
             end
 
             it do
@@ -1853,7 +1859,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec) do
-              conn.sync_exec(sql_statement, &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec(sql_statement, &:clear) rescue nil
             end
 
             it do
@@ -2117,7 +2124,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec_params) do
-              conn.sync_exec_params(sql_statement, [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec_params(sql_statement, [1], &:clear) rescue nil
             end
 
             it do
@@ -2372,7 +2380,8 @@ RSpec.describe 'PG::Connection patcher' do
 
           context 'when `PG::Result` is cleared before the block is finished' do
             subject(:sync_exec_prepared) do
-              conn.sync_exec_prepared('prepared select 1', [1], &:clear)
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec_prepared('prepared select 1', [1], &:clear) rescue nil
             end
 
             it do
