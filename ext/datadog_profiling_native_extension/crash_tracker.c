@@ -31,13 +31,14 @@ static VALUE _native_start_crashtracker(int argc, VALUE *argv, DDTRACE_UNUSED VA
   // This needs to come last, after all things that can raise exceptions, as otherwise it can leak
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
-  ddog_prof_Configuration config = {
+  ddog_prof_CrashtrackerConfiguration config = {
     .create_alt_stack = false, // This breaks the Ruby VM's stack overflow detection
     .endpoint = endpoint,
     .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
+    .resolve_frames = DDOG_PROF_CRASHTRACKER_RESOLVE_FRAMES_NEVER, // TODO: Enable && validate frame resolving
   };
 
-  ddog_prof_Metadata metadata = {
+  ddog_prof_CrashtrackerMetadata metadata = {
     .profiling_library_name = DDOG_CHARSLICE_C("dd-trace-rb"),
     .profiling_library_version = char_slice_from_ruby_string(version),
     .family = DDOG_CHARSLICE_C("ruby"),
