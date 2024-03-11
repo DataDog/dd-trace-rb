@@ -1,7 +1,5 @@
 module Datadog
   module Profiling
-    EventGroup: untyped
-
     class Flush
       attr_reader start: ::Time
       attr_reader finish: ::Time
