@@ -1,25 +1,38 @@
 module Datadog
   module Profiling
     class CrashTracker
-      def self.build_crash_tracker: (
-        exporter_configuration: [:agentless | :agent, untyped],
-        tags: ::Hash[::String, ::String],
-        ?path_to_crashtracking_receiver_binary: ::String,
-      ) -> CrashTracker?
+      type exporter_configuration_array = [:agentless | :agent, untyped]
 
       private
 
+      attr_reader exporter_configuration: exporter_configuration_array
+      attr_reader tags_as_array: ::Array[[::String, ::String]]
+      attr_reader path_to_crashtracking_receiver_binary: ::String
+
+      public
+
       def initialize: (
-        exporter_configuration: [:agentless | :agent, untyped],
+        exporter_configuration: exporter_configuration_array,
+        tags: ::Hash[::String, ::String],
         path_to_crashtracking_receiver_binary: ::String,
-        tags_as_array: ::Array[[::String, ::String]],
       ) -> void
 
-      def self._native_start_crashtracker: (
-        exporter_configuration: [:agentless | :agent, untyped],
-        path_to_crashtracking_receiver_binary: ::String,
+      def start: -> void
+      def stop: -> void
+      def reset_after_fork: -> void
+
+      private
+
+      def start_or_update_on_fork: (action: :start | :update_on_fork) -> void
+
+      def self._native_start_or_update_on_fork: (
+        action: :start | :update_on_fork,
+        exporter_configuration: exporter_configuration_array,
         tags_as_array: ::Array[[::String, ::String]],
+        path_to_crashtracking_receiver_binary: ::String,
       ) -> void
+
+      def self._native_stop: -> void
     end
   end
 end
