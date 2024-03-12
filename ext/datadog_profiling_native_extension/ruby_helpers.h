@@ -115,3 +115,5 @@ size_t ruby_obj_memsize_of(VALUE obj);
 // return a string with the result of that call. Elsif the object responds to
 // 'to_s', return a string with the result of that call. Otherwise, return Qnil.
 VALUE ruby_safe_inspect(VALUE obj);
+
+VALUE ddtrace_version(void);
