@@ -648,4 +648,5 @@ target :ddtrace do
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
+  library 'libdatadog'
 end

@@ -1,0 +1,3 @@
+module Libdatadog
+  def self.pkgconfig_folder: () -> ::String?
+end
