@@ -1825,10 +1825,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: nil,
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-
               trace_sampling_priority: nil,
               trace_service: nil,
-              is_digest: false,
+              is_remote: false,
             )
           end
         end
@@ -2017,7 +2016,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: 'foo',
-              is_remote: true
+              is_remote: false
             )
           end
         end
@@ -2060,7 +2059,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
             trace_sampling_priority: nil,
             trace_service: 'boo',
-            is_remote: true
+            is_remote: false,
           )
         end
 
@@ -2099,7 +2098,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sample_rate: sample_rate,
               sampled?: sampled,
               sampling_priority: sampling_priority,
-              service: be_a_copy_of(service)
+              service: be_a_copy_of(service),
               is_remote: true,
             )
           end

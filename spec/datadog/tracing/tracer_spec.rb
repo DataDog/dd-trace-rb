@@ -851,7 +851,7 @@ RSpec.describe Datadog::Tracing::Tracer do
             trace_state_unknown_fields: 'any;field',
           )
           expect(digest.is_remote).to be true
-          expect(trace.to_digest.is_remote).to be false 
+          expect(trace.to_digest.is_remote).to be false
 
           expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
 
