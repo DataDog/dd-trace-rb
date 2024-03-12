@@ -63,6 +63,10 @@ module Datadog
             # Reconfigure core settings
             super(&block)
 
+            # Configuration should be considered RO past this point:
+            # - Patcher's `patch` must not modify configuration.
+            # - use Integration's `subconfigure` instead
+
             # Activate integrations
             configuration = self.configuration.tracing
 
@@ -158,7 +162,7 @@ module Datadog
               unless integration.nil? || !integration.default_configuration.enabled
                 configuration_name = options[:describes] || :default
                 filtered_options = options.reject { |k, _v| k == :describes }
-                integration.configure(configuration_name, filtered_options, &block)
+                integration.configure(configuration_name, filtered_options, self, &block)
                 instrumented_integrations[integration_name] = integration
 
                 # Add to activation list

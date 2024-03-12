@@ -41,7 +41,7 @@ module Datadog
 
           # Create or update configuration associated with `matcher` with
           # the provided `options` and `&block`.
-          def configure(matcher = :default, options = {}, &block)
+          def configure(matcher = :default, options = {}, tracing = nil, &block)
             config = if matcher == :default
                        default_configuration
                      else
@@ -51,6 +51,12 @@ module Datadog
 
             # Apply the settings
             config.configure(options, &block)
+
+            # Configure dependents
+            if tracing && respond_to?(:subconfigure)
+              subconfigure(tracing, config)
+            end
+
             config
           end
 

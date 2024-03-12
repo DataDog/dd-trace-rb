@@ -9,19 +9,6 @@ module Datadog
   module Tracing
     module Contrib
       module Sinatra
-        # Set tracer configuration at a late enough time
-        module TracerSetupPatch
-          ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
-
-          def setup_middleware(*args, &block)
-            super.tap do
-              ONLY_ONCE_PER_APP[self].run do
-                Contrib::Sinatra::Framework.setup
-              end
-            end
-          end
-        end
-
         # Hook into builder before the middleware list gets frozen
         module DefaultMiddlewarePatch
           ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Core::Utils::OnlyOnce.new }
@@ -42,8 +29,6 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
-          PATCH_ONLY_ONCE = Core::Utils::OnlyOnce.new
-
           module_function
 
           def target_version
@@ -51,13 +36,10 @@ module Datadog
           end
 
           def patch
-            PATCH_ONLY_ONCE.run do
-              require_relative 'tracer'
-              register_tracer
+            require_relative 'tracer'
+            register_tracer
 
-              patch_default_middlewares
-              setup_tracer
-            end
+            patch_default_middlewares
           end
 
           def register_tracer

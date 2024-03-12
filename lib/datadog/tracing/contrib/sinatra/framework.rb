@@ -7,27 +7,6 @@ module Datadog
         # - handle configuration entries which are specific to Datadog tracing
         # - instrument parts of the framework when needed
         module Framework
-          # Configure Rack from Sinatra, but only if Rack has not been configured manually beforehand
-          def self.setup
-            Datadog.configure do |datadog_config|
-              sinatra_config = config_with_defaults(datadog_config)
-              activate_rack!(datadog_config, sinatra_config)
-            end
-          end
-
-          def self.config_with_defaults(datadog_config)
-            datadog_config.tracing[:sinatra]
-          end
-
-          # Apply relevant configuration from Sinatra to Rack
-          def self.activate_rack!(datadog_config, sinatra_config)
-            datadog_config.tracing.instrument(
-              :rack,
-              service_name: sinatra_config[:service_name],
-              distributed_tracing: sinatra_config[:distributed_tracing],
-            )
-          end
-
           # Add Rack middleware at the top of the stack
           def self.add_middleware(middleware, builder, *args, &block)
             insert_middleware(builder, middleware, args, block) do |proc_, use|

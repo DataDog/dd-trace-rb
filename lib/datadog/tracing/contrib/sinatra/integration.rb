@@ -31,6 +31,14 @@ module Datadog
             Configuration::Settings.new
           end
 
+          def subconfigure(tracing, sinatra)
+            tracing.instrument(
+              :rack,
+              service_name: sinatra.service_name,
+              distributed_tracing: sinatra.distributed_tracing,
+            )
+          end
+
           def patcher
             Patcher
           end
