@@ -10,8 +10,8 @@ module Datadog
           @thr = nil
 
           @starting = false
-          @stopping = false
           @started = false
+          @stop_requested = false
 
           @interval = interval
           raise ArgumentError, 'can not initialize a worker without a block' unless block
@@ -19,10 +19,15 @@ module Datadog
           @block = block
         end
 
-        def start
+        def start(allow_restart: false)
           Datadog.logger.debug { 'remote worker starting' }
 
           acquire_lock
+
+          if @stop_requested && !allow_restart
+            Datadog.logger.debug('remote worker: refusing to restart after previous stop')
+            return
+          end
 
           return if @starting || @started
 
@@ -46,8 +51,6 @@ module Datadog
 
           acquire_lock
 
-          @stopping = true
-
           thread = @thr
 
           if thread
@@ -56,8 +59,8 @@ module Datadog
           end
 
           @started = false
-          @stopping = false
           @thr = nil
+          @stop_requested = true
 
           Datadog.logger.debug { 'remote worker stopped' }
         ensure

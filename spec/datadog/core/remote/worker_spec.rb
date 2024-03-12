@@ -67,6 +67,28 @@ RSpec.describe Datadog::Core::Remote::Worker do
 
       expect(worker.instance_variable_get(:@thr).thread_variable_get(:fork_safe)).to be true
     end
+
+    it 'does not restart the worker after being stopped once' do
+      worker.start
+      expect(worker.instance_variable_get(:@started)).to be true
+
+      worker.stop
+
+      worker.start
+      expect(worker.instance_variable_get(:@started)).to be false
+    end
+
+    context 'when calling start with allow_restart: true' do
+      it 'restarts the worker after being stopped once' do
+        worker.start
+        expect(worker.instance_variable_get(:@started)).to be true
+
+        worker.stop
+
+        worker.start(allow_restart: true)
+        expect(worker.instance_variable_get(:@started)).to be true
+      end
+    end
   end
 
   describe '#stop' do

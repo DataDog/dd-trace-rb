@@ -12,7 +12,7 @@ module Datadog
 
         def initialize: (interval: ::Float) { () -> void } -> void
 
-        def start: () -> void
+        def start: (?allow_restart: bool) -> void
 
         def stop: () -> void
 
