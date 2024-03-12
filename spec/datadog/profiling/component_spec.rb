@@ -520,6 +520,8 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it 'falls back to the default value' do
+          allow(Datadog.logger).to receive(:error)
+
           expect(valid_overhead_target).to eq 2.0
         end
       end
