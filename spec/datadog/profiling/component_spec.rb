@@ -359,6 +359,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
             scheduler: anything,
+            optional_crash_tracker: anything,
           )
 
           build_profiler_component
@@ -506,7 +507,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
 
         it 'does not initialize the crash tracker' do
-          expect(Datadog::Profiling::CrashTracker).to_not receive(:build_crash_tracker)
+          expect(Datadog::Profiling::CrashTracker).to_not receive(:new)
 
           build_profiler_component
         end
@@ -516,7 +517,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
 
         it 'initializes the crash tracker' do
-          expect(Datadog::Profiling::CrashTracker).to receive(:build_crash_tracker).with(
+          expect(Datadog::Profiling::CrashTracker).to receive(:new).with(
             exporter_configuration: array_including(:agent),
             tags: hash_including('runtime' => 'ruby'),
           )
@@ -539,10 +540,20 @@ RSpec.describe Datadog::Profiling::Component do
           end
 
           it 'does not initialize the crash tracker' do
-            expect(Datadog::Profiling::CrashTracker).to_not receive(:build_crash_tracker)
+            expect(Datadog::Profiling::CrashTracker).to_not receive(:new)
 
             build_profiler_component
           end
+        end
+
+        it 'initializes the profiler instance with the crash tracker' do
+          expect(Datadog::Profiling::Profiler).to receive(:new).with(
+            worker: anything,
+            scheduler: anything,
+            optional_crash_tracker: instance_of(Datadog::Profiling::CrashTracker),
+          )
+
+          build_profiler_component
         end
       end
     end
@@ -564,6 +575,8 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it 'falls back to the default value' do
+          allow(Datadog.logger).to receive(:error)
+
           expect(valid_overhead_target).to eq 2.0
         end
       end

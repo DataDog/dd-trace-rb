@@ -72,10 +72,10 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
-        # FIXME: What should the lifetime of the crash tracker be?
-        build_crash_tracker(settings, transport)
+        crash_tracker = build_crash_tracker(settings, transport)
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crash_tracker: crash_tracker)
 
-        [Profiling::Profiler.new(worker: worker, scheduler: scheduler), { profiling_enabled: true }]
+        [profiler, { profiling_enabled: true }]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -122,7 +122,7 @@ module Datadog
           return
         end
 
-        Datadog::Profiling::CrashTracker.build_crash_tracker(
+        Datadog::Profiling::CrashTracker.new(
           exporter_configuration: transport.exporter_configuration,
           tags: Datadog::Profiling::TagBuilder.call(settings: settings),
         )

@@ -14,7 +14,7 @@ module Datadog
       def initialize: (
         exporter_configuration: exporter_configuration_array,
         tags: ::Hash[::String, ::String],
-        path_to_crashtracking_receiver_binary: ::String,
+        ?path_to_crashtracking_receiver_binary: ::String,
       ) -> void
 
       def start: -> void
