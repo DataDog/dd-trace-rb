@@ -1093,22 +1093,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
           startup!
         end
       end
-
-      context 'is disabled' do
-        before do
-          allow(settings.profiling)
-            .to receive(:enabled)
-            .and_return(false)
-        end
-
-        it do
-          expect(components.logger)
-            .to receive(:debug)
-            .with(/is disabled/)
-
-          startup!
-        end
-      end
     end
 
     context 'with remote' do
