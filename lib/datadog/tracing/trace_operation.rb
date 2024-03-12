@@ -74,14 +74,14 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        is_remote: nil
+        is_remote: false
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled
-        @is_remote = is_remote.nil? ? false : is_remote
+        @is_remote = is_remote
 
         # Tags
         @agent_sample_rate = agent_sample_rate
