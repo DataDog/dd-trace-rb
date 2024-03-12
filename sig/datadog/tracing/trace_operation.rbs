@@ -11,6 +11,7 @@ module Datadog
       attr_accessor rate_limiter_rate: untyped
       attr_accessor rule_sample_rate: untyped
       attr_accessor sample_rate: untyped
+      attr_accessor is_remote: untyped
       attr_accessor sampling_priority: untyped
       attr_reader active_span_count: untyped
       attr_reader active_span: untyped
@@ -22,7 +23,7 @@ module Datadog
       attr_writer sampled: untyped
       attr_writer service: untyped
 
-      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?) -> void
+      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?is_remote: untyped?) -> void
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped

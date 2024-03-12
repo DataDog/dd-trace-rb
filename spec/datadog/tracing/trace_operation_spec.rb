@@ -1857,6 +1857,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
+        context 'and :is_remote is set to false' do
+          let(:options) { { is_remote: is_remote } }
+          let(:is_remote) { false }
+
+          it { expect(digest.is_remote).to eq(is_remote) }
+        end
+
         context 'but :parent_span_id has been defined' do
           let(:options) { { parent_span_id: parent_span_id } }
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
