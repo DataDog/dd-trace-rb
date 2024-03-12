@@ -8,11 +8,11 @@ static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
 
-void crash_tracker_init(VALUE profiling_module) {
-  VALUE crash_tracker_class = rb_define_class_under(profiling_module, "CrashTracker", rb_cObject);
+void crashtracker_init(VALUE profiling_module) {
+  VALUE crashtracker_class = rb_define_class_under(profiling_module, "Crashtracker", rb_cObject);
 
-  rb_define_singleton_method(crash_tracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
-  rb_define_singleton_method(crash_tracker_class, "_native_stop", _native_stop, 0);
+  rb_define_singleton_method(crashtracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
+  rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {

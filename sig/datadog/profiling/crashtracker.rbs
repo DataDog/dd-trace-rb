@@ -1,6 +1,6 @@
 module Datadog
   module Profiling
-    class CrashTracker
+    class Crashtracker
       type exporter_configuration_array = [:agentless | :agent, untyped]
 
       private

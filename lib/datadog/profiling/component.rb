@@ -72,8 +72,8 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
-        crash_tracker = build_crash_tracker(settings, transport)
-        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crash_tracker: crash_tracker)
+        crashtracker = build_crashtracker(settings, transport)
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crashtracker: crashtracker)
 
         [profiler, { profiling_enabled: true }]
       end
@@ -112,7 +112,7 @@ module Datadog
           )
       end
 
-      private_class_method def self.build_crash_tracker(settings, transport)
+      private_class_method def self.build_crashtracker(settings, transport)
         return unless settings.profiling.advanced.experimental_crash_tracking_enabled
 
         unless transport.respond_to?(:exporter_configuration)
@@ -122,7 +122,7 @@ module Datadog
           return
         end
 
-        Datadog::Profiling::CrashTracker.new(
+        Datadog::Profiling::Crashtracker.new(
           exporter_configuration: transport.exporter_configuration,
           tags: Datadog::Profiling::TagBuilder.call(settings: settings),
         )

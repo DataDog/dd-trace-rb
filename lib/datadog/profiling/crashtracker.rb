@@ -15,8 +15,8 @@ module Datadog
     # Used to report Ruby VM crashes.
     # The interesting bits are implemented as native code and using libdatadog.
     #
-    # Methods prefixed with _native_ are implemented in `crash_tracker.c`
-    class CrashTracker
+    # Methods prefixed with _native_ are implemented in `crashtracker.c`
+    class Crashtracker
       private
 
       attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary

@@ -1,14 +1,14 @@
 require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/crash_tracker'
+require 'datadog/profiling/crashtracker'
 
 require 'webrick'
 
-RSpec.describe Datadog::Profiling::CrashTracker do
+RSpec.describe Datadog::Profiling::Crashtracker do
   before { skip_if_profiling_not_supported(self) }
 
   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
 
-  subject(:crash_tracker) do
+  subject(:crashtracker) do
     described_class.new(
       exporter_configuration: exporter_configuration,
       tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
@@ -16,7 +16,7 @@ RSpec.describe Datadog::Profiling::CrashTracker do
   end
 
   describe '#start' do
-    subject(:start) { crash_tracker.start }
+    subject(:start) { crashtracker.start }
 
     context 'when _native_start_or_update_on_fork raises an exception' do
       it 'logs the exception' do
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Profiling::CrashTracker do
     end
 
     context 'when path_to_crashtracking_receiver_binary is nil' do
-      subject(:crash_tracker) do
+      subject(:crashtracker) do
         described_class.new(
           exporter_configuration: exporter_configuration,
           tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
@@ -48,34 +48,34 @@ RSpec.describe Datadog::Profiling::CrashTracker do
 
       expect(`pgrep -f libdatadog-crashtracking-receiver`).to_not be_empty
 
-      crash_tracker.stop
+      crashtracker.stop
     end
 
     context 'when calling start multiple times in a row' do
       it 'only starts the crash tracker once' do
-        3.times { crash_tracker.start }
+        3.times { crashtracker.start }
 
         expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 1
 
-        crash_tracker.stop
+        crashtracker.stop
       end
     end
   end
 
   describe '#reset_after_fork' do
-    subject(:reset_after_fork) { crash_tracker.reset_after_fork }
+    subject(:reset_after_fork) { crashtracker.reset_after_fork }
 
     context 'when called in a fork' do
-      before { crash_tracker.start }
-      after { crash_tracker.stop }
+      before { crashtracker.start }
+      after { crashtracker.stop }
 
       it 'starts a second crash tracker for the fork' do
         expect_in_fork do
-          crash_tracker.reset_after_fork
+          crashtracker.reset_after_fork
 
           expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 2
 
-          crash_tracker.stop
+          crashtracker.stop
 
           expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 1
         end
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Profiling::CrashTracker do
   end
 
   describe '#stop' do
-    subject(:stop) { crash_tracker.stop }
+    subject(:stop) { crashtracker.stop }
 
     context 'when _native_stop_crashtracker raises an exception' do
       it 'logs the exception' do
@@ -96,7 +96,7 @@ RSpec.describe Datadog::Profiling::CrashTracker do
     end
 
     it 'stops the crash tracker' do
-      crash_tracker.start
+      crashtracker.start
 
       stop
 
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Profiling::CrashTracker do
       end
 
       expect_in_fork(fork_expectations: fork_expectations) do
-        crash_tracker.start
+        crashtracker.start
 
         Process.kill('SEGV', Process.pid)
         # TODO: For some reason, the crash tracker is not handing control back to the Ruby SEGV handler the first time

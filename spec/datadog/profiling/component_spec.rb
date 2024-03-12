@@ -359,7 +359,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
             scheduler: anything,
-            optional_crash_tracker: anything,
+            optional_crashtracker: anything,
           )
 
           build_profiler_component
@@ -507,7 +507,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
 
         it 'does not initialize the crash tracker' do
-          expect(Datadog::Profiling::CrashTracker).to_not receive(:new)
+          expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
 
           build_profiler_component
         end
@@ -517,7 +517,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
 
         it 'initializes the crash tracker' do
-          expect(Datadog::Profiling::CrashTracker).to receive(:new).with(
+          expect(Datadog::Profiling::Crashtracker).to receive(:new).with(
             exporter_configuration: array_including(:agent),
             tags: hash_including('runtime' => 'ruby'),
           )
@@ -540,7 +540,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
 
           it 'does not initialize the crash tracker' do
-            expect(Datadog::Profiling::CrashTracker).to_not receive(:new)
+            expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
 
             build_profiler_component
           end
@@ -550,7 +550,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: anything,
             scheduler: anything,
-            optional_crash_tracker: instance_of(Datadog::Profiling::CrashTracker),
+            optional_crashtracker: instance_of(Datadog::Profiling::Crashtracker),
           )
 
           build_profiler_component
