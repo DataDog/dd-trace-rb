@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
-        is_remote: is_remote,
+        has_remote_parent: has_remote_parent,
       }
     end
 
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:trace_state_unknown_fields) { 'any;field;really' }
 
     let(:distributed_tags) { { '_dd.p.test' => 'value' } }
-    let(:is_remote) { true }
+    let(:has_remote_parent) { true }
   end
 
   shared_examples 'a span with default events' do
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: nil,
           trace_state: nil,
           trace_state_unknown_fields: nil,
-          is_remote: false,
+          has_remote_parent: false,
         )
       end
 
@@ -185,11 +185,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
       end
 
-      context ':is_remote' do
-        subject(:options) { { is_remote: true } }
-        let(:is_remote) { true }
+      context ':has_remote_parent' do
+        subject(:options) { { has_remote_parent: true } }
+        let(:has_remote_parent) { true }
 
-        it { expect(trace_op.is_remote).to eq(is_remote) }
+        it { expect(trace_op.has_remote_parent).to eq(has_remote_parent) }
       end
 
       context ':rate_limiter_rate' do
@@ -1857,11 +1857,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           end
         end
 
-        context 'and :is_remote is set to false' do
-          let(:options) { { is_remote: is_remote } }
-          let(:is_remote) { false }
+        context 'and :has_remote_parent is set to false' do
+          let(:options) { { has_remote_parent: has_remote_parent } }
+          let(:has_remote_parent) { false }
 
-          it { expect(digest.is_remote).to eq(is_remote) }
+          it { expect(digest.is_remote).to eq(false) }
         end
 
         context 'but :parent_span_id has been defined' do
@@ -2106,7 +2106,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sampled?: sampled,
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service),
-              is_remote: true,
+              has_remote_parent: true,
             )
           end
 
