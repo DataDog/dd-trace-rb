@@ -19,12 +19,12 @@ module Datadog
           @block = block
         end
 
-        def start(allow_restart: false)
+        def start
           Datadog.logger.debug { 'remote worker starting' }
 
           acquire_lock
 
-          if @stop_requested && !allow_restart
+          if @stop_requested
             Datadog.logger.debug('remote worker: refusing to restart after previous stop')
             return
           end
