@@ -179,9 +179,7 @@ module Datadog
           )
         end
 
-        Datadog.logger.warn(
-          'Enabled experimental allocation profiling. This is experimental, not recommended, and will increase overhead!'
-        )
+        Datadog.logger.debug('Enabled allocation profiling')
 
         true
       end

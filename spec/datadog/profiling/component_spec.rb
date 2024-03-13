@@ -138,7 +138,7 @@ RSpec.describe Datadog::Profiling::Component do
           context 'on Ruby 2.x' do
             let(:testing_version) { '2.3.0 ' }
 
-            it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support and warns' do
+            it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support' do
               expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
                 allocation_profiling_enabled: true,
               )
@@ -146,8 +146,8 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(alloc_samples_enabled: true))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
-              expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
+              expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
+              expect(Datadog.logger).to_not receive(:warn)
 
               build_profiler_component
             end
@@ -167,7 +167,6 @@ RSpec.describe Datadog::Profiling::Component do
 
                 expect(Datadog.logger).to receive(:warn).with(/forcibly disabled/)
                 expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
-                expect(Datadog.logger).to_not receive(:warn).with(/experimental allocation profiling/)
 
                 build_profiler_component
               end
@@ -187,7 +186,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .and_call_original
 
                 expect(Datadog.logger).to receive(:warn).with(/Ractors.+crashes/)
-                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
               end
@@ -206,7 +205,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .and_call_original
 
                 expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
-                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
               end
@@ -275,7 +274,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .and_call_original
 
               expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
-              expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+              expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
 
@@ -292,7 +291,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
                 expect(Datadog.logger).not_to receive(:warn).with(/experimental heap size profiling/)
 
@@ -308,7 +307,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(heap_samples_enabled: true))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/experimental allocation profiling/)
+                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
                 expect(Datadog.logger).to receive(:debug).with(/forced object recycling.+upgrading to Ruby >= 3.1/)
