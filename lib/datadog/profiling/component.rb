@@ -135,7 +135,7 @@ module Datadog
       end
 
       private_class_method def self.enable_allocation_profiling?(settings)
-        unless settings.profiling.advanced.experimental_allocation_enabled
+        unless settings.profiling.allocation_enabled
           # Allocation profiling disabled, short-circuit out
           return false
         end

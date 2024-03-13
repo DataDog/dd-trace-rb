@@ -131,7 +131,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         context 'when allocation profiling is enabled' do
           before do
-            settings.profiling.advanced.experimental_allocation_enabled = true
+            settings.profiling.allocation_enabled = true
             stub_const('RUBY_VERSION', testing_version)
           end
 
@@ -216,7 +216,7 @@ RSpec.describe Datadog::Profiling::Component do
 
         context 'when allocation profiling is disabled' do
           before do
-            settings.profiling.advanced.experimental_allocation_enabled = false
+            settings.profiling.allocation_enabled = false
           end
 
           it 'initializes CpuAndWallTimeWorker and StackRecorder without allocation sampling support' do
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           context 'and allocation profiling disabled' do
             before do
-              settings.profiling.advanced.experimental_allocation_enabled = false
+              settings.profiling.allocation_enabled = false
             end
 
             it 'raises an ArgumentError during component initialization' do
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Profiling::Component do
 
           context 'and allocation profiling enabled and supported' do
             before do
-              settings.profiling.advanced.experimental_allocation_enabled = true
+              settings.profiling.allocation_enabled = true
             end
 
             it 'initializes StackRecorder with heap sampling support and warns' do
