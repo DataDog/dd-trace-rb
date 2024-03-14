@@ -5,7 +5,7 @@ echo -n "$RUBY_PACKAGE_VERSION" > auto_inject-ruby.version
 
 source common_build_functions.sh
 
-chmod a+r -R ../tmp/*
+chmod -R a+r,go-w ../tmp/*
 
 fpm_wrapper "datadog-apm-library-ruby" "$RUBY_PACKAGE_VERSION" \
  --input-type dir \
