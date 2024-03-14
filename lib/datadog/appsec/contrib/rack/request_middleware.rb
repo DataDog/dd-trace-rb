@@ -13,6 +13,18 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
+        # Create a hash with key being the lowercased header, and value the rack header
+        WAF_VENDORS_HEADERS = %w[
+          X-Amzn-Trace-Id
+          Cloudfront-Viewer-Ja3-Fingerprint
+          Cf-Ray
+          X-Cloud-Trace-Context
+          X-Appgw-Trace-id
+          X-SigSci-RequestID
+          X-SigSci-Tags
+          Akamai-User-Risk
+        ].map { |s| [s.downcase, Datadog::Tracing::Contrib::Rack::Header.to_rack_header(s)] }.to_h
+
         # Topmost Rack middleware for AppSec
         # This should be inserted just below Datadog::Tracing::Contrib::Rack::TraceMiddleware
         class RequestMiddleware
@@ -148,6 +160,11 @@ module Datadog
                 headers: request_header_collection,
                 remote_ip: env['REMOTE_ADDR']
               )
+            end
+
+            # Always add WAF vendors headers
+            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
+              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
             end
 
             if processor.diagnostics
