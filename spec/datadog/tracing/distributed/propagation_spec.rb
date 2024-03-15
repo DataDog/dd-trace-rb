@@ -164,7 +164,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest.trace_id).to eq(123)
           expect(trace_digest.trace_origin).to be_nil
           expect(trace_digest.trace_sampling_priority).to be nil
-          expect(trace_digest.trace_remote).to be true
+          expect(trace_digest.span_remote).to be true
         end
 
         context 'and sampling priority' do

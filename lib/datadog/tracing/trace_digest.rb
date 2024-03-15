@@ -52,7 +52,7 @@ module Datadog
       # @!attribute [r] trace_service
       #   The service of the currently active trace.
       #   @return [String]
-      # @!attribute [r] trace_remote
+      # @!attribute [r] span_remote
       #   Represents whether a TraceDigest was propagated from a remote parent or created locally.
       #   @see https://opentelemetry.io/docs/specs/otel/trace/api/#isremote
       #   @return [Boolean]
@@ -101,7 +101,7 @@ module Datadog
         :trace_flags,
         :trace_state,
         :trace_state_unknown_fields,
-        :trace_remote
+        :span_remote
 
       def initialize(
         span_id: nil,
@@ -123,7 +123,7 @@ module Datadog
         trace_flags: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        trace_remote: true
+        span_remote: true
       )
         @span_id = span_id
         @span_name = span_name && span_name.dup.freeze
@@ -144,7 +144,7 @@ module Datadog
         @trace_flags = trace_flags
         @trace_state = trace_state && trace_state.dup.freeze
         @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
-        @trace_remote = trace_remote
+        @span_remote = span_remote
         freeze
       end
 
@@ -175,7 +175,7 @@ module Datadog
             trace_flags: trace_flags,
             trace_state: trace_state,
             trace_state_unknown_fields: trace_state_unknown_fields,
-            trace_remote: trace_remote,
+            span_remote: span_remote,
           }.merge!(field_value_pairs)
         )
       end

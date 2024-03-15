@@ -1827,7 +1827,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: nil,
               trace_service: nil,
-              trace_remote: false,
+              span_remote: false,
             )
           end
         end
@@ -1852,7 +1852,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: sampling_priority,
               trace_service: be_a_frozen_copy_of(service),
-              trace_remote: true
+              span_remote: true
             )
           end
         end
@@ -1861,7 +1861,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:options) { { remote_parent: remote_parent } }
           let(:remote_parent) { false }
 
-          it { expect(digest.trace_remote).to eq(false) }
+          it { expect(digest.span_remote).to eq(false) }
         end
 
         context 'but :parent_span_id has been defined' do
@@ -1953,7 +1953,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: nil,
-              trace_remote: false
+              span_remote: false
             )
           end
         end
@@ -1988,7 +1988,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: 'foo',
-              trace_remote: false
+              span_remote: false
             )
           end
         end
@@ -2023,7 +2023,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: 'foo',
-              trace_remote: false
+              span_remote: false
             )
           end
         end
@@ -2066,7 +2066,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
             trace_sampling_priority: nil,
             trace_service: 'boo',
-            trace_remote: false,
+            span_remote: false,
           )
         end
 

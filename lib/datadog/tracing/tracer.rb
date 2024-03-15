@@ -325,7 +325,7 @@ module Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
-            remote_parent: digest.trace_remote,
+            remote_parent: digest.span_remote,
           )
         else
           TraceOperation.new(
