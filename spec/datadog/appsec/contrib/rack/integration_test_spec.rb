@@ -129,22 +129,6 @@ RSpec.describe 'Rack integration tests' do
     }
   end
 
-  let(:waf_vendors_headers) do
-    {
-      'x-amzn-trace-id' => 'Root=1-63441c4a-abcdef012345678912345678',
-      'cloudfront-viewer-ja3-fingerprint' => 'e7d705a3286e19ea42f587b344ee6865',
-      'cf-ray' => '230b030023ae2822-SJC',
-      'x-cloud-trace-context' => '105445aa7843bc8bf206b12000100000/1;o=1',
-      'x-appgw-trace-id' => 'ac882cd65a2712a0fe1289ec2bb6aee7',
-      'akamai-user-risk' => 'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
-                            'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
-                            'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
-                            'allow=0;action=none',
-      'x-sigsci-requestid' => '55c24b96ca84c02201000001',
-      'x-sigsci-tags' => 'SITE-FLAGGED-IP,IMPOSTOR'
-    }
-  end
-
   before do
     unless remote_enabled
       Datadog.configure do |c|
@@ -629,16 +613,74 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a trace with AppSec api security tags'
         end
 
-        context 'with WAF vendors headers' do
+        context 'with WAF vendor headers' do
+          let(:trace_tag_headers) do
+            {
+              'http.request.headers.x-amzn-trace-id' =>
+                'Root=1-63441c4a-abcdef012345678912345678',
+
+              'http.request.headers.cloudfront-viewer-ja3-fingerprint' =>
+                'e7d705a3286e19ea42f587b344ee6865',
+
+              'http.request.headers.cf-ray' =>
+                '230b030023ae2822-SJC',
+
+              'http.request.headers.x-cloud-trace-context' =>
+                '105445aa7843bc8bf206b12000100000/1;o=1',
+
+              'http.request.headers.x-appgw-trace-id' =>
+                'ac882cd65a2712a0fe1289ec2bb6aee7',
+
+              'http.request.headers.akamai-user-risk' =>
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'allow=0;action=none',
+
+              'http.request.headers.x-sigsci-requestid' =>
+                '55c24b96ca84c02201000001',
+
+              'http.request.headers.x-sigsci-tags' =>
+                'SITE-FLAGGED-IP,IMPOSTOR'
+            }
+          end
+
           let(:headers) do
-            waf_vendors_headers.map { |h, v| [Datadog::Tracing::Contrib::Rack::Header.to_rack_header(h), v] }.to_h
+            {
+              'HTTP_X_AMZN_TRACE_ID' =>
+                'Root=1-63441c4a-abcdef012345678912345678',
+
+              'HTTP_CLOUDFRONT_VIEWER_JA3_FINGERPRINT' =>
+                'e7d705a3286e19ea42f587b344ee6865',
+
+              'HTTP_CF_RAY' =>
+                '230b030023ae2822-SJC',
+
+              'HTTP_X_CLOUD_TRACE_CONTEXT' =>
+                '105445aa7843bc8bf206b12000100000/1;o=1',
+
+              'HTTP_X_APPGW_TRACE_ID' =>
+                'ac882cd65a2712a0fe1289ec2bb6aee7',
+
+              'HTTP_AKAMAI_USER_RISK' =>
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'allow=0;action=none',
+
+              'HTTP_X_SIGSCI_REQUESTID' =>
+                '55c24b96ca84c02201000001',
+
+              'HTTP_X_SIGSCI_TAGS' =>
+                'SITE-FLAGGED-IP,IMPOSTOR'
+            }
           end
 
           it { is_expected.to be_ok }
 
           it do
-            waf_vendors_headers.each do |header, value|
-              expect(span.get_tag("http.request.headers.#{header}")).to eq(value)
+            trace_tag_headers.each do |header, value|
+              expect(span.get_tag(header)).to eq(value)
             end
           end
 

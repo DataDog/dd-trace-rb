@@ -151,6 +151,11 @@ module Datadog
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
+            # Always add WAF vendors headers
+            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
+              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
+            end
+
             if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
               request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
 
@@ -160,11 +165,6 @@ module Datadog
                 headers: request_header_collection,
                 remote_ip: env['REMOTE_ADDR']
               )
-            end
-
-            # Always add WAF vendors headers
-            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
-              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
             end
 
             if processor.diagnostics
