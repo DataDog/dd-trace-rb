@@ -66,7 +66,8 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            add_appsec_tags(processor, scope, env)
+            add_appsec_tags(processor, scope)
+            add_http_headers_tags(scope, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               Instrumentation.gateway.push('rack.request', gateway_request) do
@@ -141,7 +142,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, scope, env)
+          def add_appsec_tags(processor, scope)
             span = scope.service_entry_span
             trace = scope.trace
 
@@ -150,22 +151,6 @@ module Datadog
             span.set_tag('_dd.appsec.enabled', 1)
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
-
-            # Always add WAF vendors headers
-            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
-              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
-            end
-
-            if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
-              request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
-
-              # always collect client ip, as this is part of AppSec provided functionality
-              Datadog::Tracing::ClientIp.set_client_ip_tag!(
-                span,
-                headers: request_header_collection,
-                remote_ip: env['REMOTE_ADDR']
-              )
-            end
 
             if processor.diagnostics
               diagnostics = processor.diagnostics
@@ -189,6 +174,28 @@ module Datadog
                   Datadog::Tracing::Sampling::Ext::Decision::ASM
                 )
               end
+            end
+          end
+
+          def add_http_headers_tags(scope, env)
+            span = scope.service_entry_span
+
+            return unless span
+
+            # Always add WAF vendors headers
+            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
+              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
+            end
+
+            if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
+              request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
+
+              # always collect client ip, as this is part of AppSec provided functionality
+              Datadog::Tracing::ClientIp.set_client_ip_tag!(
+                span,
+                headers: request_header_collection,
+                remote_ip: env['REMOTE_ADDR']
+              )
             end
           end
 
