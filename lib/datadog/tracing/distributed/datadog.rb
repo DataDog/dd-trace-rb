@@ -79,7 +79,7 @@ module Datadog
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: trace_distributed_tags,
-            is_remote: true,
+            trace_remote: true,
           )
         end
 

@@ -95,7 +95,7 @@ RSpec.shared_examples 'B3 Single distributed format' do
       it { expect(digest.span_id).to eq(0xfedcba) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
-      it { expect(digest.is_remote).to be true }
+      it { expect(digest.trace_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) { { prepare_key[b3_single_header] => 'abcdef-fedcba-1' } }

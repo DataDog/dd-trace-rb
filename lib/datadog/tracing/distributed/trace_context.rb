@@ -63,7 +63,7 @@ module Datadog
             trace_flags: trace_flags,
             trace_state: tracestate,
             trace_state_unknown_fields: unknown_fields,
-            is_remote: true,
+            trace_remote: true,
           )
         end
 

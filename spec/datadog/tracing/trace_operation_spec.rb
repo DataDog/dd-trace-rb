@@ -37,7 +37,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
-        has_remote_parent: has_remote_parent,
+        remote_parent: remote_parent,
       }
     end
 
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:trace_state_unknown_fields) { 'any;field;really' }
 
     let(:distributed_tags) { { '_dd.p.test' => 'value' } }
-    let(:has_remote_parent) { true }
+    let(:remote_parent) { true }
   end
 
   shared_examples 'a span with default events' do
@@ -88,7 +88,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: nil,
           trace_state: nil,
           trace_state_unknown_fields: nil,
-          has_remote_parent: false,
+          remote_parent: false,
         )
       end
 
@@ -185,11 +185,11 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
       end
 
-      context ':has_remote_parent' do
-        subject(:options) { { has_remote_parent: true } }
-        let(:has_remote_parent) { true }
+      context ':remote_parent' do
+        subject(:options) { { remote_parent: true } }
+        let(:remote_parent) { true }
 
-        it { expect(trace_op.has_remote_parent).to eq(has_remote_parent) }
+        it { expect(trace_op.remote_parent).to eq(remote_parent) }
       end
 
       context ':rate_limiter_rate' do
@@ -1827,7 +1827,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: nil,
               trace_service: nil,
-              is_remote: false,
+              trace_remote: false,
             )
           end
         end
@@ -1852,16 +1852,16 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: sampling_priority,
               trace_service: be_a_frozen_copy_of(service),
-              is_remote: true
+              trace_remote: true
             )
           end
         end
 
-        context 'and :has_remote_parent is set to false' do
-          let(:options) { { has_remote_parent: has_remote_parent } }
-          let(:has_remote_parent) { false }
+        context 'and :remote_parent is set to false' do
+          let(:options) { { remote_parent: remote_parent } }
+          let(:remote_parent) { false }
 
-          it { expect(digest.is_remote).to eq(false) }
+          it { expect(digest.trace_remote).to eq(false) }
         end
 
         context 'but :parent_span_id has been defined' do
@@ -1953,7 +1953,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: nil,
-              is_remote: false
+              trace_remote: false
             )
           end
         end
@@ -1988,7 +1988,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: 'foo',
-              is_remote: false
+              trace_remote: false
             )
           end
         end
@@ -2023,7 +2023,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
               trace_sampling_priority: nil,
               trace_service: 'foo',
-              is_remote: false
+              trace_remote: false
             )
           end
         end
@@ -2066,7 +2066,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
             trace_sampling_priority: nil,
             trace_service: 'boo',
-            is_remote: false,
+            trace_remote: false,
           )
         end
 
@@ -2106,7 +2106,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sampled?: sampled,
               sampling_priority: sampling_priority,
               service: be_a_copy_of(service),
-              has_remote_parent: true,
+              remote_parent: true,
             )
           end
 

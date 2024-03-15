@@ -50,7 +50,7 @@ module Datadog
             trace_service: digest.trace_service,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
-            is_remote: digest.is_remote,
+            trace_remote: digest.trace_remote,
           ).freeze
         end
       end
