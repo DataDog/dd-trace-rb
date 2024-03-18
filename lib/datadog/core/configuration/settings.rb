@@ -687,6 +687,19 @@ module Datadog
         # Client-side telemetry configuration
         # @public_api
         settings :telemetry do
+          # The interval in seconds when telemetry must be sent.
+          #
+          # This method is used internally, for testing purposes only.
+          #
+          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
+          # @return [Float]
+          # @!visibility private
+          option :dependency_collection do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_DEPENDENCY_COLLECTION
+            o.default true
+          end
+
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
           # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.

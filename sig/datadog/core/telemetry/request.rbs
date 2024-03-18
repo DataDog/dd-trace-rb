@@ -1,0 +1,14 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Request
+        def self.build_payload: (Event::Base event, int seq_id) -> ::Hash[Symbol, untyped]
+
+        private
+
+        def self.application: -> ::Hash[Symbol, untyped]
+        def self.host: -> ::Hash[Symbol, untyped]
+      end
+    end
+  end
+end

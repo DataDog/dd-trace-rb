@@ -1,93 +1,193 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/event'
-require 'datadog/core/telemetry/v1/shared_examples'
 
 RSpec.describe Datadog::Core::Telemetry::Event do
-  subject(:event) { described_class.new }
+  let(:id) { double('seq_id') }
+  subject(:payload) { event.payload(id) }
 
-  describe '#initialize' do
-    subject(:event) { described_class.new }
+  context 'AppStarted' do
+    let(:event) { described_class::AppStarted.new }
+    let(:logger) do
+      stub_const('MyLogger', Class.new(::Logger)).new(nil)
+    end
 
-    it { is_expected.to be_a_kind_of(described_class) }
-    it { is_expected.to have_attributes(api_version: 'v1') }
-  end
-
-  describe '#telemetry_request' do
-    subject(:telemetry_request) { event.telemetry_request(request_type: request_type, seq_id: seq_id, data: data) }
-
-    let(:request_type) { :'app-started' }
-    let(:seq_id) { 1 }
-    let(:data) { nil }
-
-    it { is_expected.to be_a_kind_of(Datadog::Core::Telemetry::V1::TelemetryRequest) }
-    it { expect(telemetry_request.api_version).to eql('v1') }
-    it { expect(telemetry_request.request_type).to eql(request_type) }
-    it { expect(telemetry_request.seq_id).to be(1) }
-
-    context 'when :request_type' do
-      context 'is app-started' do
-        let(:request_type) { :'app-started' }
-
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
-      end
-
-      context 'is app-closing' do
-        let(:request_type) { :'app-closing' }
-
-        it { expect(telemetry_request.payload).to eq({}) }
-      end
-
-      context 'is app-heartbeat' do
-        let(:request_type) { :'app-heartbeat' }
-
-        it { expect(telemetry_request.payload).to eq({}) }
-      end
-
-      context 'is app-integrations-change' do
-        let(:request_type) { :'app-integrations-change' }
-
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
-      end
-
-      context 'is app-client-configuration-change' do
-        let(:request_type) { 'app-client-configuration-change' }
-        let(:data) { { changes: [double('my-changes')], origin: 'my-origin' } }
-
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V2::AppClientConfigurationChange) }
-        it { expect(telemetry_request.request_type).to eq(request_type) }
-
-        it 'passes data to the event object' do
-          expect(telemetry_request.payload.to_h.to_json).to include('my-changes') & include('my-origin')
-        end
-      end
-
-      context 'is nil' do
-        let(:request_type) { nil }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is empty string' do
-        let(:request_type) { '' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
-      end
-
-      context 'is invalid option' do
-        let(:request_type) { 'some-request-type' }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
+    before do
+      Datadog.configure do |c|
+        c.agent.host = '1.2.3.4'
+        c.tracing.sampling.default_rate = 0.5
+        c.tracing.contrib.global_default_service_name.enabled = true
+        c.tracing.contrib.peer_service_mapping = { foo: 'bar' }
+        c.tracing.writer_options = { buffer_size: 123, flush_interval: 456 }
+        c.logger.instance = logger
+        c.tracing.analytics.enabled = true
+        c.telemetry.install_id = 'id'
+        c.telemetry.install_type = 'type'
+        c.telemetry.install_time = 'time'
       end
     end
 
-    context 'when :seq_id' do
-      context 'is nil' do
-        let(:seq_id) { nil }
-        it { expect { telemetry_request }.to raise_error(ArgumentError) }
+    it do
+      # Helper to make configuration matching table easier to read
+      def contain_configuration(*array)
+        match_array(array.map { |name, value| { name: name, origin: 'code', seq_id: id, value: value } })
       end
 
-      context 'is valid' do
-        let(:seq_id) { 2 }
-        it { expect(telemetry_request.payload).to be_a_kind_of(Datadog::Core::Telemetry::V1::AppEvent) }
+      is_expected.to match(
+        products: {
+          appsec: {
+            enabled: false,
+          },
+          profiler: {
+            enabled: false,
+            error: anything,
+          },
+        },
+        configuration: contain_configuration(
+          ['DD_AGENT_HOST', '1.2.3.4'],
+          ['DD_AGENT_TRANSPORT', 'TCP'],
+          ['DD_TRACE_SAMPLE_RATE', '0.5'],
+          ['DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', true],
+          ['DD_TRACE_PEER_SERVICE_MAPPING', 'foo:bar'],
+          ['logger.level', 0],
+          ['profiling.advanced.code_provenance_enabled', true],
+          ['profiling.advanced.endpoint.collection.enabled', true],
+          ['profiling.enabled', false],
+          ['runtime_metrics.enabled', false],
+          ['tracing.analytics.enabled', true],
+          ['tracing.distributed_tracing.propagation_inject_style', '["Datadog", "tracecontext"]'],
+          ['tracing.distributed_tracing.propagation_extract_style',
+           '["Datadog", "b3multi", "b3", "tracecontext"]'],
+          ['tracing.enabled', true],
+          ['tracing.log_injection', true],
+          ['tracing.partial_flush.enabled', false],
+          ['tracing.partial_flush.min_spans_threshold', 500],
+          ['tracing.report_hostname', false],
+          ['tracing.sampling.rate_limit', 100],
+          ['tracing.auto_instrument.enabled', false],
+          ['tracing.writer_options.buffer_size', 123],
+          ['tracing.writer_options.flush_interval', 456],
+          ['logger.instance', 'MyLogger'],
+          ['tracing.opentelemetry.enabled', false],
+          ['appsec.enabled', false],
+          ['ci.enabled', false]
+        ),
+        install_signature: { install_id: 'id', install_time: 'time', install_type: 'type' },
+      )
+    end
+
+    context 'with nil configurations' do
+      before do
+        Datadog.configure do |c|
+          c.logger.instance = nil
+        end
       end
+
+      it 'removes empty configurations from payload' do
+        is_expected.to_not match(
+          configuration: include(
+            { name: 'logger.instance', origin: anything, seq_id: anything, value: anything }
+          )
+        )
+      end
+    end
+  end
+
+  context 'AppDependenciesLoaded' do
+    let(:event) { described_class::AppDependenciesLoaded.new }
+
+    it 'all have name and Ruby gem version' do
+      is_expected.to match(dependencies: all(match(name: kind_of(String), version: kind_of(String))))
+    end
+
+    it 'has a known gem with expected version' do
+      is_expected.to match(dependencies: include(name: 'ddtrace', version: DDTrace::VERSION::STRING))
+    end
+  end
+
+  context 'AppIntegrationsChange' do
+    let(:event) { described_class::AppIntegrationsChange.new }
+
+    it 'all have name and compatibility' do
+      is_expected.to match(integrations: all(include(name: kind_of(String), compatible: boolean)))
+    end
+
+    context 'with an instrumented integration' do
+      context 'that applied' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.instrument :http
+          end
+        end
+        it 'has a list of integrations' do
+          is_expected.to match(
+            integrations: include(
+              name: 'http',
+              version: RUBY_VERSION,
+              compatible: true,
+              enabled: true,
+              error: nil
+            )
+          )
+        end
+      end
+
+      context 'that failed to apply' do
+        before do
+          raise 'pg is loaded! This test requires integration that does not have its gem loaded' if Gem.loaded_specs['pg']
+
+          Datadog.configure do |c|
+            c.tracing.instrument :pg
+          end
+        end
+
+        it 'has a list of integrations' do
+          is_expected.to match(
+            integrations: include(
+              name: 'pg',
+              version: nil,
+              compatible: false,
+              enabled: false,
+              error: { code: 2,
+                       message: 'Available?: false, Loaded? false, Compatible? false, Patchable? false' }
+            )
+          )
+        end
+      end
+    end
+  end
+
+  context 'AppClientConfigurationChange' do
+    let(:event) { described_class::AppClientConfigurationChange.new(changes, origin) }
+    let(:changes) { { name => value } }
+    let(:origin) { double('origin') }
+    let(:name) { 'key' }
+    let(:value) { 'value' }
+
+    it 'has a list of client configurations' do
+      is_expected.to eq(
+        configuration: [{
+          name: name,
+          value: value,
+          origin: origin,
+        }]
+      )
+    end
+  end
+
+  context 'AppHeartbeat' do
+    let(:event) { described_class::AppHeartbeat.new }
+
+    it 'has no payload' do
+      is_expected.to eq({})
+    end
+  end
+
+  context 'AppClosing' do
+    let(:event) { described_class::AppClosing.new }
+
+    it 'has no payload' do
+      is_expected.to eq({})
     end
   end
 end
