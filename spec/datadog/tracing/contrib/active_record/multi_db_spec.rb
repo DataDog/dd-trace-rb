@@ -213,6 +213,24 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           expect(widget_span.service).to eq(widget_db_service_name)
         end
       end
+
+      context 'an invalid value' do
+        context 'for a typical server' do
+          before do
+            Datadog.configure do |c|
+              c.tracing.instrument :active_record, describes: 'some invalid string' do |gadget_db|
+                gadget_db.service_name = gadget_db_service_name
+              end
+            end
+          end
+
+          it 'fails to configure' do
+            count
+
+            expect(gadget_span.service).to eq(default_db_service_name)
+          end
+        end
+      end
     end
 
     context 'a Hash that describes a connection' do
