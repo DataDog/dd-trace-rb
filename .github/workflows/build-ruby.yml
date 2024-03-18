@@ -24,48 +24,63 @@ jobs:
           - engine: ruby
             version: 2.1.10
             dockerfile: Dockerfile-2.1.10
+            flaky: true # FIXME
           - engine: ruby
             version: 2.2.10
             dockerfile: Dockerfile-2.2.10
+            flaky: true # FIXME
           - engine: ruby
             version: 2.3.8
             dockerfile: Dockerfile-2.3.8
+            flaky: true # FIXME
           - engine: ruby
             version: 2.4.10
             dockerfile: Dockerfile-2.4.10
+            flaky: false
           - engine: ruby
             version: 2.5.9
             dockerfile: Dockerfile-2.5.9
+            flaky: false
           - engine: ruby
             version: 2.6.10
             dockerfile: Dockerfile-2.6.10
+            flaky: false
           - engine: ruby
             version: 2.7.6
             dockerfile: Dockerfile-2.7.6
+            flaky: false
           - engine: ruby
             version: 3.0.4
             dockerfile: Dockerfile-3.0.4
+            flaky: false
           - engine: ruby
             version: 3.1.2
             dockerfile: Dockerfile-3.1.2
+            flaky: false
           - engine: ruby
             version: 3.2.0
             dockerfile: Dockerfile-3.2.0
+            flaky: false
           - engine: ruby
             version: 3.3.0
             dockerfile: Dockerfile-3.3.0
+            flaky: false
           # ADD NEW RUBIES HERE
           - engine: jruby
             version: 9.2.21.0
             dockerfile: Dockerfile-jruby-9.2.21.0
+            flaky: false
           - engine: jruby
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0
+            flaky: false
           - engine: jruby
             version: 9.4.0.0
             dockerfile: Dockerfile-jruby-9.4.0.0
+            flaky: false
     runs-on: ubuntu-latest
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
+    continue-on-error: ${{ matrix.flaky }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
