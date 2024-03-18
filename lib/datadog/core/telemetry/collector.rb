@@ -182,7 +182,7 @@ module Datadog
         end
 
         def library_version
-          Core::Environment::Identity.tracer_version
+          Core::Environment::Identity.gem_datadog_version
         end
 
         def products

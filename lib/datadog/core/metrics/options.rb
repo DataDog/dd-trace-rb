@@ -16,7 +16,7 @@ module Datadog
             "#{Ext::TAG_LANG_VERSION}:#{Environment::Identity.lang_version}",
             # TODO: Technically not accurate, if tracing version diverges from datadog gem version
             #       If we extract tracing to its own gem, this needs to be updated.
-            "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.tracer_version}"
+            "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.gem_datadog_version}"
           ].freeze
         }.freeze
 
