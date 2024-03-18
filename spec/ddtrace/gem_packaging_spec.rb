@@ -10,19 +10,24 @@ RSpec.describe 'gem release process (after packaging)' do
   let(:executable_permissions) { ['bin/ddprofrb', 'bin/ddtracerb'] }
 
   it 'sets the right permissions on the gem files' do
-    Gem::Package::TarReader.new(File.open(packaged_gem_file)) do |tar|
-      data = tar.find { |entry| entry.header.name == 'data.tar.gz' }
+    gem_files = Dir.glob('pkg/*.gem')
+    expect(gem_files).to include(packaged_gem_file)
 
-      Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(data.read))) do |data_tar|
-        data_tar.each do |entry|
-          filename = entry.header.name
-          octal_permissions = entry.header.mode.to_s(8)[-3..-1]
+    gem_files.each do |gem_file|
+      Gem::Package::TarReader.new(File.open(gem_file)) do |tar|
+        data = tar.find { |entry| entry.header.name == 'data.tar.gz' }
 
-          expected_permissions = executable_permissions.include?(filename) ? '755' : '644'
+        Gem::Package::TarReader.new(Zlib::GzipReader.new(StringIO.new(data.read))) do |data_tar|
+          data_tar.each do |entry|
+            filename = entry.header.name
+            octal_permissions = entry.header.mode.to_s(8)[-3..-1]
 
-          expect(octal_permissions).to eq(expected_permissions),
-            "Unexpected permissions for #{filename} inside #{packaged_gem_file} (got #{octal_permissions}, " \
-            "expected #{expected_permissions})"
+            expected_permissions = executable_permissions.include?(filename) ? '755' : '644'
+
+            expect(octal_permissions).to eq(expected_permissions),
+              "Unexpected permissions for #{filename} inside #{gem_file} (got #{octal_permissions}, " \
+              "expected #{expected_permissions})"
+          end
         end
       end
     end
