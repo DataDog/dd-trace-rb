@@ -31,6 +31,8 @@ variables:
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
 
+    # DEV: This variable is consumed by the reliability environment
+    #      (TODO) Update this variable to reflect "DATADOG" instead of "DDTRACE" as a name?
     DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30

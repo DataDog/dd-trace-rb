@@ -13,7 +13,7 @@ gem 'unicorn'
 gem 'webrick'
 gem 'pry-byebug'
 
-gem 'ddtrace', Datadog::DemoEnv.gem_spec('ddtrace')[0].merge(require: 'ddtrace/auto_instrument')
+gem 'datadog', Datadog::DemoEnv.gem_spec('datadog')[0].merge(require: 'datadog/auto_instrument')
 gem 'google-protobuf', '~> 3.0'
 
 group :development do

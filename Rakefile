@@ -1,5 +1,5 @@
 require 'bundler/gem_tasks'
-require 'ddtrace/version'
+require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -340,7 +340,7 @@ namespace :spec do
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
-    t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
+    t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -413,7 +413,7 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
-    t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
+    t.pattern = 'spec/datadog/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -584,7 +584,7 @@ YARD::Rake::YardocTask.new(:docs) do |t|
   # as `.yardopts` can be read by external YARD tools, like the
   # hot-reload YARD server `yard server --reload`.
 
-  t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
+  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
 end
 
 # Jobs are parallelized if running in CI.

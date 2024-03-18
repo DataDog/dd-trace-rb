@@ -30,7 +30,7 @@ services:
       TEST_PRESTO_HOST: presto
       TEST_PRESTO_PORT: 8080
       TEST_REDIS_HOST: redis
-      DDTRACE_CI: 'true'
+      DATADOG_GEM_CI: 'true'
     stdin_open: true
     tty: true
     volumes:
@@ -116,7 +116,7 @@ services:
       TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
       TEST_REDIS_HOST: redis
-      DDTRACE_CI: 'true'
+      DATADOG_GEM_CI: 'true'
     stdin_open: true
     tty: true
     volumes:

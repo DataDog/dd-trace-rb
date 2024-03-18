@@ -11,7 +11,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
 
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 
-  let(:uds_path) { '/tmp/ddtrace_unix_test.sock' }
+  let(:uds_path) { '/tmp/datadog_unix_test.sock' }
   let(:options) { { uds_path: uds_path, timeout: timeout } }
   let(:timeout) { 2 }
 
@@ -95,7 +95,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
           'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
           'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )

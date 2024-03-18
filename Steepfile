@@ -1,4 +1,4 @@
-target :ddtrace do
+target :datadog do
   signature 'sig'
 
   check 'lib/'
@@ -574,10 +574,9 @@ target :ddtrace do
   ignore 'lib/datadog/tracing/workers.rb'
   ignore 'lib/datadog/tracing/workers/trace_writer.rb'
   ignore 'lib/datadog/tracing/writer.rb'
-  ignore 'lib/ddtrace/auto_instrument.rb'
-  ignore 'lib/ddtrace/auto_instrument_base.rb'
-  ignore 'lib/ddtrace/transport/ext.rb'
-  ignore 'lib/ddtrace/version.rb'
+  ignore 'lib/datadog/auto_instrument.rb'
+  ignore 'lib/datadog/auto_instrument_base.rb'
+  ignore 'lib/datadog/version.rb'
 
   # References `RubyVM::YJIT`, which does not have type information.
   ignore 'lib/datadog/core/environment/yjit.rb'

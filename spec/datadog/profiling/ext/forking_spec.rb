@@ -116,7 +116,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
 
       after do
-        described_class.ddtrace_at_fork_blocks.clear
+        described_class.datadog_at_fork_blocks.clear
       end
     end
 
@@ -247,7 +247,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
 
     after do
-      Datadog::Profiling::Ext::Forking::Kernel.ddtrace_at_fork_blocks.clear
+      Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks.clear
     end
 
     it 'calls the child at_fork callbacks after calling Process.daemon' do

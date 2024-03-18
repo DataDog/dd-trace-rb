@@ -18,11 +18,11 @@ services:
       # Use these to choose what is run
       - DD_DEMO_ENV_PROCESS=puma
       - DD_DEMO_ENV_FEATURES=tracing,profiling
-      # Use this for a local version of ddtrace
-      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
-      # Use these for a specific revision of ddtrace
-      # - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
-      # - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
+      # Use this for a local version of datadog
+      - DD_DEMO_ENV_GEM_LOCAL_DATADOG=/vendor/dd-trace-rb
+      # Use these for a specific revision of datadog
+      # - DD_DEMO_ENV_GEM_GIT_DATADOG=https://github.com/DataDog/dd-trace-rb.git
+      # - DD_DEMO_ENV_GEM_REF_DATADOG=f233336994315bfa04dac581387a8152bab8b85a
       # Enable building the profiling native extension
       - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
       # - DD_TRACE_DEBUG=true

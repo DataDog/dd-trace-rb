@@ -1,5 +1,5 @@
 require 'datadog/demo_env'
-require 'ddtrace'
+require 'datadog'
 
 require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'

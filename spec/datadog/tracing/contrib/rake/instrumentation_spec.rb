@@ -4,7 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'securerandom'
 require 'rake'
 require 'rake/tasklib'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rake/patcher'
 
 RSpec.describe Datadog::Tracing::Contrib::Rake::Instrumentation do

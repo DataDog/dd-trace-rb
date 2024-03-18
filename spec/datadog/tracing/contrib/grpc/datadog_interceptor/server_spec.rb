@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require_relative 'shared_examples'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new }

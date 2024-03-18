@@ -21,7 +21,7 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
+          build-args: DATADOG_RUBY_GEM_SHA=${{ github.sha }}
           context: ./lib-injection
 
   test:
@@ -76,8 +76,8 @@ jobs:
           path: system-tests
       - name: Overwrite auto inject script with commit SHA
         run: |
-          sed -i "s~<DD_TRACE_SHA_TO_BE_REPLACED>~${{github.sha}}~g" lib-injection/auto_inject.rb
-          sed -i "s~<DD_TRACE_VERSION_TO_BE_REPLACED>~~g" lib-injection/auto_inject.rb
+          sed -i "s~<DATADOG_GEM_SHA_TO_BE_REPLACED>~${{github.sha}}~g" lib-injection/auto_inject.rb
+          sed -i "s~<DATADOG_GEM_VERSION_TO_BE_REPLACED>~~g" lib-injection/auto_inject.rb
       - name: Build app
         run: |
           cp -r system-tests/lib-injection/build/docker/ruby/lib_injection_rails_app system-tests/lib-injection/build/docker/ruby/${{matrix.variant}}

@@ -1,5 +1,5 @@
 require 'sinatra/base'
-require 'ddtrace'
+require 'datadog'
 require_relative 'parent'
 
 # Inherit from another app to verify middleware/extension inheritance

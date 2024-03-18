@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (2.0.0.dev)
+    datadog (2.0.0.dev)
       base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 6.0.0.2.0)
@@ -282,7 +282,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)

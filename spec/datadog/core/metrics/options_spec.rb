@@ -29,7 +29,7 @@ RSpec.describe Datadog::Core::Metrics::Options do
             "#{Datadog::Core::Metrics::Ext::TAG_LANG}:#{Datadog::Core::Environment::Identity.lang}",
             "#{Datadog::Core::Metrics::Ext::TAG_LANG_INTERPRETER}:#{Datadog::Core::Environment::Identity.lang_interpreter}",
             "#{Datadog::Core::Metrics::Ext::TAG_LANG_VERSION}:#{Datadog::Core::Environment::Identity.lang_version}",
-            "#{Datadog::Core::Metrics::Ext::TAG_TRACER_VERSION}:#{Datadog::Core::Environment::Identity.tracer_version}"
+            "#{Datadog::Core::Metrics::Ext::TAG_TRACER_VERSION}:#{Datadog::Core::Environment::Identity.gem_datadog_version}"
           )
         end
 

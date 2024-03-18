@@ -3,7 +3,7 @@ require 'rack/test'
 
 require 'sinatra/base'
 
-# Loading 'ddtrace/auto_instrument' has side effects and can't
+# Loading 'datadog/auto_instrument' has side effects and can't
 # easily be undone. This test should run on its own process.
 RSpec.describe 'Auto Instrumentation of non Rails' do
   include Rack::Test::Methods
@@ -14,7 +14,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
         raise 'auto_instrument_spec.rb should be run on a separate RSpec process, do not run it together with other specs'
       end
     end
-    require 'ddtrace/auto_instrument'
+    require 'datadog/auto_instrument'
   end
 
   after { Datadog.registry[:sinatra].reset_configuration! }
@@ -47,7 +47,7 @@ RSpec.describe 'Auto Instrumentation of non Rails' do
 end
 
 RSpec.describe 'LOADED variable' do
-  subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
+  subject(:auto_instrument) { load 'datadog/auto_instrument.rb' }
   it do
     auto_instrument
     expect(Datadog::AutoInstrument::LOADED).to eq(true)
@@ -55,7 +55,7 @@ RSpec.describe 'LOADED variable' do
 end
 
 RSpec.describe 'Profiler startup' do
-  subject(:auto_instrument) { load 'ddtrace/auto_instrument.rb' }
+  subject(:auto_instrument) { load 'datadog/auto_instrument.rb' }
 
   it 'starts the profiler' do
     expect(Datadog::Profiling).to receive(:start_if_enabled)

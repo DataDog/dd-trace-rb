@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'rack/test'
 
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
 
 RSpec.describe 'Rack integration configuration' do

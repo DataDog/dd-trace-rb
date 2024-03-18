@@ -160,7 +160,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
           Datadog::Core::Environment::Ext::LANG_INTERPRETER,
         'Datadog-Meta-Lang-Interpreter-Vendor' => RUBY_ENGINE,
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+        Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
+          Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
       )
     end
 

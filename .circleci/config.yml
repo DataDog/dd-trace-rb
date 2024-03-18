@@ -39,7 +39,7 @@ test_containers:
     TEST_OPENSEARCH_PORT: 9200
     DD_AGENT_HOST: testagent
     DD_TRACE_AGENT_PORT: 9126
-    DDTRACE_CI: true
+    DATADOG_GEM_CI: true
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
@@ -256,9 +256,9 @@ orbs:
           - *step_compute_bundle_checksum
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}
           - *check_exact_bundle_cache_hit
           - *step_bundle_install
           - when:
@@ -278,7 +278,7 @@ orbs:
               paths:
                 - /app
           - save_cache:
-              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
               paths:
                 - /usr/local/bundle
       build_and_test_integration:
@@ -329,7 +329,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - run:
               name: Set coverage report directory
               command: |
@@ -372,7 +372,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_rubocop
       coverage:
         <<: *test_job_default
@@ -382,7 +382,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:
@@ -404,7 +404,7 @@ orbs:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
           - restore_cache:
               keys:
-                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/ddtrace/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - attach_workspace:
               at: /tmp/workspace
           - run:

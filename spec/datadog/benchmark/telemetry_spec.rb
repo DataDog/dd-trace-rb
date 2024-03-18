@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'benchmark'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Telemetry Benchmark' do
   let(:enabled) { 'true' }

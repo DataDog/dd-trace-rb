@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::OptionDefinition do
   subject(:definition) { described_class.new(name, meta, &block) }

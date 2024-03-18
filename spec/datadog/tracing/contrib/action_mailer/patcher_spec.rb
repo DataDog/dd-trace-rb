@@ -4,7 +4,7 @@ require 'rails'
 require 'active_support'
 require 'spec/datadog/tracing/contrib/action_mailer/helpers'
 require 'datadog/tracing/contrib/action_mailer/integration'
-require 'ddtrace'
+require 'datadog'
 
 begin
   require 'action_mailer'

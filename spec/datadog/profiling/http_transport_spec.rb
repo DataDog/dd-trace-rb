@@ -337,7 +337,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(request.header).to include(
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
           'dd-evp-origin' => ['dd-trace-rb'],
-          'dd-evp-origin-version' => [DDTrace::VERSION::STRING],
+          'dd-evp-origin-version' => [Datadog::VERSION::STRING],
         )
 
         # check body

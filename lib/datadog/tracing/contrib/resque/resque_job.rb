@@ -31,7 +31,7 @@ module Datadog
           #
           # We could also just use `around_perform` but this might override the user's
           # own method.
-          def around_perform0_ddtrace(*args)
+          def around_perform0_datadog(*args)
             return yield unless datadog_configuration && Tracing.enabled?
 
             Tracing.trace(Ext::SPAN_JOB, **span_options) do |span|

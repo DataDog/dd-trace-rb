@@ -57,12 +57,12 @@ Naming/FileName:
     - 'lib/datadog/tracing/contrib/rails/middlewares.rb'
     - 'lib/datadog/tracing/contrib/rails/railtie.rb'
     - 'lib/datadog/tracing/propagation/http.rb'
-    - 'lib/ddtrace.rb'
-    - 'lib/ddtrace/auto_instrument.rb'
-    - 'lib/ddtrace/auto_instrument_base.rb'
-    - 'lib/ddtrace/profiling/preload.rb'
-    - 'lib/ddtrace/transport/ext.rb'
-    - 'lib/ddtrace/version.rb'
+    - 'lib/datadog.rb'
+    - 'lib/datadog/auto_instrument.rb'
+    - 'lib/datadog/auto_instrument_base.rb'
+    - 'lib/datadog/profiling/preload.rb'
+    - 'lib/datadog/transport/ext.rb'
+    - 'lib/datadog/version.rb'
 
 # Offense count: 1
 RSpec/IteratedExpectation:

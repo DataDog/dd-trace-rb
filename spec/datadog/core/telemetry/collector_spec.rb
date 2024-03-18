@@ -12,8 +12,8 @@ require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/transport/ext'
 require 'datadog/profiling/profiler'
 
-require 'ddtrace'
-require 'ddtrace/version'
+require 'datadog'
+require 'datadog/version'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
   let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         before do
           Datadog.configuration.profiling.enabled = false
           Datadog.configuration.appsec.enabled = false
-          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+          stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         end
 
         after do
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
     context 'when profiling is enabled' do
       before do
-        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         Datadog.configure do |c|
           c.profiling.enabled = true
         end
@@ -286,7 +286,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       before do
         require 'datadog/appsec'
 
-        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         Datadog.configure do |c|
           c.appsec.enabled = true
         end

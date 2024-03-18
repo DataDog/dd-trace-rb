@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe GRPC::InterceptionContext do
   subject(:interception_context) { described_class.new }

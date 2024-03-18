@@ -4,7 +4,7 @@ require 'rack/test'
 require 'rack'
 
 require 'datadog/tracing/sampling/ext'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
 
 RSpec.describe 'Rack integration distributed tracing' do

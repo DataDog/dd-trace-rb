@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'sucker_punch'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'sucker_punch instrumentation' do
   before do

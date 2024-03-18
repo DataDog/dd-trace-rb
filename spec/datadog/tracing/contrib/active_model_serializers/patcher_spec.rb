@@ -8,7 +8,7 @@ require 'active_model_serializers'
 
 require 'datadog/tracing'
 require 'datadog/tracing/metadata/ext'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/active_model_serializers/patcher'
 
 RSpec.describe 'ActiveModelSerializers patcher' do

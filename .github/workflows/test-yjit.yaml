@@ -23,7 +23,7 @@ jobs:
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
-        run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
+        run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
       - uses: ruby/setup-ruby@9669f3ee51dc3f4eda8447ab696b3ab19a90d14b # v1.144.0
         with:
           ruby-version: ${{ matrix.ruby }}
