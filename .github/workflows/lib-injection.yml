@@ -16,7 +16,7 @@ jobs:
       - name: Login to Docker
         run: docker login -u publisher -p ${{ secrets.GITHUB_TOKEN }} ghcr.io
       - name: Docker latest snapshot build
-        #if: github.ref == 'refs/heads/master'
+        if: github.ref == 'refs/heads/master'
         uses: docker/build-push-action@v3
         with:
           push: true
