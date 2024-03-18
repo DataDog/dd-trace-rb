@@ -96,6 +96,16 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
         expect(resolver.configurations).to include(db_config => config)
       end
     end
+
+    context 'with an invalid string' do
+      let(:matcher) { 'bala boom!' }
+
+      it 'does not resolves' do
+        add
+
+        expect(resolver.configurations).to be_empty
+      end
+    end
   end
 
   describe '#resolve' do
@@ -295,6 +305,25 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
             is_expected.to be(second_matcher)
           end
         end
+      end
+    end
+
+    context 'with an invalid string' do
+      let(:matchers) do
+        []
+      end
+
+      let(:actual) do
+        'activerecord database configuration may contain password'
+      end
+
+      it do
+        expect(Datadog.logger).to receive(:error) do |message|
+          expect(message).to match(/failed to resolve/i)
+          expect(message).not_to match(/password/i)
+        end
+
+        is_expected.to be_nil
       end
     end
   end

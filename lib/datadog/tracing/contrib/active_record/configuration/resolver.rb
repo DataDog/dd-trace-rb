@@ -65,9 +65,14 @@ module Datadog
 
               config
             rescue => e
+              # Resolving a valid database configuration should not raise an exception,
+              # but if it does, it can be due to adding a broken pattern match prior to this call.
+              #
+              # `db_config` input may contain sensitive information such as passwords,
+              # hence provide a succinct summary for the error logging.
               Datadog.logger.error(
-                "Failed to resolve ActiveRecord configuration key #{db_config.inspect}. " \
-                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+                'Failed to resolve ActiveRecord database configuration. '\
+                "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
 
               nil
@@ -85,9 +90,11 @@ module Datadog
               normalized
             rescue => e
               Datadog.logger.error(
-                "Failed to resolve ActiveRecord configuration key #{matcher.inspect}. " \
-                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+                "Failed to resolve key #{matcher.inspect}. " \
+                "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
+
+              nil
             end
 
             #
