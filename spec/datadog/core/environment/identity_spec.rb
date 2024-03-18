@@ -67,7 +67,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
   describe '::tracer_version' do
     subject(:tracer_version) { described_class.tracer_version }
 
-    it { is_expected.to eq(Datadog::Core::Environment::Ext::TRACER_VERSION) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION) }
   end
 
   describe '::tracer_version_semver2' do

@@ -84,7 +84,7 @@ RSpec.describe 'Adapters::Net tracing integration tests' do
           'datadog-meta-lang' => [Datadog::Core::Environment::Ext::LANG],
           'datadog-meta-lang-version' => [Datadog::Core::Environment::Ext::LANG_VERSION],
           'datadog-meta-lang-interpreter' => [Datadog::Core::Environment::Ext::LANG_INTERPRETER],
-          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::TRACER_VERSION],
+          'datadog-meta-tracer-version' => [Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION],
           'content-type' => ['application/msgpack'],
           'x-datadog-trace-count' => [traces.length.to_s]
         )

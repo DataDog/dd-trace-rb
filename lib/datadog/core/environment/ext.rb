@@ -38,7 +38,7 @@ module Datadog
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'
 
-        TRACER_VERSION = Datadog::VERSION::STRING
+        GEM_DATADOG_VERSION = Datadog::VERSION::STRING
       end
     end
   end

@@ -49,9 +49,9 @@ module Datadog
           Core::Environment::Ext::LANG_VERSION
         end
 
-        # Returns tracer version, rubygems-style
+        # Returns datadog gem version, rubygems-style
         def tracer_version
-          Core::Environment::Ext::TRACER_VERSION
+          Core::Environment::Ext::GEM_DATADOG_VERSION
         end
 
         # Returns tracer version, comforming to https://semver.org/spec/v2.0.0.html
