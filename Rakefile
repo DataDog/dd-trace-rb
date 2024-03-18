@@ -353,7 +353,7 @@ namespace :spec do
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
     t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument,opentelemetry,profiling}/**/*_spec.rb,'\
-                        ' spec/**/{auto_instrument,opentelemetry}_spec.rb'
+                        ' spec/**/{auto_instrument,opentelemetry}_spec.rb, spec/ddtrace/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
