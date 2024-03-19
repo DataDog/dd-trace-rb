@@ -116,15 +116,9 @@ module Datadog
               last_script_name = routed[1]
               last_route = routed[2]
 
-              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
-              # then the current rack request was not routed and must be accounted for
-              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
-              #
-              # To account for the unaccounted nested rack requests of /rack/hello/world,
-              # we use 'PATH_INFO knowing that rack cannot have named parameters
               if last_script_name == '' && env['SCRIPT_NAME'] != ''
-                last_script_name = last_route
-                last_route = env['PATH_INFO']
+                last_route = last_script_name
+                last_script_name = env['PATH_INFO']
               end
 
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route) if last_route
