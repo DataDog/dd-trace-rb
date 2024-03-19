@@ -11,10 +11,9 @@ module Datadog
   module Tracing
     module Contrib
       module Rails
-        module RoutingRouteSetPatch
-          def call(*)
+        module JourneyRouterPatch
+          def find_routes(*)
             result = nil
-
             configuration = Datadog.configuration.tracing[:rails]
 
             Tracing.trace(
@@ -23,18 +22,12 @@ module Datadog
               span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
               # resource: "#{request.request_method} #{datadog_route}",
             ) do |span, trace|
+              binding.pry
+
               result = super
-            end
 
-            result
-          end
-        end
+              binding.pry
 
-        module JourneyRouterPatch
-          def find_routes(*)
-            result = super
-
-            if (span = Datadog::Tracing.active_span)
               datadog_route = result.first[2].path.spec.to_s
 
               span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
@@ -75,7 +68,6 @@ module Datadog
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
-              ActionDispatch::Routing::RouteSet.prepend(RoutingRouteSetPatch)
               ActionDispatch::Journey::Router.prepend(JourneyRouterPatch)
 
               Rails::LogInjection.configure_log_tags(app.config)
