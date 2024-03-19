@@ -147,7 +147,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
           tracestate = String.new('dd=')
-          unless digest.is_remote
+          if !digest.span_remote
             tracestate << "p:#{format('%016x', digest.span_id)};"
           elsif digest.trace_distributed_tags.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
             tracestate << "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
