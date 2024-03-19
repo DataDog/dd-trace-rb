@@ -39,6 +39,7 @@ Gem::Specification.new do |spec|
       bin/**/*
       ext/**/*
       lib/**/*
+      sig/**/*
     ]]
       .select { |fn| File.file?(fn) } # We don't want directories, only files
       .reject { |fn| fn.end_with?('.so', '.bundle') } # Exclude local profiler binary artifacts
