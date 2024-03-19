@@ -172,11 +172,6 @@ RSpec.shared_examples 'Trace Context distributed format' do
           let(:tags) { {} }
           it { expect(digest.span_remote).to eq(true) }
           it { expect(tracestate).to be_nil }
-
-          context 'and with local span' do
-            let(:options) { { span_remote: false } }
-            it { expect(tracestate).to be_nil }
-          end
         end
 
         context "{ 'key' => 'value' }" do
@@ -246,6 +241,27 @@ RSpec.shared_examples 'Trace Context distributed format' do
               end
             end
           end
+        end
+      end
+
+      context 'with span_remote' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xC0FFEE,
+            span_id: 0xBEE,
+            trace_distributed_tags: {},
+            span_remote: remote,
+          )
+        end
+
+        context 'and with local span' do
+          let(:remote) { false }
+          it { expect(tracestate).to eq('dd=p:0000000000000bee') }
+        end
+
+        context 'and with remote span' do
+          let(:remote) { true }
+          it { expect(tracestate).to be_nil }
         end
       end
 
