@@ -94,7 +94,7 @@ module Datadog
 
                 span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
-                integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.origin
+                integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.path
                 Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], integration_route]
 
                 # override the current span with this notification values

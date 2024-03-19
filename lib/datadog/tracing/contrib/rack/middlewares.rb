@@ -66,9 +66,6 @@ module Datadog
             end
           end
 
-          # rubocop:disable Metrics/CyclomaticComplexity
-          # rubocop:disable Metrics/PerceivedComplexity
-          # rubocop:disable Metrics/MethodLength
           def call(env)
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
@@ -112,16 +109,20 @@ module Datadog
             # call the rest of the stack
             status, headers, response = @app.call(env)
 
+            # TODO: might be wrong if say rails routed to sinatra but sinatra
+            #       fails to find a route, so I dumbly checked for 404?
             if status != 404 && (routed = Thread.current[:datadog_http_routing].last)
+              # TODO: array == bad, this should be a Struct
               last_script_name = routed[1]
               last_route = routed[2]
 
-              if last_script_name == '' && env['SCRIPT_NAME'] != ''
-                last_route = last_script_name
-                last_script_name = env['PATH_INFO']
+              # TODO: I seem to have gathered that in some (all?) cases this
+              # should be nil when no route is found, which woudl cater for the
+              # note above
+              if last_route
+                composite_route = last_script_name + last_route
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, composite_route)
               end
-
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route) if last_route
             end
 
             [status, headers, response]
@@ -160,6 +161,9 @@ module Datadog
           # rubocop:enable Lint/RescueException
 
           # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/CyclomaticComplexity
+          # rubocop:disable Metrics/PerceivedComplexity
+          # rubocop:disable Metrics/MethodLength
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
 
