@@ -1,7 +1,92 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-# Last version: https://github.com/docker-library/ruby/blob/31f66490fdb837ddcc5896e3275f2188f2b7b6dd/2.3/stretch/Dockerfile
-FROM ruby:2.3.8-stretch
+# taken from https://hub.docker.com/layers/library/ruby/2.3.8-jessie/images/sha256-cff37ff7e88348a8dd630f9b2d1c679fe9e7b597cfb51a30c42bf2c2afb2eca2?context=explore
+FROM buildpack-deps:bookworm AS ruby-2.3.8-bookworm
+
+# skip installing gem documentation
+RUN mkdir -p /usr/local/etc \
+  && { \
+    echo 'install: --no-document'; \
+    echo 'update: --no-document'; \
+  } >> /usr/local/etc/gemrc
+
+ENV RUBY_MAJOR 2.3
+ENV RUBY_VERSION 2.3.8
+ENV RUBY_DOWNLOAD_SHA256 910f635d84fd0d81ac9bdee0731279e6026cb4cd1315bbbb5dfb22e09c5c1dfe
+ENV RUBYGEMS_VERSION 2.7.11
+
+# some of ruby's build scripts are written in ruby
+#   we purge system ruby later to make sure our final image uses what we just built
+RUN set -ex \
+  && apt-get update \
+# ruby 2.3 on stretch can only support libssl1.0-dev (libssl dev from buildpack-deps is way newer)
+  && apt-get install -y --no-install-recommends wget \
+  && apt-get remove -y libssl-dev libcurl4-openssl-dev \
+  && ARCH=$(dpkg --print-architecture) \
+  && wget "https://snapshot.debian.org/archive/debian-security/20220317T093342Z/pool/updates/main/o/openssl1.0/libssl1.0.2_1.0.2u-1~deb9u7_${ARCH}.deb" \
+  && dpkg -i libssl1.0.2*.deb \
+  && rm -rf libssl1.0.2*.deb \
+  && wget "https://snapshot.debian.org/archive/debian-security/20220317T093342Z/pool/updates/main/o/openssl1.0/libssl1.0-dev_1.0.2u-1~deb9u7_${ARCH}.deb" \
+  && dpkg -i libssl1.0-dev*.deb \
+  && rm -rf libssl1.0-dev*.deb \
+# some of ruby's build scripts are written in ruby
+#   we purge system ruby later to make sure our final image uses what we just built
+  && buildDeps=' \
+    bison \
+    dpkg-dev \
+    libgdbm-dev \
+    ruby \
+  ' \
+  && apt-get install -y --no-install-recommends $buildDeps \
+  && rm -rf /var/lib/apt/lists/* \
+  \
+  && wget -O ruby.tar.xz "https://cache.ruby-lang.org/pub/ruby/${RUBY_MAJOR%-rc}/ruby-$RUBY_VERSION.tar.xz" \
+  && echo "$RUBY_DOWNLOAD_SHA256 *ruby.tar.xz" | sha256sum -c - \
+  \
+  && mkdir -p /usr/src/ruby \
+  && tar -xJf ruby.tar.xz -C /usr/src/ruby --strip-components=1 \
+  && rm ruby.tar.xz \
+  \
+  && cd /usr/src/ruby \
+  \
+# hack in "ENABLE_PATH_CHECK" disabling to suppress:
+#   warning: Insecure world writable dir
+  && { \
+    echo '#define ENABLE_PATH_CHECK 0'; \
+    echo; \
+    cat file.c; \
+  } > file.c.new \
+  && mv file.c.new file.c \
+  \
+  && autoconf \
+  && gnuArch="$(dpkg-architecture --query DEB_BUILD_GNU_TYPE)" \
+  && ./configure \
+    --build="$gnuArch" \
+    --disable-install-doc \
+    --enable-shared \
+  && make -j "$(nproc)" \
+  && make install \
+  \
+  && apt-get purge -y --auto-remove $buildDeps \
+  && cd / \
+  && rm -r /usr/src/ruby \
+  \
+  && gem update --system "$RUBYGEMS_VERSION" \
+  && rm -r /root/.gem/
+
+# install things globally, for great justice
+# and don't create ".bundle" in all our apps
+ENV GEM_HOME /usr/local/bundle
+ENV BUNDLE_BIN="$GEM_HOME/bin" \
+    BUNDLE_SILENCE_ROOT_WARNING=1 \
+    BUNDLE_APP_CONFIG="$GEM_HOME"
+ENV PATH $BUNDLE_BIN:$PATH
+RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
+  && chmod 777 "$GEM_HOME" "$BUNDLE_BIN"
+
+CMD [ "irb" ]
+
+FROM ruby-2.3.8-bookworm
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -13,11 +98,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN set -ex; \
         apt-get update; \
         mkdir -p /usr/share/man/man1; \
-        apt-get install -y --no-install-recommends \
+        apt-get install --force-yes --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
-            net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less jq; \
+            net-tools netcat-traditional unzip zip bzip2 gnupg curl wget \
+            tzdata rsync vim less jq iptables; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -28,27 +113,16 @@ RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
-# Install Docker
+# Install Docker and Docker Compose
 RUN set -ex \
-  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
-  && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
-  && echo DOCKER_URL: $DOCKER_URL \
-  && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
-  && ls -lha /tmp/docker.tgz \
-  && tar -xz -C /tmp -f /tmp/docker.tgz \
-  && mv /tmp/docker/* /usr/bin \
-  && rm -rf /tmp/docker /tmp/docker.tgz \
-  && which docker \
-  && (docker version || true)
-
-# Install Docker Compose
-# Releases over there don't work as they need a more recent glibc than Stretch has: https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51
-# So we fall back to using stretch-backports which has 1.21
-RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
-  && apt-get update \
-  && apt-get install -y docker-compose \
-  && docker-compose version \
-  && rm -rf /var/lib/apt/lists/*
+  && ARCH=$(dpkg --print-architecture) \
+  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/containerd.io_1.6.28-2_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce-cli_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-buildx-plugin_0.13.0-1~debian.12~bookworm_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-compose-plugin_2.24.7-1~debian.12~bookworm_${ARCH}.deb \
+  && dpkg -i *.deb \
+  && rm -rf *.deb
 
 # Install Dockerize
 RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')" \
@@ -56,19 +130,6 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
   && curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL \
   && chmod +x /usr/local/bin/dockerize \
   && dockerize --version
-
-# Install RubyGems
-RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
-
-# Install RubyGems and Bundler
-# NOTE: Rubygems 3.0.6 is the last version that seems to work fine in this image AND not drag bundler 2 along.
-# Later versions are either broken or they force the use of bundler 2, which we can't use because some of our
-# dependencies (e.g. rails 3.0.20) don't like it.
-RUN gem update --system '3.0.6'
-# Ruby 2.3 can support Bundler 2+
-# But hold back to < 2 for now, because some dependencies require it.
-RUN gem install bundler -v '1.17.3'
-ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
 WORKDIR /app
