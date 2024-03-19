@@ -98,7 +98,6 @@ module Datadog
             request_trace = Tracing.active_trace || TraceOperation.new
 
             env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
-            Thread.current[:datadog_http_routing] = []
 
             Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
@@ -108,30 +107,6 @@ module Datadog
 
             # call the rest of the stack
             status, headers, response = @app.call(env)
-
-            # TODO: might be wrong if say rails routed to sinatra but sinatra
-            #       fails to find a route, so I dumbly checked for 404?
-            if status != 404 && (routed = Thread.current[:datadog_http_routing].last)
-              # TODO: array == bad, this should be a Struct
-              last_script_name = routed[1]
-              last_route = routed[3]
-              # TODO: probably should get HTTP method from route resolvers as well
-
-              # TODO: I seem to have gathered that in some (all?) cases this
-              # should be nil when no route is found, which woudl cater for the
-              # note above
-              if last_route
-                # TODO: concatenate better? (according to spec I think it's fine /-wise)
-                composite_route = last_script_name + last_route
-                composite_path = last_script_name + last_route
-
-                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, composite_route)
-
-                # TODO: should it be composite_route?
-                request_span.resource = env['REQUEST_METHOD'] + ' ' + composite_path
-              end
-            end
-
             [status, headers, response]
 
           # rubocop:disable Lint/RescueException

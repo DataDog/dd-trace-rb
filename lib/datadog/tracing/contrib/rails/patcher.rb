@@ -13,7 +13,7 @@ module Datadog
       module Rails
         # Patcher to begin span on Rails routing
         module RoutingRouteSetPatch
-          def call(*args, **kwargs)
+          def call(*)
             result = nil
 
             configuration = Datadog.configuration.tracing[:rails]
@@ -34,24 +34,16 @@ module Datadog
 
         # Patcher to trace rails routing done by JourneyRouter
         module JourneyRouterPatch
-          def find_routes(*args, **kwargs)
+          def find_routes(*)
             result = super
 
-            if Datadog::Tracing.enabled? && (span = Datadog::Tracing.active_span)
-              if result.any?
-                datadog_route = result.first[2].path.spec.to_s
-              end
-
-              # TODO: instead of a thread local this may be put in env[something], but I'm not sure we can rely on it bubbling all the way up. see https://github.com/rack/rack/issues/2144
-              # TODO: :rails should be a reference to the integration name
-              Thread.current[:datadog_http_routing] << [:rails, args.first.env['SCRIPT_NAME'], args.first.env['PATH_INFO'], datadog_route]
+            if (span = Datadog::Tracing.active_span)
+              datadog_route = result.first[2].path.spec.to_s
 
               span.resource = datadog_route.to_s
 
-              # TODO: should this rather be like this?
-              # span.set_tag(Ext::TAG_ROUTE_PATH, path_info)
-              # span.set_tag(Ext::TAG_ROUTE_PATTERN, datadog_path)
-              span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
+              # TEMP REMOVE ONCE SENT TO RACK #
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, datadog_route)
             end
 
             result
