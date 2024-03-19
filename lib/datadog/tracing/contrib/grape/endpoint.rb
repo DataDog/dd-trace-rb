@@ -94,12 +94,22 @@ module Datadog
 
                 span.set_error(payload[:exception_object]) if exception_is_error?(payload[:exception_object])
 
-                integration_route = endpoint.env['grape.routing_args'][:route_info].pattern.path
-                Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], integration_route]
+                # TODO: pick one, but Rails has only the first one, and I feel like it makes the most sense
+
+                # this one has (.json)
+                datadog_route = endpoint.env['grape.routing_args'][:route_info].pattern.path
+                # this one does not have (.json)
+                datadog_route = endpoint.env['grape.routing_args'][:route_info].pattern.origin
+                # TODO: instead of a thread local this may be put in env[something], but I'm not sure we can rely on it bubbling all the way up. see https://github.com/rack/rack/issues/2144
+                # TODO: :grape should be a reference to the integration name
+                Thread.current[:datadog_http_routing] << [:grape, endpoint.env['SCRIPT_NAME'], endpoint.env['PATH_INFO'], datadog_route]
 
                 # override the current span with this notification values
                 span.set_tag(Ext::TAG_ROUTE_ENDPOINT, api_view) unless api_view.nil?
-                span.set_tag(Ext::TAG_ROUTE_PATH, path)
+                # TODO: should this rather be like this?
+                # span.set_tag(Ext::TAG_ROUTE_PATH, path)
+                # span.set_tag(Ext::TAG_ROUTE_PATTERN, datadog_path)
+                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
                 span.set_tag(Ext::TAG_ROUTE_METHOD, request_method)
 
                 span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_METHOD, request_method)
