@@ -34,8 +34,8 @@ RSpec.describe 'Multi-app testing for http.route' do
       apps_to_build = apps
 
       Rack::Builder.new do
-        apps_to_build.each do |route, app|
-          map route do
+        apps_to_build.each do |root, app|
+          map root do
             run app
           end
         end
@@ -155,7 +155,7 @@ RSpec.describe 'Multi-app testing for http.route' do
 
           expect(span.get_tag('http.route')).to eq('/sinatra/hello/world')
 
-          break
+          next
         end
       end
     end

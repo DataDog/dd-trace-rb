@@ -384,7 +384,7 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:routetest) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/http_route_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rack/http_route_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
