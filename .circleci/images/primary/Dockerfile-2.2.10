@@ -4,8 +4,11 @@
 
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-# taken from https://hub.docker.com/layers/library/ruby/2.3.8-jessie/images/sha256-cff37ff7e88348a8dd630f9b2d1c679fe9e7b597cfb51a30c42bf2c2afb2eca2?context=explore
-FROM buildpack-deps:bookworm AS ruby-2.2.10-bookworm
+# taken from https://hub.docker.com/layers/library/ruby/2.2.10/images/sha256-6c8e6f9667b21565284ef1eef81086adda867e936b74cc74a119ac380d9f00f9?context=explore
+# NOTE: Why bullseye and not bookworm like 2.1 and 2.3? Something fails with Ruby 2.2 compilation with newer images leading to segfaults and
+# errors like `Marshal.load reentered at marshal_load`: https://github.com/ruby/setup-ruby/issues/496#issuecomment-1520667671
+# These do not show up with bullseye and ubuntu-20.
+FROM buildpack-deps:bullseye AS ruby-2.2.10-bullseye
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
@@ -17,8 +20,8 @@ RUN mkdir -p /usr/local/etc \
 ENV RUBY_MAJOR 2.2
 ENV RUBY_VERSION 2.2.10
 ENV RUBY_DOWNLOAD_SHA256 bf77bcb7e6666ccae8d0882ea12b05f382f963f0a9a5285a328760c06a9ab650
-ENV RUBYGEMS_VERSION 2.7.11
-ENV BUNDLER_VERSION 1.17.3
+ENV RUBYGEMS_VERSION 2.7.6
+ENV BUNDLER_VERSION 1.16.1
 
 # some of ruby's build scripts are written in ruby
 #   we purge system ruby later to make sure our final image uses what we just built
@@ -92,7 +95,7 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 CMD [ "irb" ]
 
-FROM ruby-2.2.10-bookworm
+FROM ruby-2.2.10-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -122,11 +125,11 @@ ENV LANGUAGE en_US:en
 # Install Docker and Docker Compose
 RUN set -ex \
   && ARCH=$(dpkg --print-architecture) \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/containerd.io_1.6.28-2_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce-cli_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-buildx-plugin_0.13.0-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-compose-plugin_2.24.7-1~debian.12~bookworm_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/containerd.io_1.6.28-2_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-ce_25.0.4-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-ce-cli_25.0.4-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-buildx-plugin_0.13.0-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-compose-plugin_2.24.7-1~debian.11~bullseye_${ARCH}.deb \
   && dpkg -i *.deb \
   && rm -rf *.deb
 
