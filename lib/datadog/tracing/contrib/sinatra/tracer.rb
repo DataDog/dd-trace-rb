@@ -73,9 +73,7 @@ module Datadog
 
                 Contrib::Analytics.set_measured(span)
 
-                if Thread.current.key?(:datadog_http_routing) && Thread.current[:datadog_http_routing].is_a?(Array)
-                  Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], integration_route]
-                end
+                Thread.current[:datadog_http_routing] << [:sinatra, env['SCRIPT_NAME'], integration_route]
                 super
               end
             end
