@@ -148,11 +148,7 @@ module Datadog
         # @see https://www.w3.org/TR/trace-context/#tracestate-header
         def build_tracestate(digest)
           tracestate = String.new('dd=')
-          if !digest.span_remote
-            tracestate << "p:#{format('%016x', digest.span_id)};"
-          elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
-            tracestate << "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
-          end
+          tracestate << last_dd_parent_id(digest)
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
           tracestate << "o:#{serialize_origin(digest.trace_origin)};" if digest.trace_origin
 
@@ -196,6 +192,16 @@ module Datadog
             end
           else
             digest.trace_state # Propagate upstream tracestate with no Datadog changes
+          end
+        end
+
+        def last_dd_parent_id(digest)
+          if !digest.span_remote
+            "p:#{format('%016x', digest.span_id)};"
+          elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
+            "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
+          else
+            ""
           end
         end
 
