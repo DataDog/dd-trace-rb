@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
 
@@ -33,7 +35,8 @@ module Datadog
         :rate_limiter_rate,
         :rule_sample_rate,
         :sample_rate,
-        :sampling_priority
+        :sampling_priority,
+        :remote_parent
 
       attr_reader \
         :active_span_count,
@@ -70,13 +73,15 @@ module Datadog
         tags: nil,
         metrics: nil,
         trace_state: nil,
-        trace_state_unknown_fields: nil
+        trace_state_unknown_fields: nil,
+        remote_parent: false
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled
+        @remote_parent = remote_parent
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -137,13 +142,12 @@ module Datadog
       end
 
       def keep!
-        self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
+        self.sampled = true # Just in case the in-app sampler had decided to drop this span, we revert that decision.
       end
 
       def reject!
-        self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
@@ -298,6 +302,7 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
+          span_remote: (@remote_parent && @active_span.nil?),
         ).freeze
       end
 
@@ -323,7 +328,8 @@ module Datadog
           trace_state: (@trace_state && @trace_state.dup),
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
-          metrics: metrics.dup
+          metrics: metrics.dup,
+          remote_parent: @remote_parent
         )
       end
 

@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             client_tracer: {
               runtime_id: Datadog::Core::Environment::Identity.id,
               language: Datadog::Core::Environment::Identity.lang,
-              tracer_version: Datadog::Core::Environment::Identity.tracer_version,
+              tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version,
               service: Datadog.configuration.service,
               env: Datadog.configuration.env,
               tags: [],

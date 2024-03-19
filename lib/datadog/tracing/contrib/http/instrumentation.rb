@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'uri'
 
 require_relative '../../metadata/ext'
@@ -15,17 +17,6 @@ module Datadog
             base.prepend(InstanceMethods)
           end
 
-          # Span hook invoked after request is completed.
-          def self.after_request(&block)
-            if block
-              # Set hook
-              @after_request = block
-            else
-              # Get hook
-              @after_request ||= nil
-            end
-          end
-
           # InstanceMethods - implementing instrumentation
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
@@ -41,11 +32,11 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
-                  span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                   span.resource = req.method
 
                   if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
-                    Tracing::Propagation::HTTP.inject!(trace, req)
+                    Contrib::HTTP.inject(trace, req)
                   end
 
                   # Add additional request specific tags to the span.
@@ -58,11 +49,6 @@ module Datadog
 
                 # Add additional response specific tags to the span.
                 annotate_span_with_response!(span, response, request_options)
-
-                # Invoke hook, if set.
-                unless Contrib::HTTP::Instrumentation.after_request.nil?
-                  Contrib::HTTP::Instrumentation.after_request.call(span, self, req, response)
-                end
 
                 response
               end

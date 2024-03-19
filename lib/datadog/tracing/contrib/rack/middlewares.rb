@@ -1,17 +1,19 @@
+# frozen_string_literal: true
+
 require 'date'
 
 require_relative '../../../core/environment/variable_helpers'
-require_relative '../../../core/backport'
 require_relative '../../../core/remote/tie/tracing'
 require_relative '../../client_ip'
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative '../utils/quantization/http'
 require_relative 'ext'
 require_relative 'header_collection'
 require_relative 'header_tagging'
 require_relative 'request_queue'
+require_relative 'trace_proxy_middleware'
 
 module Datadog
   module Tracing
@@ -29,47 +31,7 @@ module Datadog
             @app = app
           end
 
-          def compute_queue_time(env)
-            return unless configuration[:request_queuing]
-
-            # parse the request queue time
-            request_start = Contrib::Rack::QueueTime.get_request_start(env)
-            return if request_start.nil?
-
-            case configuration[:request_queuing]
-            when true, :include_request # DEV: Switch `true` to `:exclude_request` in v2.0
-              queue_span = trace_http_server(Ext::SPAN_HTTP_SERVER_QUEUE, start_time: request_start)
-              # Tag this span as belonging to Rack
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_SERVER_QUEUE)
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
-              queue_span
-            when :exclude_request
-              request_span = trace_http_server(Ext::SPAN_HTTP_PROXY_REQUEST, start_time: request_start)
-              request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT_HTTP_PROXY)
-              request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_PROXY_REQUEST)
-              request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PROXY)
-
-              queue_span = trace_http_server(Ext::SPAN_HTTP_PROXY_QUEUE, start_time: request_start)
-
-              # Measure service stats
-              Contrib::Analytics.set_measured(queue_span)
-
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT_HTTP_PROXY)
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_HTTP_PROXY_QUEUE)
-              queue_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_PROXY)
-              # finish the `queue` span now to record only the time spent *in queue*,
-              # excluding the time spent processing the request itself
-              queue_span.finish
-
-              request_span
-            end
-          end
-
-          # rubocop:disable Metrics/CyclomaticComplexity
-          # rubocop:disable Metrics/PerceivedComplexity
           # rubocop:disable Metrics/MethodLength
-          # rubocop:disable Metrics/AbcSize
           def call(env)
             # Find out if this is rack within rack
             previous_request_span = env[Ext::RACK_ENV_REQUEST_SPAN]
@@ -81,95 +43,93 @@ module Datadog
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
             if configuration[:distributed_tracing]
-              trace_digest = Tracing::Propagation::HTTP.extract(env)
+              trace_digest = Contrib::HTTP.extract(env)
               Tracing.continue_trace!(trace_digest)
             end
 
-            # Create a root Span to keep track of frontend web servers
-            # (i.e. Apache, nginx) if the header is properly set
-            frontend_span = compute_queue_time(env)
+            TraceProxyMiddleware.call(env, configuration) do
+              trace_options = { type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
+              trace_options[:service] = configuration[:service_name] if configuration[:service_name]
 
-            trace_options = { span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND }
-            trace_options[:service] = configuration[:service_name] if configuration[:service_name]
+              # start a new request span and attach it to the current Rack environment;
+              # we must ensure that the span `resource` is set later
+              request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
+              request_span.resource = nil
 
-            # start a new request span and attach it to the current Rack environment;
-            # we must ensure that the span `resource` is set later
-            request_span = Tracing.trace(Ext::SPAN_REQUEST, **trace_options)
-            request_span.resource = nil
+              # When tracing and distributed tracing are both disabled, `.active_trace` will be `nil`,
+              # Return a null object to continue operation
+              request_trace = Tracing.active_trace || TraceOperation.new
+              env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
 
-            # When tracing and distributed tracing are both disabled, `.active_trace` will be `nil`,
-            # Return a null object to continue operation
-            request_trace = Tracing.active_trace || TraceOperation.new
+              Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
 
-            env[Ext::RACK_ENV_REQUEST_SPAN] = request_span
+              # Copy the original env, before the rest of the stack executes.
+              # Values may change; we want values before that happens.
+              original_env = env.dup
 
-            Datadog::Core::Remote::Tie::Tracing.tag(boot, request_span)
+              # call the rest of the stack
+              status, headers, response = @app.call(env)
 
-            # Copy the original env, before the rest of the stack executes.
-            # Values may change; we want values before that happens.
-            original_env = env.dup
+              if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+                last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
 
-            # call the rest of the stack
-            status, headers, response = @app.call(env)
+                # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
+                # then the current rack request was not routed and must be accounted for
+                # which only happens in pure nested rack requests i.e /rack/rack/hello/world
+                #
+                # To account for the unaccounted nested rack requests of /rack/hello/world,
+                # we use 'PATH_INFO knowing that rack cannot have named parameters
+                if last_script_name == '' && env['SCRIPT_NAME'] != ''
+                  last_script_name = last_route
+                  last_route = env['PATH_INFO']
+                end
 
-            if status != 404 && (last_route = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
-              last_script_name = request_trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+                # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+                request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+                request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
 
-              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
-              # then the current rack request was not routed and must be accounted for
-              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
-              #
-              # To account for the unaccounted nested rack requests of /rack/hello/world,
-              # we use 'PATH_INFO knowing that rack cannot have named parameters
-              if last_script_name == '' && env['SCRIPT_NAME'] != ''
-                last_script_name = last_route
-                last_route = env['PATH_INFO']
+                # Ensure tags are placed in rack.request span as desired
+                request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+                request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
               end
 
-              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
-              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-              request_trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+              [status, headers, response]
 
-              # Ensure tags are placed in rack.request span as desired
-              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
-              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+            # Here we really want to catch *any* exception, not only StandardError,
+            # as we really have no clue of what is in the block,
+            # and it is user code which should be executed no matter what.
+            # It's not a problem since we re-raise it afterwards so for example a
+            # SignalException::Interrupt would still bubble up.
+            rescue Exception => e # rubocop:disable Lint/RescueException
+              # catch exceptions that may be raised in the middleware chain
+              # Note: if a middleware catches an Exception without re raising,
+              # the Exception cannot be recorded here.
+              request_span.set_error(e) unless request_span.nil?
+              raise e
+            ensure
+              env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
+
+              if request_span
+                # Rack is a really low level interface and it doesn't provide any
+                # advanced functionality like routers. Because of that, we assume that
+                # the underlying framework or application has more knowledge about
+                # the result for this request; `resource` and `tags` are expected to
+                # be set in another level but if they're missing, reasonable defaults
+                # are used.
+                set_request_tags!(request_trace, request_span, env, status, headers, response, original_env || env)
+
+                # ensure the request_span is finished and the context reset;
+                # this assumes that the Rack middleware creates a root span
+                request_span.finish
+              end
             end
-
-            [status, headers, response]
-
-          # rubocop:disable Lint/RescueException
-          # Here we really want to catch *any* exception, not only StandardError,
-          # as we really have no clue of what is in the block,
-          # and it is user code which should be executed no matter what.
-          # It's not a problem since we re-raise it afterwards so for example a
-          # SignalException::Interrupt would still bubble up.
-          rescue Exception => e
-            # catch exceptions that may be raised in the middleware chain
-            # Note: if a middleware catches an Exception without re raising,
-            # the Exception cannot be recorded here.
-            request_span.set_error(e) unless request_span.nil?
-            raise e
-          ensure
-            env[Ext::RACK_ENV_REQUEST_SPAN] = previous_request_span if previous_request_span
-
-            if request_span
-              # Rack is a really low level interface and it doesn't provide any
-              # advanced functionality like routers. Because of that, we assume that
-              # the underlying framework or application has more knowledge about
-              # the result for this request; `resource` and `tags` are expected to
-              # be set in another level but if they're missing, reasonable defaults
-              # are used.
-              set_request_tags!(request_trace, request_span, env, status, headers, response, original_env || env)
-
-              # ensure the request_span is finished and the context reset;
-              # this assumes that the Rack middleware creates a root span
-              request_span.finish
-            end
-
-            frontend_span.finish if frontend_span
           end
-          # rubocop:enable Lint/RescueException
+          # rubocop:enable Metrics/MethodLength
 
+          # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/CyclomaticComplexity
+          # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/PerceivedComplexity
           def set_request_tags!(trace, request_span, env, status, headers, response, original_env)
             request_header_collection = Header::RequestHeaderCollection.new(env)
 
@@ -269,22 +229,13 @@ module Datadog
           end
           # rubocop:enable Metrics/AbcSize
           # rubocop:enable Metrics/CyclomaticComplexity
-          # rubocop:enable Metrics/PerceivedComplexity
           # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/PerceivedComplexity
 
           private
 
           def configuration
             Datadog.configuration.tracing[:rack]
-          end
-
-          def trace_http_server(span_name, start_time:)
-            Tracing.trace(
-              span_name,
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_PROXY,
-              start_time: start_time,
-              service: configuration[:web_service_name]
-            )
           end
 
           def parse_url(env, original_env)
@@ -323,7 +274,7 @@ module Datadog
                        else
                          # normally REQUEST_URI starts at the path, but it
                          # might contain the full URL in some cases (e.g WEBrick)
-                         Datadog::Core::BackportFrom25.string_delete_prefix(request_uri, base_url)
+                         request_uri.delete_prefix(base_url)
                        end
 
             base_url + fullpath

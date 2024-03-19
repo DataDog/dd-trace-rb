@@ -1,4 +1,4 @@
-require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
+require 'ext/datadog_profiling_native_extension/native_extension_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
@@ -22,7 +22,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
           ('dylib' if PlatformHelpers.mac?) ||
           raise('Missing SOEXT for current platform')
 
-        gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
+        gem_lib_folder = "#{Gem.loaded_specs['datadog'].gem_dir}/lib"
         full_libdatadog_path = "#{gem_lib_folder}/#{relative_path}/libdatadog_profiling.#{libdatadog_extension}"
 
         expect(relative_path).to start_with('../')
@@ -43,7 +43,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
       # the version on the `native_extension_helpers.rb` file. Kindly keep them in sync! :)
       expect(described_class::LIBDATADOG_VERSION).to eq(
-        Gem.loaded_specs['ddtrace'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
+        Gem.loaded_specs['datadog'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
       )
     end
   end

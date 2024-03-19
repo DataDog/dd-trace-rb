@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.20.0)
-      datadog-ci (~> 0.7.0)
+    datadog (2.0.0.dev)
+      base64
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 6.0.0.1.0)
+      libdatadog (~> 6.0.0.2.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -37,6 +37,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    base64 (0.2.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -51,8 +52,6 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.7.0)
-      msgpack
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     delayed_job (4.1.11)
@@ -73,8 +72,8 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (6.0.0.1.0-aarch64-linux)
-    libdatadog (6.0.0.1.0-x86_64-linux)
+    libdatadog (6.0.0.2.0-aarch64-linux)
+    libdatadog (6.0.0.2.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -164,7 +163,6 @@ GEM
     sqlite3 (1.6.6-aarch64-linux)
     sqlite3 (1.6.6-x86_64-linux)
     thor (1.2.2)
-    trilogy (2.6.0)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.4.2)
@@ -188,7 +186,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   delayed_job
   delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
@@ -220,7 +218,6 @@ DEPENDENCIES
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (>= 1.4.2)
-  trilogy
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)

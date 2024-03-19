@@ -5,6 +5,7 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
+  BASE_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:dd-trace-rb
 
 .benchmarks:
   stage: macrobenchmarks
@@ -30,6 +31,8 @@ variables:
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
 
+    # DEV: This variable is consumed by the reliability environment
+    #      (TODO) Update this variable to reflect "DATADOG" instead of "DDTRACE" as a name?
     DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
@@ -81,6 +84,14 @@ only-profiling-gc:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_FORCE_ENABLE_GC: "true"
+
+only-profiling-alloc:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED: "true"
 
 profiling-and-tracing:
   extends: .benchmarks
@@ -144,3 +155,33 @@ ddprof-benchmark:
     FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+benchmarks:
+  stage: benchmarks
+  when: on_success
+  tags: ["runner:apm-k8s-tweaked-metal"]
+  image: $BASE_CI_IMAGE
+  interruptible: true
+  timeout: 1h
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - ./steps/capture-hardware-software-info.sh
+    - ./steps/run-benchmarks.sh
+    - ./steps/analyze-results.sh
+    - "./steps/upload-results-to-s3.sh || :"
+    - "./steps/upload-results-to-benchmarking-api.sh || :"
+    - "./steps/post-pr-comment.sh || :"
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+  variables:
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
+    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
+    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA

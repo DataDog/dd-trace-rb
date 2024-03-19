@@ -5,13 +5,13 @@ require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
-  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['datadog'] }
+  let(:propagation_style_extract) { ['datadog'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject(:inject!) { datadog.inject!(digest, data) }
+    subject(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     context 'with nil digest' do
@@ -246,7 +246,7 @@ RSpec.shared_examples 'Datadog distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { datadog.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:digest) { extract }
 
     let(:data) { {} }
@@ -265,6 +265,7 @@ RSpec.shared_examples 'Datadog distributed format' do
       it { expect(digest.trace_id).to eq(10000) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
+      it { expect(digest.span_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) do
@@ -493,5 +494,8 @@ RSpec.shared_examples 'Datadog distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::Datadog do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'Datadog distributed format'
 end

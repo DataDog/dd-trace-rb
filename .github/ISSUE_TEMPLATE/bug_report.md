@@ -19,12 +19,12 @@ assignees: ''
   Code snippets, log messages, screenshots and sample apps are encouraged!
 -->
 
-**How does `ddtrace` help you?**
-<!-- Optionally, tell us why and how you're using ddtrace, and what your overall experience with it is! -->
+**How does `datadog` help you?**
+<!-- Optionally, tell us why and how you're using datadog, and what your overall experience with it is! -->
 
 **Environment**
 
-* **ddtrace version:**
+* **datadog version:**
 * **Configuration block (`Datadog.configure ...`):**
 * **Ruby version:**
 * **Operating system:**

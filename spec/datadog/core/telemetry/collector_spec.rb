@@ -12,8 +12,8 @@ require 'datadog/core/telemetry/v1/product'
 require 'datadog/core/transport/ext'
 require 'datadog/profiling/profiler'
 
-require 'ddtrace'
-require 'ddtrace/version'
+require 'datadog'
+require 'datadog/version'
 
 RSpec.describe Datadog::Core::Telemetry::Collector do
   let(:dummy_class) { Class.new { extend(Datadog::Core::Telemetry::Collector) } }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         before do
           Datadog.configuration.profiling.enabled = false
           Datadog.configuration.appsec.enabled = false
-          stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+          stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         end
 
         after do
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
 
     context 'when profiling is enabled' do
       before do
-        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         Datadog.configure do |c|
           c.profiling.enabled = true
         end
@@ -286,7 +286,7 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       before do
         require 'datadog/appsec'
 
-        stub_const('Datadog::Core::Environment::Ext::TRACER_VERSION', '4.2')
+        stub_const('Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION', '4.2')
         Datadog.configure do |c|
           c.appsec.enabled = true
         end
@@ -296,20 +296,44 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
       it { is_expected.to include('appsec.enabled' => true) }
     end
 
+    context 'when ci is not loaded' do
+      it { is_expected.not_to include('ci.enabled') }
+    end
+
+    context 'when ci is enabled' do
+      around do |example|
+        Datadog.configuration.define_singleton_method(:ci) do
+          OpenStruct.new(enabled: true)
+        end
+        example.run
+        class << Datadog.configuration
+          remove_method(:ci)
+        end
+      end
+
+      it { is_expected.to include('ci.enabled' => true) }
+    end
+
+    context 'when ci is not enabled' do
+      around do |example|
+        Datadog.configuration.define_singleton_method(:ci) do
+          OpenStruct.new(enabled: false)
+        end
+        example.run
+        class << Datadog.configuration
+          remove_method(:ci)
+        end
+      end
+
+      it { is_expected.to include('ci.enabled' => false) }
+    end
+
     context 'when OpenTelemetry is enabled' do
       before do
         stub_const('Datadog::OpenTelemetry::LOADED', true)
       end
 
       it { is_expected.to include('tracing.opentelemetry.enabled' => true) }
-    end
-
-    context 'when OpenTracing is enabled' do
-      before do
-        stub_const('Datadog::OpenTracer::LOADED', true)
-      end
-
-      it { is_expected.to include('tracing.opentracing.enabled' => true) }
     end
   end
 

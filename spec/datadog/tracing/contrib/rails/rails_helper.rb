@@ -170,7 +170,7 @@ logger.info "Testing against Rails #{Rails.version} with adapter '#{adapter}'"
 #
 # - We would happily substitute this for a gem like `rspec-rails` if it were possible. However,
 #   `rspec-rails` is for testing a Rails application. It doesn't create mock Rails apps for testing
-#   against, like we need to in `ddtrace`.
+#   against, like we need to in `datadog`.
 # - The most challenging part of implementation is that Rails wasn't designed to be re-initialized
 #   like this. There are a number of places, particularly with Rails::Configuration and Railties that
 #   use global, constant-level variables to hold application configuration. This configuration can and

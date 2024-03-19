@@ -16,13 +16,13 @@ module Datadog
         )
           unless setter == ::OpenTelemetry::Context::Propagation.text_map_setter
             Datadog.logger.error(
-              'Custom setter is not supported. Please inform the `ddtrace` team at ' \
+              'Custom setter is not supported. Please inform the `datadog` team at ' \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
             'OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter.'
             )
           end
 
-          @datadog_propagator.inject!(context.trace.to_digest, carrier)
+          @datadog_propagator.inject(context.trace.to_digest, carrier)
         end
 
         def extract(
@@ -32,7 +32,7 @@ module Datadog
           if getter != ::OpenTelemetry::Context::Propagation.text_map_getter &&
               getter != ::OpenTelemetry::Common::Propagation.rack_env_getter
             Datadog.logger.error(
-              "Custom getter #{getter} is not supported. Please inform the `ddtrace` team at " \
+              "Custom getter #{getter} is not supported. Please inform the `datadog` team at " \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
             'OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.'
             )

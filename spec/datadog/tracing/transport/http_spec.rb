@@ -78,7 +78,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       let(:port) { nil }
       let(:uds_path) { nil }
       let(:timeout_seconds) { nil }
-      let(:deprecated_for_removal_transport_configuration_proc) { nil }
 
       let(:agent_settings) do
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
@@ -87,8 +86,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
           hostname: hostname,
           port: port,
           uds_path: uds_path,
-          timeout_seconds: timeout_seconds,
-          deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
+          timeout_seconds: timeout_seconds
         )
       end
 
@@ -106,17 +104,6 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
             expect(api.adapter.timeout).to be(timeout_seconds)
             expect(api.adapter.ssl).to be true
           end
-        end
-      end
-
-      context 'that specifies a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { proc {} }
-
-        it 'calls the deprecated_for_removal_transport_configuration_proc with the transport builder' do
-          expect(deprecated_for_removal_transport_configuration_proc).to \
-            receive(:call).with(an_instance_of(Datadog::Tracing::Transport::HTTP::Builder))
-
-          default
         end
       end
     end
@@ -173,7 +160,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
           Datadog::Core::Environment::Ext::LANG_INTERPRETER,
         'Datadog-Meta-Lang-Interpreter-Vendor' => RUBY_ENGINE,
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::Core::Environment::Ext::TRACER_VERSION
+        Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
+          Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
       )
     end
 
@@ -198,65 +186,5 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     subject(:default_adapter) { described_class.default_adapter }
 
     it { is_expected.to be(:net_http) }
-  end
-
-  describe '.default_hostname' do
-    subject(:default_hostname) { described_class.default_hostname(logger: logger) }
-
-    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
-
-    before do
-      stub_const(
-        'Datadog::Tracing::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, hostname: 'example-hostname')
-      )
-    end
-
-    it 'returns the hostname from the DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS object' do
-      expect(default_hostname).to eq 'example-hostname'
-    end
-
-    it 'logs a deprecation warning' do
-      expect(logger).to receive(:warn).with(/Deprecated/)
-
-      default_hostname
-    end
-  end
-
-  describe '.default_port' do
-    subject(:default_port) { described_class.default_port(logger: logger) }
-
-    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
-
-    before do
-      stub_const(
-        'Datadog::Tracing::Transport::HTTP::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS',
-        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, port: 12345)
-      )
-    end
-
-    it 'returns the port from the DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS object' do
-      expect(default_port).to eq 12345
-    end
-
-    it 'logs a deprecation warning' do
-      expect(logger).to receive(:warn).with(/Deprecated/)
-
-      default_port
-    end
-  end
-
-  describe '.default_url' do
-    subject(:default_url) { described_class.default_url(logger: logger) }
-
-    let(:logger) { instance_double(Datadog::Core::Logger, warn: nil) }
-
-    it { is_expected.to be nil }
-
-    it 'logs a deprecation warning' do
-      expect(logger).to receive(:warn).with(/Deprecated/)
-
-      default_url
-    end
   end
 end

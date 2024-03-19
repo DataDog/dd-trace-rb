@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog'
 require 'rack'
 require 'hanami'
 
@@ -29,7 +29,7 @@ RSpec.shared_context 'Hanami test application' do
 
   let(:app) do
     if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-      require 'ddtrace/auto_instrument'
+      require 'datadog/auto_instrument'
     else
       require 'datadog/tracing/contrib/hanami/plugin'
     end

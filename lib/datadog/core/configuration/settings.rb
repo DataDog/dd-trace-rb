@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'logger'
 
 require_relative 'base'
@@ -61,6 +63,26 @@ module Datadog
           # @return [String,nil]
           option :port
 
+          # Agent APM SSL.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default defined as part of `DD_TRACE_AGENT_URL` environment variable, otherwise `false`
+          # Only applies to http connections.
+          # @return [Boolean,nil]
+          option :use_ssl
+
+          # Agent APM Timeout.
+          # @see https://docs.datadoghq.com/getting_started/tracing/#datadog-apm
+          # @default `DD_TRACE_AGENT_TIMEOUT_SECONDS` environment variable, otherwise `30` for http, '1' for UDS
+          # @return [Integer,nil]
+          option :timeout_seconds
+
+          # Agent unix domain socket path.
+          # @default defined in `DD_TRACE_AGENT_URL` environment variable, otherwise '/var/run/datadog/apm.socket'
+          # Agent connects via HTTP by default, but will use UDS if this is set or if unix scheme defined in
+          # DD_TRACE_AGENT_URL.
+          # @return [String,nil]
+          option :uds_path
+
           # TODO: add declarative statsd configuration. Currently only usable via an environment variable.
           # Statsd configuration for agent access.
           # @public_api
@@ -109,36 +131,13 @@ module Datadog
               require 'pp' if enabled
             end
           end
-          # Internal {Datadog::Statsd} metrics collection.
-          #
-          # @public_api
-          settings :health_metrics do
-            # Enable health metrics collection.
-            #
-            # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
-            # @return [Boolean]
-            option :enabled do |o|
-              o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
-              o.default false
-              o.type :bool
-            end
-
-            # {Datadog::Statsd} instance to collect health metrics.
-            #
-            # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
-            #
-            # @default `nil`
-            # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
-            # @return [nil] an instance with default agent configuration will be lazily created
-            option :statsd
-          end
 
           # Tracer startup debug log statement configuration.
           # @public_api
           settings :startup_logs do
             # Enable startup logs collection.
             #
-            # If `nil`, defaults to logging startup logs when `ddtrace` detects that the application
+            # If `nil`, defaults to logging startup logs when `datadog` detects that the application
             # is *not* running in a development environment.
             #
             # @default `DD_TRACE_STARTUP_LOGS` environment variable, otherwise `nil`
@@ -156,11 +155,33 @@ module Datadog
         # @default `DD_ENV` environment variable, otherwise `nil`
         # @return [String,nil]
         option :env do |o|
-          # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
-
+          o.type :string, nilable: true
           # NOTE: env also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_ENVIRONMENT
+        end
+
+        # Internal {Datadog::Statsd} metrics collection.
+        #
+        # @public_api
+        settings :health_metrics do
+          # Enable health metrics collection.
+          #
+          # @default `DD_HEALTH_METRICS_ENABLED` environment variable, otherwise `false`
+          # @return [Boolean]
+          option :enabled do |o|
+            o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED
+            o.default false
+            o.type :bool
+          end
+
+          # {Datadog::Statsd} instance to collect health metrics.
+          #
+          # If `nil`, health metrics creates a new {Datadog::Statsd} client with default agent configuration.
+          #
+          # @default `nil`
+          # @return [Datadog::Statsd,nil] a custom {Datadog::Statsd} instance
+          # @return [nil] an instance with default agent configuration will be lazily created
+          option :statsd
         end
 
         # Internal `Datadog.logger` configuration.
@@ -207,21 +228,6 @@ module Datadog
 
           # @public_api
           settings :advanced do
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. The CPU Profiling 2.0 profiler does not
-            # use or need this setting and thus it doesn't do anything.
-            option :max_events do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.max_events setting has been deprecated for removal and no ' \
-                    'longer does anything. Please remove it from your Datadog.configure block.'
-                  )
-                end
-              end
-            end
-
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
             # produced profiles. Increasing this may increase the overhead of profiling.
             #
@@ -251,51 +257,6 @@ module Datadog
             # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
             # grouping and categorization of stack traces.
             option :code_provenance_enabled, default: true
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was added as a temporary support option in case of issues with the new `Profiling::HttpTransport` class
-            # but we're now confident it's working nicely so we've removed the old code path.
-            option :legacy_transport_enabled do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.legacy_transport_enabled setting has been deprecated for removal and no ' \
-                    'longer does anything. Please remove it from your Datadog.configure block.'
-                  )
-                end
-              end
-            end
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
-            # default and this doesn't do anything.
-            option :force_enable_new_profiler do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.force_enable_new_profiler setting has been deprecated for removal and no ' \
-                    'longer does anything. Please remove it from your Datadog.configure block.'
-                  )
-                end
-              end
-            end
-
-            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
-            #
-            # This was used prior to the GA of the new CPU Profiling 2.0 profiler. Using CPU Profiling 2.0 is now the
-            # default and this doesn't do anything.
-            option :force_enable_legacy_profiler do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.force_enable_legacy_profiler setting has been deprecated for removal and no ' \
-                    'longer does anything. Please remove it from your Datadog.configure block.'
-                  )
-                end
-              end
-            end
 
             # Forces enabling of profiling of time/resources spent in Garbage Collection.
             #
@@ -541,8 +502,7 @@ module Datadog
         # @default `DD_SERVICE` environment variable, otherwise the program name (e.g. `'ruby'`, `'rails'`, `'pry'`)
         # @return [String]
         option :service do |o|
-          # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
+          o.type :string, nilable: true
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_SERVICE

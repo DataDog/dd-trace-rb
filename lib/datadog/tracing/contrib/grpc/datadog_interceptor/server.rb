@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../distributed/propagation'
@@ -21,10 +23,10 @@ module Datadog
               formatter = GRPC::Formatting::MethodObjectFormatter.new(keywords[:method])
 
               options = {
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 service: service_name, # TODO: Remove server-side service name configuration
                 resource: formatter.resource_name,
-                on_error: error_handler
+                on_error: on_error
               }
               metadata = keywords[:call].metadata
 
@@ -49,7 +51,7 @@ module Datadog
             private
 
             def set_distributed_context!(metadata)
-              Tracing.continue_trace!(Distributed::Propagation::INSTANCE.extract(metadata))
+              Tracing.continue_trace!(GRPC.extract(metadata))
             rescue StandardError => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"
@@ -85,19 +87,6 @@ module Datadog
               Contrib::Analytics.set_measured(span)
             rescue StandardError => e
               Datadog.logger.debug("GRPC server trace failed: #{e}")
-            end
-
-            def error_handler
-              self_handler = Datadog.configuration_for(self, :error_handler)
-              return self_handler if self_handler
-
-              unless datadog_configuration.using_default?(:server_error_handler)
-                return datadog_configuration[:server_error_handler]
-              end
-
-              # As a last resort, fallback to the deprecated error_handler
-              # configuration option.
-              datadog_configuration[:error_handler]
             end
           end
         end

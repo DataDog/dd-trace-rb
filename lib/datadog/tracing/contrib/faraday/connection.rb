@@ -12,7 +12,7 @@ module Datadog
         module Connection
           def initialize(*args, &block)
             super.tap do
-              use(:ddtrace) unless builder.handlers.any? { |h| h.klass == Middleware }
+              use(:datadog_tracing) unless builder.handlers.any? { |h| h.klass == Middleware }
             end
           end
         end

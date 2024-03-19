@@ -22,7 +22,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
             service: settings.service,
           ),
           profiler: hash_including(
-            version: Datadog::Core::Environment::Identity.tracer_version,
+            version: Datadog::Core::Environment::Identity.gem_datadog_version,
           ),
         }
       )

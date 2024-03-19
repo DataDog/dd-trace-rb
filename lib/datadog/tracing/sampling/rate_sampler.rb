@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'sampler'
 require_relative '../utils'
 
@@ -5,7 +7,6 @@ module Datadog
   module Tracing
     module Sampling
       # {Datadog::Tracing::Sampling::RateSampler} is based on a sample rate.
-      # @public_api
       class RateSampler < Sampler
         KNUTH_FACTOR = 1111111111111111111
 
@@ -13,24 +14,13 @@ module Datadog
         # This sampler keeps a random subset of the traces. Its main purpose is to
         # reduce the instrumentation footprint.
         #
-        # * +sample_rate+: the sample rate as a {Float} between 0.0 and 1.0. 0.0
-        #   means that no trace will be sampled; 1.0 means that all traces will be
-        #   sampled.
-        #
-        # DEV-2.0: Allow for `sample_rate` zero (drop all) to be allowed. This eases
-        # DEV-2.0: usage for all internal users of the {RateSampler} class: both
-        # DEV-2.0: RuleSampler and Single Span Sampling leverage the RateSampler, but want
-        # DEV-2.0: `sample_rate` zero to mean "drop all". They work around this by hard-
-        # DEV-2.0: setting the `sample_rate` to zero like so:
-        # DEV-2.0: ```
-        # DEV-2.0: sampler = RateSampler.new
-        # DEV-2.0: sampler.sample_rate = sample_rate
-        # DEV-2.0: ```
+        # @param sample_rate [Numeric] the sample rate between 0.0 and 1.0, inclusive.
+        #   0.0 means that no trace will be sampled; 1.0 means that all traces will be  sampled.
         def initialize(sample_rate = 1.0, decision: nil)
           super()
 
-          unless sample_rate > 0.0 && sample_rate <= 1.0
-            Datadog.logger.error('sample rate is not between 0 and 1, disabling the sampler')
+          unless sample_rate >= 0.0 && sample_rate <= 1.0
+            Datadog.logger.error('sample rate is not between 0 and 1, falling back to 1')
             sample_rate = 1.0
           end
 
@@ -53,7 +43,7 @@ module Datadog
         end
 
         def sample!(trace)
-          sampled = trace.sampled = sample?(trace)
+          sampled = sample?(trace)
 
           return false unless sampled
 

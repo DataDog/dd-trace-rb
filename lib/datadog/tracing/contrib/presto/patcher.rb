@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/utils/only_once'
 require_relative '../patcher'
 require_relative 'ext'

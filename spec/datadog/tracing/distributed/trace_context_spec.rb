@@ -4,13 +4,13 @@ require 'datadog/tracing/distributed/trace_context'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
-  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['tracecontext'] }
+  let(:propagation_style_extract) { ['tracecontext'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject!(:inject!) { datadog.inject!(digest, data) }
+    subject!(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     let(:traceparent) { data['traceparent'] }
@@ -294,7 +294,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { datadog.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:data) do
       { prepare_key['traceparent'] => traceparent,
         prepare_key['tracestate'] => tracestate }
@@ -383,6 +383,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { expect(digest.span_id).to eq(0xBEE) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to eq(0) }
+      it { expect(digest.span_remote).to be true }
 
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }
@@ -539,5 +540,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::TraceContext do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'Trace Context distributed format'
 end

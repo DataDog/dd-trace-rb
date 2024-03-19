@@ -12,7 +12,7 @@ end
 
 chdir APP_ROOT do
   puts "\n== Installing dependencies =="
-  require '/vendor/dd-demo/build_ddtrace_profiling_native_extension' if ENV['DD_DEMO_ENV_BUILD_PROFILING_EXTENSION'] == 'true'
+  require '/vendor/dd-demo/build_datadog_profiling_native_extension' if ENV['DD_DEMO_ENV_BUILD_PROFILING_EXTENSION'] == 'true'
   system! 'gem install bundler --conservative'
   system('bundle check') || system!('bundle install')
 

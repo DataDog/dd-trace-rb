@@ -120,20 +120,18 @@ module Datadog
         private
 
         TARGET_OPTIONS = [
-          'ci.enabled',
           'logger.level',
           'profiling.advanced.code_provenance_enabled',
           'profiling.advanced.endpoint.collection.enabled',
           'profiling.enabled',
           'runtime_metrics.enabled',
           'tracing.analytics.enabled',
-          'tracing.distributed_tracing.propagation_inject_style',
-          'tracing.distributed_tracing.propagation_extract_style',
+          'tracing.propagation_style_inject',
+          'tracing.propagation_style_extract',
           'tracing.enabled',
           'tracing.log_injection',
           'tracing.partial_flush.enabled',
           'tracing.partial_flush.min_spans_threshold',
-          'tracing.priority_sampling',
           'tracing.report_hostname',
           'tracing.sampling.default_rate',
           'tracing.sampling.rate_limit'
@@ -155,8 +153,8 @@ module Datadog
             format_configuration_value(configuration.tracing.writer_options[:flush_interval])
           options['logger.instance'] = configuration.logger.instance.class.to_s
           options['appsec.enabled'] = configuration.dig('appsec', 'enabled') if configuration.respond_to?('appsec')
+          options['ci.enabled'] = configuration.dig('ci', 'enabled') if configuration.respond_to?('ci')
           options['tracing.opentelemetry.enabled'] = !defined?(Datadog::OpenTelemetry::LOADED).nil?
-          options['tracing.opentracing.enabled'] = !defined?(Datadog::OpenTracer::LOADED).nil?
           options.compact!
           options
         end
@@ -184,7 +182,7 @@ module Datadog
         end
 
         def library_version
-          Core::Environment::Identity.tracer_version
+          Core::Environment::Identity.gem_datadog_version
         end
 
         def products

@@ -17,10 +17,10 @@ require_relative '../../../transport/http/api/endpoint'
 # Separate classes are needed because of `include Trace::API::Instance`.
 #
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/api/instance'
+# require_relative '../../../../datadog/core/transport/http/api/instance'
 require_relative 'api/instance'
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/api/spec'
+# require_relative '../../../../datadog/core/transport/http/api/spec'
 require_relative 'api/spec'
 
 module Datadog

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../patcher'
 require_relative 'configuration/resolver'
 require_relative 'ext'

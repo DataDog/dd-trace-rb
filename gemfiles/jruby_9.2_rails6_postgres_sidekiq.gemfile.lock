@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.20.0)
-      datadog-ci (~> 0.7.0)
+    datadog (2.0.0.dev)
+      base64
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 6.0.0.1.0)
+      libdatadog (~> 6.0.0.2.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -86,6 +86,7 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
+    base64 (0.2.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -99,8 +100,6 @@ GEM
       rexml
     crass (1.0.6)
     cri (2.15.11)
-    datadog-ci (0.7.0)
-      msgpack
     debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
     digest (3.1.1-java)
@@ -117,7 +116,7 @@ GEM
     jdbc-postgres (42.2.25)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (6.0.0.1.0)
+    libdatadog (6.0.0.2.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
@@ -273,7 +272,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   i18n (= 1.8.7)
   json-schema (< 3)

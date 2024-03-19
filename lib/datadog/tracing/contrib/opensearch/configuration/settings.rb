@@ -30,9 +30,10 @@ module Datadog
               o.default 1.0
             end
 
-            option :quantize, default: {}
+            option :quantize, default: {}, type: :hash
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
