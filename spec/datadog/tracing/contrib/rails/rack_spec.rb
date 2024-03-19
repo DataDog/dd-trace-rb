@@ -144,7 +144,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.service).to eq(tracer.default_service)
       expect(request_span.resource).to eq('TestController#full')
       expect(request_span.get_tag('http.url')).to eq('/full')
-      expect(request_span.get_tag('http.route')).to eq('/full') if Rails::VERSION::MAJOR.to_i >= 4
+      expect(request_span.get_tag('http.route')).to eq('/full')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
       expect(request_span).to be_measured
@@ -380,7 +380,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.span_type).to eq('web')
       expect(request_span.resource).to eq('TestController#error')
       expect(request_span.get_tag('http.url')).to eq('/error')
-      expect(request_span.get_tag('http.route')).to eq('/error') if Rails::VERSION::MAJOR.to_i >= 4
+      expect(request_span.get_tag('http.route')).to eq('/error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
       expect(request_span).to have_error
@@ -416,7 +416,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.span_type).to eq('web')
       expect(request_span.resource).to eq('TestController#soft_error')
       expect(request_span.get_tag('http.url')).to eq('/soft_error')
-      expect(request_span.get_tag('http.route')).to eq('/soft_error') if Rails::VERSION::MAJOR.to_i >= 4
+      expect(request_span.get_tag('http.route')).to eq('/soft_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('520')
       expect(request_span).to have_error
@@ -452,7 +452,7 @@ RSpec.describe 'Rails Rack' do
       expect(request_span.span_type).to eq('web')
       expect(request_span.resource).to eq('TestController#sub_error')
       expect(request_span.get_tag('http.url')).to eq('/sub_error')
-      expect(request_span.get_tag('http.route')).to eq('/sub_error') if Rails::VERSION::MAJOR.to_i >= 4
+      expect(request_span.get_tag('http.route')).to eq('/sub_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('500')
       expect(request_span).to have_error
