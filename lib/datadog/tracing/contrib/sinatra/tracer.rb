@@ -76,6 +76,7 @@ module Datadog
                 _, path = env['sinatra.route'].split(' ', 2)
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path)
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+                # binding.pry
                 super
               end
             end
