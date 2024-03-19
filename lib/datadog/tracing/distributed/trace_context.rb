@@ -150,7 +150,7 @@ module Datadog
           tracestate = String.new('dd=')
           if !digest.span_remote
             tracestate << "p:#{format('%016x', digest.span_id)};"
-          elsif digest.trace_distributed_tags.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
+          elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
             tracestate << "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
           end
           tracestate << "s:#{digest.trace_sampling_priority};" if digest.trace_sampling_priority
