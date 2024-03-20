@@ -18,11 +18,11 @@ jobs:
       matrix:
         image:
           - name: runner
-            version: runner
+            internal: system_tests/runner
           - name: agent
-            version: agent
+            internal: system_tests/agent
           - name: proxy
-            version: proxy-v1
+            internal: system-tests/proxy-v1
     runs-on: ubuntu-latest
     name: Build (${{ matrix.image }})
     steps:
@@ -33,7 +33,7 @@ jobs:
       - name: Pull released image
         run: |
           if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest; then
-            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest system_tests/${{ matrix.image.version }}:latest
+            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest ${{ matrix.image.internal }}:latest
           fi
       - name: Build image
         run: ./build.sh --images ${{ matrix.image.name }} --docker
@@ -45,14 +45,14 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Tag image for CI run
         run:
-          docker tag system_tests/${{ matrix.image.version }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ${{ matrix.image.internal }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
         run: |
           docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Tag image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run:
-          docker tag system_tests/${{ matrix.image.version }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest
+          docker tag ${{ matrix.image.internal }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest
       - name: Push image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
@@ -223,7 +223,7 @@ jobs:
       - name: Pull proxy image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/proxy:gha${{ github.run_id }}-g${{ github.sha }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/proxy:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy-v1:latest
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/proxy:gha${{ github.run_id }}-g${{ github.sha }} system-tests/proxy-v1:latest
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
