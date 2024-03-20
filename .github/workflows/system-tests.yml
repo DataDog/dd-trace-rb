@@ -17,7 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         image:
+          - runner
           - agent
+          - proxy
     runs-on: ubuntu-latest
     name: Build (${{ matrix.image }})
     steps:
@@ -31,7 +33,7 @@ jobs:
             docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
           fi
       - name: Build image
-        run: ./build.sh --images ${{ matrix.image }}
+        run: ./build.sh --images ${{ matrix.image }} --docker
       - name: List images
         run: |
           docker image list
@@ -211,6 +213,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+      - name: Pull runner image
+        run: |
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/runner:latest
+      - name: Pull proxy image
+        run: |
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy:latest
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
@@ -223,7 +233,7 @@ jobs:
         run: |
           docker image list
       - name: Run scenario
-        run: ./build.sh --images runner && ./run.sh ${{ matrix.scenario }}
+        run: ./run.sh ++docker ${{ matrix.scenario }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs (per scenario)
