@@ -1027,6 +1027,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
   end
 
   describe '.delayed_error' do
+    before { allow(Datadog.logger).to receive(:warn) }
+
     it 'on allocation, raises on start' do
       worker = described_class.allocate
       # Simulate a delayed failure pre-initialization (i.e. during new)
@@ -1049,6 +1051,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(described_class::Testing._native_is_running?(worker)).to be false
       exception = try_wait_until(backoff: 0.01) { worker.send(:failure_exception) }
       expect(exception.message).to include 'test failure'
+
+      worker.stop
     end
 
     it 'raises on next iteration' do
@@ -1076,6 +1080,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
       exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
       expect(exception.message).to include 'test failure'
+
+      cpu_and_wall_time_worker.stop
     end
   end
 

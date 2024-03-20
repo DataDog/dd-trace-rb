@@ -44,7 +44,6 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       expect(info[:profiler][:settings][:advanced]).to match(
         a_hash_including(
           max_frames: 600,
-          experimental_allocation_enabled: false,
           experimental_heap_enabled: true,
         )
       )

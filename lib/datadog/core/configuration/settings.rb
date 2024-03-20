@@ -226,6 +226,22 @@ module Datadog
             option :transport
           end
 
+          # Can be used to enable/disable collection of allocation profiles.
+          #
+          # This feature is disabled by default
+          #
+          # @warn Due to bugs in Ruby we only recommend enabling this feature in
+          #       Ruby versions 2.x, 3.1.4+, 3.2.3+ and 3.3.0+
+          #       (more details in {Datadog::Profiling::Component.enable_allocation_profiling?})
+          #
+          # @default `DD_PROFILING_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
+          option :allocation_enabled do |o|
+            o.type :bool
+            o.deprecated_env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' # TODO: Remove this for dd-trace-rb 2.0
+            o.env 'DD_PROFILING_ALLOCATION_ENABLED'
+            o.default false
+          end
+
           # @public_api
           settings :advanced do
             # Controls the maximum number of frames for each thread sampled. Can be tuned to avoid omitted frames in the
@@ -283,32 +299,32 @@ module Datadog
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
             #
-            # This feature is now controlled via {:experimental_allocation_enabled}
+            # @deprecated Use {:allocation_enabled} (outside of advanced section) instead.
             option :allocation_counting_enabled do |o|
               o.after_set do |_, _, precedence|
                 unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Datadog.logger.warn(
                     'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
                     'longer does anything. Please remove it from your Datadog.configure block. ' \
-                    'Allocation counting is now controlled by the `experimental_allocation_enabled` setting instead.'
+                    'Allocation counting is now controlled by the profiling.allocation_enabled setting instead.'
                   )
                 end
               end
             end
 
-            # Can be used to enable/disable collection of allocation profiles.
-            #
-            # This feature is alpha and disabled by default
-            #
-            # @warn This feature is not supported/safe in all Rubies. Details in {Datadog::Profiling::Component} but
-            #       in summary, this should be supported on Ruby 2.x, 3.1.4+, 3.2.3+ and 3.3.0+. Enabling it on
-            #       unsupported Rubies may result in unexpected behaviour, including crashes.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
+            # @deprecated Use {:allocation_enabled} (outside of advanced section) instead.
             option :experimental_allocation_enabled do |o|
               o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED'
               o.default false
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.experimental_allocation_enabled setting has been deprecated for removal and ' \
+                    'no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'Allocation profiling is now controlled by the profiling.allocation_enabled setting instead.'
+                  )
+                end
+              end
             end
 
             # Can be used to enable/disable the collection of heap profiles.
