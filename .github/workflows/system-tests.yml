@@ -102,7 +102,7 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build
-        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args '--cache-from ${{ matrix.image }}:latest'
+        run: ./build.sh --library ${{ matrix.library }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args '--cache-from system_tests/${{ matrix.image }}:latest'
       - name: Tag image for CI run
         run:
           docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
