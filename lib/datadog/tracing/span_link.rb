@@ -61,7 +61,9 @@ module Datadog
         if @attributes
           h[:attributes] = {}
           @attributes.each do |k1, v1|
-            h[:attributes][k1.to_s] = v1.to_s
+            Tracing::Utils.serialize_attribute(k1, v1).each do |new_k1, value|
+              h[:attributes][new_k1.to_s] = value.to_s
+            end
           end
         end
         h[:dropped_attributes_count] = @dropped_attributes if @dropped_attributes > 0

@@ -99,8 +99,16 @@ RSpec.describe Datadog::Tracing::SpanLink do
     end
 
     context 'with attributes' do
-      let(:options) { { span_id: 34, trace_id: 12, attributes: { 'link.name' => :test_link, 'link.id' => 1 } } }
-      it { is_expected.to include(attributes: { 'link.name' => 'test_link', 'link.id' => '1' }) }
+      let(:options) do
+        { span_id: 34, trace_id: 12,
+          attributes: { 'link.name' => :test_link, 'link.id' => 1, 'nested' => [true, [2, 3], 'val'] } }
+      end
+      it {
+        is_expected.to include(
+          attributes: { 'link.name' => 'test_link', 'link.id' => '1', 'nested.0' => 'true',
+                        'nested.1.0' => '2', 'nested.1.1' => '3', 'nested.2' => 'val', }
+        )
+      }
     end
   end
 end
