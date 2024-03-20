@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+## [1.21.1] - 2024-03-20
+
+### Added
+
+* Backports auto instrument shim with `datadog/auto_instrument` ([#3535][])
+
+### Fixed
+
+* Fix ActiveRecord resolving invalid string ([#3523][])
+* Revert `http.route` tagging to fix instrumentation failure for Rails 7.1 apps ([#3539][])
+* Fix wrong permissions on released gem files ([#3531][])
+
 ## [1.21.0] - 2024-03-14
 
 ### Highlights
@@ -2764,7 +2776,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...master
+[1.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.0...v1.21.1
 [1.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.20.0...v1.21.0
 [1.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.19.0...v1.20.0
 [1.19.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.18.0...v1.19.0
@@ -4056,6 +4069,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3518]: https://github.com/DataDog/dd-trace-rb/issues/3518
 [#3519]: https://github.com/DataDog/dd-trace-rb/issues/3519
 [#3520]: https://github.com/DataDog/dd-trace-rb/issues/3520
+[#3523]: https://github.com/DataDog/dd-trace-rb/issues/3523
+[#3531]: https://github.com/DataDog/dd-trace-rb/issues/3531
+[#3535]: https://github.com/DataDog/dd-trace-rb/issues/3535
+[#3539]: https://github.com/DataDog/dd-trace-rb/issues/3539
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
