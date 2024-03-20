@@ -19,7 +19,7 @@ jobs:
         image:
           - runner
           - agent
-          - proxy
+          - proxy-v1
     runs-on: ubuntu-latest
     name: Build (${{ matrix.image }})
     steps:
@@ -220,7 +220,7 @@ jobs:
       - name: Pull proxy image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy:latest
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy-v1:latest
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
