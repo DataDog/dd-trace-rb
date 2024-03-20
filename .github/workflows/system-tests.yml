@@ -75,6 +75,7 @@ jobs:
           - rails60
           - rails61
           - rails70
+          - rails71
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
     steps:
