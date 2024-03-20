@@ -17,9 +17,12 @@ jobs:
       fail-fast: false
       matrix:
         image:
-          - runner
-          - agent
-          - proxy-v1
+          - name: runner
+            version: runner
+          - name: agent
+            version: agent
+          - name: proxy
+            version: proxy-v1
     runs-on: ubuntu-latest
     name: Build (${{ matrix.image }})
     steps:
@@ -29,11 +32,11 @@ jobs:
           repository: 'DataDog/system-tests'
       - name: Pull released image
         run: |
-          if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest; then
-            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
+          if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest; then
+            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest system_tests/${{ matrix.image.version }}:latest
           fi
       - name: Build image
-        run: ./build.sh --images ${{ matrix.image }} --docker
+        run: ./build.sh --images ${{ matrix.image.name }} --docker
       - name: List images
         run: |
           docker image list
@@ -42,18 +45,18 @@ jobs:
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Tag image for CI run
         run:
-          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag system_tests/${{ matrix.image.version }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
         run: |
-          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:gha${{ github.run_id }}-g${{ github.sha }}
+          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Tag image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run:
-          docker tag system_tests/${{ matrix.image }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
+          docker tag system_tests/${{ matrix.image.version }}:latest ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest
       - name: Push image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run: |
-          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
+          docker push ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image.name }}:latest
 
   build-apps:
     strategy:
@@ -215,12 +218,12 @@ jobs:
           repository: 'DataDog/system-tests'
       - name: Pull runner image
         run: |
-          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/runner:latest
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }} system_tests/runner:latest
       - name: Pull proxy image
         run: |
-          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy-v1:latest
+          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/proxy:gha${{ github.run_id }}-g${{ github.sha }}
+          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/proxy:gha${{ github.run_id }}-g${{ github.sha }} system_tests/proxy-v1:latest
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
