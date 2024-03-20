@@ -27,8 +27,9 @@ jobs:
           repository: 'DataDog/system-tests'
       - name: Pull released image
         run: |
-          docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest
-          docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
+          if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest; then
+            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest system_tests/${{ matrix.image }}:latest
+          fi
       - name: Build image
         run: ./build.sh --images ${{ matrix.image }}
       - name: List images
@@ -87,10 +88,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: 'binaries/dd-trace-rb'
-      # name: Pull released image
-      # run: |
-      #   docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest
-      #   docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest system_tests/${{ matrix.image }}:latest
+      - name: Pull released image
+        run: |
+          if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest; then
+            docker tag ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}-${{ matrix.app }}:latest system_tests/${{ matrix.image }}:latest
+          fi
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
