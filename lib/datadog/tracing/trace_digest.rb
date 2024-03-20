@@ -4,7 +4,7 @@ module Datadog
   module Tracing
     # Trace digest that represents the important parts of an active trace.
     # Used to propagate context and continue traces across execution boundaries.
-    # TODO: Update all references from span to parent (ex: span_id -> parent_id) 
+    # TODO: Update all references from span to parent (ex: span_id -> parent_id)
     # @public_api
     class TraceDigest
       # @!attribute [r] span_id
