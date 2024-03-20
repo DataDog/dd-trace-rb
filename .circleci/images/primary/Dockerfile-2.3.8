@@ -1,7 +1,12 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-# taken from https://hub.docker.com/layers/library/ruby/2.3.8-jessie/images/sha256-cff37ff7e88348a8dd630f9b2d1c679fe9e7b597cfb51a30c42bf2c2afb2eca2?context=explore
-FROM buildpack-deps:bookworm AS ruby-2.3.8-bookworm
+# Based on https://hub.docker.com/layers/library/ruby/2.3.8-jessie/images/sha256-cff37ff7e88348a8dd630f9b2d1c679fe9e7b597cfb51a30c42bf2c2afb2eca2?context=explore
+#
+# Important note: In https://github.com/DataDog/dd-trace-rb/pull/3534 we actually tried to use debian 12 (bookworm) here
+# but ran into issues because one of the test apps we use in system-tests uses a version of nokogiri that fails to
+# build on that debian version. If you change the base image, make sure that `gem install nokogiri -v '= 1.10.10'`
+# successfully installs.
+FROM buildpack-deps:bullseye AS ruby-2.3.8-bullseye
 
 # skip installing gem documentation
 RUN mkdir -p /usr/local/etc \
@@ -86,7 +91,7 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 CMD [ "irb" ]
 
-FROM ruby-2.3.8-bookworm
+FROM ruby-2.3.8-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -116,11 +121,11 @@ ENV LANGUAGE en_US:en
 # Install Docker and Docker Compose
 RUN set -ex \
   && ARCH=$(dpkg --print-architecture) \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/containerd.io_1.6.28-2_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-ce-cli_25.0.4-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-buildx-plugin_0.13.0-1~debian.12~bookworm_${ARCH}.deb \
-  && wget https://download.docker.com/linux/debian/dists/bookworm/pool/stable/${ARCH}/docker-compose-plugin_2.24.7-1~debian.12~bookworm_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/containerd.io_1.6.28-2_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-ce_25.0.4-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-ce-cli_25.0.4-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-buildx-plugin_0.13.0-1~debian.11~bullseye_${ARCH}.deb \
+  && wget https://download.docker.com/linux/debian/dists/bullseye/pool/stable/${ARCH}/docker-compose-plugin_2.24.7-1~debian.11~bullseye_${ARCH}.deb \
   && dpkg -i *.deb \
   && rm -rf *.deb
 
