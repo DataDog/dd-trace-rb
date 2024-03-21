@@ -117,6 +117,10 @@ jobs:
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
             docker tag ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest system_tests/${{ matrix.image }}:latest
           fi
+          parents="$(cd 'binaries/${{ matrix.library.path }}' && git rev-list --parents -n 1 ${{ github.sha }})"
+          for sha in $parents; do
+            docker pull "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}" || true
+          done
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
@@ -128,7 +132,7 @@ jobs:
           done
           parents="$(cd 'binaries/${{ matrix.library.path }}' && git rev-list --parents -n 1 ${{ github.sha }})"
           for sha in $parents; do
-            cache_from+=(--cache-from type=registry,ref="${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}")
+            cache_from+=(--cache-from ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha})
           done
           echo "cache args: ${cache_from[*]}"
           ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
