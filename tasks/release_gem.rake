@@ -7,6 +7,7 @@ end
 desc 'Checks executed before gem is built'
 task :'build:pre_check' do
   require 'rspec'
+  RSpec.world.reset # If any other tests ran before, flushes them
   ret = RSpec::Core::Runner.run(['spec/datadog/release_gem_spec.rb'])
   raise "Release tests failed! See error output above." if ret != 0
 end
