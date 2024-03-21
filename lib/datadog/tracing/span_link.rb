@@ -36,33 +36,28 @@ module Datadog
       attr_reader :trace_state
 
       def initialize(
-        span_id: nil,
-        trace_id: nil,
         attributes: nil,
-        trace_flags: nil,
-        trace_state: nil
+        digest: nil
       )
-        @span_id = span_id
-        @trace_id = trace_id
-        @attributes = attributes && attributes.dup.freeze
-        @trace_flags = trace_flags
-        @trace_state = trace_state && trace_state.dup.freeze
+        @span_id = digest&.span_id
+        @trace_id = digest&.trace_id
+        @trace_flags = digest&.trace_flags
+        @trace_state = digest&.trace_state && digest&.trace_state.dup
         @dropped_attributes = 0
-        freeze
+        @attributes = (attributes && attributes.dup) || {}
       end
 
       def to_hash
         h = {
-          span_id: @span_id,
-          trace_id: Tracing::Utils::TraceId.to_low_order(@trace_id),
-
+          span_id: @span_id || 0,
+          trace_id: Tracing::Utils::TraceId.to_low_order(@trace_id) || 0,
         }
         # Optimization: Hash non empty attributes
         if @trace_id.to_i > Tracing::Utils::EXTERNAL_MAX_ID
           h[:trace_id_high] =
             Tracing::Utils::TraceId.to_high_order(@trace_id)
         end
-        if @attributes
+        unless @attributes&.empty?
           h[:attributes] = {}
           @attributes.each do |k1, v1|
             Tracing::Utils.serialize_attribute(k1, v1).each do |new_k1, value|

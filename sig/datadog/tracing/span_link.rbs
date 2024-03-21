@@ -7,13 +7,13 @@ module Datadog
 
       @trace_id: untyped
 
-      @attributes: untyped
-
       @trace_flags: untyped
 
       @trace_state: untyped
 
       @dropped_attributes: untyped
+
+      @attributes: untyped
 
       # @!attribute [r] span_id
       #   Datadog id for the currently active span.
@@ -45,7 +45,7 @@ module Datadog
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       attr_reader trace_state: untyped
 
-      def initialize: (?span_id: untyped?, ?trace_id: untyped?, ?attributes: untyped?, ?trace_flags: untyped?, ?trace_state: untyped?) -> void
+      def initialize: (?attributes: untyped?, ?digest: untyped?) -> void
 
       def to_hash: () -> untyped
     end

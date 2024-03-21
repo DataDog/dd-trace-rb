@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require '../../../tracing/utils'
+require 'datadog/tracing/utils'
 
 module Datadog
   module OpenTelemetry
