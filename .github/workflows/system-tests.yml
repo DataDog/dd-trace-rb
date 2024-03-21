@@ -40,8 +40,8 @@ jobs:
       - name: Build image
         run: |
           cache_from=()
-          for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
-            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${sha}')
+          for tag in latest; do
+            cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.image.name }}:${tag}")
           done
           echo "cache args: ${cache_from[*]}"
           ./build.sh --images ${{ matrix.image.name }} --docker --extra-docker-args "${cache_from[*]}"
@@ -111,6 +111,7 @@ jobs:
         with:
           repository: '${{ matrix.library.repository }}'
           path: 'binaries/${{ matrix.library.path }}'
+          fetch-depth: 2
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
@@ -122,8 +123,12 @@ jobs:
       - name: Build
         run: |
           cache_from=()
-          for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
-            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}')
+          for tag in latest; do
+            cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:${tag}")
+          done
+          parents="$(cd 'binaries/${{ matrix.library.path }}' && git rev-list --parents -n 1 ${{ github.sha }})"
+          for sha in $parents; do
+            cache_from+=(--cache-from type=registry,ref="${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}")
           done
           echo "cache args: ${cache_from[*]}"
           ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
