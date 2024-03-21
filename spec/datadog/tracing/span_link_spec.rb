@@ -83,7 +83,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
       end
     end
 
-    context 'required fields are set to nil' do
+    context 'when required fields are not set' do
       let(:span_id) { nil }
       let(:trace_id) { nil }
       it { is_expected.to eq(trace_id: 0, span_id: 0, flags: 0) }
