@@ -337,30 +337,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#allocation_enabled' do
       subject(:allocation_enabled) { settings.profiling.allocation_enabled }
 
-      context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
-        around do |example|
-          ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:environment) { value.to_s }
-
-            before { expect(Datadog::Core).to receive(:log_deprecation) }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
-
       context 'when DD_PROFILING_ALLOCATION_ENABLED' do
         around do |example|
           ClimateControl.modify('DD_PROFILING_ALLOCATION_ENABLED' => environment) do
