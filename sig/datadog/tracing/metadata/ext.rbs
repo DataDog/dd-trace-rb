@@ -42,8 +42,6 @@ module Datadog
           ERROR_RANGE: ::Range[::Integer]
           TAG_BASE_URL: ::String
           TAG_METHOD: ::String
-          TAG_ROUTE: String
-          TAG_ROUTE_PATH: String
           TAG_STATUS_CODE: ::String
           TAG_USER_AGENT: ::String
           TAG_URL: ::String
