@@ -8,16 +8,24 @@ module Datadog
       # @!attribute [r] span_id
       #   Datadog id for the currently active span.
       #   @return [Integer]
+      attr_reader :span_id
+
       # @!attribute [r] trace_id
       #   Datadog id for the currently active trace.
       #   @return [Integer]
+      attr_reader :trace_id
+
       # @!attribute [r] attributes
       #   Datadog-specific tags that support richer distributed tracing association.
       #   @return [Hash<String,String>]
+      attr_reader :attributes
+
       # @!attribute [r] trace_flags
       #   The W3C "trace-flags" extracted from a distributed context. This field is an 8-bit unsigned integer.
       #   @return [Integer]
       #   @see https://www.w3.org/TR/trace-context/#trace-flags
+      attr_reader :trace_flags
+
       # @!attribute [r] trace_state
       #   The W3C "tracestate" extracted from a distributed context.
       #   This field is a string representing vendor-specific distribution data.
@@ -25,12 +33,7 @@ module Datadog
       #   on every propagation injection.
       #   @return [String]
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
-      attr_reader \
-        :span_id,
-        :trace_id,
-        :attributes,
-        :trace_flags,
-        :trace_state
+      attr_reader :trace_state
 
       def initialize(
         span_id: nil,
@@ -54,6 +57,7 @@ module Datadog
           trace_id: Tracing::Utils::TraceId.to_low_order(@trace_id),
 
         }
+        # Optimization: Hash non empty attributes
         if @trace_id.to_i > Tracing::Utils::EXTERNAL_MAX_ID
           h[:trace_id_high] =
             Tracing::Utils::TraceId.to_high_order(@trace_id)
@@ -62,7 +66,7 @@ module Datadog
           h[:attributes] = {}
           @attributes.each do |k1, v1|
             Tracing::Utils.serialize_attribute(k1, v1).each do |new_k1, value|
-              h[:attributes][new_k1.to_s] = value.to_s
+              h[:attributes][new_k1] = value.to_s
             end
           end
         end
@@ -70,10 +74,10 @@ module Datadog
         h[:tracestate] = @trace_state if @trace_state
         # If traceflags set, the high bit (bit 31) should be set to 1 (uint32).
         # This helps us distinguish between when the sample decision is zero or not set
-        h[:flags] = if @trace_flags
-                      @trace_flags | (1 << 31)
-                    else
+        h[:flags] = if @trace_flags.nil?
                       0
+                    else
+                      @trace_flags | (1 << 31)
                     end
         h
       end
