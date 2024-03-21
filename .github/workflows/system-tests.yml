@@ -41,7 +41,7 @@ jobs:
         run: |
           cache_from=()
           for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
-            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.image.name }}:${sha}')
+            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${sha}')
           done
           echo "cache args: ${cache_from[*]}"
           ./build.sh --images ${{ matrix.image.name }} --docker --extra-docker-args "${cache_from[*]}"
@@ -123,7 +123,7 @@ jobs:
         run: |
           cache_from=()
           for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
-            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:${sha}')
+            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}')
           done
           echo "cache args: ${cache_from[*]}"
           ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
