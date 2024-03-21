@@ -38,7 +38,13 @@ jobs:
             docker tag ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest ${{ matrix.image.internal }}
           fi
       - name: Build image
-        run: ./build.sh --images ${{ matrix.image.name }} --docker --extra-docker-args '--cache-from ${{ matrix.image.internal }}'
+        run: |
+          cache_from=()
+          for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
+            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.image.name }}:${sha}')
+          done
+          echo "cache args: ${cache_from[*]}"
+          ./build.sh --images ${{ matrix.image.name }} --docker --extra-docker-args "${cache_from[*]}"
       - name: List images
         run: |
           docker image list
@@ -51,6 +57,12 @@ jobs:
       - name: Push image for CI run
         run: |
           docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Tag image for commit
+        run:
+          docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${{ github.sha }}
+      - name: Push image for commit
+        run: |
+          docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${{ github.sha }}
       - name: Tag image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run:
@@ -108,13 +120,25 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
       - name: Build
-        run: ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args '--cache-from system_tests/${{ matrix.image }}:latest'
+        run: |
+          cache_from=()
+          for sha in $(git rev-list --parents -n 1 ${{ github.sha }} | sed 's/${{ github.sha }}//'); do
+            cache_from+=(--cache-from '${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:${sha}')
+          done
+          echo "cache args: ${cache_from[*]}"
+          ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
       - name: Tag image for CI run
         run:
           docker tag system_tests/${{ matrix.image }}:latest ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
         run: |
           docker push ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Tag image for commit
+        run:
+          docker tag system_tests/${{ matrix.image }}:latest ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${{ github.sha }}
+      - name: Push image for commit
+        run: |
+          docker push ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${{ github.sha }}
       - name: Tag image for release
         if: ${{ github.ref == 'refs/heads/master' }}
         run:
