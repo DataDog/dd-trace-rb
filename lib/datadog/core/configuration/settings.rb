@@ -237,7 +237,6 @@ module Datadog
           # @default `DD_PROFILING_ALLOCATION_ENABLED` environment variable as a boolean, otherwise `false`
           option :allocation_enabled do |o|
             o.type :bool
-            o.deprecated_env 'DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' # TODO: Remove this for dd-trace-rb 2.0
             o.env 'DD_PROFILING_ALLOCATION_ENABLED'
             o.default false
           end
