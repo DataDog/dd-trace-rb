@@ -41,6 +41,6 @@ inline static char* string_from_char_slice(ddog_CharSlice slice) {
   return ruby_strndup(slice.ptr, slice.len);
 }
 
-ddog_Endpoint endpoint_from(VALUE exporter_configuration);
+ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration);
 
 ddog_Vec_Tag convert_tags(VALUE tags_as_array);

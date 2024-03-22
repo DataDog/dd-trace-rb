@@ -34,7 +34,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
   VALUE version = ddtrace_version();
-  ddog_Endpoint endpoint = endpoint_from(exporter_configuration);
+  ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
   // This needs to come last, after all things that can raise exceptions, as otherwise it can leak
   ddog_Vec_Tag tags = convert_tags(tags_as_array);

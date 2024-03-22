@@ -64,7 +64,7 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
 }
 
 __attribute__((warn_unused_result))
-ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
+ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
 
   VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
@@ -84,12 +84,12 @@ ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
     ENFORCE_TYPE(site, T_STRING);
     ENFORCE_TYPE(api_key, T_STRING);
 
-    return ddog_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
   } else { // agent_id
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
     ENFORCE_TYPE(base_url, T_STRING);
 
-    return ddog_Endpoint_agent(char_slice_from_ruby_string(base_url));
+    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
   }
 }
 

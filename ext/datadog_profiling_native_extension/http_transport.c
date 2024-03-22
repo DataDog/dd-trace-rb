@@ -83,7 +83,7 @@ static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration
 
   // This needs to be called BEFORE convert_tags since it can raise an exception and thus cause the ddog_Vec_Tag
   // to be leaked.
-  ddog_Endpoint endpoint = endpoint_from(exporter_configuration);
+  ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
