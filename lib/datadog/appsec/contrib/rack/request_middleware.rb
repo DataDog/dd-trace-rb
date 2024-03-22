@@ -67,7 +67,7 @@ module Datadog
             gateway_request = Gateway::Request.new(env)
 
             add_appsec_tags(processor, scope)
-            add_http_headers_tags(scope, env)
+            add_request_tags(scope, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               Instrumentation.gateway.push('rack.request', gateway_request) do
@@ -177,7 +177,7 @@ module Datadog
             end
           end
 
-          def add_http_headers_tags(scope, env)
+          def add_request_tags(scope, env)
             span = scope.service_entry_span
 
             return unless span
