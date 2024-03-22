@@ -25,6 +25,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          ref: 'tonycthsu/ruby-datadog-rename'
       - name: Pull released image
         run: |
           if docker pull ghcr.io/datadog/dd-trace-rb/system-tests/${{ matrix.image }}:latest; then
@@ -63,13 +64,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -84,6 +81,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          ref: 'tonycthsu/ruby-datadog-rename'
       - name: Checkout dd-trace-rb
         uses: actions/checkout@v4
         with:
@@ -121,13 +119,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -211,6 +205,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          ref: 'tonycthsu/ruby-datadog-rename'
       - name: Pull agent image
         run: |
           docker pull ghcr.io/datadog/dd-trace-rb/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
@@ -256,13 +251,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -283,6 +274,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          ref: 'tonycthsu/ruby-datadog-rename'
       - name: Retrieve logs
         uses: actions/download-artifact@v3
         with:
@@ -301,13 +293,9 @@ jobs:
           - runner
           - agent
           - weblog-rack
-          - weblog-sinatra14
+#           - weblog-sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - weblog-sinatra20
           - weblog-sinatra21
-          - weblog-rails32
-          - weblog-rails40
-          - weblog-rails41
-          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52

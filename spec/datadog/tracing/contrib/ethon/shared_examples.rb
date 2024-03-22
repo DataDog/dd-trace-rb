@@ -37,7 +37,7 @@ RSpec.shared_examples_for 'span' do
   end
 
   it 'is http type' do
-    expect(span.span_type).to eq('http')
+    expect(span.type).to eq('http')
   end
 
   it 'is named correctly' do
@@ -160,7 +160,7 @@ RSpec.shared_examples_for 'instrumented request' do
           response = request
           headers = JSON.parse(response.body)['headers']
           distributed_tracing_headers = {
-            'x-datadog-parent-id' => [span.span_id.to_s],
+            'x-datadog-parent-id' => [span.id.to_s],
             'x-datadog-trace-id' => [low_order_trace_id(span.trace_id).to_s]
           }
 

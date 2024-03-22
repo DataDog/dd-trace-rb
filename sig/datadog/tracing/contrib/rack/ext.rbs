@@ -15,8 +15,6 @@ module Datadog
 
           SPAN_HTTP_PROXY_QUEUE: "http.proxy.queue"
 
-          SPAN_HTTP_SERVER_QUEUE: "http_server.queue"
-
           SPAN_REQUEST: "rack.request"
 
           TAG_COMPONENT: "rack"
@@ -28,8 +26,6 @@ module Datadog
           TAG_OPERATION_HTTP_PROXY_REQUEST: "request"
 
           TAG_OPERATION_HTTP_PROXY_QUEUE: "queue"
-
-          TAG_OPERATION_HTTP_SERVER_QUEUE: "queue"
 
           WEBSERVER_APP: "webserver"
 

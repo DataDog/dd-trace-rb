@@ -19,5 +19,5 @@ assignees: ''
 **Additional context**
 <!-- Add any other context or screenshots about the feature request here. -->
 
-**How does `ddtrace` help you?**
-<!-- Optionally, tell us why and how you're using ddtrace, and what your overall experience with it is! -->
+**How does `datadog` help you?**
+<!-- Optionally, tell us why and how you're using datadog, and what your overall experience with it is! -->

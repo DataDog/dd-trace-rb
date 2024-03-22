@@ -24,7 +24,7 @@ module Datadog
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
-              propagation.inject!(trace_op, job) if configuration[:distributed_tracing]
+              Sidekiq.inject(trace_op, job) if configuration[:distributed_tracing]
 
               span.resource = resource
 
@@ -54,10 +54,6 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
-          end
-
-          def propagation
-            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
           end
         end
       end

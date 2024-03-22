@@ -14,9 +14,6 @@ jobs:
         os:
           - macos-latest
         ruby:
-          - '2.2'
-          - '2.3'
-          - '2.4'
           - '2.5'
           - '2.6'
           - '2.7'
@@ -37,7 +34,7 @@ jobs:
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
-        run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
+        run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
       - uses: ruby/setup-ruby@7d546f4868fb108ed378764d873683f920672ae2 # v1.149.0
         with:
           ruby-version: ${{ matrix.ruby }}

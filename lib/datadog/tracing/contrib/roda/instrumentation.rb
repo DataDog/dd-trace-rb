@@ -27,7 +27,7 @@ module Datadog
 
                 span.service = configuration[:service_name] if configuration[:service_name]
 
-                span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+                span.type = Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
 
                 # Using the http method as a resource, since the URL/path can trigger
                 # a possibly infinite number of resources.

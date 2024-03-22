@@ -124,7 +124,6 @@ end
   '2.1',
   '2.0',
   '1.13',
-  '1.12',
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'graphql', "~> #{v}.0"

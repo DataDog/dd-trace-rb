@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../utils/hash'
 
 module Datadog
@@ -8,8 +10,8 @@ module Datadog
         class Integration
           using Core::Utils::Hash::Refinement
 
-          ERROR_NIL_ENABLED_MESSAGE = ':enabled must not be nil'.freeze
-          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'.freeze
+          ERROR_NIL_ENABLED_MESSAGE = ':enabled must not be nil'
+          ERROR_NIL_NAME_MESSAGE = ':name must not be nil'
 
           attr_reader \
             :auto_enabled,

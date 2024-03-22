@@ -14,7 +14,7 @@ module Datadog
 
         RUBY_ENGINE: untyped
 
-        TRACER_VERSION: untyped
+        GEM_DATADOG_VERSION: untyped
 
         ENGINE_VERSION: untyped
       end

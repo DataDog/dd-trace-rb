@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::Aws do
       expect(services).to all(be_a String)
     end
 
-    it 'contains frozen strings', skip: 'DEV-2.0: frozen string' do
+    it 'contains frozen strings' do
       expect(services).to all(be_frozen)
     end
   end

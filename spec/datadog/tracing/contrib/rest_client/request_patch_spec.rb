@@ -86,7 +86,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
           end
 
           it 'is http type' do
-            expect(span.span_type).to eq('http')
+            expect(span.type).to eq('http')
           end
 
           it 'is named correctly' do
@@ -263,7 +263,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             end
 
             it 'is http type' do
-              expect(span.span_type).to eq('http')
+              expect(span.type).to eq('http')
             end
 
             it 'is named correctly' do
@@ -299,7 +299,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'propagates the headers' do
           request
 
-          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
+          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.id.to_s,
                                           'X-Datadog-Trace-Id' => low_order_trace_id(span.trace_id).to_s }
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to have_been_made
@@ -339,7 +339,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
         it 'does not propagate the headers' do
           request
 
-          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.span_id.to_s,
+          distributed_tracing_headers = { 'X-Datadog-Parent-Id' => span.id.to_s,
                                           'X-Datadog-Trace-Id' => span.trace_id.to_s }
 
           expect(a_request(:get, url).with(headers: distributed_tracing_headers)).to_not have_been_made

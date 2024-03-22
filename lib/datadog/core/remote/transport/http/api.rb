@@ -13,7 +13,7 @@ require_relative '../../../transport/http/api/map'
 # Separate classes are needed because of `include Trace::API::Instance`.
 #
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/api/spec'
+# require_relative '../../../../datadog/core/transport/http/api/spec'
 require_relative 'api/spec'
 
 # TODO: only needed for Negotiation::API::Endpoint

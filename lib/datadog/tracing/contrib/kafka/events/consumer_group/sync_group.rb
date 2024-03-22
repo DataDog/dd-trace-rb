@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../ext'
 require_relative '../../event'
 require_relative '../../consumer_event'
@@ -15,7 +17,7 @@ module Datadog
               extend Kafka::ConsumerEvent
               extend Kafka::ConsumerGroupEvent
 
-              EVENT_NAME = 'sync_group.consumer.kafka'.freeze
+              EVENT_NAME = 'sync_group.consumer.kafka'
 
               module_function
 

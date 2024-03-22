@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'semantic_logger'
 require 'datadog/tracing/contrib/semantic_logger/patcher'
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative './service/sqs'
 require_relative './service/sns'
 require_relative './service/dynamodb'

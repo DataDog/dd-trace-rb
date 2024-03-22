@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog'
 require 'datadog/statsd'
 require 'benchmark/ips'
 require 'securerandom'

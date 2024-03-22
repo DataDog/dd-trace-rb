@@ -1,8 +1,0 @@
-module Datadog
-  module Tracing
-    module Configuration
-      class AgentSettingsResolver < Datadog::Core::Configuration::AgentSettingsResolver
-      end
-    end
-  end
-end

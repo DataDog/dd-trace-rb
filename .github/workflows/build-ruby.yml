@@ -22,18 +22,6 @@ jobs:
       matrix:
         include:
           - engine: ruby
-            version: 2.1.10
-            dockerfile: Dockerfile-2.1.10
-          - engine: ruby
-            version: 2.2.10
-            dockerfile: Dockerfile-2.2.10
-          - engine: ruby
-            version: 2.3.8
-            dockerfile: Dockerfile-2.3.8
-          - engine: ruby
-            version: 2.4.10
-            dockerfile: Dockerfile-2.4.10
-          - engine: ruby
             version: 2.5.9
             dockerfile: Dockerfile-2.5.9
           - engine: ruby

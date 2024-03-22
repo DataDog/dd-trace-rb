@@ -8,7 +8,7 @@ require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
-require 'ddtrace'
+require 'datadog'
 require 'pg'
 
 RSpec.describe 'PG::Connection patcher' do
@@ -173,8 +173,7 @@ RSpec.describe 'PG::Connection patcher' do
           end
 
           context 'when there is custom error handling' do
-            let(:configuration_options) { { error_handler: error_handler } }
-            let(:error_handler) { ->(_span, _error) { false } }
+            let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
 
             it 'calls the error handler' do
               expect { exec }.to raise_error(PG::Error)

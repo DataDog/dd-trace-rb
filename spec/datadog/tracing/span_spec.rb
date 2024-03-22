@@ -79,11 +79,11 @@ RSpec.describe Datadog::Tracing::Span do
 
   context 'ids' do
     it do
-      expect(span.span_id).to be_nonzero
+      expect(span.id).to be_nonzero
       expect(span.parent_id).to be_zero
       expect(span.trace_id).to be_nonzero
 
-      expect(span.trace_id).to_not eq(span.span_id)
+      expect(span.trace_id).to_not eq(span.id)
     end
 
     context 'with parent id' do

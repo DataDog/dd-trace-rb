@@ -1,5 +1,5 @@
 require 'datadog/statsd'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/appsec'
 
 Datadog.configure do |c|
@@ -11,7 +11,7 @@ Datadog.configure do |c|
   if Datadog::DemoEnv.feature?('tracing')
     c.tracing.analytics.enabled = true if Datadog::DemoEnv.feature?('analytics')
 
-    c.tracing.instrument :rails, request_queuing: :exclude_request
+    c.tracing.instrument :rails, request_queuing: true
     c.tracing.instrument :redis, service_name: 'acme-redis'
     c.tracing.instrument :resque
   end

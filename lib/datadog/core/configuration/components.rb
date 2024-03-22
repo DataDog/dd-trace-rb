@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'agent_settings_resolver'
 require_relative 'ext'
 require_relative '../diagnostics/environment_logger'
@@ -21,7 +23,7 @@ module Datadog
           include Datadog::Tracing::Component
 
           def build_health_metrics(settings)
-            settings = settings.diagnostics.health_metrics
+            settings = settings.health_metrics
             options = { enabled: settings.enabled }
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
@@ -89,7 +91,7 @@ module Datadog
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           @remote = Remote::Component.build(settings, agent_settings)
-          @tracer = self.class.build_tracer(settings, logger: @logger)
+          @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
@@ -102,6 +104,8 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
           @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+
+          self.class.configure_tracing(settings)
         end
 
         # Starts up components

@@ -19,7 +19,9 @@ module Datadog
         host: Core::Environment::Socket.hostname,
         language: Core::Environment::Identity.lang,
         pid: Process.pid.to_s,
-        profiler_version: Core::Environment::Identity.tracer_version,
+        # TODO: If profiling is extracted and its version diverges from the datadog gem, this is inaccurate.
+        #       Update if this ever occurs.
+        profiler_version: Core::Environment::Identity.gem_datadog_version,
         runtime_engine: Core::Environment::Identity.lang_engine,
         runtime_id: Core::Environment::Identity.id,
         runtime_platform: Core::Environment::Identity.lang_platform,

@@ -187,12 +187,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
-              c.diagnostics.health_metrics.statsd = new_statsd
+              c.health_metrics.statsd = new_statsd
             end
           end
 
@@ -212,7 +212,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
@@ -234,12 +234,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
           end
 
@@ -256,7 +256,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure { |_c| }

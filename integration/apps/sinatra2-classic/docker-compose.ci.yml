@@ -2,7 +2,7 @@ version: '3.4'
 services:
   app:
     # Build at dd-trace-rb level to copy in current code
-    # and use it as the `ddtrace` gem.
+    # and use it as the `datadog` gem.
     build:
       context: ../../..
       dockerfile: integration/apps/sinatra2-classic/Dockerfile-ci
@@ -29,7 +29,7 @@ services:
   # to an app and verified the responsee and run a couple of self-owned test cases.
 
   # Build at dd-trace-rb level to copy in current code
-  # and use it as the `ddtrace` gem.
+  # and use it as the `datadog` gem.
   integration-tester:
     build:
       context: ../../..

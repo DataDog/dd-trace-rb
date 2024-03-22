@@ -3,7 +3,7 @@
 require 'uri'
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 
@@ -25,7 +25,7 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                Tracing::Propagation::HTTP.inject!(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+                Contrib::HTTP.inject(trace, processed_headers) if datadog_configuration[:distributed_tracing]
 
                 super(&block)
               end
@@ -73,7 +73,7 @@ module Datadog
               span = Tracing.trace(
                 Ext::SPAN_REQUEST,
                 service: datadog_configuration[:split_by_domain] ? uri.host : datadog_configuration[:service_name],
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
               )
 
               trace = Tracing.active_trace

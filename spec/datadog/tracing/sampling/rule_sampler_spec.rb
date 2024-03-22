@@ -17,7 +17,6 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   let(:trace) { Datadog::Tracing::TraceOperation.new }
 
   before do
-    allow(default_sampler).to receive(:sample?).with(trace).and_return(nil)
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
     allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
   end
@@ -178,7 +177,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
 
     before do
       allow(rule).to receive(:match?).with(trace).and_return(true)
-      allow(rule).to receive(:sample?).with(trace).and_return(sampled)
+      allow(rule).to receive(:sample!).with(trace).and_return(sampled)
       allow(rule).to receive(:sample_rate).with(trace).and_return(sample_rate)
     end
   end
@@ -285,12 +284,6 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         end
       end
     end
-  end
-
-  describe '#sample?' do
-    subject(:sample?) { rule_sampler.sample?(trace) }
-
-    it { expect { sample? }.to raise_error(StandardError, 'RuleSampler cannot be evaluated without side-effects') }
   end
 
   describe '#update' do

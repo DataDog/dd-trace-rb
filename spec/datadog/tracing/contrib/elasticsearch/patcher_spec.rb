@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 
 require 'elasticsearch'
 
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
 
         child, parent = spans
 
-        expect(child.parent_id).to eq(parent.span_id)
+        expect(child.parent_id).to eq(parent.id)
         expect(child.trace_id).to eq(parent.trace_id)
       end
     end
@@ -72,7 +72,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
       it { expect(span.resource).to eq('GET _cluster/health') }
-      it { expect(span.span_type).to eq('elasticsearch') }
+      it { expect(span.type).to eq('elasticsearch') }
       it { expect(span.parent_id).not_to be_nil }
       it { expect(span.trace_id).not_to be_nil }
 
@@ -138,7 +138,7 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
       end
       it { expect(span.name).to eq('elasticsearch.query') }
       it { expect(span.service).to eq('elasticsearch') }
-      it { expect(span.span_type).to eq('elasticsearch') }
+      it { expect(span.type).to eq('elasticsearch') }
       it { expect(span.resource).to eq('PUT some_index/_doc/?') }
 
       it { expect(span.parent_id).not_to be_nil }

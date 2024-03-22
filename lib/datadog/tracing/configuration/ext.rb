@@ -31,15 +31,10 @@ module Datadog
         # @public_api
         module Distributed
           # Custom Datadog format
-          PROPAGATION_STYLE_DATADOG = 'Datadog'
+          PROPAGATION_STYLE_DATADOG = 'datadog'
 
           PROPAGATION_STYLE_B3_MULTI_HEADER = 'b3multi'
-          # @deprecated Use `b3multi` instead.
-          PROPAGATION_STYLE_B3 = 'B3'
-
           PROPAGATION_STYLE_B3_SINGLE_HEADER = 'b3'
-          # @deprecated Use `b3` instead.
-          PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD = 'B3 single header'
 
           # W3C Trace Context
           PROPAGATION_STYLE_TRACE_CONTEXT = 'tracecontext'
@@ -50,12 +45,8 @@ module Datadog
           ENV_PROPAGATION_STYLE = 'DD_TRACE_PROPAGATION_STYLE'
 
           ENV_PROPAGATION_STYLE_INJECT = 'DD_TRACE_PROPAGATION_STYLE_INJECT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_INJECT` instead.
-          ENV_PROPAGATION_STYLE_INJECT_OLD = 'DD_PROPAGATION_STYLE_INJECT'
 
           ENV_PROPAGATION_STYLE_EXTRACT = 'DD_TRACE_PROPAGATION_STYLE_EXTRACT'
-          # @deprecated Use `DD_TRACE_PROPAGATION_STYLE_EXTRACT` instead.
-          ENV_PROPAGATION_STYLE_EXTRACT_OLD = 'DD_PROPAGATION_STYLE_EXTRACT'
 
           # A no-op propagator. Compatible with OpenTelemetry's `none` propagator.
           # @see https://opentelemetry.io/docs/concepts/sdk-configuration/general-sdk-configuration/#get_otel__propagators
@@ -99,7 +90,6 @@ module Datadog
         # @public_api
         module ClientIp
           ENV_ENABLED = 'DD_TRACE_CLIENT_IP_ENABLED'
-          ENV_DISABLED = 'DD_TRACE_CLIENT_IP_HEADER_DISABLED' # TODO: deprecated, remove later
           ENV_HEADER_NAME = 'DD_TRACE_CLIENT_IP_HEADER'
         end
       end

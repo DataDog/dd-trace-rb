@@ -4,13 +4,13 @@ require 'datadog/tracing/distributed/b3_multi'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'B3 Multi distributed format' do
-  subject(:b3) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['b3multi'] }
+  let(:propagation_style_extract) { ['b3multi'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject!(:inject!) { b3.inject!(digest, data) }
+    subject!(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     context 'with nil digest' do
@@ -96,7 +96,7 @@ RSpec.shared_examples 'B3 Multi distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { b3.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:digest) { extract }
 
     let(:data) { {} }
@@ -115,6 +115,7 @@ RSpec.shared_examples 'B3 Multi distributed format' do
       it { expect(digest.trace_id).to eq(10000) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
+      it { expect(digest.span_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) do
@@ -216,5 +217,8 @@ RSpec.shared_examples 'B3 Multi distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::B3Multi do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'B3 Multi distributed format'
 end

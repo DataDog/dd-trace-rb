@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'action_controller'
-require 'ddtrace'
+require 'datadog'
 
 # TODO: We plan on rewriting much of this instrumentation to bring it up to
 #       present day patterns/conventions. For now, just test a few known cases.
@@ -28,7 +28,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionController::Instrume
             request_exception: action_dispatch_exception
           },
           tracing_context: {},
-          exception_controller?: false,
         }
       end
 

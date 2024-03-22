@@ -123,7 +123,7 @@ end
 RSpec.shared_examples 'a trace with AppSec api security tags' do
   context 'with api security enabled' do
     let(:api_security_enabled) { true }
-    let(:api_security_sample) { 1 }
+    let(:api_security_sample) { 1.0 }
 
     it do
       api_security_tags = service_span.send(:meta).select { |key, _value| key.include?('_dd.appsec.s') }

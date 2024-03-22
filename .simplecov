@@ -4,8 +4,8 @@
 SimpleCov.enable_coverage :branch if RUBY_VERSION >= '2.5.0'
 
 # Categorize SimpleCov report, for easier reading
-SimpleCov.add_group 'contrib', '/lib/ddtrace/contrib'
-SimpleCov.add_group 'transport', '/lib/ddtrace/transport'
+SimpleCov.add_group 'contrib', '/lib/datadog/tracing/contrib'
+SimpleCov.add_group 'transport', '/lib/datadog/core/transport'
 SimpleCov.add_group 'spec', '/spec/'
 
 # Exclude code not maintained by this project

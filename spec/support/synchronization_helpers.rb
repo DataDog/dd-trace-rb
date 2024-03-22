@@ -6,8 +6,8 @@ module SynchronizationHelpers
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
 
-    fork_stdout = Tempfile.new('ddtrace-rspec-expect-in-fork-stdout')
-    fork_stderr = Tempfile.new('ddtrace-rspec-expect-in-fork-stderr')
+    fork_stdout = Tempfile.new('datadog-rspec-expect-in-fork-stdout')
+    fork_stderr = Tempfile.new('datadog-rspec-expect-in-fork-stderr')
     begin
       # Start in fork
       pid = fork do

@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 # For testing dynamic configuration
 require 'semantic_logger'

@@ -59,7 +59,7 @@ RSpec.describe 'ActionCable patcher' do
 
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.broadcast')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.resource).to eq('action_cable.broadcast')
         expect(span.get_tag('action_cable.channel')).to eq(channel)
         expect(span.get_tag('action_cable.broadcast.coder')).to eq('ActiveSupport::JSON')
@@ -119,7 +119,7 @@ RSpec.describe 'ActionCable patcher' do
 
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.subscribe')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.resource).to eq('ChatChannel#subscribe')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_cable')
@@ -140,7 +140,7 @@ RSpec.describe 'ActionCable patcher' do
 
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.unsubscribe')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.resource).to eq('ChatChannel#unsubscribe')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('action_cable')
@@ -159,7 +159,7 @@ RSpec.describe 'ActionCable patcher' do
 
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.action')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.resource).to eq('ChatChannel#foo')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.action')).to eq('foo')
@@ -221,7 +221,7 @@ RSpec.describe 'ActionCable patcher' do
         expect(spans).to have(2).items
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('action_cable.transmit')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.resource).to eq('ChatChannel')
         expect(span.get_tag('action_cable.channel_class')).to eq('ChatChannel')
         expect(span.get_tag('action_cable.transmit.via')).to eq('streamed from chat_channel')

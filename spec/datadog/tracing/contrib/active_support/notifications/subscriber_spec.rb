@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 
 require 'datadog/tracing/contrib/active_support/notifications/subscriber'
 

@@ -48,7 +48,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
 
       it 'makes multi span a parent for easy span' do
         subject
-        expect(span.parent_id).to eq(multi_span.span_id)
+        expect(span.parent_id).to eq(multi_span.id)
       end
     end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::MultiPatch do
         end
 
         it 'makes multi span a parent for easy span' do
-          expect(easy_span.parent_id).to eq(multi_span.span_id)
+          expect(easy_span.parent_id).to eq(multi_span.id)
         end
 
         it_behaves_like 'analytics for integration' do

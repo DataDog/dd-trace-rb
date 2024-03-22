@@ -1,4 +1,4 @@
-# Upgrading ddtrace
+# Upgrading datadog
 
 # From 0.x to 1.0
 

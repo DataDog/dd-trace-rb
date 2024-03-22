@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../utils/time'
 require_relative '../utils/only_once'
 require_relative '../configuration/ext'
@@ -49,7 +51,7 @@ module Datadog
         end
 
         def default_hostname
-          ENV.fetch(Configuration::Ext::Transport::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
+          ENV.fetch(Configuration::Ext::Agent::ENV_DEFAULT_HOST, Ext::DEFAULT_HOST)
         end
 
         def default_port

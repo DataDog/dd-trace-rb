@@ -11,15 +11,13 @@ module Datadog
           def self.app_name
             if ::Rails::VERSION::MAJOR >= 6
               ::Rails.application.class.module_parent_name.underscore
-            elsif ::Rails::VERSION::MAJOR >= 4
-              ::Rails.application.class.parent_name.underscore
             else
-              ::Rails.application.class.to_s.underscore
+              ::Rails.application.class.parent_name.underscore
             end
           end
 
           def self.railtie_supported?
-            !!(defined?(::Rails::VERSION::MAJOR) && ::Rails::VERSION::MAJOR >= 3 && defined?(::Rails::Railtie))
+            !!defined?(::Rails::Railtie)
           end
         end
       end

@@ -22,7 +22,7 @@ module Datadog
               # create a new ``Span`` and add it to the tracing context
               Tracing.trace(
                 Ext::SPAN_CACHE,
-                span_type: Ext::SPAN_TYPE_CACHE,
+                type: Ext::SPAN_TYPE_CACHE,
                 service: Datadog.configuration.tracing[:active_support][:cache_service],
                 resource: action
               ) do |span|

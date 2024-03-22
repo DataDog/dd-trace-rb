@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'ddtrace'
+require 'datadog'
 
 Datadog.configure do |c|
   c.service = 'acme-sinatra2-classic'

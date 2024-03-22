@@ -31,7 +31,10 @@ module Datadog
             end
 
             option :service_name
-            option :email_data, default: false
+            option :email_data do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

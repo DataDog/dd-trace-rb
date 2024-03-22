@@ -26,9 +26,8 @@ module Datadog
               o.default false
             end
 
-            option :error_handler do |o|
-              o.type :proc
-              o.default_proc(&Tracing::SpanOperation::Events::DEFAULT_ON_ERROR)
+            option :on_error do |o|
+              o.type :proc, nilable: true
             end
 
             option :analytics_sample_rate do |o|
@@ -38,6 +37,7 @@ module Datadog
             end
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,

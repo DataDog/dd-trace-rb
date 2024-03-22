@@ -22,7 +22,7 @@ module Datadog
               Ext::SPAN_RENDER,
               service: configuration[:service_name],
               resource: action_klass.to_s,
-              span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
+              type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND
             ) do |span_op, _trace_op|
               span_op.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span_op.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)

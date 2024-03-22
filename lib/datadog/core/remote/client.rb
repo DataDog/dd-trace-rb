@@ -123,7 +123,9 @@ module Datadog
             "platform:#{native_platform}", # native platform
             # "asm.config.rules:#{}", # TODO: defined|undefined
             # "asm.config.enabled:#{}", # TODO: true|false|undefined
-            "ruby.tracer.version:#{Core::Environment::Identity.tracer_version}",
+            # TODO: Inaccurate if tracing is extracted and version diverges from the datadog gem.
+            #       Update this if this ever occurs.
+            "ruby.tracer.version:#{Core::Environment::Identity.gem_datadog_version}",
             "ruby.runtime.platform:#{RUBY_PLATFORM}",
             "ruby.runtime.version:#{RUBY_VERSION}",
             "ruby.runtime.engine.name:#{RUBY_ENGINE}",
@@ -138,7 +140,7 @@ module Datadog
           client_tracer = {
             runtime_id: Core::Environment::Identity.id,
             language: Core::Environment::Identity.lang,
-            tracer_version: tracer_version_semver2,
+            tracer_version: tracer_version,
             service: service_name,
             env: Datadog.configuration.env,
             tags: client_tracer_tags,
@@ -174,8 +176,8 @@ module Datadog
           Datadog.configuration.remote.service || Datadog.configuration.service
         end
 
-        def tracer_version_semver2
-          @tracer_version_semver2 ||= Core::Environment::Identity.tracer_version_semver2
+        def tracer_version
+          @tracer_version ||= Core::Environment::Identity.gem_datadog_version_semver2
         end
 
         def ruby_engine_version

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
@@ -12,7 +14,7 @@ module Datadog
           module EnqueueRetry
             include ActiveJob::Event
 
-            EVENT_NAME = 'enqueue_retry.active_job'.freeze
+            EVENT_NAME = 'enqueue_retry.active_job'
 
             module_function
 

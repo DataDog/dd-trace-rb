@@ -150,7 +150,7 @@ RSpec.describe 'Rails middleware' do
           expect(trace.resource).to eq('TestController#index')
 
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -196,7 +196,7 @@ RSpec.describe 'Rails middleware' do
           expect(trace.resource).to eq('TestController#index')
 
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.resource).to eq('TestController#index')
           expect(span.get_tag('http.url')).to eq('/')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -257,7 +257,7 @@ RSpec.describe 'Rails middleware' do
           expect(trace.resource).to eq('TestController#index')
 
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.resource).to eq('TestController#index')
 
           expect(span.get_tag('http.url')).to eq('/')
@@ -304,7 +304,7 @@ RSpec.describe 'Rails middleware' do
             expect(trace.resource).to eq('TestController#index')
 
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.resource).to eq('TestController#index')
             expect(span.get_tag('http.url')).to eq('/')
             expect(span.get_tag('http.method')).to eq('GET')

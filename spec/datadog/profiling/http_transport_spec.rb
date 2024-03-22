@@ -32,16 +32,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       ssl: ssl,
       hostname: hostname,
       port: port,
-      deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-      timeout_seconds: nil,
+      timeout_seconds: nil
     )
   end
-  let(:adapter) { Datadog::Core::Transport::Ext::HTTP::ADAPTER }
+  let(:adapter) { Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER }
   let(:uds_path) { nil }
   let(:ssl) { false }
   let(:hostname) { '192.168.0.1' }
   let(:port) { '12345' }
-  let(:deprecated_for_removal_transport_configuration_proc) { nil }
   let(:site) { nil }
   let(:api_key) { nil }
   let(:upload_timeout_seconds) { 10 }
@@ -127,35 +125,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
             .and_return([:ok, nil])
 
           http_transport
-        end
-      end
-
-      context 'when agent_settings includes a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { instance_double(Proc, 'Configuration proc') }
-
-        it 'logs a warning message' do
-          expect(Datadog.logger).to receive(:warn)
-
-          http_transport
-        end
-
-        it 'picks working mode from the agent_settings object' do
-          allow(Datadog.logger).to receive(:warn)
-
-          expect(described_class)
-            .to receive(:_native_validate_exporter)
-            .with([:agent, 'http://192.168.0.1:12345/'])
-            .and_return([:ok, nil])
-
-          http_transport
-        end
-      end
-
-      context 'when agent_settings requests an unsupported transport' do
-        let(:adapter) { :test }
-
-        it do
-          expect { http_transport }.to raise_error(ArgumentError, /Unsupported transport/)
         end
       end
     end
@@ -368,7 +337,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(request.header).to include(
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
           'dd-evp-origin' => ['dd-trace-rb'],
-          'dd-evp-origin-version' => [DDTrace::VERSION::STRING],
+          'dd-evp-origin-version' => [Datadog::VERSION::STRING],
         )
 
         # check body

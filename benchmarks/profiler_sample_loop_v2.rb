@@ -4,7 +4,7 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require 'benchmark/ips'
-require 'ddtrace'
+require 'datadog'
 require 'pry'
 require_relative 'dogstatsd_reporter'
 

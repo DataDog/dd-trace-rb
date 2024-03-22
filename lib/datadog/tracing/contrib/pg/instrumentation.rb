@@ -99,12 +99,12 @@ module Datadog
 
             def trace(name, sql: nil, statement_name: nil, block: nil)
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
-              error_handler = datadog_configuration[:error_handler]
+              on_error = datadog_configuration[:on_error]
               resource = statement_name || sql
 
               Tracing.trace(
                 name,
-                on_error: error_handler,
+                on_error: on_error,
                 service: service,
                 resource: resource,
                 type: Tracing::Metadata::Ext::SQL::TYPE

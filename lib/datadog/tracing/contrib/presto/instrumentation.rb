@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
 require_relative 'ext'
 
@@ -23,7 +25,7 @@ module Datadog
                   begin
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
-                    span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                    span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, false)
                   rescue StandardError => e
                     Datadog.logger.debug("error preparing span for presto: #{e}")
@@ -41,7 +43,7 @@ module Datadog
                   begin
                     decorate!(span, Ext::TAG_OPERATION_QUERY)
                     span.resource = query
-                    span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                    span.type = Tracing::Metadata::Ext::SQL::TYPE
                     span.set_tag(Ext::TAG_QUERY_ASYNC, !blk.nil?)
                   rescue StandardError => e
                     Datadog.logger.debug("error preparing span for presto: #{e}")
@@ -59,7 +61,7 @@ module Datadog
                   begin
                     decorate!(span, Ext::TAG_OPERATION_KILL)
                     span.resource = Ext::SPAN_KILL
-                    span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_DB
+                    span.type = Tracing::Metadata::Ext::AppTypes::TYPE_DB
                     # ^ not an SQL type span, since there's no SQL query
                     span.set_tag(Ext::TAG_QUERY_ID, query_id)
                   rescue StandardError => e

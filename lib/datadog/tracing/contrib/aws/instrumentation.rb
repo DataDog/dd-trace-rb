@@ -31,7 +31,7 @@ module Datadog
           # rubocop:disable Metrics/AbcSize
           def annotate!(span, context)
             span.service = configuration[:service_name]
-            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
             aws_service = span.resource.split('.')[0]

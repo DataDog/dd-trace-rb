@@ -16,7 +16,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
       runtime_version: runtime_version,
       service_name: service_name,
       service_version: service_version,
-      tracer_version: tracer_version
+      tracer_version: gem_datadog_version
     )
   end
 
@@ -34,7 +34,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
   let(:runtime_version) { '3.2.1' }
   let(:service_name) { 'myapp' }
   let(:service_version) { '1.2.3' }
-  let(:tracer_version) { '1.0' }
+  let(:gem_datadog_version) { '1.0' }
 
   it do
     is_expected.to have_attributes(
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
       runtime_version: runtime_version,
       service_name: service_name,
       service_version: service_version,
-      tracer_version: tracer_version
+      tracer_version: gem_datadog_version
     )
   end
 
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
     end
 
     context ':tracer_version' do
-      it_behaves_like 'a required string parameter', 'tracer_version'
+      it_behaves_like 'a required string parameter', 'gem_datadog_version'
     end
 
     context ':env' do
@@ -123,7 +123,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
     let(:runtime_version) { '3.2.1' }
     let(:service_name) { 'myapp' }
     let(:service_version) { '1.2.3' }
-    let(:tracer_version) { '1.0' }
+    let(:gem_datadog_version) { '1.0' }
 
     it do
       is_expected.to eq(
@@ -136,7 +136,7 @@ RSpec.describe Datadog::Core::Telemetry::V1::Application do
         runtime_version: runtime_version,
         service_name: service_name,
         service_version: service_version,
-        tracer_version: tracer_version
+        tracer_version: gem_datadog_version
       )
     end
   end

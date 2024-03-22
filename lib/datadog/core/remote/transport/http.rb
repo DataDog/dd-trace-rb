@@ -76,10 +76,6 @@ module Datadog
                 transport.headers options[:headers] if options.key?(:headers)
               end
 
-              if agent_settings.deprecated_for_removal_transport_configuration_proc
-                agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
-              end
-
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end
@@ -105,10 +101,6 @@ module Datadog
                 transport.headers options[:headers] if options.key?(:headers)
               end
 
-              if agent_settings.deprecated_for_removal_transport_configuration_proc
-                agent_settings.deprecated_for_removal_transport_configuration_proc.call(transport)
-              end
-
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
             end
@@ -123,7 +115,7 @@ module Datadog
               Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
                 Datadog::Core::Environment::Ext::LANG_INTERPRETER,
               Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-                Datadog::Core::Environment::Ext::TRACER_VERSION
+                Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
             }.tap do |headers|
               # Add container ID, if present.
               container_id = Datadog::Core::Environment::Container.container_id
@@ -132,45 +124,21 @@ module Datadog
           end
 
           def default_adapter
-            Datadog::Core::Transport::Ext::HTTP::ADAPTER
-          end
-
-          def default_hostname(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS.hostname
-          end
-
-          def default_port(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_hostname for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS.port
-          end
-
-          def default_url(logger: Datadog.logger)
-            logger.warn(
-              'Deprecated for removal: Using #default_url for configuration is deprecated and will ' \
-                'be removed on a future ddtrace release.'
-            )
-
-            nil
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Net, Datadog::Core::Transport::Ext::HTTP::ADAPTER)
+          Builder::REGISTRY.set(
+            Datadog::Core::Transport::HTTP::Adapters::Net,
+            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+          )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::Test,
             Datadog::Core::Transport::Ext::Test::ADAPTER
           )
           Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
+            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           )
         end
       end

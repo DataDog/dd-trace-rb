@@ -12,7 +12,7 @@ module Datadog
       # An example for a simple instrumentation of a fictional `BillingApi::Client`:
       #
       # ```
-      # require 'ddtrace'
+      # require 'datadog'
       #
       # module BillingApi
       #   class Integration

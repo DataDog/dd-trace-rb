@@ -25,7 +25,7 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_QUERY, service: service, on_error: on_error) do |span, trace_op|
                 span.resource = sql
-                span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                span.type = Tracing::Metadata::Ext::SQL::TYPE
 
                 if datadog_configuration[:peer_service]
                   span.set_tag(

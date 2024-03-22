@@ -2,7 +2,7 @@
 
 This file contains development notes specific to the continuous profiler.
 
-For a more practical view of getting started with development of `ddtrace`, see <DevelopmentGuide.md>.
+For a more practical view of getting started with development of `datadog`, see <DevelopmentGuide.md>.
 
 ## Profiling components high-level view
 
@@ -37,7 +37,7 @@ flow:
 
 1. <../lib/datadog/profiling/preload.rb> triggers the creation of the profiler instance by calling the method `Datadog::Profiling.start_if_enabled`
 2. Creation of the profiler instance is handled by `Datadog::Configuration`, which triggers the configuration of all
-  `ddtrace` components in `#build_components`
+  `datadog` components in `#build_components`
 3. Inside `Datadog::Components`, the `build_profiler_component` method gets called
 4. The `Setup` task activates our extensions (`Datadog::Profiling::Ext::Forking`)
 5. The `build_profiler_component` method then creates and wires up the Profiler as such:

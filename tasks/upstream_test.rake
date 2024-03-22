@@ -1,8 +1,8 @@
-DDTRACE_PATH = File.expand_path('..', __dir__)
-TMP_DIR = File.join(DDTRACE_PATH, 'tmp')
+DATADOG_PATH = File.expand_path('..', __dir__)
+TMP_DIR = File.join(DATADOG_PATH, 'tmp')
 BASE_CLONE_DIR = "#{TMP_DIR}/upstream/"
 
-desc "Run instrumented gems' original test suites with ddtrace enabled"
+desc "Run instrumented gems' original test suites with datadog enabled"
 namespace :upstream do
   # Executes block in the context of a GitHub repository
   def with_repository(user, repository, commit, setup = nil)
@@ -30,10 +30,10 @@ namespace :upstream do
     end
   end
 
-  # Install this `ddtrace` repository into the cloned project.
-  def add_ddtrace_to_gemfile(path)
+  # Install this `datadog` repository into the cloned project.
+  def add_datadog_to_gemfile(path)
     File.write(path, <<-GEMFILE, mode: 'a+')
-      gem 'ddtrace', path: '#{Pathname.new(DDTRACE_PATH).relative_path_from(Dir.pwd).to_s}'
+      gem 'datadog', path: '#{Pathname.new(DATADOG_PATH).relative_path_from(Dir.pwd).to_s}'
     GEMFILE
   end
 
@@ -47,10 +47,10 @@ namespace :upstream do
     # One-time setup
     setup = ->() do
       Dir.chdir('api') do
-        add_ddtrace_to_gemfile('Gemfile')
+        add_datadog_to_gemfile('Gemfile')
 
         File.write('test/test_helper.rb', <<-RUBY, mode: 'a+')
-          require 'ddtrace'
+          require 'datadog'
           require 'datadog/opentelemetry'
         RUBY
 
@@ -58,10 +58,10 @@ namespace :upstream do
       end
 
       Dir.chdir('sdk') do
-        add_ddtrace_to_gemfile('Gemfile')
+        add_datadog_to_gemfile('Gemfile')
 
         File.write('test/test_helper.rb', <<-RUBY, mode: 'a+')
-          require 'ddtrace'
+          require 'datadog'
           require 'datadog/opentelemetry'
         RUBY
 
@@ -74,10 +74,10 @@ namespace :upstream do
       skipped_tests.empty? ? '' : "-e='/(#{skipped_tests})/'"
     end
 
-    desc "Run opentelemetry-api tests with ddtrace enabled"
+    desc "Run opentelemetry-api tests with datadog enabled"
     task :api do
       skipped_tests = [
-        'finishes the new span at the end of the block', # Mocked OTel Span errors when ddtrace invokes required methods
+        'finishes the new span at the end of the block', # Mocked OTel Span errors when datadog invokes required methods
       ]
       with_repository('open-telemetry', 'opentelemetry-ruby', OTEL_GIT_COMMIT, setup) do
         Dir.chdir('api') do
@@ -88,7 +88,7 @@ namespace :upstream do
       end
     end
 
-    desc "Run opentelemetry-sdk tests with ddtrace enabled"
+    desc "Run opentelemetry-sdk tests with datadog enabled"
     task :sdk do
       skipped_tests = [
         'defaults to trace context and baggage', # The defaults are now Datadog-specific defaults

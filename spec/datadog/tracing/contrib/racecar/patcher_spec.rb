@@ -11,7 +11,7 @@ end
 
 require 'racecar/cli'
 require 'active_support'
-require 'ddtrace'
+require 'datadog'
 RSpec.describe 'Racecar patcher' do
   let(:configuration_options) { {} }
 
@@ -94,7 +94,7 @@ RSpec.describe 'Racecar patcher' do
   end
 
   describe 'for single message processing' do
-    let(:topic) { 'dd_trace_test_dummy' }
+    let(:topic) { 'datadog_tracing_test_dummy' }
     let(:consumer) { 'DummyConsumer' }
     let(:partition) { 1 }
     let(:offset) { 2 }
@@ -177,7 +177,7 @@ RSpec.describe 'Racecar patcher' do
   end
 
   describe 'for batch message processing' do
-    let(:topic) { 'dd_trace_test_dummy_batch' }
+    let(:topic) { 'datadog_tracing_test_dummy_batch' }
     let(:consumer) { 'DummyBatchConsumer' }
     let(:partition) { 1 }
     let(:offset) { 2 }

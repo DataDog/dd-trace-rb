@@ -16,9 +16,9 @@ module Datadog
 
         def self?.lang_version: () -> ::String
 
-        def self?.tracer_version: () -> ::String
+        def self?.gem_datadog_version: () -> ::String
 
-        def self?.tracer_version_semver2: () -> ::String
+        def self?.gem_datadog_version_semver2: () -> ::String
       end
     end
   end

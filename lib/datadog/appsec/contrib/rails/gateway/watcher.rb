@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../reactive/action'

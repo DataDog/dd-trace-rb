@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/header_collection'
 
 module Datadog

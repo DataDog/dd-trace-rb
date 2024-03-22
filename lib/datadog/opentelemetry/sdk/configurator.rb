@@ -21,7 +21,7 @@ module Datadog
         # DEV: Support configuring propagation through the environment variable
         # DEV: `OTEL_PROPAGATORS`, similar to `DD_TRACE_PROPAGATION*`?
         def configure_propagation
-          @propagators = [Propagator.new(Tracing::Contrib::HTTP::Distributed::Propagation.new)]
+          @propagators = [Propagator.new(Tracing::Contrib::HTTP)]
           super
         end
 

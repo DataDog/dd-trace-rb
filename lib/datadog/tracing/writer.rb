@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'event'
 require_relative 'runtime/metrics'
 require_relative 'workers'

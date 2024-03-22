@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require_relative '../../configuration/resolver'
-require_relative '../vendor/connection_specification'
 require_relative 'makara_resolver'
 
 module Datadog
@@ -109,12 +110,8 @@ module Datadog
                 if defined?(::ActiveRecord::Base.configurations.resolve)
                   ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
                 # From 4+ to 6.0.x
-                elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
-                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 else
-                  Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                    active_record_configuration
-                  )
+                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 end
             end
 

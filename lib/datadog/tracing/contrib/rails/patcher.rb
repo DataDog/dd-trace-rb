@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/utils/only_once'
 require_relative '../rack/middlewares'
 require_relative 'framework'
@@ -38,7 +40,6 @@ module Datadog
             BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
-              # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
               Rails::LogInjection.configure_log_tags(app.config)

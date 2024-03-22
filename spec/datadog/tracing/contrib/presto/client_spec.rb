@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 require 'presto-client'
 
 RSpec.describe 'Presto::Client instrumentation' do
@@ -249,7 +249,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it 'is SQL type' do
-        expect(span.span_type).to eq('sql')
+        expect(span.type).to eq('sql')
       end
 
       context 'a failed query' do
@@ -286,7 +286,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         end
 
         it 'is SQL type' do
-          expect(span.span_type).to eq('sql')
+          expect(span.type).to eq('sql')
         end
       end
 
@@ -331,7 +331,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it 'is DB type' do
-        expect(span.span_type).to eq('db')
+        expect(span.type).to eq('db')
       end
     end
 
@@ -349,7 +349,7 @@ RSpec.describe 'Presto::Client instrumentation' do
       end
 
       it 'is SQL type' do
-        expect(span.span_type).to eq('sql')
+        expect(span.type).to eq('sql')
       end
     end
   end

@@ -43,7 +43,7 @@ module Datadog
               span.resource = res
               span.set_tag(Ext::TAG_SERIALIZER, res)
 
-              span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
+              span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
               # Will be nil in 0.9
               span.set_tag(Ext::TAG_ADAPTER, payload[:adapter].class) unless payload[:adapter].nil?

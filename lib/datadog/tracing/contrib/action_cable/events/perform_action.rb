@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../event'
@@ -14,7 +16,7 @@ module Datadog
           module PerformAction
             include ActionCable::RootContextEvent
 
-            EVENT_NAME = 'perform_action.action_cable'.freeze
+            EVENT_NAME = 'perform_action.action_cable'
 
             module_function
 
@@ -37,7 +39,7 @@ module Datadog
 
               span.service = configuration[:service_name] if configuration[:service_name]
               span.resource = "#{channel_class}##{action}"
-              span.span_type = span_type
+              span.type = span_type
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

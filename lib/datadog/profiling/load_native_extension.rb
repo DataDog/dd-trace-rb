@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # This file is used to load the profiling native extension. It works in two steps:
 #
 # 1. Load the datadog_profiling_loader extension. This extension will be used to load the actual extension, but in
@@ -13,7 +15,7 @@ begin
   require "datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
 rescue LoadError => e
   raise LoadError,
-    'Failed to load the profiling loader extension. To fix this, please remove and then reinstall ddtrace ' \
+    'Failed to load the profiling loader extension. To fix this, please remove and then reinstall datadog ' \
     "(Details: #{e.message})"
 end
 

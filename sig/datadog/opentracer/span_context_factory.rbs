@@ -1,9 +1,0 @@
-module Datadog
-  module OpenTracer
-    module SpanContextFactory
-      def self?.build: (datadog_context: untyped, ?datadog_trace_digest: untyped?, ?baggage: ::Hash[untyped, untyped]) -> untyped
-
-      def self?.clone: (span_context: untyped, ?baggage: ::Hash[untyped, untyped]) -> untyped
-    end
-  end
-end

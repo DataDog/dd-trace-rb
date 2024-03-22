@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/transport/http/client'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do

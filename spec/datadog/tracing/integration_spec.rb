@@ -143,7 +143,7 @@ RSpec.describe 'Tracer integration tests' do
 
     context 'using unix transport' do
       before do
-        skip('ddtrace only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
+        skip('datadog only supports unix socket connectivity on Linux') unless PlatformHelpers.linux?
 
         # DEV: To connect to a unix socket in another docker container (the agent container in our case)
         # we need to share a volume with that container. Our current CircleCI setup uses `docker` executors
@@ -154,9 +154,7 @@ RSpec.describe 'Tracer integration tests' do
         skip("Can't share docker volume to access unix socket in CircleCI currently") if PlatformHelpers.ci?
 
         Datadog.configure do |c|
-          c.tracing.transport_options = proc { |t|
-            t.adapter :unix, ENV['TEST_DDAGENT_UNIX_SOCKET']
-          }
+          c.agent.uds_path = ENV['TEST_DDAGENT_UNIX_SOCKET']
         end
       end
 
@@ -398,7 +396,6 @@ RSpec.describe 'Tracer integration tests' do
 
         # Test setup
         c.tracing.sampler = custom_sampler if custom_sampler
-        c.tracing.priority_sampling = priority_sampling if priority_sampling
       end
 
       WebMock.enable!
@@ -412,7 +409,6 @@ RSpec.describe 'Tracer integration tests' do
     let(:stats) { tracer.writer.stats }
 
     let(:custom_sampler) { nil }
-    let(:priority_sampling) { false }
 
     let(:trace_sampling_rate) { nil }
     let(:json_rules) { JSON.dump(rules) if rules }
@@ -502,44 +498,6 @@ RSpec.describe 'Tracer integration tests' do
             let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
 
             # it_behaves_like 'flushed complete trace'
-            it_behaves_like 'set single span sampling tags'
-          end
-        end
-      end
-
-      context 'by direct sampling' do
-        let(:custom_sampler) { no_sampler }
-        let(:priority_sampling) { false }
-
-        let(:no_sampler) do
-          Class.new do
-            def sample!(trace)
-              trace.reject!
-            end
-          end.new
-        end
-
-        context 'with rule matching' do
-          context 'with a dropped span' do
-            let(:wait_for_flush) {} # No spans will be flushed with direct sampling drops
-
-            context 'by sampling rate' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 0.0 }] }
-
-              it_behaves_like 'flushed no trace'
-            end
-
-            context 'by rate limiting' do
-              let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0, max_per_second: 0 }] }
-
-              it_behaves_like 'flushed no trace'
-            end
-          end
-
-          context 'with a kept span' do
-            let(:rules) { [{ name: 'single.sampled_span', sample_rate: 1.0 }] }
-
-            it_behaves_like 'flushed complete trace', expected_span_count: 1
             it_behaves_like 'set single span sampling tags'
           end
         end
@@ -790,39 +748,31 @@ RSpec.describe 'Tracer integration tests' do
       end
 
       let(:custom_sampler) do
-        instance_double(Datadog::Tracing::Sampling::Sampler, sample?: sample, sample!: sample, sample_rate: double)
+        instance_double(Datadog::Tracing::Sampling::Sampler, sample!: double, sample_rate: double)
       end
 
       context 'that accepts a span' do
-        let(:sample) { true }
-
         before do
-          tracer.trace('span') {}
-          try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
+          expect(custom_sampler).to receive(:sample!) do |trace|
+            trace.sampled = true
+            false
+          end
         end
 
-        it_behaves_like 'priority sampled', 1.0
-
-        # DEV: the `custom_sampler` is configured as a `pre_sampler` in the PrioritySampler.
-        # When `custom_sampler` returns `trace.sampled? == true`, the `post_sampler` is
-        # still consulted. This is unlikely to be the desired behaviour when a user configures
-        # `c.tracing.sampler = custom_sampler`.
-        # In practice, the `custom_sampler` can reject traces (`trace.sampled? == false`),
-        # but accepting them does not actually change the default sampler's behavior.
-        # Changing this is a breaking change.
-        it_behaves_like 'sampling decision', '-0' # This is incorrect. -4 (MANUAL) is the correct value.
-        it_behaves_like 'sampling decision', '-4' do
-          before do
-            pending(
-              'A custom sampler consults PrioritySampler#post_sampler for the final sampling decision. ' \
-              'This is incorrect, as a custom sampler should allow complete control of the sampling decision.'
-            )
-          end
+        it 'flushes the span' do
+          tracer.trace('span') {}
+          try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
         end
       end
 
       context 'that rejects a span' do
-        let(:sample) { false }
+        before do
+          expect(custom_sampler).to receive(:sample!) do |trace|
+            trace.sampled = false
+            false
+          end
+        end
+
         it 'drops trace at application side' do
           expect(tracer.writer).to_not receive(:write)
 
@@ -896,7 +846,6 @@ RSpec.describe 'Tracer integration tests' do
 
     before do
       Datadog.configure do |c|
-        c.tracing.priority_sampling = true
         c.tracing.writer = writer
       end
 
@@ -929,117 +878,6 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].client_error).to eq(0)
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
-      end
-    end
-  end
-
-  describe 'tracer transport' do
-    include_context 'agent-based test'
-
-    subject(:configure) do
-      Datadog.configure do |c|
-        c.agent.host = hostname
-        c.agent.port = port
-        c.tracing.priority_sampling = true
-      end
-    end
-
-    let(:hostname) { double('hostname') }
-    let(:port) { 34567 }
-
-    context 'when :transport_options' do
-      let(:remote_enabled) { false }
-      let(:appsec_enabled) { false }
-      let(:transport_options) { proc { |t| on_build.call(t) } }
-
-      before do
-        Datadog.configure do |c|
-          c.tracing.transport_options = transport_options
-          c.remote.enabled = remote_enabled
-          c.appsec.enabled = appsec_enabled
-        end
-      end
-
-      after do
-        Datadog.configuration.reset!
-      end
-
-      context 'is provided' do
-        let(:on_build) do
-          double('on_build').tap do |double|
-            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
-      end
-
-      context 'is provided and remote configuration enabled, and appsec is disabled' do
-        let(:remote_enabled) { true }
-        let(:on_build) do
-          double('on_build').tap do |double|
-            allow(double).to receive(:call).with(any_args) # e.g. Telemetry transport, RC transport
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
-      end
-
-      context 'is provided and remote configuration, and appsec is enabled' do
-        let(:remote_enabled) { true }
-        let(:appsec_enabled) { true }
-        let(:on_build) do
-          double('on_build').tap do |double|
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Transport::HTTP::Builder))
-              .at_least(1).time
-            # For the remote component.
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Core::Remote::Transport::HTTP::Builder))
-              .at_least(1).time
-            expect(double).to receive(:call)
-              .with(kind_of(Datadog::Tracing::Configuration::AgentSettingsResolver::TransportOptionsResolver))
-              .at_least(1).time
-          end
-        end
-
-        it do
-          configure
-
-          tracer.writer.transport.tap do |transport|
-            expect(transport).to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
-            expect(transport.current_api.adapter.hostname).to be hostname
-            expect(transport.current_api.adapter.port).to be port
-          end
-        end
       end
     end
   end
@@ -1156,8 +994,10 @@ RSpec.describe 'Tracer integration tests' do
           }
         end
 
+        before { Datadog.configure {} } # Ensure tracer is configured before calling `Contrib::HTTP.extract`
+
         it 'ensures trace is flushed' do
-          trace_digest = Datadog::Tracing::Propagation::HTTP.extract(env)
+          trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
           Datadog::Tracing.continue_trace!(trace_digest)
 
           tracer.trace('name') {}

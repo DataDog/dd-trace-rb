@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'ipaddr'
-require_relative '../vendor/ipaddr'
 
 module Datadog
   module Core
@@ -113,25 +112,7 @@ module Datadog
           end
 
           def global_ip?(parsed_ip)
-            parsed_ip && !private?(parsed_ip) && !loopback?(parsed_ip) && !link_local?(parsed_ip)
-          end
-
-          # TODO: remove once we drop support for ruby 2.1, 2.2, 2.3, 2.4
-          # replace with ip.private?
-          def private?(ip)
-            Datadog::Core::Vendor::IPAddr.private?(ip)
-          end
-
-          # TODO: remove once we drop support for ruby 2.1, 2.2, 2.3, 2.4
-          # replace with ip.link_local?
-          def link_local?(ip)
-            Datadog::Core::Vendor::IPAddr.link_local?(ip)
-          end
-
-          # TODO: remove once we drop support for ruby 2.1, 2.2, 2.3, 2.4
-          # replace with ip.loopback
-          def loopback?(ip)
-            Datadog::Core::Vendor::IPAddr.loopback?(ip)
+            parsed_ip && !parsed_ip.private? && !parsed_ip.loopback? && !parsed_ip.link_local?
           end
         end
       end

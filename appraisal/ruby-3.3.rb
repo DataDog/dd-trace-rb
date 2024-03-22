@@ -140,6 +140,17 @@ end
   end
 end
 
+[
+  '2.2',
+  '2.1',
+  '2.0',
+  '1.13',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
+end
+
 [3, 4, 5].each do |n|
   appraise "redis-#{n}" do
     gem 'redis', "~> #{n}"

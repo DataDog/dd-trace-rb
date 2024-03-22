@@ -216,7 +216,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         let(:value) { 'my-hostname' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => value) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => value) do
             example.run
           end
         end
@@ -226,7 +226,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => nil) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil) do
             example.run
           end
         end
