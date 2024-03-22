@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [2.0.0.beta1] - 2024-03-22
+
+Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v2.0.0.beta1
+
+Git diff: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v2.0.0.beta1
+
+See https://github.com/DataDog/dd-trace-rb/blob/v2.0.0.beta1/docs/UpgradeGuide2.md.
+
 ## [1.21.1] - 2024-03-20
 
 ### Added
@@ -2777,6 +2785,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...master
+[2.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v2.0.0.beta1
 [1.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.0...v1.21.1
 [1.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.20.0...v1.21.0
 [1.20.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.19.0...v1.20.0
