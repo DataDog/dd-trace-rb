@@ -43,7 +43,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .create_alt_stack = false, // This breaks the Ruby VM's stack overflow detection
     .endpoint = endpoint,
     .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
-    .resolve_frames = DDOG_PROF_CRASHTRACKER_RESOLVE_FRAMES_NEVER, // TODO: Enable && validate frame resolving
+    .resolve_frames = DDOG_PROF_CRASHTRACKER_RESOLVE_FRAMES_EXPERIMENTAL_IN_PROCESS,
+    .collect_stacktrace = true,
   };
 
   ddog_prof_CrashtrackerMetadata metadata = {
