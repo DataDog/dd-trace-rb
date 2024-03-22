@@ -50,7 +50,7 @@ module Datadog
                      end
 
             # Apply the settings
-            config.configure(options, &block)
+            config.configure(options, &block) if config
             config
           end
 

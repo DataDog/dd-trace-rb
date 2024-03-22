@@ -37,7 +37,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
 
-              # Since email date can contain PII we disable by default
+              # Since email data can contain PII we disable by default
               # Some of these fields can be either strings or arrays, so we try to normalize
               # https://github.com/rails/rails/blob/18707ab17fa492eb25ad2e8f9818a320dc20b823/actionmailer/lib/action_mailer/base.rb#L742-L754
               if configuration[:email_data] == true

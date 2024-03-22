@@ -5,24 +5,11 @@ require_relative 'log_injection'
 require_relative 'middlewares'
 require_relative 'utils'
 require_relative '../semantic_logger/patcher'
-require_relative 'ext'
 
 module Datadog
   module Tracing
     module Contrib
       module Rails
-        # Patcher to trace rails routing done by JourneyRouter
-        module JourneyRouterPatch
-          def find_routes(*args)
-            result = super
-            integration_route = result.first[2].path.spec.to_s.gsub(/\(\.:format\)/, '') if result.any?
-            request_trace = Tracing.active_trace || TraceOperation.new
-            request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, integration_route)
-            request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, args.first.env['SCRIPT_NAME'])
-            result
-          end
-        end
-
         # Patcher enables patching of 'rails' module.
         module Patcher
           include Contrib::Patcher
@@ -53,9 +40,6 @@ module Datadog
               # Otherwise the middleware stack will be frozen.
               # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
-
-              # ActionDispatch::Journey is not available or incompatible in Rails < 4.2.
-              ActionDispatch::Journey::Router.prepend(JourneyRouterPatch) if Integration.version >= Gem::Version.new('4.2')
 
               Rails::LogInjection.configure_log_tags(app.config)
             end

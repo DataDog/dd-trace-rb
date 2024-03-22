@@ -1,5 +1,11 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
-
+#
+# Here be dragons: Last time we tried to move away from Debian stretch, we ran into issues with two gems that are used in some
+# of our CI tests/test apps.
+# If you're going to try your luck, make sure that the following work after your changes:
+# gem install nokogiri -v '= 1.10.10'
+# gem install mysql
+#
 # Last version: https://github.com/docker-library/ruby/blob/31f66490fdb837ddcc5896e3275f2188f2b7b6dd/2.3/stretch/Dockerfile
 FROM ruby:2.3.8-stretch
 
@@ -9,15 +15,18 @@ RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# Pull packages from debian archive, old repos don't work any more
+RUN echo "deb [trusted=yes] http://archive.debian.org/debian/ stretch main contrib non-free" | tee /etc/apt/sources.list
+
 # Install required packages
 RUN set -ex; \
         apt-get update; \
         mkdir -p /usr/share/man/man1; \
-        apt-get install -y --no-install-recommends \
+        apt-get install --force-yes --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
             net-tools netcat unzip zip bzip2 gnupg curl wget \
-            tzdata rsync vim less jq; \
+            tzdata rsync vim less jq iptables; \
         rm -rf /var/lib/apt/lists/*;
 
 # Set timezone to UTC by default
@@ -41,10 +50,8 @@ RUN set -ex \
   && which docker \
   && (docker version || true)
 
-# Install Docker Compose
-# Releases over there don't work as they need a more recent glibc than Stretch has: https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51
-# So we fall back to using stretch-backports which has 1.21
-RUN echo 'deb http://ftp.debian.org/debian stretch-backports main\ndeb-src http://ftp.debian.org/debian stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
+# Install Docker Compose (1.8.0, fairly old)
+RUN echo 'deb [trusted=yes] http://archive.debian.org/debian/ stretch-backports main' > /etc/apt/sources.list.d/stretch-backports.list \
   && apt-get update \
   && apt-get install -y docker-compose \
   && docker-compose version \

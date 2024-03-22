@@ -394,7 +394,30 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         # again.
         #
         expect(sample_count).to be >= 8, "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
-        expect(trigger_sample_attempts).to be >= sample_count
+
+        if RUBY_VERSION >= '3.3.0'
+          expect(trigger_sample_attempts).to be >= sample_count
+        else
+          # @ivoanjo: We've seen this assertion become flaky once in CI for Ruby 3.1, where
+          # `trigger_sample_attempts` was 20 and `sample_count` was 21. This is unexpected since (at time of writing)
+          # we always increment the counter before triggering a sample, so this should not be possible.
+          #
+          # After some head scratching, I'm convinced we might have seen another variant of the issue in
+          # https://bugs.ruby-lang.org/issues/19991, going something like:
+          # 1. There was an existing postponed job unrelated to profiling for execution
+          # 2. Ruby dequeues the existing postponed job, but before it can be executed
+          # 3. ...our signal arrives, and our call to `rb_postponed_job_register_one` clobbers the existing job
+          # 4. Ruby then proceeds to execute what it thinks is the correct job, but it actually has been clobbered
+          #    and it triggers a profiler sample
+          # 5. Then Ruby notices there's a new job to execute, and triggers the profiler sample again
+          # And both samples are taken because this test runs without dynamic sampling rate.
+          #
+          # To avoid the flakiness, I've added a dummy margin here but... yeah in practice this can happen as many times
+          # as we try to sample.
+          margin = 1
+          expect(trigger_sample_attempts).to (be >= (sample_count - margin)), \
+            "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
+        end
       end
     end
 

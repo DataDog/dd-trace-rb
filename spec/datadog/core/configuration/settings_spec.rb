@@ -342,6 +342,65 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#allocation_enabled' do
+      subject(:allocation_enabled) { settings.profiling.allocation_enabled }
+
+      context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
+        around do |example|
+          ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:environment) { value.to_s }
+
+            before { expect(Datadog::Core).to receive(:log_deprecation) }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+
+      context 'when DD_PROFILING_ALLOCATION_ENABLED' do
+        around do |example|
+          ClimateControl.modify('DD_PROFILING_ALLOCATION_ENABLED' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:environment) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#allocation_enabled=' do
+      it 'updates the #allocation_enabled setting' do
+        expect { settings.profiling.allocation_enabled = true }
+          .to change { settings.profiling.allocation_enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe '#advanced' do
       describe '#max_events=' do
         it 'logs a warning informing customers this no longer does anything' do
@@ -505,38 +564,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_allocation_enabled' do
-        subject(:experimental_allocation_enabled) { settings.profiling.advanced.experimental_allocation_enabled }
-
-        context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
-      end
-
       describe '#experimental_allocation_enabled=' do
-        it 'updates the #experimental_allocation_enabled setting' do
-          expect { settings.profiling.advanced.experimental_allocation_enabled = true }
-            .to change { settings.profiling.advanced.experimental_allocation_enabled }
-            .from(false)
-            .to(true)
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
+
+          settings.profiling.advanced.experimental_allocation_enabled = true
         end
       end
 
