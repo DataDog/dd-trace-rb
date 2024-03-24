@@ -19,7 +19,8 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
       end
 
       it 'sets rate limit unlimited' do
-        expect(rule.rate_limit).to eq(-1)
+        expect(Datadog::Tracing::Sampling::TokenBucket).to receive(:new).with(-1)
+        expect(rule.rate_limit).to be_nil
       end
     end
   end
