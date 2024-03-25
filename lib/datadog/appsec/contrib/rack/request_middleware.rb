@@ -13,8 +13,8 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Create a hash with key being the lowercased header, and value the rack header
-        WAF_VENDORS_HEADERS = %w[
+        # Create an array of lowercased headers
+        WAF_VENDOR_HEADERS_TAGS = %w[
           X-Amzn-Trace-Id
           Cloudfront-Viewer-Ja3-Fingerprint
           Cf-Ray
@@ -23,11 +23,14 @@ module Datadog
           X-SigSci-RequestID
           X-SigSci-Tags
           Akamai-User-Risk
-        ].map { |s| [s.downcase, Datadog::Tracing::Contrib::Rack::Header.to_rack_header(s)] }.to_h
+      ].map(&:downcase).freeze
+        
+        # .map { |s| [s.downcase, Datadog::Tracing::Contrib::Rack::Header.to_rack_header(s)] }.to_h
 
         # Topmost Rack middleware for AppSec
         # This should be inserted just below Datadog::Tracing::Contrib::Rack::TraceMiddleware
         class RequestMiddleware
+          @@rack_headers = {}
           def initialize(app, opt = {})
             @app = app
 
@@ -183,7 +186,8 @@ module Datadog
             return unless span
 
             # Always add WAF vendors headers
-            WAF_VENDORS_HEADERS.each do |lowercase_header, rack_header|
+            WAF_VENDOR_HEADERS_TAGS.each do |lowercase_header|
+              rack_header = to_rack_header(lowercase_header)
               span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
             end
 
@@ -210,6 +214,10 @@ module Datadog
             # these tags expect time in us
             span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
             span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
+          end
+
+          def to_rack_header(header)
+            @@rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header::to_rack_header(header)
           end
         end
       end
