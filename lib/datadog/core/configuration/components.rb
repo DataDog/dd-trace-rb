@@ -112,15 +112,12 @@ module Datadog
         def startup!(settings)
           if settings.profiling.enabled
             if profiler
-              @logger.debug('Profiling started')
               profiler.start
             else
               # Display a warning for users who expected profiling to be enabled
               unsupported_reason = Profiling.unsupported_reason
               logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
             end
-          else
-            @logger.debug('Profiling is disabled')
           end
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)

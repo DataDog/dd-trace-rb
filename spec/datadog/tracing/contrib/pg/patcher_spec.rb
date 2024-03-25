@@ -257,6 +257,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:exec) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec(sql_statement, &:clear) rescue nil
+            end
+
+            it do
+              exec
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
+          end
+
           it_behaves_like 'analytics for integration' do
             before { exec }
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
@@ -510,6 +523,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:exec_params) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec_params(sql_statement, [1], &:clear) rescue nil
+            end
+
+            it do
+              exec_params
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
+          end
+
           it_behaves_like 'analytics for integration' do
             before { exec_params }
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
@@ -754,6 +780,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          end
+
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:exec_prepared) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.exec_prepared('prepared select 1', [1], &:clear) rescue nil
+            end
+
+            it do
+              exec_prepared
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
           end
 
           it_behaves_like 'analytics for integration' do
@@ -1009,6 +1048,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          end
+
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:async_exec) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec(sql_statement, &:clear) rescue nil
+            end
+
+            it do
+              async_exec
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
           end
 
           it_behaves_like 'analytics for integration' do
@@ -1272,6 +1324,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:async_exec_params) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec_params(sql_statement, [1], &:clear) rescue nil
+            end
+
+            it do
+              async_exec_params
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
+          end
+
           it_behaves_like 'analytics for integration' do
             before { async_exec_params }
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
@@ -1517,6 +1582,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          end
+
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:async_exec_prepared) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.async_exec_prepared('prepared select 1', [1], &:clear) rescue nil
+            end
+
+            it do
+              async_exec_prepared
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
           end
 
           it_behaves_like 'analytics for integration' do
@@ -1778,6 +1856,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:sync_exec) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec(sql_statement, &:clear) rescue nil
+            end
+
+            it do
+              sync_exec
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
+          end
+
           it_behaves_like 'analytics for integration' do
             before { sync_exec }
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
@@ -2030,6 +2121,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
           end
 
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:sync_exec_params) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec_params(sql_statement, [1], &:clear) rescue nil
+            end
+
+            it do
+              sync_exec_params
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
+          end
+
           it_behaves_like 'analytics for integration' do
             before { sync_exec_params }
             let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Pg::Ext::ENV_ANALYTICS_ENABLED }
@@ -2271,6 +2375,19 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+          end
+
+          context 'when `PG::Result` is cleared before the block is finished' do
+            subject(:sync_exec_prepared) do
+              # Older versions of the pg gem raises execption when `clear` is called within a block
+              conn.sync_exec_prepared('prepared select 1', [1], &:clear) rescue nil
+            end
+
+            it do
+              sync_exec_prepared
+
+              expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_ROW_COUNT)).to eq(1)
+            end
           end
 
           it_behaves_like 'analytics for integration' do

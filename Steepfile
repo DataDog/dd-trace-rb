@@ -618,4 +618,5 @@ target :datadog do
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
+  library 'libdatadog'
 end

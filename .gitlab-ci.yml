@@ -74,7 +74,7 @@ build-gem:
   stage: package
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: never
+      when: on_success
     - if: $CI_COMMIT_TAG
       when: on_success
     - if: $CI_COMMIT_BRANCH == 'master'
@@ -90,7 +90,7 @@ build-gem:
 
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
       fi
-    - bundle install && bundle exec rake build
+    - bundle install && chmod go-w -R . && bundle exec rake build
     - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:
     paths:
@@ -192,40 +192,40 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
 
-deploy_to_docker_registries:
-  stage: deploy
-  rules:
-    - if: "$POPULATE_CACHE"
-      when: never
-    - if: "$CI_COMMIT_TAG =~ /^v.*/"
-      when: delayed
-      start_in: 1 day
-    - when: manual
-      allow_failure: true
-  trigger:
-    project: DataDog/public-images
-    branch: main
-    strategy: depend
-  variables:
-    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_DESTINATIONS: dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_SIGNING: "false"
+# deploy_to_docker_registries:
+#   stage: deploy
+#   rules:
+#     - if: "$POPULATE_CACHE"
+#       when: never
+#     - if: "$CI_COMMIT_TAG =~ /^v.*/"
+#       when: delayed
+#       start_in: 1 day
+#     - when: manual
+#       allow_failure: true
+#   trigger:
+#     project: DataDog/public-images
+#     branch: main
+#     strategy: depend
+#   variables:
+#     IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
+#     IMG_DESTINATIONS: dd-lib-ruby-init:$CI_COMMIT_TAG
+#     IMG_SIGNING: "false"
 
-deploy_latest_tag_to_docker_registries:
-  stage: deploy
-  rules:
-    - if: "$POPULATE_CACHE"
-      when: never
-    - if: "$CI_COMMIT_TAG =~ /^v.*/"
-      when: delayed
-      start_in: 1 day
-    - when: manual
-      allow_failure: true
-  trigger:
-    project: DataDog/public-images
-    branch: main
-    strategy: depend
-  variables:
-    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_DESTINATIONS: dd-lib-ruby-init:latest
-    IMG_SIGNING: "false"
+# deploy_latest_tag_to_docker_registries:
+#   stage: deploy
+#   rules:
+#     - if: "$POPULATE_CACHE"
+#       when: never
+#     - if: "$CI_COMMIT_TAG =~ /^v.*/"
+#       when: delayed
+#       start_in: 1 day
+#     - when: manual
+#       allow_failure: true
+#   trigger:
+#     project: DataDog/public-images
+#     branch: main
+#     strategy: depend
+#   variables:
+#     IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
+#     IMG_DESTINATIONS: dd-lib-ruby-init:latest
+#     IMG_SIGNING: "false"
