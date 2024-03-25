@@ -613,6 +613,84 @@ RSpec.describe 'Rack integration tests' do
           it_behaves_like 'a trace with AppSec api security tags'
         end
 
+        context 'with WAF vendor headers' do
+          let(:trace_tag_headers) do
+            {
+              'http.request.headers.x-amzn-trace-id' =>
+                'Root=1-63441c4a-abcdef012345678912345678',
+
+              'http.request.headers.cloudfront-viewer-ja3-fingerprint' =>
+                'e7d705a3286e19ea42f587b344ee6865',
+
+              'http.request.headers.cf-ray' =>
+                '230b030023ae2822-SJC',
+
+              'http.request.headers.x-cloud-trace-context' =>
+                '105445aa7843bc8bf206b12000100000/1;o=1',
+
+              'http.request.headers.x-appgw-trace-id' =>
+                'ac882cd65a2712a0fe1289ec2bb6aee7',
+
+              'http.request.headers.akamai-user-risk' =>
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'allow=0;action=none',
+
+              'http.request.headers.x-sigsci-requestid' =>
+                '55c24b96ca84c02201000001',
+
+              'http.request.headers.x-sigsci-tags' =>
+                'SITE-FLAGGED-IP,IMPOSTOR'
+            }
+          end
+
+          let(:headers) do
+            {
+              'HTTP_X_AMZN_TRACE_ID' =>
+                'Root=1-63441c4a-abcdef012345678912345678',
+
+              'HTTP_CLOUDFRONT_VIEWER_JA3_FINGERPRINT' =>
+                'e7d705a3286e19ea42f587b344ee6865',
+
+              'HTTP_CF_RAY' =>
+                '230b030023ae2822-SJC',
+
+              'HTTP_X_CLOUD_TRACE_CONTEXT' =>
+                '105445aa7843bc8bf206b12000100000/1;o=1',
+
+              'HTTP_X_APPGW_TRACE_ID' =>
+                'ac882cd65a2712a0fe1289ec2bb6aee7',
+
+              'HTTP_AKAMAI_USER_RISK' =>
+                'uuid=12345678-1234-1234-1234-123456789012;request-id=12345678;status=0;score=61;'\
+                'risk=udfp:1234567890abcdefghijklmnopqrstuvwxyz1234/Hlunp=20057/H;trust=ugp:us;'\
+                'general=di=1234567890abcdefghijklmnopqrstuvwxyz1234|do=Mac iOS 14|db=iOS Safari 14|aci=0;'\
+                'allow=0;action=none',
+
+              'HTTP_X_SIGSCI_REQUESTID' =>
+                '55c24b96ca84c02201000001',
+
+              'HTTP_X_SIGSCI_TAGS' =>
+                'SITE-FLAGGED-IP,IMPOSTOR'
+            }
+          end
+
+          it { is_expected.to be_ok }
+
+          it do
+            trace_tag_headers.each do |header, value|
+              expect(span.get_tag(header)).to eq(value)
+            end
+          end
+
+          it_behaves_like 'normal with tracing disable'
+          it_behaves_like 'a GET 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
+        end
+
         context 'with an event-triggering request in headers' do
           let(:headers) { { 'HTTP_USER_AGENT' => 'Nessus SOAP' } }
 

@@ -13,6 +13,18 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
+        # Create an array of lowercased headers
+        WAF_VENDOR_HEADERS_TAGS = %w[
+          X-Amzn-Trace-Id
+          Cloudfront-Viewer-Ja3-Fingerprint
+          Cf-Ray
+          X-Cloud-Trace-Context
+          X-Appgw-Trace-id
+          X-SigSci-RequestID
+          X-SigSci-Tags
+          Akamai-User-Risk
+        ].map(&:downcase).freeze
+
         # Topmost Rack middleware for AppSec
         # This should be inserted just below Datadog::Tracing::Contrib::Rack::TraceMiddleware
         class RequestMiddleware
@@ -20,6 +32,7 @@ module Datadog
             @app = app
 
             @oneshot_tags_sent = false
+            @rack_headers = {}
           end
 
           # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
@@ -54,7 +67,8 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            add_appsec_tags(processor, scope, env)
+            add_appsec_tags(processor, scope)
+            add_request_tags(scope, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               Instrumentation.gateway.push('rack.request', gateway_request) do
@@ -129,7 +143,7 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, scope, env)
+          def add_appsec_tags(processor, scope)
             span = scope.service_entry_span
             trace = scope.trace
 
@@ -138,17 +152,6 @@ module Datadog
             span.set_tag('_dd.appsec.enabled', 1)
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
-
-            if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
-              request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
-
-              # always collect client ip, as this is part of AppSec provided functionality
-              Datadog::Tracing::ClientIp.set_client_ip_tag!(
-                span,
-                headers: request_header_collection,
-                remote_ip: env['REMOTE_ADDR']
-              )
-            end
 
             if processor.diagnostics
               diagnostics = processor.diagnostics
@@ -175,6 +178,29 @@ module Datadog
             end
           end
 
+          def add_request_tags(scope, env)
+            span = scope.service_entry_span
+
+            return unless span
+
+            # Always add WAF vendors headers
+            WAF_VENDOR_HEADERS_TAGS.each do |lowercase_header|
+              rack_header = to_rack_header(lowercase_header)
+              span.set_tag("http.request.headers.#{lowercase_header}", env[rack_header]) if env[rack_header]
+            end
+
+            if span && span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_CLIENT_IP).nil?
+              request_header_collection = Datadog::Tracing::Contrib::Rack::Header::RequestHeaderCollection.new(env)
+
+              # always collect client ip, as this is part of AppSec provided functionality
+              Datadog::Tracing::ClientIp.set_client_ip_tag!(
+                span,
+                headers: request_header_collection,
+                remote_ip: env['REMOTE_ADDR']
+              )
+            end
+          end
+
           def add_waf_runtime_tags(scope)
             span = scope.service_entry_span
             context = scope.processor_context
@@ -186,6 +212,10 @@ module Datadog
             # these tags expect time in us
             span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
             span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
+          end
+
+          def to_rack_header(header)
+            @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)
           end
         end
       end
