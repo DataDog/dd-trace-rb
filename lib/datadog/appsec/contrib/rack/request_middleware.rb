@@ -23,18 +23,18 @@ module Datadog
           X-SigSci-RequestID
           X-SigSci-Tags
           Akamai-User-Risk
-      ].map(&:downcase).freeze
-        
+        ].map(&:downcase).freeze
+
         # .map { |s| [s.downcase, Datadog::Tracing::Contrib::Rack::Header.to_rack_header(s)] }.to_h
 
         # Topmost Rack middleware for AppSec
         # This should be inserted just below Datadog::Tracing::Contrib::Rack::TraceMiddleware
         class RequestMiddleware
-          @@rack_headers = {}
           def initialize(app, opt = {})
             @app = app
 
             @oneshot_tags_sent = false
+            @rack_headers = {}
           end
 
           # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
@@ -217,7 +217,7 @@ module Datadog
           end
 
           def to_rack_header(header)
-            @@rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header::to_rack_header(header)
+            @rack_headers[header] ||= Datadog::Tracing::Contrib::Rack::Header.to_rack_header(header)
           end
         end
       end
