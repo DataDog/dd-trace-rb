@@ -310,6 +310,12 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 
+  describe '#exporter_configuration' do
+    it 'returns the current exporter configuration' do
+      expect(http_transport.exporter_configuration).to eq [:agent, 'http://192.168.0.1:12345/']
+    end
+  end
+
   context 'integration testing' do
     shared_context 'HTTP server' do
       let(:server) do

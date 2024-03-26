@@ -3,6 +3,8 @@ module Datadog
     class HttpTransport
       type exporter_configuration_array = [:agentless | :agent, untyped]
 
+      attr_reader exporter_configuration: exporter_configuration_array
+
       @upload_timeout_milliseconds: ::Integer
       @exporter_configuration: exporter_configuration_array
 
@@ -14,8 +16,6 @@ module Datadog
       ) -> void
 
       def export: (Datadog::Profiling::Flush flush) -> bool
-
-      def self.log_failure_to_process_tag: (::String failure_details) -> void
 
       private
 
