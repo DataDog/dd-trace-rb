@@ -646,12 +646,18 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
             (sample.values[:'heap-live-samples'] || 0) > 0
         }
 
-        relevant_sample = samples_from_pprof(recorder.serialize!)
-          .find(&test_struct_heap_sample)
+        # We can't just use find here because samples might have different gc age labels
+        # if a gc happens to run in the middle of this test. Thus, we'll have to sum up
+        # together the values of all matching samples.
+        relevant_samples = samples_from_pprof(recorder.serialize!)
+          .select(&test_struct_heap_sample)
 
-        expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object
+        total_samples = relevant_samples.map { |sample| sample.values[:'heap-live-samples'] || 0 }.reduce(:+)
+        total_size = relevant_samples.map { |sample| sample.values[:'heap-live-size'] || 0 }.reduce(:+)
+
+        expect(total_samples).to eq test_num_allocated_object
         # 40 is the size of a basic object and we have test_num_allocated_object of them
-        expect(relevant_sample.values[:'heap-live-size']).to eq test_num_allocated_object * 40
+        expect(total_size).to eq test_num_allocated_object * 40
       end
     end
 
@@ -949,17 +955,43 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           expect(described_class._native_allocation_count).to be >= 0
         end
 
-        it 'returns the number of allocations between two calls of the method' do
-          # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
-          # it needs to
-          new_object = proc { Object.new }
-          1.times(&new_object)
+        it 'returns the exact number of allocations between two calls of the method' do
+          # In rare situations (once every few thousand runs) we've witnessed this test failing with
+          # more than 100 allocations being reported. With some extra debugging logs and callstack
+          # dumps we've tracked the extra allocations to the calling of finalizers with complex
+          # arguments (e.g. *rest args) which lead to the allocation of a temporary array.
+          #
+          # Finalizer usage isn't really a common thing in the Ruby stdlib. In fact, there are just
+          # two places where we see them being used:
+          # * Weakmaps - Not used by anything in this test suite and the actual finalizer function
+          #              looks simple enough, receiving a single objid.
+          # * Tempfiles - Used indirectly in some of tests in this suite through `expect_in_fork`.
+          #               The finalizer functions are declared as `run(*args)` which would trigger
+          #               the complex calling logic.
+          #
+          # Thus, in a test execution where those (or any other tests using Tempfiles) run first,
+          # there's a small chance that a GC gets triggered in between the two
+          # `_native_allocation_count` calls and contributes with unexpected Array allocations to
+          # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
+          begin
+            GC.disable
+            # To get the exact expected number of allocations, we run through the ropes once so
+            # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
+            # executions that could affect our expectations
+            described_class._native_allocation_count
+            new_object = proc { Object.new }
+            1.times(&new_object)
+            described_class._native_allocation_count
 
-          before_allocations = described_class._native_allocation_count
-          100.times(&new_object)
-          after_allocations = described_class._native_allocation_count
+            # Here we do the actual work we care about
+            before_allocations = described_class._native_allocation_count
+            100.times(&new_object)
+            after_allocations = described_class._native_allocation_count
 
-          expect(after_allocations - before_allocations).to be 100
+            expect(after_allocations - before_allocations).to be 100
+          ensure
+            GC.enable
+          end
         end
 
         it 'returns different numbers of allocations for different threads' do
@@ -1016,7 +1048,12 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       wait_until_running
 
       try_wait_until do
+        # Wait until we get CPU/Wall time samples. Since we have allocation
+        # profiling enabled, not adding the extra reject could lead us to
+        # prematurely stop waiting as soon as we get an allocation sample
+        # which would result in us reaching our expectation with cpu_sampled = 0
         samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          .reject { |sample| sample.values[:'alloc-samples'] > 0 }
         samples if samples.any?
       end
 
