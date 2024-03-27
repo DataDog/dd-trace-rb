@@ -711,5 +711,51 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'sca' do
+      describe '#enabled' do
+        subject(:sca_enabled) { settings.appsec.sca_enabled }
+
+        context 'when DD_APPSEC_SCA_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_APPSEC_SCA_ENABLED' => sca_enabled_value) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:sca_enabled_value) { nil }
+
+            it { is_expected.to eq nil }
+          end
+
+          context 'is defined as true' do
+            let(:sca_enabled_value) { 'true' }
+
+            it { is_expected.to eq true }
+          end
+
+          context 'is defined as false' do
+            let(:sca_enabled_value) { 'false' }
+
+            it { is_expected.to eq false }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        subject(:set_sca_enabled) { settings.appsec.sca_enabled = sca_enabled }
+
+        [true, false, nil].each do |value|
+          context "when given #{value}" do
+            let(:sca_enabled) { value }
+
+            before { set_sca_enabled }
+
+            it { expect(settings.appsec.sca_enabled).to eq(value) }
+          end
+        end
+      end
+    end
   end
 end
