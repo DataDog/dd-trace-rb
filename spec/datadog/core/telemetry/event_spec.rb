@@ -125,8 +125,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
               name: 'http',
               version: RUBY_VERSION,
               compatible: true,
-              enabled: true,
-              error: nil
+              enabled: true
             )
           )
         end
@@ -145,7 +144,6 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           is_expected.to match(
             integrations: include(
               name: 'pg',
-              version: nil,
               compatible: false,
               enabled: false,
               error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false',
