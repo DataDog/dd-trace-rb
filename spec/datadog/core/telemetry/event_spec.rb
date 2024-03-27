@@ -148,8 +148,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
               version: nil,
               compatible: false,
               enabled: false,
-              error: { code: 2,
-                       message: 'Available?: false, Loaded? false, Compatible? false, Patchable? false' }
+              error: 'Available?: false, Loaded? false, Compatible? false, Patchable? false',
             )
           )
         end

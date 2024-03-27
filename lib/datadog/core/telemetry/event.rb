@@ -217,21 +217,13 @@ module Datadog
 
           def patch_error(integration)
             patch_error_result = integration.klass.patcher.patch_error_result
-            if patch_error_result
-              {
-                code: 1,
-                message: patch_error_result.compact.to_s,
-              }
-            else
-              # if no error occurred during patching, but integration is still not instrumented
-              {
-                code: 2,
-                message: "Available?: #{integration.klass.class.available?}" \
-                  ", Loaded? #{integration.klass.class.loaded?}" \
-                  ", Compatible? #{integration.klass.class.compatible?}" \
-                  ", Patchable? #{integration.klass.class.patchable?}",
-              }
-            end
+            return patch_error_result.compact.to_s if patch_error_result
+
+            # If no error occurred during patching, but integration is still not instrumented
+            "Available?: #{integration.klass.class.available?}" \
+            ", Loaded? #{integration.klass.class.loaded?}" \
+            ", Compatible? #{integration.klass.class.compatible?}" \
+            ", Patchable? #{integration.klass.class.patchable?}"
           end
         end
 
