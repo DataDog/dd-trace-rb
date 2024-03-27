@@ -169,7 +169,6 @@ target :ddtrace do
   ignore 'lib/datadog/opentracer/thread_local_scope.rb'
   ignore 'lib/datadog/opentracer/thread_local_scope_manager.rb'
   ignore 'lib/datadog/opentracer/tracer.rb'
-  ignore 'lib/datadog/profiling/collectors/code_provenance.rb'
   ignore 'lib/datadog/profiling/ext/forking.rb'
   ignore 'lib/datadog/profiling/scheduler.rb'
   ignore 'lib/datadog/profiling/tag_builder.rb'
