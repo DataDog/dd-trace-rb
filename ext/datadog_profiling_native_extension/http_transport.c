@@ -30,7 +30,7 @@ inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result);
-static ddog_Endpoint endpoint_from(VALUE exporter_configuration);
+static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration);
 static ddog_Vec_Tag convert_tags(VALUE tags_as_array);
 static void safely_log_failure_to_process_tag(ddog_Vec_Tag tags, VALUE err_details);
 static VALUE _native_do_export(
@@ -94,7 +94,7 @@ static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration
 
   // This needs to be called BEFORE convert_tags since it can raise an exception and thus cause the ddog_Vec_Tag
   // to be leaked.
-  ddog_Endpoint endpoint = endpoint_from(exporter_configuration);
+  ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
@@ -116,7 +116,7 @@ static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_resul
     rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&exporter_result.err));
 }
 
-static ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
+static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
 
   ID working_mode = SYM2ID(rb_ary_entry(exporter_configuration, 0)); // SYM2ID verifies its input so we can do this safely
@@ -131,12 +131,12 @@ static ddog_Endpoint endpoint_from(VALUE exporter_configuration) {
     ENFORCE_TYPE(site, T_STRING);
     ENFORCE_TYPE(api_key, T_STRING);
 
-    return ddog_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
   } else { // agent_id
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
     ENFORCE_TYPE(base_url, T_STRING);
 
-    return ddog_Endpoint_agent(char_slice_from_ruby_string(base_url));
+    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
   }
 }
 
