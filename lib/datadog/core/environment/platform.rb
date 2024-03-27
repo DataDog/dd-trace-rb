@@ -11,7 +11,7 @@ module Datadog
 
         # @return [String] ISA of host; `uname -m`
         def architecture
-          Etc.uname[:machine]
+          Identity.lang_version >= '2.2' ? Etc.uname[:machine] : Gem::Platform.local.cpu
         end
 
         # @return [String] name of host; `uname -n`
