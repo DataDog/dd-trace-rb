@@ -63,6 +63,17 @@ module Datadog
       !!(profiler.send(:scheduler).running? if profiler)
     end
 
+    def self.wait_until_running(timeout_seconds: 5)
+      profiler = Datadog.send(:components).profiler
+      if profiler
+        # Use .send(...) to avoid exposing the attr_reader as an API to the outside
+        worker = profiler.send(:worker)
+        worker.wait_until_running(timeout_seconds: timeout_seconds)
+      else
+        raise 'Profiler not enabled or available'
+      end
+    end
+
     private_class_method def self.replace_noop_allocation_count
       def self.allocation_count # rubocop:disable Lint/NestedMethodDefinition (On purpose!)
         Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
