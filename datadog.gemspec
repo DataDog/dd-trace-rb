@@ -60,9 +60,6 @@ Gem::Specification.new do |spec|
   # rubies, see #1739 and #1336 for an extended discussion about this
   spec.add_dependency 'msgpack'
 
-  # Requiring base64 from stdlib is deprecated in Ruby v3.3 and will be removed in v3.4
-  spec.add_dependency 'base64'
-
   # Used by the profiler native extension to support Ruby < 2.6 and > 3.2
   #
   # We decided to pin it at the latest available version and will manually bump the dependency as needed.

@@ -588,7 +588,6 @@ target :datadog do
   library 'ipaddr'
   library 'net-http'
   library 'securerandom'
-  library 'base64'
   library 'digest'
   library 'zlib'
   library 'time'
