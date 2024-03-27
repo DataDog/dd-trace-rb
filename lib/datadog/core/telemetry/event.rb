@@ -199,7 +199,7 @@ module Datadog
             Datadog.registry.map do |integration|
               is_instrumented = instrumented_integrations.include?(integration.name)
 
-              is_enabled = !!integration.klass.patcher.patch_successful if is_instrumented
+              is_enabled = is_instrumented ? !!integration.klass.patcher.patch_successful : false
 
               version = integration.klass.class.version ? integration.klass.class.version.to_s : nil
 
