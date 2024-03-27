@@ -621,11 +621,14 @@ bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   // Let the caller know if it should schedule a flush or not. Returning true every time would cause a lot of overhead
   // on the application (see GC tracking introduction at the top of the file), so instead we try to accumulate a few
   // samples first.
-  bool finished_major_gc = gc_profiling_has_major_gc_finished();
   bool over_flush_time_treshold =
     (wall_time_at_finish_ns - state->gc_tracking.wall_time_at_last_flushed_gc_event_ns) >= TIME_BETWEEN_GC_EVENTS_NS;
 
-  return finished_major_gc || over_flush_time_treshold;
+  if (over_flush_time_treshold) {
+    return true;
+  } else {
+    return gc_profiling_has_major_gc_finished();
+  }
 }
 
 // This function gets called after one or more GC work steps (calls to on_gc_start/on_gc_finish).

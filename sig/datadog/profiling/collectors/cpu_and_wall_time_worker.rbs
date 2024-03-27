@@ -39,9 +39,11 @@ module Datadog
         def stats: () -> ::Hash[::Symbol, untyped]
         def self._native_stats: (CpuAndWallTimeWorker self_instance) -> ::Hash[::Symbol, untyped]
         def self._native_stats_reset_not_thread_safe: (CpuAndWallTimeWorker self_instance) -> void
-
+        def self._native_is_running?: (CpuAndWallTimeWorker self_instance) -> bool
         def self._native_allocation_count: () -> ::Integer?
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
+
+        def wait_until_running: (timeout_seconds: ::Integer?) -> true
       end
     end
   end
