@@ -203,7 +203,7 @@ module Datadog
 
               version = integration.klass.class.version ? integration.klass.class.version.to_s : nil
 
-              {
+              res = {
                 name: integration.name.to_s,
                 enabled: is_enabled,
                 version: version,
@@ -211,7 +211,9 @@ module Datadog
                 error: (patch_error(integration) if is_instrumented && !is_enabled),
                 # TODO: Track if integration is instrumented by manual configuration or by auto instrumentation
                 # auto_enabled: is_enabled && ???,
-              }.reject! { |_, v| v.nil? }
+              }
+              res.reject! { |_, v| v.nil? }
+              res
             end
           end
 
