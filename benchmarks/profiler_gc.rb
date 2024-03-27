@@ -94,6 +94,7 @@ class ProfilerGcBenchmark
       c.profiling.allocation_enabled = false
       c.profiling.advanced.force_enable_gc_profiling = true
     end
+    Datadog::Profiling.wait_until_running
 
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
@@ -128,6 +129,7 @@ class ProfilerGcBenchmark
       c.profiling.allocation_enabled = false
       c.profiling.advanced.force_enable_gc_profiling = true
     end
+    Datadog::Profiling.wait_until_running
 
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
