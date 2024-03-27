@@ -57,6 +57,10 @@ module Datadog
             peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
           end
           hash[:DD_TRACE_PEER_SERVICE_MAPPING] = peer_service_mapping_str
+
+          # AppSec configs
+          hash[:DD_APPSEC_SCA_ENABLED] = config.appsec.sca_enabled unless config.appsec.sca_enabled.nil?
+
           hash.compact!
           hash
         end

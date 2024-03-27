@@ -227,6 +227,49 @@ RSpec.describe Datadog::Core::Telemetry::Collector do
         it { is_expected.to include(:DD_TRACE_PEER_SERVICE_MAPPING => '') }
       end
     end
+
+    context 'DD_APPSEC_SCA_ENABLED' do
+      context 'when set through env' do
+        around do |example|
+          ClimateControl.modify DD_APPSEC_SCA_ENABLED: dd_appsec_sca_enabled do
+            example.run
+          end
+        end
+
+        context 'when set to true' do
+          let(:dd_appsec_sca_enabled) { 'true' }
+          it { is_expected.to include(:DD_APPSEC_SCA_ENABLED => true) }
+        end
+
+        context 'when set to false' do
+          let(:dd_appsec_sca_enabled) { 'false' }
+          it { is_expected.to include(:DD_APPSEC_SCA_ENABLED => false) }
+        end
+      end
+
+      context 'when set through configuration' do
+        before do
+          Datadog.configure do |c|
+            c.appsec.sca_enabled = dd_appsec_sca_enabled
+          end
+        end
+
+        context 'when set to true' do
+          let(:dd_appsec_sca_enabled) { true }
+          it { is_expected.to include(:DD_APPSEC_SCA_ENABLED => true) }
+        end
+
+        context 'when set to false' do
+          let(:dd_appsec_sca_enabled) { false }
+          it { is_expected.to include(:DD_APPSEC_SCA_ENABLED => false) }
+        end
+
+        context 'when set to nil' do
+          let(:dd_appsec_sca_enabled) { nil }
+          it { is_expected.to_not include(:DD_APPSEC_SCA_ENABLED) }
+        end
+      end
+    end
   end
 
   describe '#additional_payload' do
