@@ -211,7 +211,7 @@ module Datadog
                 error: (patch_error(integration) if is_instrumented && !is_enabled),
                 # TODO: Track if integration is instrumented by manual configuration or by auto instrumentation
                 # auto_enabled: is_enabled && ???,
-              }
+              }.reject! { |_, v| v.nil? }
             end
           end
 
