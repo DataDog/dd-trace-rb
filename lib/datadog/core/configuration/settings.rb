@@ -687,13 +687,10 @@ module Datadog
         # Client-side telemetry configuration
         # @public_api
         settings :telemetry do
-          # The interval in seconds when telemetry must be sent.
+          # Whether the bundled Ruby gems as reported through telemetry.
           #
-          # This method is used internally, for testing purposes only.
-          #
-          # @default `DD_TELEMETRY_HEARTBEAT_INTERVAL` environment variable, otherwise `60`.
-          # @return [Float]
-          # @!visibility private
+          # @default `DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
           option :dependency_collection do |o|
             o.type :bool
             o.env Core::Telemetry::Ext::ENV_DEPENDENCY_COLLECTION

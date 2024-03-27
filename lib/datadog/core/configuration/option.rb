@@ -8,6 +8,12 @@ module Datadog
       # Represents an instance of an integration configuration option
       # @public_api
       class Option
+        # @!attribute [r] definition
+        #   The definition object that matches this option.
+        #   @return [Configuration::OptionDefinition]
+        # @!attribute [r] precedence_set
+        #   When this option was last set, what was the value precedence used?
+        #   @return [Precedence::Value]
         attr_reader :definition, :precedence_set
 
         # Option setting precedence.
