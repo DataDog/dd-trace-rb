@@ -24,6 +24,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         c.telemetry.install_id = 'id'
         c.telemetry.install_type = 'type'
         c.telemetry.install_time = 'time'
+        c.appsec.sca_enabled = false
       end
     end
 
@@ -70,6 +71,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['logger.instance', 'MyLogger'],
           ['tracing.opentelemetry.enabled', false],
           ['appsec.enabled', false],
+          ['appsec.sca_enabled', false],
           ['ci.enabled', false]
         ),
         install_signature: { install_id: 'id', install_time: 'time', install_type: 'type' },
