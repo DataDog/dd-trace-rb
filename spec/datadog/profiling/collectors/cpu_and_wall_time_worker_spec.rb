@@ -293,18 +293,20 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           another_instance = build_another_instance
           another_instance.start
 
-          try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
+          another_instance.wait_until_running
         end
       end
 
       it 'disables the existing gc_tracepoint before starting another CpuAndWallTimeWorker' do
         start
 
+        expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to be_enabled
+
         expect_in_fork do
           another_instance = build_another_instance
           another_instance.start
 
-          try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(another_instance) }
+          another_instance.wait_until_running
 
           expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
           expect(described_class::Testing._native_gc_tracepoint(another_instance)).to be_enabled
@@ -790,7 +792,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         stop
 
-        expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
+        expect(described_class._native_is_running?(cpu_and_wall_time_worker)).to be false
       end
     end
 
@@ -1071,7 +1073,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       proc_called.pop
 
       # And we expect the worker to be shutdown with a failure exception
-      expect(described_class::Testing._native_is_running?(worker)).to be false
+      expect(described_class._native_is_running?(worker)).to be false
       exception = try_wait_until(backoff: 0.01) { worker.send(:failure_exception) }
       expect(exception.message).to include 'test failure'
 
@@ -1100,7 +1102,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       proc_called.pop
 
       # And we expect the worker to be shutdown with a failure exception
-      expect(described_class::Testing._native_is_running?(cpu_and_wall_time_worker)).to be false
+      expect(described_class._native_is_running?(cpu_and_wall_time_worker)).to be false
       exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
       expect(exception.message).to include 'test failure'
 
@@ -1108,8 +1110,26 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
     end
   end
 
+  describe '#wait_until_running' do
+    context 'when the worker starts' do
+      it do
+        cpu_and_wall_time_worker.start
+
+        expect(cpu_and_wall_time_worker.wait_until_running).to be true
+
+        cpu_and_wall_time_worker.stop
+      end
+    end
+
+    context "when worker doesn't start on time" do
+      it 'raises an exception' do
+        expect { cpu_and_wall_time_worker.wait_until_running(timeout_seconds: 0) }.to raise_error(/Timeout waiting/)
+      end
+    end
+  end
+
   def wait_until_running
-    try_wait_until(backoff: 0.01) { described_class::Testing._native_is_running?(cpu_and_wall_time_worker) }
+    cpu_and_wall_time_worker.wait_until_running
   end
 
   # This is useful because in a bunch of tests above we want to assert on properties of the samples, and having GC

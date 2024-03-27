@@ -44,6 +44,8 @@ module Datadog
           @failure_exception = nil
           @start_stop_mutex = Mutex.new
           @idle_sampling_helper = idle_sampling_helper
+          @wait_until_running_mutex = Mutex.new
+          @wait_until_running_condition = ConditionVariable.new
         end
 
         def start(on_failure_proc: nil)
@@ -105,6 +107,27 @@ module Datadog
           stats = self.stats
           self.class._native_stats_reset_not_thread_safe(self)
           stats
+        end
+
+        # Useful for testing, to e.g. make sure the profiler is running before we start running some code we want to observe
+        def wait_until_running(timeout_seconds: 5)
+          @wait_until_running_mutex.synchronize do
+            return true if self.class._native_is_running?(self)
+
+            @wait_until_running_condition.wait(@wait_until_running_mutex, timeout_seconds)
+
+            if self.class._native_is_running?(self)
+              true
+            else
+              raise "Timeout waiting for #{self.class.name} to start (waited for #{timeout_seconds} seconds)"
+            end
+          end
+        end
+
+        private
+
+        def signal_running
+          @wait_until_running_mutex.synchronize { @wait_until_running_condition.broadcast }
         end
       end
     end
