@@ -15,7 +15,6 @@ module Datadog
   module AppSec
     module Contrib
       module Rack
-        # Create an array of lowercased headers
         WAF_VENDOR_HEADERS_TAGS = %w[
           X-Amzn-Trace-Id
           Cloudfront-Viewer-Ja3-Fingerprint
