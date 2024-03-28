@@ -14,6 +14,9 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
 
   before do
     Datadog.configure do |c|
+      c.env = 'production'
+      c.service = 'MyService'
+      c.version = '1.2.3'
       c.tracing.log_injection = log_injection
       c.tracing.instrument :semantic_logger, enabled: semantic_logger_enabled
     end
@@ -52,9 +55,6 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
       Datadog::Tracing::Correlation::Identifier.new(
         trace_id: trace_id,
         span_id: span_id,
-        env: 'production',
-        service: 'MyService',
-        version: '1.2.3',
       )
     end
 

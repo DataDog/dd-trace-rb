@@ -21,26 +21,24 @@ module Datadog
         LOG_ATTR_VERSION = 'dd.version'
         LOG_ATTR_SOURCE = 'ddsource'
 
-        attr_reader \
-          :env,
-          :service,
-          :span_id,
-          :version
+        attr_reader :span_id
 
         # @!visibility private
-        def initialize(
-          env: nil,
-          service: nil,
-          span_id: nil,
-          trace_id: nil,
-          version: nil
-        )
-          # Dup and freeze strings so they aren't modified by reference.
-          @env = Core::Utils::SafeDup.frozen_dup(env || Datadog.configuration.env)
-          @service = Core::Utils::SafeDup.frozen_dup(service || Datadog.configuration.service)
+        def initialize(trace_id: nil, span_id: nil)
           @span_id = (span_id || 0).to_s
           @trace_id = trace_id || 0
-          @version = Core::Utils::SafeDup.frozen_dup(version || Datadog.configuration.version)
+        end
+
+        def service
+          @service ||= configuration.service
+        end
+
+        def env
+          @env ||= configuration.env
+        end
+
+        def version
+          @version ||= configuration.version
         end
 
         def to_h
@@ -81,22 +79,12 @@ module Datadog
             Tracing::Utils::TraceId.to_low_order(@trace_id).to_s
           end
         end
-      end
 
-      module_function
+        private
 
-      # Produces a CorrelationIdentifier from the TraceDigest provided
-      #
-      # DEV: can we memoize this object, give it can be common to
-      # use a correlation multiple times, specially in the context of logging?
-      # @!visibility private
-      def identifier_from_digest(digest)
-        return Identifier.new unless digest
-
-        Identifier.new(
-          span_id: digest.span_id,
-          trace_id: digest.trace_id,
-        )
+        def configuration
+          Datadog.configuration
+        end
       end
     end
   end
