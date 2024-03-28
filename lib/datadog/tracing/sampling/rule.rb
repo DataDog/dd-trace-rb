@@ -44,15 +44,20 @@ module Datadog
       end
 
       # A {Datadog::Tracing::Sampling::Rule} that matches a trace based on
-      # trace name and/or service name and
+      # trace name and/or service name and/or resource name and
       # applies a fixed sampling to matching spans.
       # @public_api
       class SimpleRule < Rule
         # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name, defaults to always match
         # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name,
         #                defaults to always match
+        # @param resource [String,Regexp,Proc] Matcher for case equality (===) with the resource name,
+        #                defaults to always match
         # @param sample_rate [Float] Sampling rate between +[0,1]+
-        def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate: 1.0)
+        def initialize(
+          name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL,
+          resource: SimpleMatcher::MATCH_ALL, sample_rate: 1.0
+        )
           # We want to allow 0.0 to drop all traces, but {Datadog::Tracing::Sampling::RateSampler}
           # considers 0.0 an invalid rate and falls back to 100% sampling.
           #
@@ -64,7 +69,7 @@ module Datadog
           sampler = RateSampler.new
           sampler.sample_rate = sample_rate
 
-          super(SimpleMatcher.new(name: name, service: service), sampler)
+          super(SimpleMatcher.new(name: name, service: service, resource: resource), sampler)
         end
       end
     end

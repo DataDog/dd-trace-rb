@@ -318,10 +318,10 @@ module Datadog
                 # These rules control whether a trace is kept or dropped by the tracer.
                 #
                 # The `rules` format is a String with a JSON array of objects:
-                # Each object must have a `sample_rate`, and the `name` and `service` fields
+                # Each object must have a `sample_rate`, and the `name`, `service`, and `resource` fields
                 # are optional. The `sample_rate` value must be between 0.0 and 1.0 (inclusive).
-                # `name` and `service` are Strings that allow the `sample_rate` to be applied only
-                # to traces matching the `name` and `service`.
+                # `name`, `service`, and `resource` are Strings that allow the `sample_rate` to be applied only
+                # to traces matching the `name`, `service`, `resource`.
                 #
                 # @default `DD_TRACE_SAMPLING_RULES` environment variable. Otherwise `nil`.
                 # @return [String,nil]

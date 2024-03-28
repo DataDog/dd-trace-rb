@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Sampler do
   let(:rules) { [] }
 
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
-  let(:span_op) { Datadog::Tracing::SpanOperation.new('name', service: 'service') }
+  let(:span_op) { Datadog::Tracing::SpanOperation.new('name', service: 'service', resource: 'resource') }
 
   describe '#sample!' do
     subject(:sample!) { sampler.sample!(trace_op, span_op) }

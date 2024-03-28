@@ -6,19 +6,20 @@ module Datadog
       module Span
         # Checks if a span conforms to a matching criteria.
         class Matcher
-          attr_reader :name, :service
+          attr_reader :name, :service, :resource
 
           # Pattern that matches any string
           MATCH_ALL_PATTERN = '*'
 
-          # Matches span name and service to their respective patterns provided.
+          # Matches span name, service, resource to their respective patterns provided.
           #
           # The patterns are {String}s with two special characters available:
           # 1. `?`: matches exactly one of any character.
           # 2. `*`: matches a substring of any size, including zero.
           # These patterns can occur any point of the string, any number of times.
           #
-          # Both {SpanOperation#name} and {SpanOperation#service} must match the provided patterns.
+          # All of {SpanOperation#name}, {SpanOperation#service}, and {SpanOperation#resource} must match the provided
+          # patterns.
           #
           # The whole String has to match the provided patterns: providing a pattern that
           # matches a portion of the provided String is not considered a match.
@@ -30,9 +31,13 @@ module Datadog
           #
           # @param name_pattern [String] a pattern to be matched against {SpanOperation#name}
           # @param service_pattern [String] a pattern to be matched against {SpanOperation#service}
-          def initialize(name_pattern: MATCH_ALL_PATTERN, service_pattern: MATCH_ALL_PATTERN)
+          def initialize(
+            name_pattern: MATCH_ALL_PATTERN, service_pattern: MATCH_ALL_PATTERN,
+            resource_pattern: MATCH_ALL_PATTERN
+          )
             @name = pattern_to_regex(name_pattern)
             @service = pattern_to_regex(service_pattern)
+            @resource = pattern_to_regex(resource_pattern)
           end
 
           # {Regexp#match?} was added in Ruby 2.4, and it's measurably
@@ -46,13 +51,13 @@ module Datadog
             # @return [Boolean]
             def match?(span)
               # Matching is performed at the end of the lifecycle of a Span,
-              # thus both `name` and `service` are guaranteed to be not `nil`.
-              @name.match?(span.name) && @service.match?(span.service)
+              # thus both `name`, `service`, `resource` are guaranteed to be not `nil`.
+              @name.match?(span.name) && @service.match?(span.service) && @resource.match?(span.resource)
             end
           else
             # DEV: Remove when support for Ruby 2.3 and older is removed.
             def match?(span)
-              @name === span.name && @service === span.service
+              @name === span.name && @service === span.service && @resource === span.resource
             end
           end
 
@@ -60,7 +65,8 @@ module Datadog
             return super unless other.is_a?(Matcher)
 
             name == other.name &&
-              service == other.service
+              service == other.service &&
+              resource == other.resource
           end
 
           private

@@ -26,6 +26,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     it do
       expect(rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
       expect(rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+      expect(rule.matcher.resource).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
       expect(rule.sampler.sample_rate).to eq(options[:sample_rate])
     end
   end
@@ -100,6 +101,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       it 'parses as a match any' do
         expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
         expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+        expect(actual_rule.matcher.resource).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
         expect(actual_rule.sampler.sample_rate).to eq(0.1)
       end
 
@@ -109,6 +111,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         it 'parses matching any service' do
           expect(actual_rule.matcher.name).to eq('test-name')
           expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.matcher.resource).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
           expect(actual_rule.sampler.sample_rate).to eq(0.1)
         end
       end
@@ -119,6 +122,18 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         it 'parses matching any name' do
           expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
           expect(actual_rule.matcher.service).to eq('test-service')
+          expect(actual_rule.matcher.resource).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.sampler.sample_rate).to eq(0.1)
+        end
+      end
+
+      context 'and resource' do
+        let(:rule) { { sample_rate: 0.1, resource: 'test-resource' } }
+
+        it 'parses matching any name' do
+          expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+          expect(actual_rule.matcher.resource).to eq('test-resource')
           expect(actual_rule.sampler.sample_rate).to eq(0.1)
         end
       end

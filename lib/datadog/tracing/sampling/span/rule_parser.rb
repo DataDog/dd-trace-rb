@@ -83,6 +83,10 @@ module Datadog
                 matcher_options[:service_pattern] = service_pattern
               end
 
+              if (resource_pattern = hash['resource'])
+                matcher_options[:resource_pattern] = resource_pattern
+              end
+
               matcher = Matcher.new(**matcher_options)
 
               rule_options = {}
