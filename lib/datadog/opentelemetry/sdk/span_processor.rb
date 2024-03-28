@@ -115,7 +115,7 @@ module Datadog
 
           # DEV: There's no `flat_map!`; we have to split it into two operations
           attributes = attributes.map do |key, value|
-            Datadog::OpenTelemetry::Trace::Span.serialize_attribute(key, value)
+            Datadog::Tracing::Utils.serialize_attribute(key, value)
           end
           attributes.flatten!(1)
 

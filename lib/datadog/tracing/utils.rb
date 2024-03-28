@@ -45,6 +45,22 @@ module Datadog
         @id_rng = Random.new
       end
 
+      # Serialize values into Datadog span tags and metrics.
+      # Notably, arrays are exploded into many keys, each with
+      # a numeric suffix representing the array index, for example:
+      # `'foo' => ['a','b']` becomes `'foo.0' => 'a', 'foo.1' => 'b'`
+      def self.serialize_attribute(key, value)
+        if value.is_a?(Array)
+          value.flat_map.with_index do |v, idx|
+            serialize_attribute("#{key}.#{idx}", v)
+          end
+        elsif value.is_a?(TrueClass) || value.is_a?(FalseClass)
+          [[key, value.to_s]]
+        else
+          [[key, value]]
+        end
+      end
+
       private_class_method :id_rng, :reset!
 
       # The module handles bitwise operation for trace id

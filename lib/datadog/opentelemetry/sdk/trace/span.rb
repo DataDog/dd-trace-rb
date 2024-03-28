@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'datadog/tracing/utils'
+
 module Datadog
   module OpenTelemetry
     module Trace
@@ -34,22 +36,6 @@ module Datadog
           # Status code can only change into an error state.
           # Other change operations should be ignored.
           span.set_error(status.description) if status && status.code == ::OpenTelemetry::Trace::Status::ERROR
-        end
-
-        # Serialize values into Datadog span tags and metrics.
-        # Notably, arrays are exploded into many keys, each with
-        # a numeric suffix representing the array index, for example:
-        # `'foo' => ['a','b']` becomes `'foo.0' => 'a', 'foo.1' => 'b'`
-        def self.serialize_attribute(key, value)
-          if value.is_a?(Array)
-            value.flat_map.with_index do |v, idx|
-              serialize_attribute("#{key}.#{idx}", v)
-            end
-          elsif value.is_a?(TrueClass) || value.is_a?(FalseClass)
-            [[key, value.to_s]]
-          else
-            [[key, value]]
-          end
         end
 
         # Create a meaningful Datadog operation name from the OpenTelemetry
@@ -123,7 +109,7 @@ module Datadog
               span.name = rich_name.downcase
             end
 
-            Span.serialize_attribute(key, @attributes[key]).each do |new_key, value|
+            Tracing::Utils.serialize_attribute(key, @attributes[key]).each do |new_key, value|
               override_datadog_values(span, new_key, value)
 
               # When an attribute is used to override a Datadog Span property,
