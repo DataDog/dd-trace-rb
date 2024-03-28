@@ -97,14 +97,20 @@ module Datadog
           end
         end
 
-        Library = Struct.new(:kind, :name, :version, :path) do
+        # Represents metadata we have for a ruby gem
+        class Library
+          attr_reader :kind, :name, :version, :path
+
           def initialize(kind:, name:, version:, path:)
-            super(kind.freeze, name.dup.freeze, version.to_s.dup.freeze, path.dup.freeze)
+            @kind = kind.freeze
+            @name = name.dup.freeze
+            @version = version.to_s.dup.freeze
+            @path = path.dup.freeze
             freeze
           end
 
-          def to_json(*args)
-            { kind: kind, name: name, version: version, paths: [path] }.to_json(*args)
+          def to_json(arg = nil)
+            { kind: @kind, name: @name, version: @version, paths: [@path] }.to_json(arg)
           end
         end
       end
