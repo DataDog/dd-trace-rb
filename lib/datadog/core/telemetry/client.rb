@@ -1,8 +1,10 @@
 # frozen_string_literal: true
 
 require_relative 'emitter'
-require_relative 'heartbeat'
+require_relative 'worker'
 require_relative '../utils/forking'
+require_relative 'metric'
+require_relative 'metric_queue'
 
 module Datadog
   module Core
@@ -12,25 +14,37 @@ module Datadog
         attr_reader \
           :emitter,
           :enabled,
+          :metrics_enabled,
           :unsupported,
-          :worker
+          :worker,
+          :metrics_worker
 
         include Core::Utils::Forking
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
         # @param heartbeat_interval_seconds [Float] How frequently heartbeats will be reported, in seconds.
-        def initialize(heartbeat_interval_seconds:, enabled: true)
+        def initialize(heartbeat_interval_seconds:, metrics_enabled:, enabled: true)
           @enabled = enabled
+          @metrics_enabled = metrics_enabled
           @emitter = Emitter.new
           @stopped = false
           @unsupported = false
-          @worker = Telemetry::Heartbeat.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
+          @worker = Telemetry::Worker.new(
+            enabled: @enabled || @metrics_enabled,
+            heartbeat_interval_seconds: heartbeat_interval_seconds
+          ) do
             heartbeat!
+            flush_metrics!
           end
+
+          Metric::Rate.interval = heartbeat_interval_seconds
+
+          @metric_queue = MetricQueue.new
         end
 
         def disable!
           @enabled = false
+          @metrics_enabled = false
           @worker.enabled = false
         end
 
@@ -74,12 +88,51 @@ module Datadog
           @emitter.request('app-client-configuration-change', data: { changes: changes, origin: 'remote_config' })
         end
 
+        def add_count_metric(namespace, name, value, tags)
+          return if !@metrics_enabled || forked?
+
+          @metric_queue.add_metric(namespace, name, value, tags, Metric::Count)
+        end
+
+        def add_rate_metric(namespace, name, value, tags)
+          return if !@metrics_enabled || forked?
+
+          @metric_queue.add_metric(namespace, name, value, tags, Metric::Rate)
+        end
+
+        def add_gauge_metric(namespace, name, value, tags)
+          return if !@metrics_enabled || forked?
+
+          @metric_queue.add_metric(namespace, name, value, tags, Metric::Gauge)
+        end
+
+        def add_distribution_metric(namespace, name, value, tags)
+          return if !@metrics_enabled || forked?
+
+          @metric_queue.add_metric(namespace, name, value, tags, Metric::Distribution)
+        end
+
         private
 
         def heartbeat!
           return if !@enabled || forked?
 
           @emitter.request(:'app-heartbeat')
+        end
+
+        def flush_metrics!
+          return if !@metrics_enabled || forked?
+
+          # We store the current metric_queue in a local variable and assign a new metric queue
+          # so a paralallel thread can add metrics while we are still reporting the ones from
+          # local_metric_queue
+          local_metric_queue = @metric_queue
+          @metric_queue = MetricQueue.new
+
+          # Send metrics
+          local_metric_queue.build_metrics_payload do |metric_type, payload|
+            @emitter.request(metric_type, payload: payload)
+          end
         end
       end
     end

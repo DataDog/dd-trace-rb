@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Telemetry
+      class MetricQueue
+        @metrics: Hash[String, untyped]
+
+        def initialize: () -> void
+
+        def add_metric: (String namespace, String name, Numeric value, Hash[String, untyped] tags, singleton(Metric::Base) metric_klass) -> void
+
+        def build_metrics_payload: () { (String, Hash[Symbol, untyped]) -> void } -> void
+      end
+    end
+  end
+end

@@ -1,0 +1,50 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Metric
+        class Base
+          @name: String
+
+          @tags: Hash[untyped, untyped]
+
+          @values: Array?
+
+          def self.request_type: () -> String
+
+          attr_reader values: untyped
+
+          def initialize: (String name, Hash[untyped, untyped] tags) -> void
+
+          def update_value: (Numeric value) -> void
+
+          def metric_type: () -> string
+
+          def timestamp: () -> Integer
+
+          def to_h: () -> Hash[Symbol, untyped]
+        end
+
+        class GenerateMetricType < Base
+        end
+
+        class DistributionsMetricType < Base
+        end
+
+        class Count < GenerateMetricType
+        end
+
+        class Rate < GenerateMetricType
+          @count: Float
+
+          attr_accessor self.interval: Numeric
+        end
+
+        class Gauge < GenerateMetricType
+        end
+
+        class Distribution < DistributionsMetricType
+        end
+      end
+    end
+  end
+end
