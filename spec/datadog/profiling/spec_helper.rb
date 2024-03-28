@@ -54,10 +54,23 @@ module ProfileHelpers
         sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
         pretty_sample_types.zip(sample.value).to_h,
         sample.label.map do |it|
-          [
-            string_table[it.key].to_sym,
-            it.num == 0 ? string_table[it.str] : it.num,
-          ]
+          key = string_table[it.key].to_sym
+          value =
+            if it.num == 0
+              string_table[it.str]
+            elsif it.num < 0 && key == :"span id" || key == :"local root span id"
+              # Workaround: While pprof declares numeric values for labels as int64, we actually slip in uint64 values
+              # for these keys in specific and our backend interprets these values as uint64.
+              # Thus, when parsing pprofs, we manually correct these values back to their correct unsigned values.
+
+              # Tell Ruby to reinterpret the number back into uint64 little-endian bytes, and then read them again;
+              # Protocol buffers always represents stuff as little-endian https://protobuf.dev/programming-guides/encoding/
+              [it.num].pack('Q<').unpack('Q<').first
+            else
+              it.num
+            end
+
+          [key, value]
         end.to_h,
       ).freeze
     end
