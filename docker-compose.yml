@@ -1,4 +1,8 @@
 version: '3.2'
+
+networks:
+  dd-trace-rb:
+
 services:
   tracer-2.1:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.1.10-dd
@@ -25,6 +29,7 @@ services:
       TEST_MEMCACHED_HOST: memcached
       TEST_MONGODB_HOST: mongodb
       TEST_MYSQL_HOST: mysql
+      TEST_MYSQL_PORT: 3306
       TEST_OPENSEARCH_HOST: opensearch
       TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
@@ -41,6 +46,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.2:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.2.10-dd
     command: /bin/bash
@@ -67,6 +74,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.3:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.3.8-dd
     command: /bin/bash
@@ -93,6 +102,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.4:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.4.10-dd
     command: /bin/bash
@@ -119,6 +130,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.5:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     command: /bin/bash
@@ -145,6 +158,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.5:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.6:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
     command: /bin/bash
@@ -171,6 +186,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.6:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-2.7:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     command: /bin/bash
@@ -197,6 +214,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-2.7:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-3.0:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     command: /bin/bash
@@ -222,6 +241,7 @@ services:
       TEST_MEMCACHED_HOST: memcached
       TEST_MONGODB_HOST: mongodb
       TEST_MYSQL_HOST: mysql
+      TEST_MYSQL_PORT: 3306
       TEST_OPENSEARCH_HOST: opensearch
       TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
@@ -236,6 +256,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.0:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-3.1:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
     command: /bin/bash
@@ -262,6 +284,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.1:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-3.2:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
     command: /bin/bash
@@ -288,6 +312,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-3.3:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
     command: /bin/bash
@@ -313,6 +339,8 @@ services:
       - extension-build-tmp:/app/tmp
       - bundle-3.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   # ADD NEW RUBIES HERE
   tracer-jruby-9.2:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
@@ -339,6 +367,8 @@ services:
       - .:/app
       - bundle-jruby-9.2:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-jruby-9.3:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
     command: /bin/bash
@@ -364,6 +394,8 @@ services:
       - .:/app
       - bundle-jruby-9.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
   tracer-jruby-9.4:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.0.0-dd
     command: /bin/bash
@@ -389,6 +421,9 @@ services:
       - .:/app
       - bundle-jruby-9.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+    networks:
+      - dd-trace-rb
+
   ddagent:
     image: datadog/agent
     environment:
@@ -401,16 +436,13 @@ services:
     expose:
       - "8125/udp"
       - "8126"
-    ports:
-      - "127.0.0.1:${DD_METRIC_AGENT_PORT}:8125/udp"
-      - "127.0.0.1:${DD_REAL_AGENT_PORT}:8126"
     volumes:
       - ddagent_var_run:/var/run/datadog
+    networks:
+      - dd-trace-rb
 
   testagent:
     image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
-    ports:
-        - "127.0.0.1:${DD_TRACE_AGENT_PORT}:9126"
     depends_on:
       - ddagent
     env_file: ./.env
@@ -422,32 +454,33 @@ services:
         - DD_POOL_TRACE_CHECK_FAILURES=true
         - DD_DISABLE_ERROR_RESPONSES=true
         - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    networks:
+      - dd-trace-rb
 
   elasticsearch:
     image: elasticsearch:8.1.3
     expose:
       - "9200"
       - "9300"
-    ports:
-      - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
-      - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
     environment:
       # Ensure production cluster requirements are not enforced
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xmx750m
+    networks:
+      - dd-trace-rb
   memcached:
     image: memcached:1.5-alpine
     expose:
       - "11211"
-    ports:
-      - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
+    networks:
+      - dd-trace-rb
   mongodb:
     image: mongo:3.6
     expose:
       - "27017"
-    ports:
-      - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+    networks:
+      - dd-trace-rb
   mysql:
     image: mysql:8
     environment:
@@ -459,8 +492,8 @@ services:
       - '--default-authentication-plugin=mysql_native_password'
     expose:
       - "3306"
-    ports:
-      - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+    networks:
+      - dd-trace-rb
   opensearch:
     image: opensearchproject/opensearch:2.8.0
     environment:
@@ -473,8 +506,8 @@ services:
       - cluster.routing.allocation.disk.watermark.high=2gb
       - cluster.routing.allocation.disk.watermark.flood_stage=1gb
       - cluster.routing.allocation.disk.threshold_enabled=false
-    ports:
-      - 9201:9200
+    networks:
+      - dd-trace-rb
   postgres:
     image: postgres:9.6
     environment:
@@ -483,28 +516,28 @@ services:
       - POSTGRES_DB=$TEST_POSTGRES_DB
     expose:
       - "5432"
-    ports:
-      - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
+    networks:
+      - dd-trace-rb
   presto:
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
     expose:
       - "8080"
-    ports:
-      - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
+    networks:
+      - dd-trace-rb
   redis:
     image: redis:6.2
     expose:
       - "6379"
-    ports:
-      - "127.0.0.1:${TEST_REDIS_PORT}:6379"
+    networks:
+      - dd-trace-rb
   # `qless` is still using this older version of redis
   redis_old:
     image: redis:3.0
     expose:
       - "6379"
-    ports:
-      - "127.0.0.1:${TEST_REDIS_OLD_PORT}:6379"
+    networks:
+      - dd-trace-rb
 volumes:
   bundle-2.1:
   bundle-2.2:
