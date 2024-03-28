@@ -103,4 +103,34 @@ RSpec.describe Datadog::Tracing::Utils::TraceId do
       end
     end
   end
+
+  describe '.format' do
+    context 'with 64-bit logging' do
+      before do
+        allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(false)
+      end
+
+      it 'can format a 128-bit trace id' do
+        expect(described_class.format(0xaaaaaaaaaaaaaaaaffffffffffffffff)).to eq(18446744073709551615)
+      end
+
+      it 'can format a 64-bit trace id' do
+        expect(described_class.format(0xaaaaaaaa)).to eq(2863311530)
+      end
+    end
+
+    context 'with 128-bit logging' do
+      before do
+        allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
+      end
+
+      it 'can format a 128-bit trace id' do
+        expect(described_class.format(0xaaaaaaaaaaaaaaaaffffffffffffffff)).to eq('aaaaaaaaaaaaaaaaffffffffffffffff')
+      end
+
+      it 'can format a 64-bit trace id' do
+        expect(described_class.format(0xaaaaaaaa)).to eq(2863311530)
+      end
+    end
+  end
 end

@@ -77,6 +77,15 @@ module Datadog
         def concatenate(high_order, low_order)
           high_order << 64 | low_order
         end
+
+        def format(trace_id)
+          if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
+              !to_high_order(trace_id).zero?
+            Kernel.format('%032x', trace_id)
+          else
+            to_low_order(trace_id)
+          end
+        end
       end
     end
   end
