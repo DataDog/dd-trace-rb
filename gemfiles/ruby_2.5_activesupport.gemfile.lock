@@ -12,7 +12,6 @@ PATH
   remote: ..
   specs:
     datadog (2.0.0.beta1)
-      base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 6.0.0.2.0)
       libddwaf (~> 1.14.0.0.0)
@@ -51,7 +50,6 @@ GEM
       bundler
       rake
       thor (>= 0.14.0)
-    base64 (0.2.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -268,4 +266,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27

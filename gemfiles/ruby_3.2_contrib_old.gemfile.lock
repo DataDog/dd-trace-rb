@@ -12,7 +12,6 @@ PATH
   remote: ..
   specs:
     datadog (2.0.0.beta1)
-      base64
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 6.0.0.2.0)
       libddwaf (~> 1.14.0.0.0)
@@ -30,7 +29,6 @@ GEM
     atomic (1.1.101)
     avl_tree (1.2.1)
       atomic (~> 1.1)
-    base64 (0.2.0)
     benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
