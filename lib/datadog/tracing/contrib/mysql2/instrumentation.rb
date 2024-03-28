@@ -54,17 +54,12 @@ module Datadog
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
 
-                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
-
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(
-                  sql,
-                  span,
-                  trace_op,
-                  propagation_mode
-                )
+                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, trace_op, propagation_mode)
+
+                Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
                 super(sql, options)
               end
