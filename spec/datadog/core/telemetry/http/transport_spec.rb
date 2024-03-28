@@ -28,9 +28,11 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     let(:headers) do
       {
         'Content-Type' => 'application/json',
-        'DD-Telemetry-API-Version' => 'v1',
+        'DD-Telemetry-API-Version' => 'v2',
         'DD-Telemetry-Request-Type' => 'app-started',
         'DD-Internal-Untraced-Request' => '1',
+        'DD-Client-Library-Language' => 'ruby',
+        'DD-Client-Library-Version' => DDTrace::VERSION::STRING,
       }
     end
     let(:hostname) { 'foo' }

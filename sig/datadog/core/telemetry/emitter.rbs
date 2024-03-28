@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Telemetry
       class Emitter
+        @sequence: Datadog::Core::Utils::Sequence
+
         attr_reader http_transport: untyped
 
         extend Core::Utils::Forking

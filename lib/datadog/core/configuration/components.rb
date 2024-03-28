@@ -62,7 +62,8 @@ module Datadog
 
             Telemetry::Client.new(
               enabled: enabled,
-              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds
+              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
+              dependency_collection: settings.telemetry.dependency_collection
             )
           end
         end

@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Telemetry::Heartbeat do
   let(:block) { proc {} }
 
   after do
-    heartbeat.stop(true)
+    heartbeat.stop(true, 0)
     heartbeat.join
   end
 

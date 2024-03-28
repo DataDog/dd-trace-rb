@@ -2,7 +2,12 @@ module Datadog
   module Core
     module Telemetry
       module Ext
-        ENV_ENABLED: "DD_INSTRUMENTATION_TELEMETRY_ENABLED"
+        ENV_DEPENDENCY_COLLECTION: ::String
+        ENV_ENABLED: ::String
+        ENV_HEARTBEAT_INTERVAL: ::String
+        ENV_INSTALL_ID: ::String
+        ENV_INSTALL_TIME: ::String
+        ENV_INSTALL_TYPE: ::String
       end
     end
   end
