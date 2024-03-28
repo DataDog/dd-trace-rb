@@ -10,6 +10,7 @@ include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
   - local: ".gitlab/benchmarks.yml"
   - local: ".gitlab/onboarding_tests.yml"
+  - local: ".gitlab/software_composition_analysis.yaml"
 
 variables:
   DOWNSTREAM_BRANCH:
