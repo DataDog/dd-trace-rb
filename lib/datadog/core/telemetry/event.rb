@@ -245,15 +245,31 @@ module Datadog
           end
 
           def payload(seq_id)
-            {
-              configuration: @changes.map do |name, value|
-                {
-                  name: name,
-                  value: value,
-                  origin: @origin,
-                }
-              end
-            }
+            @seq_id = seq_id
+            { configuration: configuration }
+          end
+
+          def configuration
+            config = Datadog.configuration
+
+            res = @changes.map do |name, value|
+              {
+                name: name,
+                value: value,
+                origin: @origin,
+              }
+            end
+
+            unless config.dig('appsec', 'sca_enabled').nil?
+              res << {
+                name: 'appsec.sca_enabled',
+                value: config.appsec.sca_enabled,
+                origin: 'code',
+                seq_id: @seq_id,
+              }
+            end
+
+            res
           end
         end
 
