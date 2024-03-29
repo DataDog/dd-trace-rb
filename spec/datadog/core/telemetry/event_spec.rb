@@ -173,6 +173,24 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         }]
       )
     end
+
+    context 'with env_var state configuration' do
+      before do
+        Datadog.configure do |c|
+          c.appsec.sca_enabled = false
+        end
+      end
+
+      it 'includes sca enablement configuration' do
+        is_expected.to eq(
+          configuration:
+          [
+            { name: name, value: value, origin: origin },
+            { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
+          ]
+        )
+      end
+    end
   end
 
   context 'AppHeartbeat' do
