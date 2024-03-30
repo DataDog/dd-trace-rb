@@ -94,7 +94,7 @@ module Datadog
           packer.write('metrics')
           packer.write(span.metrics)
           packer.write('span_links')
-          packer.write(span.links.map!(&:to_hash))
+          packer.write(span.links.map(&:to_hash))
           packer.write('error')
           packer.write(span.status)
           packer

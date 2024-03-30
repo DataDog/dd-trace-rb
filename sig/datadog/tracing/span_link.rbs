@@ -45,6 +45,11 @@ module Datadog
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       attr_reader trace_state: untyped
 
+      # @!attribute [r] dropped_attributes
+      #   The number of attributes that were discarded due to serialization limits.
+      #   @return [Integer]
+      attr_reader dropped_attributes: untyped
+
       def initialize: (?attributes: untyped?, ?digest: untyped?) -> void
 
       def to_hash: () -> untyped

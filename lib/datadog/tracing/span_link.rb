@@ -35,6 +35,11 @@ module Datadog
       #   @see https://www.w3.org/TR/trace-context/#tracestate-header
       attr_reader :trace_state
 
+      # @!attribute [r] dropped_attributes
+      #   The number of attributes that were discarded due to serialization limits.
+      #   @return [Integer]
+      attr_reader :dropped_attributes
+
       def initialize(
         attributes: nil,
         digest: nil
