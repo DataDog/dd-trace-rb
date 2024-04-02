@@ -51,7 +51,7 @@ module Datadog
 
                 # TODO: these fallbacks should be improved
                 roots = payload[:roots] || []
-                targets = payload[:targets] || Base64.encode64('{}').chomp
+                targets = payload[:targets] || Base64.strict_encode64('{}')
                 target_files = payload[:target_files] || []
                 client_configs = payload[:client_configs] || []
 

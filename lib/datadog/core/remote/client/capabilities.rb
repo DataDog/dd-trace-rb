@@ -53,7 +53,7 @@ module Datadog
             cap_to_hexs = capabilities.reduce(:|).to_s(16).tap { |s| s.size.odd? && s.prepend('0') }.scan(/\h\h/)
             binary = cap_to_hexs.each_with_object([]) { |hex, acc| acc << hex }.map { |e| e.to_i(16) }.pack('C*')
 
-            Base64.encode64(binary).chomp
+            Base64.strict_encode64(binary)
           end
         end
       end

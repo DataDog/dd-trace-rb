@@ -218,13 +218,59 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'Compressed payload' do
           it 'uses compressed value when JSON string is bigger than MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            result = "H4sIAOYoHGUAA4aphwAAAA=\n"
+            result = 'H4sIAOYoHGUAA4aphwAAAA='
             stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 1)
             expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
 
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to eq(result)
+          end
+
+          context 'with big derivatives' do
+            let(:derivatives) do
+              {
+                '_dd.appsec.s.req.headers' => [
+                  {
+                    'host' => [8],
+                    'version' => [8],
+                    'foo' => [8],
+                    'bar' => [8],
+                    'baz' => [8],
+                    'qux' => [8],
+                    'quux' => [8],
+                    'quuux' => [8],
+                    'quuuux' => [8],
+                    'quuuuux' => [8],
+                    'quuuuuux' => [8],
+                    'quuuuuuux' => [8],
+                    'quuuuuuuux' => [8],
+                    'quuuuuuuuux' => [8],
+                    'quuuuuuuuuux' => [8],
+                    'quuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuuux' => [8],
+                    'quuuuuuuuuuuuuuuuuuuuuuuux' => [8],
+                  }
+                ]
+              }
+            end
+
+            it 'has no newlines when encoded' do
+              meta = top_level_span.meta
+
+              expect(meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
+            end
           end
         end
 
