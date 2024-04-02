@@ -26,6 +26,7 @@ module Datadog
         :parent_id,
         :resource,
         :service,
+        :links,
         :type,
         :start_time,
         :status,
@@ -58,7 +59,8 @@ module Datadog
         status: 0,
         type: nil,
         trace_id: nil,
-        service_entry: nil
+        service_entry: nil,
+        links: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -85,6 +87,8 @@ module Datadog
         @duration = duration
 
         @service_entry = service_entry
+
+        @links = links || []
 
         # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
@@ -136,7 +140,8 @@ module Datadog
           service: @service,
           span_id: @id,
           trace_id: @trace_id,
-          type: @type
+          type: @type,
+          span_links: @links.map(&:to_hash)
         }
 
         if stopped?
