@@ -80,7 +80,37 @@ only-profiling-alloc:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+
+only-profiling-heap:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+
+only-profiling-heap-size:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
+
+only-profiling-heap-size-sample-rate-1:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE: "1"
 
 profiling-and-tracing:
   extends: .benchmarks
