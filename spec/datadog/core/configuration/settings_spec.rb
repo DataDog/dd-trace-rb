@@ -457,12 +457,20 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_gc_profiling' do
-        subject(:force_enable_gc_profiling) { settings.profiling.advanced.force_enable_gc_profiling }
+      describe '#force_enable_gc_profiling=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        context 'when DD_PROFILING_FORCE_ENABLE_GC' do
+          settings.profiling.advanced.force_enable_gc_profiling = true
+        end
+      end
+
+      describe '#gc_enabled' do
+        subject(:gc_enabled) { settings.profiling.advanced.gc_enabled }
+
+        context 'when DD_PROFILING_GC_ENABLED' do
           around do |example|
-            ClimateControl.modify('DD_PROFILING_FORCE_ENABLE_GC' => environment) do
+            ClimateControl.modify('DD_PROFILING_GC_ENABLED' => environment) do
               example.run
             end
           end
@@ -470,7 +478,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
 
           [true, false].each do |value|
@@ -483,12 +491,12 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_gc_profiling=' do
-        it 'updates the #force_enable_gc_profiling setting' do
-          expect { settings.profiling.advanced.force_enable_gc_profiling = true }
-            .to change { settings.profiling.advanced.force_enable_gc_profiling }
-            .from(false)
-            .to(true)
+      describe '#gc_enabled=' do
+        it 'updates the #gc_enabled setting' do
+          expect { settings.profiling.advanced.gc_enabled = false }
+            .to change { settings.profiling.advanced.gc_enabled }
+            .from(true)
+            .to(false)
         end
       end
 

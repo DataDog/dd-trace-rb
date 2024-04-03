@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 
   before do
-    allow(Time).to receive(:now).and_return(Time.new(2020))
+    allow(Time).to receive(:now).and_return(Time.new(2020, 1, 1, 0, 0, 0, 'Z'))
 
     # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)

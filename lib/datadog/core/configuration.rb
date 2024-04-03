@@ -84,17 +84,21 @@ module Datadog
         configuration = self.configuration
         yield(configuration)
 
+        start_telemetry = false
+
         safely_synchronize do |write_components|
           write_components.call(
             if components?
               replace_components!(configuration, @components)
             else
               components = build_components(configuration)
-              components.telemetry.started!
+              start_telemetry = true
               components
             end
           )
         end
+
+        components.telemetry.started! if start_telemetry
 
         configuration
       end
