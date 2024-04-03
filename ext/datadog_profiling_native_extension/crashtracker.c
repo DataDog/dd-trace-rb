@@ -54,7 +54,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .tags = &tags,
   };
 
-  ddog_prof_Profile_Result result =
+  ddog_prof_CrashtrackerResult result =
     action == start_action ?
       ddog_prof_Crashtracker_init(config, metadata) :
       ddog_prof_Crashtracker_update_on_fork(config, metadata);
@@ -62,7 +62,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
 
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+  if (result.tag == DDOG_PROF_CRASHTRACKER_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to start/update the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
@@ -70,9 +70,9 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
-  ddog_prof_Profile_Result result = ddog_prof_Crashtracker_shutdown();
+  ddog_prof_CrashtrackerResult result = ddog_prof_Crashtracker_shutdown();
 
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+  if (result.tag == DDOG_PROF_CRASHTRACKER_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 

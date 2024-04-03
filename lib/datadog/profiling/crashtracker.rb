@@ -2,14 +2,6 @@
 
 require 'libdatadog'
 
-# FIXME: Move this to libdatadog -- this is only here to facilitate testing
-module ::Libdatadog
-  def self.path_to_crashtracking_receiver_binary
-    # TODO: Error handling when pkgconfig_folder is not detected correctly
-    File.absolute_path("#{::Libdatadog.pkgconfig_folder}/../../bin/libdatadog-crashtracking-receiver")
-  end
-end
-
 module Datadog
   module Profiling
     # Used to report Ruby VM crashes.
