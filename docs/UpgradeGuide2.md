@@ -281,39 +281,39 @@ See table below for constant and method changes:
 
 <h3 id="2.0-sampling">Sampling</h3>
 
-Most custom sampling can be accomplished with a combination of Ingestion Controls and user-defined rules. This is the preferred option, as it is more maintainable and auditable than custom sampling.
+Custom sampling classes have been removed in 2.0.
 
-If you still need a custom sampler, its API has been simplified in 2.0 by privatizing sampling objects. See [Custom Sampling](GettingStarted.md#custom-sampling) for the new detailed requirements of a custom sampler.
+Sampling should be configured using a combination of [Ingestion Controls](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/) and [user-defined rules](https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/?tab=ruby&code-lang=ruby#in-tracing-libraries-user-defined-rules),
+as such configurations are more maintainable and auditable than custom application sampling objects.
 
-The custom sampler class `Datadog::Tracing::Sampling::RateSampler` now accepts a `sample_rate` of zero. This will drop all spans. Before 2.0, the RateSampler would fall back to a sample rate of 1.0 when provided with a `sample_rate` of zero.
+If you still need a custom sampler, see [Custom Sampling](GettingStarted.md#custom-sampling) for the new detailed requirements of a custom sampler object.
 
-The configuration option `c.tracing.priority_sampling` has been removed. To disable priority sampling, you now have to create a custom sampler.
+#### Sampling objects removed
 
-<!-- EXAMPLE -->
+| 1.x                                                | 2.0     |
+| -------------------------------------------------- | ------- |
+| `Datadog::Tracing::Sampling::AllSampler`           | Removed |
+| `Datadog::Tracing::Sampling::Matcher`              | Removed |
+| `Datadog::Tracing::Sampling::SimpleMatcher`        | Removed |
+| `Datadog::Tracing::Sampling::ProcMatcher`          | Removed |
+| `Datadog::Tracing::Sampling::PrioritySampler`      | Removed |
+| `Datadog::Tracing::Sampling::RateByKeySampler`     | Removed |
+| `Datadog::Tracing::Sampling::RateByServiceSampler` | Removed |
+| `Datadog::Tracing::Sampling::RateLimiter`          | Removed |
+| `Datadog::Tracing::Sampling::TokenBucket`          | Removed |
+| `Datadog::Tracing::Sampling::UnlimitedLimiter`     | Removed |
+| `Datadog::Tracing::Sampling::RateSampler`          | Removed |
+| `Datadog::Tracing::Sampling::Rule`                 | Removed |
+| `Datadog::Tracing::Sampling::SimpleRule`           | Removed |
+| `Datadog::Tracing::Sampling::RuleSampler`          | Removed |
+| `Datadog::Tracing::Sampling::Sampler`              | Removed |
 
-```ruby
+#### Other sampling changes
 
-```
+The configuration option `c.tracing.priority_sampling` has been removed.
+Disabling priority sampling affects the auditability of simply decisions.
 
-#### Objects privatized
-
-| 1.x                                                | 2.0        |
-| -------------------------------------------------- | ---------- |
-| `Datadog::Tracing::Sampling::AllSampler`           | Privatized |
-| `Datadog::Tracing::Sampling::Matcher`              | Privatized |
-| `Datadog::Tracing::Sampling::SimpleMatcher`        | Privatized |
-| `Datadog::Tracing::Sampling::ProcMatcher`          | Privatized |
-| `Datadog::Tracing::Sampling::PrioritySampler`      | Privatized |
-| `Datadog::Tracing::Sampling::RateByKeySampler`     | Privatized |
-| `Datadog::Tracing::Sampling::RateByServiceSampler` | Privatized |
-| `Datadog::Tracing::Sampling::RateLimiter`          | Privatized |
-| `Datadog::Tracing::Sampling::TokenBucket`          | Privatized |
-| `Datadog::Tracing::Sampling::UnlimitedLimiter`     | Privatized |
-| `Datadog::Tracing::Sampling::RateSampler`          | Privatized |
-| `Datadog::Tracing::Sampling::Rule`                 | Privatized |
-| `Datadog::Tracing::Sampling::SimpleRule`           | Privatized |
-| `Datadog::Tracing::Sampling::RuleSampler`          | Privatized |
-| `Datadog::Tracing::Sampling::Sampler`              | Privatized |
+To disable priority sampling in 2.0, you now have to create a custom sampler.
 
 <h2 id="2.0-upgrade-instrumentations">Upgrade Instrumentations</h2>
 
