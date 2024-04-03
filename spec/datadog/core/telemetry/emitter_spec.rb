@@ -36,8 +36,10 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   end
 
   describe '#request' do
-    subject(:request) { emitter.request(request_type) }
-    let(:request_type) { :'app-started' }
+    subject(:request) { emitter.request(event) }
+    let(:event) { double('event', type: request_type, payload: payload) }
+    let(:request_type) { double('request_type') }
+    let(:payload) { { foo: 'bar' } }
 
     before do
       logger = double(Datadog::Core::Logger)
@@ -45,11 +47,13 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       allow(Datadog).to receive(:logger).and_return(logger)
     end
 
-    context 'when :request_type' do
+    context 'when event' do
       context 'is invalid' do
-        let(:request_type) { 'app' }
+        let(:event) { 'Not an event' }
+
         it do
           request
+
           expect(Datadog.logger).to have_received(:debug) do |message|
             expect(message).to include('Unable to send telemetry request')
           end
@@ -57,15 +61,12 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
       end
 
       context 'is app-started' do
-        let(:request_type) { :'app-started' }
+        let(:request_type) { 'app-started' }
 
         context 'when call is successful' do
           let(:response_ok) { true }
 
-          it 'no logs are produced' do
-            is_expected.to eq(response)
-            expect(Datadog.logger).to_not have_received(:debug)
-          end
+          it { is_expected.to eq(response) }
 
           it 'seq_id is incremented' do
             original_seq_id = emitter.class.sequence.instance_variable_get(:@current)
@@ -77,15 +78,18 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
     end
 
     context 'with data' do
-      subject(:request) { emitter.request(request_type, data: data) }
-      let(:data) { { changes: ['test-data'] } }
-      let(:request_type) { 'app-client-configuration-change' }
-      let(:event) { double('event') }
+      subject(:request) { emitter.request(event) }
+      let(:event) { double('event', type: request_type) }
+      let(:request_type) { double('request_type') }
+
+      let(:payload) { { foo: 'bar' } }
 
       it 'creates a telemetry event with data' do
-        expect(Datadog::Core::Telemetry::Event).to receive(:new).and_return(event)
-        expect(event).to receive(:telemetry_request).with(request_type: request_type, seq_id: be_a(Integer), data: data)
+        allow(Datadog::Core::Telemetry::Request).to receive(:build_payload).with(event, 1).and_return(payload)
+
         request
+
+        expect(http_transport).to have_received(:request).with(request_type: request_type, payload: '{"foo":"bar"}')
       end
     end
   end

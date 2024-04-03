@@ -698,6 +698,16 @@ module Datadog
         # Client-side telemetry configuration
         # @public_api
         settings :telemetry do
+          # Whether the bundled Ruby gems as reported through telemetry.
+          #
+          # @default `DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :dependency_collection do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_DEPENDENCY_COLLECTION
+            o.default true
+          end
+
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
           # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.

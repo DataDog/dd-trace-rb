@@ -8,7 +8,13 @@ module Datadog
       # Represents an instance of an integration configuration option
       # @public_api
       class Option
-        attr_reader :definition
+        # @!attribute [r] definition
+        #   The definition object that matches this option.
+        #   @return [Configuration::OptionDefinition]
+        # @!attribute [r] precedence_set
+        #   When this option was last set, what was the value precedence used?
+        #   @return [Precedence::Value]
+        attr_reader :definition, :precedence_set
 
         # Option setting precedence.
         module Precedence
@@ -302,10 +308,6 @@ module Datadog
         def skip_validation?
           ['true', '1'].include?(ENV.fetch('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION', '').strip)
         end
-
-        # Used for testing
-        attr_reader :precedence_set
-        private :precedence_set
 
         # Anchor object that represents a value that is not set.
         # This is necessary because `nil` is a valid value to be set.
