@@ -163,8 +163,6 @@ RSpec.describe Datadog::Profiling::Crashtracker do
         crashtracker.start
 
         Process.kill('SEGV', Process.pid)
-        # TODO: For some reason, the crash tracker is not handing control back to the Ruby SEGV handler the first time
-        Process.kill('SEGV', Process.pid)
       end
 
       boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
