@@ -6,7 +6,12 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'open3'
 
-require 'datadog'
+begin
+  require 'datadog'
+rescue LoadError # TODO: Remove when ddtrace 2.0 is merged to master
+  # This is required to run benchmarks against ddtrace 1.x.
+  require 'ddtrace'
+end
 
 class TracingTraceBenchmark
   module NoopWriter
