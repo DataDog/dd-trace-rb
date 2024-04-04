@@ -108,14 +108,13 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     shared_context 'HTTP server' do
       let(:server) do
         WEBrick::HTTPServer.new(
-          Port: port,
+          Port: 0,
           Logger: log,
           AccessLog: access_log,
           StartCallback: -> { init_signal.push(1) }
         )
       end
       let(:hostname) { '127.0.0.1' }
-      let(:port) { 6006 }
       let(:log) { WEBrick::Log.new(StringIO.new, WEBrick::Log::WARN) }
       let(:access_log_buffer) { StringIO.new }
       let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -149,9 +148,9 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     include_context 'HTTP server'
 
     let(:request) { messages.first }
+    let(:port) { server[:Port] }
 
-    let(:hostname) { '127.0.0.1' }
-    let(:port) { '6006' }
+    let(:exporter_configuration) { [:agent, "http://#{hostname}:#{port}"] }
 
     it 'reports crashes via http' do
       fork_expectations = proc do |status:, stdout:, stderr:|

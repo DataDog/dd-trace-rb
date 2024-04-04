@@ -320,14 +320,13 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     shared_context 'HTTP server' do
       let(:server) do
         WEBrick::HTTPServer.new(
-          Port: port,
+          Port: 0,
           Logger: log,
           AccessLog: access_log,
           StartCallback: -> { init_signal.push(1) }
         )
       end
       let(:hostname) { '127.0.0.1' }
-      let(:port) { 6006 }
       let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
       let(:access_log_buffer) { StringIO.new }
       let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -363,7 +362,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:request) { messages.first }
 
     let(:hostname) { '127.0.0.1' }
-    let(:port) { '6006' }
+    let(:port) { server[:Port] }
 
     shared_examples 'correctly reports profiling data' do
       it 'correctly reports profiling data' do
@@ -415,7 +414,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     it 'exports data via http to the agent url' do
       http_transport.export(flush)
 
-      expect(request.request_uri.to_s).to eq 'http://127.0.0.1:6006/profiling/v1/input'
+      expect(request.request_uri.to_s).to eq "http://127.0.0.1:#{port}/profiling/v1/input"
     end
 
     context 'when code provenance data is not available' do
