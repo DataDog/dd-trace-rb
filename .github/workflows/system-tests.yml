@@ -17,6 +17,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
+  LIB_PATH: dd-trace-rb
 
 jobs:
   build-harness:
@@ -279,7 +280,7 @@ jobs:
         run: |
           docker image list
       - name: Run scenario
-        run: ./run.sh ++docker ${{ matrix.scenario }}
+        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest ./binaries/${{ env.LIB_PATH }}/manifest.yml
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs
