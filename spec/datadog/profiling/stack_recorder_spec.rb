@@ -510,6 +510,29 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(summed_values).to eq(expected_summed_values)
         end
 
+        it 'does not include samples with age = 0' do
+          begin
+            # Need to disable GC during this entire stretch to ensure rb_gc_count is
+            # the same between sample_allocation and pprof serialization.
+            GC.disable
+
+            test_num_allocated_object = 123
+            live_objects = Array.new(test_num_allocated_object)
+
+            test_num_allocated_object.times do |i|
+              live_objects[i] = "this is string number #{i}"
+              sample_allocation(live_objects[i])
+            end
+
+            sample_line = __LINE__ - 3
+
+            relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
+            expect(relevant_sample).to be nil
+          ensure
+            GC.enable
+          end
+        end
+
         it "aren't lost when they happen concurrently with a long serialization" do
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
