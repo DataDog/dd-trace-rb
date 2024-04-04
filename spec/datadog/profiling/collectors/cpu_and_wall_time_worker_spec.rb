@@ -637,6 +637,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         test_num_allocated_object.times { |i| live_objects[i] = CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
 
+        # Force a GC to happen here to ensure all the live_objects have age > 0.
+        # Otherwise they wouldn't show up in the serialized pprof below
+        GC.start
+
         cpu_and_wall_time_worker.stop
 
         test_struct_heap_sample = lambda { |sample|

@@ -548,6 +548,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
 
+          GC.start # Force a GC so the live_objects above have age > 0 and show up in heap samples
+
           relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
@@ -664,6 +666,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             sample_allocation(recycled_obj)
             sample_line = __LINE__ - 1
+
+            GC.start # Ensure recycled sample has age > 0 so it shows up in serialized profile
 
             recycled_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
             expect(recycled_sample).not_to be nil

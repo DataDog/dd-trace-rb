@@ -137,6 +137,13 @@ struct heap_recorder {
   // mutation of the data so iteration can occur without acquiring a lock.
   // NOTE: Contrary to object_records, this table has no ownership of its data.
   st_table *object_records_snapshot;
+  // The GC gen/epoch/count in which we prepared the current iteration.
+  //
+  // This enables us to calculate the age of iterated objects in the above snapshot by
+  // comparing it against an object's alloc_gen.
+  size_t iteration_gen;
+  // The minimum required age for an object to be included in the current iteration.
+  size_t iteration_min_gen_age;
 
   // Data for a heap recording that was started but not yet ended
   recording active_recording;
@@ -348,10 +355,15 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   commit_recording(heap_recorder, heap_record, active_recording);
 }
 
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
+size_t heap_recorder_prepare_iteration(heap_recorder *heap_recorder, size_t min_age) {
+  size_t current_gc_gen = rb_gc_count();
+
   if (heap_recorder == NULL) {
-    return;
+    return current_gc_gen;
   }
+
+  heap_recorder->iteration_gen = current_gc_gen;
+  heap_recorder->iteration_min_gen_age = min_age;
 
   if (heap_recorder->object_records_snapshot != NULL) {
     // we could trivially handle this but we raise to highlight and catch unexpected usages.
@@ -364,6 +376,8 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
   if (heap_recorder->object_records_snapshot == NULL) {
     rb_raise(rb_eRuntimeError, "Failed to create heap snapshot.");
   }
+
+  return heap_recorder->iteration_gen;
 }
 
 void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
@@ -525,8 +539,17 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   const heap_stack *stack = record->heap_record->stack;
   iteration_context *context = (iteration_context*) extra;
 
-  ddog_prof_Location *locations = context->heap_recorder->reusable_locations;
+  const heap_recorder *recorder = context->heap_recorder;
+  size_t iteration_gen = recorder->iteration_gen;
+  size_t min_gen_age = recorder->iteration_min_gen_age;
+  size_t obj_gen_age = iteration_gen - record->object_data.alloc_gen;
 
+  if (obj_gen_age < min_gen_age) {
+    // Skip objects that don't meet minimum age configured during iteration preparation.
+    return ST_CONTINUE;
+  }
+
+  ddog_prof_Location *locations = recorder->reusable_locations;
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const heap_frame *frame = &stack->frames[i];
     ddog_prof_Location *location = &locations[i];
@@ -540,6 +563,7 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   heap_recorder_iteration_data iteration_data;
   iteration_data.object_data = record->object_data;
   iteration_data.locations = (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
+  iteration_data.gen_age = obj_gen_age;
 
   if (!context->for_each_callback(iteration_data, context->for_each_callback_extra_arg)) {
     return ST_STOP;
