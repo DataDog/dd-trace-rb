@@ -106,6 +106,7 @@ RSpec.describe Datadog::Profiling::Profiler do
   describe 'Component failure handling' do
     let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, start: nil) }
     let(:scheduler) { instance_double(Datadog::Profiling::Scheduler, start: nil) }
+    let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker, start: nil) }
 
     before { allow(Datadog.logger).to receive(:warn) }
 
@@ -119,10 +120,12 @@ RSpec.describe Datadog::Profiling::Profiler do
         on_failure.call
       end
 
-      it 'logs the issue' do
+      before do
         allow(scheduler).to receive(:enabled=)
         allow(scheduler).to receive(:stop)
+      end
 
+      it 'logs the issue' do
         expect(Datadog.logger).to receive(:warn).with(/worker component/)
 
         worker_on_failure
@@ -131,6 +134,12 @@ RSpec.describe Datadog::Profiling::Profiler do
       it 'stops the scheduler' do
         expect(scheduler).to receive(:enabled=).with(false)
         expect(scheduler).to receive(:stop).with(true)
+
+        worker_on_failure
+      end
+
+      it 'does not stop the crashtracker' do
+        expect(optional_crashtracker).to_not receive(:stop)
 
         worker_on_failure
       end
@@ -146,9 +155,11 @@ RSpec.describe Datadog::Profiling::Profiler do
         on_failure.call
       end
 
-      it 'logs the issue' do
+      before do
         allow(worker).to receive(:stop)
+      end
 
+      it 'logs the issue' do
         expect(Datadog.logger).to receive(:warn).with(/scheduler component/)
 
         scheduler_on_failure
@@ -156,6 +167,12 @@ RSpec.describe Datadog::Profiling::Profiler do
 
       it 'stops the worker' do
         expect(worker).to receive(:stop)
+
+        scheduler_on_failure
+      end
+
+      it 'does not stop the crashtracker' do
+        expect(optional_crashtracker).to_not receive(:stop)
 
         scheduler_on_failure
       end
