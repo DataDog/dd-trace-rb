@@ -1,49 +1,46 @@
-name: Add milestone to pull requests
+name: Add milestone to merged pull requests
 on:
-  pull_request_target:
+  pull_request:
     types: [closed]
-    branches:
-      - master
 
 jobs:
-  add_milestone_to_merged:
-    permissions:
-      # These two permissions are needed to modify milestone, even though only one should be enough
-      issues: write
-      pull-requests: write
-
-    if: github.event.pull_request.merged && github.event.pull_request.milestone == null
-
-    name: Add milestone to merged pull requests
+  add_milestone:
     runs-on: ubuntu-latest
-
+    if: github.event.pull_request.merged == true && github.event.pull_request.milestone == null
     steps:
       - name: Get project milestones
         id: milestones
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const list = await github.rest.issues.listMilestones({
+            const milestones = await github.rest.issues.listMilestones({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'open'
             })
-            // Need to manually sort because "sort by number" isn't part of the api
-            // highest number first
-            const milestones = list.data.sort((a,b) => (b.number - a.number))
-
-            return milestones.length == 0 ? null : milestones[0].number
+            return milestones.data
       - name: Update Pull Request
-        if: steps.milestones.outputs.result != null
-        uses: actions/github-script@v6
+        uses: actions/github-script@v7
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            // Confusingly, the issues api is used because pull requests are issues
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ github.event.pull_request.number }},
-              milestone: ${{ steps.milestones.outputs.result }},
-            });
+            const milestones = ${{steps.milestones.outputs.result}}
+            let milestoneNumber = null
+
+            if (github.event.pull_request.base.ref == 'master') {
+              const milestone = milestones.find(m => m.title.startsWith('1'))
+              if (milestone) milestoneNumber = milestone.number
+            } else if (github.event.pull_request.base.ref == '2.0') {
+              const milestone = milestones.find(m => m.title.startsWith('2'))
+              if (milestone) milestoneNumber = milestone.number
+            }
+
+            if (milestoneNumber) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: github.event.pull_request.number,
+                milestone: milestoneNumber
+              })
+            }
