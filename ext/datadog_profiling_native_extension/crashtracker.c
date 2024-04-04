@@ -40,7 +40,15 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_prof_CrashtrackerConfiguration config = {
-    .create_alt_stack = false, // This breaks the Ruby VM's stack overflow detection
+    // The Ruby VM already uses an alt stack to detect stack overflows so the crash handler must not overwrite it.
+    //
+    // @ivoanjo: Specifically, with `create_alt_stack = true` I saw a segfault, such as Ruby 2.6's bug with
+    // "Process.detach(fork { exit! }).instance_variable_get(:@foo)" being turned into a
+    // "-e:1:in `instance_variable_get': stack level too deep (SystemStackError)" by Ruby.
+    //
+    // The Ruby crash handler also seems to get confused when this option is enabled and
+    // "Process.kill('SEGV', Process.pid)" gets run.
+    .create_alt_stack = false,
     .endpoint = endpoint,
     .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
     .resolve_frames = DDOG_PROF_CRASHTRACKER_RESOLVE_FRAMES_IN_RECEIVER,
