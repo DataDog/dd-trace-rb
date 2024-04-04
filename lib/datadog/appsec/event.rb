@@ -138,7 +138,7 @@ module Datadog
         private
 
         def compressed_and_base64_encoded(value)
-          Base64.encode64(gzip(value))
+          Base64.strict_encode64(gzip(value))
         rescue TypeError => e
           Datadog.logger.debug do
             "Failed to compress and encode value when populating AppSec::Event. Error: #{e.message}"
