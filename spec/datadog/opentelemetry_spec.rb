@@ -54,6 +54,36 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.service).to eq(tracer.default_service)
         end
 
+        context 'with span_links' do
+          let(:sc1) {OpenTelemetry::Trace::SpanContext.new(trace_id=36893488147419103231, span_id=2)}
+          let(:sc2) {
+            OpenTelemetry::Trace::SpanContext.new(
+              trace_id=1234534,
+              span_id=67890,
+              trace_flags=OpenTelemetry::Trace::TraceFlag.new(1),
+              trace_state=OpenTelemetry::Trace::TraceState.new("otel=blahxd")
+            )
+          }
+          let(:links) { 
+            [
+              OpenTelemetry::Trace::Link.new(sc1, {"key": "val", "1": true}), 
+              OpenTelemetry::Trace::Link.new(sc2, {"key2": "val2", "list": ["1", "a"], "overflow": "a"*(2**20)}),
+            ]
+          }
+          let(:span_options) { { links: links } }
+
+          expect(span.links.size).to eq(2)
+
+          expect(span.links[0].trace_id).to eq(36893488147419103231)
+          expect(span.links[0].span_id).to eq(2)
+
+          expect(span.links[1].trace_id).to eq(1234534)
+          expect(span.links[1].span_id).to eq(67890)
+          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_state).to eq("otel=blahxd")
+          expect(span.links[1].dropped_attributes).to eq(1)
+        end
+
         context 'with attributes' do
           let(:span_options) { { attributes: attributes } }
 
