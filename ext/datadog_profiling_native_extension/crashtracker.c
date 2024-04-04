@@ -36,7 +36,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE version = ddtrace_version();
   ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
-  // This needs to come last, after all things that can raise exceptions, as otherwise it can leak
+  // Tags are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
+  // Start of exception-free zone to prevent leaks {{
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_prof_CrashtrackerConfiguration config = {
@@ -69,6 +70,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
+  // }} End of exception-free zone to prevent leaks
 
   if (result.tag == DDOG_PROF_CRASHTRACKER_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to start/update the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
