@@ -117,6 +117,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: '${{ matrix.library.repository }}'
+          ref: ${{ github.ref }}
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
       - name: Pull released image
