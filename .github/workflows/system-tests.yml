@@ -287,7 +287,7 @@ jobs:
           name: manifest-${{ matrix.library }}-${{ matrix.app }}-gha${{ github.run_id }}-g${{ github.sha }}
           path: custom_manifest
       - name: Run scenario
-        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest custom_manifest/manifest.yml
+        run: ./run.sh ++docker ${{ matrix.scenario }} ++manifest custom_manifest/manifest.yml
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs
