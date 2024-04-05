@@ -9,7 +9,7 @@ on:
           ref:
               description: 'System Tests ref/tag/branch'
               required: true
-              default: main
+              default: vpellan/innovation-week-24q2
               type: string
   schedule:
     - cron:  '00 04 * * 2-6'
@@ -281,9 +281,7 @@ jobs:
           docker image list
       - name: List files
         run: |
-          ls -la
-          ls -la binaries
-          ls -la binaries/${{ env.LIB_PATH }}
+          ls -la /home/runner/work/dd-trace-rb/dd-trace-rb
       - name: Run scenario
         run: ./run.sh ++docker ${{ matrix.scenario }} --manifest ./binaries/${{ env.LIB_PATH }}/manifest.yml
         env:
