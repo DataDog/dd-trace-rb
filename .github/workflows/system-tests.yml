@@ -119,6 +119,9 @@ jobs:
           repository: '${{ matrix.library.repository }}'
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
+      - name: Copy manifest file
+        run: |
+          cp binaries/${{ matrix.library.path }}/manifest.yml /tmp/manifest.yml
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
@@ -281,9 +284,9 @@ jobs:
           docker image list
       - name: List files
         run: |
-          ls -la /home/runner/work/dd-trace-rb/dd-trace-rb
+          ls -la /tmp
       - name: Run scenario
-        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest ./binaries/${{ env.LIB_PATH }}/manifest.yml
+        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest /tmp/manifest.yml
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs
