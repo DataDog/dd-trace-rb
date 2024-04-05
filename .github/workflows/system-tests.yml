@@ -117,7 +117,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: '${{ matrix.library.repository }}'
-          ref: ${{ github.ref }}
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
       - name: Pull released image
@@ -280,6 +279,11 @@ jobs:
       - name: List images
         run: |
           docker image list
+      - name: List files
+        run: |
+          ls -la
+          ls -la binaries
+          ls -la binaries/${{ env.LIB_PATH }}
       - name: Run scenario
         run: ./run.sh ++docker ${{ matrix.scenario }} --manifest ./binaries/${{ env.LIB_PATH }}/manifest.yml
         env:
