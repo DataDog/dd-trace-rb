@@ -22,6 +22,7 @@ module Datadog
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
+          skip_idle_samples_for_testing: false,
           idle_sampling_helper: IdleSamplingHelper.new
         )
           unless dynamic_sampling_rate_enabled
@@ -39,6 +40,7 @@ module Datadog
             dynamic_sampling_rate_enabled,
             dynamic_sampling_rate_overhead_target_percentage,
             allocation_profiling_enabled,
+            skip_idle_samples_for_testing,
           )
           @worker_thread = nil
           @failure_exception = nil
