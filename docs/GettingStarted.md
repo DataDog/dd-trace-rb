@@ -1,5 +1,9 @@
 # Datadog Ruby Trace Client
 
+<div class="alert alert-info">
+<strong>Beta</strong>: dd-trace-rb v2.0.0.beta1 is now available! This major release includes breaking changes, such as renaming the gem to <code>datadog</code> and extracting the CI Visibility component to the <code>datadog-ci</code> gem. Try out the beta and provide us with feedback.
+</div>
+
 `ddtrace` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
 databases and microservices so that developers have high visibility into bottlenecks and troublesome requests.
 
