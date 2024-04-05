@@ -117,11 +117,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: '${{ matrix.library.repository }}'
+          ref: ${{ github.sha }}
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
-      - name: Copy manifest file
-        run: |
-          cp binaries/${{ matrix.library.path }}/manifest.yml /tmp/manifest.yml
+      - name: Upload manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifest
+          path: binaries/${{ matrix.library.path }}/manifest.yml
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
@@ -282,9 +285,11 @@ jobs:
       - name: List images
         run: |
           docker image list
-      - name: List files
-        run: |
-          ls -la /tmp
+      - name: Download manifest artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: manifest
+          path: /tmp
       - name: Run scenario
         run: ./run.sh ++docker ${{ matrix.scenario }} --manifest /tmp/manifest.yml
         env:
