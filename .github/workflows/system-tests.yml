@@ -285,13 +285,19 @@ jobs:
       - name: List images
         run: |
           docker image list
+      - name: Create custom manifest folder
+        run: |
+          mkdir custom_manifest
       - name: Download manifest artifact
         uses: actions/download-artifact@v4
         with:
           name: manifest-${{ matrix.library }}-${{ matrix.app }}-gha${{ github.run_id }}-g${{ github.sha }}
-          path: /tmp
+          path: custom_manifest
+      - name: List files in custom manifest folder
+        run: |
+          ls -l custom_manifest
       - name: Run scenario
-        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest /tmp/manifest.yml
+        run: ./run.sh ++docker ${{ matrix.scenario }} --manifest custom_manifest/manifest.yml
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs
