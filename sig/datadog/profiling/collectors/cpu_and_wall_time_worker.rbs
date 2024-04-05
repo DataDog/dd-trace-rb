@@ -15,6 +15,7 @@ module Datadog
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,
           allocation_profiling_enabled: bool,
+          ?skip_idle_samples_for_testing: false,
         ) -> void
 
         def self._native_initialize: (
@@ -26,6 +27,7 @@ module Datadog
           bool dynamic_sampling_rate_enabled,
           Float dynamic_sampling_rate_overhead_target_percentage,
           bool allocation_profiling_enabled,
+          bool skip_idle_samples_for_testing,
         ) -> true
 
         def start: (?on_failure_proc: ::Proc?) -> bool?
