@@ -34,6 +34,7 @@ RSpec.describe 'gem release process' do
            |ddtrace\.gemspec
            |docker-compose\.yml
            |shell\.nix
+           |manifest\.yml
           )
           $
         }x
