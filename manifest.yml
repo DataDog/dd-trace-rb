@@ -217,7 +217,6 @@ tests/:
       Test_DistributedTraceInfo: missing_feature (test not implemented)
       Test_ExternalWafRequestsIdentification: v1.21.1
       Test_RetainTraces: v0.54.2
-      Test_TestValueBreakCI: missing_feature (test not implemented)
     test_user_blocking_full_denylist.py:
       Test_UserBlocking_FullDenylist: missing_feature (Ruby supported denylists of 2500 entries but it fails to block this those 15000)
     test_versions.py:
