@@ -213,6 +213,7 @@ tests/:
     test_traces.py:
       Test_AppSecEventSpanTags: v0.54.2
       Test_AppSecObfuscator: v1.0.0
+      Test_CollectDefaultRequestHeader: missing_feature
       Test_CollectRespondHeaders: v1.0.0.beta1
       Test_DistributedTraceInfo: missing_feature (test not implemented)
       Test_ExternalWafRequestsIdentification: v1.21.1
