@@ -480,11 +480,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
-  // happen while holding on to the GVL. Do not include in the iteration objects with age == 0. These
-  // objects that have yet to undergo a GC may just be noise/trash at this point and are usually not
-  // relevant for heap profiles as the great majority should be trivially reclaimed during the next GC.
-  size_t min_age = 1;
-  heap_recorder_prepare_iteration(state->heap_recorder, min_age);
+  // happen while holding on to the GVL.
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -642,7 +639,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   }
   labels[label_offset++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("gc gen age"),
-    .num = iteration_data.gen_age,
+    .num = object_data->gen_age,
   };
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
@@ -888,7 +885,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_prepare_iteration(state->heap_recorder, 1);
+  heap_recorder_prepare_iteration(state->heap_recorder);
 
   return Qnil;
 }

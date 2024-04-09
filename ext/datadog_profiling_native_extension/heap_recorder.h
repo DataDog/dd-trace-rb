@@ -27,7 +27,9 @@ typedef struct live_object_data {
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
 
-  // Size of this object on last flush/update.
+  // Size of this object in memory.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration and only
+  //       for those objects that meet the minimum iteration age requirements.
   size_t size;
 
   // The class of the object that we're tracking.
@@ -38,6 +40,10 @@ typedef struct live_object_data {
   //
   // This enables us to calculate the age of this object in terms of GC executions.
   size_t alloc_gen;
+
+  // The age of this object in terms of GC generations.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration
+  size_t gen_age;
 
   // Whether this object was previously seen as being frozen. If this is the case,
   // we'll skip any further size updates since frozen objects are supposed to be
@@ -50,9 +56,6 @@ typedef struct live_object_data {
 typedef struct {
   ddog_prof_Slice_Location locations;
   live_object_data object_data;
-  // Age (in terms of GC generations) of this live object as snapshotted during iteration
-  // preparation.
-  size_t gen_age;
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
@@ -116,16 +119,8 @@ void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
 //
-// @param min_gc_age
-//   Minimum age (in GC epochs/generations) of objects we want to iterate over. Any objects whose
-//   age is below this value will not be seen by the next heap_recorder_for_each_live_object
-//   calls and thus, for efficiency, we'll also skip their updating (size and liveness checks).
-// @return gc_count() at which the iteration started being prepared. Note that preparation is
-//   not atomic and thus a GC could have executed in the middle so our notion of age can be off
-//   by a bit (hopefully at most just 1 generation/epoch).
-//
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
-size_t heap_recorder_prepare_iteration(heap_recorder *heap_recorder, size_t min_gc_age);
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
 
 // Optimize the heap recorder by cleaning up any data that might have been prepared specifically
 // for the purpose of iterating over the heap recorder data.

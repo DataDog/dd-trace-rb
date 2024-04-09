@@ -10,6 +10,18 @@
   #define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
 #endif
 
+// Minimum age (in GC generations) of heap objects we want to include in heap
+// recorder iterations. Object with age 0 represent objects that have yet to undergo
+// a GC and, thus, may just be noise/trash at instant of iteration and are usually not
+// relevant for heap profiles as the great majority should be trivially reclaimed
+// during the next GC.
+#define ITERATION_MIN_AGE 1
+
+// Check to see if an object should not be included in a heap recorder iteration.
+// This centralizes the checking logic to ensure it's equally applied between
+// preparation and iteration codepaths.
+#define NOT_INCLUDED_IN_ITERATION(obj_record) obj_record->object_data.gen_age < ITERATION_MIN_AGE
+
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
@@ -142,8 +154,6 @@ struct heap_recorder {
   // This enables us to calculate the age of iterated objects in the above snapshot by
   // comparing it against an object's alloc_gen.
   size_t iteration_gen;
-  // The minimum required age for an object to be included in the current iteration.
-  size_t iteration_min_gen_age;
 
   // Data for a heap recording that was started but not yet ended
   recording active_recording;
@@ -355,15 +365,12 @@ void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_pro
   commit_recording(heap_recorder, heap_record, active_recording);
 }
 
-size_t heap_recorder_prepare_iteration(heap_recorder *heap_recorder, size_t min_age) {
-  size_t current_gc_gen = rb_gc_count();
-
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    return current_gc_gen;
+    return;
   }
 
-  heap_recorder->iteration_gen = current_gc_gen;
-  heap_recorder->iteration_min_gen_age = min_age;
+  heap_recorder->iteration_gen = rb_gc_count();
 
   if (heap_recorder->object_records_snapshot != NULL) {
     // we could trivially handle this but we raise to highlight and catch unexpected usages.
@@ -376,8 +383,6 @@ size_t heap_recorder_prepare_iteration(heap_recorder *heap_recorder, size_t min_
   if (heap_recorder->object_records_snapshot == NULL) {
     rb_raise(rb_eRuntimeError, "Failed to create heap snapshot.");
   }
-
-  return heap_recorder->iteration_gen;
 }
 
 void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
@@ -480,6 +485,20 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   VALUE ref;
 
+  size_t iteration_gen = recorder->iteration_gen;
+  size_t alloc_gen = record->object_data.alloc_gen;
+  // Guard against potential overflows given unsigned types here.
+  size_t age = alloc_gen < iteration_gen ? iteration_gen - alloc_gen : 0;
+  record->object_data.gen_age = age;
+
+  if (NOT_INCLUDED_IN_ITERATION(record)) {
+    // If an object won't be included in the current iteration, there's
+    // no point checking for liveness or updating its size, so exit early.
+    // NOTE: This means that there should be an equivalent check during actual
+    //       iteration otherwise we'd iterate/expose stale object data.
+    return ST_CONTINUE;
+  }
+
   if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
     // Id no longer associated with a valid ref. Need to delete this object record!
     on_committed_object_record_cleanup(recorder, record);
@@ -540,12 +559,11 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   iteration_context *context = (iteration_context*) extra;
 
   const heap_recorder *recorder = context->heap_recorder;
-  size_t iteration_gen = recorder->iteration_gen;
-  size_t min_gen_age = recorder->iteration_min_gen_age;
-  size_t obj_gen_age = iteration_gen - record->object_data.alloc_gen;
 
-  if (obj_gen_age < min_gen_age) {
-    // Skip objects that don't meet minimum age configured during iteration preparation.
+  if (NOT_INCLUDED_IN_ITERATION(record)) {
+    // Skip objects that should not be included in iteration
+    // NOTE: This matches the short-circuiting condition in st_object_record_update
+    //       and prevents iteration over stale objects.
     return ST_CONTINUE;
   }
 
@@ -563,7 +581,6 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   heap_recorder_iteration_data iteration_data;
   iteration_data.object_data = record->object_data;
   iteration_data.locations = (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
-  iteration_data.gen_age = obj_gen_age;
 
   if (!context->for_each_callback(iteration_data, context->for_each_callback_extra_arg)) {
     return ST_STOP;
@@ -749,9 +766,9 @@ void object_record_free(object_record *record) {
 
 VALUE object_record_inspect(object_record *record) {
   heap_frame top_frame = record->heap_record->stack->frames[0];
-  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu ",
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu gen_age=%zu ",
       record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename,
-      (int) top_frame.line, record->object_data.alloc_gen);
+      (int) top_frame.line, record->object_data.alloc_gen, record->object_data.gen_age);
 
   const char *class = record->object_data.class;
   if (class != NULL) {
