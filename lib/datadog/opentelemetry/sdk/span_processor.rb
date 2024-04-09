@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'trace/span'
-require_relative 'datadog/tracing/span_link'
+require_relative '../../tracing/span_link'
 require_relative '../../tracing/trace_digest'
 
 module Datadog
@@ -123,19 +123,21 @@ module Datadog
 
           kwargs[:tags] = attributes
 
-          kwargs[:links] = span.links.each do |link|
-            dd_link = SpanLink(
-              attributes=link.attributes, 
-              digest=TraceDigest(
-                trace_id=link.span_context.trace_id,
-                span_id=link.span_context.span_id,
-                trace_flags=link.span_context.traceflags.flags | (1 << 31), 
-                trace_state=link.span_context.trace_state.to_s,
-                is_remote=link.span_context.is_remote,
+          unless span.links.nil?
+            kwargs[:links] = span.links.each do |link|
+              dd_link = SpanLink(
+                attributes=link.attributes, 
+                digest=TraceDigest(
+                  trace_id=link.span_context.trace_id,
+                  span_id=link.span_context.span_id,
+                  trace_flags=link.span_context.traceflags.flags, 
+                  trace_state=link.span_context.trace_state.to_s,
+                  is_remote=link.span_context.is_remote,
+                )
               )
-            )
-            dd_link.dropped_attributes = span.total_recorded_links - span.links.size
-            dd_link
+              dd_link.dropped_attributes = span.total_recorded_links - span.links.size
+              dd_link
+            end
           end
 
           [name, kwargs]
