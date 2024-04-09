@@ -61,6 +61,7 @@ module Datadog
             kwargs = {
               name: rule['name'],
               service: rule['service'],
+              resource: rule['resource'],
               sample_rate: sample_rate,
             }
 
