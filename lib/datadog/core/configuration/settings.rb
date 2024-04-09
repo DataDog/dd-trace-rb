@@ -266,7 +266,10 @@ module Datadog
 
             # Can be used to disable the gathering of names and versions of gems in use by the service, used to power
             # grouping and categorization of stack traces.
-            option :code_provenance_enabled, default: true
+            option :code_provenance_enabled do |o|
+              o.type :bool
+              o.default true
+            end
 
             # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
@@ -313,27 +316,35 @@ module Datadog
               end
             end
 
-            # Forces enabling of profiling of time/resources spent in Garbage Collection.
+            # @deprecated No longer does anything, and will be removed on dd-trace-rb 2.0.
             #
-            # Note that setting this to "false" (or not setting it) will not prevent the feature from being
-            # being automatically enabled in the future.
-            #
-            # This feature defaults to off for two reasons:
-            # 1. Currently this feature can add a lot of overhead for GC-heavy workloads.
-            # 2. Although this feature is safe on Ruby 2.x, on Ruby 3.x it can break in applications that make use of
-            #    Ractors due to two Ruby VM bugs:
-            #    https://bugs.ruby-lang.org/issues/19112 AND https://bugs.ruby-lang.org/issues/18464.
-            #    If you use Ruby 3.x and your application does not use Ractors (or if your Ruby has been patched), the
-            #    feature is fully safe to enable and this toggle can be used to do so.
-            #
-            # We expect the once the above issues are overcome, we'll automatically enable the feature on fixed Ruby
-            # versions.
-            #
-            # @default `DD_PROFILING_FORCE_ENABLE_GC` environment variable, otherwise `false`
+            # GC profiling is now on by default and controlled by {:gc_enabled}.
             option :force_enable_gc_profiling do |o|
-              o.env 'DD_PROFILING_FORCE_ENABLE_GC'
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.force_enable_gc_profiling setting has been deprecated for removal and no ' \
+                    'longer does anything (the feature is now on by default). ' \
+                    'Please remove this setting from your Datadog.configure block.'
+                  )
+                end
+              end
+            end
+
+            # Can be used to enable/disable garbage collection profiling.
+            #
+            # @warn To avoid https://bugs.ruby-lang.org/issues/18464 even when enabled, GC profiling is only started
+            #       for Ruby versions 2.x, 3.1.4+, 3.2.3+ and 3.3.0+
+            #       (more details in {Datadog::Profiling::Component.enable_gc_profiling?})
+            #
+            # @warn Due to a VM bug in the Ractor implementation (https://bugs.ruby-lang.org/issues/19112) this feature
+            #       stops working when Ractors get garbage collected.
+            #
+            # @default `DD_PROFILING_GC_ENABLED` environment variable, otherwise `true`
+            option :gc_enabled do |o|
               o.type :bool
-              o.default false
+              o.env 'DD_PROFILING_GC_ENABLED'
+              o.default true
             end
 
             # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
@@ -697,6 +708,16 @@ module Datadog
         # Client-side telemetry configuration
         # @public_api
         settings :telemetry do
+          # Whether the bundled Ruby gems as reported through telemetry.
+          #
+          # @default `DD_TELEMETRY_DEPENDENCY_COLLECTION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :dependency_collection do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_DEPENDENCY_COLLECTION
+            o.default true
+          end
+
           # Enable telemetry collection. This allows telemetry events to be emitted to the telemetry API.
           #
           # @default `DD_INSTRUMENTATION_TELEMETRY_ENABLED` environment variable, otherwise `true`.

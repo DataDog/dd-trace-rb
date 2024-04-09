@@ -2,16 +2,21 @@ module Datadog
   module Core
     module Telemetry
       class Client
+        @dependency_collection: bool
+        @started: bool
+        @stopped: bool
+
         attr_reader emitter: untyped
 
-        attr_reader enabled: untyped
+        attr_reader enabled: bool
 
-        attr_reader unsupported: untyped
+        attr_reader unsupported: bool
 
         attr_reader worker: untyped
 
         include Core::Utils::Forking
-        def initialize: (?enabled: bool) -> void
+
+        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, enabled: bool) -> void
 
         def disable!: () -> untyped
 

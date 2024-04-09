@@ -92,7 +92,7 @@ class ProfilerGcBenchmark
     Datadog.configure do |c|
       c.profiling.enabled = true
       c.profiling.allocation_enabled = false
-      c.profiling.advanced.force_enable_gc_profiling = true
+      c.profiling.advanced.gc_enabled = true
     end
     Datadog::Profiling.wait_until_running
 
@@ -127,7 +127,7 @@ class ProfilerGcBenchmark
     Datadog.configure do |c|
       c.profiling.enabled = true
       c.profiling.allocation_enabled = false
-      c.profiling.advanced.force_enable_gc_profiling = true
+      c.profiling.advanced.gc_enabled = true
     end
     Datadog::Profiling.wait_until_running
 

@@ -129,19 +129,30 @@ module Datadog
       end
 
       private_class_method def self.enable_gc_profiling?(settings)
-        # See comments on the setting definition for more context on why it exists.
-        if settings.profiling.advanced.force_enable_gc_profiling
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3')
-            Datadog.logger.debug(
-              'Profiling time/resources spent in Garbage Collection force enabled. Do not use Ractors in combination ' \
-              'with this option as profiles will be incomplete.'
-            )
-          end
+        return false unless settings.profiling.advanced.gc_enabled
 
-          true
-        else
-          false
+        # SEVERE - Only with Ractors
+        # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 gc profiling can trigger a VM bug
+        # that causes a segmentation fault during garbage collection of Ractors
+        # (https://bugs.ruby-lang.org/issues/18464). We don't allow enabling gc profiling on such Rubies.
+        # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?('3.0.') ||
+            (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION < '3.1.4') ||
+            (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling GC profiling would cause "\
+            'crashes (https://bugs.ruby-lang.org/issues/18464). GC profiling has been disabled.'
+          )
+          return false
+        elsif RUBY_VERSION.start_with?('3.')
+          Datadog.logger.debug(
+            'In all known versions of Ruby 3.x, using Ractors may result in GC profiling unexpectedly ' \
+            'stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your ' \
+            'application stability or performance. This does not happen if Ractors are not used.'
+          )
         end
+
+        true
       end
 
       private_class_method def self.get_heap_sample_every(settings)
@@ -153,10 +164,7 @@ module Datadog
       end
 
       private_class_method def self.enable_allocation_profiling?(settings)
-        unless settings.profiling.allocation_enabled
-          # Allocation profiling disabled, short-circuit out
-          return false
-        end
+        return false unless settings.profiling.allocation_enabled
 
         # Allocation sampling is safe and supported on Ruby 2.x, but has a few caveats on Ruby 3.x.
 

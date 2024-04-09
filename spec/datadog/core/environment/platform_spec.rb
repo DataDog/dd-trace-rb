@@ -2,6 +2,12 @@ require 'spec_helper'
 require 'datadog/core/environment/platform'
 
 RSpec.describe Datadog::Core::Environment::Platform do
+  describe '::architecture' do
+    subject(:architecture) { described_class.architecture }
+    it { is_expected.to be_a_kind_of(String) }
+    it { is_expected.to include('86') | include('64') } # Heuristic to check if it's a valid arch name
+  end
+
   describe '::hostname' do
     subject(:hostname) { described_class.hostname }
 

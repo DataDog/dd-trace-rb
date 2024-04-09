@@ -2,24 +2,10 @@ module Datadog
   module Core
     module Telemetry
       class Event
-        include Telemetry::Collector
-
-        API_VERSION: "v1"
-
-        attr_reader api_version: untyped
-
-        def initialize: () -> void
-        def telemetry_request: (request_type: untyped, seq_id: untyped) -> untyped
-
-        private
-
-        def app_client_configuration_change: (Enumerable[[String, Numeric | bool | String]] changes)-> Datadog::Core::Telemetry::V2::AppClientConfigurationChange
-
-        def payload: (untyped request_type) -> untyped
-
-        def app_started: () -> untyped
-
-        def app_integrations_change: () -> untyped
+        class Base
+          def payload: (int seq_id) -> ::Hash[Symbol, Object]
+          def type: -> string
+        end
       end
     end
   end
