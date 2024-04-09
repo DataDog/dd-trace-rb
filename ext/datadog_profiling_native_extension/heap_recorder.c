@@ -17,11 +17,6 @@
 // during the next GC.
 #define ITERATION_MIN_AGE 1
 
-// Check to see if an object should not be included in a heap recorder iteration.
-// This centralizes the checking logic to ensure it's equally applied between
-// preparation and iteration codepaths.
-#define NOT_INCLUDED_IN_ITERATION(obj_record) obj_record->object_data.gen_age < ITERATION_MIN_AGE
-
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
   char *name;
@@ -478,6 +473,13 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
   return ST_DELETE;
 }
 
+// Check to see if an object should not be included in a heap recorder iteration.
+// This centralizes the checking logic to ensure it's equally applied between
+// preparation and iteration codepaths.
+static inline bool should_exclude_from_iteration(object_record *obj_record) {
+  return obj_record->object_data.gen_age < ITERATION_MIN_AGE;
+}
+
 static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
@@ -490,7 +492,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
   // Guard against potential overflows given unsigned types here.
   record->object_data.gen_age = alloc_gen < iteration_gen ? iteration_gen - alloc_gen : 0;
 
-  if (NOT_INCLUDED_IN_ITERATION(record)) {
+  if (should_exclude_from_iteration(record)) {
     // If an object won't be included in the current iteration, there's
     // no point checking for liveness or updating its size, so exit early.
     // NOTE: This means that there should be an equivalent check during actual
@@ -559,7 +561,7 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
 
   const heap_recorder *recorder = context->heap_recorder;
 
-  if (NOT_INCLUDED_IN_ITERATION(record)) {
+  if (should_exclude_from_iteration(record)) {
     // Skip objects that should not be included in iteration
     // NOTE: This matches the short-circuiting condition in st_object_record_update
     //       and prevents iteration over stale objects.
