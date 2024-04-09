@@ -921,7 +921,9 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  rb_gc_force_recycle(obj);
+  #ifdef HAVE_WORKING_RB_GC_FORCE_RECYCLE
+    rb_gc_force_recycle(obj);
+  #endif
   return Qnil;
 }
 #pragma GCC diagnostic pop
