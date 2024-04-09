@@ -89,6 +89,21 @@ module Datadog
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
 
+          unless span.links.nil?
+            datadog_span.links = span.links.each do |link|
+              Datadog::Tracing::SpanLink.new(
+                attributes: link.attributes,
+                digest: Datadog::Tracing::TraceDigest.new(
+                  trace_id: link.span_context.trace_id,
+                  span_id: link.span_context.span_id,
+                  trace_flags: (link.span_context.trace_flags&.sampled? ? 1 : 0),
+                  trace_state: link.span_context.tracestate&.to_s,
+                  span_remote: link.span_context.remote?,
+                )
+              )
+            end
+          end
+
           datadog_span
         end
 
@@ -122,23 +137,6 @@ module Datadog
           attributes.flatten!(1)
 
           kwargs[:tags] = attributes
-
-          unless span.links.nil?
-            kwargs[:links] = span.links.each do |link|
-              dd_link = SpanLink(
-                attributes=link.attributes, 
-                digest=TraceDigest(
-                  trace_id=link.span_context.trace_id,
-                  span_id=link.span_context.span_id,
-                  trace_flags=link.span_context.traceflags.flags, 
-                  trace_state=link.span_context.trace_state.to_s,
-                  is_remote=link.span_context.is_remote,
-                )
-              )
-              dd_link.dropped_attributes = span.total_recorded_links - span.links.size
-              dd_link
-            end
-          end
 
           [name, kwargs]
         end
