@@ -918,6 +918,7 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
 #pragma GCC diagnostic push
 // rb_gc_force_recycle was deprecated in latest versions of Ruby and is a noop.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
