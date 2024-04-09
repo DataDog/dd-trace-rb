@@ -522,6 +522,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           sample_line = __LINE__ - 3
 
+          # First allocate a bunch of objects with age > 0. We expect to
+          # see these at the end
           test_num_age_bigger_0.times(&allocator_proc)
           # Force the above allocations to have gc age > 0
           GC.start
@@ -531,14 +533,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # the same between sample_allocation and pprof serialization.
             GC.disable
 
+            # Allocate another set of objects that will necessarily have age = 0 since
+            # we disabled GC immediate before and will only enable it at test's end.
             (test_num_age_bigger_0..test_num_allocated_objects).each(&allocator_proc)
 
+            # Grab all exported heap samples and sum their values
             sum_exported_heap_samples = heap_samples
               .select { |s| s.has_location?(path: __FILE__, line: sample_line) }
               .map { |s| s.values[:'heap-live-samples'] }
               .reduce(:+)
 
-            # Multiply by sample_rate to be able to compare with weighted samples
+            # Multiply expectation by sample_rate to be able to compare with weighted samples
+            # We expect total exported sum to match the weighted samples with age > 0
             expect(sum_exported_heap_samples).to be test_num_age_bigger_0 * sample_rate
           ensure
             # Whatever happens, make sure we reenable GC

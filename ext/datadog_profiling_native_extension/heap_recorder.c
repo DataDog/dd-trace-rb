@@ -488,8 +488,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
   size_t iteration_gen = recorder->iteration_gen;
   size_t alloc_gen = record->object_data.alloc_gen;
   // Guard against potential overflows given unsigned types here.
-  size_t age = alloc_gen < iteration_gen ? iteration_gen - alloc_gen : 0;
-  record->object_data.gen_age = age;
+  record->object_data.gen_age = alloc_gen < iteration_gen ? iteration_gen - alloc_gen : 0;
 
   if (NOT_INCLUDED_IN_ITERATION(record)) {
     // If an object won't be included in the current iteration, there's
