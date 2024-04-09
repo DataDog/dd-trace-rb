@@ -4,7 +4,7 @@ PATH
     ddtrace (1.21.1)
       datadog-ci (~> 0.8.1)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 7.0.0.1.0)
+      libdatadog (~> 8.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -104,8 +104,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (7.0.0.1.0-aarch64-linux)
-    libdatadog (7.0.0.1.0-x86_64-linux)
+    libdatadog (8.0.0.1.0-aarch64-linux)
+    libdatadog (8.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
