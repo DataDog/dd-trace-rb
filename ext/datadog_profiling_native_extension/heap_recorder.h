@@ -27,7 +27,9 @@ typedef struct live_object_data {
   //          could be seen as being representative of 50 objects.
   unsigned int weight;
 
-  // Size of this object on last flush/update.
+  // Size of this object in memory.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration and only
+  //       for those objects that meet the minimum iteration age requirements.
   size_t size;
 
   // The class of the object that we're tracking.
@@ -38,6 +40,10 @@ typedef struct live_object_data {
   //
   // This enables us to calculate the age of this object in terms of GC executions.
   size_t alloc_gen;
+
+  // The age of this object in terms of GC generations.
+  // NOTE: This only gets updated during heap_recorder_prepare_iteration
+  size_t gen_age;
 
   // Whether this object was previously seen as being frozen. If this is the case,
   // we'll skip any further size updates since frozen objects are supposed to be
