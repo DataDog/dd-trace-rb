@@ -62,6 +62,7 @@ module Datadog
               name: rule['name'],
               service: rule['service'],
               resource: rule['resource'],
+              tags: rule['tags'],
               sample_rate: sample_rate,
             }
 

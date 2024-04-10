@@ -4,11 +4,17 @@ require 'datadog/tracing/sampling/matcher'
 
 RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
   let(:trace_op) do
-    Datadog::Tracing::TraceOperation.new(name: trace_name, service: trace_service, resource: trace_resource)
+    Datadog::Tracing::TraceOperation.new(
+      name: trace_name,
+      service: trace_service,
+      resource: trace_resource,
+      tags: trace_tags
+    )
   end
   let(:trace_name) { 'operation.name' }
   let(:trace_service) { 'test-service' }
   let(:trace_resource) { 'test-resource' }
+  let(:trace_tags) { {} }
 
   describe '#match?' do
     subject(:match?) { rule.match?(trace_op) }
@@ -108,6 +114,81 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
         end
       end
 
+      context 'with a tags matcher' do
+        let(:rule) { described_class.new(tags: tags) }
+
+        context 'when span tags are present' do
+          let(:trace_tags) { { 'tag1' => 'value1', 'tag2' => 'value2' } }
+
+          context 'with a regexp' do
+            context 'matching' do
+              let(:tags) { { 'tag1' => /value.*/, 'tag2' => /.*/ } }
+
+              it { is_expected.to eq(true) }
+            end
+
+            context 'not matching' do
+              let(:tags) { { 'tag1' => /value.*/, 'tag2' => /not_value/ } }
+
+              it { is_expected.to eq(false) }
+            end
+          end
+
+          context 'with a string' do
+            context 'matching' do
+              let(:tags) { trace_tags }
+
+              it { is_expected.to eq(true) }
+            end
+
+            context 'not matching' do
+              let(:tags) { { 'tag1' => 'value1', 'tag2' => 'not_value' } }
+
+              it { is_expected.to eq(false) }
+            end
+          end
+        end
+
+        context 'when span metrics are present' do
+          # Metrics are stored as tags, but have numeric values
+          let(:trace_tags) { { 'metric1' => 1.0, 'metric2' => 2 } }
+
+          context 'with a regexp' do
+            context 'matching' do
+              let(:tags) { { 'metric1' => /1/, 'metric2' => /.*/ } }
+
+              it { is_expected.to eq(true) }
+            end
+
+            context 'not matching' do
+              let(:tags) { { 'metric1' => /1/, 'metric2' => 3 } }
+
+              it { is_expected.to eq(false) }
+            end
+          end
+
+          context 'with a string' do
+            context 'matching' do
+              let(:tags) { { 'metric1' => '1', 'metric2' => '2' } }
+
+              it { is_expected.to eq(true) }
+            end
+
+            context 'not matching' do
+              let(:tags) { { 'metric1' => '1', 'metric2' => 'not_value' } }
+
+              it { is_expected.to eq(false) }
+            end
+          end
+        end
+
+        context 'when span tags are not present' do
+          let(:tags) { { 'tag1' => 'value1', 'tag2' => 'value2' } }
+
+          it { is_expected.to eq(false) }
+        end
+      end
+
       context 'when trace service is not present' do
         let(:trace_service) { nil }
         let(:service) { /.*/ }
@@ -196,7 +277,7 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 end
 
 RSpec.describe Datadog::Tracing::Sampling::ProcMatcher do
-  let(:trace_op) { Datadog::Tracing::SpanOperation.new(trace_name, service: trace_service) }
+  let(:trace_op) { Datadog::Tracing::TraceOperation.new(name: trace_name, service: trace_service) }
   let(:trace_name) { 'operation.name' }
   let(:trace_service) { nil }
 

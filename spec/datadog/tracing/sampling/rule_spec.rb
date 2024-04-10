@@ -7,11 +7,17 @@ require 'datadog/tracing/trace_operation'
 
 RSpec.describe Datadog::Tracing::Sampling::Rule do
   let(:trace_op) do
-    Datadog::Tracing::TraceOperation.new(name: trace_name, service: trace_service, resource: trace_resource)
+    Datadog::Tracing::TraceOperation.new(
+      name: trace_name,
+      service: trace_service,
+      resource: trace_resource,
+      tags: trace_tags
+    )
   end
   let(:trace_name) { 'operation.name' }
   let(:trace_service) { 'test-service' }
   let(:trace_resource) { 'test-resource' }
+  let(:trace_tags) { {} }
 
   let(:rule) { described_class.new(matcher, sampler) }
   let(:matcher) { instance_double(Datadog::Tracing::Sampling::Matcher) }
@@ -79,24 +85,34 @@ end
 
 RSpec.describe Datadog::Tracing::Sampling::SimpleRule do
   let(:trace_op) do
-    Datadog::Tracing::TraceOperation.new(name: trace_name, service: trace_service, resource: trace_resource)
+    Datadog::Tracing::TraceOperation.new(
+      name: trace_name,
+      service: trace_service,
+      resource: trace_resource,
+      tags: trace_tags
+    )
   end
   let(:trace_name) { 'operation.name' }
   let(:trace_service) { 'test-service' }
   let(:trace_resource) { 'test-resource' }
+  let(:trace_tags) { {} }
 
   describe '#initialize' do
-    subject(:rule) { described_class.new(name: name, service: service, resource: resource, sample_rate: sample_rate) }
+    subject(:rule) do
+      described_class.new(name: name, service: service, resource: resource, sample_rate: sample_rate, tags: tags)
+    end
 
     let(:name) { double('name') }
     let(:service) { double('service') }
     let(:resource) { double('resource') }
+    let(:tags) { { 'tag' => 'value' } }
     let(:sample_rate) { 0.123 }
 
     it 'initializes with the correct values' do
       expect(rule.matcher.name).to eq(name)
       expect(rule.matcher.service).to eq(service)
       expect(rule.matcher.resource).to eq(resource)
+      expect(rule.matcher.tags).to eq(tags)
       expect(rule.sampler.sample_rate).to eq(sample_rate)
     end
   end
