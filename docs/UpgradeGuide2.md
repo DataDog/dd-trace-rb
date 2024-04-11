@@ -43,7 +43,9 @@ Outlines the changes for our instrumentations.
 
 <h3 id="2.0-gem-rename">Rename to `datadog` gem</h3>
 
-Historically, gem `ddtrace` started as Datadog's tracing product, nowadays, several products are harhored together in this gem. To better reflect its intention, the gem is renamed to `datadog`.
+The gem now includes new capabilities (Profiling, Application Security Monitoring) that extend beyond tracing. To better reflect the broad set of features already within this package, and our intention for this package to be an all-inclusive offering, the existing gem has been renamed to `datadog`.
+
+This name change is does not reflect any material change to existing capabilities in 2.0, but future 2.x versions may include additional capabilities or products.
 
 Make sure to update Gemfile:
 
@@ -57,13 +59,12 @@ gem 'datadog', '~> 2.0', require: 'datadog/auto_instrument'
 
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
-The minimum Ruby version requirement is 2.5.0. For prior Ruby versions, you can use `ddtrace` 1.x. see more with our support policy.
+The minimum Ruby version requirement is 2.5.0. For prior Ruby versions, you can use `ddtrace` 1.x. see more with our [support policy](Compatibility.md#support-policy).
 
 <h3 id="2.0-extracts-ci">Extracts datadog-ci gem</h3>
 
-The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed.
+The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed. If you would like to use the CI Visibility product, you can include the additional `datadog-ci` gem into your Gemfile. Learn more about [setting up `datadog-ci`](https://github.com/DataDog/datadog-ci-rb).
 
-If you are using our CI visibility product, include `datadog-ci` in your Gemfile and learn more about the [setup](https://github.com/DataDog/datadog-ci-rb).
 
 ```ruby
 gem 'datadog', '>= 2'
