@@ -158,6 +158,13 @@ struct heap_recorder {
 
   // Sampling state
   uint num_recordings_skipped;
+
+  struct stats {
+    size_t last_update_objects_alive;
+    size_t last_update_objects_dead;
+    size_t last_update_objects_skipped;
+    size_t last_update_objects_frozen;
+  } stats;
 };
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -372,6 +379,11 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
+  heap_recorder->stats.last_update_objects_alive = 0;
+  heap_recorder->stats.last_update_objects_dead = 0;
+  heap_recorder->stats.last_update_objects_skipped = 0;
+  heap_recorder->stats.last_update_objects_frozen = 0;
+
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
@@ -425,6 +437,22 @@ bool heap_recorder_for_each_live_object(
   context.heap_recorder = heap_recorder;
   st_foreach(heap_recorder->object_records_snapshot, st_object_records_iterate, (st_data_t) &context);
   return true;
+}
+
+VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("num_object_records")), /* => */ LONG2NUM(heap_recorder->object_records->num_entries),
+    ID2SYM(rb_intern("num_heap_records")),   /* => */ LONG2NUM(heap_recorder->heap_records->num_entries),
+
+    // Stats as of last update
+    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_alive),
+    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_dead),
+    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_skipped),
+    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_frozen),
+  };
+  VALUE hash = rb_hash_new();
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
+  return hash;
 }
 
 void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations) {
@@ -497,12 +525,14 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     // no point checking for liveness or updating its size, so exit early.
     // NOTE: This means that there should be an equivalent check during actual
     //       iteration otherwise we'd iterate/expose stale object data.
+    recorder->stats.last_update_objects_skipped++;
     return ST_CONTINUE;
   }
 
   if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
     // Id no longer associated with a valid ref. Need to delete this object record!
     on_committed_object_record_cleanup(recorder, record);
+    recorder->stats.last_update_objects_dead++;
     return ST_DELETE;
   }
 
@@ -548,6 +578,11 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     record->object_data.size = ruby_obj_memsize_of(ref);
     // Check if it's now frozen so we skip a size update next time
     record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
+  }
+
+  recorder->stats.last_update_objects_alive++;
+  if (record->object_data.is_frozen) {
+    recorder->stats.last_update_objects_frozen++;
   }
 
   return ST_CONTINUE;
@@ -767,9 +802,10 @@ void object_record_free(object_record *record) {
 
 VALUE object_record_inspect(object_record *record) {
   heap_frame top_frame = record->heap_record->stack->frames[0];
-  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu gen_age=%zu ",
-      record->obj_id, record->object_data.weight, record->object_data.size, top_frame.filename,
-      (int) top_frame.line, record->object_data.alloc_gen, record->object_data.gen_age);
+  live_object_data object_data = record->object_data;
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu gen_age=%zu frozen=%d ",
+      record->obj_id, object_data.weight, object_data.size, top_frame.filename,
+      (int) top_frame.line, object_data.alloc_gen, object_data.gen_age, object_data.is_frozen);
 
   const char *class = record->object_data.class;
   if (class != NULL) {

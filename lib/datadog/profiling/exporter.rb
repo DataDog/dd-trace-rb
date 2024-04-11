@@ -52,7 +52,12 @@ module Datadog
 
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
-        start, finish, compressed_pprof = pprof_recorder.serialize
+        serialization_result = pprof_recorder.serialize
+        if serialization_result.nil?
+          Datadog.logger.debug('Skipped exporting profiling events due to failed serialization')
+          return
+        end
+        start, finish, compressed_pprof, profile_stats = serialization_result
         @last_flush_finish_at = finish
 
         return if compressed_pprof.nil? # We don't want to report empty profiles
@@ -75,6 +80,8 @@ module Datadog
           internal_metadata: internal_metadata.merge(
             {
               worker_stats: worker_stats,
+              profile_stats: profile_stats,
+              recorder_stats: pprof_recorder.stats,
               gc: GC.stat,
             }
           ),
