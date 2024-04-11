@@ -1,11 +1,12 @@
-# Upgrading ddtrace from 1.x to 2.0
+# Upgrading from 1.x to 2.0
 
-Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are outlined below.
+Upgrading from 1.x to 2.0 introduces some breaking changes which are outlined below.
 
 [**Basic Usage**](#2.0-basic-usage)
 
 In most cases, (e.g. when you use out-of-the-box instrumentation and a configuration file) only minor changes to your current setup are needed: most applications take just minutes to update.
 
+- [Renaming the Gem](#2.0-gem-rename)
 - [Requires Ruby 2.5+](#2.0-requires-ruby-2.5+)
 - [Extracts datadog-ci gem](#2.0-extracts-ci)
 - [Configuration changes](#2.0-configuration-changes)
@@ -40,18 +41,32 @@ Outlines the changes for our instrumentations.
 
 <h2 id="2.0-basic-usage">Basic Usage</h2>
 
+<h3 id="2.0-gem-rename">Rename to `datadog` gem</h3>
+
+Historically, gem `ddtrace` started as Datadog's tracing product, nowadays, several products are harhored together in this gem. To better reflect its intention, the gem is renamed to `datadog`.
+
+Make sure to update Gemfile:
+
+```ruby
+# === This is a shim to help migrating to the new `datadog` gem ===
+gem 'ddtrace', '~> 2.0', require: 'ddtrace/auto_instrument'
+
+# === Rename to `datadog` with 2.x ===
+gem 'datadog', '~> 2.0', require: 'datadog/auto_instrument'
+```
+
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
-The minimum Ruby version requirement for ddtrace 2.x is 2.5.0. For prior Ruby versions, you can use ddtrace 1.x. see more with our support policy.
+The minimum Ruby version requirement is 2.5.0. For prior Ruby versions, you can use `ddtrace` 1.x. see more with our support policy.
 
 <h3 id="2.0-extracts-ci">Extracts datadog-ci gem</h3>
 
-The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed together with ddtrace.
+The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed.
 
 If you are using our CI visibility product, include `datadog-ci` in your Gemfile and learn more about the [setup](https://github.com/DataDog/datadog-ci-rb).
 
 ```ruby
-gem 'ddtrace', '>= 2'
+gem 'datadog', '>= 2'
 
 group :test do
   gem 'datadog-ci'
