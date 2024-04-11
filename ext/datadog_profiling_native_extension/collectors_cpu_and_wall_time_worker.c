@@ -222,6 +222,8 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static void delayed_error(struct cpu_and_wall_time_worker_state *state, const char *error);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
+static VALUE _native_hold_interruptions(DDTRACE_UNUSED VALUE self);
+static VALUE _native_resume_interruptions(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
 //
@@ -285,7 +287,9 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
-  // TODO: Remove `_native_is_running` from `testing_module` once `prof-correctness` has been updated to not need it
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_hold_interruptions", _native_hold_interruptions, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_resume_interruptions", _native_resume_interruptions, 0);
+  // TODO: Remove `_native_is_running` from `testing_module` (should be in class) once `prof-correctness` has been updated to not need it
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
@@ -1158,4 +1162,18 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
   delayed_error(state, rb_string_value_cstr(&error_msg));
 
   return Qnil;
+}
+
+// Masks SIGPROF interruptions for the current thread. Please don't use this -- you may end up with incomplete
+// profiling data.
+static VALUE _native_hold_interruptions(DDTRACE_UNUSED VALUE self) {
+  block_sigprof_signal_handler_from_running_in_current_thread();
+  return Qtrue;
+}
+
+// Unmasks SIGPROF interruptions for the current thread. If there's a pending sample, it'll be triggered inside this
+// method.
+static VALUE _native_resume_interruptions(DDTRACE_UNUSED VALUE self) {
+  unblock_sigprof_signal_handler_from_running_in_current_thread();
+  return Qtrue;
 }
