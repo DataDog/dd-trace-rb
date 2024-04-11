@@ -100,6 +100,9 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       it 'parses as a match any' do
         expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
         expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+        expect(actual_rule.matcher.resource).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
+        expect(actual_rule.matcher.tags).to eq({})
+        expect(actual_rule.provenance).to eq(Datadog::Tracing::Sampling::Rule::PROVENANCE_LOCAL)
         expect(actual_rule.sampler.sample_rate).to eq(0.1)
       end
 
@@ -149,6 +152,23 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           expect(actual_rules[1].sampler.sample_rate).to eq(0.2)
         end
       end
+
+      context 'with provenance' do
+        context 'from customer' do
+          let(:rule) { { sample_rate: 1, provenance: 'customer' } }
+          it 'parses the provenance' do
+            expect(actual_rule.provenance).to eq(Datadog::Tracing::Sampling::Rule::PROVENANCE_REMOTE_USER)
+          end
+        end
+
+        context 'from dynamic configuration' do
+          let(:rule) { { sample_rate: 1, provenance: 'dynamic' } }
+
+          it 'parses the provenance' do
+            expect(actual_rule.provenance).to eq(Datadog::Tracing::Sampling::Rule::PROVENANCE_REMOTE_DYNAMIC)
+          end
+        end
+      end
     end
 
     context 'with a non-float sample_rate' do
@@ -192,11 +212,13 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     let(:rules) { [rule] }
     let(:rule) { instance_double(Datadog::Tracing::Sampling::Rule) }
     let(:sample_rate) { 0.8 }
+    let(:provenance) { :local }
 
     before do
       allow(rule).to receive(:match?).with(trace).and_return(true)
       allow(rule).to receive(:sample?).with(trace).and_return(sampled)
       allow(rule).to receive(:sample_rate).with(trace).and_return(sample_rate)
+      allow(rule).to receive(:provenance).and_return(provenance)
     end
   end
 
@@ -243,6 +265,26 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           it_behaves_like 'a sampled! trace' do
             let(:expected_sampled) { true }
             let(:sampling_priority) { 2 }
+          end
+
+          context 'when the rule is from a remote user' do
+            let(:provenance) { :customer }
+
+            it_behaves_like 'a sampled! trace' do
+              let(:expected_sampled) { true }
+              let(:sampling_priority) { 2 }
+              let(:sampling_decision) { '-10' }
+            end
+          end
+
+          context 'when the rule is dynamically configured' do
+            let(:provenance) { :dynamic }
+
+            it_behaves_like 'a sampled! trace' do
+              let(:expected_sampled) { true }
+              let(:sampling_priority) { 2 }
+              let(:sampling_decision) { '-11' }
+            end
           end
         end
 

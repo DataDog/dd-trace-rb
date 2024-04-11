@@ -5,6 +5,7 @@ module Datadog
       end
 
       PRODUCT: "APM_TRACING"
+      CAPABILITIES: Array[Integer]
 
       def self.products: () -> ::Array[String]
 

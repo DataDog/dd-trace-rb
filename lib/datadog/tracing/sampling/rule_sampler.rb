@@ -64,6 +64,12 @@ module Datadog
               resource: rule['resource'],
               tags: rule['tags'],
               sample_rate: sample_rate,
+              provenance: if (provenance = rule['provenance'])
+                            # `Rule::PROVENANCE_*` values are symbols, so convert strings to match
+                            provenance.to_sym
+                          else
+                            Rule::PROVENANCE_LOCAL
+                          end,
             }
 
             Core::BackportFrom24.hash_compact!(kwargs)
@@ -127,7 +133,17 @@ module Datadog
           rate_limiter.allow?(1).tap do |allowed|
             set_priority(trace, allowed)
             set_limiter_metrics(trace, rate_limiter.effective_rate)
-            trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Ext::Decision::TRACE_SAMPLING_RULE)
+
+            provenance = case rule.provenance
+                         when Rule::PROVENANCE_REMOTE_USER
+                           Ext::Decision::REMOTE_USER_RULE
+                         when Rule::PROVENANCE_REMOTE_DYNAMIC
+                           Ext::Decision::REMOTE_DYNAMIC_RULE
+                         else
+                           Ext::Decision::TRACE_SAMPLING_RULE
+                         end
+
+            trace.set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, provenance)
           end
         rescue StandardError => e
           Datadog.logger.error(
