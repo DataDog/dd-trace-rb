@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - 'v*.*.*'
+      - '!v*.*.*.*' # Exclude prerelease tags
 
 jobs:
   build-and-publish-release-image:

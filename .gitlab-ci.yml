@@ -196,7 +196,7 @@ deploy_to_docker_registries:
   rules:
     - if: "$POPULATE_CACHE"
       when: never
-    - if: "$CI_COMMIT_TAG =~ /^v.*/"
+    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ # Exclude prerelease
       when: delayed
       start_in: 1 day
     - when: manual
@@ -215,7 +215,7 @@ deploy_latest_tag_to_docker_registries:
   rules:
     - if: "$POPULATE_CACHE"
       when: never
-    - if: "$CI_COMMIT_TAG =~ /^v.*/"
+    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ && $CI_COMMIT_BRANCH == 'master' # Exclude prerelease and only for master branch
       when: delayed
       start_in: 1 day
     - when: manual
