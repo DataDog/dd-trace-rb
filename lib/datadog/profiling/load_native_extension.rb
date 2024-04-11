@@ -18,7 +18,20 @@ rescue LoadError => e
 end
 
 extension_name = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
-full_file_path = "#{__dir__}/../../#{extension_name}.#{RbConfig::CONFIG['DLEXT']}"
+file_name = "#{extension_name}.#{RbConfig::CONFIG['DLEXT']}"
+full_file_path = "#{__dir__}/../../#{file_name}"
+
+unless File.exist?(full_file_path)
+  extension_dir = Gem.loaded_specs['ddtrace'].extension_dir
+  candidate_path = "#{extension_dir}/#{file_name}"
+  if File.exist?(candidate_path)
+    full_file_path = candidate_path
+  else # rubocop:disable Style/EmptyElse
+    # We found none of the files. This is unexpected. Let's go ahead anyway, the error is going to be reported further
+    # down anyway.
+  end
+end
+
 init_function_name = "Init_#{extension_name.split('.').first}"
 
 status, result = Datadog::Profiling::Loader._native_load(full_file_path, init_function_name)
