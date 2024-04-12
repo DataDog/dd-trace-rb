@@ -565,6 +565,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
       RB_FL_SET(ref, RUBY_FL_SEEN_OBJ_ID);
 
       on_committed_object_record_cleanup(recorder, record);
+      recorder->stats_last_update.objects_dead++;
       return ST_DELETE;
     }
 
