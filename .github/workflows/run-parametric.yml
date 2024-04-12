@@ -1,0 +1,73 @@
+name: System Tests
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch: {}
+  schedule:
+    - cron:  '00 04 * * 2-6'
+
+env:
+  REGISTRY: ghcr.io
+  REPO: ghcr.io/datadog/dd-trace-rb
+  ST_REF: vpellan/sca-env-var-telemetry
+
+jobs:
+  build-runner:
+    strategy:
+      fail-fast: false
+      matrix:
+        library:
+          - name: ruby
+            repository: DataDog/dd-trace-rb
+            path: dd-trace-rb
+    runs-on: ubuntu-latest
+    name: Run parametric system tests
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: 'DataDog/system-tests'
+          ref: ${{ env.ST_REF }}
+      - name: Install python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+      - name: Install dependencies
+        uses: actions/cache@v4
+        id: runner_cache
+        with:
+          path: venv
+          key: runner_venv-${{ runner.os }}-${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}
+      - name: Build runner
+        shell: bash
+        if: steps.runner_cache.outputs.cache-hit != 'true'
+        run: ./build.sh -i runner
+      - name: Print versions
+        shell: bash
+        run: |
+          source venv/bin/activate
+          python --version
+          pip freeze
+      - name: Checkout dd-trace-rb
+        uses: actions/checkout@v4
+        with:
+          repository: '${{ matrix.library.repository }}'
+          path: 'binaries/${{ matrix.library.path }}'
+          fetch-depth: 2
+      - name: Run parametric system tests
+        run: ./run.sh PARAMETRIC
+      - name: Compress logs
+        id: compress_logs
+        if: always()
+        run: tar -czvf artifact.tar.gz $(ls | grep logs)
+      - name: Upload artifact
+        if: always() && steps.compress_logs.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: logs_parametric_${{ matrix.library}}_parametric_dev
+          path: artifact.tar.gz
+      - name: Print fancy log report
+        if: ${{ always() }}
+        run: python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY

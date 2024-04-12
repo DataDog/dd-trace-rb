@@ -235,9 +235,6 @@ jobs:
           - library: ruby
             app: rack
             scenario: TELEMETRY_METRIC_GENERATION_DISABLED
-          - library: ruby
-            app: rack
-            scenario: PARAMETRIC
     runs-on: ubuntu-latest
     needs:
       - build-harness
