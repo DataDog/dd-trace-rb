@@ -62,6 +62,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:start) { serialize[0] }
     let(:finish) { serialize[1] }
     let(:encoded_pprof) { serialize[2] }
+    let(:profile_stats) { serialize[3] }
 
     let(:decoded_profile) { decode_profile(encoded_pprof) }
 
@@ -223,6 +224,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
+      it 'returns stats reporting no recorded samples' do
+        expect(profile_stats).to match(
+          hash_including(
+            :recorded_samples => 0,
+            :serialization_time_ns => be > 0,
+            :heap_iteration_prep_time_ns => be >= 0,
+            :heap_profile_build_time_ns => be >= 0,
+          )
+        )
+      end
+
       def sample_types_from(decoded_profile)
         strings = decoded_profile.string_table
         decoded_profile.sample_type.map { |sample_type| [strings[sample_type.type], strings[sample_type.unit]] }.to_h
@@ -284,6 +296,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           has_filenames: false,
           has_line_numbers: false,
           has_inline_frames: false,
+        )
+      end
+
+      it 'returns stats reporting one recorded sample' do
+        expect(profile_stats).to match(
+          hash_including(
+            :recorded_samples => 1,
+            :serialization_time_ns => be > 0,
+            :heap_iteration_prep_time_ns => be >= 0,
+            :heap_profile_build_time_ns => be >= 0,
+          )
         )
       end
     end
@@ -572,6 +595,31 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
+        end
+
+        it 'contribute to recorded samples stats' do
+          test_num_allocated_object = 123
+          live_objects = Array.new(test_num_allocated_object)
+
+          test_num_allocated_object.times do |i|
+            live_objects[i] = "this is string number #{i}"
+            sample_allocation(live_objects[i])
+          end
+
+          GC.start # Force a GC so the live_objects above have age > 0 and show up in heap samples
+
+          # All allocations done in the before + all those done here
+          expected_allocation_samples = @num_allocations + test_num_allocated_object
+          # a_string, an_array, a_hash plus all the strings in live_objects
+          expected_heap_samples = 3 + test_num_allocated_object
+
+          expect(profile_stats).to match(
+            hash_including(
+              :recorded_samples => expected_allocation_samples + expected_heap_samples,
+              :heap_iteration_prep_time_ns => be > 0,
+              :heap_profile_build_time_ns => be > 0,
+            )
+          )
         end
 
         context 'with custom heap sample rate configuration' do
@@ -892,6 +940,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     context 'with heap profiling enabled' do
       let(:heap_samples_enabled) { true }
       let(:heap_size_enabled) { true }
+
+      before do
+        skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
+      end
 
       after do |example|
         # This is here to facilitate troubleshooting when this test fails. Otherwise
