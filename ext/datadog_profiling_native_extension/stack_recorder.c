@@ -174,7 +174,7 @@ static const uint8_t all_value_types_positions[] =
 typedef struct slot_stats {
   // How many individual samples were recorded into this slot (un-weighted)
   uint64_t recorded_samples;
-} slot_stats;
+} stats_slot;
 
 // Contains native state for each instance
 struct stack_recorder_state {
@@ -183,11 +183,11 @@ struct stack_recorder_state {
 
   pthread_mutex_t slot_one_mutex;
   ddog_prof_Profile slot_one_profile;
-  slot_stats slot_one_stats;
+  stats_slot slot_one_stats;
 
   pthread_mutex_t slot_two_mutex;
   ddog_prof_Profile slot_two_profile;
-  slot_stats slot_two_stats;
+  stats_slot slot_two_stats;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
@@ -204,14 +204,14 @@ struct stack_recorder_state {
     long serialization_time_ns_min;
     long serialization_time_ns_max;
     uint64_t serialization_time_ns_total;
-  } lifetime_stats;
+  } stats_lifetime;
 };
 
 // Used to group slot-related data
 struct slot_data {
   pthread_mutex_t *mutex;
   ddog_prof_Profile *profile;
-  slot_stats *stats;
+  stats_slot *stats;
 };
 
 struct call_serialize_without_gvl_arguments {
@@ -221,7 +221,7 @@ struct call_serialize_without_gvl_arguments {
 
   // Set by callee
   ddog_prof_Profile *profile;
-  slot_stats *stats;
+  stats_slot *stats;
   ddog_prof_Profile_SerializeResult result;
   long heap_profile_build_time_ns;
 
@@ -266,7 +266,7 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
-static VALUE build_profile_stats(slot_stats *stats, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
+static VALUE build_profile_stats(stats_slot *stats, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -332,7 +332,7 @@ static VALUE _native_new(VALUE klass) {
   initialize_slot_concurrency_control(state);
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
   state->enabled_values_count = ALL_VALUE_TYPES_COUNT;
-  state->lifetime_stats = (struct lifetime_stats) {
+  state->stats_lifetime = (struct lifetime_stats) {
     .serialization_time_ns_min = INT64_MAX,
   };
 
@@ -383,9 +383,9 @@ static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Sl
   }
 
   state->slot_one_profile = slot_one_profile_result.ok;
-  state->slot_one_stats = (slot_stats) {};
+  state->slot_one_stats = (stats_slot) {};
   state->slot_two_profile = slot_two_profile_result.ok;
-  state->slot_two_stats = (slot_stats) {};
+  state->slot_two_stats = (stats_slot) {};
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -544,18 +544,18 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   heap_recorder_finish_iteration(state->heap_recorder);
 
   long serialization_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialization_start_time_ns;
-  state->lifetime_stats.serialization_time_ns_max = long_max_of(state->lifetime_stats.serialization_time_ns_max, serialization_time_ns);
-  state->lifetime_stats.serialization_time_ns_min = long_min_of(state->lifetime_stats.serialization_time_ns_min, serialization_time_ns);
-  state->lifetime_stats.serialization_time_ns_total += serialization_time_ns;
+  state->stats_lifetime.serialization_time_ns_max = long_max_of(state->stats_lifetime.serialization_time_ns_max, serialization_time_ns);
+  state->stats_lifetime.serialization_time_ns_min = long_min_of(state->stats_lifetime.serialization_time_ns_min, serialization_time_ns);
+  state->stats_lifetime.serialization_time_ns_total += serialization_time_ns;
 
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
   if (serialized_profile.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
-    state->lifetime_stats.serialization_failures++;
+    state->stats_lifetime.serialization_failures++;
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
   }
 
-  state->lifetime_stats.serialization_successes++;
+  state->stats_lifetime.serialization_successes++;
 
   VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
 
@@ -563,7 +563,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   ddog_Timespec ddprof_finish = serialized_profile.ok.end;
 
   ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
-
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
@@ -655,7 +654,7 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 typedef struct heap_recorder_iteration_context {
   struct stack_recorder_state *state;
   ddog_prof_Profile *profile;
-  slot_stats *stats;
+  stats_slot *stats;
 
   bool error;
   char error_msg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
@@ -716,7 +715,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   return true;
 }
 
-static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile, slot_stats *stats) {
+static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile, stats_slot *stats) {
   heap_recorder_iteration_context iteration_context = {
     .state = state,
     .profile = profile,
@@ -740,10 +739,10 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  struct slot_data slot_being_serialized = serializer_flip_active_and_inactive_slots(args->state);
+  struct slot_data slot_now_inactive = serializer_flip_active_and_inactive_slots(args->state);
 
-  args->profile = slot_being_serialized.profile;
-  args->stats = slot_being_serialized.stats;
+  args->profile = slot_now_inactive.profile;
+  args->stats = slot_now_inactive.stats;
 
   long heap_profile_build_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
@@ -873,8 +872,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 
   reset_profile(&state->slot_one_profile, /* start_time: */ NULL);
   reset_profile(&state->slot_two_profile, /* start_time: */ NULL);
-  state->slot_one_stats = (slot_stats) {};
-  state->slot_two_stats = (slot_stats) {};
+  state->slot_one_stats = (stats_slot) {};
+  state->slot_two_stats = (stats_slot) {};
 
   heap_recorder_after_fork(state->heap_recorder);
 
@@ -889,8 +888,8 @@ static void serializer_set_start_timestamp_for_next_profile(struct stack_recorde
   reset_profile(next_profile, &start_time);
 
   // Also 0 all stats before making this slot active
-  slot_stats *next_stats = (state->active_slot == 1) ? &state->slot_two_stats : &state->slot_one_stats;
-  (*next_stats) = (slot_stats) {};
+  stats_slot *next_stats = (state->active_slot == 1) ? &state->slot_two_stats : &state->slot_one_stats;
+  (*next_stats) = (stats_slot) {};
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
@@ -1006,20 +1005,20 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  uint64_t total_serializations = state->lifetime_stats.serialization_successes + state->lifetime_stats.serialization_failures;
-  VALUE pretty_serialization_time_ns_min = state->lifetime_stats.serialization_time_ns_min == INT64_MAX ? Qnil : LONG2NUM(state->lifetime_stats.serialization_time_ns_min);
-  VALUE pretty_serialization_time_ns_max = state->lifetime_stats.serialization_time_ns_max == 0 ? Qnil : LONG2NUM(state->lifetime_stats.serialization_time_ns_max);
-  VALUE pretty_serialization_time_ns_total = state->lifetime_stats.serialization_time_ns_total == 0 ? Qnil : ULL2NUM(state->lifetime_stats.serialization_time_ns_total);
+  uint64_t total_serializations = state->stats_lifetime.serialization_successes + state->stats_lifetime.serialization_failures;
+  VALUE pretty_serialization_time_ns_min = state->stats_lifetime.serialization_time_ns_min == INT64_MAX ? Qnil : LONG2NUM(state->stats_lifetime.serialization_time_ns_min);
+  VALUE pretty_serialization_time_ns_max = state->stats_lifetime.serialization_time_ns_max == 0 ? Qnil : LONG2NUM(state->stats_lifetime.serialization_time_ns_max);
+  VALUE pretty_serialization_time_ns_total = state->stats_lifetime.serialization_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats_lifetime.serialization_time_ns_total);
   VALUE pretty_serialization_time_ns_avg =
-    total_serializations == 0 ? Qnil : DBL2NUM(((double) state->lifetime_stats.serialization_time_ns_total) / total_serializations);
+    total_serializations == 0 ? Qnil : DBL2NUM(((double) state->stats_lifetime.serialization_time_ns_total) / total_serializations);
 
   VALUE heap_recorder_snapshot = state->heap_recorder ?
     heap_recorder_state_snapshot(state->heap_recorder) : Qnil;
 
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
-    ID2SYM(rb_intern("serialization_successes")), /* => */ ULL2NUM(state->lifetime_stats.serialization_successes),
-    ID2SYM(rb_intern("serialization_failures")),  /* => */ ULL2NUM(state->lifetime_stats.serialization_failures),
+    ID2SYM(rb_intern("serialization_successes")), /* => */ ULL2NUM(state->stats_lifetime.serialization_successes),
+    ID2SYM(rb_intern("serialization_failures")),  /* => */ ULL2NUM(state->stats_lifetime.serialization_failures),
 
     ID2SYM(rb_intern("serialization_time_ns_min")),   /* => */ pretty_serialization_time_ns_min,
     ID2SYM(rb_intern("serialization_time_ns_max")),   /* => */ pretty_serialization_time_ns_max,
@@ -1032,7 +1031,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
   return stats_as_hash;
 }
 
-static VALUE build_profile_stats(slot_stats *stats, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns) {
+static VALUE build_profile_stats(stats_slot *stats, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns) {
   VALUE stats_as_hash = rb_hash_new();
   VALUE arguments[] = {
     ID2SYM(rb_intern("recorded_samples")), /* => */ ULL2NUM(stats->recorded_samples),

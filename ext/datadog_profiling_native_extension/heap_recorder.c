@@ -159,12 +159,12 @@ struct heap_recorder {
   // Sampling state
   uint num_recordings_skipped;
 
-  struct stats {
-    size_t last_update_objects_alive;
-    size_t last_update_objects_dead;
-    size_t last_update_objects_skipped;
-    size_t last_update_objects_frozen;
-  } stats;
+  struct stats_last_update {
+    size_t objects_alive;
+    size_t objects_dead;
+    size_t objects_skipped;
+    size_t objects_frozen;
+  } stats_last_update;
 };
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -379,10 +379,8 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
 
-  heap_recorder->stats.last_update_objects_alive = 0;
-  heap_recorder->stats.last_update_objects_dead = 0;
-  heap_recorder->stats.last_update_objects_skipped = 0;
-  heap_recorder->stats.last_update_objects_frozen = 0;
+  // Reset last update stats, we'll be building them from scratch during the st_foreach call below
+  heap_recorder->stats_last_update = (struct stats_last_update) {};
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
@@ -445,10 +443,10 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("num_heap_records")),   /* => */ LONG2NUM(heap_recorder->heap_records->num_entries),
 
     // Stats as of last update
-    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_alive),
-    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_dead),
-    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_skipped),
-    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats.last_update_objects_frozen),
+    ID2SYM(rb_intern("last_update_objects_alive")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_alive),
+    ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_dead),
+    ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_skipped),
+    ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_frozen),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
@@ -525,14 +523,14 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     // no point checking for liveness or updating its size, so exit early.
     // NOTE: This means that there should be an equivalent check during actual
     //       iteration otherwise we'd iterate/expose stale object data.
-    recorder->stats.last_update_objects_skipped++;
+    recorder->stats_last_update.objects_skipped++;
     return ST_CONTINUE;
   }
 
   if (!ruby_ref_from_id(LONG2NUM(obj_id), &ref)) {
     // Id no longer associated with a valid ref. Need to delete this object record!
     on_committed_object_record_cleanup(recorder, record);
-    recorder->stats.last_update_objects_dead++;
+    recorder->stats_last_update.objects_dead++;
     return ST_DELETE;
   }
 
@@ -580,9 +578,9 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
   }
 
-  recorder->stats.last_update_objects_alive++;
+  recorder->stats_last_update.objects_alive++;
   if (record->object_data.is_frozen) {
-    recorder->stats.last_update_objects_frozen++;
+    recorder->stats_last_update.objects_frozen++;
   }
 
   return ST_CONTINUE;
