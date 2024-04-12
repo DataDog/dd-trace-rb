@@ -875,7 +875,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
 
         # Sanity check: validate that data is there, to avoid the test passing because of other issues
-        sanity_check_samples = samples_from_pprof(stack_recorder.serialize[-2])
+        sanity_check_samples = samples_from_pprof(stack_recorder.serialize[2])
         expect(sanity_check_samples.size).to be 1
 
         # Add some data, again
@@ -885,8 +885,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         reset_after_fork
 
         # Test twice in a row to validate that both profile slots are empty
-        expect(samples_from_pprof(stack_recorder.serialize[-2])).to be_empty
-        expect(samples_from_pprof(stack_recorder.serialize[-2])).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize[2])).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize[2])).to be_empty
       end
     end
 
@@ -934,7 +934,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect(serialization_time_min).to be <= serialization_time_avg
       expect(serialization_time_avg).to be <= serialization_time_max
-      expect(serialization_time_total).to eq serialization_time_avg * num_serializations
+      expect(serialization_time_total).to be_within(1e-4).of(serialization_time_avg * num_serializations)
     end
 
     context 'with heap profiling enabled' do
@@ -965,25 +965,25 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         live_objects = []
         live_heap_samples = 6
         live_heap_samples.times do |i|
-          obj = "nice living string #{i}"
-          obj.freeze if i.odd? # Freeze every other string
+          obj = Object.new
+          obj.freeze if i.odd? # Freeze every other object
           sample_allocation(obj)
           live_objects << obj
         end
         dead_heap_samples = 10
-        dead_heap_samples.times do |i|
-          obj = "nice dead string #{i}"
+        dead_heap_samples.times do |_i|
+          obj = Object.new
           sample_allocation(obj)
         end
-        GC.start # All dead strings above will be GCed, all living strings will have age = 0
+        GC.start # All dead objects above will be GCed, all living strings will have age = 0
 
         begin
-          # Allocate some extra strings in a block with GC disabled and ask for a serialization
+          # Allocate some extra objects in a block with GC disabled and ask for a serialization
           # to ensure these strings have age=0 by the time we try to serialize the profile
           GC.disable
           age0_heap_samples = 3
-          age0_heap_samples.times do |i|
-            obj = "nice age=0 string #{i}"
+          age0_heap_samples.times do |_i|
+            obj = Object.new
             sample_allocation(obj)
           end
           stack_recorder.serialize

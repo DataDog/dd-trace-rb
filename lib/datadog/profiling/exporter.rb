@@ -53,14 +53,10 @@ module Datadog
       def flush
         worker_stats = @worker.stats_and_reset_not_thread_safe
         serialization_result = pprof_recorder.serialize
-        if serialization_result.nil?
-          Datadog.logger.debug('Skipped exporting profiling events due to failed serialization')
-          return
-        end
+        return if serialization_result.nil?
+
         start, finish, compressed_pprof, profile_stats = serialization_result
         @last_flush_finish_at = finish
-
-        return if compressed_pprof.nil? # We don't want to report empty profiles
 
         if duration_below_threshold?(start, finish)
           Datadog.logger.debug('Skipped exporting profiling events as profile duration is below minimum')
