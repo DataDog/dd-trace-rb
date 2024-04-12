@@ -57,7 +57,7 @@ jobs:
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
       - name: Run parametric system tests
-        run: ./run.sh PARAMETRIC
+        run: TEST_LIBRARY=ruby ./run.sh PARAMETRIC
       - name: Compress logs
         id: compress_logs
         if: always()
