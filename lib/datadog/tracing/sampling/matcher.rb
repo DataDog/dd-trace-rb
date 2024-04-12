@@ -29,20 +29,23 @@ module Datadog
           end
         end.new
 
-        attr_reader :name, :service
+        attr_reader :name, :service, :resource
 
         # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name,
         #             defaults to always match
         # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name,
         #                defaults to always match
-        def initialize(name: MATCH_ALL, service: MATCH_ALL)
+        # @param resource [String,Regexp,Proc] Matcher for case equality (===) with the resource name,
+        #                defaults to always match
+        def initialize(name: MATCH_ALL, service: MATCH_ALL, resource: MATCH_ALL)
           super()
           @name = name
           @service = service
+          @resource = resource
         end
 
         def match?(trace)
-          name === trace.name && service === trace.service
+          name === trace.name && service === trace.service && resource === trace.resource
         end
       end
 
