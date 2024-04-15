@@ -25,16 +25,8 @@ module Datadog
 
       # Span attributes
       # NOTE: In the future, we should drop the me
-      attr_reader \
-        :end_time,
-        :id,
-        :name,
-        :parent_id,
-        :resource,
-        :service,
-        :start_time,
-        :trace_id,
-        :type
+      attr_accessor :links
+      attr_reader :end_time, :id, :name, :parent_id, :resource, :service, :start_time, :trace_id, :type
 
       attr_accessor \
         :status
@@ -49,7 +41,8 @@ module Datadog
         start_time: nil,
         tags: nil,
         trace_id: nil,
-        type: nil
+        type: nil,
+        links: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
         #
@@ -66,6 +59,7 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
+        @links = links
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -452,6 +446,7 @@ module Datadog
           status: @status,
           type: @type,
           trace_id: @trace_id,
+          links: @links,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end
