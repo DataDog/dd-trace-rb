@@ -59,7 +59,7 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
-        @links = links
+        @links = links or []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock

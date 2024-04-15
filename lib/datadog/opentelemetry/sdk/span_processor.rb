@@ -90,7 +90,7 @@ module Datadog
           datadog_span.set_tags(span.attributes)
 
           unless span.links.nil?
-            datadog_span.links = span.links.each do |link|
+            datadog_span.links = span.links.map do |link|
               Datadog::Tracing::SpanLink.new(
                 attributes: link.attributes,
                 digest: Datadog::Tracing::TraceDigest.new(

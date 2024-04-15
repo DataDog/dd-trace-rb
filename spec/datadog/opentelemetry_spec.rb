@@ -331,7 +331,7 @@ RSpec.describe Datadog::OpenTelemetry do
         let(:links) do
           [
             OpenTelemetry::Trace::Link.new(sc1, { 'key' => 'val', '1' => true }),
-            OpenTelemetry::Trace::Link.new(sc2, { 'key2' => 'val2', 'list' => [1, 2], 'overflow' => 'a' * (2**2) }),
+            OpenTelemetry::Trace::Link.new(sc2, { 'key2' => true, 'list' => [1, 2] }),
           ]
         end
         let(:options) { { links: links } }
@@ -340,15 +340,17 @@ RSpec.describe Datadog::OpenTelemetry do
           start_span.finish
           expect(span.links.size).to eq(2)
 
-          expect(span.links[0].span_context.trace_id).to eq(sc1.trace_id)
-          expect(span.links[0].span_context.span_id).to eq(sc1.span_id)
+          expect(span.links[0].trace_id).to eq(sc1.trace_id)
+          expect(span.links[0].span_id).to eq(sc1.span_id)
+          expect(span.links[0].trace_flags).to eq(0)
+          expect(span.links[0].trace_state).to eq('')
           expect(span.links[0].attributes).to eq({ 'key' => 'val', '1' => true })
 
-          expect(span.links[1].span_context.trace_id).to eq(sc2.trace_id)
-          expect(span.links[1].span_context.span_id).to eq(sc2.span_id)
-          expect(span.links[1].span_context.trace_flags).to eq(OpenTelemetry::Trace::TraceFlags::SAMPLED)
-          expect(span.links[1].span_context.tracestate.to_s).to eq(sc2.tracestate.to_s)
-          expect(span.links[1].attributes).to eq({ 'key2' => 'val2', 'list' => [1, 2], 'overflow' => 'aaaa' })
+          expect(span.links[1].trace_id).to eq(sc2.trace_id)
+          expect(span.links[1].span_id).to eq(sc2.span_id)
+          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_state).to eq(sc2.tracestate.to_s)
+          expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
         end
       end
     end
