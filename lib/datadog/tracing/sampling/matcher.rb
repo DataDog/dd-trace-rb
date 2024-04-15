@@ -29,7 +29,7 @@ module Datadog
           end
         end.new
 
-        attr_reader :name, :service, :resource
+        attr_reader :name, :service, :resource, :tags
 
         # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name,
         #             defaults to always match
@@ -37,15 +37,32 @@ module Datadog
         #                defaults to always match
         # @param resource [String,Regexp,Proc] Matcher for case equality (===) with the resource name,
         #                defaults to always match
-        def initialize(name: MATCH_ALL, service: MATCH_ALL, resource: MATCH_ALL)
+        def initialize(name: MATCH_ALL, service: MATCH_ALL, resource: MATCH_ALL, tags: {})
           super()
           @name = name
           @service = service
           @resource = resource
+          @tags = tags
         end
 
         def match?(trace)
-          name === trace.name && service === trace.service && resource === trace.resource
+          name === trace.name && service === trace.service && resource === trace.resource && tags_match?(trace)
+        end
+
+        private
+
+        # Match against the trace tags and metrics.
+        def tags_match?(trace)
+          @tags.all? do |name, matcher|
+            tag = trace.get_tag(name)
+
+            # Format metrics as strings, to allow for partial number matching (/4.*/ matching '400', '404', etc.).
+            # Because metrics are floats, we use the '%g' format specifier to avoid trailing zeros, which
+            # can affect exact string matching (e.g. '400' matching '400.0').
+            tag = format('%g', tag) if tag.is_a?(Numeric)
+
+            matcher === tag
+          end
         end
       end
 
