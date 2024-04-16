@@ -1,0 +1,3 @@
+[submodule "submodules/datadog-vale"]
+	path = submodules/datadog-vale
+	url = https://github.com/datadog/datadog-vale.git

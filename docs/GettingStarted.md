@@ -40,7 +40,7 @@ Adding tracing to your Ruby application only takes a few quick steps:
 
 ### Setup the Datadog Agent for tracing
 
-Before installing `ddtrace`, [install the Datadog Agent](https://docs.datadoghq.com/agent/), to which `ddtrace` will send trace data.
+Before installing `ddtrace`, just [install the Datadog Agent](https://docs.datadoghq.com/agent/), to which `ddtrace` sends trace data.
 
 Then configure the Datadog Agent to accept traces. To do this, either:
 
