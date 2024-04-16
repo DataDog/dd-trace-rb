@@ -83,7 +83,8 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           start_time: nil,
           status: 0,
           trace_id: kind_of(Integer),
-          type: nil
+          type: nil,
+          links: []
         )
       end
 
