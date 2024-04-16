@@ -47,7 +47,7 @@ jobs:
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: github.event.pull_request.number,
+                issue_number: ${{ github.event.pull_request.number }},
                 milestone: milestone.number
               })
             }
