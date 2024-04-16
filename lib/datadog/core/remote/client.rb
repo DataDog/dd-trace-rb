@@ -145,8 +145,10 @@ module Datadog
           }
 
           app_version = Datadog.configuration.version
-
           client_tracer[:app_version] = app_version if app_version
+
+          extra_services = extra_service_names
+          client_tracer[:extra_services] = extra_services if extra_services.any?
 
           {
             client: {
@@ -172,6 +174,10 @@ module Datadog
 
         def service_name
           Datadog.configuration.remote.service || Datadog.configuration.service
+        end
+
+        def extra_service_names
+          Datadog.configuration.remote.extra_services || []
         end
 
         def tracer_version_semver2
