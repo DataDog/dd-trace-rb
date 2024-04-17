@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                   trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
                   span_id: 0x1,
                   trace_state: 'vendor1=value,v2=v,dd=s:1',
-                  trace_flags: 0x1,
+                  trace_sampling_priority: 0x1,
                 ),
                 attributes: { 'link.name' => 'test_link' }
               ),

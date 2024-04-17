@@ -46,7 +46,13 @@ module Datadog
       )
         @span_id = digest&.span_id
         @trace_id = digest&.trace_id
-        @trace_flags = digest&.trace_flags
+        @trace_flags = if digest.nil? || digest.trace_sampling_priority.nil?
+                         nil
+                       elsif digest.trace_sampling_priority > 0
+                         1
+                       else
+                         0
+                       end
         @trace_state = digest&.trace_state && digest&.trace_state.dup
         @dropped_attributes = 0
         @attributes = (attributes && attributes.dup) || {}

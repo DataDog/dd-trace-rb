@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
     Datadog::Tracing::TraceDigest.new(
       span_id: span_id,
       trace_id: trace_id,
-      trace_flags: trace_flags,
+      trace_sampling_priority: trace_flags,
       trace_state: trace_state,
     )
   end
