@@ -48,6 +48,7 @@ class ProfilerMemorySampleSerializeBenchmark
     @heap_size_enabled = ENV['HEAP_SIZE'] == 'true'
     @heap_sample_every = (ENV['HEAP_SAMPLE_EVERY'] || '1').to_i
     @retain_every = (ENV['RETAIN_EVERY'] || '10').to_i
+    @skip_end_gc = ENV['SKIP_END_GC'] == 'true'
     @recorder_factory = proc {
       Datadog::Profiling::StackRecorder.new(
         cpu_time_enabled: false,
@@ -68,7 +69,7 @@ class ProfilerMemorySampleSerializeBenchmark
         suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_memory_sample_serialize')
       )
 
-      x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every}") do
+      x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do
         recorder = @recorder_factory.call
         samples_per_second = 100
         simulate_seconds = 60
@@ -79,7 +80,7 @@ class ProfilerMemorySampleSerializeBenchmark
           retained_objs << obj if (i % @retain_every).zero?
         end
 
-        GC.start
+        GC.start unless @skip_end_gc
 
         recorder.serialize
       end

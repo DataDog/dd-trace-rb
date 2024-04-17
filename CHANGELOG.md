@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+## [1.22.0] - 2024-04-16
+
+### Added
+
+* Tracing: Add sampling rules by trace resouce and tags ([#3587][], [#3585][])
+* Appsec: Add WAF vendor header support ([#3528][])
+
+### Changed
+
+* Upgrade `Telemetry` to V2 ([#3551][])
+* Upgrade to libdatadog 7 ([#3536][])
+* Profiling: Enable Garbage Collection profiling by default ([#3558][])
+* Profiling: Skip heap samples with age 0 ([#3573][])
+* Profiling: Support falling back into extension directory when loading profiler ([#3582][])
+
+### Fixed
+
+* Appsec: Fix MIME-style newlines with strict base64 encoding ([#3565][])
+
 ## [2.0.0.beta1] - 2024-03-22
 
 Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v2.0.0.beta1
@@ -2784,7 +2803,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...master
+[1.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v1.22.0
 [2.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v2.0.0.beta1
 [1.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.0...v1.21.1
 [1.21.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.20.0...v1.21.0
@@ -4079,9 +4099,18 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3519]: https://github.com/DataDog/dd-trace-rb/issues/3519
 [#3520]: https://github.com/DataDog/dd-trace-rb/issues/3520
 [#3523]: https://github.com/DataDog/dd-trace-rb/issues/3523
+[#3528]: https://github.com/DataDog/dd-trace-rb/issues/3528
 [#3531]: https://github.com/DataDog/dd-trace-rb/issues/3531
 [#3535]: https://github.com/DataDog/dd-trace-rb/issues/3535
+[#3536]: https://github.com/DataDog/dd-trace-rb/issues/3536
 [#3539]: https://github.com/DataDog/dd-trace-rb/issues/3539
+[#3551]: https://github.com/DataDog/dd-trace-rb/issues/3551
+[#3558]: https://github.com/DataDog/dd-trace-rb/issues/3558
+[#3565]: https://github.com/DataDog/dd-trace-rb/issues/3565
+[#3573]: https://github.com/DataDog/dd-trace-rb/issues/3573
+[#3582]: https://github.com/DataDog/dd-trace-rb/issues/3582
+[#3585]: https://github.com/DataDog/dd-trace-rb/issues/3585
+[#3587]: https://github.com/DataDog/dd-trace-rb/issues/3587
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

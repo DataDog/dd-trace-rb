@@ -196,7 +196,6 @@ struct call_serialize_without_gvl_arguments {
   // Set by caller
   struct stack_recorder_state *state;
   ddog_Timespec finish_timestamp;
-  size_t gc_count_before_serialize;
 
   // Set by callee
   ddog_prof_Profile *profile;
@@ -489,7 +488,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   struct call_serialize_without_gvl_arguments args = {
     .state = state,
     .finish_timestamp = finish_timestamp,
-    .gc_count_before_serialize = rb_gc_count(),
     .serialize_ran = false
   };
 
@@ -613,8 +611,6 @@ typedef struct heap_recorder_iteration_context {
 
   bool error;
   char error_msg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
-
-  size_t profile_gen;
 } heap_recorder_iteration_context;
 
 static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
@@ -643,7 +639,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   }
   labels[label_offset++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("gc gen age"),
-    .num = context->profile_gen - object_data->alloc_gen,
+    .num = object_data->gen_age,
   };
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
@@ -670,13 +666,12 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   return true;
 }
 
-static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile, size_t gc_count_before_serialize) {
+static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile) {
   heap_recorder_iteration_context iteration_context = {
     .state = state,
     .profile = profile,
     .error = false,
     .error_msg = {0},
-    .profile_gen = gc_count_before_serialize,
   };
   bool iterated = heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
   // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
@@ -698,7 +693,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
-  build_heap_profile_without_gvl(args->state, args->profile, args->gc_count_before_serialize);
+  build_heap_profile_without_gvl(args->state, args->profile);
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
@@ -918,10 +913,13 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
 #pragma GCC diagnostic push
 // rb_gc_force_recycle was deprecated in latest versions of Ruby and is a noop.
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  rb_gc_force_recycle(obj);
+  #ifdef HAVE_WORKING_RB_GC_FORCE_RECYCLE
+    rb_gc_force_recycle(obj);
+  #endif
   return Qnil;
 }
 #pragma GCC diagnostic pop
