@@ -45,7 +45,7 @@ Outlines the changes for our instrumentations.
 
 The gem now includes new capabilities (Profiling, Application Security Monitoring) that extend beyond tracing. To better reflect the broad set of features already within this package, and our intention for this package to be an all-inclusive offering, the existing gem has been renamed to `datadog`.
 
-This name change is does not reflect any material change to existing capabilities in 2.0, but future 2.x versions may include additional capabilities or products.
+This name change does not reflect any material change to existing capabilities in 2.0, but future 2.x versions may include additional capabilities or products.
 
 Make sure to update Gemfile:
 
