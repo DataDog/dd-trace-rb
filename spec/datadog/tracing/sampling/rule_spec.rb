@@ -58,18 +58,6 @@ RSpec.describe Datadog::Tracing::Sampling::Rule do
     end
   end
 
-  describe '#sample?' do
-    subject(:sample?) { rule.sample?(trace_op) }
-
-    let(:sample) { double }
-
-    before do
-      allow(sampler).to receive(:sample?).with(trace_op).and_return(sample)
-    end
-
-    it { is_expected.to be(sample) }
-  end
-
   describe '#sample_rate' do
     subject(:sample_rate) { rule.sample_rate(trace_op) }
 
