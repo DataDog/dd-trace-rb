@@ -50,10 +50,10 @@ This name change is does not reflect any material change to existing capabilitie
 Make sure to update Gemfile:
 
 ```ruby
-# === This is a shim to help migrating to the new `datadog` gem ===
-gem 'ddtrace', '~> 2.0', require: 'ddtrace/auto_instrument'
+# === Before ===
+gem 'ddtrace', '~> 1.0', require: 'ddtrace/auto_instrument'
 
-# === Rename to `datadog` with 2.x ===
+# === After rename to `datadog` with 2.x ===
 gem 'datadog', '~> 2.0', require: 'datadog/auto_instrument'
 ```
 
