@@ -14,4 +14,5 @@ class Gem::BasicSpecification
   def version: () -> String
   def name: () -> String
   def gem_dir: () -> String
+  def extension_dir: () -> String
 end

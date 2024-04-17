@@ -122,6 +122,23 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         end
       end
 
+      context 'and resource' do
+        let(:rule) { { sample_rate: 0.1, resource: 'test-resource' } }
+
+        it 'parses resource matcher' do
+          expect(actual_rule.matcher.resource).to eq('test-resource')
+        end
+      end
+
+      context 'and tags' do
+        let(:rule) { { sample_rate: 0.1, tags: { tag: 'test-tag' } } }
+
+        it 'parses matching tag' do
+          expect(actual_rule.matcher.tags).to eq({ 'tag' => 'test-tag' })
+          expect(actual_rule.sampler.sample_rate).to eq(0.1)
+        end
+      end
+
       context 'with multiple rules' do
         let(:rules) { [{ sample_rate: 0.1 }, { sample_rate: 0.2 }] }
 

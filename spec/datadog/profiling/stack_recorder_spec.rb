@@ -510,6 +510,48 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(summed_values).to eq(expected_summed_values)
         end
 
+        it 'does not include samples with age = 0' do
+          test_num_allocated_objects = 123
+          test_num_age_bigger_0 = 57
+          live_objects = Array.new(test_num_allocated_objects)
+
+          allocator_proc = proc { |i|
+            live_objects[i] = "this is string number #{i}"
+            sample_allocation(live_objects[i])
+          }
+
+          sample_line = __LINE__ - 3
+
+          # First allocate a bunch of objects with age > 0. We expect to
+          # see these at the end
+          test_num_age_bigger_0.times(&allocator_proc)
+          # Force the above allocations to have gc age > 0
+          GC.start
+
+          begin
+            # Need to disable GC during this entire stretch to ensure rb_gc_count is
+            # the same between sample_allocation and pprof serialization.
+            GC.disable
+
+            # Allocate another set of objects that will necessarily have age = 0 since
+            # we disabled GC immediate before and will only enable it at test's end.
+            (test_num_age_bigger_0..test_num_allocated_objects).each(&allocator_proc)
+
+            # Grab all exported heap samples and sum their values
+            sum_exported_heap_samples = heap_samples
+              .select { |s| s.has_location?(path: __FILE__, line: sample_line) }
+              .map { |s| s.values[:'heap-live-samples'] }
+              .reduce(:+)
+
+            # Multiply expectation by sample_rate to be able to compare with weighted samples
+            # We expect total exported sum to match the weighted samples with age > 0
+            expect(sum_exported_heap_samples).to be test_num_age_bigger_0 * sample_rate
+          ensure
+            # Whatever happens, make sure we reenable GC
+            GC.enable
+          end
+        end
+
         it "aren't lost when they happen concurrently with a long serialization" do
           described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
 
@@ -524,6 +566,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           sample_line = __LINE__ - 3
 
           described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+
+          GC.start # Force a GC so the live_objects above have age > 0 and show up in heap samples
 
           relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
@@ -641,6 +685,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             sample_allocation(recycled_obj)
             sample_line = __LINE__ - 1
+
+            GC.start # Ensure recycled sample has age > 0 so it shows up in serialized profile
 
             recycled_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
             expect(recycled_sample).not_to be nil
