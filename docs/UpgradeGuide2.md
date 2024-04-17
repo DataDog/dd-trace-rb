@@ -92,7 +92,7 @@ Datadog.configure do |c|
 end
 ```
 
-<h4 id="2.0-type-checking">Enforce type checking</h4>
+<h4 id="2.0-type-checking">Enforced type checking</h4>
 
 Configuration options are type checked. When validation fails, an `ArgumentError` is raised.
 
@@ -124,7 +124,7 @@ B3 propagation has been removed from the default propagation for distributed tra
 
 - Option `c.tracing.client_ip.enabled`: `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed. Use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
 
-- The following programmatic configuration options have been changed. Their corresponding environment variables (if any) are unchanged:
+- The following configuration options have been changed. Changes to their corresponding environment variables (if any) are noted as well:
 
   | 1.x                                                      | 2.0                                   |
   | -------------------------------------------------------- | ------------------------------------- |
@@ -134,13 +134,15 @@ B3 propagation has been removed from the default propagation for distributed tra
   | `tracing.distributed_tracing.propagation_style`          | `tracing.propagation_style`           |
   | `diagnostics.health_metrics.enabled`                     | `health_metrics.enabled`              |
   | `diagnostics.health_metrics.statsd`                      | `health_metrics.statsd`               |
-  | `profiling.advanced.max_events`                          | Removed                               |
-  | `profiling.advanced.legacy_transport_enabled`            | Removed                               |
-  | `profiling.advanced.force_enable_new_profiler`           | Removed                               |
-  | `profiling.advanced.force_enable_legacy_profiler`        | Removed                               |
   | `profiling.advanced.allocation_counting_enabled`         | Removed                               |
+  | `profiling.advanced.experimental_allocation_enabled`     | `profiling.allocation_enabled` (`DD_PROFILING_ALLOCATION_ENABLED` environment variable)                          |
   | `profiling.advanced.experimental_allocation_sample_rate` | Removed                               |
-  | `profiling.advanced.experimental_timeline_enabled`       | `profiling.advanced.timeline_enabled` |
+  | `profiling.advanced.experimental_timeline_enabled`       | `profiling.advanced.timeline_enabled` (`DD_PROFILING_TIMELINE_ENABLED` environment variable, enabled by default) |
+  | `profiling.advanced.force_enable_gc_profiling`           | `profiling.advanced.gc_enabled` (`DD_PROFILING_GC_ENABLED` environment variable, enabled by default)             |
+  | `profiling.advanced.force_enable_legacy_profiler`        | Removed                               |
+  | `profiling.advanced.force_enable_new_profiler`           | Removed                               |
+  | `profiling.advanced.legacy_transport_enabled`            | Removed                               |
+  | `profiling.advanced.max_events`                          | Removed                               |
 
 <h2 id="2.0-advanced-usage">Advanced Usage</h2>
 
