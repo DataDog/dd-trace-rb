@@ -29,9 +29,15 @@ RSpec.describe 'Grape instrumentation' do
             'OK'
           end
 
-          desc 'Returns an error'
+          desc 'Raises a Ruby exception'
           get :hard_failure do
             raise StandardError, 'Ouch!'
+          end
+
+          desc 'Returns a 5XX status code without a Ruby exception'
+          get :soft_failure do
+            status 500
+            'Not OK'
           end
         end
 
@@ -103,9 +109,15 @@ RSpec.describe 'Grape instrumentation' do
           'OK'
         end
 
-        desc 'Returns an error'
+        desc 'Raises a Ruby exception'
         get :hard_failure do
           raise StandardError, 'Ouch!'
+        end
+
+        desc 'Returns a 5XX status code without a Ruby exception'
+        get :soft_failure do
+          status 500
+          'Not OK'
         end
 
         resource :span_resource_rack do
@@ -184,6 +196,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+
+          expect(run_span.get_tag('http.status_code')).to eq('200')
         end
       end
 
@@ -249,11 +263,13 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+
+          expect(run_span.get_tag('http.status_code')).to eq('200')
         end
       end
     end
 
-    context 'failure' do
+    context 'on Ruby exception' do
       context 'without filters' do
         subject(:response) { post '/base/hard_failure' }
 
@@ -264,6 +280,7 @@ RSpec.describe 'Grape instrumentation' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+          expect(span.get_tag('http.status_code')).to eq('405')
         end
 
         context 'and error_responses' do
@@ -278,6 +295,7 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
           end
         end
       end
@@ -299,7 +317,7 @@ RSpec.describe 'Grape instrumentation' do
           end
         end
 
-        it 'handles exceptions' do
+        it 'handles request with exception' do
           expect { subject }.to raise_error(StandardError, 'Ouch!')
 
           expect(spans.length).to eq(2)
@@ -333,6 +351,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+          # Status code has not been set yet at this instrumentation point
+          expect(run_span.get_tag('http.status_code')).to be_nil
         end
       end
 
@@ -382,6 +402,139 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+        end
+      end
+    end
+
+    context 'on error status code' do
+      context 'without the wrong HTTP method' do
+        subject(:response) { post '/base/soft_failure' }
+
+        it 'handles exceptions' do
+          expect(response.body).to eq('405 Not Allowed')
+
+          expect(span.name).to eq('grape.endpoint_run')
+          expect(span).to_not have_error
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            .to eq('endpoint_run')
+          expect(span.get_tag('http.status_code')).to eq('405')
+        end
+
+        context 'and error_responses' do
+          subject(:response) { post '/base/soft_failure' }
+
+          let(:configuration_options) { { error_statuses: '300-399,,xxx-xxx,1111,400-499' } }
+
+          it 'handles exceptions' do
+            expect(response.body).to eq('405 Not Allowed')
+
+            expect(span.name).to eq('grape.endpoint_run')
+            expect(span).to_not have_error
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+              .to eq('endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
+          end
+        end
+
+        context 'and error_responses with arrays' do
+          subject(:response) { post '/base/soft_failure' }
+
+          let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 405] } }
+
+          it 'handles exceptions' do
+            expect(response.body).to eq('405 Not Allowed')
+
+            expect(span.name).to eq('grape.endpoint_run')
+            expect(span).to_not have_error
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+              .to eq('endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
+          end
+        end
+
+        context 'and error_responses with arrays that dont contain exception status' do
+          subject(:response) { post '/base/soft_failure' }
+
+          let(:configuration_options) { { error_statuses: ['300-399', 'xxx-xxx', 1111, 406] } }
+
+          it 'handles exceptions' do
+            expect(response.body).to eq('405 Not Allowed')
+
+            expect(span.name).to eq('grape.endpoint_run')
+            expect(span).to_not have_error
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+              .to eq('endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
+          end
+        end
+
+        context 'defaults to >=500 when provided invalid config' do
+          subject(:response) { post '/base/soft_failure' }
+
+          let(:configuration_options) { { error_statuses: 'xxx-499' } }
+
+          it 'handles exceptions' do
+            expect(response.body).to eq('405 Not Allowed')
+
+            expect(span.name).to eq('grape.endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+              .to eq('endpoint_run')
+            expect(span.get_tag('http.status_code')).to eq('405')
+          end
+        end
+      end
+
+      context 'without filters' do
+        subject(:response) { get '/base/soft_failure' }
+
+        it_behaves_like 'measured span for integration', true do
+          before do
+            subject
+          end
+        end
+
+        it_behaves_like 'analytics for integration', ignore_global_flag: false do
+          let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_ENABLED }
+          let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Grape::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+          before do
+            subject
+          end
+        end
+
+        it 'handles request' do
+          subject
+
+          expect(spans.length).to eq(2)
+
+          expect(render_span.name).to eq('grape.endpoint_render')
+          expect(render_span.type).to eq('template')
+          expect(render_span.service).to eq(tracer.default_service)
+          expect(render_span.resource).to eq('grape.endpoint_render')
+          expect(render_span.parent_id).to eq(run_span.id)
+
+          expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+          expect(render_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            .to eq('endpoint_render')
+
+          expect(run_span.name).to eq('grape.endpoint_run')
+          expect(run_span.type).to eq('web')
+          expect(run_span.service).to eq(tracer.default_service)
+          expect(run_span.resource).to eq('TestingAPI GET /base/soft_failure')
+          expect(run_span).to have_error
+
+          expect(run_span).to be_root_span
+
+          expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
+          expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            .to eq('endpoint_run')
+
+          expect(run_span.get_tag('http.status_code')).to eq('500')
         end
       end
     end
