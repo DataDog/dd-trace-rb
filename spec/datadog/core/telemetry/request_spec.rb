@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     let(:runtime_version) { Datadog::Core::Environment::Ext::ENGINE_VERSION }
     let(:service_name) { 'service' }
     let(:service_version) { 'version' }
-    let(:tracer_version) { DDTrace::VERSION::STRING }
+    let(:tracer_version) { Datadog::Core::Environment::Identity.gem_datadog_version_semver2 }
 
     let(:host) do
       {

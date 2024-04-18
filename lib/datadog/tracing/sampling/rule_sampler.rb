@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'ext'
 require_relative 'rate_limiter'
 require_relative 'rule'
@@ -10,7 +12,6 @@ module Datadog
       #
       # If a trace does not conform to any rules, a default
       # sampling strategy is applied.
-      # @public_api
       class RuleSampler
         attr_reader :rules, :rate_limiter, :default_sampler
 
@@ -66,7 +67,7 @@ module Datadog
               sample_rate: sample_rate,
             }
 
-            Core::BackportFrom24.hash_compact!(kwargs)
+            kwargs.compact!
 
             SimpleRule.new(**kwargs)
           end
@@ -77,16 +78,6 @@ module Datadog
             "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           end
           nil
-        end
-
-        # /RuleSampler's components (it's rate limiter, for example) are
-        # not be guaranteed to be size-effect free.
-        # It is not possible to guarantee that a call to {#sample?} will
-        # return the same result as a successive call to {#sample!} with the same trace.
-        #
-        # Use {#sample!} instead
-        def sample?(_trace)
-          raise 'RuleSampler cannot be evaluated without side-effects'
         end
 
         def sample!(trace)
@@ -116,7 +107,7 @@ module Datadog
 
           return yield(trace) if rule.nil?
 
-          sampled = rule.sample?(trace)
+          sampled = rule.sample!(trace)
           sample_rate = rule.sample_rate(trace)
 
           set_priority(trace, sampled)

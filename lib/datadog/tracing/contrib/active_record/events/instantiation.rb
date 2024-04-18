@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
@@ -12,7 +14,7 @@ module Datadog
           module Instantiation
             include ActiveRecord::Event
 
-            EVENT_NAME = 'instantiation.active_record'.freeze
+            EVENT_NAME = 'instantiation.active_record'
 
             module_function
 
@@ -31,7 +33,7 @@ module Datadog
 
             def process(span, event, _id, payload)
               span.resource = payload.fetch(:class_name)
-              span.span_type = Ext::SPAN_TYPE_INSTANTIATION
+              span.type = Ext::SPAN_TYPE_INSTANTIATION
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_INSTANTIATION)
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'ext'
 
 require_relative '../metrics/client'
@@ -114,7 +116,7 @@ module Datadog
 
         def compile_service_tags!
           @service_tags = services.to_a.collect do |service|
-            "#{Core::Runtime::Ext::Metrics::TAG_SERVICE}:#{service}".freeze
+            "#{Core::Runtime::Ext::Metrics::TAG_SERVICE}:#{service}"
           end
         end
 

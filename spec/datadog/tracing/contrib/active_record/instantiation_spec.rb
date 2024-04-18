@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'ddtrace'
+require 'datadog'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 
@@ -55,7 +55,7 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
       aggregate_failures do
         expect(span.service).to eq('rspec')
         expect(span.name).to eq('active_record.instantiation')
-        expect(span.span_type).to eq('custom')
+        expect(span.type).to eq('custom')
         expect(span.resource.strip).to eq('Article')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_record')
       end

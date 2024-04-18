@@ -58,7 +58,7 @@ module SpanHelpers
   # span, but don't actually share the same Context with the parent.
   RSpec::Matchers.define :have_distributed_parent do |parent|
     match do |actual|
-      @matcher = have_attributes(parent_id: parent.span_id, trace_id: parent.trace_id)
+      @matcher = have_attributes(parent_id: parent.id, trace_id: parent.trace_id)
       @matcher.matches? actual
     end
 

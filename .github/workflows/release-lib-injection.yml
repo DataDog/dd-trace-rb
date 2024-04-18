@@ -1,4 +1,3 @@
-
 name: "Release Library Injection"
 on:
   push:
@@ -31,4 +30,3 @@ jobs:
           platforms: 'linux/amd64,linux/arm64/v8'
           build-args: DDTRACE_RUBY_VERSION=${{ steps.version.outputs.version }}
           context: ./lib-injection
-

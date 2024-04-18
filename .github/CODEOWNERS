@@ -11,8 +11,6 @@
 /lib/datadog/tracing.rb @DataDog/tracing-ruby
 /lib/datadog/opentelemetry/ @DataDog/tracing-ruby
 /lib/datadog/opentelemetry.rb @DataDog/tracing-ruby
-/lib/datadog/opentracer/ @DataDog/tracing-ruby
-/lib/datadog/opentracer.rb @DataDog/tracing-ruby
 /lib-injection/ @DataDog/tracing-ruby
 /lib/datadog/profiling/ @DataDog/profiling-rb
 /lib/datadog/profiling.rb @DataDog/profiling-rb
@@ -25,8 +23,6 @@
 /sig/datadog/tracing.rbs @DataDog/tracing-ruby
 /sig/datadog/opentelemetry/ @DataDog/tracing-ruby
 /sig/datadog/opentelemetry.rbs @DataDog/tracing-ruby
-/sig/datadog/opentracer/ @DataDog/tracing-ruby
-/sig/datadog/opentracer.rbs @DataDog/tracing-ruby
 /sig/datadog/profiling/ @DataDog/profiling-rb
 /sig/datadog/profiling.rbs @DataDog/profiling-rb
 
@@ -36,7 +32,5 @@
 /spec/datadog/tracing_spec.rb @DataDog/tracing-ruby
 /spec/datadog/opentelemetry/ @DataDog/tracing-ruby
 /spec/datadog/opentelemetry_spec.rb @DataDog/tracing-ruby
-/spec/datadog/opentracer/ @DataDog/tracing-ruby
-/spec/datadog/opentracer.rb @DataDog/tracing-ruby
 /spec/datadog/profiling/ @DataDog/profiling-rb
 /spec/datadog/profiling_spec.rb @DataDog/profiling-rb

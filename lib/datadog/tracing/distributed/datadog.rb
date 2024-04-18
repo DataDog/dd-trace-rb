@@ -79,6 +79,7 @@ module Datadog
             trace_origin: origin,
             trace_sampling_priority: sampling_priority,
             trace_distributed_tags: trace_distributed_tags,
+            span_remote: true,
           )
         end
 
@@ -123,7 +124,7 @@ module Datadog
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
-        # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
+        # DEV: Ideally, we'd have a dedicated error reporting stream for all of datadog.
         def inject_tags!(tags, data)
           return set_tags_propagation_error(reason: 'disabled') if tags_disabled?
 
@@ -147,7 +148,7 @@ module Datadog
         #
         # DEV: This method accesses global state (the active trace) to record its error state as a trace tag.
         # DEV: This means errors cannot be reported if there's not active span.
-        # DEV: Ideally, we'd have a dedicated error reporting stream for all of ddtrace.
+        # DEV: Ideally, we'd have a dedicated error reporting stream for all of datadog.
         def extract_tags(fetcher)
           tags = fetcher[@tags_key]
 

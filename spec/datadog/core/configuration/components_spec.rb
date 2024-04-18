@@ -11,7 +11,7 @@ require 'datadog/core/telemetry/client'
 require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
 require 'datadog/statsd'
-require 'datadog/tracing/configuration/agent_settings_resolver'
+require 'datadog/core/configuration/agent_settings_resolver'
 require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/all_sampler'
 require 'datadog/tracing/sampling/priority_sampler'
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         .and_return(logger)
 
       expect(described_class).to receive(:build_tracer)
-        .with(settings, logger: logger)
+        .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
 
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
@@ -98,7 +98,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new health metrics' do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
-        let(:default_options) { { enabled: settings.diagnostics.health_metrics.enabled } }
+        let(:default_options) { { enabled: settings.health_metrics.enabled } }
         let(:options) { {} }
 
         before do
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:enabled) { double('enabled') }
 
         before do
-          allow(settings.diagnostics.health_metrics)
+          allow(settings.health_metrics)
             .to receive(:enabled)
             .and_return(enabled)
         end
@@ -132,7 +132,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:statsd) { instance_double(Datadog::Statsd) }
 
         before do
-          allow(settings.diagnostics.health_metrics)
+          allow(settings.health_metrics)
             .to receive(:statsd)
             .and_return(statsd)
         end
@@ -391,7 +391,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_tracer' do
-    subject(:build_tracer) { described_class.build_tracer(settings, logger: logger) }
+    subject(:build_tracer) { described_class.build_tracer(settings, agent_settings, logger: logger) }
 
     context 'given an instance' do
       let(:instance) { instance_double(Datadog::Tracing::Tracer) }
@@ -457,10 +457,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(Datadog::Tracing::Writer).to receive(:new)
             .with(agent_settings: agent_settings, **writer_options)
             .and_return(writer)
-
-          expect(Datadog::Tracing::Configuration::AgentSettingsResolver).to receive(:call)
-            .with(settings, logger: logger)
-            .and_return(agent_settings)
         end
 
         after do
@@ -581,74 +577,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
       end
 
-      context 'with :priority_sampling' do
+      context 'with :sampler' do
         before do
           allow(settings.tracing)
-            .to receive(:priority_sampling)
-            .and_return(priority_sampling)
+            .to receive(:sampler)
+            .and_return(sampler)
         end
 
-        context 'enabled' do
-          let(:priority_sampling) { true }
+        let(:sampler) { double('sampler') }
 
-          it_behaves_like 'new tracer'
-
-          context 'with :sampler' do
-            before do
-              allow(settings.tracing)
-                .to receive(:sampler)
-                .and_return(sampler)
-            end
-
-            context 'that is a priority sampler' do
-              let(:sampler) { Datadog::Tracing::Sampling::PrioritySampler.new }
-
-              it_behaves_like 'new tracer' do
-                let(:options) { { sampler: sampler } }
-                it_behaves_like 'event publishing writer and priority sampler'
-              end
-            end
-
-            context 'that is not a priority sampler' do
-              let(:sampler) { double('sampler') }
-
-              context 'wraps sampler in a priority sampler' do
-                it_behaves_like 'new tracer' do
-                  let(:options) do
-                    { sampler: be_a(Datadog::Tracing::Sampling::PrioritySampler) & have_attributes(
-                      pre_sampler: sampler,
-                      priority_sampler: be_a(Datadog::Tracing::Sampling::RuleSampler)
-                    ) }
-                  end
-
-                  it_behaves_like 'event publishing writer and priority sampler'
-                end
-              end
-            end
-          end
-        end
-
-        context 'disabled' do
-          let(:priority_sampling) { false }
-
-          it_behaves_like 'new tracer' do
-            let(:options) { { sampler: be_a(Datadog::Tracing::Sampling::RuleSampler) } }
-          end
-
-          context 'with :sampler' do
-            before do
-              allow(settings.tracing)
-                .to receive(:sampler)
-                .and_return(sampler)
-            end
-
-            let(:sampler) { double('sampler') }
-
-            it_behaves_like 'new tracer' do
-              let(:options) { { sampler: sampler } }
-              it_behaves_like 'event publishing writer and priority sampler'
-            end
-          end
+        it_behaves_like 'new tracer' do
+          let(:options) { { sampler: sampler } }
+          it_behaves_like 'event publishing writer and priority sampler'
         end
       end
 

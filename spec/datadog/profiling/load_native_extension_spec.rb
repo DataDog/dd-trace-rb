@@ -20,7 +20,7 @@ RSpec.describe 'Datadog::Profiling load_native_extension' do
   end
 
   context 'when native extension cannot be found inside lib' do
-    let(:extension_dir) { Gem.loaded_specs['ddtrace'].extension_dir }
+    let(:extension_dir) { Gem.loaded_specs['datadog'].extension_dir }
 
     before do
       expect(File).to receive(:exist?) do |full_file_path|

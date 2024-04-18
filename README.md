@@ -1,11 +1,10 @@
 # Datadog Trace Client
 
-[![Gem](https://img.shields.io/gem/v/ddtrace)](https://rubygems.org/gems/ddtrace/)
+[![Gem](https://img.shields.io/gem/v/datadog)](https://rubygems.org/gems/datadog/)
 [![codecov](https://codecov.io/gh/DataDog/dd-trace-rb/branch/master/graph/badge.svg)](https://app.codecov.io/gh/DataDog/dd-trace-rb/branch/master)
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
-``ddtrace`` is Datadog’s tracing client for Ruby. It is used to trace requests as they flow across web servers,
-databases and microservices so that developers have great visibility into bottlenecks and troublesome requests.
+``datadog`` is Datadog's client library for Ruby. It includes a suite of tools which provide visibility into the performance and security of Ruby applications, to enable Ruby developers to identify bottlenecks and other issues.
 
 ## Getting started
 
@@ -24,8 +23,3 @@ For contributing, checkout the [contribution guidelines][contribution docs] and 
 [APM glossary]: https://docs.datadoghq.com/tracing/glossary/
 [contribution docs]: https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md
 [development docs]: https://github.com/DataDog/dd-trace-rb/blob/master/docs/DevelopmentGuide.md
-
-## Special thanks
-
-* [Mike Fiedler](https://github.com/miketheman) for working on a number of Datadog Ruby projects, as well as graciously
-  gifting control of the `datadog` gem

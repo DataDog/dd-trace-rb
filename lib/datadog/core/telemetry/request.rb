@@ -39,7 +39,7 @@ module Datadog
               runtime_version: Core::Environment::Ext::ENGINE_VERSION,
               service_name: config.service,
               service_version: config.version,
-              tracer_version: Core::Environment::Identity.tracer_version
+              tracer_version: Core::Environment::Identity.gem_datadog_version_semver2
             }
           end
 

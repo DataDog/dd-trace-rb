@@ -11,8 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.22.0)
-      datadog-ci (~> 0.8.1)
+    datadog (2.0.0.beta2)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 7.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -1462,8 +1461,6 @@ GEM
     crack (0.4.5)
       rexml
     cri (2.15.11)
-    datadog-ci (0.8.1)
-      msgpack
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
@@ -1585,7 +1582,7 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)

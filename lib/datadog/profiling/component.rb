@@ -24,7 +24,7 @@ module Datadog
         #
         # ...thus in #1998 we removed such a require.
         #
-        # On the other hand, if datadog/core is loaded by a different product and no general `require 'ddtrace'` is
+        # On the other hand, if datadog/core is loaded by a different product and no general `require 'datadog'` is
         # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
         # no-op if profiling is already loaded).
         require_relative '../profiling'

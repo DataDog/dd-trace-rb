@@ -5,6 +5,7 @@ stages:
   - deploy
   - macrobenchmarks
   - microbenchmarks
+  - benchmarks
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
@@ -90,12 +91,12 @@ build-gem:
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
       fi
     - bundle install && chmod go-w -R . && bundle exec rake build
-    - mkdir -p tmp && ruby -Ilib -rddtrace/version -e 'puts Gem::Version.new(DDTrace::VERSION::STRING).to_s' >> tmp/version.txt
+    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version.txt
   artifacts:
     paths:
       - pkg
       - tmp
-      - lib/ddtrace/version.rb
+      - lib/datadog/version.rb
 
 .install-dependencies:
   parallel:
@@ -106,13 +107,13 @@ build-gem:
     - build-gem
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
-    - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
-    - ruby .gitlab/install_ddtrace_deps.rb
+    - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    - ruby .gitlab/install_datadog_deps.rb
   artifacts:
     paths:
       - pkg
       - tmp
-      - lib/ddtrace/version.rb
+      - lib/datadog/version.rb
 
 install-dependencies-amd64:
   extends: .install-dependencies

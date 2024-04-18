@@ -155,10 +155,6 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 end
 
 TRACER_VERSIONS = [
-  '2.1',
-  '2.2',
-  '2.3',
-  '2.4',
   '2.5',
   '2.6',
   '2.7',
@@ -184,15 +180,3 @@ FORCE_BUNDLER_VERSION = {
   '3.2' => '2.3.26',
   '3.3' => '2.3.26',
 }.freeze
-
-# TODO: remove with 2.0
-task :install_appraisal_gemfiles do
-  warn 'This task has been removed, please use rake appraisal:install instead'
-  exit 1
-end
-
-# TODO: remove with 2.0
-task :update_appraisal_gemfiles do
-  warn 'This task has been removed, please use rake appraisal:update instead'
-  exit 1
-end

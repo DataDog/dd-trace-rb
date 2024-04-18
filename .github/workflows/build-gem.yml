@@ -50,10 +50,10 @@ jobs:
         if: ${{ matrix.type != 'final' }}
         run: |
           # Patch in GEM_HOST
-          sed ddtrace.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
+          sed datadog.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
 
           # Test result
-          cat ddtrace.gemspec | grep -e allowed_push_host
+          cat datadog.gemspec | grep -e allowed_push_host
       - name: Build gem
         run: bundle exec rake build
       - name: List gem
@@ -62,7 +62,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
-          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg/*.gem'
   test:
     strategy:
@@ -79,7 +79,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
       - name: List gem
         run: |
@@ -105,7 +105,7 @@ jobs:
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
-          name: 'ddtrace-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
+          name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
       - name: List gem
         run: |

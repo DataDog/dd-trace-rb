@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
@@ -20,7 +22,7 @@ module Datadog
               Tracing.trace(Ext::SPAN_COMMAND) do |span|
                 span.resource = op.to_s.upcase
                 span.service = datadog_configuration[:service_name]
-                span.span_type = Ext::SPAN_TYPE_COMMAND
+                span.type = Ext::SPAN_TYPE_COMMAND
 
                 if datadog_configuration[:peer_service]
                   span.set_tag(

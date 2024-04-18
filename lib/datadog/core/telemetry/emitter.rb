@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'request'
 require_relative 'http/transport'
 require_relative '../utils/sequence'

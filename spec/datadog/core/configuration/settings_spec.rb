@@ -112,60 +112,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
     end
-
-    describe '#health_metrics' do
-      describe '#enabled' do
-        subject(:enabled) { settings.diagnostics.health_metrics.enabled }
-
-        context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED}" do
-          around do |example|
-            ClimateControl.modify(
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED => environment
-            ) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          context 'is defined' do
-            let(:environment) { 'true' }
-
-            it { is_expected.to be true }
-          end
-        end
-      end
-
-      describe '#enabled=' do
-        it 'changes the #enabled setting' do
-          expect { settings.diagnostics.health_metrics.enabled = true }
-            .to change { settings.diagnostics.health_metrics.enabled }
-            .from(false)
-            .to(true)
-        end
-      end
-
-      describe '#statsd' do
-        subject(:statsd) { settings.diagnostics.health_metrics.statsd }
-
-        it { is_expected.to be nil }
-      end
-
-      describe '#statsd=' do
-        let(:statsd) { double('statsd') }
-
-        it 'changes the #statsd setting' do
-          expect { settings.diagnostics.health_metrics.statsd = statsd }
-            .to change { settings.diagnostics.health_metrics.statsd }
-            .from(nil)
-            .to(statsd)
-        end
-      end
-    end
   end
 
   describe '#env' do
@@ -227,20 +173,66 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it { expect(settings.env).to eq(env) }
     end
 
-    context 'when given a symbol' do
-      let(:env) { :symbol }
-
-      before { set_env }
-
-      it { expect(settings.env).to eq('symbol') }
-    end
-
     context 'when given `nil`' do
       let(:env) { nil }
 
       before { set_env }
 
       it { expect(settings.env).to be_nil }
+    end
+  end
+
+  describe '#health_metrics' do
+    describe '#enabled' do
+      subject(:enabled) { settings.health_metrics.enabled }
+
+      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED}" do
+        around do |example|
+          ClimateControl.modify(
+            Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED => environment
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        context 'is defined' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      it 'changes the #enabled setting' do
+        expect { settings.health_metrics.enabled = true }
+          .to change { settings.health_metrics.enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#statsd' do
+      subject(:statsd) { settings.health_metrics.statsd }
+
+      it { is_expected.to be nil }
+    end
+
+    describe '#statsd=' do
+      let(:statsd) { double('statsd') }
+
+      it 'changes the #statsd setting' do
+        expect { settings.health_metrics.statsd = statsd }
+          .to change { settings.health_metrics.statsd }
+          .from(nil)
+          .to(statsd)
+      end
     end
   end
 
@@ -345,30 +337,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#allocation_enabled' do
       subject(:allocation_enabled) { settings.profiling.allocation_enabled }
 
-      context 'when DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' do
-        around do |example|
-          ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_ALLOCATION_ENABLED' => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:environment) { value.to_s }
-
-            before { expect(Datadog::Core).to receive(:log_deprecation) }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
-
       context 'when DD_PROFILING_ALLOCATION_ENABLED' do
         around do |example|
           ClimateControl.modify('DD_PROFILING_ALLOCATION_ENABLED' => environment) do
@@ -402,14 +370,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
 
     describe '#advanced' do
-      describe '#max_events=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.max_events = 1234
-        end
-      end
-
       describe '#max_frames' do
         subject(:max_frames) { settings.profiling.advanced.max_frames }
 
@@ -497,38 +457,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_new_profiler=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_new_profiler = true
-        end
-      end
-
-      describe '#legacy_transport_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.legacy_transport_enabled = true
-        end
-      end
-
-      describe '#force_enable_legacy_profiler=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_legacy_profiler = true
-        end
-      end
-
-      describe '#force_enable_gc_profiling=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_gc_profiling = true
-        end
-      end
-
       describe '#gc_enabled' do
         subject(:gc_enabled) { settings.profiling.advanced.gc_enabled }
 
@@ -561,22 +489,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.gc_enabled }
             .from(true)
             .to(false)
-        end
-      end
-
-      describe '#allocation_counting_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.allocation_counting_enabled = false
-        end
-      end
-
-      describe '#experimental_allocation_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_allocation_enabled = true
         end
       end
 
@@ -650,14 +562,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#experimental_allocation_sample_rate=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_allocation_sample_rate = 0
-        end
-      end
-
       describe '#experimental_heap_sample_rate' do
         subject(:experimental_heap_sample_rate) { settings.profiling.advanced.experimental_heap_sample_rate }
 
@@ -674,12 +578,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             it { is_expected.to be 10 }
           end
 
-          [100, 30.5].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
+          context 'is defined as 100' do
+            let(:environment) { '100' }
 
-              it { is_expected.to be value.to_i }
-            end
+            it { is_expected.to eq(100) }
           end
         end
       end
@@ -760,14 +662,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.no_signals_workaround_enabled }
             .from(:auto)
             .to(false)
-        end
-      end
-
-      describe '#experimental_timeline_enabled=' do
-        it 'logs a warning  that this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_timeline_enabled = 0
         end
       end
 
@@ -1037,14 +931,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       before { set_service }
 
       it { expect(settings.service).to eq(service) }
-    end
-
-    context 'when given a symbol' do
-      let(:service) { :symbol }
-
-      before { set_service }
-
-      it { expect(settings.service).to eq('symbol') }
     end
 
     context 'when given `nil`' do

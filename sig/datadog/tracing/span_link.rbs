@@ -1,0 +1,58 @@
+module Datadog
+  module Tracing
+    # SpanLink represents a causal link between two spans.
+    # @public_api
+    class SpanLink
+      @span_id: untyped
+
+      @trace_id: untyped
+
+      @trace_flags: untyped
+
+      @trace_state: untyped
+
+      @dropped_attributes: untyped
+
+      @attributes: untyped
+
+      # @!attribute [r] span_id
+      #   Datadog id for the currently active span.
+      #   @return [Integer]
+      attr_reader span_id: untyped
+
+      # @!attribute [r] trace_id
+      #   Datadog id for the currently active trace.
+      #   @return [Integer]
+      attr_reader trace_id: untyped
+
+      # @!attribute [r] attributes
+      #   Datadog-specific tags that support richer distributed tracing association.
+      #   @return [Hash<String,String>]
+      attr_reader attributes: untyped
+
+      # @!attribute [r] trace_flags
+      #   The W3C "trace-flags" extracted from a distributed context. This field is an 8-bit unsigned integer.
+      #   @return [Integer]
+      #   @see https://www.w3.org/TR/trace-context/#trace-flags
+      attr_reader trace_flags: untyped
+
+      # @!attribute [r] trace_state
+      #   The W3C "tracestate" extracted from a distributed context.
+      #   This field is a string representing vendor-specific distribution data.
+      #   The `dd=` entry is removed from `trace_state` as its value is dynamically calculated
+      #   on every propagation injection.
+      #   @return [String]
+      #   @see https://www.w3.org/TR/trace-context/#tracestate-header
+      attr_reader trace_state: untyped
+
+      # @!attribute [r] dropped_attributes
+      #   The number of attributes that were discarded due to serialization limits.
+      #   @return [Integer]
+      attr_reader dropped_attributes: untyped
+
+      def initialize: (?attributes: untyped?, ?digest: untyped?) -> void
+
+      def to_hash: () -> untyped
+    end
+  end
+end

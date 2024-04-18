@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'
@@ -45,6 +47,7 @@ module Datadog
       #
       # @return [Datadog::Core::Configuration::Settings]
       # @!attribute [r] configuration
+
       # @public_api
       def configuration
         @configuration ||= Settings.new
@@ -209,7 +212,7 @@ module Datadog
         end
 
         # Should only be called the first time components are built
-        components.telemetry.started! if built_components && components && components.telemetry
+        components&.telemetry&.started! if built_components
         components
       end
 
@@ -246,7 +249,7 @@ module Datadog
             yield write_components
           rescue ThreadError => e
             logger_without_components.error(
-              'Detected deadlock during ddtrace initialization. ' \
+              'Detected deadlock during datadog initialization. ' \
               'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
               "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
             )

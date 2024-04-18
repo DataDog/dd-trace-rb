@@ -8,6 +8,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
   let(:rate_limit) { 0 }
 
   let(:span_op) { Datadog::Tracing::SpanOperation.new(span_name, service: span_service) }
+  let(:trace_op) { Datadog::Tracing::TraceOperation.new }
   let(:span_name) { 'operation.name' }
   let(:span_service) { '' }
 
@@ -25,7 +26,7 @@ RSpec.describe Datadog::Tracing::Sampling::Span::Rule do
   end
 
   describe '#sample!' do
-    subject(:sample!) { rule.sample!(span_op) }
+    subject(:sample!) { rule.sample!(trace_op, span_op) }
 
     shared_examples 'does not modify span' do
       it { expect { sample! }.to_not(change { span_op.send(:build_span).to_hash }) }

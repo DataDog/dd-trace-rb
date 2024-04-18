@@ -18,7 +18,7 @@ RSpec.describe 'Server internal tracer heartbeat' do
 
       expect(span.service).to eq(tracer.default_service)
       expect(span.name).to eq('sidekiq.heartbeat')
-      expect(span.span_type).to eq('worker')
+      expect(span.type).to eq('worker')
       expect(span.resource).to eq('sidekiq.heartbeat')
       expect(span).to_not have_error
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')
@@ -34,7 +34,7 @@ RSpec.describe 'Server internal tracer heartbeat' do
 
         expect(span.service).to eq(tracer.default_service)
         expect(span.name).to eq('sidekiq.stop')
-        expect(span.span_type).to eq('worker')
+        expect(span.type).to eq('worker')
         expect(span.resource).to eq('sidekiq.stop')
         expect(span).to_not have_error
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('sidekiq')

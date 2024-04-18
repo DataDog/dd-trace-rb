@@ -44,7 +44,7 @@ module Datadog
               Ext::HEADER_DD_TELEMETRY_API_VERSION => api_version,
               Ext::HEADER_DD_TELEMETRY_REQUEST_TYPE => request_type,
               Ext::HEADER_CLIENT_LIBRARY_LANGUAGE => Core::Environment::Ext::LANG,
-              Ext::HEADER_CLIENT_LIBRARY_VERSION => DDTrace::VERSION::STRING,
+              Ext::HEADER_CLIENT_LIBRARY_VERSION => Core::Environment::Identity.gem_datadog_version_semver2,
 
               # Enable debug mode for telemetry
               # HEADER_TELEMETRY_DEBUG_ENABLED => 'true',
