@@ -27,18 +27,23 @@ module Datadog
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
-                annotate!(trace, span, keywords, formatter)
+                # PubSub is traced by contrib::pubsub.
+                if keywords[:method].start_with? '/google.pubsub.'
+                  yield
+                else
+                  annotate!(trace, span, keywords, formatter)
 
-                begin
-                  result = yield
-                rescue StandardError => e
-                  code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
-                  span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
+                  begin
+                    yield
+                  rescue StandardError => e
+                    code = e.is_a?(::GRPC::BadStatus) ? e.code : ::GRPC::Core::StatusCodes::UNKNOWN
+                    span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, code)
 
-                  raise
+                    raise
+                  else
+                    span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, ::GRPC::Core::StatusCodes::OK)
+                  end
                 end
-                span.set_tag(Contrib::Ext::RPC::GRPC::TAG_STATUS_CODE, ::GRPC::Core::StatusCodes::OK)
-                result
               end
             end
 
