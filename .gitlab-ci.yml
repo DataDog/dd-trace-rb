@@ -232,9 +232,25 @@ onboarding_tests:
   variables:
     PRODUCT_NAME: auto_inject-ruby
 
+save_versions:
+  stage: deploy
+  needs: []
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+      when: on_success
+    - when: manual
+      allow_failure: true
+  script:
+    - echo 1_X_COMMIT_SHA=$(git rev-parse 1.x-stable) >> upstream.env
+    - echo 2_X_COMMIT_SHA=$(git rev-parse master) >> upstream.env
+  artifacts:
+    paths:
+      - upstream.env
+
 deploy_to_reliability_env:
   stage: deploy
-  needs: [] # This allows the job to run without prerequisites
+  needs:
+    - save_versions
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
       when: on_success
@@ -248,6 +264,7 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
+    UPSTREAM_PACKAGE_JOB: save_versions
 
 prepare_image_destinations:
   stage: deploy
