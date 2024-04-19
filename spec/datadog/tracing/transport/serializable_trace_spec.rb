@@ -80,7 +80,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
             'dummy',
             links: [
               Datadog::Tracing::SpanLink.new(
-                digest: Datadog::Tracing::TraceDigest.new(
+                Datadog::Tracing::TraceDigest.new(
                   trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
                   span_id: 0x1,
                   trace_state: 'vendor1=value,v2=v,dd=s:1',
@@ -89,13 +89,13 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
                 attributes: { 'link.name' => 'test_link' }
               ),
               Datadog::Tracing::SpanLink.new(
-                digest: Datadog::Tracing::TraceDigest.new(
+                Datadog::Tracing::TraceDigest.new(
                   trace_id: 0xa0123456789abcdef,
                   span_id: 0x2,
                 ),
               ),
               Datadog::Tracing::SpanLink.new(
-                digest: Datadog::Tracing::TraceDigest.new,
+                Datadog::Tracing::TraceDigest.new,
               )
             ],
           )

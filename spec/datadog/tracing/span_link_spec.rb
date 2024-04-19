@@ -5,7 +5,7 @@ require 'datadog/tracing/span_link'
 require 'datadog/tracing/trace_digest'
 
 RSpec.describe Datadog::Tracing::SpanLink do
-  subject(:span_link) { described_class.new(attributes: attributes, digest: digest) }
+  subject(:span_link) { described_class.new(digest, attributes: attributes) }
 
   let(:attributes) { nil }
   let(:digest) do
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::SpanLink do
 
   describe '::new' do
     context 'by default' do
-      let(:digest) { nil }
+      let(:digest) { Datadog::Tracing::TraceDigest.new }
       let(:attributes) { nil }
 
       it do
