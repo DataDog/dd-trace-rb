@@ -92,14 +92,14 @@ module Datadog
           unless span.links.nil?
             datadog_span.links = span.links.map do |link|
               Datadog::Tracing::SpanLink.new(
-                attributes: link.attributes,
-                digest: Datadog::Tracing::TraceDigest.new(
-                  trace_id: link.span_context.trace_id,
-                  span_id: link.span_context.span_id,
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: link.span_context.trace_id.unpack1('Q'),
+                  span_id: link.span_context.span_id.unpack1('Q'),
                   trace_flags: (link.span_context.trace_flags&.sampled? ? 1 : 0),
                   trace_state: link.span_context.tracestate&.to_s,
                   span_remote: link.span_context.remote?,
-                )
+                ),
+                attributes: link.attributes
               )
             end
           end

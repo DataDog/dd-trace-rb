@@ -322,8 +322,8 @@ RSpec.describe Datadog::OpenTelemetry do
         let(:sc1) { OpenTelemetry::Trace::SpanContext.new(trace_id: 36893488147419103231, span_id: 2) }
         let(:sc2) do
           OpenTelemetry::Trace::SpanContext.new(
-            trace_id: 1234534,
-            span_id: 67890,
+            trace_id: [1234534].pack('Q'),
+            span_id: [67890].pack('Q'),
             trace_flags: OpenTelemetry::Trace::TraceFlags::SAMPLED,
             tracestate: OpenTelemetry::Trace::Tracestate.from_string('otel=blahxd')
           )
