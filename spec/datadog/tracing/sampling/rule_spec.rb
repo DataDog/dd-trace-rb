@@ -87,22 +87,36 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleRule do
   let(:trace_tags) { {} }
 
   describe '#initialize' do
-    subject(:rule) do
-      described_class.new(name: name, service: service, resource: resource, sample_rate: sample_rate, tags: tags)
+    context 'with parameters' do
+      subject(:rule) do
+        described_class.new(name: name, service: service, resource: resource, sample_rate: sample_rate, tags: tags)
+      end
+
+      let(:name) { 'name' }
+      let(:service) { 'service' }
+      let(:resource) { 'resource' }
+      let(:tags) { { 'tag key' => 'tag value' } }
+      let(:sample_rate) { 0.123 }
+
+      it 'initializes with the correct values' do
+        expect(rule.matcher.name).to eq(/\Aname\z/i)
+        expect(rule.matcher.service).to eq(/\Aservice\z/i)
+        expect(rule.matcher.resource).to eq(/\Aresource\z/i)
+        expect(rule.matcher.tags).to eq('tag key' => /\Atag\ value\z/i)
+        expect(rule.sampler.sample_rate).to eq(0.123)
+      end
     end
 
-    let(:name) { double('name') }
-    let(:service) { double('service') }
-    let(:resource) { double('resource') }
-    let(:tags) { { 'tag' => 'value' } }
-    let(:sample_rate) { 0.123 }
+    context 'with default values' do
+      subject(:rule) { described_class.new }
 
-    it 'initializes with the correct values' do
-      expect(rule.matcher.name).to eq(name)
-      expect(rule.matcher.service).to eq(service)
-      expect(rule.matcher.resource).to eq(resource)
-      expect(rule.matcher.tags).to eq(tags)
-      expect(rule.sampler.sample_rate).to eq(sample_rate)
+      it 'initializes with the correct values' do
+        expect(rule.matcher.name).to eq(Datadog::Tracing::Sampling::Matcher::MATCH_ALL)
+        expect(rule.matcher.service).to eq(Datadog::Tracing::Sampling::Matcher::MATCH_ALL)
+        expect(rule.matcher.resource).to eq(Datadog::Tracing::Sampling::Matcher::MATCH_ALL)
+        expect(rule.matcher.tags).to eq({})
+        expect(rule.sampler.sample_rate).to eq(1.0)
+      end
     end
   end
 end

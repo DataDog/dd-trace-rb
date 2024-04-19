@@ -60,8 +60,8 @@ module Datadog
         #                defaults to always match
         # @param sample_rate [Float] Sampling rate between +[0,1]+
         def initialize(
-          name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL,
-          resource: SimpleMatcher::MATCH_ALL, tags: {},
+          name: SimpleMatcher::MATCH_ALL_PATTERN, service: SimpleMatcher::MATCH_ALL_PATTERN,
+          resource: SimpleMatcher::MATCH_ALL_PATTERN, tags: {},
           provenance: Rule::PROVENANCE_LOCAL,
           sample_rate: 1.0
         )

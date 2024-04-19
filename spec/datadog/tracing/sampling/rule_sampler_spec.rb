@@ -106,38 +106,38 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       end
 
       context 'and name' do
-        let(:rule) { { sample_rate: 0.1, name: 'test-name' } }
+        let(:rule) { { sample_rate: 0.1, name: 'test_name' } }
 
         it 'parses matching any service' do
-          expect(actual_rule.matcher.name).to eq('test-name')
+          expect(actual_rule.matcher.name).to eq(/\Atest_name\z/i)
           expect(actual_rule.matcher.service).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
           expect(actual_rule.sampler.sample_rate).to eq(0.1)
         end
       end
 
       context 'and service' do
-        let(:rule) { { sample_rate: 0.1, service: 'test-service' } }
+        let(:rule) { { sample_rate: 0.1, service: 'test_service' } }
 
         it 'parses matching any name' do
           expect(actual_rule.matcher.name).to eq(Datadog::Tracing::Sampling::SimpleMatcher::MATCH_ALL)
-          expect(actual_rule.matcher.service).to eq('test-service')
+          expect(actual_rule.matcher.service).to eq(/\Atest_service\z/i)
           expect(actual_rule.sampler.sample_rate).to eq(0.1)
         end
       end
 
       context 'and resource' do
-        let(:rule) { { sample_rate: 0.1, resource: 'test-resource' } }
+        let(:rule) { { sample_rate: 0.1, resource: 'test_resource' } }
 
         it 'parses resource matcher' do
-          expect(actual_rule.matcher.resource).to eq('test-resource')
+          expect(actual_rule.matcher.resource).to eq(/\Atest_resource\z/i)
         end
       end
 
       context 'and tags' do
-        let(:rule) { { sample_rate: 0.1, tags: { tag: 'test-tag' } } }
+        let(:rule) { { sample_rate: 0.1, tags: { tag: 'test_tag' } } }
 
         it 'parses matching tag' do
-          expect(actual_rule.matcher.tags).to eq({ 'tag' => 'test-tag' })
+          expect(actual_rule.matcher.tags).to eq('tag' => /\Atest_tag\z/i)
           expect(actual_rule.sampler.sample_rate).to eq(0.1)
         end
       end
@@ -272,7 +272,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
             it_behaves_like 'a sampled! trace' do
               let(:expected_sampled) { true }
               let(:sampling_priority) { 2 }
-              let(:sampling_decision) { '-10' }
+              let(:sampling_decision) { '-11' }
             end
           end
 
@@ -282,7 +282,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
             it_behaves_like 'a sampled! trace' do
               let(:expected_sampled) { true }
               let(:sampling_priority) { 2 }
-              let(:sampling_decision) { '-11' }
+              let(:sampling_decision) { '-12' }
             end
           end
         end
