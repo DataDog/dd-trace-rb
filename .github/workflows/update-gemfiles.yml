@@ -65,6 +65,9 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
+        name: Remove obsolete gemfiles/*
+        run: bundle exec rake appraisal:clean
+      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
         name: Ensure gemfiles/*.gemfile.lock match gem definition
         run: bundle exec rake appraisal:lock
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
