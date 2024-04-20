@@ -152,6 +152,44 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       sh docker(ruby_version, cmd).join(' ')
     end
   end
+
+  desc 'Remove obsolete appraisal files that are not used by the test matrix'
+  task :clean do
+    appraisal_files = Dir.glob('gemfiles/*')
+
+    ruby_versions = ['2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3']
+    jruby_cruby_mapping = {
+      '9.4' => '3.1',
+      '9.3' => '2.6',
+      '9.2' => '2.5'
+    }
+
+    TEST_METADATA.each do |_, spec_metadata|
+      spec_metadata.each do |group, versions|
+        ruby_versions.each do |ruby_version|
+          next unless versions.include?("✅ #{ruby_version}")
+
+          appraisal_files -= [
+            "gemfiles/ruby_#{ruby_version}_#{group.tr('-', '_')}.gemfile",
+            "gemfiles/ruby_#{ruby_version}_#{group.tr('-', '_')}.gemfile.lock"
+          ]
+        end
+
+        next unless versions.include?('✅ jruby')
+
+        jruby_cruby_mapping.each do |jruby_version, ruby_version|
+          next unless versions.include?("✅ #{ruby_version}")
+
+          appraisal_files -= [
+            "gemfiles/jruby_#{jruby_version}_#{group.tr('-', '_')}.gemfile",
+            "gemfiles/jruby_#{jruby_version}_#{group.tr('-', '_')}.gemfile.lock"
+          ]
+        end
+      end
+    end
+
+    FileUtils.rm(appraisal_files)
+  end
 end
 
 TRACER_VERSIONS = [
