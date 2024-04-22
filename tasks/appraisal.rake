@@ -158,6 +158,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
     appraisal_files = Dir.glob('gemfiles/*')
 
     ruby_versions = ['2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3']
+    # JRuby skips 2.7 and 3.0
     jruby_cruby_mapping = {
       '9.4' => '3.1',
       '9.3' => '2.6',
