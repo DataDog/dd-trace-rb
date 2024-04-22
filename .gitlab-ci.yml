@@ -135,6 +135,7 @@ package-amd64:
     - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
+    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
 
 package-arm64:
   extends: .package-arm
@@ -146,6 +147,7 @@ package-arm64:
     - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
+    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
 
 onboarding_tests:
   extends: .base_job_onboarding_tests
