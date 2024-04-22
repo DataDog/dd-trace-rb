@@ -360,10 +360,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         context 'when thread has a tracer context, and a trace is in progress' do
           let(:root_span_type) { 'not-web' }
+          let(:root_span_name) { 'profiler.test '}
 
           let(:t1) do
             Thread.new(ready_queue) do |ready_queue|
-              Datadog::Tracing.trace('profiler.test', type: root_span_type) do |_span, trace|
+              Datadog::Tracing.trace(root_span_name, type: root_span_type) do |_span, trace|
                 @t1_trace = trace
 
                 Datadog::Tracing.trace('profiler.test.inner') do |inner_span|
@@ -402,7 +403,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             it 'includes the "trace endpoint" label in the samples' do
               sample
 
-              expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+              expect(t1_sample.labels).to include(:'trace endpoint' => root_span_name)
             end
 
             context 'when endpoint_collection_enabled is false' do
@@ -427,7 +428,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             describe 'trace vs root span resource mutation' do
               let(:t1) do
                 Thread.new(ready_queue) do |ready_queue|
-                  Datadog::Tracing.trace('profiler.test', type: root_span_type) do |span, trace|
+                  Datadog::Tracing.trace(root_span_name, type: root_span_type) do |span, trace|
                     trace.resource = trace_resource
                     span.resource = root_span_resource
 
@@ -525,7 +526,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           context 'when local root span type is worker' do
             let(:root_span_type) { 'worker' }
 
-            it_behaves_like 'samples with code hotspots information'
+            it 'does not include the "trace endpoint" label' do
+              sample
+
+              expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+            end
+
+            context 'when local root span name ends with .job' do
+              let(:root_span_name) { 'profiler.job' }
+
+              it_behaves_like 'samples with code hotspots information'
+            end
           end
 
           def self.otel_sdk_available?

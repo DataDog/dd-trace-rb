@@ -82,6 +82,7 @@ static ID at_id_id;           // id of :@id in Ruby
 static ID at_resource_id;     // id of :@resource in Ruby
 static ID at_root_span_id;    // id of :@root_span in Ruby
 static ID at_type_id;         // id of :@type in Ruby
+static ID at_name_id;         // id of :@name in Ruby
 static ID at_otel_values_id;  // id of :@otel_values in Ruby
 static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
 static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
@@ -218,6 +219,7 @@ static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static VALUE _native_gc_tracking(VALUE self, VALUE collector_instance);
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
 static bool should_collect_resource(VALUE root_span);
+static bool should_collect_worker_resource(VALUE root_span);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object);
@@ -268,6 +270,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_resource_id = rb_intern_const("@resource");
   at_root_span_id = rb_intern_const("@root_span");
   at_type_id = rb_intern_const("@type");
+  at_name_id = rb_intern_const("@name");
   at_otel_values_id = rb_intern_const("@otel_values");
   at_parent_span_id_id = rb_intern_const("@parent_span_id");
   at_datadog_trace_id = rb_intern_const("@datadog_trace");
@@ -1182,7 +1185,23 @@ static bool should_collect_resource(VALUE root_span) {
   bool is_worker_request =
     (root_span_type_length == strlen("worker") && (memcmp("worker", root_span_type_value, strlen("worker")) == 0));
 
-  return is_worker_request;
+  return is_worker_request && should_collect_worker_resource(root_span);
+}
+
+// Worker instrumentation also includes a bunch of internal stuff, and we want to focus only on job execution
+// (e.g. when the root span ends with '.job')
+static bool should_collect_worker_resource(VALUE root_span) {
+  VALUE root_span_name = rb_ivar_get(root_span, at_name_id);
+  if (root_span_name == Qnil) return false;
+  ENFORCE_TYPE(root_span_name, T_STRING);
+
+  int root_span_name_length = RSTRING_LEN(root_span_name);
+  if (root_span_name_length < (int) strlen(".job")) return false;
+
+  const char *root_span_name_value = StringValuePtr(root_span_name);
+  bool is_job = memcmp(".job", root_span_name_value + root_span_name_length - strlen(".job"), strlen(".job")) == 0;
+
+  return is_job;
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
