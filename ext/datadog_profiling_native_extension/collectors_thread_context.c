@@ -1157,11 +1157,12 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
   }
 }
 
-// We only collect the resource for spans of types:
+// We opt-in to collecting the resource for spans of types:
 // * 'web', for web requests
-// * proxy', used by the rack integration with request_queuing: true (e.g. also represents a web request)
+// * 'proxy', used by the rack integration with request_queuing: true (e.g. also represents a web request)
+// * 'worker', used for sidekiq and similar background job processors
 //
-// NOTE: Currently we're only interested in HTTP service endpoints. Over time, this list may be expanded.
+// Over time, this list may be expanded.
 // Resources MUST NOT include personal identifiable information (PII); this should not be the case with
 // ddtrace integrations, but worth mentioning just in case :)
 static bool should_collect_resource(VALUE root_span) {
@@ -1172,8 +1173,16 @@ static bool should_collect_resource(VALUE root_span) {
   int root_span_type_length = RSTRING_LEN(root_span_type);
   const char *root_span_type_value = StringValuePtr(root_span_type);
 
-  return (root_span_type_length == strlen("web") && (memcmp("web", root_span_type_value, strlen("web")) == 0)) ||
+  bool is_web_request =
+    (root_span_type_length == strlen("web") && (memcmp("web", root_span_type_value, strlen("web")) == 0)) ||
     (root_span_type_length == strlen("proxy") && (memcmp("proxy", root_span_type_value, strlen("proxy")) == 0));
+
+  if (is_web_request) return true;
+
+  bool is_worker_request =
+    (root_span_type_length == strlen("worker") && (memcmp("worker", root_span_type_value, strlen("worker")) == 0));
+
+  return is_worker_request;
 }
 
 // After the Ruby VM forks, this method gets called in the child process to clean up any leftover state from the parent.
