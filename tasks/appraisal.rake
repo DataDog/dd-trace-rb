@@ -33,7 +33,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 
   def docker(ruby_version, cmd)
     [
-      'docker-compose', 'run',
+      'docker compose', 'run',
       '--no-deps',                                   # don't start services
       '-e', 'APPRAISAL_GROUP',                       # pass appraisal group if defined
       '-e', 'APPRAISAL_SKIP_BUNDLE_CHECK',           # pass appraisal check skip if defined
