@@ -21,13 +21,16 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:start) { Time.now }
   let(:finish) { start + 60 }
   let(:pprof_data) { 'dummy pprof data' }
+  let(:profile_stats) { { stat1: 1, stat2: 'a string', stat3: true } }
   let(:code_provenance_data) { 'dummy code provenance data' }
-  let(:pprof_recorder_serialize) { [start, finish, pprof_data] }
-  let(:pprof_recorder) { instance_double(Datadog::Profiling::StackRecorder, serialize: pprof_recorder_serialize) }
+  let(:pprof_recorder_serialize) { [start, finish, pprof_data, profile_stats] }
+  let(:pprof_recorder) do
+    instance_double(Datadog::Profiling::StackRecorder, serialize: pprof_recorder_serialize, stats: recorder_stats)
+  end
   let(:worker) do
     # TODO: Change this to a direct reference when we drop support for old Rubies which currently error if we try
     #       to `require 'profiling/collectors/cpu_and_wall_time_worker'`
-    instance_double('Datadog::Profiling::Collectors::CpuAndWallTimeWorker', stats_and_reset_not_thread_safe: stats)
+    instance_double('Datadog::Profiling::Collectors::CpuAndWallTimeWorker', stats_and_reset_not_thread_safe: worker_stats)
   end
   let(:code_provenance_collector) do
     collector = instance_double(Datadog::Profiling::Collectors::CodeProvenance, generate_json: code_provenance_data)
@@ -40,10 +43,16 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
   let(:options) { {} }
-  let(:stats) do
+  let(:worker_stats) do
     {
       statA: 123,
       statB: 456,
+    }
+  end
+  let(:recorder_stats) do
+    {
+      statC: 987,
+      statD: 654,
     }
   end
 
@@ -63,7 +72,9 @@ RSpec.describe Datadog::Profiling::Exporter do
       expect(JSON.parse(flush.internal_metadata_json, symbolize_names: true)).to match(
         {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
-          worker_stats: stats,
+          worker_stats: worker_stats,
+          recorder_stats: recorder_stats,
+          profile_stats: profile_stats,
           # GC stats are slightly different between ruby versions.
           gc: hash_including(:count, :total_freed_objects),
         }

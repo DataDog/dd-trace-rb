@@ -62,6 +62,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     let(:start) { serialize[0] }
     let(:finish) { serialize[1] }
     let(:encoded_pprof) { serialize[2] }
+    let(:profile_stats) { serialize[3] }
 
     let(:decoded_profile) { decode_profile(encoded_pprof) }
 
@@ -223,6 +224,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
+      it 'returns stats reporting no recorded samples' do
+        expect(profile_stats).to match(
+          hash_including(
+            :recorded_samples => 0,
+            :serialization_time_ns => be > 0,
+            :heap_iteration_prep_time_ns => be >= 0,
+            :heap_profile_build_time_ns => be >= 0,
+          )
+        )
+      end
+
       def sample_types_from(decoded_profile)
         strings = decoded_profile.string_table
         decoded_profile.sample_type.map { |sample_type| [strings[sample_type.type], strings[sample_type.unit]] }.to_h
@@ -284,6 +296,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           has_filenames: false,
           has_line_numbers: false,
           has_inline_frames: false,
+        )
+      end
+
+      it 'returns stats reporting one recorded sample' do
+        expect(profile_stats).to match(
+          hash_including(
+            :recorded_samples => 1,
+            :serialization_time_ns => be > 0,
+            :heap_iteration_prep_time_ns => be >= 0,
+            :heap_profile_build_time_ns => be >= 0,
+          )
         )
       end
     end
@@ -574,6 +597,31 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
         end
 
+        it 'contribute to recorded samples stats' do
+          test_num_allocated_object = 123
+          live_objects = Array.new(test_num_allocated_object)
+
+          test_num_allocated_object.times do |i|
+            live_objects[i] = "this is string number #{i}"
+            sample_allocation(live_objects[i])
+          end
+
+          GC.start # Force a GC so the live_objects above have age > 0 and show up in heap samples
+
+          # All allocations done in the before + all those done here
+          expected_allocation_samples = @num_allocations + test_num_allocated_object
+          # a_string, an_array, a_hash plus all the strings in live_objects
+          expected_heap_samples = 3 + test_num_allocated_object
+
+          expect(profile_stats).to match(
+            hash_including(
+              :recorded_samples => expected_allocation_samples + expected_heap_samples,
+              :heap_iteration_prep_time_ns => be > 0,
+              :heap_profile_build_time_ns => be > 0,
+            )
+          )
+        end
+
         context 'with custom heap sample rate configuration' do
           let(:heap_sample_every) { 2 }
 
@@ -827,7 +875,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
 
         # Sanity check: validate that data is there, to avoid the test passing because of other issues
-        sanity_check_samples = samples_from_pprof(stack_recorder.serialize.last)
+        sanity_check_samples = samples_from_pprof(stack_recorder.serialize[2])
         expect(sanity_check_samples.size).to be 1
 
         # Add some data, again
@@ -837,8 +885,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         reset_after_fork
 
         # Test twice in a row to validate that both profile slots are empty
-        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
-        expect(samples_from_pprof(stack_recorder.serialize.last)).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize[2])).to be_empty
+        expect(samples_from_pprof(stack_recorder.serialize[2])).to be_empty
       end
     end
 
@@ -849,6 +897,119 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       reset_after_fork
 
       expect(stack_recorder.serialize.first).to be >= now
+    end
+  end
+
+  describe '#stats' do
+    it 'returns basic lifetime stats of stack recorder' do
+      num_serializations = 5
+
+      num_serializations.times do
+        stack_recorder.serialize
+      end
+
+      stats = stack_recorder.stats
+
+      expect(stats).to match(
+        hash_including(
+          :serialization_successes => num_serializations,
+          :serialization_failures => 0,
+
+          :serialization_time_ns_min => be > 0,
+          :serialization_time_ns_max => be > 0,
+          :serialization_time_ns_avg => be > 0,
+          :serialization_time_ns_total => be > 0,
+
+          :heap_recorder_snapshot => nil,
+        )
+      )
+
+      serialization_time_min, serialization_time_max, serialization_time_avg, serialization_time_total =
+        stats.values_at(
+          :serialization_time_ns_min,
+          :serialization_time_ns_max,
+          :serialization_time_ns_avg,
+          :serialization_time_ns_total
+        )
+
+      expect(serialization_time_min).to be <= serialization_time_avg
+      expect(serialization_time_avg).to be <= serialization_time_max
+      expect(serialization_time_total).to be_within(1e-4).of(serialization_time_avg * num_serializations)
+    end
+
+    context 'with heap profiling enabled' do
+      let(:heap_samples_enabled) { true }
+      let(:heap_size_enabled) { true }
+
+      before do
+        skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
+      end
+
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts('Heap recorder debugging info:')
+          puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
+        end
+      end
+
+      def sample_allocation(obj)
+        # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
+        described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
+        Datadog::Profiling::Collectors::Stack::Testing
+          ._native_sample(Thread.current, stack_recorder, { 'alloc-samples' => 1 }, [], [], 400, false)
+      end
+
+      it 'includes heap recorder snapshot' do
+        live_objects = []
+        live_heap_samples = 6
+        live_heap_samples.times do |i|
+          obj = Object.new
+          obj.freeze if i.odd? # Freeze every other object
+          sample_allocation(obj)
+          live_objects << obj
+        end
+        dead_heap_samples = 10
+        dead_heap_samples.times do |_i|
+          obj = Object.new
+          sample_allocation(obj)
+        end
+        GC.start # All dead objects above will be GCed, all living strings will have age = 0
+
+        begin
+          # Allocate some extra objects in a block with GC disabled and ask for a serialization
+          # to ensure these strings have age=0 by the time we try to serialize the profile
+          GC.disable
+          age0_heap_samples = 3
+          age0_heap_samples.times do |_i|
+            obj = Object.new
+            sample_allocation(obj)
+          end
+          stack_recorder.serialize
+        ensure
+          GC.enable
+        end
+
+        expect(stack_recorder.stats).to match(
+          hash_including(
+            :heap_recorder_snapshot => hash_including(
+              # Records for dead objects should have gone away
+              :num_object_records => live_heap_samples + age0_heap_samples,
+              # We allocate from 3 different locations in this test but only 2
+              # of them are for objects which should be alive at serialization time
+              :num_heap_records => 2,
+
+              # The update done during serialization should reflect the
+              # state of the tracked heap objects at that time
+              :last_update_objects_alive => live_heap_samples,
+              :last_update_objects_dead => dead_heap_samples,
+              :last_update_objects_skipped => age0_heap_samples,
+              :last_update_objects_frozen => live_heap_samples / 2,
+            )
+          )
+        )
+      end
     end
   end
 
