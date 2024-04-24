@@ -834,6 +834,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(true)
         end
       end
+
+      describe '#dir_interruption_workaround_enabled' do
+        subject(:dir_interruption_workaround_enabled) { settings.profiling.advanced.dir_interruption_workaround_enabled }
+
+        context 'when DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be true }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#dir_interruption_workaround_enabled=' do
+        it 'updates the #dir_interruption_workaround_enabled setting from its default of true' do
+          expect { settings.profiling.advanced.dir_interruption_workaround_enabled = false }
+            .to change { settings.profiling.advanced.dir_interruption_workaround_enabled }
+            .from(true)
+            .to(false)
+        end
+      end
     end
 
     describe '#upload' do
