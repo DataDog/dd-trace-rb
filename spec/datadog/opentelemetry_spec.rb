@@ -322,13 +322,13 @@ RSpec.describe Datadog::OpenTelemetry do
         let(:sc1) do
           OpenTelemetry::Trace::SpanContext.new(
             trace_id: ['000000000000006d5b953ca4d9c834ab'].pack('H*'),
-            span_id: [67893423423].pack('Q')
+            span_id: ['0000000fcec36d3f'].pack('H*')
           )
         end
         let(:sc2) do
           OpenTelemetry::Trace::SpanContext.new(
-            trace_id: ['12d666'].pack('H*'),
-            span_id: [67890].pack('Q'),
+            trace_id: ['0000000000000000000000000012d666'].pack('H*'),
+            span_id: ['000000000000000a'].pack('H*'),
             trace_flags: OpenTelemetry::Trace::TraceFlags::SAMPLED,
             tracestate: OpenTelemetry::Trace::Tracestate.from_string('otel=blahxd')
           )
@@ -353,7 +353,7 @@ RSpec.describe Datadog::OpenTelemetry do
 
           expect(span.links[1].trace_id).to eq(1234534)
           expect(span.links[1].span_id).to eq(67890)
-          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_flags).to eq(10)
           expect(span.links[1].trace_state).to eq(sc2.tracestate.to_s)
           expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
         end

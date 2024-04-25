@@ -35,10 +35,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links
-
-      attr_accessor \
-        :status
+      attr_accessor :links, :status
 
       def initialize(
         name,
@@ -68,6 +65,7 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
+        # stores array of span links
         @links = links || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
@@ -261,7 +259,8 @@ module Datadog
 
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
-        return @end_time - @start_time if @start_time && @end_time
+
+        @end_time - @start_time if @start_time && @end_time
       end
 
       def set_error(e)

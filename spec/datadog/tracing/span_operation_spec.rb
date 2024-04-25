@@ -8,6 +8,8 @@ require 'datadog/core/logger'
 
 require 'datadog/tracing/metadata/ext'
 require 'datadog/tracing/span_operation'
+require 'datadog/tracing/span_link'
+require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/span'
 require 'datadog/tracing/utils'
 
@@ -231,6 +233,25 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       describe ':service' do
         it_behaves_like 'a string property' do
           let(:property) { :service }
+        end
+      end
+
+      describe ':links' do
+        let(:options) { { links: span_links } }
+
+        context 'that is an Array' do
+          let(:span_links) do
+            [Datadog::Tracing::SpanLink.new(
+              digest: Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
+              attributes: { "link.name": 'moon' }
+            )]
+          end
+          it { is_expected.to have_attributes(links: span_links) }
+        end
+
+        context 'that is nil' do
+          let(:span_links) { nil }
+          it { is_expected.to have_attributes(links: []) }
         end
       end
 
