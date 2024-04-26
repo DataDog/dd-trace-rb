@@ -41,13 +41,19 @@ module Datadog
       attr_reader :dropped_attributes
 
       def initialize(
-        attributes: nil,
-        digest: nil
+        digest,
+        attributes: nil
       )
-        @span_id = digest&.span_id
-        @trace_id = digest&.trace_id
-        @trace_flags = digest&.trace_flags
-        @trace_state = digest&.trace_state && digest&.trace_state.dup
+        @span_id = digest.span_id
+        @trace_id = digest.trace_id
+        @trace_flags = if digest.trace_sampling_priority.nil?
+                         nil
+                       elsif digest.trace_sampling_priority > 0
+                         1
+                       else
+                         0
+                       end
+        @trace_state = digest.trace_state && digest.trace_state.dup
         @dropped_attributes = 0
         @attributes = (attributes && attributes.dup) || {}
       end
