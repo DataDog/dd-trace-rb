@@ -18,7 +18,7 @@ variables:
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
-    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch tonycthsu/ruby-gitlab-with-datadog-gem https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
@@ -31,9 +31,7 @@ variables:
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
 
-    # DEV: This variable is consumed by the reliability environment
-    #      (TODO) Update this variable to reflect "DATADOG" instead of "DDTRACE" as a name?
-    DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
+    ADD_TO_GEMFILE: "gem 'datadog', require: 'datadog/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
     K6_OPTIONS_NORMAL_OPERATION_DURATION: 10m
@@ -94,27 +92,6 @@ only-profiling-heap:
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
 
-only-profiling-heap-size:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
-
-only-profiling-heap-size-sample-rate-1:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE: "1"
-
 profiling-and-tracing:
   extends: .benchmarks
   variables:
@@ -128,13 +105,6 @@ tracing-and-appsec:
     DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
     DD_APPSEC_ENABLED: "true"
 
-tracing-and-appsec-and-no-remote-configuration:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
-    DD_APPSEC_ENABLED: "true"
-    DD_REMOTE_CONFIGURATION_ENABLED: "false"
-
 profiling-and-tracing-and-appsec:
   extends: .benchmarks
   variables:
@@ -142,15 +112,6 @@ profiling-and-tracing-and-appsec:
     DD_APPSEC_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-
-candidate-tracer-appsec-with-api-security:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security"
-    DD_PROFILING_ENABLED: "false"
-    DD_APPSEC_ENABLED: "true"
-    DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
-    DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
