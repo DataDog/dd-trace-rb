@@ -60,7 +60,7 @@ jobs:
               - appraisal/**
               - gemfiles/**
       - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
