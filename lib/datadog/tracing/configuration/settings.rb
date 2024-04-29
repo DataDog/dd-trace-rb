@@ -274,6 +274,7 @@ module Datadog
                 # @return [String,nil]
                 # @public_api
                 option :rules do |o|
+                  o.type :string, nilable: true
                   o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                 end
 

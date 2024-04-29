@@ -19,9 +19,10 @@ RSpec.describe Datadog::Tracing::Sampling::Rule do
   let(:trace_resource) { 'test-resource' }
   let(:trace_tags) { {} }
 
-  let(:rule) { described_class.new(matcher, sampler) }
+  let(:rule) { described_class.new(matcher, sampler, provenance) }
   let(:matcher) { instance_double(Datadog::Tracing::Sampling::Matcher) }
   let(:sampler) { instance_double(Datadog::Tracing::Sampling::Sampler) }
+  let(:provenance) { double('provenance') }
 
   describe '#match?' do
     subject(:match) { rule.match?(trace_op) }
