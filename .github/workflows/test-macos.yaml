@@ -12,9 +12,9 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
+          - macos-13
         ruby:
-          # - '2.5' # Skipping because 404 Not Found: https://github.com/ruby/ruby-builder/releases/download/toolcache/ruby-2.5.9-macos-13-arm64.tar.gz
+          - '2.5'
           - '2.6'
           - '2.7'
           - '3.0'
