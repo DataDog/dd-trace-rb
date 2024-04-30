@@ -11,7 +11,7 @@ variables:
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
   rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
+    - if: $CI_COMMIT_REF_NAME == "1.x-stable"
       when: always
     - when: manual
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
@@ -29,8 +29,18 @@ variables:
     # Benchmark's env variables. Modify to tweak benchmark parameters.
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
+    # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
+    # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
+    # But in practice the endpoints we test it aren't affected, so we prefer to run the profiler in its default,
+    # better accuracy, mode.
+    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-    DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
+    # Default `false` for all features, overwrite by each variants.
+    DD_TRACE_ENABLED: "false"
+    DD_PROFILING_ENABLED: "false"
+    DD_APPSEC_ENABLED: "false"
+
+    ADD_TO_GEMFILE: "gem 'ddtrace', require: 'ddtrace/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
     K6_OPTIONS_NORMAL_OPERATION_DURATION: 10m
@@ -62,24 +72,19 @@ only-tracing:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
+    DD_TRACE_ENABLED: "true"
 
 only-profiling:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
-    # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
-    # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
-    # But in practice the endpoints we test it aren't affected, so we prefer to run the profiler in its default,
-    # better accuracy, mode.
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
 only-profiling-alloc:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
 
 only-profiling-heap:
@@ -87,67 +92,30 @@ only-profiling-heap:
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-
-only-profiling-heap-size:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
-
-only-profiling-heap-size-sample-rate-1:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE: "1"
 
 profiling-and-tracing:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
+    DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
 tracing-and-appsec:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
+    DD_TRACE_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
-
-tracing-and-appsec-and-no-remote-configuration:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
-    DD_APPSEC_ENABLED: "true"
-    DD_REMOTE_CONFIGURATION_ENABLED: "false"
 
 profiling-and-tracing-and-appsec:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
-    DD_APPSEC_ENABLED: "true"
+    DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-
-candidate-tracer-appsec-with-api-security:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: "tracing-and-appsec-with-api-security"
-    DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "true"
-    DD_EXPERIMENTAL_API_SECURITY_ENABLED: "true"
-    DD_API_SECURITY_REQUEST_SAMPLE_RATE: "1.0"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
