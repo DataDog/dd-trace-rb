@@ -35,6 +35,11 @@ variables:
     # better accuracy, mode.
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
+    # Default `false` for all features, overwrite by each variants.
+    DD_TRACE_ENABLED: "false"
+    DD_PROFILING_ENABLED: "false"
+    DD_APPSEC_ENABLED: "false"
+
     ADD_TO_GEMFILE: "gem 'ddtrace', require: 'ddtrace/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
@@ -68,33 +73,25 @@ only-tracing:
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-tracing
     DD_TRACE_ENABLED: "true"
-    DD_PROFILING_ENABLED: "false"
-    DD_APPSEC_ENABLED: "false"
 
 only-profiling:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_TRACE_ENABLED: "false"
     DD_PROFILING_ENABLED: "true"
-    DD_APPSEC_ENABLED: "false"
 
 only-profiling-alloc:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_TRACE_ENABLED: "false"
     DD_PROFILING_ENABLED: "true"
-    DD_APPSEC_ENABLED: "false"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
 
 only-profiling-heap:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_TRACE_ENABLED: "false"
     DD_PROFILING_ENABLED: "true"
-    DD_APPSEC_ENABLED: "false"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
 
@@ -104,14 +101,12 @@ profiling-and-tracing:
     DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
     DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
-    DD_APPSEC_ENABLED: "false"
 
 tracing-and-appsec:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
     DD_TRACE_ENABLED: "true"
-    DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "true"
 
 profiling-and-tracing-and-appsec:
