@@ -34,6 +34,10 @@ module Datadog
             nil
           end
 
+          def code
+            nil
+          end
+
           def inspect
             "#{self.class} ok?:#{ok?} unsupported?:#{unsupported?}, " \
             "not_found?:#{not_found?}, client_error?:#{client_error?}, " \
