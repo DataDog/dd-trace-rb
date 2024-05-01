@@ -1,5 +1,7 @@
 require 'datadog/profiling/spec_helper'
 
+require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
+
 RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   before { skip_if_profiling_not_supported(self) }
 

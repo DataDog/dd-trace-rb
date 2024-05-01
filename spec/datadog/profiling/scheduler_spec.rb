@@ -1,5 +1,7 @@
 require 'datadog/profiling/spec_helper'
 
+require 'datadog/profiling/scheduler'
+
 RSpec.describe Datadog::Profiling::Scheduler do
   before { skip_if_profiling_not_supported(self) }
 
