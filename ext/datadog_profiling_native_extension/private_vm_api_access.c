@@ -129,12 +129,7 @@ bool is_current_thread_holding_the_gvl(void) {
   }
 #else
   current_gvl_owner gvl_owner(void) {
-    rb_vm_t *vm =
-      #ifndef NO_GET_VM
-        GET_VM();
-      #else
-        thread_struct_from_object(rb_thread_current())->vm;
-      #endif
+    rb_vm_t *vm = GET_VM();
 
     // BIG Issue: Ruby < 2.6 did not have the owner field. The really nice thing about the owner field is that it's
     // "atomic" -- when a thread sets it, it "declares" two things in a single step
@@ -163,7 +158,7 @@ bool is_current_thread_holding_the_gvl(void) {
     //
     // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
     //
-    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 and below by default, and we print a
+    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 by default, and we print a
     // warning when customers force-enable it.
     bool gvl_acquired = vm->gvl.acquired != 0;
     rb_thread_t *current_owner = vm->running_thread;
@@ -213,12 +208,7 @@ uint64_t native_thread_id_for(VALUE thread) {
 // Returns the stack depth by using the same approach as rb_profile_frames and backtrace_each: get the positions
 // of the end and current frame pointers and subtracting them.
 ptrdiff_t stack_depth_for(VALUE thread) {
-  #ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
-    const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
-  #else // Ruby < 2.5
-    const rb_thread_t *ec = thread_struct_from_object(thread);
-  #endif
-
+  const rb_execution_context_t *ec = thread_struct_from_object(thread)->ec;
   const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
 
   if (end_cfp == NULL) return 0;
@@ -253,12 +243,7 @@ void ddtrace_thread_list(VALUE result_array) {
     rb_ractor_t *current_ractor = ddtrace_get_ractor();
     ccan_list_for_each(&current_ractor->threads.set, thread, lt_node) {
   #else
-    rb_vm_t *vm =
-      #ifndef NO_GET_VM
-        GET_VM();
-      #else
-        thread_struct_from_object(rb_thread_current())->vm;
-      #endif
+    rb_vm_t *vm = GET_VM();
     list_for_each(&vm->living_threads, thread, vmlt_node) {
   #endif
       switch (thread->status) {
@@ -394,13 +379,6 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Add thread argument
 // * Add is_ruby_frame argument
 // * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
-// * Support Ruby < 2.5 by using rb_thread_t instead of rb_execution_context_t (which did not exist and was just
-//   part of rb_thread_t)
-// * Support Ruby < 2.4 by using `RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)` instead of `VM_FRAME_RUBYFRAME_P(cfp)`.
-//   Given that the Ruby 2.3 version of `rb_profile_frames` did not support native methods and thus did not need this
-//   check, how did I figure out what to replace it with? I did it by looking at other places in the VM code where the
-//   code looks exactly the same but Ruby 2.4 uses `VM_FRAME_RUBYFRAME_P` whereas Ruby 2.3 used `RUBY_VM_NORMAL_ISEQ_P`.
-//   Examples of these are `errinfo_place` in `eval.c`, `rb_vm_get_ruby_level_next_cfp` (among others) in `vm.c`, etc.
 // * Skip dummy frame that shows up in main thread
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
 //   `vm_backtrace.c` (`backtrace_each`, `backtrace_size`, `rb_ec_partial_backtrace_object`) but are conspicuously
@@ -449,11 +427,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
     // support sampling any thread (including the current) passed as an argument
     rb_thread_t *th = thread_struct_from_object(thread);
-    #ifndef USE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT // Modern Rubies
-      const rb_execution_context_t *ec = th->ec;
-    #else // Ruby < 2.5
-      const rb_thread_t *ec = th;
-    #endif
+    const rb_execution_context_t *ec = th->ec;
     const rb_control_frame_t *cfp = ec->cfp, *end_cfp = RUBY_VM_END_CONTROL_FRAME(ec);
     #ifndef NO_JIT_RETURN
       const rb_control_frame_t *top = cfp;
@@ -499,11 +473,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
           // rb_profile_frames does not do this check, but `backtrace_each` (`vm_backtrace.c`) does. This frame is not
           // exposed by the Ruby backtrace APIs and for now we want to match its behavior 1:1
         }
-#ifndef USE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P // Modern Rubies
         else if (VM_FRAME_RUBYFRAME_P(cfp)) {
-#else // Ruby < 2.4
-        else if (RUBY_VM_NORMAL_ISEQ_P(cfp->iseq)) {
-#endif
             if (start > 0) {
                 start--;
                 continue;
@@ -719,51 +689,27 @@ check_method_entry(VALUE obj, int can_be_svar)
     }
 }
 
-#ifndef USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
-  // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
-  // Copyright (C) 2007 Koichi Sasada
-  // to support our custom rb_profile_frames (see above)
-  //
-  // While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
-  // `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
-  //
-  // Modifications: None
-  MJIT_STATIC const rb_callable_method_entry_t *
-  rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
-  {
-      const VALUE *ep = cfp->ep;
-      rb_callable_method_entry_t *me;
+// Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
+// Copyright (C) 2007 Koichi Sasada
+// to support our custom rb_profile_frames (see above)
+//
+// While older Rubies may have this function, the symbol is not exported which leads to dynamic loader issues, e.g.
+// `dyld: lazy symbol binding failed: Symbol not found: _rb_vm_frame_method_entry`.
+//
+// Modifications: None
+MJIT_STATIC const rb_callable_method_entry_t *
+rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
+{
+    const VALUE *ep = cfp->ep;
+    rb_callable_method_entry_t *me;
 
-      while (!VM_ENV_LOCAL_P(ep)) {
-          if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
-          ep = VM_ENV_PREV_EP(ep);
-      }
+    while (!VM_ENV_LOCAL_P(ep)) {
+        if ((me = check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], FALSE)) != NULL) return me;
+        ep = VM_ENV_PREV_EP(ep);
+    }
 
-      return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
-  }
-#else
-  // Taken from upstream vm_insnhelper.c at commit 556e9f726e2b80f6088982c6b43abfe68bfad591 (October 2018, ruby_2_3 branch)
-  // Copyright (C) 2007 Koichi Sasada
-  // to support our custom rb_profile_frames (see above)
-  //
-  // Quite a few macros in this function changed after Ruby 2.3. Rather than trying to fix the Ruby 3.2 version to work
-  // with 2.3 constants, I decided to import the Ruby 2.3 version.
-  //
-  // Modifications: None
-  const rb_callable_method_entry_t *
-  rb_vm_frame_method_entry(const rb_control_frame_t *cfp)
-  {
-      VALUE *ep = cfp->ep;
-      rb_callable_method_entry_t *me;
-
-      while (!VM_EP_LEP_P(ep)) {
-          if ((me = check_method_entry(ep[-1], FALSE)) != NULL) return me;
-          ep = VM_EP_PREV_EP(ep);
-      }
-
-      return check_method_entry(ep[-1], TRUE);
-  }
-#endif // USE_LEGACY_RB_VM_FRAME_METHOD_ENTRY
+    return check_method_entry(ep[VM_ENV_DATA_INDEX_ME_CREF], TRUE);
+}
 #endif // RUBY_MJIT_HEADER
 
 #ifndef NO_RACTORS
@@ -880,13 +826,6 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 // This is used to workaround a VM bug. See "handle_sampling_signal" in "collectors_cpu_and_wall_time_worker" for details.
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
-    rb_vm_t *vm =
-      #ifndef NO_GET_VM // TODO: Inline GET_VM below once we drop support in dd-trace-rb 2.x for < Ruby 2.5
-        GET_VM();
-      #else
-        thread_struct_from_object(rb_thread_current())->vm;
-      #endif
-
-    return vm->objspace;
+    return GET_VM()->objspace;
   }
 #endif

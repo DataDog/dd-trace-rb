@@ -21,7 +21,6 @@ module ProfileHelpers
   def skip_if_profiling_not_supported(testcase)
     testcase.skip('Profiling is not supported on JRuby') if PlatformHelpers.jruby?
     testcase.skip('Profiling is not supported on TruffleRuby') if PlatformHelpers.truffleruby?
-    testcase.skip('Profiling is not supported on Ruby 2.1/2.2') if RUBY_VERSION.start_with?('2.1.', '2.2.')
 
     # Profiling is not officially supported on macOS due to missing libdatadog binaries,
     # but it's still useful to allow it to be enabled for development.

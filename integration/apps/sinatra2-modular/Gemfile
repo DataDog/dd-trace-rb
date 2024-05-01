@@ -13,10 +13,7 @@ gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 # Development
 gem 'pry-byebug'
-# gem 'pry-stack_explorer', platform: :ruby
-# gem 'rbtrace'
-# gem 'ruby-prof'
 gem 'rspec'
 gem 'rspec-wait'
-gem 'webrick' if RUBY_VERSION >= '2.3' # Older Rubies can just use the built-in version of webrick
+gem 'webrick'
 gem 'rackup'

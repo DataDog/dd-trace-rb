@@ -14,7 +14,7 @@ RSpec.describe 'Basic scenarios' do
 
     let(:json_result) { JSON.parse(subject.body, symbolize_names: true) }
 
-    let(:expected_profiler_available) { RUBY_VERSION >= '2.3' }
+    let(:expected_profiler_available) { true }
 
     let(:expected_profiler_threads) do
       expected_profiler_available ? contain_exactly(

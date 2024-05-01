@@ -243,7 +243,7 @@ module Datadog
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
         setting_value = settings.profiling.advanced.no_signals_workaround_enabled
-        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.5.')
 
         unless [true, false, :auto].include?(setting_value)
           Datadog.logger.error(
