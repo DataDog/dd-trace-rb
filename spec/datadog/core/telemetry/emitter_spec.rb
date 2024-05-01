@@ -74,6 +74,21 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
             expect(emitter.class.sequence.instance_variable_get(:@current)).to be(original_seq_id + 1)
           end
         end
+
+        context 'when call is not successful and debug logging is enabled' do
+          let(:response) do
+            Datadog::Core::Telemetry::Http::InternalErrorResponse.new(StandardError.new('Failed call'))
+          end
+
+          it 'logs the request correctly' do
+            log_message = nil
+            expect(Datadog.logger).to receive(:debug) { |&message| log_message = message.call }
+
+            request
+
+            expect(log_message).to match('Telemetry sent for event')
+          end
+        end
       end
     end
 
