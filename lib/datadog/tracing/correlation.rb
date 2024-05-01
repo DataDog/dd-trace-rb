@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'utils'
-require_relative 'metadata/ext'
 require_relative '../core/logging/ext'
 
 module Datadog
@@ -36,11 +35,11 @@ module Datadog
           version: nil
         )
           # Dup and freeze strings so they aren't modified by reference.
-          @env = Core::Utils::SafeDup.frozen_dup(env || Datadog.configuration.env)
-          @service = Core::Utils::SafeDup.frozen_dup(service || Datadog.configuration.service)
+          @env = env || Datadog.configuration.env
+          @service = service || Datadog.configuration.service
           @span_id = (span_id || 0).to_s
           @trace_id = trace_id || 0
-          @version = Core::Utils::SafeDup.frozen_dup(version || Datadog.configuration.version)
+          @version = version || Datadog.configuration.version
         end
 
         def to_h

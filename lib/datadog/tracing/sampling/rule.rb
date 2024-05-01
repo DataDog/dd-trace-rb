@@ -10,13 +10,18 @@ module Datadog
       # a specific criteria and what sampling strategy to
       # apply in case of a positive match.
       class Rule
-        attr_reader :matcher, :sampler
+        PROVENANCE_LOCAL = :local
+        PROVENANCE_REMOTE_USER = :customer
+        PROVENANCE_REMOTE_DYNAMIC = :dynamic
+
+        attr_reader :matcher, :sampler, :provenance
 
         # @param [Matcher] matcher A matcher to verify trace conformity against
         # @param [Sampler] sampler A sampler to be consulted on a positive match
-        def initialize(matcher, sampler)
+        def initialize(matcher, sampler, provenance)
           @matcher = matcher
           @sampler = sampler
+          @provenance = provenance
         end
 
         # Evaluates if the provided `trace` conforms to the `matcher`.
@@ -51,9 +56,27 @@ module Datadog
         # @param name [String,Regexp,Proc] Matcher for case equality (===) with the trace name, defaults to always match
         # @param service [String,Regexp,Proc] Matcher for case equality (===) with the service name,
         #                defaults to always match
+        # @param resource [String,Regexp,Proc] Matcher for case equality (===) with the resource name,
+        #                defaults to always match
         # @param sample_rate [Float] Sampling rate between +[0,1]+
-        def initialize(name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL, sample_rate: 1.0)
-          super(SimpleMatcher.new(name: name, service: service), RateSampler.new(sample_rate))
+        def initialize(
+          name: SimpleMatcher::MATCH_ALL, service: SimpleMatcher::MATCH_ALL,
+          resource: SimpleMatcher::MATCH_ALL, tags: {},
+          provenance: Rule::PROVENANCE_LOCAL,
+          sample_rate: 1.0
+        )
+          # We want to allow 0.0 to drop all traces, but {Datadog::Tracing::Sampling::RateSampler}
+          # considers 0.0 an invalid rate and falls back to 100% sampling.
+          #
+          # We address that here by not setting the rate in the constructor,
+          # but using the setter method.
+          #
+          # We don't want to make this change directly to {Datadog::Tracing::Sampling::RateSampler}
+          # because it breaks its current contract to existing users.
+          sampler = RateSampler.new
+          sampler.sample_rate = sample_rate
+
+          super(SimpleMatcher.new(name: name, service: service, resource: resource, tags: tags), sampler, provenance)
         end
       end
     end

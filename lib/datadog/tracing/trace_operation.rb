@@ -8,6 +8,7 @@ require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
 require_relative 'trace_digest'
+require_relative 'correlation'
 require_relative 'trace_segment'
 require_relative 'utils'
 
@@ -304,6 +305,17 @@ module Datadog
           trace_state_unknown_fields: @trace_state_unknown_fields,
           span_remote: (@remote_parent && @active_span.nil?),
         ).freeze
+      end
+
+      def to_correlation
+        # Resolve current span ID
+        span_id = @active_span && @active_span.id
+        span_id ||= @parent_span_id unless finished?
+
+        Correlation::Identifier.new(
+          trace_id: @id,
+          span_id: span_id
+        )
       end
 
       # Returns a copy of this trace suitable for forks (w/o spans.)

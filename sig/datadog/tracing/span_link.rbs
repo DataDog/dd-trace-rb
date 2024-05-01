@@ -50,7 +50,7 @@ module Datadog
       #   @return [Integer]
       attr_reader dropped_attributes: untyped
 
-      def initialize: (?attributes: untyped?, ?digest: untyped?) -> void
+      def initialize: (untyped digest, ?attributes: untyped?) -> void
 
       def to_hash: () -> untyped
     end

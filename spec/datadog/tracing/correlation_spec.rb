@@ -22,14 +22,7 @@ RSpec.describe Datadog::Tracing::Correlation do
     let(:env) { 'dev' }
     let(:service) { 'acme-api' }
     let(:span_id) { Datadog::Tracing::Utils.next_id }
-    let(:span_name) { 'active_record.sql' }
-    let(:span_resource) { 'SELECT * FROM users;' }
-    let(:span_service) { 'acme-mysql' }
-    let(:span_type) { 'db' }
     let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
-    let(:trace_name) { 'rack.request' }
-    let(:trace_resource) { 'GET /users' }
-    let(:trace_service) { 'acme-api' }
     let(:version) { '0.1' }
   end
 
@@ -52,10 +45,10 @@ RSpec.describe Datadog::Tracing::Correlation do
         )
       end
 
-      it 'has frozen copies of strings' do
-        expect(identifier.env).to be_a_frozen_copy_of(default_env)
-        expect(identifier.service).to be_a_frozen_copy_of(default_service)
-        expect(identifier.version).to be_a_frozen_copy_of(default_version)
+      it 'has strings' do
+        expect(identifier.env).to eq(default_env)
+        expect(identifier.service).to eq(default_service)
+        expect(identifier.version).to eq(default_version)
       end
     end
 
@@ -66,14 +59,7 @@ RSpec.describe Datadog::Tracing::Correlation do
         instance_double(
           Datadog::Tracing::TraceDigest,
           span_id: span_id,
-          span_name: span_name,
-          span_resource: span_resource,
-          span_service: span_service,
-          span_type: span_type,
           trace_id: trace_id,
-          trace_name: trace_name,
-          trace_resource: trace_resource,
-          trace_service: trace_service
         )
       end
 
@@ -87,10 +73,10 @@ RSpec.describe Datadog::Tracing::Correlation do
         )
       end
 
-      it 'has frozen copies of strings' do
-        expect(identifier.env).to be_a_frozen_copy_of(default_env)
-        expect(identifier.service).to be_a_frozen_copy_of(default_service)
-        expect(identifier.version).to be_a_frozen_copy_of(default_version)
+      it 'has strings' do
+        expect(identifier.env).to eq(default_env)
+        expect(identifier.service).to eq(default_service)
+        expect(identifier.version).to eq(default_version)
       end
     end
   end
@@ -110,10 +96,10 @@ RSpec.describe Datadog::Tracing::Correlation do
           )
         end
 
-        it 'has frozen copies of strings' do
-          expect(identifier.env).to be_a_frozen_copy_of(default_env)
-          expect(identifier.service).to be_a_frozen_copy_of(default_service)
-          expect(identifier.version).to be_a_frozen_copy_of(default_version)
+        it 'has strings' do
+          expect(identifier.env).to eq(default_env)
+          expect(identifier.service).to eq(default_service)
+          expect(identifier.version).to eq(default_version)
         end
       end
 
@@ -140,10 +126,10 @@ RSpec.describe Datadog::Tracing::Correlation do
           )
         end
 
-        it 'has frozen copies of strings' do
-          expect(identifier.env).to be_a_frozen_copy_of(env)
-          expect(identifier.service).to be_a_frozen_copy_of(service)
-          expect(identifier.version).to be_a_frozen_copy_of(version)
+        it 'has strings' do
+          expect(identifier.env).to eq(env)
+          expect(identifier.service).to eq(service)
+          expect(identifier.version).to eq(version)
         end
       end
     end

@@ -276,24 +276,6 @@ module Datadog
               o.default true
             end
 
-            # Forces enabling of profiling of time/resources spent in Garbage Collection.
-            #
-            # Note that setting this to "false" (or not setting it) will not prevent the feature from being
-            # being automatically enabled in the future.
-            #
-            # GC profiling is now on by default and controlled by {:gc_enabled}.
-            option :force_enable_gc_profiling do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.force_enable_gc_profiling setting has been deprecated for removal and no ' \
-                    'longer does anything (the feature is now on by default). ' \
-                    'Please remove this setting from your Datadog.configure block.'
-                  )
-                end
-              end
-            end
-
             # Can be used to enable/disable garbage collection profiling.
             #
             # @warn To avoid https://bugs.ruby-lang.org/issues/18464 even when enabled, GC profiling is only started
@@ -308,36 +290,6 @@ module Datadog
               o.type :bool
               o.env 'DD_PROFILING_GC_ENABLED'
               o.default true
-            end
-
-            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
-            #
-            # @deprecated Use {:allocation_enabled} (outside of advanced section) instead.
-            option :allocation_counting_enabled do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.allocation_counting_enabled setting has been deprecated for removal and no ' \
-                    'longer does anything. Please remove it from your Datadog.configure block. ' \
-                    'Allocation counting is now controlled by the profiling.allocation_enabled setting instead.'
-                  )
-                end
-              end
-            end
-
-            # @deprecated Use {:allocation_enabled} (outside of advanced section) instead.
-            option :experimental_allocation_enabled do |o|
-              o.type :bool
-              o.default false
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.experimental_allocation_enabled setting has been deprecated for removal and ' \
-                    'no longer does anything. Please remove it from your Datadog.configure block. ' \
-                    'Allocation profiling is now controlled by the profiling.allocation_enabled setting instead.'
-                  )
-                end
-              end
             end
 
             # Can be used to enable/disable the collection of heap profiles.
@@ -367,22 +319,6 @@ module Datadog
               o.default true # This gets ANDed with experimental_heap_enabled in the profiler component.
             end
 
-            # Can be used to configure the allocation sampling rate: a sample will be collected every x allocations.
-            #
-            # This feature is now controlled via {:overhead_target_percentage}
-            option :experimental_allocation_sample_rate do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.experimental_allocation_sample_rate setting has been deprecated for removal ' \
-                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
-                    'Allocation sample rate is now handled by a dynamic sampler which will adjust the sampling rate to ' \
-                    'keep to the configured `profiling.advanced.overhead_target_percentage`.'
-                  )
-                end
-              end
-            end
-
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
@@ -408,21 +344,6 @@ module Datadog
               o.type :bool
               o.env 'DD_PROFILING_SKIP_MYSQL2_CHECK'
               o.default false
-            end
-
-            # Enables data collection for the timeline feature. This is still experimental and not recommended yet.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED` environment variable as a boolean, otherwise `false`
-            option :experimental_timeline_enabled do |o|
-              o.after_set do |_, _, precedence|
-                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
-                  Datadog.logger.warn(
-                    'The profiling.advanced.experimental_timeline_enabled setting has been deprecated for removal ' \
-                    'and no longer does anything. Please remove it from your Datadog.configure block. ' \
-                    'The timeline feature counting is now controlled by the `timeline_enabled` setting instead.'
-                  )
-                end
-              end
             end
 
             # Controls data collection for the timeline feature.

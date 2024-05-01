@@ -41,6 +41,15 @@ appraise 'rails61-semantic-logger' do
   gem 'net-smtp'
 end
 
+appraise 'rails61-trilogy' do
+  gem 'rails', '~> 6.1.0'
+  gem 'trilogy'
+  gem 'activerecord-trilogy-adapter'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -88,6 +97,7 @@ appraise 'relational_db' do
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'trilogy'
 end
 
 appraise 'activesupport' do
@@ -143,18 +153,16 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra', '>= 3'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
+[2, 3, 4].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
 end
 
 appraise 'contrib-old' do

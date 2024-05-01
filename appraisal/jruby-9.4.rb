@@ -144,14 +144,12 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra', '>= 3'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
+[2, 3, 4].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 appraise 'contrib-old' do

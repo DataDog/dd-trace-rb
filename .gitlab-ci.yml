@@ -135,6 +135,7 @@ package-amd64:
     - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
+    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
 
 package-arm64:
   extends: .package-arm
@@ -146,6 +147,7 @@ package-arm64:
     - cp ../lib-injection/host_inject.rb ../tmp
     - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
     - ../.gitlab/build-deb-rpm.sh
+    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
 
 onboarding_tests:
   extends: .base_job_onboarding_tests
@@ -192,40 +194,40 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
 
-# deploy_to_docker_registries:
-#   stage: deploy
-#   rules:
-#     - if: "$POPULATE_CACHE"
-#       when: never
-#     - if: "$CI_COMMIT_TAG =~ /^v.*/"
-#       when: delayed
-#       start_in: 1 day
-#     - when: manual
-#       allow_failure: true
-#   trigger:
-#     project: DataDog/public-images
-#     branch: main
-#     strategy: depend
-#   variables:
-#     IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-#     IMG_DESTINATIONS: dd-lib-ruby-init:$CI_COMMIT_TAG
-#     IMG_SIGNING: "false"
+deploy_to_docker_registries:
+  stage: deploy
+  rules:
+    - if: "$POPULATE_CACHE"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ # Exclude prerelease
+      when: delayed
+      start_in: 1 day
+    - when: manual
+      allow_failure: true
+  trigger:
+    project: DataDog/public-images
+    branch: main
+    strategy: depend
+  variables:
+    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
+    IMG_DESTINATIONS: dd-lib-ruby-init:$CI_COMMIT_TAG
+    IMG_SIGNING: "false"
 
-# deploy_latest_tag_to_docker_registries:
-#   stage: deploy
-#   rules:
-#     - if: "$POPULATE_CACHE"
-#       when: never
-#     - if: "$CI_COMMIT_TAG =~ /^v.*/"
-#       when: delayed
-#       start_in: 1 day
-#     - when: manual
-#       allow_failure: true
-#   trigger:
-#     project: DataDog/public-images
-#     branch: main
-#     strategy: depend
-#   variables:
-#     IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-#     IMG_DESTINATIONS: dd-lib-ruby-init:latest
-#     IMG_SIGNING: "false"
+deploy_latest_tag_to_docker_registries:
+  stage: deploy
+  rules:
+    - if: "$POPULATE_CACHE"
+      when: never
+    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ && $CI_COMMIT_BRANCH == 'master' # Exclude prerelease and only for master branch
+      when: delayed
+      start_in: 1 day
+    - when: manual
+      allow_failure: true
+  trigger:
+    project: DataDog/public-images
+    branch: main
+    strategy: depend
+  variables:
+    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
+    IMG_DESTINATIONS: dd-lib-ruby-init:latest
+    IMG_SIGNING: "false"

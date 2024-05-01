@@ -2080,6 +2080,140 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#to_correlation' do
+    context 'is empty' do
+      it { expect(trace_op.to_correlation).to be_a_kind_of(Datadog::Tracing::Correlation::Identifier) }
+
+      context 'and the trace was not initialized with any attributes' do
+        it do
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+    end
+
+    context 'when :parent_span_id has been defined' do
+      let(:options) { { parent_span_id: parent_span_id } }
+      let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+      it do
+        expect(trace_op.to_correlation).to have_attributes(
+          span_id: parent_span_id.to_s,
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+    end
+
+    context 'is measuring an operation' do
+      it do
+        correlation = nil
+        parent_id = nil
+
+        trace_op.measure('grandparent') do
+          trace_op.measure('parent') do |parent, _|
+            parent_id = parent.id
+            correlation = trace_op.to_correlation
+          end
+        end
+
+        expect(correlation).to have_attributes(
+          span_id: parent_id.to_s,
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+
+      context 'and :parent_span_id has been defined' do
+        let(:options) { { parent_span_id: parent_span_id } }
+        let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+        it do
+          correlation = nil
+          parent_id = nil
+
+          trace_op.measure('grandparent') do
+            trace_op.measure('parent') do |parent, _|
+              parent_id = parent.id
+              correlation = trace_op.to_correlation
+            end
+          end
+
+          expect(correlation).to have_attributes(
+            span_id: parent_id.to_s,
+            trace_id: low_order_trace_id(trace_op.id).to_s
+          )
+        end
+      end
+    end
+
+    context 'has built a span' do
+      context 'that has not started' do
+        it do
+          trace_op.build_span('parent')
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+
+      context 'that has started' do
+        it do
+          span = trace_op.build_span('parent').start
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: span.id.to_s,
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+
+      context 'that has finished' do
+        it do
+          trace_op.build_span('parent').start.finish
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+    end
+
+    context 'when trace has finished' do
+      it do
+        trace_op.measure('grandparent') do
+          trace_op.measure('parent') do |_parent, _|
+          end
+        end
+
+        expect(trace_op.to_correlation).to have_attributes(
+          span_id: '0',
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+
+      context 'and :parent_span_id has been defined' do
+        let(:options) { { parent_span_id: parent_span_id } }
+        let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+        it do
+          trace_op.measure('grandparent') do
+            trace_op.measure('parent') do |parent, _|
+            end
+          end
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s
+          )
+        end
+      end
+    end
+  end
+
   describe '#fork_clone' do
     subject(:fork_clone) { trace_op.fork_clone }
     let(:new_trace_op) { fork_clone }

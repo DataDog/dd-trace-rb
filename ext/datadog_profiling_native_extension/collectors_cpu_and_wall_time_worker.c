@@ -96,6 +96,7 @@ struct cpu_and_wall_time_worker_state {
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
   bool allocation_profiling_enabled;
+  bool skip_idle_samples_for_testing;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
   VALUE idle_sampling_helper_instance;
@@ -132,6 +133,8 @@ struct cpu_and_wall_time_worker_state {
     unsigned int signal_handler_enqueued_sample;
     // How many times the signal handler was called from the wrong thread
     unsigned int signal_handler_wrong_thread;
+    // How many times we actually tried to interrupt a thread for sampling
+    unsigned int interrupt_thread_attempts;
 
     // # Stats for the results of calling rb_postponed_job_register_one
     // The same function was already waiting to be executed
@@ -177,7 +180,8 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled
+  VALUE allocation_profiling_enabled,
+  VALUE skip_idle_samples_for_testing
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
@@ -272,7 +276,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -317,6 +321,7 @@ static VALUE _native_new(VALUE klass) {
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_profiling_enabled = false;
+  state->skip_idle_samples_for_testing = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
   state->owner_thread = Qnil;
@@ -352,13 +357,15 @@ static VALUE _native_initialize(
   VALUE no_signals_workaround_enabled,
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled
+  VALUE allocation_profiling_enabled,
+  VALUE skip_idle_samples_for_testing
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
+  ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
 
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
@@ -367,6 +374,7 @@ static VALUE _native_initialize(
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
+  state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
   if (!state->allocation_profiling_enabled) {
@@ -618,17 +626,23 @@ static void *run_sampling_trigger_loop(void *state_ptr) {
         // Note that reading the GVL owner and sending them a signal is a race -- the Ruby VM keeps on executing while
         // we're doing this, so we may still not signal the correct thread from time to time, but our signal handler
         // includes a check to see if it got called in the right thread
+        state->stats.interrupt_thread_attempts++;
         pthread_kill(owner.owner, SIGPROF);
       } else {
-        // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
-        // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
-        //
-        // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
-        // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
-        // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
-        // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
-        state->stats.trigger_simulated_signal_delivery_attempts++;
-        idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+        if (state->skip_idle_samples_for_testing) {
+          // This was added to make sure our tests don't accidentally pass due to idle samples. Specifically, if we
+          // comment out the thread interruption code inside `if (owner.valid)` above, our tests should not pass!
+        } else {
+          // If no thread owns the Global VM Lock, the application is probably idle at the moment. We still want to sample
+          // so we "ask a friend" (the IdleSamplingHelper component) to grab the GVL and simulate getting a SIGPROF.
+          //
+          // In a previous version of the code, we called `grab_gvl_and_sample` directly BUT this was problematic because
+          // Ruby may concurrently get busy and so the CpuAndWallTimeWorker would be blocked in line to acquire the GVL
+          // for an uncontrolled amount of time. (This can still happen to the IdleSamplingHelper, but the
+          // CpuAndWallTimeWorker will still be free to interrupt the Ruby VM and keep sampling for the entire blocking period).
+          state->stats.trigger_simulated_signal_delivery_attempts++;
+          idle_sampling_helper_request_action(state->idle_sampling_helper_instance, grab_gvl_and_sample);
+        }
       }
     }
 
@@ -915,18 +929,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  VALUE pretty_cpu_sampling_time_ns_min = state->stats.cpu_sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_min);
-  VALUE pretty_cpu_sampling_time_ns_max = state->stats.cpu_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_max);
-  VALUE pretty_cpu_sampling_time_ns_total = state->stats.cpu_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_total);
-  VALUE pretty_cpu_sampling_time_ns_avg =
-    state->stats.cpu_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampling_time_ns_total) / state->stats.cpu_sampled);
-
-  VALUE pretty_allocation_sampling_time_ns_min = state->stats.allocation_sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_min);
-  VALUE pretty_allocation_sampling_time_ns_max = state->stats.allocation_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_max);
-  VALUE pretty_allocation_sampling_time_ns_total = state->stats.allocation_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_total);
-  VALUE pretty_allocation_sampling_time_ns_avg =
-    state->stats.allocation_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampling_time_ns_total) / state->stats.allocation_sampled);
-
   unsigned long total_cpu_samples_attempted = state->stats.cpu_sampled + state->stats.cpu_skipped;
   VALUE effective_cpu_sample_rate =
     total_cpu_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampled) / total_cpu_samples_attempted);
@@ -948,24 +950,25 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("postponed_job_success")),                      /* => */ UINT2NUM(state->stats.postponed_job_success),
     ID2SYM(rb_intern("postponed_job_full")),                         /* => */ UINT2NUM(state->stats.postponed_job_full),
     ID2SYM(rb_intern("postponed_job_unknown_result")),               /* => */ UINT2NUM(state->stats.postponed_job_unknown_result),
+    ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
     ID2SYM(rb_intern("cpu_sampled")),                /* => */ UINT2NUM(state->stats.cpu_sampled),
     ID2SYM(rb_intern("cpu_skipped")),                /* => */ UINT2NUM(state->stats.cpu_skipped),
     ID2SYM(rb_intern("cpu_effective_sample_rate")),  /* => */ effective_cpu_sample_rate,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_min")),   /* => */ pretty_cpu_sampling_time_ns_min,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_max")),   /* => */ pretty_cpu_sampling_time_ns_max,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_total")), /* => */ pretty_cpu_sampling_time_ns_total,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ pretty_cpu_sampling_time_ns_avg,
+    ID2SYM(rb_intern("cpu_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.cpu_sampling_time_ns_total, state->stats.cpu_sampled),
 
     // Allocation stats
     ID2SYM(rb_intern("allocation_sampled")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_sampled) : Qnil,
     ID2SYM(rb_intern("allocation_skipped")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_skipped) : Qnil,
     ID2SYM(rb_intern("allocation_effective_sample_rate")),  /* => */ effective_allocation_sample_rate,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_min")),   /* => */ pretty_allocation_sampling_time_ns_min,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_max")),   /* => */ pretty_allocation_sampling_time_ns_max,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_total")), /* => */ pretty_allocation_sampling_time_ns_total,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ pretty_allocation_sampling_time_ns_avg,
+    ID2SYM(rb_intern("allocation_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.allocation_sampling_time_ns_total, state->stats.allocation_sampled),
     ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
   };

@@ -163,40 +163,48 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       end
     end
 
-    it 'triggers sampling and records the results' do
-      start
+    context 'sampling of active threads' do
+      # This option makes sure our samples are taken via thread interruptions (and not via idle sampling).
+      # See native bits for more details.
+      let(:options) { { **super(), skip_idle_samples_for_testing: true } }
 
-      all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-        samples if samples.any?
+      it 'triggers sampling and records the results' do
+        start
+
+        all_samples = loop_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
+
+        expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
       end
 
-      expect(samples_for_thread(all_samples, Thread.current)).to_not be_empty
-    end
+      it(
+        'keeps statistics on how many samples were triggered by the background thread, ' \
+        'as well as how many samples were requested from the VM',
+      ) do
+        start
 
-    it(
-      'keeps statistics on how many samples were triggered by the background thread, ' \
-      'as well as how many samples were requested from the VM'
-    ) do
-      start
+        all_samples = loop_until do
+          samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
+          samples if samples.any?
+        end
 
-      all_samples = try_wait_until do
-        samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-        samples if samples.any?
+        cpu_and_wall_time_worker.stop
+
+        sample_count =
+          samples_for_thread(all_samples, Thread.current)
+            .map { |it| it.values.fetch(:'cpu-samples') }
+            .reduce(:+)
+
+        stats = cpu_and_wall_time_worker.stats
+
+        expect(sample_count).to be > 0
+        expect(stats.fetch(:signal_handler_enqueued_sample)).to be >= sample_count
+        expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
+        # Validate that we actually tried to sample via thread interruption, and not other means
+        expect(stats.fetch(:interrupt_thread_attempts)).to be > 0
       end
-
-      cpu_and_wall_time_worker.stop
-
-      sample_count =
-        samples_for_thread(all_samples, Thread.current)
-          .map { |it| it.values.fetch(:'cpu-samples') }
-          .reduce(:+)
-
-      stats = cpu_and_wall_time_worker.stats
-
-      expect(sample_count).to be > 0
-      expect(stats.fetch(:signal_handler_enqueued_sample)).to be >= sample_count
-      expect(stats.fetch(:trigger_sample_attempts)).to be >= stats.fetch(:signal_handler_enqueued_sample)
     end
 
     it 'keeps statistics on how long sampling is taking' do
@@ -637,6 +645,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
         test_num_allocated_object.times { |i| live_objects[i] = CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
 
+        # Force a GC to happen here to ensure all the live_objects have age > 0.
+        # Otherwise they wouldn't show up in the serialized pprof below
+        GC.start
+
         cpu_and_wall_time_worker.stop
 
         test_struct_heap_sample = lambda { |sample|
@@ -912,6 +924,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
           postponed_job_success: 0,
           postponed_job_full: 0,
           postponed_job_unknown_result: 0,
+          interrupt_thread_attempts: 0,
           cpu_sampled: 0,
           cpu_skipped: 0,
           cpu_effective_sample_rate: nil,
@@ -1191,5 +1204,16 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
     )
+  end
+
+  def loop_until(timeout_seconds: 5)
+    deadline = Time.now + timeout_seconds
+
+    while Time.now < deadline
+      result = yield
+      return result if result
+    end
+
+    raise('Wait time exhausted!')
   end
 end

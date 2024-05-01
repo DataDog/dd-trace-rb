@@ -457,14 +457,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#force_enable_gc_profiling=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.force_enable_gc_profiling = true
-        end
-      end
-
       describe '#gc_enabled' do
         subject(:gc_enabled) { settings.profiling.advanced.gc_enabled }
 
@@ -497,22 +489,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.gc_enabled }
             .from(true)
             .to(false)
-        end
-      end
-
-      describe '#allocation_counting_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.allocation_counting_enabled = false
-        end
-      end
-
-      describe '#experimental_allocation_enabled=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_allocation_enabled = true
         end
       end
 
@@ -583,14 +559,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.experimental_heap_size_enabled }
             .from(true)
             .to(false)
-        end
-      end
-
-      describe '#experimental_allocation_sample_rate=' do
-        it 'logs a warning informing customers this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_allocation_sample_rate = 0
         end
       end
 
@@ -694,14 +662,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to change { settings.profiling.advanced.no_signals_workaround_enabled }
             .from(:auto)
             .to(false)
-        end
-      end
-
-      describe '#experimental_timeline_enabled=' do
-        it 'logs a warning  that this no longer does anything' do
-          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
-
-          settings.profiling.advanced.experimental_timeline_enabled = 0
         end
       end
 

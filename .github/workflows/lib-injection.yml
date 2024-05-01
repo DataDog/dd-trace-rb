@@ -22,7 +22,8 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:latest_snapshot
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_SHA=${{ github.sha }}
+          # The build arguments must match what is defined in lib-injection/Dockerfile
+          build-args: DATADOG_RUBY_GEM_SHA=${{ github.sha }}
           context: ./lib-injection
       - name: Docker Build
         uses: docker/build-push-action@v3
@@ -30,6 +31,7 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ github.sha }}
           platforms: 'linux/amd64,linux/arm64/v8'
+          # The build arguments must match what is defined in lib-injection/Dockerfile
           build-args: DATADOG_RUBY_GEM_SHA=${{ github.sha }}
           context: ./lib-injection
   test:
@@ -57,10 +59,10 @@ jobs:
     - name: Checkout system tests
       uses: actions/checkout@v4
       with:
-          repository: 'DataDog/system-tests'
+        repository: 'DataDog/system-tests'
 
     - name: Install runner
-      uses: ./.github/actions/install_runner 
+      uses: ./.github/actions/install_runner
 
     - name: Run K8s Lib Injection Tests
       run: ./run.sh K8S_LIB_INJECTION_BASIC

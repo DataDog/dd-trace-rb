@@ -1,11 +1,12 @@
-# Upgrading ddtrace from 1.x to 2.0
+# Upgrading from 1.x to 2.0
 
-Upgrading `ddtrace` from 1.x to 2.0 introduces some breaking changes which are outlined below.
+Upgrading from 1.x to 2.0 introduces some breaking changes which are outlined below.
 
 [**Basic Usage**](#2.0-basic-usage)
 
 In most cases, (e.g. when you use out-of-the-box instrumentation and a configuration file) only minor changes to your current setup are needed: most applications take just minutes to update.
 
+- [Renaming the Gem](#2.0-gem-rename)
 - [Requires Ruby 2.5+](#2.0-requires-ruby-2.5+)
 - [Extracts datadog-ci gem](#2.0-extracts-ci)
 - [Configuration changes](#2.0-configuration-changes)
@@ -40,18 +41,33 @@ Outlines the changes for our instrumentations.
 
 <h2 id="2.0-basic-usage">Basic Usage</h2>
 
+<h3 id="2.0-gem-rename">Rename to `datadog` gem</h3>
+
+The gem now includes new capabilities (Profiling, Application Security Monitoring) that extend beyond tracing. To better reflect the broad set of features already within this package, and our intention for this package to be an all-inclusive offering, the existing gem has been renamed to `datadog`.
+
+This name change does not reflect any material change to existing capabilities in 2.0, but future 2.x versions may include additional capabilities or products.
+
+Make sure to update Gemfile:
+
+```ruby
+# === Before ===
+gem 'ddtrace', '~> 1.0', require: 'ddtrace/auto_instrument'
+
+# === After rename to `datadog` with 2.x ===
+gem 'datadog', '~> 2.0', require: 'datadog/auto_instrument'
+```
+
 <h3 id="2.0-requires-ruby-2.5+">Requires Ruby 2.5+</h3>
 
-The minimum Ruby version requirement for ddtrace 2.x is 2.5.0. For prior Ruby versions, you can use ddtrace 1.x. see more with our support policy.
+The minimum Ruby version requirement is 2.5.0. For prior Ruby versions, you can use `ddtrace` 1.x. see more with our [support policy](Compatibility.md#support-policy).
 
 <h3 id="2.0-extracts-ci">Extracts datadog-ci gem</h3>
 
-The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed together with ddtrace.
+The CI visibility component has been extracted as a separate gem named [datadog-ci](https://github.com/DataDog/datadog-ci-rb), and will no longer be installed. If you would like to use the CI Visibility product, you can include the additional `datadog-ci` gem into your Gemfile. Learn more about [setting up `datadog-ci`](https://github.com/DataDog/datadog-ci-rb).
 
-If you are using our CI visibility product, include `datadog-ci` in your Gemfile and learn more about the [setup](https://github.com/DataDog/datadog-ci-rb).
 
 ```ruby
-gem 'ddtrace', '>= 2'
+gem 'datadog', '>= 2'
 
 group :test do
   gem 'datadog-ci'
@@ -76,7 +92,7 @@ Datadog.configure do |c|
 end
 ```
 
-<h4 id="2.0-type-checking">Enforce type checking</h4>
+<h4 id="2.0-type-checking">Enforced type checking</h4>
 
 Configuration options are type checked. When validation fails, an `ArgumentError` is raised.
 
@@ -108,7 +124,7 @@ B3 propagation has been removed from the default propagation for distributed tra
 
 - Option `c.tracing.client_ip.enabled`: `ENV['DD_TRACE_CLIENT_IP_HEADER_DISABLED']` is removed. Use `ENV['DD_TRACE_CLIENT_IP_ENABLED']` instead.
 
-- The following programmatic configuration options have been changed. Their corresponding environment variables (if any) are unchanged:
+- The following configuration options have been changed. Changes to their corresponding environment variables (if any) are noted as well:
 
   | 1.x                                                      | 2.0                                   |
   | -------------------------------------------------------- | ------------------------------------- |
@@ -118,13 +134,15 @@ B3 propagation has been removed from the default propagation for distributed tra
   | `tracing.distributed_tracing.propagation_style`          | `tracing.propagation_style`           |
   | `diagnostics.health_metrics.enabled`                     | `health_metrics.enabled`              |
   | `diagnostics.health_metrics.statsd`                      | `health_metrics.statsd`               |
-  | `profiling.advanced.max_events`                          | Removed                               |
-  | `profiling.advanced.legacy_transport_enabled`            | Removed                               |
-  | `profiling.advanced.force_enable_new_profiler`           | Removed                               |
-  | `profiling.advanced.force_enable_legacy_profiler`        | Removed                               |
   | `profiling.advanced.allocation_counting_enabled`         | Removed                               |
+  | `profiling.advanced.experimental_allocation_enabled`     | `profiling.allocation_enabled` (`DD_PROFILING_ALLOCATION_ENABLED` environment variable)                          |
   | `profiling.advanced.experimental_allocation_sample_rate` | Removed                               |
-  | `profiling.advanced.experimental_timeline_enabled`       | `profiling.advanced.timeline_enabled` |
+  | `profiling.advanced.experimental_timeline_enabled`       | `profiling.advanced.timeline_enabled` (`DD_PROFILING_TIMELINE_ENABLED` environment variable, enabled by default) |
+  | `profiling.advanced.force_enable_gc_profiling`           | `profiling.advanced.gc_enabled` (`DD_PROFILING_GC_ENABLED` environment variable, enabled by default)             |
+  | `profiling.advanced.force_enable_legacy_profiler`        | Removed                               |
+  | `profiling.advanced.force_enable_new_profiler`           | Removed                               |
+  | `profiling.advanced.legacy_transport_enabled`            | Removed                               |
+  | `profiling.advanced.max_events`                          | Removed                               |
 
 <h2 id="2.0-advanced-usage">Advanced Usage</h2>
 
