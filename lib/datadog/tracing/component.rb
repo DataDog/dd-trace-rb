@@ -124,8 +124,12 @@ module Datadog
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Tracing::Diagnostics::EnvironmentLogger.collect_and_log!(responses: responses)
+        WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE.run do
+          Tracing::Diagnostics::EnvironmentLogger.collect_and_log!(responses: responses)
+        end
       end
+
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
       # Create new lambda for writer callback,
       # capture the current sampler in the callback closure.
