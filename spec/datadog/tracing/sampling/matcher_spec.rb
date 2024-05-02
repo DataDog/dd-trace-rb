@@ -22,15 +22,27 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
     context 'with a name matcher' do
       let(:rule) { described_class.new(name: name) }
 
-      context 'with a regexp' do
+      context 'with a glob' do
         context 'matching' do
-          let(:name) { /.*/ }
+          let(:name) { 'operation.*' }
 
           it { is_expected.to eq(true) }
+
+          context 'case-insensitive' do
+            let(:name) { 'OPERATION.*' }
+
+            it { is_expected.to eq(true) }
+          end
+
+          context 'single-character wildcard' do
+            let(:name) { 'operation.nam?' }
+
+            it { is_expected.to eq(true) }
+          end
         end
 
         context 'not matching' do
-          let(:name) { /^$/ }
+          let(:name) { 'not.operation' }
 
           it { is_expected.to eq(false) }
         end
@@ -38,27 +50,13 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
       context 'with a string' do
         context 'matching' do
-          let(:name) { trace_name.to_s }
+          let(:name) { 'operation.name' }
 
           it { is_expected.to eq(true) }
         end
 
         context 'not matching' do
           let(:name) { '' }
-
-          it { is_expected.to eq(false) }
-        end
-      end
-
-      context 'with a proc' do
-        context 'matching' do
-          let(:name) { ->(n) { n == trace_name } }
-
-          it { is_expected.to eq(true) }
-        end
-
-        context 'not matching' do
-          let(:name) { ->(_n) { false } }
 
           it { is_expected.to eq(false) }
         end
@@ -70,20 +68,6 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
       context 'when trace service name is present' do
         let(:trace_service) { 'service-1' }
-
-        context 'with a regexp' do
-          context 'matching' do
-            let(:service) { /.*/ }
-
-            it { is_expected.to eq(true) }
-          end
-
-          context 'not matching' do
-            let(:service) { /^$/ }
-
-            it { is_expected.to eq(false) }
-          end
-        end
 
         context 'with a string' do
           context 'matching' do
@@ -98,20 +82,6 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
             it { is_expected.to eq(false) }
           end
         end
-
-        context 'with a proc' do
-          context 'matching' do
-            let(:service) { ->(n) { n == trace_service } }
-
-            it { is_expected.to eq(true) }
-          end
-
-          context 'not matching' do
-            let(:service) { ->(_n) { false } }
-
-            it { is_expected.to eq(false) }
-          end
-        end
       end
 
       context 'with a tags matcher' do
@@ -119,20 +89,6 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
         context 'when span tags are present' do
           let(:trace_tags) { { 'tag1' => 'value1', 'tag2' => 'value2' } }
-
-          context 'with a regexp' do
-            context 'matching' do
-              let(:tags) { { 'tag1' => /value.*/, 'tag2' => /.*/ } }
-
-              it { is_expected.to eq(true) }
-            end
-
-            context 'not matching' do
-              let(:tags) { { 'tag1' => /value.*/, 'tag2' => /not_value/ } }
-
-              it { is_expected.to eq(false) }
-            end
-          end
 
           context 'with a string' do
             context 'matching' do
@@ -153,15 +109,15 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
           # Metrics are stored as tags, but have numeric values
           let(:trace_tags) { { 'metric1' => 1.0, 'metric2' => 2 } }
 
-          context 'with a regexp' do
+          context 'with a glob' do
             context 'matching' do
-              let(:tags) { { 'metric1' => /1/, 'metric2' => /.*/ } }
+              let(:tags) { { 'metric1' => '1', 'metric2' => '*' } }
 
               it { is_expected.to eq(true) }
             end
 
             context 'not matching' do
-              let(:tags) { { 'metric1' => /1/, 'metric2' => 3 } }
+              let(:tags) { { 'metric1' => '1', 'metric2' => '3' } }
 
               it { is_expected.to eq(false) }
             end
@@ -191,9 +147,9 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
       context 'when trace service is not present' do
         let(:trace_service) { nil }
-        let(:service) { /.*/ }
+        let(:service) { '*' }
 
-        it { is_expected.to eq(false) }
+        it { is_expected.to eq(true) }
       end
     end
 
@@ -202,20 +158,6 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
       context 'when trace resource is present' do
         let(:trace_resource) { 'resource-1' }
-
-        context 'with a regexp' do
-          context 'matching' do
-            let(:resource) { /resource-.*/ }
-
-            it { is_expected.to eq(true) }
-          end
-
-          context 'not matching' do
-            let(:resource) { /name-.*/ }
-
-            it { is_expected.to eq(false) }
-          end
-        end
 
         context 'with a string' do
           context 'matching' do
@@ -230,36 +172,22 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
             it { is_expected.to eq(false) }
           end
         end
-
-        context 'with a proc' do
-          context 'matching' do
-            let(:resource) { ->(n) { n == 'resource-1' } }
-
-            it { is_expected.to eq(true) }
-          end
-
-          context 'not matching' do
-            let(:resource) { ->(_n) { false } }
-
-            it { is_expected.to eq(false) }
-          end
-        end
       end
 
       context 'when trace resource is not present' do
         let(:trace_resource) { nil }
-        let(:resource) { /.*/ }
+        let(:resource) { '*' }
 
-        it { is_expected.to eq(false) }
+        it { is_expected.to eq(true) }
       end
     end
 
     context 'with name, service, resource matchers' do
       let(:rule) { described_class.new(name: name, service: service, resource: resource) }
 
-      let(:name) { /.*/ }
-      let(:service) { /.*/ }
-      let(:resource) { /.*/ }
+      let(:name) { '*' }
+      let(:service) { '*' }
+      let(:resource) { '*' }
 
       context 'when trace service name is present' do
         let(:trace_service) { 'service-1' }
@@ -270,32 +198,8 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
       context 'when trace service is not present' do
         let(:trace_service) { nil }
 
-        it { is_expected.to eq(false) }
+        it { is_expected.to eq(true) }
       end
-    end
-  end
-end
-
-RSpec.describe Datadog::Tracing::Sampling::ProcMatcher do
-  let(:trace_op) { Datadog::Tracing::TraceOperation.new(name: trace_name, service: trace_service) }
-  let(:trace_name) { 'operation.name' }
-  let(:trace_service) { nil }
-
-  describe '#match?' do
-    subject(:match?) { rule.match?(trace_op) }
-
-    let(:rule) { described_class.new(&block) }
-
-    context 'with matching block' do
-      let(:block) { ->(name, service) { name == trace_name && service == trace_service } }
-
-      it { is_expected.to eq(true) }
-    end
-
-    context 'with mismatching block' do
-      let(:block) { ->(_name, _service) { false } }
-
-      it { is_expected.to eq(false) }
     end
   end
 end
