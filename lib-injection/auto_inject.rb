@@ -82,8 +82,8 @@ begin
     end
   ensure
     # Remove the copies
-    FileUtils.rm datadog_gemfile
-    FileUtils.rm datadog_lockfile
+    FileUtils.rm(datadog_gemfile, force: true)
+    FileUtils.rm(datadog_lockfile, force: true)
   end
 rescue Exception => e
   warn "[ddtrace] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
