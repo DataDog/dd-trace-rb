@@ -35,9 +35,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-
-      attr_accessor \
-        :status
+      attr_accessor :links, :status
 
       def initialize(
         name,
@@ -49,7 +47,8 @@ module Datadog
         start_time: nil,
         tags: nil,
         trace_id: nil,
-        type: nil
+        type: nil,
+        links: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
         #
@@ -66,6 +65,8 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
+        # stores array of span links
+        @links = links || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -452,6 +453,7 @@ module Datadog
           status: @status,
           type: @type,
           trace_id: @trace_id,
+          links: @links,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end

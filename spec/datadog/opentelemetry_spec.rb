@@ -317,6 +317,47 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.end_time).to eq(timestamp)
         end
       end
+
+      context 'with span_links' do
+        let(:sc1) do
+          OpenTelemetry::Trace::SpanContext.new(
+            trace_id: ['000000000000006d5b953ca4d9c834ab'].pack('H*'),
+            span_id: ['0000000fcec36d3f'].pack('H*')
+          )
+        end
+        let(:sc2) do
+          OpenTelemetry::Trace::SpanContext.new(
+            trace_id: ['0000000000000000000000000012d666'].pack('H*'),
+            span_id: ['000000000000000a'].pack('H*'),
+            trace_flags: OpenTelemetry::Trace::TraceFlags::SAMPLED,
+            tracestate: OpenTelemetry::Trace::Tracestate.from_string('otel=blahxd')
+          )
+        end
+        let(:links) do
+          [
+            OpenTelemetry::Trace::Link.new(sc1, { 'key' => 'val', '1' => true }),
+            OpenTelemetry::Trace::Link.new(sc2, { 'key2' => true, 'list' => [1, 2] }),
+          ]
+        end
+        let(:options) { { links: links } }
+
+        it 'sets span links' do
+          start_span.finish
+          expect(span.links.size).to eq(2)
+
+          expect(span.links[0].trace_id).to eq(2017294351542048535723)
+          expect(span.links[0].span_id).to eq(67893423423)
+          expect(span.links[0].trace_flags).to eq(0)
+          expect(span.links[0].trace_state).to eq('')
+          expect(span.links[0].attributes).to eq({ 'key' => 'val', '1' => true })
+
+          expect(span.links[1].trace_id).to eq(1234534)
+          expect(span.links[1].span_id).to eq(10)
+          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_state).to eq('otel=blahxd')
+          expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
+        end
+      end
     end
 
     describe '#start_root_span' do
