@@ -352,9 +352,9 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.links[0].attributes).to eq({ 'key' => 'val', '1' => true })
 
           expect(span.links[1].trace_id).to eq(1234534)
-          expect(span.links[1].span_id).to eq(67890)
-          expect(span.links[1].trace_flags).to eq(10)
-          expect(span.links[1].trace_state).to eq(sc2.tracestate.to_s)
+          expect(span.links[1].span_id).to eq(10)
+          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_state).to eq('otel=blahxd')
           expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
         end
       end

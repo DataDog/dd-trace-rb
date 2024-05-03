@@ -242,7 +242,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         context 'that is an Array' do
           let(:span_links) do
             [Datadog::Tracing::SpanLink.new(
-              digest: Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
+              Datadog::Tracing::TraceDigest.new(trace_id: 1, span_id: 2),
               attributes: { "link.name": 'moon' }
             )]
           end
