@@ -1,6 +1,8 @@
 module Datadog
   module Tracing
     module Component
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
+
       def build_tracer: (untyped settings, untyped agent_settings) -> untyped
 
       def build_trace_flush: (untyped settings) -> untyped
