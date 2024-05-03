@@ -1,3 +1,6 @@
+<div class="alert alert-info">This documentation is for <code>datadog</code> gem v2.x. If you are looking for <code>ddtrace</code> gem v1.x documentation, see the legacy <a href="https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby_v1/">Ruby Compatibility Requirements
+</a> documentation.</div>
+
 ## Compatibility
 
 The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub repository for more information.
