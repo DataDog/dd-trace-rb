@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.0.0.beta2)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 7.0.0.1.0)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -100,7 +100,7 @@ GEM
     jdbc-postgres (42.2.25)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (7.0.0.1.0)
+    libdatadog (9.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)

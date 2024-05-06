@@ -12,7 +12,8 @@ Gem::Specification.new do |spec|
   spec.name                  = 'datadog'
   spec.version               = Datadog::VERSION::STRING
   # required_ruby_version should be in a single line due to test-head workflow `sed` to unlock the version
-  spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"]
+  spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}",
+                                "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"]
   spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
@@ -70,7 +71,7 @@ Gem::Specification.new do |spec|
 
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 7.0.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 9.0.0.1.0'
 
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 end
