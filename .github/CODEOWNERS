@@ -8,7 +8,7 @@
 /lib/datadog/appsec/ @DataDog/asm-ruby
 /lib/datadog/appsec.rb @DataDog/asm-ruby
 /lib/datadog/tracing/ @DataDog/tracing-ruby
-/lib/datadog/tracing/contrib @DataDog/apm-idm-ruby
+/lib/datadog/tracing/contrib/ @DataDog/apm-idm-ruby
 /lib/datadog/tracing.rb @DataDog/tracing-ruby
 /lib/datadog/opentelemetry/ @DataDog/tracing-ruby
 /lib/datadog/opentelemetry.rb @DataDog/tracing-ruby
@@ -21,7 +21,7 @@
 /sig/datadog/appsec/ @DataDog/asm-ruby
 /sig/datadog/appsec.rbs @DataDog/asm-ruby
 /sig/datadog/tracing/ @DataDog/tracing-ruby
-/sig/datadog/tracing/contrib @DataDog/apm-idm-ruby
+/sig/datadog/tracing/contrib/ @DataDog/apm-idm-ruby
 /sig/datadog/tracing.rbs @DataDog/tracing-ruby
 /sig/datadog/opentelemetry/ @DataDog/tracing-ruby
 /sig/datadog/opentelemetry.rbs @DataDog/tracing-ruby
@@ -31,7 +31,7 @@
 # Specs
 /spec/datadog/appsec/ @DataDog/asm-ruby
 /spec/datadog/tracing/ @DataDog/tracing-ruby
-/spec/datadog/tracing/contrib @DataDog/apm-idm-ruby
+/spec/datadog/tracing/contrib/ @DataDog/apm-idm-ruby
 /spec/datadog/tracing_spec.rb @DataDog/tracing-ruby
 /spec/datadog/opentelemetry/ @DataDog/tracing-ruby
 /spec/datadog/opentelemetry_spec.rb @DataDog/tracing-ruby
