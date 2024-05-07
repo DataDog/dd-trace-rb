@@ -28,7 +28,7 @@ documentation.**
 The profiling native extension is (and must always be) designed to **not cause failures** during gem installation, even
 if some features, Ruby versions, or operating systems are not supported.
 
-E.g. the extension must not break installation on Ruby 2.1 (or the oldest Ruby version we support at the time) on 64-bit ARM macOS,
+E.g. the extension must not break installation on Ruby 2.5 (or the oldest Ruby version we support at the time) on 64-bit ARM macOS,
 even if at run time it will effectively do nothing for such a setup.
 
 We have a CI setup to help validate this, but this is really important to keep in mind when adding to or changing the

@@ -165,7 +165,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
 
           context 'on Ruby 2.x' do
-            let(:testing_version) { '2.3.0 ' }
+            let(:testing_version) { '2.5.0' }
 
             it 'initializes CpuAndWallTimeWorker and StackRecorder with allocation sampling support' do
               expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with hash_including(
