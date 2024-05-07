@@ -929,18 +929,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
   struct cpu_and_wall_time_worker_state *state;
   TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-  VALUE pretty_cpu_sampling_time_ns_min = state->stats.cpu_sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_min);
-  VALUE pretty_cpu_sampling_time_ns_max = state->stats.cpu_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_max);
-  VALUE pretty_cpu_sampling_time_ns_total = state->stats.cpu_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.cpu_sampling_time_ns_total);
-  VALUE pretty_cpu_sampling_time_ns_avg =
-    state->stats.cpu_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampling_time_ns_total) / state->stats.cpu_sampled);
-
-  VALUE pretty_allocation_sampling_time_ns_min = state->stats.allocation_sampling_time_ns_min == UINT64_MAX ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_min);
-  VALUE pretty_allocation_sampling_time_ns_max = state->stats.allocation_sampling_time_ns_max == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_max);
-  VALUE pretty_allocation_sampling_time_ns_total = state->stats.allocation_sampling_time_ns_total == 0 ? Qnil : ULL2NUM(state->stats.allocation_sampling_time_ns_total);
-  VALUE pretty_allocation_sampling_time_ns_avg =
-    state->stats.allocation_sampled == 0 ? Qnil : DBL2NUM(((double) state->stats.allocation_sampling_time_ns_total) / state->stats.allocation_sampled);
-
   unsigned long total_cpu_samples_attempted = state->stats.cpu_sampled + state->stats.cpu_skipped;
   VALUE effective_cpu_sample_rate =
     total_cpu_samples_attempted == 0 ? Qnil : DBL2NUM(((double) state->stats.cpu_sampled) / total_cpu_samples_attempted);
@@ -968,19 +956,19 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("cpu_sampled")),                /* => */ UINT2NUM(state->stats.cpu_sampled),
     ID2SYM(rb_intern("cpu_skipped")),                /* => */ UINT2NUM(state->stats.cpu_skipped),
     ID2SYM(rb_intern("cpu_effective_sample_rate")),  /* => */ effective_cpu_sample_rate,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_min")),   /* => */ pretty_cpu_sampling_time_ns_min,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_max")),   /* => */ pretty_cpu_sampling_time_ns_max,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_total")), /* => */ pretty_cpu_sampling_time_ns_total,
-    ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ pretty_cpu_sampling_time_ns_avg,
+    ID2SYM(rb_intern("cpu_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.cpu_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("cpu_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.cpu_sampling_time_ns_total, state->stats.cpu_sampled),
 
     // Allocation stats
     ID2SYM(rb_intern("allocation_sampled")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_sampled) : Qnil,
     ID2SYM(rb_intern("allocation_skipped")),                /* => */ state->allocation_profiling_enabled ? ULONG2NUM(state->stats.allocation_skipped) : Qnil,
     ID2SYM(rb_intern("allocation_effective_sample_rate")),  /* => */ effective_allocation_sample_rate,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_min")),   /* => */ pretty_allocation_sampling_time_ns_min,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_max")),   /* => */ pretty_allocation_sampling_time_ns_max,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_total")), /* => */ pretty_allocation_sampling_time_ns_total,
-    ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ pretty_allocation_sampling_time_ns_avg,
+    ID2SYM(rb_intern("allocation_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.allocation_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.allocation_sampling_time_ns_total, state->stats.allocation_sampled),
     ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
   };
