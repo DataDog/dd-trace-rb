@@ -522,6 +522,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             it_behaves_like 'samples with code hotspots information'
           end
 
+          context 'when local root span type is worker' do
+            let(:root_span_type) { 'worker' }
+
+            it_behaves_like 'samples with code hotspots information'
+          end
+
           def self.otel_sdk_available?
             begin
               require 'opentelemetry/sdk'
