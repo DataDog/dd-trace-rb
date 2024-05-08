@@ -55,6 +55,7 @@ module Datadog
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
 
           TAG_DD_PARENT_ID = '_dd.parent_id'
+          DD_PARENT_ID_DEFAULT = '0000000000000000'
 
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
