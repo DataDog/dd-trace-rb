@@ -79,6 +79,49 @@ module Datadog
             matcher
           end
         end
+
+        # The {CachedResolver} is a mixin that provides caching functionality to the {Resolver} class.
+        # This is useful when {Resolver#resolve} values that are expensive to compute.
+        # This is a size-limited, FIFO cache.
+        #
+        # @example
+        #   class MyResolver < Datadog::Tracing::Contrib::Configuration::Resolver
+        #     prepend Datadog::Tracing::Contrib::Configuration::CachedResolver
+        #     # ...
+        #   end
+        module CachedResolver
+          # @param [Integer] cache_limit maximum number of entries to cache
+          def initialize(*args, cache_limit: 200)
+            super(*args)
+
+            @cache_limit = cache_limit
+            @cache = {}
+          end
+
+          # (see Resolver#resolve)
+          def resolve(value)
+            if @cache.key?(value)
+              @cache[value]
+            else
+              if @cache.size >= @cache_limit
+                @cache.shift # Remove the oldest entry if cache is full
+              end
+
+              @cache[value] = super
+            end
+          end
+
+          # (see Resolver#add)
+          def add(matcher, value)
+            reset_cache # Bust the cache when a new matcher is added
+            super
+          end
+
+          # Clears the internal cache.
+          def reset_cache
+            @cache.clear
+          end
+        end
       end
     end
   end
