@@ -100,10 +100,12 @@ module Datadog
             if (tracecontext_digest = propagator.extract(data))
               # Only parse if it represent the same trace as the successfully extracted one
               next unless tracecontext_digest.trace_id == extracted_trace_digest.trace_id
+
               # Preserve the last datadog parent id in `trace_distributed_tags`
               if tracecontext_digest.span_id != extracted_trace_digest.span_id && tracecontext_digest.trace_distributed_tags&.keys(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
                 extracted_trace_digest.trace_distributed_tags ||= {}
-                extracted_trace_digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = tracecontext_digest.trace_distributed_tags.fetch(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID, Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT)
+                extracted_trace_digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
+                  tracecontext_digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
               end
               # Preserve the `tracestate`
               extracted_trace_digest = extracted_trace_digest.merge(
