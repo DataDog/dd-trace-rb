@@ -108,6 +108,7 @@ module Datadog
                 # Preserve the last datadog parent id in `trace_distributed_tags`
                 tracecontext_digest.trace_distributed_tags.fetch(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID, Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT)
               end
+              # Preserve the `tracestate`
               extracted_trace_digest = extracted_trace_digest.merge(
                 trace_state: tracecontext_digest.trace_state,
                 trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields
