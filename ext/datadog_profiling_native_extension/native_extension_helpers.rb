@@ -165,7 +165,7 @@ module Datadog
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
         PKG_CONFIG_IS_MISSING = explain_issue(
-          # +-----------------------------------------------------------------------------+
+          # ----------------------------------------------------------------------------+
           'the `pkg-config` system tool is missing.',
           'This issue can usually be fixed by installing one of the following:',
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
