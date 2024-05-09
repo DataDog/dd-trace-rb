@@ -125,6 +125,7 @@ module Datadog
         Datadog::Profiling::Crashtracker.new(
           exporter_configuration: transport.exporter_configuration,
           tags: Datadog::Profiling::TagBuilder.call(settings: settings),
+          upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
         )
       end
 

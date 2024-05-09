@@ -9,12 +9,14 @@ module Datadog
       attr_reader tags_as_array: ::Array[[::String, ::String]]
       attr_reader path_to_crashtracking_receiver_binary: ::String
       attr_reader ld_library_path: ::String
+      attr_reader upload_timeout_seconds: ::Integer
 
       public
 
       def initialize: (
         exporter_configuration: exporter_configuration_array,
         tags: ::Hash[::String, ::String],
+        upload_timeout_seconds: ::Integer,
         ?path_to_crashtracking_receiver_binary: ::String,
         ?ld_library_path: ::String,
       ) -> void
@@ -33,6 +35,7 @@ module Datadog
         path_to_crashtracking_receiver_binary: ::String,
         ld_library_path: ::String,
         tags_as_array: ::Array[[::String, ::String]],
+        upload_timeout_seconds: ::Integer,
       ) -> void
 
       def self._native_stop: -> void

@@ -549,6 +549,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Crashtracker).to receive(:new).with(
             exporter_configuration: array_including(:agent),
             tags: hash_including('runtime' => 'ruby'),
+            upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
           )
 
           build_profiler_component

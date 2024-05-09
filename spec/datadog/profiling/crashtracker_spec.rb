@@ -8,12 +8,15 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
 
-  subject(:crashtracker) do
-    described_class.new(
+  let(:crashtracker_options) {
+    {
       exporter_configuration: exporter_configuration,
       tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-    )
-  end
+      upload_timeout_seconds: 123,
+    }
+  }
+
+  subject(:crashtracker) { described_class.new(**crashtracker_options) }
 
   describe '#start' do
     subject(:start) { crashtracker.start }
@@ -28,13 +31,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
 
     context 'when path_to_crashtracking_receiver_binary is nil' do
-      subject(:crashtracker) do
-        described_class.new(
-          exporter_configuration: exporter_configuration,
-          tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-          path_to_crashtracking_receiver_binary: nil
-        )
-      end
+      subject(:crashtracker) { described_class.new(**crashtracker_options, path_to_crashtracking_receiver_binary: nil) }
 
       it 'logs a warning' do
         expect(Datadog.logger).to receive(:warn).with(/no path_to_crashtracking_receiver_binary was found/)
@@ -44,13 +41,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
 
     context 'when ld_library_path is nil' do
-      subject(:crashtracker) do
-        described_class.new(
-          exporter_configuration: exporter_configuration,
-          tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-          ld_library_path: nil
-        )
-      end
+      subject(:crashtracker) { described_class.new(**crashtracker_options, ld_library_path: nil) }
 
       it 'logs a warning' do
         expect(Datadog.logger).to receive(:warn).with(/no ld_library_path was found/)

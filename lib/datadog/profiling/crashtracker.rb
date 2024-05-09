@@ -26,18 +26,21 @@ module Datadog
     class Crashtracker
       private
 
-      attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary, :ld_library_path
+      attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary, :ld_library_path, \
+        :upload_timeout_seconds
 
       public
 
       def initialize(
         exporter_configuration:,
         tags:,
+        upload_timeout_seconds:,
         path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
         ld_library_path: Libdatadog.ld_library_path
       )
         @exporter_configuration = exporter_configuration
         @tags_as_array = tags.to_a
+        @upload_timeout_seconds = upload_timeout_seconds
         @path_to_crashtracking_receiver_binary = path_to_crashtracking_receiver_binary
         @ld_library_path = ld_library_path
       end
@@ -83,6 +86,7 @@ module Datadog
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
             ld_library_path: ld_library_path,
             tags_as_array: tags_as_array,
+            upload_timeout_seconds: upload_timeout_seconds,
           )
           Datadog.logger.debug("Crash tracking #{action} successful")
         rescue => e

@@ -24,6 +24,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE ld_library_path = rb_hash_fetch(options, ID2SYM(rb_intern("ld_library_path")));
   VALUE tags_as_array = rb_hash_fetch(options, ID2SYM(rb_intern("tags_as_array")));
   VALUE action = rb_hash_fetch(options, ID2SYM(rb_intern("action")));
+  VALUE upload_timeout_seconds = rb_hash_fetch(options, ID2SYM(rb_intern("upload_timeout_seconds")));
+
   VALUE start_action = ID2SYM(rb_intern("start"));
   VALUE update_on_fork_action = ID2SYM(rb_intern("update_on_fork"));
 
@@ -32,6 +34,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(path_to_crashtracking_receiver_binary, T_STRING);
   ENFORCE_TYPE(ld_library_path, T_STRING);
   ENFORCE_TYPE(action, T_SYMBOL);
+  ENFORCE_TYPE(upload_timeout_seconds, T_FIXNUM);
 
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
@@ -55,7 +58,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .create_alt_stack = false,
     .endpoint = endpoint,
     .resolve_frames = DDOG_PROF_STACKTRACE_COLLECTION_ENABLED,
-    .timeout_secs = 123, // FIXME: Get correct config from Ruby
+    .timeout_secs = FIX2INT(upload_timeout_seconds),
   };
 
   ddog_prof_CrashtrackerMetadata metadata = {
