@@ -2,7 +2,7 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-# DEV: Loading gem files here is undesirable because it pollutes the application namesspace.
+# DEV: Loading gem files here is undesirable because it pollutes the application namespace.
 # DEV: In this case, `bundle exec ruby -e 'puts defined?(Datadog)'` will return `constant`
 # DEV: even though `require 'datadog'` wasn't executed. But only the version file was loaded.
 # DEV: We should avoid loading gem files to fetch the version here.
@@ -69,7 +69,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
 
   # Used by profiling (and possibly others in the future)
-  # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
+  # When updating the version here, please also update the version in `native_extension_helpers.rb`
+  # (and yes we have a test for it)
   spec.add_dependency 'libdatadog', '~> 9.0.0.1.0'
 
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
