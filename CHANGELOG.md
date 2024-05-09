@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.23.0] - 2024-05-09
+
+### Added
+
+* Profiling: Enable endpoint profiling for Sidekiq and similar background job processors ([#3619][])
+
+### Fixed
+
+* Fix no such file or directory issue when using single step instrumentation ([#3623][])
+* Fix error during telemetry debug logging attempt ([#3618][])
+
 ## [1.22.0] - 2024-04-16
 
 ### Added
@@ -2804,6 +2815,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...master
+[1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
 [1.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v1.22.0
 [2.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v2.0.0.beta1
 [1.21.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.0...v1.21.1
@@ -4111,6 +4123,9 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3582]: https://github.com/DataDog/dd-trace-rb/issues/3582
 [#3585]: https://github.com/DataDog/dd-trace-rb/issues/3585
 [#3587]: https://github.com/DataDog/dd-trace-rb/issues/3587
+[#3618]: https://github.com/DataDog/dd-trace-rb/issues/3618
+[#3619]: https://github.com/DataDog/dd-trace-rb/issues/3619
+[#3623]: https://github.com/DataDog/dd-trace-rb/issues/3623
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
