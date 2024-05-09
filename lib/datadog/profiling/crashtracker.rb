@@ -2,17 +2,6 @@
 
 require 'libdatadog'
 
-# Temporary, this should be moved to libdatadog
-module Libdatadog
-  def self.ld_library_path
-    pkgconfig_folder = self.pkgconfig_folder
-
-    return unless pkgconfig_folder
-
-    File.absolute_path("#{pkgconfig_folder}/../")
-  end
-end
-
 module Datadog
   module Profiling
     # Used to report Ruby VM crashes.
