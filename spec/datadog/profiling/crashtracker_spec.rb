@@ -72,7 +72,8 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       let(:crashtracker_options) { { **super(), upload_timeout_seconds: 12.34 } }
 
       it 'converts it to an Integer before calling _native_start_or_update_on_fork' do
-        expect(described_class).to receive(:_native_start_or_update_on_fork).with(hash_including(upload_timeout_seconds: 12))
+        expect(described_class)
+          .to receive(:_native_start_or_update_on_fork).with(hash_including(upload_timeout_seconds: 12))
 
         start
       end

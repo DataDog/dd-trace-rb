@@ -15,7 +15,11 @@ module Datadog
     class Crashtracker
       private
 
-      attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary, :ld_library_path, \
+      attr_reader \
+        :exporter_configuration,
+        :tags_as_array,
+        :path_to_crashtracking_receiver_binary,
+        :ld_library_path,
         :upload_timeout_seconds
 
       public
