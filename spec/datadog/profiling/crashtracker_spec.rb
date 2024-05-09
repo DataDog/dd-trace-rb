@@ -43,6 +43,22 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       end
     end
 
+    context 'when ld_library_path is nil' do
+      subject(:crashtracker) do
+        described_class.new(
+          exporter_configuration: exporter_configuration,
+          tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
+          ld_library_path: nil
+        )
+      end
+
+      it 'logs a warning' do
+        expect(Datadog.logger).to receive(:warn).with(/no ld_library_path was found/)
+
+        start
+      end
+    end
+
     it 'starts the crash tracker' do
       start
 

@@ -2,6 +2,17 @@
 
 require 'libdatadog'
 
+# Temporary, this should be moved to libdatadog
+module Libdatadog
+  def self.ld_library_path
+    pkgconfig_folder = self.pkgconfig_folder
+
+    return unless pkgconfig_folder
+
+    File.absolute_path("#{pkgconfig_folder}/../")
+  end
+end
+
 module Datadog
   module Profiling
     # Used to report Ruby VM crashes.
@@ -15,18 +26,20 @@ module Datadog
     class Crashtracker
       private
 
-      attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary
+      attr_reader :exporter_configuration, :tags_as_array, :path_to_crashtracking_receiver_binary, :ld_library_path
 
       public
 
       def initialize(
         exporter_configuration:,
         tags:,
-        path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary
+        path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
+        ld_library_path: Libdatadog.ld_library_path
       )
         @exporter_configuration = exporter_configuration
         @tags_as_array = tags.to_a
         @path_to_crashtracking_receiver_binary = path_to_crashtracking_receiver_binary
+        @ld_library_path = ld_library_path
       end
 
       def start
@@ -56,11 +69,19 @@ module Datadog
           return
         end
 
+        unless ld_library_path
+          Datadog.logger.warn(
+            "Cannot #{action} profiling crash tracking as no ld_library_path was found"
+          )
+          return
+        end
+
         begin
           self.class._native_start_or_update_on_fork(
             action: action,
             exporter_configuration: exporter_configuration,
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+            ld_library_path: ld_library_path,
             tags_as_array: tags_as_array,
           )
           Datadog.logger.debug("Crash tracking #{action} successful")

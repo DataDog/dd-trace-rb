@@ -21,6 +21,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   VALUE exporter_configuration = rb_hash_fetch(options, ID2SYM(rb_intern("exporter_configuration")));
   VALUE path_to_crashtracking_receiver_binary = rb_hash_fetch(options, ID2SYM(rb_intern("path_to_crashtracking_receiver_binary")));
+  VALUE ld_library_path = rb_hash_fetch(options, ID2SYM(rb_intern("ld_library_path")));
   VALUE tags_as_array = rb_hash_fetch(options, ID2SYM(rb_intern("tags_as_array")));
   VALUE action = rb_hash_fetch(options, ID2SYM(rb_intern("action")));
   VALUE start_action = ID2SYM(rb_intern("start"));
@@ -29,6 +30,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(path_to_crashtracking_receiver_binary, T_STRING);
+  ENFORCE_TYPE(ld_library_path, T_STRING);
   ENFORCE_TYPE(action, T_SYMBOL);
 
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
@@ -63,14 +65,14 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .tags = &tags,
   };
 
-  ddog_prof_EnvVar ld_library_path = {
+  ddog_prof_EnvVar ld_library_path_env = {
     .key = DDOG_CHARSLICE_C("LD_LIBRARY_PATH"),
-    .val = DDOG_CHARSLICE_C("FIXME"), // FIXME
+    .val = char_slice_from_ruby_string(ld_library_path),
   };
 
   ddog_prof_CrashtrackerReceiverConfig receiver_config = {
     .args = {},
-    .env = {.ptr = &ld_library_path, .len = 1},
+    .env = {.ptr = &ld_library_path_env, .len = 1},
     .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
     .optional_stderr_filename = {},
     .optional_stdout_filename = {},

@@ -8,6 +8,7 @@ module Datadog
       attr_reader exporter_configuration: exporter_configuration_array
       attr_reader tags_as_array: ::Array[[::String, ::String]]
       attr_reader path_to_crashtracking_receiver_binary: ::String
+      attr_reader ld_library_path: ::String
 
       public
 
@@ -15,6 +16,7 @@ module Datadog
         exporter_configuration: exporter_configuration_array,
         tags: ::Hash[::String, ::String],
         ?path_to_crashtracking_receiver_binary: ::String,
+        ?ld_library_path: ::String,
       ) -> void
 
       def start: -> void
@@ -28,8 +30,9 @@ module Datadog
       def self._native_start_or_update_on_fork: (
         action: :start | :update_on_fork,
         exporter_configuration: exporter_configuration_array,
-        tags_as_array: ::Array[[::String, ::String]],
         path_to_crashtracking_receiver_binary: ::String,
+        ld_library_path: ::String,
+        tags_as_array: ::Array[[::String, ::String]],
       ) -> void
 
       def self._native_stop: -> void
