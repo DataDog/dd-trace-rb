@@ -100,6 +100,7 @@ module Datadog
             if (tracecontext_digest = propagator.extract(data))
               # Only parse if it represent the same trace as the successfully extracted one
               next unless tracecontext_digest.trace_id == extracted_trace_digest.trace_id
+
               tracecontext_digest.trace_distributed_tags |= {}
               extracted_trace_digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = if tracecontext_digest.span_id == extracted_trace_digest.span_id
                 "%.16x" % tracecontext_digest.span_id
