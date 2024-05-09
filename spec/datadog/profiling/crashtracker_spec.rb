@@ -8,13 +8,13 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
 
-  let(:crashtracker_options) {
+  let(:crashtracker_options) do
     {
       exporter_configuration: exporter_configuration,
       tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
       upload_timeout_seconds: 123,
     }
-  }
+  end
 
   subject(:crashtracker) { described_class.new(**crashtracker_options) }
 
@@ -65,6 +65,16 @@ RSpec.describe Datadog::Profiling::Crashtracker do
         expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 1
 
         crashtracker.stop
+      end
+    end
+
+    context 'when upload_timeout_seconds is not an Integer' do
+      let(:crashtracker_options) { { **super(), upload_timeout_seconds: 12.34 } }
+
+      it 'converts it to an Integer before calling _native_start_or_update_on_fork' do
+        expect(described_class).to receive(:_native_start_or_update_on_fork).with(hash_including(upload_timeout_seconds: 12))
+
+        start
       end
     end
   end

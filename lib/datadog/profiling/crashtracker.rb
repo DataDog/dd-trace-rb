@@ -75,7 +75,7 @@ module Datadog
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
             ld_library_path: ld_library_path,
             tags_as_array: tags_as_array,
-            upload_timeout_seconds: upload_timeout_seconds,
+            upload_timeout_seconds: Integer(upload_timeout_seconds),
           )
           Datadog.logger.debug("Crash tracking #{action} successful")
         rescue => e
