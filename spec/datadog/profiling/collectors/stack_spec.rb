@@ -363,7 +363,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context 'when sampling a thread blocked on Monitor#synchronize' do
         let(:expected_method_name) do
           # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RUBY_VERSION.start_with?('2.3', '2.4', '2.5', '2.6')
+          if RUBY_VERSION.start_with?('2.5', '2.6')
             'lock'
           else
             'synchronize'

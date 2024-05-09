@@ -14,7 +14,13 @@ module Datadog
           def initialize: () -> void
           def call: (untyped tracing_sampling_rate) -> untyped
 
-          def configuration_object: () -> untyped
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
+        end
+
+        class TracingSamplingRules < SimpleOption
+          def initialize: () -> void
+          def call: (Array[Hash[String, untyped]] tracing_sampling_rules) -> void
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
 
         # Correct type is `OPTIONS: Array[[String, String, Option]]`

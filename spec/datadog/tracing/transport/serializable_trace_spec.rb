@@ -70,6 +70,64 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         end
       end
     end
+
+    context 'when given span links' do
+      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
+
+      let(:spans) do
+        Array.new(3) do |_i|
+          Datadog::Tracing::Span.new(
+            'dummy',
+            links: [
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+                  span_id: 0x1,
+                  trace_state: 'vendor1=value,v2=v,dd=s:1',
+                  trace_sampling_priority: 0x1,
+                ),
+                attributes: { 'link.name' => 'test_link' }
+              ),
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: 0xa0123456789abcdef,
+                  span_id: 0x2,
+                ),
+              ),
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new,
+              )
+            ],
+          )
+        end
+      end
+
+      it 'serializes span links' do
+        expect(
+          unpacked_trace.map do |s|
+            s['span_links']
+          end
+        ).to all(
+          eq(
+            [{
+              'span_id' => 1,
+              'trace_id' => 0xffffffffffffffff,
+              'trace_id_high' => 0xaaaaaaaaaaaaaaaa,
+              'attributes' => { 'link.name' => 'test_link' },
+              'flags' => 2147483649,
+              'tracestate' => 'vendor1=value,v2=v,dd=s:1',
+            },
+             {
+               'span_id' => 2,
+               'trace_id' => 0x0123456789abcdef,
+               'trace_id_high' => 10,
+               'flags' => 0
+             },
+             { 'span_id' => 0, 'trace_id' => 0, 'flags' => 0 }]
+          )
+        )
+      end
+    end
   end
 
   describe '#to_json' do

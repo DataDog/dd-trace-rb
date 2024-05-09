@@ -68,8 +68,8 @@ module Datadog
             profiling.enabled
             runtime_metrics.enabled
             tracing.analytics.enabled
-            tracing.distributed_tracing.propagation_inject_style
-            tracing.distributed_tracing.propagation_extract_style
+            tracing.propagation_style_extract
+            tracing.propagation_style_inject
             tracing.enabled
             tracing.log_injection
             tracing.partial_flush.enabled

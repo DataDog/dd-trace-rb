@@ -4,6 +4,50 @@ appraise 'hanami-1' do
   gem 'hanami', '~> 1'
 end
 
+appraise 'rails4-mysql2' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'mysql2', '< 1'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-semantic-logger' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'rails_semantic_logger', '~> 4.0'
+end
+
+appraise 'rails4-postgres-redis' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'redis-rails'
+  gem 'redis', '< 4.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres-sidekiq' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sidekiq'
+  gem 'activejob'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'rails5-mysql2' do
   gem 'rails', '~> 5.2.1'
   gem 'mysql2', '< 1', platform: :ruby
@@ -220,8 +264,6 @@ end
 
 [
   '2.0',
-  '1.13',
-  '1.12',
 ].each do |v|
   appraise "graphql-#{v}" do
     gem 'graphql', "~> #{v}.0"
@@ -236,14 +278,12 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
+[2].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 [3, 4, 5].each do |n|

@@ -24,7 +24,7 @@ module Datadog
         #
         # ...thus in #1998 we removed such a require.
         #
-        # On the other hand, if datadog/core is loaded by a different product and no general `require 'ddtrace'` is
+        # On the other hand, if datadog/core is loaded by a different product and no general `require 'datadog'` is
         # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
         # no-op if profiling is already loaded).
         require_relative '../profiling'
@@ -261,7 +261,7 @@ module Datadog
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
         setting_value = settings.profiling.advanced.no_signals_workaround_enabled
-        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.5.')
 
         unless [true, false, :auto].include?(setting_value)
           Datadog.logger.error(

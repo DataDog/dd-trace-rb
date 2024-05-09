@@ -377,8 +377,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           before do
-            expect(@t1_span_id).to be > 0
-            expect(@t1_local_root_span_id).to be > 0
+            expect(@t1_span_id.to_i).to be > 0
+            expect(@t1_local_root_span_id.to_i).to be > 0
           end
 
           it 'includes "local root span id" and "span id" labels in the samples' do
@@ -522,6 +522,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             it_behaves_like 'samples with code hotspots information'
           end
 
+          context 'when local root span type is worker' do
+            let(:root_span_type) { 'worker' }
+
+            it_behaves_like 'samples with code hotspots information'
+          end
+
           def self.otel_sdk_available?
             begin
               require 'opentelemetry/sdk'
@@ -536,7 +542,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               require 'datadog/opentelemetry'
 
               OpenTelemetry::SDK.configure
-              OpenTelemetry.tracer_provider.tracer('ddtrace-profiling-test')
+              OpenTelemetry.tracer_provider.tracer('datadog-profiling-test')
             end
 
             let(:t1) do
@@ -593,8 +599,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end
             end
 
-            context 'mixing of otel sdk and ddtrace' do
-              context 'when top-level span is started from ddtrace' do
+            context 'mixing of otel sdk and datadog' do
+              context 'when top-level span is started from datadog' do
                 let(:t1) do
                   Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
                     Datadog::Tracing.trace('profiler.test', type: :web) do |_span, trace|
@@ -1104,7 +1110,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp' },
       { expected_type: :T_ARRAY, object: [], klass: 'Array' },
       { expected_type: :T_HASH, object: {}, klass: 'Hash' },
-      { expected_type: :T_BIGNUM, object: 2**256, klass: RUBY_VERSION < '2.4' ? 'Bignum' : 'Integer' },
+      { expected_type: :T_BIGNUM, object: 2**256, klass: 'Integer' },
       # ThreadContext is a T_DATA; we create here a dummy instance just as an example
       { expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext' },
       { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
@@ -1114,7 +1120,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       { expected_type: :T_TRUE, object: true, klass: 'TrueClass' },
       { expected_type: :T_FALSE, object: false, klass: 'FalseClass' },
       { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
-      { expected_type: :T_FIXNUM, object: 1, klass: RUBY_VERSION < '2.4' ? 'Fixnum' : 'Integer' },
+      { expected_type: :T_FIXNUM, object: 1, klass: 'Integer' },
     ].each do |type|
       expected_type = type.fetch(:expected_type)
       object = type.fetch(:object)

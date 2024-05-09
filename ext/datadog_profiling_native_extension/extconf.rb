@@ -26,7 +26,7 @@ def skip_building_extension!(reason)
   if fail_install_if_missing_extension
     require 'mkmf'
     Logging.message(
-      '[ddtrace] Failure cause: ' \
+      '[datadog] Failure cause: ' \
       "#{Datadog::Profiling::NativeExtensionHelpers::Supported.render_skipped_reason_file(**reason)}\n"
     )
   else
@@ -43,19 +43,19 @@ end
 $stderr.puts(
   %(
 +------------------------------------------------------------------------------+
-| ** Preparing to build the ddtrace profiling native extension... **           |
+| ** Preparing to build the datadog profiling native extension... **           |
 |                                                                              |
 | If you run into any failures during this step, you can set the               |
 | `DD_PROFILING_NO_EXTENSION` environment variable to `true` e.g.              |
 | `$ DD_PROFILING_NO_EXTENSION=true bundle install` to skip this step.         |
 |                                                                              |
 | If you disable this extension, the Datadog Continuous Profiler will          |
-| not be available, but all other ddtrace features will work fine!             |
+| not be available, but all other datadog features will work fine!             |
 |                                                                              |
 | If you needed to use this, please tell us why on                             |
 | <https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :\)      |
 |                                                                              |
-| Thanks for using ddtrace! You rock!                                          |
+| Thanks for using datadog! You rock!                                          |
 +------------------------------------------------------------------------------+
 
 )
@@ -65,9 +65,9 @@ $stderr.puts(
 # that may fail on an environment not properly setup for building Ruby extensions.
 require 'mkmf'
 
-Logging.message("[ddtrace] Using compiler:\n")
+Logging.message("[datadog] Using compiler:\n")
 xsystem("#{CONFIG['CC']} -v")
-Logging.message("[ddtrace] End of compiler information\n")
+Logging.message("[datadog] End of compiler information\n")
 
 # mkmf on modern Rubies actually has an append_cflags that does something similar
 # (see https://github.com/ruby/ruby/pull/5760), but as usual we need a bit more boilerplate to deal with legacy Rubies
@@ -81,11 +81,11 @@ end
 
 # Because we can't control what compiler versions our customers use, shipping with -Werror by default is a no-go.
 # But we can enable it in CI, so that we quickly spot any new warnings that just got introduced.
-add_compiler_flag '-Werror' if ENV['DDTRACE_CI'] == 'true'
+add_compiler_flag '-Werror' if ENV['DATADOG_GEM_CI'] == 'true'
 
 # Older gcc releases may not default to C99 and we need to ask for this. This is also used:
 # * by upstream Ruby -- search for gnu99 in the codebase
-# * by msgpack, another ddtrace dependency
+# * by msgpack, another datadog gem dependency
 #   (https://github.com/msgpack/msgpack-ruby/blob/18ce08f6d612fe973843c366ac9a0b74c4e50599/ext/msgpack/extconf.rb#L8)
 add_compiler_flag '-std=gnu99'
 
@@ -126,7 +126,7 @@ if RUBY_PLATFORM.include?('linux')
   # have_library 'pthread'
   # have_func 'pthread_getcpuclockid'
   # ```
-  # but a) it broke the build on Windows, b) on older Ruby versions (2.2 and below) and c) It's slower to build
+  # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
 end
@@ -163,6 +163,11 @@ $defs << '-DNO_THREAD_TID' if RUBY_VERSION < '3.1'
 # On older Rubies, there was no jit_return member on the rb_control_frame_t struct
 $defs << '-DNO_JIT_RETURN' if RUBY_VERSION < '3.1'
 
+# On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
+# would be invisible to free tracepoints, finalizers and without cleaning
+# obj_to_id_tbl mappings.
+$defs << '-DHAVE_WORKING_RB_GC_FORCE_RECYCLE' if RUBY_VERSION < '3.1'
+
 # On older Rubies, we need to use a backported version of this function. See private_vm_api_access.h for details.
 $defs << '-DUSE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME' if RUBY_VERSION < '3'
 
@@ -175,41 +180,22 @@ $defs << '-DNO_IMEMO_NAME' if RUBY_VERSION < '3'
 # On older Rubies, objects would not move
 $defs << '-DNO_T_MOVED' if RUBY_VERSION < '2.7'
 
+# On older Rubies, there was no RUBY_SEEN_OBJ_ID flag
+$defs << '-DNO_SEEN_OBJ_ID_FLAG' if RUBY_VERSION < '2.7'
+
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
 
 # On older Rubies, there was no thread->invoke_arg
 $defs << '-DNO_THREAD_INVOKE_ARG' if RUBY_VERSION < '2.6'
 
-# On older Rubies, we need to use rb_thread_t instead of rb_execution_context_t
-$defs << '-DUSE_THREAD_INSTEAD_OF_EXECUTION_CONTEXT' if RUBY_VERSION < '2.5'
-
-# On older Rubies, extensions can't use GET_VM()
-$defs << '-DNO_GET_VM' if RUBY_VERSION < '2.5'
-
-# On older Rubies...
-if RUBY_VERSION < '2.4'
-  # ...we need to use RUBY_VM_NORMAL_ISEQ_P instead of VM_FRAME_RUBYFRAME_P
-  $defs << '-DUSE_ISEQ_P_INSTEAD_OF_RUBYFRAME_P'
-  # ...we use a legacy copy of rb_vm_frame_method_entry
-  $defs << '-DUSE_LEGACY_RB_VM_FRAME_METHOD_ENTRY'
-end
-
-# On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
-# would be invisible to free tracepoints, finalizers and without cleaning
-# obj_to_id_tbl mappings.
-$defs << '-DHAVE_WORKING_RB_GC_FORCE_RECYCLE' if RUBY_VERSION < '3.1'
-
-# On older Rubies, there was no RUBY_SEEN_OBJ_ID flag
-$defs << '-DNO_SEEN_OBJ_ID_FLAG' if RUBY_VERSION < '2.7'
-
 # If we got here, libdatadog is available and loaded
 ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[ddtrace] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')
-  Logging.message("[ddtrace] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
+  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
 
   skip_building_extension!(
     if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
@@ -231,7 +217,7 @@ end
 $LDFLAGS += \
   ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
   "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
-Logging.message("[ddtrace] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
+Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that

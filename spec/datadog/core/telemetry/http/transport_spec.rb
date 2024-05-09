@@ -32,7 +32,7 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
         'DD-Telemetry-Request-Type' => 'app-started',
         'DD-Internal-Untraced-Request' => '1',
         'DD-Client-Library-Language' => 'ruby',
-        'DD-Client-Library-Version' => DDTrace::VERSION::STRING,
+        'DD-Client-Library-Version' => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
       }
     end
     let(:hostname) { 'foo' }

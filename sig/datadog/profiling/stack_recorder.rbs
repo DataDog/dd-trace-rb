@@ -22,9 +22,16 @@ module Datadog
         bool timeline_enabled,
       ) -> true
 
-      def serialize: () -> untyped
+      type serialized_profile_data = [
+        ::Time, # Start
+        ::Time, # Finish
+        String, # Serialized PProf
+        ::Hash[::Symbol, untyped], # Hash
+      ]
 
-      def self._native_serialize: (Datadog::Profiling::StackRecorder recorder_instance) -> [:ok | :error, untyped]
+      def serialize: () -> (serialized_profile_data | nil)
+
+      def self._native_serialize: (Datadog::Profiling::StackRecorder recorder_instance) -> ([:ok, serialized_profile_data] | [:error, ::String])
 
       def serialize!: () -> String
 
@@ -33,6 +40,9 @@ module Datadog
       def reset_after_fork: () -> true
 
       def self._native_reset_after_fork: (Datadog::Profiling::StackRecorder recorder_instance) -> true
+
+      def stats: () -> ::Hash[::Symbol, untyped]
+      def self._native_stats: (Datadog::Profiling::StackRecorder recorder_instance) -> ::Hash[::Symbol, untyped]
     end
   end
 end

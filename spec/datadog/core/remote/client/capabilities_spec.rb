@@ -33,8 +33,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'returns an empty string' do
-          expect(capabilities.base64_capabilities).to eq('')
+        it 'matches tracing capabilities only' do
+          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
         end
       end
     end
@@ -51,8 +51,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'returns an empty string' do
-          expect(capabilities.base64_capabilities).to eq('')
+        it 'matches tracing capabilities only' do
+          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
         end
       end
     end
@@ -84,7 +84,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
-      expect(capabilities.capabilities).to be_empty # Tracing does advertise capabilities today
+      expect(capabilities.capabilities).to eq([1 << 29])
       expect(capabilities.products).to include('APM_TRACING')
       expect(capabilities.receivers).to include(
         lambda { |r|

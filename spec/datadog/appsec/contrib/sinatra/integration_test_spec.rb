@@ -24,7 +24,7 @@ RSpec.describe 'Sinatra integration tests' do
         # root reached (default)
         break o if o.last.parent_id == 0
 
-        parent = spans.find { |span| span.span_id == o.last.parent_id }
+        parent = spans.find { |span| span.id == o.last.parent_id }
 
         # root reached (distributed tracing)
         break o if parent.nil?

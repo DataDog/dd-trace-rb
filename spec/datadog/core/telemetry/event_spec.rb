@@ -30,7 +30,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     it do
       # Helper to make configuration matching table easier to read
       def contain_configuration(*array)
-        match_array(array.map { |name, value| { name: name, origin: 'code', seq_id: id, value: value } })
+        array.map { |name, value| { name: name, origin: 'code', seq_id: id, value: value } }
       end
 
       is_expected.to match(
@@ -55,9 +55,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['profiling.enabled', false],
           ['runtime_metrics.enabled', false],
           ['tracing.analytics.enabled', true],
-          ['tracing.distributed_tracing.propagation_inject_style', '["Datadog", "tracecontext"]'],
-          ['tracing.distributed_tracing.propagation_extract_style',
-           '["Datadog", "b3multi", "b3", "tracecontext"]'],
+          ['tracing.propagation_style_extract', '["datadog", "tracecontext"]'],
+          ['tracing.propagation_style_inject', '["datadog", "tracecontext"]'],
           ['tracing.enabled', true],
           ['tracing.log_injection', true],
           ['tracing.partial_flush.enabled', false],
@@ -67,10 +66,9 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['tracing.auto_instrument.enabled', false],
           ['tracing.writer_options.buffer_size', 123],
           ['tracing.writer_options.flush_interval', 456],
-          ['logger.instance', 'MyLogger'],
           ['tracing.opentelemetry.enabled', false],
+          ['logger.instance', 'MyLogger'],
           ['appsec.enabled', false],
-          ['ci.enabled', false]
         ),
         install_signature: { install_id: 'id', install_time: 'time', install_type: 'type' },
       )
@@ -101,7 +99,9 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
 
     it 'has a known gem with expected version' do
-      is_expected.to match(dependencies: include(name: 'ddtrace', version: DDTrace::VERSION::STRING))
+      is_expected.to match(
+        dependencies: include(name: 'datadog', version: Datadog::Core::Environment::Identity.gem_datadog_version)
+      )
     end
   end
 

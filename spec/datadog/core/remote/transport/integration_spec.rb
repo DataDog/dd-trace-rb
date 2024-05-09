@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 
+require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
 require 'datadog/core/remote/transport/negotiation'
@@ -84,12 +85,12 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
             client_tracer: {
               runtime_id: Datadog::Core::Environment::Identity.id,
               language: Datadog::Core::Environment::Identity.lang,
-              tracer_version: Datadog::Core::Environment::Identity.tracer_version,
+              tracer_version: Datadog::Core::Environment::Identity.gem_datadog_version,
               service: Datadog.configuration.service,
               env: Datadog.configuration.env,
               tags: [],
             },
-            capabilities: Base64.encode64(capabilities_binary).chomp,
+            capabilities: Datadog::Core::Utils::Base64.encode64(capabilities_binary).chomp,
           },
           cached_target_files: [],
         }

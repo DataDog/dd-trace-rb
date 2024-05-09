@@ -1,11 +1,9 @@
 require 'datadog/profiling/spec_helper'
 
-RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
-  before { skip_if_profiling_not_supported(self) }
+require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
 
-  # This is needed because this class uses syntax that doesn't work on Ruby 2.1/2.2; we can undo this once dd-trace-rb
-  # drops support for these Rubies globally
-  let(:described_class) { Datadog::Profiling::Collectors::CpuAndWallTimeWorker }
+RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
+  before { skip_if_profiling_not_supported(self) }
 
   let(:endpoint_collection_enabled) { true }
   let(:gc_profiling_enabled) { true }
@@ -644,6 +642,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::CpuAndWallTimeWorker' do
 
         test_num_allocated_object.times { |i| live_objects[i] = CpuAndWallTimeWorkerSpec::TestStruct.new }
         allocation_line = __LINE__ - 1
+
+        # Force a GC to happen here to ensure all the live_objects have age > 0.
+        # Otherwise they wouldn't show up in the serialized pprof below
+        GC.start
 
         cpu_and_wall_time_worker.stop
 

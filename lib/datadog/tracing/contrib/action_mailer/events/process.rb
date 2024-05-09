@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../ext'
 require_relative '../event'
@@ -11,7 +13,7 @@ module Datadog
           module Process
             include ActionMailer::Event
 
-            EVENT_NAME = 'process.action_mailer'.freeze
+            EVENT_NAME = 'process.action_mailer'
 
             module_function
 
@@ -31,7 +33,7 @@ module Datadog
             def process(span, event, _id, payload)
               super
 
-              span.span_type = span_type
+              span.type = span_type
               span.set_tag(Ext::TAG_ACTION, payload[:action])
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
 

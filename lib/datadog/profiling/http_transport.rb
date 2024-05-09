@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../core/transport/ext'
 
 module Datadog
@@ -70,9 +72,9 @@ module Datadog
 
       def base_url_from(agent_settings)
         case agent_settings.adapter
-        when Datadog::Core::Transport::Ext::HTTP::ADAPTER
+        when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"
-        when Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
+        when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           "unix://#{agent_settings.uds_path}"
         else
           raise ArgumentError, "Unexpected adapter: #{agent_settings.adapter}"
@@ -80,18 +82,12 @@ module Datadog
       end
 
       def validate_agent_settings(agent_settings)
-        supported_adapters = [Datadog::Core::Transport::Ext::HTTP::ADAPTER,
-                              Datadog::Core::Transport::Ext::UnixSocket::ADAPTER]
+        supported_adapters = [Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
+                              Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER]
         unless supported_adapters.include?(agent_settings.adapter)
           raise ArgumentError,
             "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
                         ' is not supported'
-        end
-
-        if agent_settings.deprecated_for_removal_transport_configuration_proc
-          Datadog.logger.warn(
-            'Ignoring custom c.tracing.transport_options setting as the profiler does not support it.'
-          )
         end
       end
 

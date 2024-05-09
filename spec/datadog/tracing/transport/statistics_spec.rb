@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/transport/statistics'
 
 RSpec.describe Datadog::Tracing::Transport::Statistics do

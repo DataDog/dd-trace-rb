@@ -9,7 +9,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
   subject(:env_logger) { described_class }
 
   before do
-    allow(Time).to receive(:now).and_return(Time.new(2020))
+    allow(Time).to receive(:now).and_return(Time.new(2020, 1, 1, 0, 0, 0, '+00:00'))
 
     # Resets "only-once" execution pattern of `collect_and_log!`
     env_logger.instance_variable_set(:@executed, nil)
@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       {
         'date' => '2020-01-01T00:00:00Z',
         'os_name' => (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-        'version' => DDTrace::VERSION::STRING,
+        'version' => Datadog::VERSION::STRING,
         'lang' => 'ruby',
         'lang_version' => match(/[23]\./),
         'env' => nil,
@@ -53,15 +53,6 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       expect(logger).to have_received(:info).with start_with('DATADOG CONFIGURATION - CORE') do |msg|
         json = JSON.parse(msg.partition('- CORE -')[2].strip)
         expect(json).to match(expected_logger_result)
-      end
-    end
-
-    context 'with multiple invocations' do
-      it 'executes only once' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
-
-        expect(logger).to have_received(:info).once
       end
     end
 
@@ -144,7 +135,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
         is_expected.to match(
           date: '2020-01-01T00:00:00Z',
           os_name: (include('x86_64').or include('i686').or include('aarch64').or include('arm')),
-          version: DDTrace::VERSION::STRING,
+          version: Datadog::VERSION::STRING,
           lang: 'ruby',
           lang_version: match(/[23]\./),
           env: nil,
@@ -175,7 +166,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with service configured' do
-        let(:service) { double('service') }
+        let(:service) { 'service' }
 
         before { allow(Datadog.configuration).to receive(:service).and_return(service) }
 
@@ -222,7 +213,7 @@ RSpec.describe Datadog::Core::Diagnostics::EnvironmentLogger do
       end
 
       context 'with health metrics enabled' do
-        before { expect(Datadog.configuration.diagnostics.health_metrics).to receive(:enabled).and_return(true) }
+        before { expect(Datadog.configuration.health_metrics).to receive(:enabled).and_return(true) }
 
         it { is_expected.to include health_metrics_enabled: true }
       end

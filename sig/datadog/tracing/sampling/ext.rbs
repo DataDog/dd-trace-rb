@@ -16,6 +16,8 @@ module Datadog
         module Decision
           DEFAULT: ::String
           AGENT_RATE: ::String
+          REMOTE_DYNAMIC_RULE: ::String
+          REMOTE_USER_RULE: ::String
           TRACE_SAMPLING_RULE: ::String
           MANUAL: ::String
           ASM: ::String

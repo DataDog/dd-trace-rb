@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Core
     module Telemetry
@@ -29,6 +31,10 @@ module Datadog
           end
 
           def internal_error?
+            nil
+          end
+
+          def code
             nil
           end
 

@@ -257,7 +257,7 @@ VALUE ruby_safe_inspect(VALUE obj) {
 }
 
 VALUE ddtrace_version(void) {
-  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("DDTrace"));
+  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
   ENFORCE_TYPE(ddtrace_module, T_MODULE);
   VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
   ENFORCE_TYPE(version_module, T_MODULE);

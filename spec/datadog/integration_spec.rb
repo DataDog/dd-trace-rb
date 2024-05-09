@@ -86,14 +86,14 @@ RSpec.describe 'Datadog integration' do
 
     before do
       Datadog.configure do |c|
-        c.diagnostics.health_metrics.enabled = true
+        c.health_metrics.enabled = true
       end
 
       shutdown!
     end
 
     after do
-      Datadog.configuration.diagnostics.health_metrics.reset!
+      Datadog.configuration.health_metrics.reset!
       Datadog.shutdown!
     end
 

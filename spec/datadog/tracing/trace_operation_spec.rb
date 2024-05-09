@@ -37,6 +37,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
+        remote_parent: remote_parent,
       }
     end
 
@@ -59,6 +60,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:trace_state_unknown_fields) { 'any;field;really' }
 
     let(:distributed_tags) { { '_dd.p.test' => 'value' } }
+    let(:remote_parent) { true }
   end
 
   shared_examples 'a span with default events' do
@@ -86,6 +88,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           service: nil,
           trace_state: nil,
           trace_state_unknown_fields: nil,
+          remote_parent: false,
         )
       end
 
@@ -180,6 +183,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
         it { expect(trace_op.parent_span_id).to eq(parent_span_id) }
+      end
+
+      context ':remote_parent' do
+        subject(:options) { { remote_parent: true } }
+        let(:remote_parent) { true }
+
+        it { expect(trace_op.remote_parent).to eq(remote_parent) }
       end
 
       context ':rate_limiter_rate' do
@@ -1815,9 +1825,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_process_id: Datadog::Core::Environment::Identity.pid,
               trace_resource: nil,
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
-
               trace_sampling_priority: nil,
-              trace_service: nil
+              trace_service: nil,
+              span_remote: false,
             )
           end
         end
@@ -1841,9 +1851,17 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_resource: be_a_frozen_copy_of(resource),
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
               trace_sampling_priority: sampling_priority,
-              trace_service: be_a_frozen_copy_of(service)
+              trace_service: be_a_frozen_copy_of(service),
+              span_remote: true
             )
           end
+        end
+
+        context 'and :remote_parent is set to false' do
+          let(:options) { { remote_parent: remote_parent } }
+          let(:remote_parent) { false }
+
+          it { expect(digest.span_remote).to eq(false) }
         end
 
         context 'but :parent_span_id has been defined' do
@@ -1934,7 +1952,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: nil
+              trace_service: nil,
+              span_remote: false
             )
           end
         end
@@ -1968,7 +1987,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo'
+              trace_service: 'foo',
+              span_remote: false
             )
           end
         end
@@ -2002,7 +2022,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
               trace_sampling_priority: nil,
-              trace_service: 'foo'
+              trace_service: 'foo',
+              span_remote: false
             )
           end
         end
@@ -2044,7 +2065,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             trace_runtime_id: Datadog::Core::Environment::Identity.id,
 
             trace_sampling_priority: nil,
-            trace_service: 'boo'
+            trace_service: 'boo',
+            span_remote: false,
           )
         end
 
@@ -2053,6 +2075,140 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
 
           it { expect(digest.span_id).to be nil }
+        end
+      end
+    end
+  end
+
+  describe '#to_correlation' do
+    context 'is empty' do
+      it { expect(trace_op.to_correlation).to be_a_kind_of(Datadog::Tracing::Correlation::Identifier) }
+
+      context 'and the trace was not initialized with any attributes' do
+        it do
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+    end
+
+    context 'when :parent_span_id has been defined' do
+      let(:options) { { parent_span_id: parent_span_id } }
+      let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+      it do
+        expect(trace_op.to_correlation).to have_attributes(
+          span_id: parent_span_id.to_s,
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+    end
+
+    context 'is measuring an operation' do
+      it do
+        correlation = nil
+        parent_id = nil
+
+        trace_op.measure('grandparent') do
+          trace_op.measure('parent') do |parent, _|
+            parent_id = parent.id
+            correlation = trace_op.to_correlation
+          end
+        end
+
+        expect(correlation).to have_attributes(
+          span_id: parent_id.to_s,
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+
+      context 'and :parent_span_id has been defined' do
+        let(:options) { { parent_span_id: parent_span_id } }
+        let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+        it do
+          correlation = nil
+          parent_id = nil
+
+          trace_op.measure('grandparent') do
+            trace_op.measure('parent') do |parent, _|
+              parent_id = parent.id
+              correlation = trace_op.to_correlation
+            end
+          end
+
+          expect(correlation).to have_attributes(
+            span_id: parent_id.to_s,
+            trace_id: low_order_trace_id(trace_op.id).to_s
+          )
+        end
+      end
+    end
+
+    context 'has built a span' do
+      context 'that has not started' do
+        it do
+          trace_op.build_span('parent')
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+
+      context 'that has started' do
+        it do
+          span = trace_op.build_span('parent').start
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: span.id.to_s,
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+
+      context 'that has finished' do
+        it do
+          trace_op.build_span('parent').start.finish
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s,
+          )
+        end
+      end
+    end
+
+    context 'when trace has finished' do
+      it do
+        trace_op.measure('grandparent') do
+          trace_op.measure('parent') do |_parent, _|
+          end
+        end
+
+        expect(trace_op.to_correlation).to have_attributes(
+          span_id: '0',
+          trace_id: low_order_trace_id(trace_op.id).to_s
+        )
+      end
+
+      context 'and :parent_span_id has been defined' do
+        let(:options) { { parent_span_id: parent_span_id } }
+        let(:parent_span_id) { Datadog::Tracing::Utils.next_id }
+
+        it do
+          trace_op.measure('grandparent') do
+            trace_op.measure('parent') do |parent, _|
+            end
+          end
+
+          expect(trace_op.to_correlation).to have_attributes(
+            span_id: '0',
+            trace_id: low_order_trace_id(trace_op.id).to_s
+          )
         end
       end
     end
@@ -2083,7 +2239,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               sample_rate: sample_rate,
               sampled?: sampled,
               sampling_priority: sampling_priority,
-              service: be_a_copy_of(service)
+              service: be_a_copy_of(service),
+              remote_parent: true,
             )
           end
 

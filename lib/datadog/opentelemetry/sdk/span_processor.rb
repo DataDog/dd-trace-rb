@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'trace/span'
+require_relative '../../tracing/span_link'
+require_relative '../../tracing/trace_digest'
 
 module Datadog
   module OpenTelemetry
@@ -87,6 +89,21 @@ module Datadog
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
 
+          unless span.links.nil?
+            datadog_span.links = span.links.map do |link|
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: link.span_context.hex_trace_id.to_i(16),
+                  span_id: link.span_context.hex_span_id.to_i(16),
+                  trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
+                  trace_state: link.span_context.tracestate&.to_s,
+                  span_remote: link.span_context.remote?,
+                ),
+                attributes: link.attributes
+              )
+            end
+          end
+
           datadog_span
         end
 
@@ -115,7 +132,7 @@ module Datadog
 
           # DEV: There's no `flat_map!`; we have to split it into two operations
           attributes = attributes.map do |key, value|
-            Datadog::OpenTelemetry::Trace::Span.serialize_attribute(key, value)
+            Datadog::Tracing::Utils.serialize_attribute(key, value)
           end
           attributes.flatten!(1)
 

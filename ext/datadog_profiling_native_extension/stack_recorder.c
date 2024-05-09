@@ -169,38 +169,62 @@ static const uint8_t all_value_types_positions[] =
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
+// Struct for storing stats related to a profile in a particular slot.
+// These stats will share the same lifetime as the data in that profile slot.
+typedef struct slot_stats {
+  // How many individual samples were recorded into this slot (un-weighted)
+  uint64_t recorded_samples;
+} stats_slot;
+
+typedef struct profile_slot {
+  ddog_prof_Profile profile;
+  stats_slot stats;
+} profile_slot;
+
 // Contains native state for each instance
 struct stack_recorder_state {
   // Heap recorder instance
   heap_recorder *heap_recorder;
 
-  pthread_mutex_t slot_one_mutex;
-  ddog_prof_Profile slot_one_profile;
-
-  pthread_mutex_t slot_two_mutex;
-  ddog_prof_Profile slot_two_profile;
+  pthread_mutex_t mutex_slot_one;
+  profile_slot profile_slot_one;
+  pthread_mutex_t mutex_slot_two;
+  profile_slot profile_slot_two;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
   uint8_t position_for[ALL_VALUE_TYPES_COUNT];
   uint8_t enabled_values_count;
+
+  // Struct for storing stats related to behaviour of a stack recorder instance during its entire lifetime.
+  struct lifetime_stats {
+    // How many profiles have we serialized successfully so far
+    uint64_t serialization_successes;
+    // How many profiles have we serialized unsuccessfully so far
+    uint64_t serialization_failures;
+    // Stats on profile serialization time
+    long serialization_time_ns_min;
+    long serialization_time_ns_max;
+    uint64_t serialization_time_ns_total;
+  } stats_lifetime;
 };
 
-// Used to return a pair of values from sampler_lock_active_profile()
-struct active_slot_pair {
+// Used to group mutex and the corresponding profile slot for easy unlocking after work is done.
+typedef struct locked_profile_slot {
   pthread_mutex_t *mutex;
-  ddog_prof_Profile *profile;
-};
+  profile_slot *data;
+} locked_profile_slot;
 
 struct call_serialize_without_gvl_arguments {
   // Set by caller
   struct stack_recorder_state *state;
   ddog_Timespec finish_timestamp;
-  size_t gc_count_before_serialize;
 
   // Set by callee
-  ddog_prof_Profile *profile;
+  profile_slot *slot;
   ddog_prof_Profile_SerializeResult result;
+  long heap_profile_build_time_ns;
+  long serialize_no_gvl_time_ns;
 
   // Set by both
   bool serialize_ran;
@@ -223,9 +247,9 @@ static VALUE _native_initialize(
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
-static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder_state *state);
-static void sampler_unlock_active_profile(struct active_slot_pair active_slot);
-static ddog_prof_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
+static locked_profile_slot sampler_lock_active_profile(struct stack_recorder_state *state);
+static void sampler_unlock_active_profile(locked_profile_slot active_slot);
+static profile_slot* serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state);
 static VALUE _native_active_slot(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_one_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_is_slot_two_mutex_locked(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
@@ -234,7 +258,7 @@ static ddog_Timespec system_epoch_now_timespec(void);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_instance);
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec start_time);
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint);
-static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */);
+static void reset_profile_slot(profile_slot *slot, ddog_Timespec *start_time /* Can be null */);
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class);
 static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locations);
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
@@ -242,6 +266,8 @@ static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
+static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
+static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -262,6 +288,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 7);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
+  rb_define_singleton_method(stack_recorder_class, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_active_slot", _native_active_slot, 1);
   rb_define_singleton_method(testing_module, "_native_slot_one_mutex_locked?", _native_is_slot_one_mutex_locked, 1);
   rb_define_singleton_method(testing_module, "_native_slot_two_mutex_locked?", _native_is_slot_two_mutex_locked, 1);
@@ -306,6 +333,9 @@ static VALUE _native_new(VALUE klass) {
   initialize_slot_concurrency_control(state);
   for (uint8_t i = 0; i < ALL_VALUE_TYPES_COUNT; i++) { state->position_for[i] = all_value_types_positions[i]; }
   state->enabled_values_count = ALL_VALUE_TYPES_COUNT;
+  state->stats_lifetime = (struct lifetime_stats) {
+    .serialization_time_ns_min = INT64_MAX,
+  };
 
   // Note: At this point, slot_one_profile and slot_two_profile contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
@@ -326,11 +356,11 @@ static VALUE _native_new(VALUE klass) {
 }
 
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state) {
-  state->slot_one_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
-  state->slot_two_mutex = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  state->mutex_slot_one = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
+  state->mutex_slot_two = (pthread_mutex_t) PTHREAD_MUTEX_INITIALIZER;
 
   // A newly-created StackRecorder starts with slot one being active for samples, so let's lock slot two
-  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->slot_two_mutex));
+  ENFORCE_SUCCESS_GVL(pthread_mutex_lock(&state->mutex_slot_two));
 
   state->active_slot = 1;
 }
@@ -353,18 +383,22 @@ static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Sl
     rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
   }
 
-  state->slot_one_profile = slot_one_profile_result.ok;
-  state->slot_two_profile = slot_two_profile_result.ok;
+  state->profile_slot_one = (profile_slot) {
+    .profile = slot_one_profile_result.ok,
+  };
+  state->profile_slot_two = (profile_slot) {
+    .profile = slot_two_profile_result.ok,
+  };
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
   struct stack_recorder_state *state = (struct stack_recorder_state *) state_ptr;
 
-  pthread_mutex_destroy(&state->slot_one_mutex);
-  ddog_prof_Profile_drop(&state->slot_one_profile);
+  pthread_mutex_destroy(&state->mutex_slot_one);
+  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
 
-  pthread_mutex_destroy(&state->slot_two_mutex);
-  ddog_prof_Profile_drop(&state->slot_two_profile);
+  pthread_mutex_destroy(&state->mutex_slot_two);
+  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
   heap_recorder_free(state->heap_recorder);
 
@@ -463,8 +497,8 @@ static VALUE _native_initialize(
     state->position_for[TIMELINE_VALUE_ID] = next_disabled_pos++;
   }
 
-  ddog_prof_Profile_drop(&state->slot_one_profile);
-  ddog_prof_Profile_drop(&state->slot_two_profile);
+  ddog_prof_Profile_drop(&state->profile_slot_one.profile);
+  ddog_prof_Profile_drop(&state->profile_slot_two.profile);
 
   ddog_prof_Slice_ValueType sample_types = {.ptr = enabled_value_types, .len = state->enabled_values_count};
   initialize_profiles(state, sample_types);
@@ -480,16 +514,17 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Need to do this while still holding on to the Global VM Lock; see comments on method for why
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
+  long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
   // happen while holding on to the GVL.
   heap_recorder_prepare_iteration(state->heap_recorder);
+  long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
   struct call_serialize_without_gvl_arguments args = {
     .state = state,
     .finish_timestamp = finish_timestamp,
-    .gc_count_before_serialize = rb_gc_count(),
     .serialize_ran = false
   };
 
@@ -510,11 +545,26 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
   heap_recorder_finish_iteration(state->heap_recorder);
 
+  // NOTE: We are focusing on the serialization time outside of the GVL in this stat here. This doesn't
+  //       really cover the full serialization process but it gives a more useful number since it bypasses
+  //       the noise of acquiring GVLs and dealing with interruptions which is highly specific to runtime
+  //       conditions and over which we really have no control about.
+  long serialization_time_ns = args.serialize_no_gvl_time_ns;
+  if (serialization_time_ns >= 0) {
+    // Only update stats if our serialization time is valid.
+    state->stats_lifetime.serialization_time_ns_max = long_max_of(state->stats_lifetime.serialization_time_ns_max, serialization_time_ns);
+    state->stats_lifetime.serialization_time_ns_min = long_min_of(state->stats_lifetime.serialization_time_ns_min, serialization_time_ns);
+    state->stats_lifetime.serialization_time_ns_total += serialization_time_ns;
+  }
+
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
   if (serialized_profile.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
+    state->stats_lifetime.serialization_failures++;
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
   }
+
+  state->stats_lifetime.serialization_successes++;
 
   VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
 
@@ -525,8 +575,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
+  VALUE profile_stats = build_profile_stats(args.slot, serialization_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
 
-  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(3, start, finish, encoded_pprof));
+  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_pprof, profile_stats));
 }
 
 static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
@@ -539,7 +590,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  struct active_slot_pair active_slot = sampler_lock_active_profile(state);
+  locked_profile_slot active_slot = sampler_lock_active_profile(state);
 
   // Note: We initialize this array to have ALL_VALUE_TYPES_COUNT but only tell libdatadog to use the first
   // state->enabled_values_count values. This simplifies handling disabled value types -- we still put them on the
@@ -563,7 +614,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
-    active_slot.profile,
+    &active_slot.data->profile,
     (ddog_prof_Sample) {
       .locations = locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
@@ -571,6 +622,8 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     },
     labels.end_timestamp_ns
   );
+
+  active_slot.data->stats.recorded_samples++;
 
   sampler_unlock_active_profile(active_slot);
 
@@ -592,9 +645,9 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  struct active_slot_pair active_slot = sampler_lock_active_profile(state);
+  locked_profile_slot active_slot = sampler_lock_active_profile(state);
 
-  ddog_prof_Profile_Result result = ddog_prof_Profile_set_endpoint(active_slot.profile, local_root_span_id, endpoint);
+  ddog_prof_Profile_Result result = ddog_prof_Profile_set_endpoint(&active_slot.data->profile, local_root_span_id, endpoint);
 
   sampler_unlock_active_profile(active_slot);
 
@@ -609,12 +662,10 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 // during iteration of heap recorder live objects.
 typedef struct heap_recorder_iteration_context {
   struct stack_recorder_state *state;
-  ddog_prof_Profile *profile;
+  profile_slot *slot;
 
   bool error;
   char error_msg[MAX_LEN_HEAP_ITERATION_ERROR_MSG];
-
-  size_t profile_gen;
 } heap_recorder_iteration_context;
 
 static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteration_data iteration_data, void *extra_arg) {
@@ -643,11 +694,11 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   }
   labels[label_offset++] = (ddog_prof_Label) {
     .key = DDOG_CHARSLICE_C("gc gen age"),
-    .num = context->profile_gen - object_data->alloc_gen,
+    .num = object_data->gen_age,
   };
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
-    context->profile,
+    &context->slot->profile,
     (ddog_prof_Sample) {
       .locations = iteration_data.locations,
       .values = (ddog_Slice_I64) {.ptr = metric_values, .len = context->state->enabled_values_count},
@@ -658,6 +709,8 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
     },
     0
   );
+
+  context->slot->stats.recorded_samples++;
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     read_ddogerr_string_and_drop(&result.err, context->error_msg, MAX_LEN_HEAP_ITERATION_ERROR_MSG);
@@ -670,13 +723,12 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   return true;
 }
 
-static void build_heap_profile_without_gvl(struct stack_recorder_state *state, ddog_prof_Profile *profile, size_t gc_count_before_serialize) {
+static void build_heap_profile_without_gvl(struct stack_recorder_state *state, profile_slot *slot) {
   heap_recorder_iteration_context iteration_context = {
     .state = state,
-    .profile = profile,
+    .slot = slot,
     .error = false,
     .error_msg = {0},
-    .profile_gen = gc_count_before_serialize,
   };
   bool iterated = heap_recorder_for_each_live_object(state->heap_recorder, add_heap_sample_to_active_profile_without_gvl, (void*) &iteration_context);
   // We wait until we're out of the iteration to grab the gvl and raise. This is important because during
@@ -694,15 +746,21 @@ static void build_heap_profile_without_gvl(struct stack_recorder_state *state, d
 static void *call_serialize_without_gvl(void *call_args) {
   struct call_serialize_without_gvl_arguments *args = (struct call_serialize_without_gvl_arguments *) call_args;
 
-  args->profile = serializer_flip_active_and_inactive_slots(args->state);
+  long serialize_no_gvl_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
+  profile_slot *slot_now_inactive = serializer_flip_active_and_inactive_slots(args->state);
+
+  args->slot = slot_now_inactive;
 
   // Now that we have the inactive profile with all but heap samples, lets fill it with heap data
   // without needing to race with the active sampler
-  build_heap_profile_without_gvl(args->state, args->profile, args->gc_count_before_serialize);
+  build_heap_profile_without_gvl(args->state, args->slot);
+  args->heap_profile_build_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
   // Note: The profile gets reset by the serialize call
-  args->result = ddog_prof_Profile_serialize(args->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
+  args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
   args->serialize_ran = true;
+  args->serialize_no_gvl_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
 
   return NULL; // Unused
 }
@@ -712,42 +770,42 @@ VALUE enforce_recorder_instance(VALUE object) {
   return object;
 }
 
-static struct active_slot_pair sampler_lock_active_profile(struct stack_recorder_state *state) {
+static locked_profile_slot sampler_lock_active_profile(struct stack_recorder_state *state) {
   int error;
 
   for (int attempts = 0; attempts < 2; attempts++) {
-    error = pthread_mutex_trylock(&state->slot_one_mutex);
+    error = pthread_mutex_trylock(&state->mutex_slot_one);
     if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot one is active
-    if (!error) return (struct active_slot_pair) {.mutex = &state->slot_one_mutex, .profile = &state->slot_one_profile};
+    if (!error) return (locked_profile_slot) {.mutex = &state->mutex_slot_one, .data = &state->profile_slot_one};
 
     // If we got here, slot one was not active, let's try slot two
 
-    error = pthread_mutex_trylock(&state->slot_two_mutex);
+    error = pthread_mutex_trylock(&state->mutex_slot_two);
     if (error && error != EBUSY) ENFORCE_SUCCESS_GVL(error);
 
     // Slot two is active
-    if (!error) return (struct active_slot_pair) {.mutex = &state->slot_two_mutex, .profile = &state->slot_two_profile};
+    if (!error) return (locked_profile_slot) {.mutex = &state->mutex_slot_two, .data = &state->profile_slot_two};
   }
 
   // We already tried both multiple times, and we did not succeed. This is not expected to happen. Let's stop sampling.
   rb_raise(rb_eRuntimeError, "Failed to grab either mutex in sampler_lock_active_profile");
 }
 
-static void sampler_unlock_active_profile(struct active_slot_pair active_slot) {
+static void sampler_unlock_active_profile(locked_profile_slot active_slot) {
   ENFORCE_SUCCESS_GVL(pthread_mutex_unlock(active_slot.mutex));
 }
 
-static ddog_prof_Profile *serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
+static profile_slot* serializer_flip_active_and_inactive_slots(struct stack_recorder_state *state) {
   int previously_active_slot = state->active_slot;
 
   if (previously_active_slot != 1 && previously_active_slot != 2) {
     grab_gvl_and_raise(rb_eRuntimeError, "Unexpected active_slot state %d in serializer_flip_active_and_inactive_slots", previously_active_slot);
   }
 
-  pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
-  pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->slot_two_mutex : &state->slot_one_mutex;
+  pthread_mutex_t *previously_active = (previously_active_slot == 1) ? &state->mutex_slot_one : &state->mutex_slot_two;
+  pthread_mutex_t *previously_inactive = (previously_active_slot == 1) ? &state->mutex_slot_two : &state->mutex_slot_one;
 
   // Release the lock, thus making this slot active
   ENFORCE_SUCCESS_NO_GVL(pthread_mutex_unlock(previously_inactive));
@@ -758,8 +816,8 @@ static ddog_prof_Profile *serializer_flip_active_and_inactive_slots(struct stack
   // Update active_slot
   state->active_slot = (previously_active_slot == 1) ? 2 : 1;
 
-  // Return profile for previously active slot (now inactive)
-  return (previously_active_slot == 1) ? &state->slot_one_profile : &state->slot_two_profile;
+  // Return pointer to previously active slot (now inactive)
+  return (previously_active_slot == 1) ? &state->profile_slot_one : &state->profile_slot_two;
 }
 
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
@@ -783,7 +841,7 @@ static VALUE test_slot_mutex_state(VALUE recorder_instance, int slot) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  pthread_mutex_t *slot_mutex = (slot == 1) ? &state->slot_one_mutex : &state->slot_two_mutex;
+  pthread_mutex_t *slot_mutex = (slot == 1) ? &state->mutex_slot_one : &state->mutex_slot_two;
 
   // Like Heisenberg's uncertainty principle, we can't observe without affecting...
   int error = pthread_mutex_trylock(slot_mutex);
@@ -818,8 +876,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
   // resulting state is inconsistent, we make sure to reset it back to the initial state.
   initialize_slot_concurrency_control(state);
 
-  reset_profile(&state->slot_one_profile, /* start_time: */ NULL);
-  reset_profile(&state->slot_two_profile, /* start_time: */ NULL);
+  reset_profile_slot(&state->profile_slot_one, /* start_time: */ NULL);
+  reset_profile_slot(&state->profile_slot_two, /* start_time: */ NULL);
 
   heap_recorder_after_fork(state->heap_recorder);
 
@@ -830,8 +888,8 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE recorder_
 // not be interrupted part-way through by a VM fork.
 static void serializer_set_start_timestamp_for_next_profile(struct stack_recorder_state *state, ddog_Timespec start_time) {
   // Before making this profile active, we reset it so that it uses the correct start_time for its start
-  ddog_prof_Profile *next_profile = (state->active_slot == 1) ? &state->slot_two_profile : &state->slot_one_profile;
-  reset_profile(next_profile, &start_time);
+  profile_slot *next_profile_slot = (state->active_slot == 1) ? &state->profile_slot_two : &state->profile_slot_one;
+  reset_profile_slot(next_profile_slot, &start_time);
 }
 
 static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE local_root_span_id, VALUE endpoint) {
@@ -877,11 +935,12 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
   return Qnil;
 }
 
-static void reset_profile(ddog_prof_Profile *profile, ddog_Timespec *start_time /* Can be null */) {
-  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(profile, start_time);
+static void reset_profile_slot(profile_slot *slot, ddog_Timespec *start_time /* Can be null */) {
+  ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile, start_time);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to reset profile: %"PRIsVALUE, get_error_details_and_drop(&reset_result.err));
   }
+  slot->stats = (stats_slot) {};
 }
 
 // This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
@@ -941,4 +1000,41 @@ static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj) {
   #else
     return Qfalse;
   #endif
+}
+
+static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  uint64_t total_serializations = state->stats_lifetime.serialization_successes + state->stats_lifetime.serialization_failures;
+
+  VALUE heap_recorder_snapshot = state->heap_recorder ?
+    heap_recorder_state_snapshot(state->heap_recorder) : Qnil;
+
+  VALUE stats_as_hash = rb_hash_new();
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("serialization_successes")), /* => */ ULL2NUM(state->stats_lifetime.serialization_successes),
+    ID2SYM(rb_intern("serialization_failures")),  /* => */ ULL2NUM(state->stats_lifetime.serialization_failures),
+
+    ID2SYM(rb_intern("serialization_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats_lifetime.serialization_time_ns_min, != INT64_MAX, LONG2NUM),
+    ID2SYM(rb_intern("serialization_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats_lifetime.serialization_time_ns_max, > 0, LONG2NUM),
+    ID2SYM(rb_intern("serialization_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats_lifetime.serialization_time_ns_total, > 0, LONG2NUM),
+    ID2SYM(rb_intern("serialization_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats_lifetime.serialization_time_ns_total, total_serializations),
+
+    ID2SYM(rb_intern("heap_recorder_snapshot")), /* => */ heap_recorder_snapshot,
+  };
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  return stats_as_hash;
+}
+
+static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns) {
+  VALUE stats_as_hash = rb_hash_new();
+  VALUE arguments[] = {
+    ID2SYM(rb_intern("recorded_samples")), /* => */ ULL2NUM(slot->stats.recorded_samples),
+    ID2SYM(rb_intern("serialization_time_ns")), /* => */ LONG2NUM(serialization_time_ns),
+    ID2SYM(rb_intern("heap_iteration_prep_time_ns")), /* => */ LONG2NUM(heap_iteration_prep_time_ns),
+    ID2SYM(rb_intern("heap_profile_build_time_ns")), /* => */ LONG2NUM(heap_profile_build_time_ns),
+  };
+  for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
+  return stats_as_hash;
 }

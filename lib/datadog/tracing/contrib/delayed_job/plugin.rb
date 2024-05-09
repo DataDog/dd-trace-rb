@@ -19,7 +19,7 @@ module Datadog
               Ext::SPAN_JOB,
               service: configuration[:service_name],
               resource: job_name(job),
-              on_error: configuration[:error_handler]
+              on_error: configuration[:on_error]
             ) do |span|
               set_sample_rate(span)
 
@@ -30,7 +30,7 @@ module Datadog
               span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
               span.set_tag(Ext::TAG_PRIORITY, job.priority)
               span.set_tag(Ext::TAG_ATTEMPTS, job.attempts)
-              span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+              span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_JOB)
@@ -58,7 +58,7 @@ module Datadog
 
               span.set_tag(Ext::TAG_QUEUE, job.queue) if job.queue
               span.set_tag(Ext::TAG_PRIORITY, job.priority)
-              span.span_type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+              span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENQUEUE)

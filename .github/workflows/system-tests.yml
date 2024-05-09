@@ -83,13 +83,9 @@ jobs:
             path: dd-trace-rb
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -163,13 +159,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -288,13 +280,9 @@ jobs:
           - ruby
         app:
           - rack
-          - sinatra14
+#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
           - sinatra20
           - sinatra21
-          - rails32
-          - rails40
-          - rails41
-          - rails42
           - rails50
           - rails51
           - rails52
@@ -326,3 +314,36 @@ jobs:
         run: |
           find logs*
           python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
+
+  cleanup:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - runner
+          - agent
+          - weblog-rack
+#           - weblog-sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - weblog-sinatra20
+          - weblog-sinatra21
+          - weblog-rails50
+          - weblog-rails51
+          - weblog-rails52
+          - weblog-rails60
+          - weblog-rails61
+          - weblog-rails70
+    runs-on: ubuntu-latest
+    needs:
+      - test
+    if: ${{ always() }}
+    name: Cleanup (${{ matrix.image }})
+    steps:
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - uses: actions/delete-package-versions@v4
+        with:
+          package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
+          package-name: 'system-tests/${{ matrix.image }}'
+          package-type: 'container'
+        continue-on-error: true

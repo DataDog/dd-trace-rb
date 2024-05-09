@@ -1,7 +1,6 @@
 require 'rails/all'
 
 require_relative 'controllers'
-require_relative 'middleware'
 require_relative 'models'
 require_relative 'log_configuration'
 
@@ -9,7 +8,6 @@ require_relative 'deprecation'
 
 RSpec.shared_context 'Rails base application' do
   include_context 'Rails controllers'
-  include_context 'Rails middleware'
   include_context 'Rails models'
   include_context 'Rails log configuration'
 
@@ -50,6 +48,8 @@ RSpec.shared_context 'Rails base application' do
 
     rails_test_application.instance
   end
+
+  let(:rails_middleware) { [] }
 
   let(:initialize_block) do
     middleware = rails_middleware

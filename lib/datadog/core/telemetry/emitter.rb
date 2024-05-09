@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'request'
 require_relative 'http/transport'
 require_relative '../utils/sequence'
@@ -24,7 +26,7 @@ module Datadog
             seq_id = self.class.sequence.next
             payload = Request.build_payload(event, seq_id)
             res = @http_transport.request(request_type: event.type, payload: payload.to_json)
-            Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (status code: #{res.code})" }
+            Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
             res
           rescue => e
             Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")

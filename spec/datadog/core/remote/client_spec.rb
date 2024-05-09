@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/client'
 
@@ -204,21 +205,21 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:rules_data_response) do
     {
       'path' => 'datadog/603646/ASM_DD/latest/config',
-      'raw' => Base64.strict_encode64(rules_data).chomp
+      'raw' => Datadog::Core::Utils::Base64.strict_encode64(rules_data).chomp
     }
   end
 
   let(:blocked_ips_data_response) do
     {
       'path' => 'datadog/603646/ASM_DATA/blocked_ips/config',
-      'raw' => Base64.strict_encode64(blocked_ips).chomp
+      'raw' => Datadog::Core::Utils::Base64.strict_encode64(blocked_ips).chomp
     }
   end
 
   let(:exclusion_data_response) do
     {
       'path' => 'datadog/603646/ASM/exclusion_filters/config',
-      'raw' => Base64.strict_encode64(exclusions).chomp
+      'raw' => Datadog::Core::Utils::Base64.strict_encode64(exclusions).chomp
     }
   end
 
@@ -228,8 +229,8 @@ RSpec.describe Datadog::Core::Remote::Client do
 
   let(:response_body) do
     {
-      'roots' => roots.map { |r| Base64.strict_encode64(r.to_json).chomp },
-      'targets' => Base64.strict_encode64(targets.to_json).chomp,
+      'roots' => roots.map { |r| Datadog::Core::Utils::Base64.strict_encode64(r.to_json).chomp },
+      'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json).chomp,
       'target_files' => target_files,
       'client_configs' => client_configs,
     }.to_json
@@ -380,12 +381,12 @@ RSpec.describe Datadog::Core::Remote::Client do
       context 'invalid response body' do
         let(:response_body) do
           {
-            'roots' => roots.map { |r| Base64.strict_encode64(r.to_json).chomp },
-            'targets' => Base64.strict_encode64(targets.to_json).chomp,
+            'roots' => roots.map { |r| Datadog::Core::Utils::Base64.strict_encode64(r.to_json).chomp },
+            'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json).chomp,
             'target_files' => [
               {
                 'path' => 'datadog/603646/ASM/exclusion_filters/config',
-                'raw' => Base64.strict_encode64(exclusions).chomp
+                'raw' => Datadog::Core::Utils::Base64.strict_encode64(exclusions).chomp
               }
             ],
             'client_configs' => [
@@ -529,7 +530,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
           context 'client_tracer' do
             context 'tags' do
-              let(:tracer_version) { '1.1.1' }
+              let(:gem_datadog_version) { '1.1.1' }
               let(:ruby_platform) { 'ruby-platform' }
               let(:ruby_version) { '2.2.2' }
               let(:ruby_engine) { 'ruby_engine_name' }
@@ -546,7 +547,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 stub_const('RUBY_ENGINE_VERSION', ruby_engine_version)
 
                 allow(Gem::Platform).to receive(:local).and_return(gem_platform_local)
-                allow(Datadog::Core::Environment::Identity).to receive(:tracer_version).and_return(tracer_version)
+                allow(Datadog::Core::Environment::Identity).to receive(:gem_datadog_version).and_return(gem_datadog_version)
                 allow(client).to receive(:ruby_engine_version).and_return(ruby_engine_version)
                 allow(client).to receive(:native_platform).and_return(native_platform)
                 allow(client).to receive(:gem_spec).with('libddwaf').and_return(libddwaf_gem_spec)
@@ -558,7 +559,7 @@ RSpec.describe Datadog::Core::Remote::Client do
 
                 expected_client_tracer_tags = [
                   "platform:#{native_platform}",
-                  "ruby.tracer.version:#{tracer_version}",
+                  "ruby.tracer.version:#{gem_datadog_version}",
                   "ruby.runtime.platform:#{ruby_platform}",
                   "ruby.runtime.version:#{ruby_version}",
                   "ruby.runtime.engine.name:#{ruby_engine}",
@@ -581,7 +582,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expected_client_tracer = {
                   :runtime_id => Datadog::Core::Environment::Identity.id,
                   :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  :tracer_version => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   :service => Datadog.configuration.remote.service,
                   :env => Datadog.configuration.env,
                 }
@@ -597,7 +598,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expected_client_tracer = {
                   :runtime_id => Datadog::Core::Environment::Identity.id,
                   :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  :tracer_version => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                   :app_version => Datadog.configuration.version,
@@ -614,7 +615,7 @@ RSpec.describe Datadog::Core::Remote::Client do
                 expected_client_tracer = {
                   :runtime_id => Datadog::Core::Environment::Identity.id,
                   :language => Datadog::Core::Environment::Identity.lang,
-                  :tracer_version => Datadog::Core::Environment::Identity.tracer_version_semver2,
+                  :tracer_version => Datadog::Core::Environment::Identity.gem_datadog_version_semver2,
                   :service => Datadog.configuration.service,
                   :env => Datadog.configuration.env,
                 }

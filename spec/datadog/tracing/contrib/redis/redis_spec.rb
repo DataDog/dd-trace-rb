@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 require_relative './shared_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'

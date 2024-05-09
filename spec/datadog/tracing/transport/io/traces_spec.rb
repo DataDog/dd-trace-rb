@@ -126,11 +126,11 @@ RSpec.describe Datadog::Tracing::Transport::IO::Traces::Encoder do
           it 'has IDs that are hex encoded' do
             compare_arrays(traces, encoded_traces) do |trace, encoded_trace|
               compare_arrays(trace.spans, encoded_trace) do |span, encoded_span|
-                described_class::ENCODED_IDS.each do |id|
-                  encoded_id = encoded_span[id.to_s].to_i(16)
-                  original_id = span.send(id)
-                  expect(encoded_id).to eq(original_id)
-                end
+                expect(encoded_span).to include(
+                  'trace_id' => span.trace_id.to_s(16),
+                  'span_id' => span.id.to_s(16),
+                  'parent_id' => span.parent_id.to_s(16)
+                )
               end
             end
           end

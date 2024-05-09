@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'ext'
 require_relative '../environment/ext'
 require_relative '../environment/identity'
@@ -9,10 +11,12 @@ module Datadog
       module Options
         DEFAULT = {
           tags: DEFAULT_TAGS = [
-            "#{Ext::TAG_LANG}:#{Environment::Identity.lang}".freeze,
-            "#{Ext::TAG_LANG_INTERPRETER}:#{Environment::Identity.lang_interpreter}".freeze,
-            "#{Ext::TAG_LANG_VERSION}:#{Environment::Identity.lang_version}".freeze,
-            "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.tracer_version}".freeze
+            "#{Ext::TAG_LANG}:#{Environment::Identity.lang}",
+            "#{Ext::TAG_LANG_INTERPRETER}:#{Environment::Identity.lang_interpreter}",
+            "#{Ext::TAG_LANG_VERSION}:#{Environment::Identity.lang_version}",
+            # TODO: Technically not accurate, if tracing version diverges from datadog gem version
+            #       If we extract tracing to its own gem, this needs to be updated.
+            "#{Ext::TAG_TRACER_VERSION}:#{Environment::Identity.gem_datadog_version}"
           ].freeze
         }.freeze
 

@@ -16,11 +16,6 @@ static inline VALUE process_pending_interruptions(DDTRACE_UNUSED VALUE _) {
   return Qnil;
 }
 
-// RB_UNLIKELY is not supported on Ruby 2.3
-#ifndef RB_UNLIKELY
-  #define RB_UNLIKELY(x) x
-#endif
-
 // Calls process_pending_interruptions BUT "rescues" any exceptions to be raised, returning them instead as
 // a non-zero `pending_exception`.
 //
@@ -81,6 +76,9 @@ NORETURN(
 
 #define ENFORCE_SUCCESS_HELPER(expression, have_gvl) \
   { int result_syserr_errno = expression; if (RB_UNLIKELY(result_syserr_errno)) raise_syserr(result_syserr_errno, have_gvl, ADD_QUOTES(expression), __FILE__, __LINE__, __func__); }
+
+#define RUBY_NUM_OR_NIL(val, condition, conv) ((val condition) ? conv(val) : Qnil)
+#define RUBY_AVG_OR_NIL(total, count) ((count == 0) ? Qnil : DBL2NUM(((double) total) / count))
 
 // Called by ENFORCE_SUCCESS_HELPER; should not be used directly
 NORETURN(void raise_syserr(

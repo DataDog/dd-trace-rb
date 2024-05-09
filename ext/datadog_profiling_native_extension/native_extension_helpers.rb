@@ -15,13 +15,13 @@ module Datadog
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
       CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
-      LIBDATADOG_VERSION = '~> 7.0.0.1.0'
+      LIBDATADOG_VERSION = '~> 9.0.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
       end
 
-      # Used as an workaround for a limitation with how dynamic linking works in environments where ddtrace and
+      # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
       # libdatadog are moved after the extension gets compiled.
       #
       # Because the libddpprof native library is installed on a non-standard system path, in order for it to be
@@ -31,10 +31,10 @@ module Datadog
       # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
       # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
       #
-      # In older versions of ddtrace, we only set as runpath an absolute path to libdatadog.
+      # In older versions of the datadog gem, we only set as runpath an absolute path to libdatadog.
       # (This gets set automatically by the call
       # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
-      # moved from the folder it was present at ddtrace installation/linking time.
+      # moved from the folder it was present at datadog gem installation/linking time.
       #
       # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
       # installation. Thus, the profiling native extension could not be loaded in these environments
@@ -86,7 +86,6 @@ module Datadog
             on_macos? ||
             on_unknown_os? ||
             on_unsupported_cpu_arch? ||
-            on_unsupported_ruby_version? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
@@ -107,7 +106,7 @@ module Datadog
             else
               [
                 'The Datadog Continuous Profiler will not be available,',
-                'but all other ddtrace features will work fine!',
+                'but all other datadog features will work fine!',
               ]
             end
 
@@ -166,7 +165,7 @@ module Datadog
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
         PKG_CONFIG_IS_MISSING = explain_issue(
-          #+-----------------------------------------------------------------------------+
+          # ----------------------------------------------------------------------------+
           'the `pkg-config` system tool is missing.',
           'This issue can usually be fixed by installing one of the following:',
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
@@ -213,7 +212,7 @@ module Datadog
 
         private_class_method def self.on_truffleruby?
           truffleruby_not_supported = explain_issue(
-            'TruffleRuby is not supported by the ddtrace gem.',
+            'TruffleRuby is not supported by the datadog gem.',
             suggested: GET_IN_TOUCH,
           )
 
@@ -221,7 +220,7 @@ module Datadog
         end
 
         # See https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#microsoft-windows-support for current
-        # state of Windows support in ddtrace.
+        # state of Windows support in the datadog gem.
         private_class_method def self.on_windows?
           windows_not_supported = explain_issue(
             'Microsoft Windows is not supported by the Datadog Continuous Profiler.',
@@ -258,15 +257,6 @@ module Datadog
           )
 
           architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
-        end
-
-        private_class_method def self.on_unsupported_ruby_version?
-          ruby_version_not_supported = explain_issue(
-            'the profiler only supports Ruby 2.3 or newer.',
-            suggested: UPGRADE_RUBY,
-          )
-
-          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.', '2.2.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip

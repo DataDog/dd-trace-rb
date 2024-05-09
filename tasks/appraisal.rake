@@ -33,7 +33,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
 
   def docker(ruby_version, cmd)
     [
-      'docker-compose', 'run',
+      'docker compose', 'run',
       '--no-deps',                                   # don't start services
       '-e', 'APPRAISAL_GROUP',                       # pass appraisal group if defined
       '-e', 'APPRAISAL_SKIP_BUNDLE_CHECK',           # pass appraisal check skip if defined
@@ -152,13 +152,48 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       sh docker(ruby_version, cmd).join(' ')
     end
   end
+
+  desc 'Remove obsolete appraisal files that are not used by the test matrix'
+  task :clean do
+    appraisal_files = Dir.glob('gemfiles/*')
+
+    ruby_versions = ['2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3']
+    # JRuby skips 2.7 and 3.0
+    jruby_cruby_mapping = {
+      '9.4' => '3.1',
+      '9.3' => '2.6',
+      '9.2' => '2.5'
+    }
+
+    TEST_METADATA.each do |_, spec_metadata|
+      spec_metadata.each do |group, versions|
+        ruby_versions.each do |ruby_version|
+          next unless versions.include?("✅ #{ruby_version}")
+
+          appraisal_files -= [
+            "gemfiles/ruby_#{ruby_version}_#{group.tr('-', '_')}.gemfile",
+            "gemfiles/ruby_#{ruby_version}_#{group.tr('-', '_')}.gemfile.lock"
+          ]
+        end
+
+        next unless versions.include?('✅ jruby')
+
+        jruby_cruby_mapping.each do |jruby_version, ruby_version|
+          next unless versions.include?("✅ #{ruby_version}")
+
+          appraisal_files -= [
+            "gemfiles/jruby_#{jruby_version}_#{group.tr('-', '_')}.gemfile",
+            "gemfiles/jruby_#{jruby_version}_#{group.tr('-', '_')}.gemfile.lock"
+          ]
+        end
+      end
+    end
+
+    FileUtils.rm(appraisal_files)
+  end
 end
 
 TRACER_VERSIONS = [
-  '2.1',
-  '2.2',
-  '2.3',
-  '2.4',
   '2.5',
   '2.6',
   '2.7',
@@ -184,15 +219,3 @@ FORCE_BUNDLER_VERSION = {
   '3.2' => '2.3.26',
   '3.3' => '2.3.26',
 }.freeze
-
-# TODO: remove with 2.0
-task :install_appraisal_gemfiles do
-  warn 'This task has been removed, please use rake appraisal:install instead'
-  exit 1
-end
-
-# TODO: remove with 2.0
-task :update_appraisal_gemfiles do
-  warn 'This task has been removed, please use rake appraisal:update instead'
-  exit 1
-end

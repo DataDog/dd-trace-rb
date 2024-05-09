@@ -94,7 +94,7 @@ module Datadog
             return
           end
 
-          raise ArgumentError, "span #{span.span_id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
+          raise ArgumentError, "span #{span.id} does not belong to trace #{trace.id}" if trace.id != span.trace_id
 
           yield(trace, span)
         end
