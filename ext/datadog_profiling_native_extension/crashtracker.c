@@ -41,6 +41,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_prof_CrashtrackerConfiguration config = {
+    .additional_files = {},
     // The Ruby VM already uses an alt stack to detect stack overflows so the crash handler must not overwrite it.
     //
     // @ivoanjo: Specifically, with `create_alt_stack = true` I saw a segfault, such as Ruby 2.6's bug with
@@ -51,9 +52,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // "Process.kill('SEGV', Process.pid)" gets run.
     .create_alt_stack = false,
     .endpoint = endpoint,
-    .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
-    .resolve_frames = DDOG_PROF_CRASHTRACKER_RESOLVE_FRAMES_IN_RECEIVER,
-    .collect_stacktrace = true,
+    .resolve_frames = DDOG_PROF_STACKTRACE_COLLECTION_ENABLED,
+    .timeout_secs = 123, // FIXME: Get correct config from Ruby
   };
 
   ddog_prof_CrashtrackerMetadata metadata = {
@@ -63,10 +63,23 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .tags = &tags,
   };
 
+  ddog_prof_EnvVar ld_library_path = {
+    .key = DDOG_CHARSLICE_C("LD_LIBRARY_PATH"),
+    .val = DDOG_CHARSLICE_C("FIXME"), // FIXME
+  };
+
+  ddog_prof_CrashtrackerReceiverConfig receiver_config = {
+    .args = {},
+    .env = {.ptr = &ld_library_path, .len = 1},
+    .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
+    .optional_stderr_filename = {},
+    .optional_stdout_filename = {},
+  };
+
   ddog_prof_CrashtrackerResult result =
     action == start_action ?
-      ddog_prof_Crashtracker_init(config, metadata) :
-      ddog_prof_Crashtracker_update_on_fork(config, metadata);
+      ddog_prof_Crashtracker_init(config, receiver_config, metadata) :
+      ddog_prof_Crashtracker_update_on_fork(config, receiver_config, metadata);
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);

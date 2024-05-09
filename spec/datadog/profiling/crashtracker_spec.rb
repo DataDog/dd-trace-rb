@@ -164,9 +164,20 @@ RSpec.describe Datadog::Profiling::Crashtracker do
         Process.kill('SEGV', Process.pid)
       end
 
-      boundary = request['content-type'][%r{^multipart/form-data; boundary=(.+)}, 1]
-      body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
-      expect(body.fetch('crash-info.json')).to_not be nil
+      crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+
+      expect(crash_report[:stack_trace]).to_not be_empty
+
+      crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
+
+      expect(crash_report_message[:metadata]).to include(
+        profiling_library_name: 'dd-trace-rb',
+        profiling_library_version: Datadog::VERSION::STRING,
+        family: 'ruby',
+        tags: ['tag1:value1', 'tag2:value2'],
+      )
+      expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+      expect(crash_report_message[:os_info]).to_not be_empty
     end
   end
 end
