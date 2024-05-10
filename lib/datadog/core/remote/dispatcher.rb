@@ -7,8 +7,8 @@ module Datadog
       class Dispatcher
         attr_reader :receivers
 
-        def initialize
-          @receivers = []
+        def initialize(receivers)
+          @receivers = receivers
         end
 
         def dispatch(changes, repository)
