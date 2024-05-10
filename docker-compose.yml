@@ -12,6 +12,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -29,6 +30,7 @@ services:
       TEST_POSTGRES_HOST: postgres
       TEST_PRESTO_HOST: presto
       TEST_PRESTO_PORT: 8080
+      TEST_RABBITMQ_PORT: 5672
       TEST_REDIS_HOST: redis
       DATADOG_GEM_CI: 'true'
     stdin_open: true
@@ -50,6 +52,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -75,6 +78,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -100,6 +104,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -136,6 +141,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -161,6 +167,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -186,6 +193,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
     env_file: ./.env
     environment:
@@ -211,6 +219,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -235,6 +244,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -259,6 +269,7 @@ services:
       - opensearch
       - postgres
       - presto
+      - rabbitmq
       - redis
       - testagent
     env_file: ./.env
@@ -374,6 +385,12 @@ services:
       - "8080"
     ports:
       - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
+  rabbitmq:
+    image: rabbitmq:3
+    expose:
+      - "5672"
+    ports:
+      - "127.0.0.1:${TEST_RABBITMQ_PORT}:5672"
   redis:
     image: redis:6.2
     expose:

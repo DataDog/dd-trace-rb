@@ -1,0 +1,162 @@
+require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/analytics_examples'
+require 'datadog/tracing/contrib/integration_examples'
+require 'datadog/tracing/contrib/environment_service_name_examples'
+require 'datadog/tracing/contrib/span_attribute_schema_examples'
+require 'datadog/tracing/contrib/peer_service_configuration_examples'
+
+require 'bunny'
+require 'datadog'
+require 'datadog/tracing/contrib/dalli/patcher'
+
+RSpec.describe 'Bunny instrumentation' do
+  let(:test_host) { ENV.fetch('TEST_RABBITMQ_HOST', '127.0.0.1') }
+  let(:test_port) { ENV.fetch('TEST_RABBITMQ_PORT', '5672') }
+
+  let(:client) {
+    connection = Bunny.new(hostname: test_host, port: test_port)
+    connection.start
+    connection
+    channel = connection.create_channel
+  }
+  let(:configuration_options) { {} }
+
+  # Enable the test tracer
+  before do
+    Datadog.configure do |c|
+      c.tracing.instrument :bunny, configuration_options
+    end
+  end
+
+  it 'a' do
+    connection = Bunny.new(hostname: test_host, port: test_port)
+    connection.start
+    connection
+    channel = connection.create_channel
+    queue = channel.queue('hello')
+
+    Thread.new do
+      begin
+        puts ' [*] Waiting for messages. To exit press CTRL+C'
+        queue.subscribe(block: true) do |_delivery_info, _properties, body|
+          puts " [x] Received #{body}"
+        end
+      rescue Interrupt => _
+        connection.close
+
+        exit(0)
+      end
+    end
+
+
+    channel.default_exchange.publish('Hello World!', routing_key: queue.name)
+    puts " [x] Sent 'Hello World!'"
+
+    # connection.close
+  end
+
+  around do |example|
+    # Reset before and after each example; don't allow global state to linger.
+    Datadog.registry[:dalli].reset_configuration!
+    example.run
+    Datadog.registry[:dalli].reset_configuration!
+  end
+
+  it_behaves_like 'environment service name', 'DD_TRACE_DALLI_SERVICE_NAME' do
+    subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+  end
+
+  it_behaves_like 'configured peer service span', 'DD_TRACE_DALLI_PEER_SERVICE' do
+    subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+  end
+
+  it_behaves_like 'schema version span' do
+    subject do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+  end
+
+  describe 'when a client calls #set' do
+    before do
+      client.set('abc', 123)
+      try_wait_until { fetch_spans.any? }
+    end
+
+    it_behaves_like 'analytics for integration' do
+      let(:analytics_enabled_var) { Datadog::Tracing::Contrib::Dalli::Ext::ENV_ANALYTICS_ENABLED }
+      let(:analytics_sample_rate_var) { Datadog::Tracing::Contrib::Dalli::Ext::ENV_ANALYTICS_SAMPLE_RATE }
+    end
+
+    it_behaves_like 'measured span for integration', false
+
+    it 'calls instrumentation' do
+      expect(spans.size).to eq(1)
+      expect(span.service).to eq('memcached')
+      expect(span.name).to eq('memcached.command')
+      expect(span.type).to eq('memcached')
+      expect(span.resource).to eq('SET')
+      expect(span).to_not have_tag('memcached.command')
+      expect(span.get_tag('out.host')).to eq(test_host)
+      expect(span.get_tag('out.port')).to eq(test_port.to_f)
+      expect(span.get_tag('db.system')).to eq('memcached')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
+    end
+
+    context 'with command tag captured enabled' do
+      let(:configuration_options) { { command_enabled: true } }
+      it { expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0') }
+    end
+
+    it_behaves_like 'a peer service span' do
+      let(:peer_service_val) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
+      let(:peer_service_source) { 'peer.hostname' }
+    end
+  end
+
+  describe 'when multiplexed configuration is provided' do
+    let(:service_name) { 'multiplex-service' }
+    let(:configuration_options) { { describes: "#{test_host}:#{test_port}", service_name: service_name } }
+
+    context 'and #set is called' do
+      before do
+        client.set('abc', 123)
+        try_wait_until { fetch_spans.any? }
+      end
+
+      it 'calls instrumentation' do
+        expect(spans.size).to eq(1)
+        expect(span.service).to eq(service_name)
+        expect(span.name).to eq('memcached.command')
+        expect(span.type).to eq('memcached')
+        expect(span.resource).to eq('SET')
+        expect(span).to_not have_tag('memcached.command')
+        expect(span.get_tag('out.host')).to eq(test_host)
+        expect(span.get_tag('out.port')).to eq(test_port.to_f)
+
+        expect(span.get_tag('db.system')).to eq('memcached')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('dalli')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
+      end
+
+      context 'with command tag captured enabled' do
+        let(:configuration_options) { super().merge(command_enabled: true) }
+        it { expect(span.get_tag('memcached.command')).to eq('set abc 123 0 0') }
+      end
+
+      it_behaves_like 'a peer service span' do
+        let(:peer_service_val) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
+        let(:peer_service_source) { 'peer.hostname' }
+      end
+    end
+  end
+end
