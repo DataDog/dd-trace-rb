@@ -1,0 +1,7 @@
+module Datadog
+  module Debugger
+    module Extensions
+      def self.activate!: () -> untyped
+    end
+  end
+end
