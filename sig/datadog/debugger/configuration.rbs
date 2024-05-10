@@ -1,0 +1,6 @@
+module Datadog
+  module Debugger
+    module Configuration
+    end
+  end
+end
