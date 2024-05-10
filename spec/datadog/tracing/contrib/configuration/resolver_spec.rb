@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolver do
   end
 end
 
-RSpec.describe Datadog::Tracing::Contrib::Configuration::CachedResolver do
+RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
   subject(:resolver) { resolver_class.new(cache_limit: cache_limit) }
 
   let(:cache_limit) { 2 }
@@ -90,7 +90,7 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::CachedResolver do
 
   let(:resolver_class) do
     Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
-      prepend Datadog::Tracing::Contrib::Configuration::CachedResolver
+      prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
 
       def resolve(key)
         @invoked ||= 0

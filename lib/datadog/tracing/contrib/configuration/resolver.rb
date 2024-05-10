@@ -80,16 +80,16 @@ module Datadog
           end
         end
 
-        # The {CachedResolver} is a mixin that provides caching functionality to the {Resolver} class.
+        # The {CachingResolver} is a mixin that provides caching functionality to the {Resolver} class.
         # This is useful when {Resolver#resolve} values that are expensive to compute.
         # This is a size-limited, FIFO cache.
         #
         # @example
         #   class MyResolver < Datadog::Tracing::Contrib::Configuration::Resolver
-        #     prepend Datadog::Tracing::Contrib::Configuration::CachedResolver
+        #     prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
         #     # ...
         #   end
-        module CachedResolver
+        module CachingResolver
           # @param [Integer] cache_limit maximum number of entries to cache
           def initialize(*args, cache_limit: 200)
             super(*args)

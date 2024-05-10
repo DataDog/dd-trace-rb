@@ -32,7 +32,7 @@ module Datadog
           # based on addition order (`#add`).
           class Resolver < Contrib::Configuration::Resolver
             prepend MakaraResolver
-            prepend Contrib::Configuration::CachedResolver
+            prepend Contrib::Configuration::CachingResolver
 
             def initialize(active_record_configuration = nil)
               super()
