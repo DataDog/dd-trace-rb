@@ -61,6 +61,42 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
       end
     end
 
+    context 'with a DatabaseConfigurations config handler registered' do
+      before do
+        unless defined?(ActiveRecord::DatabaseConfigurations.register_db_config_handler)
+          skip('register_db_config_handler not supported in this version of Rails')
+        end
+      end
+
+      it 'only resolves database configuration once' do
+        # `before { article }` has already resolved the database configuration
+
+        ActiveRecord::DatabaseConfigurations.register_db_config_handler do |_env_name, _name, _url, _config|
+          raise RSpec::Expectations::ExpectationNotMetError, 'Database configuration should have already been resolved'
+        end
+
+        Article.first # This should not trigger the handler
+      end
+
+      it 'resolves database configuration again on reconfiguration' do
+        # `before { article }` has already resolved the database configuration
+
+        caller_handler = false
+        ActiveRecord::DatabaseConfigurations.register_db_config_handler do |_env_name, _name, _url, _config|
+          caller_handler = true
+        end
+
+        # Reconfigure!
+        Datadog.configure do |c|
+          c.tracing.instrument :active_record, configuration_options
+        end
+
+        Article.first # This should trigger the handler
+
+        expect(caller_handler).to be(true)
+      end
+    end
+
     context 'and service_name' do
       # it_behaves_like 'schema version span'
 

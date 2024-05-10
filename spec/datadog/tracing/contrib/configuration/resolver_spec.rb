@@ -81,3 +81,90 @@ RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolver do
     end
   end
 end
+
+RSpec.describe Datadog::Tracing::Contrib::Configuration::CachingResolver do
+  subject(:resolver) { resolver_class.new(cache_limit: cache_limit) }
+
+  let(:cache_limit) { 2 }
+  let(:value) { double('value') }
+
+  let(:resolver_class) do
+    Class.new(Datadog::Tracing::Contrib::Configuration::Resolver) do
+      prepend Datadog::Tracing::Contrib::Configuration::CachingResolver
+
+      def resolve(key)
+        @invoked ||= 0
+        @invoked += 1
+        super
+      end
+
+      def invocations
+        @invoked ||= 0
+      end
+    end
+  end
+
+  describe '#resolve' do
+    subject(:resolve) { resolver.resolve(key) }
+
+    let(:key) { 'key' }
+
+    before { resolver.add(key, value) }
+
+    it 'returns the correct value' do
+      expect(resolve).to eq(value)
+    end
+
+    it 'calls the original resolver once' do
+      resolver.resolve(key)
+      resolver.resolve(key)
+
+      expect(resolver.invocations).to eq(1)
+    end
+
+    context 'when a matcher key is added' do
+      let(:new_key) { 'new_key' }
+
+      it 'busts the cache' do
+        expect(resolver.resolve(key)).to eq(value)
+
+        resolver.add(new_key, value)
+
+        expect(resolver.resolve(key)).to eq(value)
+
+        expect(resolver.invocations).to eq(2)
+      end
+    end
+
+    context 'when the cache is reset' do
+      let(:new_key) { 'new_key' }
+
+      it 'busts the cache' do
+        expect(resolver.resolve(key)).to eq(value)
+
+        resolver.reset_cache
+
+        expect(resolver.resolve(key)).to eq(value)
+
+        expect(resolver.invocations).to eq(2)
+      end
+    end
+
+    context 'when the cache size limit is reached' do
+      before do
+        resolver.resolve('first_key')
+        resolver.resolve('second_key')
+      end
+
+      it 'removes the oldest entry from the cache' do
+        expect { resolver.resolve('third_key') }.to(change { resolver.invocations }.by(1)) # Removes `first_key` from cache
+        expect { resolver.resolve('second_key') }.to_not(change { resolver.invocations }) # `second_key` is still cached
+
+        expect { resolver.resolve('first_key') }.to(change { resolver.invocations }.by(1)) # Removes `second_key` from cache
+        expect { resolver.resolve('third_key') }.to_not(change { resolver.invocations }) # `third_key` is still cached
+
+        expect { resolver.resolve('second_key') }.to(change { resolver.invocations }.by(1)) # Removes `third_key` from cache
+      end
+    end
+  end
+end
