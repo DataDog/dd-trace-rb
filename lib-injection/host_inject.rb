@@ -73,4 +73,5 @@ begin
   ).run
 rescue Exception => e
   warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
 end
