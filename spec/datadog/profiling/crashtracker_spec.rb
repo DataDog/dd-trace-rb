@@ -4,7 +4,12 @@ require 'datadog/profiling/crashtracker'
 require 'webrick'
 
 RSpec.describe Datadog::Profiling::Crashtracker do
-  before { skip_if_profiling_not_supported(self) }
+  before do
+    skip_if_profiling_not_supported(self)
+
+    crash_tracker_pids = `pgrep -f libdatadog-crashtracking-receiver`
+    expect(crash_tracker_pids).to be_empty, "No crash tracker process should be running, found #{crash_tracker_pids}"
+  end
 
   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
 
