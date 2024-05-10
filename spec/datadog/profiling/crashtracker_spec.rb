@@ -190,6 +190,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
 
       expect(crash_report[:stack_trace]).to_not be_empty
+      expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
 
       crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
