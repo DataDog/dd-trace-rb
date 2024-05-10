@@ -115,6 +115,11 @@ module Datadog
       private_class_method def self.build_crashtracker(settings, transport)
         return unless settings.profiling.advanced.experimental_crash_tracking_enabled
 
+        # By default, the transport is an instance of HttpTransport, which validates the configuration and makes
+        # it available for us to use here.
+        # But we support overriding the transport with a user-specific one, which may e.g. write stuff to a file,
+        # and thus can't really provide a valid configuration to talk to a Datadog agent. Thus, in this situation,
+        # we can't use the crashtracker, even if enabled.
         unless transport.respond_to?(:exporter_configuration)
           Datadog.logger.warn(
             'Cannot enable profiling crash tracking as a custom settings.profiling.exporter.transport is configured'
