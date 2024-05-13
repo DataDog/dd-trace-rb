@@ -101,17 +101,19 @@ module Datadog
               # Only parse if it represent the same trace as the successfully extracted one
               next unless tracecontext_digest.trace_id == extracted_trace_digest.trace_id
 
+              parent_id = extracted_trace_digest.span_id
               distributed_tags = extracted_trace_digest.trace_distributed_tags
-              unless tracecontext_digest.span_id == extracted_trace_digest.span_id
-                distributed_tags = distributed_tags&.dup || {}
-                distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
-                  tracecontext_digest.trace_distributed_tags.fetch(
-                    Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
-                    Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
-                  )
+              unless extracted_trace_digest.span_id == tracecontext_digest.span_id
+                # span_id in the tracecontext header takes precedence over the value in datadog headers
+                parent_id = tracecontext_digest.span_id
+                if (lp_id = last_datadog_parent_id(data, tracecontext_digest.trace_distributed_tags))
+                  distributed_tags = extracted_trace_digest.trace_distributed_tags&.dup || {}
+                  distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = lp_id
+                end
               end
               # Preserve the trace state and last datadog span id
               extracted_trace_digest = extracted_trace_digest.merge(
+                span_id: parent_id,
                 trace_state: tracecontext_digest.trace_state,
                 trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields,
                 trace_distributed_tags: distributed_tags
@@ -124,6 +126,27 @@ module Datadog
           end
 
           extracted_trace_digest
+        end
+
+        private
+
+        def last_datadog_parent_id(headers, tracecontext_tags)
+          dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }
+          if tracecontext_tags&.fetch(
+            Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
+            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+          ) != Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            # tracecontext headers contain a p value, ensure this value is sent to backend
+            tracecontext_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
+          elsif dd_propagator && (dd_digest = dd_propagator.extract(headers))
+            # if p value is not present in tracestate, use the parent id from the datadog headers
+            format('%016x', dd_digest.span_id)
+          elsif tracecontext_tags&.fetch(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID) \
+            == Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            # if datadog last parent id can not be extracted then set the default value again
+            # This case was added to ensure tracestate headers are used first
+            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+          end
         end
       end
     end
