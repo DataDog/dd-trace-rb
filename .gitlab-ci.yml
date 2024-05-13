@@ -194,40 +194,33 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
 
+prepare_image_destinations:
+  stage: deploy
+  tags: ["arch:amd64"]
+  image: registry.ddbuild.io/ci/auto_inject/gitlab:current
+  rules:
+    - if: '$POPULATE_CACHE'
+      when: never
+    - if:  $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ # Exclude prerelease
+      when: always
+    - when: manual
+      allow_failure: true
+  script:
+    - echo "IMG_DESTINATIONS=$(./.gitlab/prepare_image_destinations.rb dd-lib-ruby-init $CI_COMMIT_TAG)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+
 deploy_to_docker_registries:
   stage: deploy
-  rules:
-    - if: "$POPULATE_CACHE"
-      when: never
-    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ # Exclude prerelease
-      when: delayed
-      start_in: 1 day
-    - when: manual
-      allow_failure: true
+  needs:
+    - job: prepare_image_destinations
+      artifacts: true
   trigger:
     project: DataDog/public-images
     branch: main
     strategy: depend
   variables:
     IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_DESTINATIONS: dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_SIGNING: "false"
-
-deploy_latest_tag_to_docker_registries:
-  stage: deploy
-  rules:
-    - if: "$POPULATE_CACHE"
-      when: never
-    - if: $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ && $CI_COMMIT_BRANCH == 'master' # Exclude prerelease and only for master branch
-      when: delayed
-      start_in: 1 day
-    - when: manual
-      allow_failure: true
-  trigger:
-    project: DataDog/public-images
-    branch: main
-    strategy: depend
-  variables:
-    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_DESTINATIONS: dd-lib-ruby-init:latest
+    IMG_DESTINATIONS: $IMG_DESTINATIONS
     IMG_SIGNING: "false"
