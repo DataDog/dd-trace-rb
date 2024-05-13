@@ -1,11 +1,6 @@
 #!/usr/bin/env ruby
 
-require 'bundler/inline'
-
-gemfile { gem 'gems', source: 'https://rubygems.org' }
-
 require 'rubygems'
-require 'gems'
 
 image_name = ARGV[0].chomp
 version = ARGV[1].chomp
@@ -25,10 +20,9 @@ latest_minor_tag = "v#{major}.#{minor}" # contains major, minor
 
 tags = []
 
-gem_name = 'datadog'
-
-# Check if the candidate is larger than public latest version
-tags << 'latest' if candidate > Gem::Version.new(Gems.latest_version(gem_name).fetch('version'))
+# `ddtrace` is the gem name on 1.x-stable branch, releasing from this branch means it won't be tagged with `latest`
+#
+# `latest` tag will be carried over by 2.x version of the gem named `datadog` on `master` branch
 tags << latest_major_tag
 tags << latest_minor_tag
 tags << "v#{candidate}"
