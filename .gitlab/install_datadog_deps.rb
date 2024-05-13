@@ -19,8 +19,8 @@ gemfile_file_path = versioned_path.join('Gemfile')
 File.open(gemfile_file_path, 'w') do |file|
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
-  # Mimick outdated `msgpack` version, remove before merging
-  file.write("gem 'msgpack', '1.6.0'\n")
+  # Mimick outdated `msgpack` version, uncomment below line to test
+  # file.write("gem 'msgpack', '1.6.0'\n")
 end
 
 puts '=== Reading Gemfile ==='
