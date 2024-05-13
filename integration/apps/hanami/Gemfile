@@ -13,7 +13,15 @@ gem 'unicorn'
 gem 'webrick'
 gem 'pry-byebug'
 
-gem 'datadog', Datadog::DemoEnv.gem_spec('datadog')[0].merge(require: 'datadog/auto_instrument')
+gem_spec = Datadog::DemoEnv.gem_spec('datadog')
+req = {require: 'datadog/auto_instrument'}
+opts = if gem_spec.last.is_a?(Hash)
+  gem_spec.pop.merge(req)
+else
+  req
+end
+gem_spec << opts
+gem 'datadog', *gem_spec
 gem 'google-protobuf', '~> 3.0'
 
 group :development do
