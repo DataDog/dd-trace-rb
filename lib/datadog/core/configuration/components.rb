@@ -13,6 +13,7 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../../debugger/component'
 
 module Datadog
   module Core
@@ -80,6 +81,7 @@ module Datadog
           :runtime_metrics,
           :telemetry,
           :tracer,
+          :debugger,
           :appsec
 
         def initialize(settings)
@@ -105,6 +107,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
           @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @debugger = Datadog::Debugger::Component.build(settings)
 
           self.class.configure_tracing(settings)
         end
