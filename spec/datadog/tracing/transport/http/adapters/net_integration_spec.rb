@@ -7,7 +7,7 @@ require 'datadog/tracing/transport/http'
 require 'datadog/core/transport/http/adapters/net'
 
 RSpec.describe 'Adapters::Net tracing integration tests' do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  before { skip('Skipping test as ENV["TEST_DATADOG_INTEGRATION"] is not set') unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
 
@@ -26,14 +26,14 @@ RSpec.describe 'Adapters::Net tracing integration tests' do
     # HTTP
     let(:server) do
       WEBrick::HTTPServer.new(
-        Port: port,
+        Port: 0,
         Logger: log,
         AccessLog: access_log,
         StartCallback: -> { init_signal.push(1) }
       )
     end
     let(:hostname) { '127.0.0.1' }
-    let(:port) { 6218 }
+    let(:port) { server[:Port] }
     let(:log) { WEBrick::Log.new(log_buffer) }
     let(:log_buffer) { StringIO.new }
     let(:access_log) { [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }

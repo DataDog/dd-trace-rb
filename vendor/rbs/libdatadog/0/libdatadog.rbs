@@ -1,3 +1,5 @@
 module Libdatadog
+  def self.path_to_crashtracking_receiver_binary: () -> ::String?
+  def self.ld_library_path: () -> ::String?
   def self.pkgconfig_folder: () -> ::String?
 end

@@ -72,8 +72,10 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
+        crashtracker = build_crashtracker(settings, transport)
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crashtracker: crashtracker)
 
-        [Profiling::Profiler.new(worker: worker, scheduler: scheduler), { profiling_enabled: true }]
+        [profiler, { profiling_enabled: true }]
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
@@ -108,6 +110,28 @@ module Datadog
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
           )
+      end
+
+      private_class_method def self.build_crashtracker(settings, transport)
+        return unless settings.profiling.advanced.experimental_crash_tracking_enabled
+
+        # By default, the transport is an instance of HttpTransport, which validates the configuration and makes
+        # it available for us to use here.
+        # But we support overriding the transport with a user-specific one, which may e.g. write stuff to a file,
+        # and thus can't really provide a valid configuration to talk to a Datadog agent. Thus, in this situation,
+        # we can't use the crashtracker, even if enabled.
+        unless transport.respond_to?(:exporter_configuration)
+          Datadog.logger.warn(
+            'Cannot enable profiling crash tracking as a custom settings.profiling.exporter.transport is configured'
+          )
+          return
+        end
+
+        Datadog::Profiling::Crashtracker.new(
+          exporter_configuration: transport.exporter_configuration,
+          tags: Datadog::Profiling::TagBuilder.call(settings: settings),
+          upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
+        )
       end
 
       private_class_method def self.enable_gc_profiling?(settings)
