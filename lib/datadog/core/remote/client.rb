@@ -20,12 +20,8 @@ module Datadog
 
           @repository = repository
           @id = SecureRandom.uuid
-          @dispatcher = Dispatcher.new
           @capabilities = capabilities
-
-          @capabilities.receivers.each do |receiver|
-            dispatcher.receivers << receiver
-          end
+          @dispatcher = Dispatcher.new(@capabilities.receivers)
         end
 
         # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity

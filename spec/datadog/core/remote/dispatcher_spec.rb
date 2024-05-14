@@ -105,9 +105,7 @@ RSpec.describe Datadog::Core::Remote::Dispatcher do
   end
 
   subject(:dispatcher) do
-    d = described_class.new
-    d.receivers << receiver
-    d
+    described_class.new([receiver])
   end
 
   describe '#dispatch' do
