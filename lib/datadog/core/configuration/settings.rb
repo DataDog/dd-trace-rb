@@ -578,7 +578,16 @@ module Datadog
         # @return [String]
         option :service do |o|
           # DEV-2.0: Remove this conversion for symbol.
-          o.setter { |v| v.to_s if v }
+          o.setter do |v|
+            unless v.nil? || v.is_a?(String)
+              Datadog::Core.log_deprecation(key: :core_configuration_settings_service_non_string) do
+                "Use of non-strings for 'service' configuration is deprecated. " \
+                'Use a string instead.'
+              end
+            end
+
+            v.to_s if v
+          end
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
           o.env Core::Environment::Ext::ENV_SERVICE
