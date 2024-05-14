@@ -1,32 +1,44 @@
 #!/usr/bin/env ruby
 
+require 'bundler/inline'
+
+gemfile { gem 'gems', source: 'https://rubygems.org' }
+
 require 'rubygems'
+require 'gems'
 
 image_name = ARGV[0].chomp
 version = ARGV[1].chomp
 version = version.delete_prefix('v') if version.start_with?('v')
 
 candidate = Gem::Version.new(version)
+versions = Gems.versions('ddtrace').map { |h| Gem::Version.new(h['number']) }
 
+# Make sure candidate has already been published to 'https://rubygems.org'
+unless versions.include?(candidate)
+  warn "Version #{candidate} not found in RubyGems"
+  exit 1
+end
+
+# Skip pre-releases
 if candidate.prerelease?
   warn 'No tags for pre-releases'
   exit 1
 end
 
 major, minor, = candidate.to_s.split('.')
-
-latest_major_tag = "v#{major}"          # contains major
-latest_minor_tag = "v#{major}.#{minor}" # contains major, minor
+current_major_versions = versions.select { |v| v.to_s.start_with?("#{major}.") }
 
 tags = []
 
 # `ddtrace` is the gem name on 1.x-stable branch, releasing from this branch means it won't be tagged with `latest`
 #
 # `latest` tag will be carried over by 2.x version of the gem named `datadog` on `master` branch
-tags << latest_major_tag
-tags << latest_minor_tag
+tags << "v#{major}" if current_major_versions.all? { |v| candidate >= v }
+tags << "v#{major}.#{minor}"
 tags << "v#{candidate}"
 
-destinations = tags.map { |tag| "#{image_name}:#{tag}" }
+# $stdout.puts "tags: #{tags}" # Uncomment for debugging
 
+destinations = tags.map { |tag| "#{image_name}:#{tag}" }
 $stdout.puts destinations.join(',')
