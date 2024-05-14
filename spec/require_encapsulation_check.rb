@@ -1,10 +1,11 @@
-REQUIRES = %w(
+require 'English'
+REQUIRES = %w[
   datadog/appsec
   datadog/core
   datadog/kit
   datadog/profiling
   datadog/tracing
-)
+].freeze
 
 RSpec.describe 'require encapsulation' do
   before(:all) do
@@ -23,7 +24,7 @@ RSpec.describe 'require encapsulation' do
         end
 
         Process.waitpid(pid)
-        expect($?.exitstatus).to be 0
+        expect($CHILD_STATUS.exitstatus).to be 0
       end
     end
   end
