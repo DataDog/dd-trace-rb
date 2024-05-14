@@ -1,0 +1,11 @@
+module Datadog
+  module Debugging
+    class Component
+      def self.build: (Datadog::Core::Configuration::Settings settings) -> Datadog::Debugging::Component?
+
+      private
+
+      def shutdown!: () -> untyped
+    end
+  end
+end

@@ -1,5 +1,5 @@
 module Datadog
-  module Debugger
+  module Debugging
     module Configuration
     end
   end

@@ -54,7 +54,7 @@ module Datadog
           def templates: () -> _TemplatesBlock
         end
 
-        interface _Debugger
+        interface _Debugging
           def enabled: () -> bool
 
           def enabled=: (bool) -> void
@@ -88,7 +88,7 @@ module Datadog
 
         def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
 
-        def debugger: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Debugger
+        def debugging: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Debugging
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
       end

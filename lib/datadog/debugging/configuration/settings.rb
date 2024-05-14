@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Debugger
+  module Debugging
     module Configuration
       # Settings
       module Settings
@@ -12,7 +12,7 @@ module Datadog
 
         def self.add_settings!(base)
           base.class_eval do
-            settings :debugger do
+            settings :debugging do
               option :enabled do |o|
                 o.type :bool
                 o.env 'DD_DYNAMIC_INSTRUMENTATION_ENABLED'

@@ -1,5 +1,5 @@
 module Datadog
-  module Debugger
+  module Debugging
     module Extensions
       def self.activate!: () -> untyped
     end

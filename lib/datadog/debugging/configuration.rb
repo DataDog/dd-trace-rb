@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Debugger
-    # Configuration for Debugger
+  module Debugging
+    # Configuration for Debugging
     module Configuration
     end
   end

@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Debugger
-    # Core-pluggable component for Debugger
+  module Debugging
+    # Core-pluggable component for Debugging
     class Component
       class << self
         def build(settings)
-          return unless settings.respond_to?(:debugger) && settings.debugger.enabled
+          return unless settings.respond_to?(:debugging) && settings.debugging.enabled
 
           new
         end
