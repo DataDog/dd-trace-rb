@@ -13,12 +13,16 @@ module Datadog
           SIGNUP_EVENT = 'users.signup'
 
           def self.track_login_success(trace, span, user_id:, **others)
+            return if trace.nil? || span.nil?
+
             track(LOGIN_SUCCESS_EVENT, trace, span, **others)
 
             Kit::Identity.set_user(trace, span, id: user_id.to_s, **others) if user_id
           end
 
           def self.track_login_failure(trace, span, user_id:, user_exists:, **others)
+            return if trace.nil? || span.nil?
+
             track(LOGIN_FAILURE_EVENT, trace, span, **others)
 
             span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
@@ -26,11 +30,15 @@ module Datadog
           end
 
           def self.track_signup(trace, span, user_id:, **others)
+            return if trace.nil? || span.nil?
+
             track(SIGNUP_EVENT, trace, span, **others)
             Kit::Identity.set_user(trace, id: user_id.to_s, **others) if user_id
           end
 
           def self.track(event, trace, span, **others)
+            return if trace.nil? || span.nil?
+
             span.set_tag("appsec.events.#{event}.track", 'true')
             span.set_tag("_dd.appsec.events.#{event}.auto.mode", Datadog.configuration.appsec.track_user_events.mode)
 
