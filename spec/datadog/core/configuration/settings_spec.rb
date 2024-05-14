@@ -230,9 +230,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     context 'when given a symbol' do
       let(:env) { :symbol }
 
-      before { set_env }
-
-      it { expect(settings.env).to eq('symbol') }
+      it { expect { set_env }.to log_deprecation }
+      it { expect { set_env }.to change { settings.env }.from(nil).to('symbol') }
     end
 
     context 'when given `nil`' do
