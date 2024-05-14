@@ -1,0 +1,9 @@
+name: Check require encapsulation
+on: [push]
+jobs:
+  check-require-encapsulation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: rm -f .rspec
+      - run: bundle exec rspec spec/require_encapsulation_check.rb
