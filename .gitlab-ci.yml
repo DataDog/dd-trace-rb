@@ -206,6 +206,7 @@ prepare_image_destinations:
     - when: manual
       allow_failure: true
   script:
+    - ./.gitlab/check_gem_presence.rb $CI_COMMIT_TAG
     - echo "IMG_DESTINATIONS=$(./.gitlab/prepare_image_destinations.rb dd-lib-ruby-init $CI_COMMIT_TAG)" >> build.env
   artifacts:
     reports:
