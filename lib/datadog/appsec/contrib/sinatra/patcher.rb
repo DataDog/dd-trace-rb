@@ -11,6 +11,7 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
 require_relative '../../../tracing/contrib/sinatra/framework'
+require_relative '../../../tracing/contrib'
 
 module Datadog
   module AppSec
