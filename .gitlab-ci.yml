@@ -210,7 +210,12 @@ prepare_image_destinations:
     - gem -v
     - bundle -v
     - ./.gitlab/check_gem_presence.rb $CI_COMMIT_TAG
-    - echo "IMG_DESTINATIONS=$(./.gitlab/prepare_image_destinations.rb dd-lib-ruby-init $CI_COMMIT_TAG)" >> build.env
+    - |
+      IMG_DESTINATIONS=$(./.gitlab/prepare_image_destinations.rb dd-lib-ruby-init $CI_COMMIT_TAG) || {
+        echo "Failed to prepare image destinations: $CI_COMMIT_TAG"
+        exit 1
+      }
+      echo "IMG_DESTINATIONS=$IMG_DESTINATIONS" > build.env
   artifacts:
     reports:
       dotenv: build.env
