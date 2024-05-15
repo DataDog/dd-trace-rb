@@ -141,11 +141,6 @@ module Datadog
           elsif dd_propagator && (dd_digest = dd_propagator.extract(headers))
             # if p value is not present in tracestate, use the parent id from the datadog headers
             format('%016x', dd_digest.span_id)
-          elsif tracecontext_tags&.fetch(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID) \
-            == Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
-            # if datadog last parent id can not be extracted then set the default value again
-            # This case was added to ensure tracestate headers are used first
-            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
           end
         end
       end
