@@ -245,11 +245,10 @@ module Datadog
           end
 
           def payload(seq_id)
-            @seq_id = seq_id
-            { configuration: configuration }
+            { configuration: configuration(seq_id) }
           end
 
-          def configuration
+          def configuration(seq_id)
             config = Datadog.configuration
 
             res = @changes.map do |name, value|
@@ -265,7 +264,7 @@ module Datadog
                 name: 'appsec.sca_enabled',
                 value: config.appsec.sca_enabled,
                 origin: 'code',
-                seq_id: @seq_id,
+                seq_id: seq_id,
               }
             end
 
