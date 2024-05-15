@@ -45,9 +45,11 @@ RSpec.describe Datadog::OpenTelemetry do
 
     describe '#in_span' do
       context 'without an active span' do
-        subject!(:in_span) { otel_tracer.in_span('test', **span_options) {} }
+        subject(:in_span) { otel_tracer.in_span('test', **span_options) {} }
 
         it 'records a finished span' do
+          in_span
+
           expect(span).to be_root_span
           expect(span.name).to eq('internal')
           expect(span.resource).to eq('test')
@@ -56,6 +58,14 @@ RSpec.describe Datadog::OpenTelemetry do
 
         context 'with attributes' do
           let(:span_options) { { attributes: attributes } }
+
+          before do
+            Datadog.configure do |c|
+              c.tags = { 'global' => 'global_tag' }
+            end
+
+            in_span
+          end
 
           [
             [1, 1],
@@ -68,6 +78,10 @@ RSpec.describe Datadog::OpenTelemetry do
 
               it "sets tag #{expected}" do
                 expect(span.get_tag('tag')).to eq(expected)
+              end
+
+              it 'keeps the global trace tags' do
+                expect(span.get_tag('global')).to eq('global_tag')
               end
             end
           end
@@ -208,6 +222,7 @@ RSpec.describe Datadog::OpenTelemetry do
           let(:span_options) { { start_timestamp: start_timestamp } }
           let(:start_timestamp) { Time.utc(2023) }
           it do
+            in_span
             expect(span.start_time).to eq(start_timestamp)
           end
         end
