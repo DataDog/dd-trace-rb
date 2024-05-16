@@ -136,7 +136,7 @@ module Datadog
           end
           attributes.flatten!(1)
 
-          kwargs[:tags] = attributes
+          kwargs[:tags] = attributes.to_h
 
           [name, kwargs]
         end
