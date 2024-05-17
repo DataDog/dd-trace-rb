@@ -104,7 +104,7 @@ module Datadog
               parent_id = extracted_trace_digest.span_id
               distributed_tags = extracted_trace_digest.trace_distributed_tags
               unless extracted_trace_digest.span_id == tracecontext_digest.span_id
-                # span_id in the tracecontext header takes precedence over the value in datadog headers
+                # span_id in the tracecontext header takes precedence over the value in all conflicting headers
                 parent_id = tracecontext_digest.span_id
                 if (lp_id = last_datadog_parent_id(data, tracecontext_digest.trace_distributed_tags))
                   distributed_tags = extracted_trace_digest.trace_distributed_tags&.dup || {}
