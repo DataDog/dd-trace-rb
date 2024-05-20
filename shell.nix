@@ -3,11 +3,11 @@
   pkgs ? import <nixpkgs> {},
 
   # use a pinned package state
-  pinned ? import(fetchTarball("https://github.com/NixOS/nixpkgs/archive/31b322916ae1.tar.gz")) {},
+  pinned ? import(fetchTarball("https://github.com/NixOS/nixpkgs/archive/25865a40d14b.tar.gz")) {},
 }:
 let
   # specify ruby version to use
-  ruby = pinned.ruby_3_2;
+  ruby = pinned.ruby_3_3;
 
   # control llvm/clang version (e.g for packages built from source)
   llvm = pinned.llvmPackages_16;
