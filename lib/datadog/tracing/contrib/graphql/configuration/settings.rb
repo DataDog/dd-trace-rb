@@ -42,6 +42,11 @@ module Datadog
               o.type :bool
               o.default false
             end
+
+            option :with_unified_tracer do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

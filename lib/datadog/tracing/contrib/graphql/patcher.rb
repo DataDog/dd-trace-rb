@@ -4,6 +4,7 @@ require_relative '../analytics'
 require_relative '../patcher'
 require_relative 'tracing_patcher'
 require_relative 'trace_patcher'
+require_relative 'unified_trace_patcher'
 
 module Datadog
   module Tracing
@@ -23,10 +24,15 @@ module Datadog
             if configuration[:with_deprecated_tracer]
               TracingPatcher.patch!(schemas, trace_options)
             elsif Integration.trace_supported?
-              TracePatcher.patch!(schemas, trace_options)
+              if configuration[:with_unified_tracer]
+                UnifiedTracePatcher.patch!(schemas, trace_options)
+              else
+                TracePatcher.patch!(schemas, trace_options)
+              end
             else
               Datadog.logger.warn(
-                "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace. "\
+                "GraphQL version (#{target_version}) does not support GraphQL::Tracing::DataDogTrace"\
+                'or Datadog::Tracing::Contrib::GraphQL::UnifiedTrace.'\
                 'Falling back to GraphQL::Tracing::DataDogTracing.'
               )
               TracingPatcher.patch!(schemas, trace_options)
