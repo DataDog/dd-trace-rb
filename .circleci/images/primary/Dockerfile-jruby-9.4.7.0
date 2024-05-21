@@ -1,22 +1,11 @@
-# Note:
-#
-# There is an incompatibility between ethon and httprb on debian 11 bullseye.
-# This is why this image is based on debian 10 buster.
-#
-# See:
-# - https://github.com/jruby/jruby/issues/7033
-# - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
-
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-# openjdk:11-jre image is from https://github.com/docker-library/openjdk/blob/8dfb0c5645098b8c330c4811c8228cae52f18388/11/jre/buster/Dockerfile
-# note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
-FROM openjdk:11-jre-buster AS jruby-9.4.0.0-jre11
+FROM eclipse-temurin:11-jammy AS jruby-9.4.7.0-jre11
 
 RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
-ENV JRUBY_VERSION 9.4.0.0
-ENV JRUBY_SHA256 897bb8a98ad43adcbf5fd3aa75ec85b3312838c949592ca3f623dc1f569d2870
+ENV JRUBY_VERSION 9.4.7.0
+ENV JRUBY_SHA256 f1c39f8257505300a528ff83fe4721fbe61a855abb25e3d27d52d43ac97a4d80
 RUN mkdir /opt/jruby \
   && curl -fSL https://repo1.maven.org/maven2/org/jruby/jruby-dist/${JRUBY_VERSION}/jruby-dist-${JRUBY_VERSION}-bin.tar.gz -o /tmp/jruby.tar.gz \
   && echo "$JRUBY_SHA256 /tmp/jruby.tar.gz" | sha256sum -c - \
@@ -46,7 +35,7 @@ RUN mkdir -p "$GEM_HOME" "$BUNDLE_BIN" \
 
 CMD [ "irb" ]
 
-FROM jruby-9.4.0.0-jre11
+FROM jruby-9.4.7.0-jre11
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
