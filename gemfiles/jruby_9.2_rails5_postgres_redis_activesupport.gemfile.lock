@@ -111,7 +111,7 @@ GEM
     loofah (2.19.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
-    mail (2.8.0.1)
+    mail (2.8.1)
       mini_mime (>= 0.1.1)
       net-imap
       net-pop
@@ -197,7 +197,8 @@ GEM
       redis (>= 4, < 5)
     request_store (1.5.1)
       rack (>= 1.4)
-    rexml (3.2.5)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -235,7 +236,7 @@ GEM
       actionpack (>= 5.2)
       activesupport (>= 5.2)
       sprockets (>= 3.0.0)
-    strscan (3.0.5-java)
+    strscan (3.1.0-java)
     thor (1.2.1)
     thread_safe (0.3.6-java)
     timeout (0.3.1)
@@ -280,6 +281,7 @@ DEPENDENCIES
   redis (~> 4)
   redis-rails
   redis-store (~> 1.9)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
