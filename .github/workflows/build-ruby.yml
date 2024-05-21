@@ -50,8 +50,8 @@ jobs:
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0
           - engine: jruby
-            version: 9.4.0.0
-            dockerfile: Dockerfile-jruby-9.4.0.0
+            version: 9.4.7.0
+            dockerfile: Dockerfile-jruby-9.4.7.0
     runs-on: ubuntu-latest
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
