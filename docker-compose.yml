@@ -248,7 +248,7 @@ services:
       - bundle-jruby-9.3:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   tracer-jruby-9.4:
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.0.0-dd
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.7.0-dd
     command: /bin/bash
     depends_on:
       - ddagent
