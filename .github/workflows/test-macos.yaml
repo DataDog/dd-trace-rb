@@ -38,7 +38,14 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
-      - uses: ruby/setup-ruby@v1
+      - if: ${{ matrix.ruby == '2.2' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          rubygems: 2.7.11
+          bundler: 1.17.3
+      - if: ${{ matrix.ruby != '2.2' }}
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           rubygems: 3.3.26
