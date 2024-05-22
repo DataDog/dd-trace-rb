@@ -71,7 +71,7 @@ gem 'simplecov-html', '~> 0.10.2' if RUBY_VERSION < '2.4.0'
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
 
-gem 'rexml', '>= 3.2.7'
+gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
 
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 if RUBY_VERSION >= '2.3.0'

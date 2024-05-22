@@ -164,6 +164,11 @@ end
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
+
+  # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
+  # `rexml` 3.2.7+ breaks because of strscan incompatibility
+  # `strsan` 3.1.0 does not fix the issue and raise TypeError when StringScanner#scan is given a string instead of Regexp
+  gem 'rexml', '= 3.2.6'
 end
 
 appraise 'http' do
