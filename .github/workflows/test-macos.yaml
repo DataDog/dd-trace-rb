@@ -42,8 +42,6 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          rubygems: 2.7.11
-          bundler: 1.17.3
       - if: ${{ matrix.ruby != '2.2' }}
         uses: ruby/setup-ruby@v1
         with:
