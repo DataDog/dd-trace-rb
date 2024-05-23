@@ -338,11 +338,24 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           context 'and span_id is not matching' do
             let(:data) { super().merge(prepare_key['x-datadog-parent-id'] => '15') }
 
-            it 'extracts span_id from tracecontext headers and stores datadog parent-id in trace_distributed_tags' do
-              expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
-              expect(trace_digest.span_id).to eq(73456)
-              expect(trace_digest.trace_id).to eq(61185)
-              expect(trace_digest.trace_distributed_tags).to include('_dd.parent_id' => '000000000000000f')
+            context 'without tracestate' do
+              it 'extracts span_id from traceparent and stores x-datadog-parent-id in trace_distributed_tags' do
+                expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+                expect(trace_digest.span_id).to eq(73456)
+                expect(trace_digest.trace_id).to eq(61185)
+                expect(trace_digest.trace_distributed_tags).to include('_dd.parent_id' => '000000000000000f')
+              end
+            end
+
+            context 'with tracestate' do
+              let(:data) { super().merge(prepare_key['tracestate'] => 'other=gg,dd=s:1;p:000000000000000a') }
+
+              it 'extracts span_id from traceparent and stores tracestate p value in trace_distributed_tags' do
+                expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
+                expect(trace_digest.span_id).to eq(73456)
+                expect(trace_digest.trace_id).to eq(61185)
+                expect(trace_digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '000000000000000a' })
+              end
             end
           end
         end
