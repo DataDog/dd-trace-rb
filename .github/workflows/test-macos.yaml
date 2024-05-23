@@ -38,10 +38,15 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
-      - uses: ruby/setup-ruby@v1
+      - if: ${{ matrix.ruby == '2.2' }}
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
-          cache-version: v2 # bump this to invalidate cache
+      - if: ${{ matrix.ruby != '2.2' }}
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          rubygems: 3.3.26
+          bundler: 2.3.26 # needed to fix issue with steep on Ruby 3.0/3.1
+      - run: bundle install
       - run: bundle exec rake spec:main
