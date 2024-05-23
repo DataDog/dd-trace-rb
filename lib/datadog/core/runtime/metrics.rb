@@ -176,6 +176,10 @@ module Datadog
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
                 Core::Environment::YJIT.outlined_code_size
               )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
+                Core::Environment::YJIT.yjit_alloc_size
+              )
             end
           end
         end
