@@ -165,6 +165,15 @@ RSpec.describe Datadog::OpenTelemetry do
                 end
               end
             end
+
+            context 'for http.response.status_code' do
+              let(:attribute_name) { 'http.response.status_code' }
+              let(:attribute_value) { '200' }
+
+              it 'overrides the respective Datadog span name' do
+                expect(span.get_tag('http.status_code')).to eq('200')
+              end
+            end
           end
 
           context 'for OpenTelemetry semantic convention' do
