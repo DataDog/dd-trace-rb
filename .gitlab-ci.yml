@@ -182,7 +182,7 @@ oci-internal-publish:
   rules:
     - when: on_success
   variables:
-    FLAVOR: datadog-apm-library-rb
+    FLAVOR: datadog-apm-library-ruby
 
 oci-internal-test-ecr-publish:
   stage: package
@@ -194,8 +194,8 @@ oci-internal-test-ecr-publish:
     branch: main
     strategy: depend
   variables:
-    IMG_SOURCES: registry.ddbuild.io/ci/remote-updates/datadog-apm-library-rb:pipeline-${CI_PIPELINE_ID}-1
-    IMG_DESTINATIONS: apm-library-rb-package:pipeline-${CI_PIPELINE_ID}
+    IMG_SOURCES: registry.ddbuild.io/ci/remote-updates/datadog-apm-library-ruby:pipeline-${CI_PIPELINE_ID}-1
+    IMG_DESTINATIONS: apm-library-ruby-package:pipeline-${CI_PIPELINE_ID}
     IMG_REGISTRIES: agent-qa
 
 onboarding_tests:
