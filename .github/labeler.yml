@@ -43,3 +43,15 @@ dev/ci:
 # Version bump pull request
 release:
   - all: [ '{CHANGELOG.md,lib/datadog/version.rb}' ]
+
+# Changes to OpenTelemetry
+otel:
+  - any: [ 'lib/datadog/opentelemetry/**' ]
+
+# Changes to Single Step Instrumentation
+single-step:
+  - any: [ 'lib-injection/**' ]
+
+# Changes to Single Step Instrumentation
+debugging:
+  - any: [ 'lib/datadog/debugging/**' ]
