@@ -142,10 +142,7 @@ module Datadog
             )
           end
 
-          if key == 'http.response.status_code'
-            span.set_tag('http.status_code', value)
-          end
-
+          span.set_tag('http.status_code', value) if key == 'http.response.status_code'
         end
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',
