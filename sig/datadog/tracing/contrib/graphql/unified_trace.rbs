@@ -1,0 +1,64 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module UnifiedTrace
+          @analytics_enabled: untyped
+
+          @analytics_sample_rate: untyped
+
+          @service_name: untyped
+
+          @has_prepare_span: untyped
+          def initialize: (?tracer: untyped?, ?analytics_enabled: bool, ?analytics_sample_rate: ::Float, ?service: untyped?, **untyped rest) -> void
+
+          def lex: (query_string: untyped) -> untyped
+
+          def parse: (query_string: untyped) -> untyped
+
+          def validate: (query: untyped, validate: untyped) -> untyped
+
+          def analyze_multiplex: (multiplex: untyped) -> untyped
+
+          def analyze_query: (query: untyped) -> untyped
+
+          def execute_multiplex: (multiplex: untyped) -> untyped
+
+          def execute_query: (query: untyped) -> untyped
+
+          def execute_query_lazy: (query: untyped, multiplex: untyped) -> untyped
+
+          def execute_field_span: (untyped callable, untyped span_key, **untyped kwargs) -> untyped
+
+          def execute_field: (**untyped kwargs) -> untyped
+
+          def execute_field_lazy: (**untyped kwargs) -> untyped
+
+          def authorized_span: (untyped callable, untyped span_key, **untyped kwargs) -> untyped
+
+          def authorized: (**untyped kwargs) -> untyped
+
+          def authorized_lazy: (**untyped kwargs) -> untyped
+
+          def resolve_type_span: (untyped callable, untyped span_key, **untyped kwargs) -> untyped
+
+          def resolve_type: (**untyped kwargs) -> untyped
+
+          def resolve_type_lazy: (**untyped kwargs) -> untyped
+
+          def platform_field_key: (untyped field) -> untyped
+
+          def platform_authorized_key: (untyped type) -> ::String
+
+          def platform_resolve_type_key: (untyped type) -> ::String
+
+          private
+
+          def trace: (untyped callable, untyped trace_key, untyped resource, **untyped kwargs) ?{ (untyped) -> untyped } -> untyped
+
+          def multiplex_resource: (untyped multiplex) -> (nil | untyped)
+        end
+      end
+    end
+  end
+end

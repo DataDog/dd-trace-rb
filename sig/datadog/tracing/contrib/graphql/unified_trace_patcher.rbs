@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module UnifiedTracePatcher
+          def self?.patch!: (::Array[untyped] schemas, ::Hash[Symbol, untyped] options) -> untyped
+        end
+      end
+    end
+  end
+end
