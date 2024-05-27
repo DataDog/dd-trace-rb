@@ -124,7 +124,7 @@ module Datadog
             resolve_type_span(proc { super(**kwargs) }, 'resolve_type_lazy', **kwargs)
           end
 
-          include ::GraphQL::Tracing::PlatformTrace if defined?(::GraphQL::Tracing::PlatformTrace)
+          include ::GraphQL::Tracing::PlatformTrace
 
           # Implement this method in a subclass to apply custom tags to datadog spans
           # @param key [String] The event being traced
