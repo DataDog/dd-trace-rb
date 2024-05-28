@@ -52,6 +52,6 @@ otel:
 single-step:
   - any: [ 'lib-injection/**' ]
 
-# Changes to Single Step Instrumentation
+# Changes to Debugging
 debugging:
   - any: [ 'lib/datadog/debugging/**' ]
