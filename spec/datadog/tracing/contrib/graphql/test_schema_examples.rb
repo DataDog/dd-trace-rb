@@ -82,7 +82,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
   end
 
   describe 'query trace' do
-    subject(:result) do 
+    subject(:result) do
       TestGraphQLSchema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
     end
 
