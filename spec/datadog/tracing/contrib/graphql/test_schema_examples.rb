@@ -82,29 +82,36 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
   end
 
   describe 'query trace' do
-    subject(:result) { TestGraphQLSchema.execute('query Users{ user(id: 1) { name } }') }
+    subject(:result) do 
+      TestGraphQLSchema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
+    end
 
     matrix = [
-      ['graphql.analyze', 'query Users{ user(id: 1) { name } }'],
+      ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
       ['graphql.analyze_multiplex', 'Users'],
       ['graphql.authorized', 'TestGraphQLQuery.authorized'],
       ['graphql.authorized', 'TestUser.authorized'],
       ['graphql.execute', 'Users'],
       ['graphql.execute_lazy', 'Users'],
       ['graphql.execute_multiplex', 'Users'],
-      (['graphql.lex', 'query Users{ user(id: 1) { name } }'] if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new('2.2')),
-      ['graphql.parse', 'query Users{ user(id: 1) { name } }'],
+      if Gem::Version.new(GraphQL::VERSION) < Gem::Version.new('2.2')
+        ['graphql.lex', 'query Users($var: ID!){ user(id: $var) { name } }']
+      end,
+      ['graphql.parse', 'query Users($var: ID!){ user(id: $var) { name } }'],
       ['graphql.resolve', 'TestGraphQLQuery.user'],
+      ['graphql.resolve', 'TestUser.name'],
       # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
       ['graphql.validate', 'Users']
     ].compact
 
+    # graphql.source for execute_multiplex is not required in the span attributes specification
     spans_with_source = ['graphql.parse', 'graphql.validate', 'graphql.execute']
-    spans_with_variables = ['graphql.execute', 'graphql.resolve']
 
     matrix.each_with_index do |(name, resource), index|
       it "creates #{name} span with #{resource} resource" do
         expect(result.to_h['errors']).to be nil
+        expect(result.to_h['data']).to eq({ 'user' => { 'name' => 'Bits' } })
+
         expect(spans).to have(matrix.length).items
         span = spans[index]
 
@@ -113,17 +120,22 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         expect(span.service).to eq(tracer.default_service)
         expect(span.type).to eq('graphql')
 
-        # graphql.source for execute_multiplex is not required in the span attributes specification
         if spans_with_source.include?(name)
-          expect(span.get_tag('graphql.source')).to eq('query Users{ user(id: 1) { name } }')
+          expect(span.get_tag('graphql.source')).to eq('query Users($var: ID!){ user(id: $var) { name } }')
         end
 
         if name == 'graphql.execute'
           expect(span.get_tag('graphql.operation.type')).to eq('query')
           expect(span.get_tag('graphql.operation.name')).to eq('Users')
+          # graphql.variables.* in graphql.execute span are the ones defined outside the query
+          # (variables part in JSON for example)
+          expect(span.get_tag('graphql.variables.var')).to eq(1)
         end
 
-        expect(span.get_tag('graphql.variables.id')).to eq('1') if spans_with_variables.include?(name)
+        if name == 'graphql.resolve' && resource == 'TestGraphQLQuery.user'
+          # During graphql.resolve, it converts it to string (as it builds an SQL query for example)
+          expect(span.get_tag('graphql.variables.id')).to eq('1')
+        end
       end
     end
   end
