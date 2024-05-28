@@ -71,17 +71,11 @@ module Datadog
           end
 
           def execute_field_span(callable, span_key, **kwargs)
-            return_type = kwargs[:field].type.unwrap
-            trace_field = if return_type.kind.scalar? || return_type.kind.enum?
-                            (kwargs[:field].trace.nil? && @trace_scalars) || kwargs[:field].trace
-                          else
-                            true
-                          end
-            platform_key = @platform_key_cache[UnifiedTrace].platform_field_key_cache[kwargs[:field]] if trace_field
+            platform_key = @platform_key_cache[UnifiedTrace].platform_field_key_cache[kwargs[:field]]
 
-            if platform_key && trace_field
+            if platform_key
               trace(callable, span_key, platform_key, **kwargs) do |span|
-                kwargs[:query].provided_variables.each do |key, value|
+                kwargs[:arguments].each do |key, value|
                   span.set_tag("graphql.variables.#{key}", value)
                 end
               end
@@ -91,6 +85,7 @@ module Datadog
           end
 
           def execute_field(**kwargs)
+            # kwargs[:arguments] is { id => 1 } for 'user(id: 1) { name }'. This is what we want to send to the WAF.
             execute_field_span(proc { super(**kwargs) }, 'resolve', **kwargs)
           end
 
