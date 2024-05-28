@@ -16,7 +16,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::UnifiedTracePatcher,
       end
 
       context 'with specified schemas configuration' do
-        it_behaves_like 'graphql default instrumentation with unified naming convention trace' do
+        it_behaves_like 'graphql instrumentation with unified naming convention trace' do
           before do
             described_class.patch!([TestGraphQLSchema], {})
           end
