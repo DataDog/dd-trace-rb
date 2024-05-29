@@ -1,27 +1,56 @@
 # Keep in sync with auto_inject.rb
 return if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
 
-require 'rubygems'
-require 'rbconfig'
-
-ruby_api_version = RbConfig::CONFIG['ruby_version']
-
-dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
-
 def debug_log(msg)
   $stdout.puts msg if ENV['DD_TRACE_DEBUG'] == 'true'
 end
 
-debug_log "[datadog] Loading from #{dd_lib_injection_path}..."
+def datadog_skip_injection
+  ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
+  # Do something when skipping injection
+end
 
 begin
+  require 'rubygems'
   require 'open3'
   require 'bundler'
   require 'bundler/cli'
   require 'shellwords'
   require 'fileutils'
 
-  support_message = 'For help solving this issue, please contact Datadog support at https://docs.datadoghq.com/help/.'
+  major, minor, = RUBY_VERSION.split('.')
+  ruby_api_version = "#{major}.#{minor}.0"
+  dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+  debug_log "[datadog] Loading from #{dd_lib_injection_path}..."
+
+  if RUBY_ENGINE != 'ruby'
+    # Handle unsupported RUBY_ENGINE (Only supports `ruby`, not `jruby` or `truffleruby`)
+    return
+  end
+
+  supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0'].freeze
+  if supported_ruby_api_versions.none? { |v| ruby_api_version == v }
+    # Handle unsupported ruby api versions (Only supports `2.7.0`, `3.0.0`, `3.1.0`, and `3.2.0`)
+    return
+  end
+
+  supported_architectures = ['x86_64', 'aarch64'].freeze
+  if supported_architectures.none? { |v| Gem::Platform.local.cpu == v }
+    # Handle unsupported architectures (Only supports `amd64` and `arm64`)
+    return
+  end
+
+  supported_oses = ['linux'].freeze
+  if supported_oses.none? { |v| Gem::Platform.local.os == v }
+    # Handle unsupported oses (Only supports `linux`)
+    return
+  end
+
+  supported_versions = ['gnu', nil].freeze # nil is equivalent to `gnu` for local platform
+  if supported_versions.none? { |v| Gem::Platform.local.version == v }
+    # Handle unsupported libc version (Only supports `glibc`)
+    return
+  end
 
   unless Bundler::SharedHelpers.in_bundle?
     debug_log '[datadog] Not in bundle... skipping injection'
@@ -101,7 +130,7 @@ begin
         else
           warn "[datadog] Injection failed: Unable to add datadog. Error output:\n#{output.split("\n").map do |l|
             "[datadog] #{l}"
-          end.join("\n")}\n#{support_message}"
+          end.join("\n")}"
         end
       ensure
         # Remove the copies
@@ -118,6 +147,6 @@ begin
   ENV['GEM_PATH'] = Gem.path.join(':')
   ENV['DD_INJECTION_ENABLED'] = 'true'
 rescue Exception => e
-  warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
 end
