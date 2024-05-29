@@ -116,6 +116,7 @@ begin
 
   # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
   ENV['GEM_PATH'] = Gem.path.join(':')
+  ENV['DD_INJECTION_ENABLED'] = 'true'
 rescue Exception => e
   warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
