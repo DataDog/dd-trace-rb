@@ -31,7 +31,8 @@ current_major_versions = versions.select { |v| v.to_s.start_with?("#{major}.") }
 
 tags = []
 
-tags << 'latest'    if versions.all? { |v| candidate >= v }
+# Disable tagging 'latest' for now avoid crossing major versions
+# tags << 'latest'    if versions.all? { |v| candidate >= v }
 tags << "v#{major}" if current_major_versions.all? { |v| candidate >= v }
 tags << "v#{major}.#{minor}"
 tags << "v#{candidate}"
