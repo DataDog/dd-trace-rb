@@ -149,10 +149,59 @@ package-arm64:
     - ../.gitlab/build-deb-rpm.sh
     - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
 
+package-oci-amd64:
+  extends: .package-oci
+  stage: package
+  needs:
+    - build-gem
+    - install-dependencies-amd64
+  variables:
+    ARCH: amd64
+  script:
+    - cp ../lib-injection/host_inject.rb ../tmp
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
+    - ../.gitlab/build-oci-package.sh
+
+package-oci-arm64:
+  extends: .package-oci
+  stage: package
+  needs:
+    - build-gem
+    - install-dependencies-arm64
+  variables:
+    ARCH: arm64
+  script:
+    - cp ../lib-injection/host_inject.rb ../tmp
+    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
+    - ../.gitlab/build-oci-package.sh
+
+oci-internal-publish:
+  extends: .oci-internal-publish
+  stage: package
+  needs: [ package-oci-arm64, package-oci-amd64 ]
+  rules:
+    - when: on_success
+  variables:
+    FLAVOR: datadog-apm-library-ruby
+
+oci-internal-test-ecr-publish:
+  stage: package
+  needs: [ oci-internal-publish ]
+  rules:
+    - when: on_success
+  trigger:
+    project: DataDog/public-images
+    branch: main
+    strategy: depend
+  variables:
+    IMG_SOURCES: registry.ddbuild.io/ci/remote-updates/datadog-apm-library-ruby:pipeline-${CI_PIPELINE_ID}-1
+    IMG_DESTINATIONS: apm-library-ruby-package:pipeline-${CI_PIPELINE_ID}
+    IMG_REGISTRIES: agent-qa
+
 onboarding_tests:
   extends: .base_job_onboarding_tests
   stage: integration-tests
-  needs: [ package-amd64, package-arm64]
+  needs: [ package-amd64, package-arm64, oci-internal-test-ecr-publish]
   allow_failure: false
   variables:
     TEST_LIBRARY: ruby
@@ -163,10 +212,13 @@ onboarding_tests:
           SCENARIO: [SIMPLE_HOST_AUTO_INJECTION]
         - ONBOARDING_FILTER_WEBLOG: [test-app-ruby-container]
           SCENARIO: [SIMPLE_CONTAINER_AUTO_INJECTION]
+        - ONBOARDING_FILTER_WEBLOG: [test-app-ruby,test-app-ruby-container]
+          SCENARIO: [INSTALLER_AUTO_INJECTION]
   script:
     - git clone https://git@github.com/DataDog/system-tests.git system-tests
     - cp packaging/*.rpm system-tests/binaries
     - cp packaging/*.deb system-tests/binaries
+    - export DD_INSTALLER_LIBRARY_VERSION="pipeline-${CI_PIPELINE_ID}"
     - ls system-tests/binaries
     - cd system-tests
     - ./build.sh -i runner
