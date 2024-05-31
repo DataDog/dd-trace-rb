@@ -1369,7 +1369,9 @@ end
 
 The Rails integration will trace requests, database calls, templates rendering, and cache read/write/delete operations. The integration makes use of the Active Support Instrumentation, listening to the Notification API so that any operation instrumented by the API is traced.
 
-To enable the Rails instrumentation, create an initializer file in your `config/initializers` folder:
+To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
+
+Alternatively, you can also create an initializer file in your `config/initializers` folder:
 
 ```ruby
 # config/initializers/datadog.rb

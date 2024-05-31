@@ -1,4 +1,6 @@
 require 'rails/all'
+# Loaded by the `bin/rails` script in a real Rails application
+require 'rails/command' if Rails::VERSION::MAJOR > 4
 
 require_relative 'controllers'
 require_relative 'models'
