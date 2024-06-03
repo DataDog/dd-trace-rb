@@ -56,5 +56,6 @@ require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
 require_relative 'appsec/contrib/devise/integration'
+require_relative 'appsec/contrib/graphql/integration'
 
 require_relative 'appsec/autoload'
