@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Gateway
+          class Resolve < Instrumentation::Gateway::Argument
+            @arguments: untyped
+
+            attr_reader arguments: untyped
+
+            def initialize: (untyped arguments) -> void
+          end
+        end
+      end
+    end
+  end
+end
