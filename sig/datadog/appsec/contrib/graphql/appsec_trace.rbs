@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module AppSecTrace
+          def execute_query: (query: untyped) -> untyped
+
+          def execute_field: (**untyped kwargs) -> untyped
+
+          def execute_field_lazy: (**untyped kwargs) -> untyped
+        end
+      end
+    end
+  end
+end

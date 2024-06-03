@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        class Integration
+          include Datadog::AppSec::Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def self.auto_instrument?: () -> bool
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

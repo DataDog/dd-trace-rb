@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Gateway
+          module Watcher
+            def self.watch: () -> untyped
+
+            def self.watch_execute: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+
+            def self.watch_resolve: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

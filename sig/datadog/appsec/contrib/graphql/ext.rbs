@@ -1,0 +1,10 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Ext
+        end
+      end
+    end
+  end
+end
