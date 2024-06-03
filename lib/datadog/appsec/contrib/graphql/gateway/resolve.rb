@@ -9,11 +9,12 @@ module Datadog
         module Gateway
           # Gateway Request argument. Normalized extration of data from Rack::Request
           class Resolve < Instrumentation::Gateway::Argument
-            attr_reader :arguments
+            attr_reader :arguments, :query
 
-            def initialize(arguments)
+            def initialize(arguments, query)
               super()
               @arguments = arguments
+              @query = query
             end
           end
         end

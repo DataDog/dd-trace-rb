@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 
 module Datadog
@@ -18,9 +19,39 @@ module Datadog
               end
 
               def watch_execute(gateway = Instrumentation.gateway)
+                require 'graphql/query/result'
                 gateway.watch('graphql.execute', :appsec) do |stack, gateway_execute|
+                  event = nil
                   if gateway_execute.variables[:query] == 'threat'
-                    raise 'Vars (in execute) will be analyzed by the WAF and blocked if a threat is detected'
+                    result = OpenStruct.new(
+                      actions: ['block'],
+                      derivatives: {},
+                      events: [],
+                      status: :match,
+                      timeout: false,
+                      total_runtime: 10000
+                    )
+                    event = OpenStruct.new(
+                      waf_result: result,
+                      request: gateway_execute,
+                      actions: result.actions
+                    )
+                  end
+
+                  if event && event.actions.include?('block')
+                    throw Ext::QUERY_INTERRUPT,
+                      ::GraphQL::Query::Result.new(
+                        query: gateway_execute.query,
+                        values: {
+                          data: nil,
+                          errors: [{
+                            message: 'Blocked',
+                            extensions: {
+                              detail: 'This message will be customised with WAF data (execute)'
+                            }
+                          }]
+                        }
+                      )
                   end
 
                   ret, res = stack.call(gateway_execute.variables)
@@ -30,9 +61,39 @@ module Datadog
               end
 
               def watch_resolve(gateway = Instrumentation.gateway)
+                require 'graphql/query/result'
                 gateway.watch('graphql.resolve', :appsec) do |stack, gateway_resolve|
+                  event = nil
                   if gateway_resolve.arguments[:query] == 'threat'
-                    raise 'Args (in resolve) will be analyzed by the WAF and blocked if a threat is detected'
+                    result = OpenStruct.new(
+                      actions: ['block'],
+                      derivatives: {},
+                      events: [],
+                      status: :match,
+                      timeout: false,
+                      total_runtime: 10000
+                    )
+                    event = OpenStruct.new(
+                      waf_result: result,
+                      request: gateway_resolve,
+                      actions: result.actions
+                    )
+                  end
+
+                  if event && event.actions.include?('block')
+                    throw Ext::QUERY_INTERRUPT,
+                      ::GraphQL::Query::Result.new(
+                        query: gateway_resolve.query,
+                        values: {
+                          data: nil,
+                          errors: [{
+                            message: 'Blocked',
+                            extensions: {
+                              detail: 'This message will be customised with WAF data (resolve)'
+                            }
+                          }]
+                        }
+                      )
                   end
 
                   ret, res = stack.call(gateway_resolve.arguments)
