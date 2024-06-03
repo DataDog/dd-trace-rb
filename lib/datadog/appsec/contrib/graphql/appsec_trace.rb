@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
 require_relative 'gateway/execute'
 require_relative 'gateway/resolve'
 require_relative '../../instrumentation/gateway'
@@ -11,6 +12,13 @@ module Datadog
         # These methods will be called by the GraphQL runtime to send the variables to the WAF.
         # We actually don't need to create any span/trace.
         module AppSecTrace
+          # Error handling
+          def execute_multiplex(multiplex:)
+            catch(Ext::QUERY_INTERRUPT) do
+              super
+            end
+          end
+
           def execute_query(query:)
             gateway_execute = Gateway::Execute.new(query)
 
@@ -22,7 +30,7 @@ module Datadog
           end
 
           def execute_field(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments])
+            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query])
 
             resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
               super(**kwargs)
@@ -32,7 +40,7 @@ module Datadog
           end
 
           def execute_field_lazy(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments])
+            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query])
 
             resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
               super(**kwargs)
