@@ -9,6 +9,7 @@ module Datadog
         # @public_api
         module Diagnostics
           ENV_DEBUG_ENABLED = 'DD_TRACE_DEBUG'
+          ENV_OTEL_LOG_LEVEL = 'OTEL_LOG_LEVEL'
           ENV_HEALTH_METRICS_ENABLED = 'DD_HEALTH_METRICS_ENABLED'
           ENV_STARTUP_LOGS_ENABLED = 'DD_TRACE_STARTUP_LOGS'
         end

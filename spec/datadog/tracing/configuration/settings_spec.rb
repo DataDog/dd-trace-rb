@@ -18,10 +18,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
   let(:options) { {} }
 
   describe '#tracing' do
-    let(:var_value) { nil }
-    let(:var_name) { '_test_' }
+    let(:envs) { { '_test_' => nil } }
     around do |example|
-      ClimateControl.modify(var_name => var_value) do
+      ClimateControl.modify(envs) do
         example.run
       end
     end
@@ -68,7 +67,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       subject(:propagation_style_extract) { settings.tracing.propagation_style_extract }
 
       context 'when DD_TRACE_PROPAGATION_STYLE_EXTRACT' do
-        let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' }
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_EXTRACT' => var_value } }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -113,7 +112,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       subject(:propagation_style_inject) { settings.tracing.propagation_style_inject }
 
       context 'with DD_TRACE_PROPAGATION_STYLE_INJECT' do
-        let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE_INJECT' }
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE_INJECT' => var_value } }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -166,7 +165,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
 
       context 'with DD_TRACE_PROPAGATION_STYLE' do
-        let(:var_name) { 'DD_TRACE_PROPAGATION_STYLE' }
+        let(:envs) { { 'DD_TRACE_PROPAGATION_STYLE' => var_value } }
 
         context 'is not defined' do
           let(:var_value) { nil }
@@ -204,13 +203,40 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
         end
       end
+
+      context 'with OTEL_PROPAGATORS' do
+        context 'and without DD_TRACE_PROPAGATION_STYLE' do
+          let(:envs) { { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3,b3multi' } }
+          it 'sets propagation_style_extract' do
+            expect { propagation_style }.to change { propagation_style_extract }.to(%w[tracecontext b3 b3multi])
+          end
+
+          it 'sets propagation_style_inject' do
+            expect { propagation_style }.to change { propagation_style_inject }.to(%w[tracecontext b3 b3multi])
+          end
+        end
+
+        context 'and with DD_TRACE_PROPAGATION_STYLE' do
+          let(:envs) do
+            { 'OTEL_PROPAGATORS' => 'tracecontext,jaegar,b3single', 'DD_TRACE_PROPAGATION_STYLE' => 'b3multi,b3' }
+          end
+
+          it 'sets propagation_style_extract' do
+            expect { propagation_style }.to change { propagation_style_extract }.to(%w[b3multi b3])
+          end
+
+          it 'sets propagation_style_inject' do
+            expect { propagation_style }.to change { propagation_style_inject }.to(%w[b3multi b3])
+          end
+        end
+      end
     end
 
     describe '#propagation_extract_first' do
       subject(:propagation_extract_first) { settings.tracing.propagation_extract_first }
 
+      let(:envs) { { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' => var_value } }
       let(:var_value) { nil }
-      let(:var_name) { 'DD_TRACE_PROPAGATION_EXTRACT_FIRST' }
       it { is_expected.to be false }
 
       context 'when DD_TRACE_PROPAGATION_EXTRACT_FIRST' do
@@ -271,6 +297,47 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           let(:enable) { 'false' }
 
           it { is_expected.to be false }
+        end
+      end
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER}" do
+        around do |example|
+          ClimateControl.modify(
+            {
+              Datadog::Tracing::Configuration::Ext::ENV_ENABLED => dd_enable,
+              Datadog::Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER => otel_exporter
+            }
+          ) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { nil }
+          it { is_expected.to be true }
+        end
+
+        context 'is set to none' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { 'none' }
+          it { is_expected.to be false }
+        end
+
+        context 'is set to unsupported value' do
+          let(:dd_enable) { nil }
+          let(:otel_exporter) { 'otlp' }
+          it 'the default value is used' do
+            is_expected.to be true
+          end
+        end
+
+        context 'is set to none AND DD_TRACE_ENABLED is set to True' do
+          let(:dd_enable) { 'true' }
+          let(:otel_exporter) { 'none' }
+          it 'datadog configurations take precedence' do
+            is_expected.to be true
+          end
         end
       end
     end
@@ -479,7 +546,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to be nil }
         end
 
-        context 'when ENV is provided' do
+        context 'when DD_TRACE_SAMPLE_RATE is provided' do
           around do |example|
             ClimateControl.modify(Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => '0.5') do
               example.run
@@ -487,6 +554,66 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           end
 
           it { is_expected.to eq(0.5) }
+        end
+
+        context 'when OTEL_TRACES_SAMPLER is set to' do
+          let(:otel_sampler) { nil }
+          let(:otel_sampler_arg) { nil }
+          let(:dd_sample_rate) { nil }
+          around do |example|
+            ClimateControl.modify(
+              Datadog::Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER => otel_sampler,
+              Datadog::Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG => otel_sampler_arg,
+              Datadog::Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE => dd_sample_rate,
+            ) do
+              example.run
+            end
+          end
+
+          context 'always_on' do
+            let(:otel_sampler) { 'always_on' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'always_off' do
+            let(:otel_sampler) { 'always_off' }
+            it { is_expected.to eq(0) }
+          end
+
+          context 'traceidratio' do
+            let(:otel_sampler) { 'traceidratio' }
+            let(:otel_sampler_arg) { '0.5' }
+            it { is_expected.to eq(0.5) }
+          end
+
+          context 'parentbased_always_on' do
+            let(:otel_sampler) { 'parentbased_always_on' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'parentbased_always_off' do
+            let(:otel_sampler) { 'parentbased_always_off' }
+            it { is_expected.to eq(0) }
+          end
+
+          context 'parentbased_traceidratio' do
+            let(:otel_sampler) { 'parentbased_traceidratio' }
+            let(:otel_sampler_arg) { '0.5' }
+            it { is_expected.to eq(0.5) }
+          end
+
+          context 'traceidratio and OTEL_TRACES_SAMPLER_ARG is not set' do
+            let(:otel_sampler) { 'traceidratio' }
+            it { is_expected.to eq(1) }
+          end
+
+          context 'and DD_TRACE_SAMPLE_RATE is set' do
+            let(:otel_sampler) { 'always_on' }
+            let(:dd_sample_rate) { '0.5' }
+            it 'datadog configurations take precedence' do
+              is_expected.to eq(0.5)
+            end
+          end
         end
       end
 
