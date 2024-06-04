@@ -108,6 +108,9 @@ build-gem:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
     - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    - ruby -v
+    - gem -v
+    - bundler -v
     - ruby .gitlab/install_datadog_deps.rb
   artifacts:
     paths:
