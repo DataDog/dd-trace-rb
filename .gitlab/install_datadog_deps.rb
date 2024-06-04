@@ -73,6 +73,7 @@ gem_version_mapping.each do |gem, version|
   case gem
   when 'ffi'
     gem_install_cmd << "--install-dir #{versioned_path} "
+    gem_install_cmd << "--platform ruby "
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << '-- --disable-system-libffi '
   when 'datadog'
