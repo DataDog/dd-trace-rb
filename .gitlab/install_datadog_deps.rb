@@ -33,6 +33,7 @@ gemfile_file_path = versioned_path.join('Gemfile')
 File.open(gemfile_file_path, 'w') do |file|
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
+  file.write("gem 'ffi', '1.16.3'\n")
   # Mimick outdated `msgpack` version, uncomment below line to test
   # file.write("gem 'msgpack', '1.6.0'\n")
 end
@@ -73,7 +74,6 @@ gem_version_mapping.each do |gem, version|
   case gem
   when 'ffi'
     gem_install_cmd << "--install-dir #{versioned_path} "
-    gem_install_cmd << "--platform ruby "
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << '-- --disable-system-libffi '
   when 'datadog'
