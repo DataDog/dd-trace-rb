@@ -101,5 +101,11 @@ RSpec.describe 'gem release process' do
         )
       end
     end
+
+    context 'licenses' do
+      it 'returns dual licenses (BSD-3-Clause and Apache-2)' do
+        expect(gemspec.licenses).to contain_exactly('BSD-3-Clause', 'Apache-2.0')
+      end
+    end
   end
 end
