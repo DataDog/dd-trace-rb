@@ -80,10 +80,12 @@ If you do not want to install `datadog-ci`, make sure to remove CI-related confi
 
 <h4 id="2.0-use-instrument">Replace `use` with `instrument`</h4>
 
+Starting with 1.0 `use` was deprecated in favor of `instrument`; 2.0 removes `use`, making `instrument` mandatory.
+
 ```ruby
 # === with 1.x ===
 Datadog.configure do |c|
-  c.tracing.use :mysql2
+  c.tracing.use :mysql2  # deprecated usage
 end
 
 # === with 2.0 ===

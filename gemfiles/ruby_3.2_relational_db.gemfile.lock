@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0.rc1)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -102,7 +102,8 @@ GEM
       rake
     redcarpet (3.6.0)
     regexp_parser (2.8.1)
-    rexml (3.2.6)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -156,6 +157,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     sqlite3 (1.6.6-aarch64-linux)
     sqlite3 (1.6.6-x86_64-linux)
+    strscan (3.1.0)
     thor (1.2.2)
     trilogy (2.6.0)
     tzinfo (2.0.6)
@@ -199,6 +201,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redcarpet (~> 3.4)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

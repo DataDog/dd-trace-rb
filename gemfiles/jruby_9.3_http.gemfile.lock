@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0.rc1)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -104,7 +104,8 @@ GEM
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
-    rexml (3.2.6)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -160,6 +161,7 @@ GEM
     spoon (0.0.6)
       ffi
     stripe (8.7.0)
+    strscan (3.1.0-java)
     thor (1.2.2)
     typhoeus (1.4.0)
       ethon (>= 0.9.0)
@@ -198,6 +200,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rest-client
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

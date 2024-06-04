@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0.rc1)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -1581,6 +1581,7 @@ DEPENDENCIES
   pry-debugger-jruby
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  rexml (= 3.2.6)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

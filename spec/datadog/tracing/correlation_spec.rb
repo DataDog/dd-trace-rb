@@ -81,6 +81,74 @@ RSpec.describe Datadog::Tracing::Correlation do
     end
   end
 
+  describe '#trace_id' do
+    context 'when 128 bit trace id logging is not enabled' do
+      before do
+        allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(false)
+      end
+
+      context 'when given 64 bit trace id' do
+        it 'returns to lower 64 bits of trace id' do
+          trace_id = 0xaaaaaaaaaaaaaaaa
+
+          result = described_class.format_trace_id(trace_id)
+
+          # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+          expect(result).to eq('12297829382473034410')
+        end
+      end
+
+      context 'when given 128 bit trace id' do
+        it 'returns to lower 64 bits of trace id' do
+          trace_id = 0xaaaaaaaaaaaaaaaaffffffffffffffff
+
+          result = described_class.format_trace_id(trace_id)
+
+          # `0xffffffffffffffff.to_s` => '18446744073709551615'
+          expect(result).to eq('18446744073709551615')
+        end
+      end
+    end
+
+    context 'when 128 bit trace id logging is enabled' do
+      before do
+        allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
+      end
+
+      context 'when given 64 bit trace id' do
+        it 'returns lower 64 bits of trace id' do
+          trace_id = 0xaaaaaaaaaaaaaaaa
+
+          result = described_class.format_trace_id(trace_id)
+
+          # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+          expect(result).to eq('12297829382473034410')
+        end
+      end
+
+      context 'when given > 64 bit trace id' do
+        it 'returns the entire trace id in hex encoded and zero padded format' do
+          trace_id = 0x00ffffffffffffffaaaaaaaaaaaaaaaa
+
+          result = described_class.format_trace_id(trace_id)
+
+          expect(result).to eq('00ffffffffffffffaaaaaaaaaaaaaaaa')
+        end
+      end
+
+      context 'when given > 64 bit trace id but high order is 0' do
+        it 'returns to lower 64 bits of trace id' do
+          trace_id = 0x00000000000000000aaaaaaaaaaaaaaaa
+
+          result = described_class.format_trace_id(trace_id)
+
+          # `0xaaaaaaaaaaaaaaaa.to_s` => '12297829382473034410'
+          expect(result).to eq('12297829382473034410')
+        end
+      end
+    end
+  end
+
   describe described_class::Identifier do
     describe '#new' do
       context 'given no arguments' do
