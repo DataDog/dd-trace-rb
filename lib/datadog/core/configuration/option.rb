@@ -14,7 +14,7 @@ module Datadog
         # @!attribute [r] precedence_set
         #   When this option was last set, what was the value precedence used?
         #   @return [Precedence::Value]
-        attr_reader :definition, :precedence_set
+        attr_reader :definition, :precedence_set, :resolved_env
 
         # Option setting precedence.
         module Precedence
@@ -50,6 +50,7 @@ module Datadog
           @context = context
           @value = nil
           @is_set = false
+          @resolved_env = nil
 
           # One value is stored per precedence, to allow unsetting a higher
           # precedence value and falling back to a lower precedence one.
@@ -65,7 +66,7 @@ module Datadog
         #
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
-        def set(value, precedence: Precedence::PROGRAMMATIC)
+        def set(value, precedence: Precedence::PROGRAMMATIC, resolved_env: nil)
           # Is there a higher precedence value set?
           if @precedence_set > precedence
             # This should be uncommon, as higher precedence values tend to
@@ -84,7 +85,7 @@ module Datadog
             return @value
           end
 
-          internal_set(value, precedence)
+          internal_set(value, precedence, resolved_env)
         end
 
         def unset(precedence)
@@ -102,7 +103,7 @@ module Datadog
               # Look for value that is set.
               # The hash `@value_per_precedence` has a custom default value of `UNSET`.
               if (value = @value_per_precedence[p]) != UNSET
-                internal_set(value, p)
+                internal_set(value, p, nil)
                 return nil
               end
             end
@@ -260,11 +261,12 @@ module Datadog
         end
 
         # Directly manipulates the current value and currently set precedence.
-        def internal_set(value, precedence)
+        def internal_set(value, precedence, resolved_env)
           old_value = @value
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
+            @resolved_env = resolved_env
             # Store original value to ensure we can always safely call `#internal_set`
             # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
             # on the original value, not on a valud that has already been processed by `definition.setter`.
@@ -284,16 +286,21 @@ module Datadog
         def set_value_from_env_or_default
           value = nil
           precedence = nil
-          effective_env = nil
+          resolved_env = nil
 
-          if definition.env && ENV[definition.env]
-            effective_env = definition.env
-            value = coerce_env_variable(ENV[definition.env])
-            precedence = Precedence::PROGRAMMATIC
+          if definition.env
+            Array(definition.env).each do |env|
+              next unless (env_val = ENV[env])
+
+              resolved_env = env
+              value = coerce_env_variable(env_val)
+              precedence = Precedence::PROGRAMMATIC
+              break
+            end
           end
 
           if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
-            effective_env = definition.deprecated_env
+            resolved_env = definition.deprecated_env
             value = coerce_env_variable(ENV[definition.deprecated_env])
             precedence = Precedence::PROGRAMMATIC
 
@@ -304,11 +311,11 @@ module Datadog
 
           option_value = value.nil? ? default_value : value
 
-          set(option_value, precedence: precedence || Precedence::DEFAULT)
+          set(option_value, precedence: precedence || Precedence::DEFAULT, resolved_env: resolved_env)
         rescue ArgumentError
           raise ArgumentError,
-            "Expected environment variable #{effective_env} to be a #{@definition.type}, " \
-                              "but '#{ENV[effective_env]}' was provided"
+            "Expected environment variable #{resolved_env} to be a #{@definition.type}, " \
+                              "but '#{ENV[resolved_env]}' was provided"
         end
 
         # Anchor object that represents a value that is not set.
