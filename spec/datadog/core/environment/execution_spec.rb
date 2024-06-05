@@ -101,7 +101,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
       end
 
-      context 'when in a Rails Spring process' do
+      context 'when in a Rails Spring process', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
         before do
           unless PlatformHelpers.ci? || Gem.loaded_specs['spring']
             skip('spring gem not present. In CI, this test is never skipped.')

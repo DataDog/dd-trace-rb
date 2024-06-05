@@ -190,6 +190,7 @@ DEPENDENCIES
   ethon
   excon
   faraday
+  ffi (< 1.17.0)
   http (~> 4)
   httpclient
   json-schema (< 3)
@@ -219,4 +220,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27
