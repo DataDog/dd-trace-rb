@@ -28,6 +28,7 @@ gem "webmock", ">= 3.10.0"
 gem "rexml", ">= 3.2.7"
 gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
+gem "ffi", "~> 1.16.3", require: false
 gem "rails", "~> 5.2.1"
 gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sidekiq"
