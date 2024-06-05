@@ -211,12 +211,14 @@ unless have_type('atomic_int', ['stdatomic.h'])
   skip_building_extension!(Datadog::Profiling::NativeExtensionHelpers::Supported::COMPILER_ATOMIC_MISSING)
 end
 
-# See comments on the helper method being used for why we need to additionally set this.
+# See comments on the helper methods being used for why we need to additionally set this.
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
-$LDFLAGS += \
-  ' -Wl,-rpath,$$$\\\\{ORIGIN\\}/' \
-  "#{Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder}"
+extra_relative_rpaths = [
+  Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder,
+  *Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+]
+extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
 Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
