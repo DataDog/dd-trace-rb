@@ -76,7 +76,7 @@ build-gem:
       when: on_success
     - if: $CI_COMMIT_TAG
       when: on_success
-    - if: $CI_COMMIT_BRANCH == 'master'
+    - if: $CI_COMMIT_BRANCH == 'master' || $CI_COMMIT_BRANCH == '1.x-stable'
       when: on_success
     - when: manual
       allow_failure: true
@@ -107,6 +107,9 @@ build-gem:
   script:
     - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
     - export DDTRACE_GEM_LOCATION=$(readlink -f pkg/ddtrace-*.gem)
+    - ruby -v
+    - gem -v
+    - bundler -v
     - ruby .gitlab/install_ddtrace_deps.rb
   artifacts:
     paths:
