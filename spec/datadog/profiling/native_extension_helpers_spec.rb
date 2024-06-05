@@ -38,6 +38,46 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
     end
   end
 
+  describe '.libdatadog_folder_relative_to_ruby_extensions_folders' do
+    context 'when libdatadog is available' do
+      before do
+        skip_if_profiling_not_supported(self)
+        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV['LIBDATADOG_VENDOR_OVERRIDE'].nil?
+          raise 'You have a libdatadog setup without macOS support. Did you forget to set LIBDATADOG_VENDOR_OVERRIDE?'
+        end
+      end
+
+      it 'returns a relative path to libdatadog folder from the ruby extensions folders' do
+        extensions_relative, bundler_extensions_relative =
+          described_class.libdatadog_folder_relative_to_ruby_extensions_folders
+
+        libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
+        libdatadog = "libdatadog_profiling.#{libdatadog_extension}"
+
+        expect(extensions_relative).to start_with('../')
+        expect(bundler_extensions_relative).to start_with('../')
+
+        extensions_full =
+          "#{Gem.dir}/extensions/platform/extension_api_version/datadog_version/#{extensions_relative}/#{libdatadog}"
+        bundler_extensions_full =
+          "#{Gem.dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/" \
+          "#{bundler_extensions_relative}/#{libdatadog}"
+
+        expect(File.exist?(Pathname.new(extensions_full).cleanpath.to_s))
+          .to be(true), "Libdatadog not available in expected path: #{extensions_full.inspect}"
+        expect(File.exist?(Pathname.new(bundler_extensions_full).cleanpath.to_s))
+          .to be(true), "Libdatadog not available in expected path: #{bundler_extensions_full.inspect}"
+      end
+    end
+
+    context 'when libdatadog is unsupported' do
+      it do
+        expect(described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)).to be nil
+      end
+    end
+  end
+
+
   describe '::LIBDATADOG_VERSION' do
     it 'must match the version restriction set on the gemspec' do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
