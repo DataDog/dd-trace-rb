@@ -11,10 +11,15 @@ module Datadog
           class Resolve < Instrumentation::Gateway::Argument
             attr_reader :arguments, :query
 
-            def initialize(arguments, query)
+            def initialize(arguments, query, field)
               super()
               @arguments = arguments
               @query = query
+              @field = field
+            end
+
+            def arguments_waf
+              { @field.name => arguments.map { |k, v| { k.to_s => v } } }
             end
           end
         end

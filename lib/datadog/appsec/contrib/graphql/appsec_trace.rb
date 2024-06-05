@@ -30,7 +30,7 @@ module Datadog
           end
 
           def execute_field(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query])
+            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query], kwargs[:field])
 
             resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
               super(**kwargs)
@@ -40,7 +40,7 @@ module Datadog
           end
 
           def execute_field_lazy(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query])
+            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query], kwargs[:field])
 
             resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
               super(**kwargs)
