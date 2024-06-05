@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   DESC
 
   spec.homepage = 'https://github.com/DataDog/dd-trace-rb'
-  spec.license  = 'BSD-3-Clause'
+  spec.licenses = ['BSD-3-Clause', 'Apache-2.0']
 
   if spec.respond_to?(:metadata)
     spec.metadata['allowed_push_host'] = 'https://rubygems.org'
