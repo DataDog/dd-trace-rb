@@ -90,7 +90,7 @@ module Datadog
                     block = GraphQL::Reactive::Resolve.publish(op, gateway_resolve)
                   end
 
-                  throw Ext::QUERY_INTERRUPT, error_query if block
+                  throw Ext::QUERY_INTERRUPT, error_query(gateway_resolve) if block
 
                   ret, res = stack.call(gateway_resolve.arguments)
 
@@ -105,7 +105,7 @@ module Datadog
 
               private
 
-              def error_query
+              def error_query(gateway_resolve)
                 ::GraphQL::Query::Result.new(
                   query: gateway_resolve.query,
                   values: {
