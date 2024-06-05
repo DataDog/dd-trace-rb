@@ -839,6 +839,35 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
+    context 'when env is an Array' do
+      let(:env) { ['TEST_ENV_VAR', 'TEST_ENV_VAR2'] }
+      let(:setter) { proc { |value| value } }
+
+      around do |example|
+        ClimateControl.modify(set_envs) { example.run }
+      end
+
+      context 'and the first environmet variable is set' do
+        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1' } }
+        it { is_expected.to eq('val1') }
+      end
+
+      context 'and the second environmet variable is set' do
+        let(:set_envs) { { 'TEST_ENV_VAR2' => 'val2' } }
+        it { is_expected.to eq('val2') }
+      end
+
+      context 'and both environmet variables are set' do
+        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1', 'TEST_ENV_VAR2' => 'val2' } }
+        it { is_expected.to eq('val1') }
+      end
+
+      context 'and environmet variables are not set' do
+        let(:set_envs) { {} }
+        it { is_expected.to be(default) }
+      end
+    end
+
     context 'when deprecated_env is defined' do
       before do
         allow(Datadog.logger).to receive(:warn) # For deprecation warnings
