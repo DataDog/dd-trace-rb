@@ -46,6 +46,7 @@ RSpec.describe 'gem release process' do
             |\.circleci
             |\.github
             |\.gitlab
+            |\.vscode
             |lib-injection
             |appraisal
             |benchmarks

@@ -151,6 +151,7 @@ DEPENDENCIES
   concurrent-ruby
   ddtrace!
   dogstatsd-ruby (~> 4)
+  ffi (< 1.17.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
@@ -175,4 +176,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27

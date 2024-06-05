@@ -27,6 +27,7 @@ gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", "~> 4"
+gem "ffi", "< 1.17.0", require: false
 
 group :check do
 
