@@ -5,9 +5,18 @@ INTEGRATION_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1
 INTEGRATION_DIR=${INTEGRATION_SCRIPT_DIR%/script}
 cd $INTEGRATION_DIR
 
+APP_RUBY_VERSION=
+
 # Parse options
-while getopts ":v:" opt; do
+while getopts ":hv:" opt; do
   case $opt in
+    h)
+      echo "Usage: ./script/build-images [-v RUBY_VERSION]"
+      echo
+      echo "If no Ruby version is specified, images are built for each of the"
+      echo "supported versions (currently 2.1 through 3.3)."
+      exit 0
+      ;;
     v)
       APP_RUBY_VERSION=$OPTARG
       ;;
@@ -27,7 +36,7 @@ echo "== Building base images... =="
 # docker build -t datadog/dd-apm-demo:wrk -f $INTEGRATION_DIR/images/wrk/Dockerfile $INTEGRATION_DIR/images
 docker build -t datadog/dd-apm-demo:agent -f $INTEGRATION_DIR/images/agent/Dockerfile $INTEGRATION_DIR/images/agent
 
-if [[ ! -z $APP_RUBY_VERSION ]]; then
+if test -n "$APP_RUBY_VERSION"; then
   docker build -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -f $INTEGRATION_DIR/images/ruby/$APP_RUBY_VERSION/Dockerfile $INTEGRATION_DIR/images
 else
   docker build -t datadog/dd-apm-demo:rb-2.1 -f $INTEGRATION_DIR/images/ruby/2.1/Dockerfile $INTEGRATION_DIR/images
