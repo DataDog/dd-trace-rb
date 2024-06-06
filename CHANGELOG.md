@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.23.1] - 2024-06-06
+
+### Fixed
+
+AppSec: Fix undefined method error when Tracing disabled ([#3650][])
+
 ## [1.23.0] - 2024-05-09
 
 ### Added
@@ -2815,6 +2821,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...master
+[1.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.0...v1.23.1
 [1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
 [1.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v1.22.0
 [2.0.0.beta1]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v2.0.0.beta1
@@ -4126,6 +4133,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3618]: https://github.com/DataDog/dd-trace-rb/issues/3618
 [#3619]: https://github.com/DataDog/dd-trace-rb/issues/3619
 [#3623]: https://github.com/DataDog/dd-trace-rb/issues/3623
+[#3650]: https://github.com/DataDog/dd-trace-rb/issues/3650
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
