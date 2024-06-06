@@ -72,11 +72,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
 
     context 'when libdatadog is unsupported' do
       it do
-        expect(described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)).to be nil
+        expect(
+          described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)
+        ).to be nil
       end
     end
   end
-
 
   describe '::LIBDATADOG_VERSION' do
     it 'must match the version restriction set on the gemspec' do
