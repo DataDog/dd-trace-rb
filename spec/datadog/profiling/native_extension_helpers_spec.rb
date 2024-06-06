@@ -51,7 +51,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
         extensions_relative, bundler_extensions_relative =
           described_class.libdatadog_folder_relative_to_ruby_extensions_folders
 
-        libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
+        # RbConfig::CONFIG['SOEXT'] was only introduced in Ruby 2.5, so we have a fallback for older Rubies...
+        libdatadog_extension =
+          RbConfig::CONFIG['SOEXT'] ||
+          ('so' if PlatformHelpers.linux?) ||
+          ('dylib' if PlatformHelpers.mac?) ||
+          raise('Missing SOEXT for current platform')
         libdatadog = "libdatadog_profiling.#{libdatadog_extension}"
 
         expect(extensions_relative).to start_with('../')
