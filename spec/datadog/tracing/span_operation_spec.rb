@@ -462,7 +462,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
 
     context 'identifying service_entry_span' do
-      context 'when service of root and child are `nil`' do
+      context 'when service of parent and child are `nil`' do
         it do
           root_span_op = described_class.new('root')
           child_span_op = described_class.new('child_1')
@@ -482,7 +482,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
-      context 'when service of root and child are identical' do
+      context 'when service of parent and child are identical' do
         it do
           root_span_op = described_class.new('root', service: 'root_service')
           child_span_op = described_class.new('child_1', service: root_span_op.service)
@@ -502,7 +502,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
-      context 'when service of root and child are different' do
+      context 'when service of parent and child are different' do
         it do
           root_span_op = described_class.new('root')
           child_span_op = described_class.new('child_1', service: 'child_service')
@@ -522,7 +522,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
-      context 'when service of root and child are different, overriden within the measure block' do
+      context 'when service of parent and child are different, overriden within the measure block' do
         it do
           root_span_op = described_class.new('root')
           child_span_op = described_class.new('child_1')
@@ -804,6 +804,46 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       # Expect Span to be memoized
       it 'returns the same Span object' do
         expect(span_op.finish).to be(original_span)
+      end
+    end
+
+    context 'with a parent span' do
+      let(:parent_span) { described_class.new('parent', service: 'parent_service') }
+
+      before do
+        span_op.send(:parent=, parent_span)
+      end
+
+      context 'with no service set' do
+        it 'span has no service' do
+          expect(finish.service).to eq(nil)
+        end
+      end
+
+      context 'with a service set' do
+        let(:parent_service) { 'parent_service' }
+
+        context 'without inherit_parent_service set' do
+          it 'span does not inherit the service' do
+            expect(finish.service).to eq(nil)
+          end
+        end
+
+        context 'with inherit_parent_service set' do
+          let(:options) { { inherit_parent_service: true } }
+
+          it 'span inherits the service' do
+            expect(finish.service).to eq('parent_service')
+          end
+        end
+
+        context 'and child span service set' do
+          let(:options) { { service: 'child_service' } }
+
+          it 'span does not inherit the service' do
+            expect(finish.service).to eq('child_service')
+          end
+        end
       end
     end
   end

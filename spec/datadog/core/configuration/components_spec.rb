@@ -425,6 +425,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
         end
         let(:span_sampler) { be_a(Datadog::Tracing::Sampling::Span::Sampler) }
+        let(:inherit_parent_service) { false }
         let(:default_options) do
           {
             default_service: settings.service,
@@ -434,6 +435,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             sampler: sampler,
             span_sampler: span_sampler,
             writer: writer,
+            inherit_parent_service: inherit_parent_service,
           }
         end
 

@@ -54,6 +54,7 @@ module Datadog
           span_sampler: build_span_sampler(settings),
           writer: writer,
           tags: build_tracer_tags(settings),
+          inherit_parent_service: settings.tracing.inherit_parent_service
         )
       end
 

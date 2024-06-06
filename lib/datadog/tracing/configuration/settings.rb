@@ -168,6 +168,21 @@ module Datadog
                 o.setter { |header_tags, _| Configuration::HTTP::HeaderTags.new(header_tags) }
               end
 
+              # Whether spans inherit their parent's service name, when span `service` is not explicitly set.
+              # If `true`, the spans will use the service name from its parent span.
+              # If `false`, the spans will use the global service name (`c.service`).
+              #
+              # DEV3.0: All other tracer languages inherit the parent's service by default.
+              # DEV3.0: This option should be set to `true` by default in the next major version,
+              # DEV3.0: with a removal deprecation warning, then removed in 4.0.
+              #
+              # @default `false`
+              # @return [Boolean]
+              option :inherit_parent_service do |o|
+                o.default false
+                o.type :bool
+              end
+
               # Enable 128 bit trace id generation.
               #
               # @default `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED` environment variable, otherwise `true`

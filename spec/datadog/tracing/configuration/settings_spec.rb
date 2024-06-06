@@ -351,6 +351,37 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#inherit_parent_service' do
+      subject(:inherit_parent_service) { settings.tracing.inherit_parent_service }
+
+      it { is_expected.to be false }
+
+      context 'when inherit_parent_service' do
+        before { settings.tracing.inherit_parent_service = value }
+
+        context 'is set to true' do
+          let(:value) { true }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:value) { false }
+
+          it { is_expected.to be false }
+        end
+      end
+    end
+
+    describe '#inherit_parent_service=' do
+      it 'updates the #inherit_parent_service setting' do
+        expect { settings.tracing.inherit_parent_service = true }
+          .to change { settings.tracing.inherit_parent_service }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe '#header_tags' do
       subject(:header_tags) { settings.tracing.header_tags }
 

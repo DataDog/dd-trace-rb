@@ -70,12 +70,14 @@ module Datadog
         sampled: nil,
         sampling_priority: nil,
         service: nil,
+        default_service: nil,
         profiling_enabled: nil,
         tags: nil,
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        remote_parent: false
+        remote_parent: false,
+        inherit_parent_service: false
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
@@ -83,6 +85,7 @@ module Datadog
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled
         @remote_parent = remote_parent
+        @inherit_parent_service = inherit_parent_service
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -95,6 +98,7 @@ module Datadog
         @sample_rate = sample_rate
         @sampling_priority = sampling_priority
         @service = service
+        @default_service = default_service
         @profiling_enabled = profiling_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
@@ -169,7 +173,7 @@ module Datadog
       end
 
       def service
-        @service || (root_span && root_span.service)
+        @service || (root_span && root_span.service) || @default_service
       end
 
       def measure(
@@ -249,7 +253,8 @@ module Datadog
             start_time: start_time,
             tags: tags,
             trace_id: trace_id,
-            type: type
+            type: type,
+            inherit_parent_service: @inherit_parent_service
           )
         rescue StandardError => e
           Datadog.logger.debug { "Failed to build new span: #{e}" }

@@ -32,12 +32,14 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         sampled: sampled,
         sampling_priority: sampling_priority,
         service: service,
+        default_service: default_service,
         profiling_enabled: profiling_enabled,
         tags: tags,
         metrics: metrics,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
         remote_parent: remote_parent,
+        inherit_parent_service: inherit_parent_service
       }
     end
 
@@ -53,6 +55,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:sampled) { true }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
     let(:service) { 'billing-api' }
+    let(:default_service) { 'default-service' }
     let(:profiling_enabled) { 'profiling_enabled' }
     let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
     let(:metrics) { { 'baz' => 42.0 } }
@@ -61,6 +64,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
     let(:distributed_tags) { { '_dd.p.test' => 'value' } }
     let(:remote_parent) { true }
+    let(:inherit_parent_service) { double('inherit_parent_service') }
   end
 
   shared_examples 'a span with default events' do
@@ -236,9 +240,26 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       context ':service' do
         subject(:options) { { service: service } }
-        let(:service) { 'billing-worker' }
 
-        it { expect(trace_op.service).to eq(service) }
+        context 'with no service set' do
+          let(:service) { nil }
+          it { expect(trace_op.service).to eq('default-service') }
+        end
+
+        context 'with a root span with service set' do
+          let(:service) { nil }
+
+          before { trace_op.measure('root', service: 'root-service') {} }
+
+          it { expect(trace_op.service).to eq('root-service') }
+
+          context 'with a trace service set' do
+            let(:service) { 'service' }
+            it { expect(trace_op.service).to eq('service') }
+          end
+        end
+
+        include_context 'trace attributes'
       end
 
       context ':tags' do
@@ -1220,6 +1241,12 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           let(:tags) { { foo: 'bar' } }
           it { expect(span.send(:meta)).to include('foo' => 'bar') }
         end
+      end
+
+      context ':inherit_parent_service' do
+        include_context 'trace attributes'
+
+        it { expect(span.send(:inherit_parent_service)).to eq(inherit_parent_service) }
       end
     end
 
