@@ -36,7 +36,7 @@ module Datadog
             # I rather use break to stop the execution
             next if configured_response
 
-            action_configuration = AppSec::Processor::Actions.fecth_configuration(action)
+            action_configuration = AppSec::Processor::Actions.fetch_configuration(action)
             next unless action_configuration
 
             configured_response = case action_configuration['type']

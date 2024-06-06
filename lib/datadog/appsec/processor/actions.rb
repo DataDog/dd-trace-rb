@@ -11,7 +11,7 @@ module Datadog
             @actions ||= []
           end
 
-          def fecth_configuration(action)
+          def fetch_configuration(action)
             actions.find { |action_configuration| action_configuration['id'] == action }
           end
 
