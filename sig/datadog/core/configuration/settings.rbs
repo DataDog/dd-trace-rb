@@ -54,12 +54,6 @@ module Datadog
           def templates: () -> _TemplatesBlock
         end
 
-        interface _Debugger
-          def enabled: () -> bool
-
-          def enabled=: (bool) -> void
-        end
-
         interface _TemplatesBlock
           def html=: (::String) -> void
 
@@ -87,8 +81,6 @@ module Datadog
         def runtime_metrics: (?untyped? options) -> untyped
 
         def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
-
-        def debugger: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Debugger
 
         def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
       end

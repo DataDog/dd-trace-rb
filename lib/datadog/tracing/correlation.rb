@@ -73,12 +73,7 @@ module Datadog
         end
 
         def trace_id
-          if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
-              !Tracing::Utils::TraceId.to_high_order(@trace_id).zero?
-            Kernel.format('%032x', @trace_id)
-          else
-            Tracing::Utils::TraceId.to_low_order(@trace_id).to_s
-          end
+          Correlation.format_trace_id(@trace_id)
         end
       end
 
@@ -96,6 +91,15 @@ module Datadog
           span_id: digest.span_id,
           trace_id: digest.trace_id,
         )
+      end
+
+      def format_trace_id(trace_id)
+        if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
+            !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
+          Kernel.format('%032x', trace_id)
+        else
+          Tracing::Utils::TraceId.to_low_order(trace_id).to_s
+        end
       end
     end
   end

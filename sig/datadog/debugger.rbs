@@ -1,5 +1,0 @@
-module Datadog
-  module Debugger
-    def self.enabled?: () -> bool
-  end
-end
