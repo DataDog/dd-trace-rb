@@ -50,6 +50,10 @@ module Datadog
           configured_response || default_response(env)
         end
 
+        def content_json
+          content('application/json')
+        end
+
         private
 
         def default_response(env)

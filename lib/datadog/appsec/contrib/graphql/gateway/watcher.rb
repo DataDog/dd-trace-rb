@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../reactive/resolve'
@@ -108,15 +109,7 @@ module Datadog
               def error_query(gateway_resolve)
                 ::GraphQL::Query::Result.new(
                   query: gateway_resolve.query,
-                  values: {
-                    data: nil,
-                    errors: [{
-                      message: 'Blocked',
-                      extensions: {
-                        detail: 'This message will be customised with WAF data (resolve)'
-                      }
-                    }]
-                  }
+                  values: JSON.parse(AppSec::Response.content_json)
                 )
               end
             end
