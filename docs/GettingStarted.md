@@ -6,7 +6,7 @@
 
 ## Getting started
 
-**If you're upgrading from a 1.x version, check out the [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/release/docs/UpgradeGuide2.md).**
+**If you're upgrading from a 1.x version, check out the [upgrade guide][3].**
 
 For the general APM documentation, see our [setup documentation][setup docs].
 
@@ -2645,3 +2645,4 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 [header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations
+[3]: https://github.com/DataDog/dd-trace-rb/blob/release/docs/UpgradeGuide2.md
