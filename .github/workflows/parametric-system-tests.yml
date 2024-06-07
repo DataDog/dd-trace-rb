@@ -12,6 +12,7 @@ env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
   ST_REF: main
+  FORCE_TESTS: -F tests/test_telemetry.py::Test_TelemetrySCAEnvVar
 
 jobs:
   build-runner:
@@ -57,7 +58,7 @@ jobs:
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
       - name: Run parametric system tests
-        run: TEST_LIBRARY=ruby ./run.sh PARAMETRIC
+        run: TEST_LIBRARY=ruby ./run.sh PARAMETRIC ${{ env.FORCE_TESTS }}
       - name: Compress logs
         id: compress_logs
         if: always()

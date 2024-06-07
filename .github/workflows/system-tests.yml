@@ -12,7 +12,7 @@ env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
   ST_REF: main
-  FORCE_TESTS: -F tests/test_telemetry.py::Test_TelemetrySCAEnvVar
+  FORCE_TESTS:
 
 jobs:
   build-harness:
