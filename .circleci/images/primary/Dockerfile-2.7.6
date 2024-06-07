@@ -1,6 +1,6 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-FROM ruby:2.7.6
+FROM ruby:2.7.8-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
