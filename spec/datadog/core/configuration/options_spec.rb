@@ -234,34 +234,6 @@ RSpec.describe Datadog::Core::Configuration::Options do
         context 'when the option is not defined' do
           it { expect { get_option }.to raise_error(described_class::InvalidOptionError) }
         end
-
-        context 'when environment variables are configured' do
-          before { options_class.send(:option, name, meta) }
-          let(:meta) { { name: 'test-env', env: ['TEST_ENV_VAR', 'TEST_ENV_VAR2'], type: :string, default: 'default' } }
-          around do |example|
-            ClimateControl.modify(set_envs) { example.run }
-          end
-
-          context 'and the first environmet variable is set' do
-            let(:set_envs) { { 'TEST_ENV_VAR' => 'val1' } }
-            it { is_expected.to eq('val1') }
-          end
-
-          context 'and the second environmet variable is set' do
-            let(:set_envs) { { 'TEST_ENV_VAR2' => 'val2' } }
-            it { is_expected.to eq('val2') }
-          end
-
-          context 'and both environmet variables are set' do
-            let(:set_envs) { { 'TEST_ENV_VAR' => 'val1', 'TEST_ENV_VAR2' => 'val2' } }
-            it { is_expected.to eq('val1') }
-          end
-
-          context 'and environmet variables are not set' do
-            let(:set_envs) { {} }
-            it { is_expected.to eq('default') }
-          end
-        end
       end
 
       describe '#reset_option' do

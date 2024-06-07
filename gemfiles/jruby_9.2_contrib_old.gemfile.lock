@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.rc1)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -45,7 +45,7 @@ GEM
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
-    ffi (1.15.5-java)
+    ffi (1.16.3-java)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
@@ -132,6 +132,7 @@ DEPENDENCIES
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   faraday (= 0.17)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
