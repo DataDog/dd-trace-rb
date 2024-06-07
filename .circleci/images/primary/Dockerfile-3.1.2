@@ -15,7 +15,7 @@ RUN set -ex; \
         apt-get install -y --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
-            net-tools netcat unzip zip bzip2 gnupg curl wget \
+            net-tools netcat-openbsd unzip zip bzip2 gnupg curl wget \
             tzdata rsync vim less jq; \
         rm -rf /var/lib/apt/lists/*;
 
