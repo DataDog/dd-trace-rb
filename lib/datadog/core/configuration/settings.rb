@@ -129,6 +129,8 @@ module Datadog
             o.env_parser do |value|
               if value
                 value = value.strip.downcase
+                # Debug is enabled when DD_TRACE_DEBUG is true or 1 OR
+                # when OTEL_LOG_LEVEL is set to debug
                 ['true', '1', 'debug'].include?(value)
               end
             end
@@ -524,11 +526,12 @@ module Datadog
             values.each_with_object({}) do |tag, tags|
               key, value = tag.split(':', 2)
               if value.nil?
-                # tags following the Opentelemetry spec are in the format key=value
+                # support tags/attributes delimited by the OpenTelemetry separator (`=`)
                 key, value = tag.split('=', 2)
               end
               next if value.nil? || value.empty?
 
+              # maps OpenTelemetry semantic attributes to Datadog tags
               case key.downcase
               when 'deployment.environment'
                 tags['env'] = value

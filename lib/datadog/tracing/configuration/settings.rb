@@ -136,8 +136,11 @@ module Datadog
                 o.type :bool
                 o.env_parser do |value|
                   value = value&.downcase
+                  # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
+                  # DD_TRACE_ENABLED is 0 or false.
                   if ['none', 'false', '0'].include?(value)
                     false
+                  # Tracing is enabled when DD_TRACE_ENABLED is true or 1
                   elsif ['true', '1'].include?(value)
                     true
                   else
@@ -276,6 +279,9 @@ module Datadog
                       Datadog.logger.warn("The value '#{value}' is not yet supported. 'parentbased_#{value}' will be used instead.")
                       value = "parentbased_#{value}"
                     end
+                    # OTEL_TRACES_SAMPLER can be set to always_on, always_off, traceidratio, and/or parentbased value.
+                    # These values are mapped to a sample rate.
+                    # DD_TRACE_SAMPLE_RATE sets the sample rate to float.
                     case value
                     when 'parentbased_always_on'
                       1.0
