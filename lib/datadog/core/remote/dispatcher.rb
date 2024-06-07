@@ -7,8 +7,8 @@ module Datadog
       class Dispatcher
         attr_reader :receivers
 
-        def initialize
-          @receivers = []
+        def initialize(receivers)
+          @receivers = receivers
         end
 
         def dispatch(changes, repository)
@@ -45,7 +45,7 @@ module Datadog
             @block.call(path)
           end
 
-          # Matches on the produc's path
+          # Matches on the product's path
           class Product < Matcher
             def initialize(products)
               block = ->(path) { products.include?(path.product) }

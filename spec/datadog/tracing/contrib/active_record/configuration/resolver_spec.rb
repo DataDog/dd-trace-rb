@@ -8,7 +8,12 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
     if ::ActiveRecord.respond_to?(:version) && ::ActiveRecord.version >= Gem::Version.new('6')
       # ::ActiveRecord::DatabaseConfigurations` was introduced from 6+
       require 'active_record/database_configurations'
-      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration))
+      # A keyword argument is passed as the last argument to avoid old Rubies considering the
+      # `::ActiveRecord::DatabaseConfigurations.new(configuration)` a keyword argument Hash, and
+      # erroneously calling `to_hash` on it. `ruby2_keywords` didn't work for this case.
+      # Neither did adding a `**` splat operator here, or explicitly declaring the keyword argument in
+      # the initializer.
+      described_class.new(::ActiveRecord::DatabaseConfigurations.new(configuration), cache_limit: 200)
     else
       described_class.new(configuration)
     end

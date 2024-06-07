@@ -112,6 +112,11 @@ module Datadog
           if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
             attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = analytics_event.casecmp('true') == 0 ? 1 : 0
           end
+
+          if attributes.key?('http.response.status_code')
+            attributes[Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE] = attributes.delete('http.response.status_code')
+          end
+
           attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
 
           kwargs = { start_time: ns_to_time(span.start_timestamp) }
@@ -136,7 +141,7 @@ module Datadog
           end
           attributes.flatten!(1)
 
-          kwargs[:tags] = attributes
+          kwargs[:tags] = attributes.to_h
 
           [name, kwargs]
         end

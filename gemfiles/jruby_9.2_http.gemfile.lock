@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 7.0.0.1.0)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -68,7 +68,7 @@ GEM
     faraday-patron (1.0.0)
     faraday-rack (1.0.0)
     faraday-retry (1.0.3)
-    ffi (1.15.5-java)
+    ffi (1.16.3-java)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
@@ -87,7 +87,7 @@ GEM
     httpclient (2.8.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (7.0.0.1.0)
+    libdatadog (9.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -115,7 +115,8 @@ GEM
       http-cookie (>= 1.0.2, < 2.0)
       mime-types (>= 1.16, < 4.0)
       netrc (~> 0.8)
-    rexml (3.2.6)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -148,6 +149,7 @@ GEM
     spoon (0.0.6)
       ffi
     stripe (7.1.0)
+    strscan (3.1.0-java)
     thor (1.2.2)
     typhoeus (1.4.0)
       ethon (>= 0.9.0)
@@ -174,6 +176,7 @@ DEPENDENCIES
   ethon (< 0.15.0)
   excon
   faraday
+  ffi (~> 1.16.3)
   http (~> 4)
   httpclient
   json-schema (< 3)
@@ -185,6 +188,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rest-client
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

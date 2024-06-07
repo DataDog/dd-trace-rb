@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 7.0.0.1.0)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -50,7 +50,7 @@ GEM
     json (2.7.2-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (7.0.0.1.0)
+    libdatadog (9.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -88,7 +88,8 @@ GEM
     rake-compiler (1.2.7)
       rake
     regexp_parser (2.9.0)
-    rexml (3.2.6)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
       rspec-expectations (~> 3.13.0)
@@ -149,6 +150,7 @@ GEM
       tilt (~> 2.0)
     spoon (0.0.6)
       ffi
+    strscan (3.1.0-java)
     thor (1.3.1)
     tilt (2.3.0)
     unicode-display_width (2.5.0)
@@ -172,6 +174,7 @@ DEPENDENCIES
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
@@ -182,6 +185,7 @@ DEPENDENCIES
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

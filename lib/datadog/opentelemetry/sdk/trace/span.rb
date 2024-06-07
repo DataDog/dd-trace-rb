@@ -141,10 +141,12 @@ module Datadog
               value.casecmp('true') == 0 ? 1 : 0
             )
           end
+
+          span.set_tag('http.status_code', value) if key == 'http.response.status_code'
         end
 
         DATADOG_SPAN_ATTRIBUTE_OVERRIDES = ['analytics.event', 'operation.name', 'resource.name', 'service.name',
-                                            'span.type'].freeze
+                                            'span.type', 'http.response.status_code'].freeze
 
         ::OpenTelemetry::SDK::Trace::Span.prepend(self)
       end

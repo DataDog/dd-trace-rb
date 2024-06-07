@@ -1,5 +1,4 @@
 # Keep in sync with auto_inject.rb
-
 return if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
 
 require 'rubygems'
@@ -9,17 +8,11 @@ ruby_api_version = RbConfig::CONFIG['ruby_version']
 
 dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
 
-# Look for pre-installed tracers
-Gem.paths = {
-  'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}"
-}
-
-# Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
-ENV['GEM_PATH'] = Gem.path.join(':')
-
 def debug_log(msg)
   $stdout.puts msg if ENV['DD_TRACE_DEBUG'] == 'true'
 end
+
+debug_log "[datadog] Loading from #{dd_lib_injection_path}..."
 
 begin
   require 'open3'
@@ -92,7 +85,11 @@ begin
         ::FileUtils.cp lockfile, datadog_lockfile
 
         output, status = Open3.capture2e(
-          { 'DD_TRACE_SKIP_LIB_INJECTION' => 'true', 'BUNDLE_GEMFILE' => datadog_gemfile.to_s },
+          {
+            'BUNDLE_GEMFILE' => datadog_gemfile.to_s,
+            'DD_TRACE_SKIP_LIB_INJECTION' => 'true',
+            'GEM_PATH' => dd_lib_injection_path
+          },
           bundle_add_cmd
         )
 
@@ -113,6 +110,13 @@ begin
       end
     end
   end
+
+  # Look for pre-installed tracers
+  Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
+
+  # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
+  ENV['GEM_PATH'] = Gem.path.join(':')
 rescue Exception => e
   warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}\n#{support_message}"
+  ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
 end

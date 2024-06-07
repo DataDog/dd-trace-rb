@@ -45,9 +45,11 @@ RSpec.describe Datadog::OpenTelemetry do
 
     describe '#in_span' do
       context 'without an active span' do
-        subject!(:in_span) { otel_tracer.in_span('test', **span_options) {} }
+        subject(:in_span) { otel_tracer.in_span('test', **span_options) {} }
 
         it 'records a finished span' do
+          in_span
+
           expect(span).to be_root_span
           expect(span.name).to eq('internal')
           expect(span.resource).to eq('test')
@@ -56,6 +58,14 @@ RSpec.describe Datadog::OpenTelemetry do
 
         context 'with attributes' do
           let(:span_options) { { attributes: attributes } }
+
+          before do
+            Datadog.configure do |c|
+              c.tags = { 'global' => 'global_tag' }
+            end
+
+            in_span
+          end
 
           [
             [1, 1],
@@ -68,6 +78,10 @@ RSpec.describe Datadog::OpenTelemetry do
 
               it "sets tag #{expected}" do
                 expect(span.get_tag('tag')).to eq(expected)
+              end
+
+              it 'keeps the global trace tags' do
+                expect(span.get_tag('global')).to eq('global_tag')
               end
             end
           end
@@ -151,6 +165,15 @@ RSpec.describe Datadog::OpenTelemetry do
                 end
               end
             end
+
+            context 'for http.response.status_code' do
+              let(:attribute_name) { 'http.response.status_code' }
+              let(:attribute_value) { '200' }
+
+              it 'overrides the respective Datadog span name' do
+                expect(span.get_tag('http.status_code')).to eq('200')
+              end
+            end
           end
 
           context 'for OpenTelemetry semantic convention' do
@@ -208,6 +231,7 @@ RSpec.describe Datadog::OpenTelemetry do
           let(:span_options) { { start_timestamp: start_timestamp } }
           let(:start_timestamp) { Time.utc(2023) }
           it do
+            in_span
             expect(span.start_time).to eq(start_timestamp)
           end
         end
@@ -490,6 +514,15 @@ RSpec.describe Datadog::OpenTelemetry do
             it 'overrides the respective Datadog span tag' do
               expect(span.get_metric('_dd1.sr.eausr')).to eq(0)
             end
+          end
+        end
+
+        context 'for http.response.status_code' do
+          let(:attribute_name) { 'http.response.status_code' }
+          let(:attribute_value) { '200' }
+
+          it 'overrides the respective Datadog span name' do
+            expect(span.get_tag('http.status_code')).to eq('200')
           end
         end
 

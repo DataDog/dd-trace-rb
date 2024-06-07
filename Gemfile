@@ -70,9 +70,9 @@ end
 gem 'simplecov-html', '~> 0.10.2' if RUBY_VERSION < '2.4.0'
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
-if RUBY_VERSION < '2.3.0'
-  gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
-end
+
+gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
+
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 if RUBY_VERSION >= '2.3.0'
   gem 'yard', '~> 0.9'
@@ -117,5 +117,13 @@ group :check do
 end
 
 gem 'docile', '~> 1.3.5' if RUBY_VERSION < '2.5'
-gem 'ffi', '~> 1.12.2' if RUBY_VERSION < '2.3'
+if RUBY_VERSION < '2.3'
+  gem 'ffi', '~> 1.12.2', require: false
+else
+  # `1.17.0` provides broken RBS type definitions
+  # https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
+  #
+  # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
+  gem 'ffi', '~> 1.16.3', require: false
+end
 gem 'msgpack', '~> 1.3.3' if RUBY_VERSION < '2.4'

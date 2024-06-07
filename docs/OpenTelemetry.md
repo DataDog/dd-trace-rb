@@ -1,11 +1,5 @@
 # OpenTelemetry
 
-**ATTENTION**:
-
-***OpenTelemetry support is currently "experimental". It may be subject to breaking changes between minor versions, and is not yet recommended for use in production or other sensitive environments.***
-
-If you are interested in using this feature experimentally, please contact the dd-trace-rb maintainers; we would be happy to provide you with more information!
-
 **Supported tracing frameworks**:
 
 | Type          | Documentation                                        | datadog version | Gem version support |

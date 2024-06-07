@@ -2,7 +2,7 @@
 
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-# DEV: Loading gem files here is undesirable because it pollutes the application namesspace.
+# DEV: Loading gem files here is undesirable because it pollutes the application namespace.
 # DEV: In this case, `bundle exec ruby -e 'puts defined?(Datadog)'` will return `constant`
 # DEV: even though `require 'datadog'` wasn't executed. But only the version file was loaded.
 # DEV: We should avoid loading gem files to fetch the version here.
@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.name                  = 'datadog'
   spec.version               = Datadog::VERSION::STRING
   # required_ruby_version should be in a single line due to test-head workflow `sed` to unlock the version
-  spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"]
+  spec.required_ruby_version = [">= #{Datadog::VERSION::MINIMUM_RUBY_VERSION}", "< #{Datadog::VERSION::MAXIMUM_RUBY_VERSION}"] # rubocop:disable Layout/LineLength
   spec.required_rubygems_version = '>= 2.0.0'
   spec.authors               = ['Datadog, Inc.']
   spec.email                 = ['dev@datadoghq.com']
@@ -25,7 +25,7 @@ Gem::Specification.new do |spec|
   DESC
 
   spec.homepage = 'https://github.com/DataDog/dd-trace-rb'
-  spec.license  = 'BSD-3-Clause'
+  spec.licenses = ['BSD-3-Clause', 'Apache-2.0']
 
   if spec.respond_to?(:metadata)
     spec.metadata['allowed_push_host'] = 'https://rubygems.org'
@@ -69,8 +69,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
 
   # Used by profiling (and possibly others in the future)
-  # When updating the version here, please also update the version in `native_extension_helpers.rb` (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 7.0.0.1.0'
+  # When updating the version here, please also update the version in `native_extension_helpers.rb`
+  # (and yes we have a test for it)
+  spec.add_dependency 'libdatadog', '~> 9.0.0.1.0'
 
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 end

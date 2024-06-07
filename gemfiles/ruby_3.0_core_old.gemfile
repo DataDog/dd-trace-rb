@@ -28,6 +28,7 @@ gem "simplecov", git: "https://github.com/DataDog/simplecov", ref: "3bb6b7ee58bf
 gem "simplecov-cobertura", "~> 2.1.0"
 gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
+gem "rexml", ">= 3.2.7"
 gem "webrick", ">= 1.7.0"
 gem "yard", "~> 0.9"
 gem "rubocop", "~> 1.50.0", require: false
@@ -36,6 +37,7 @@ gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", ["~> 2.20", "< 2.21"], require: false
 gem "dogstatsd-ruby", "~> 4"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
+gem "ffi", "~> 1.16.3", require: false
 
 group :check do
 

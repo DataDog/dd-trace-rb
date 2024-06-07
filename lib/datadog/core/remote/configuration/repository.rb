@@ -164,7 +164,7 @@ module Datadog
               end
             end
 
-            # Insert content into the reporistory contents
+            # Insert content into the repository contents
             class Insert
               attr_reader :path, :target, :content
 

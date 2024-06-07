@@ -145,7 +145,7 @@ ddprof-benchmark:
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
 benchmarks:
   stage: benchmarks
-  when: on_success
+  when: always
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   interruptible: true

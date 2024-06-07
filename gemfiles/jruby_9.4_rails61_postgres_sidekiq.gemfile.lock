@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.beta2)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 7.0.0.1.0)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -109,7 +109,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     erubi (1.12.0)
-    ffi (1.15.5-java)
+    ffi (1.16.3-java)
     globalid (1.0.1)
       activesupport (>= 5.0)
     hashdiff (1.0.1)
@@ -119,7 +119,7 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (7.0.0.1.0)
+    libdatadog (9.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
@@ -209,7 +209,8 @@ GEM
     regexp_parser (2.8.1)
     request_store (1.5.1)
       rack (>= 1.4)
-    rexml (3.2.5)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -277,6 +278,7 @@ GEM
       actionpack (>= 5.2)
       activesupport (>= 5.2)
       sprockets (>= 3.0.0)
+    strscan (3.1.0-java)
     thor (1.2.1)
     timeout (0.3.1)
     tzinfo (2.0.5)
@@ -308,6 +310,7 @@ DEPENDENCIES
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
@@ -320,6 +323,7 @@ DEPENDENCIES
   rails_semantic_logger (~> 4.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

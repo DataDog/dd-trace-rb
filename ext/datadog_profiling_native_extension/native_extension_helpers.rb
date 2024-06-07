@@ -15,7 +15,7 @@ module Datadog
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
       CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
-      LIBDATADOG_VERSION = '~> 7.0.0.1.0'
+      LIBDATADOG_VERSION = '~> 9.0.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
@@ -86,7 +86,6 @@ module Datadog
             on_macos? ||
             on_unknown_os? ||
             on_unsupported_cpu_arch? ||
-            on_unsupported_ruby_version? ||
             expected_to_use_mjit_but_mjit_is_disabled? ||
             libdatadog_not_available? ||
             libdatadog_not_usable?
@@ -166,7 +165,7 @@ module Datadog
 
         # Validation for this check is done in extconf.rb because it relies on mkmf
         PKG_CONFIG_IS_MISSING = explain_issue(
-          #+-----------------------------------------------------------------------------+
+          # ----------------------------------------------------------------------------+
           'the `pkg-config` system tool is missing.',
           'This issue can usually be fixed by installing one of the following:',
           'the `pkg-config` package on Homebrew and Debian/Ubuntu-based Linux;',
@@ -258,15 +257,6 @@ module Datadog
           )
 
           architecture_not_supported unless RUBY_PLATFORM.start_with?('x86_64', 'aarch64', 'arm64')
-        end
-
-        private_class_method def self.on_unsupported_ruby_version?
-          ruby_version_not_supported = explain_issue(
-            'the profiler only supports Ruby 2.3 or newer.',
-            suggested: UPGRADE_RUBY,
-          )
-
-          ruby_version_not_supported if RUBY_VERSION.start_with?('2.1.', '2.2.')
         end
 
         # On some Rubies, we require the mjit header to be present. If Ruby was installed without MJIT support, we also skip
