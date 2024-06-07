@@ -57,7 +57,8 @@ module Datadog
           end
 
           tags ||= {}
-          tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = ts_parent_id || '0000000000000000'
+          tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] =
+            ts_parent_id || Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
 
           TraceDigest.new(
             span_id: parent_id,
