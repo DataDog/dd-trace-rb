@@ -12,7 +12,7 @@ env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
   ST_REF: main
-  FORCE_TESTS: ("tests/test_telemetry.py::Test_TelemetrySCAEnvVar")
+  FORCE_TESTS: -F tests/test_telemetry.py::Test_TelemetrySCAEnvVar
 
 jobs:
   build-harness:
@@ -268,13 +268,7 @@ jobs:
           docker image list
       - name: Run scenario
         run: |
-          FORCE_EXECUTE=""
-          declare -a tests=(${{ env.FORCE_TESTS }})
-          for test in "${tests[@]}"
-          do
-            FORCE_EXECUTE="${FORCE_EXECUTE} -F ${test}"
-          done
-          ./run.sh ++docker ${{ matrix.scenario }} $FORCE_EXECUTE
+          ./run.sh ++docker ${{ matrix.scenario }} ${{ env.FORCE_TESTS }}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
       - name: Archive logs
