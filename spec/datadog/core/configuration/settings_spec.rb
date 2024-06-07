@@ -90,8 +90,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         around do |example|
           ClimateControl.modify(
             {
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => otel_level_env,
-              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => dd_debug_env
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => otel_level_env
             }
           ) do
             example.run
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           let(:dd_debug_env) { 'true' }
           let(:otel_level_env) { 'info' }
 
-          it { is_expected.to be false }
+          it { is_expected.to be true }
         end
       end
     end
