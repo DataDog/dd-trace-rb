@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.rc1)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -152,6 +152,7 @@ DEPENDENCIES
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch (~> 7)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)

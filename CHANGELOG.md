@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [2.0.0] - 2024-06-06
+
+### Added
+
+* Tracing: Remap http status code tag for otel span for trace metrics ([#3664][])
+
 ## [2.0.0.rc1] - 2024-05-24
 
 ### Added
@@ -2888,7 +2894,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.rc1...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0...master
+[2.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.rc1...v2.0.0
 [2.0.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.beta2...v2.0.0.rc1
 [1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
 [2.0.0.beta2]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.beta1...v2.0.0.beta2
@@ -4262,6 +4269,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3630]: https://github.com/DataDog/dd-trace-rb/issues/3630
 [#3645]: https://github.com/DataDog/dd-trace-rb/issues/3645
 [#3651]: https://github.com/DataDog/dd-trace-rb/issues/3651
+[#3664]: https://github.com/DataDog/dd-trace-rb/issues/3664
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.0.0.rc1)
+    datadog (2.0.0)
       debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
@@ -50,7 +50,7 @@ GEM
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)
     faraday-net_http (3.0.2)
-    ffi (1.15.5-java)
+    ffi (1.16.3-java)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
@@ -189,6 +189,7 @@ DEPENDENCIES
   ethon
   excon
   faraday
+  ffi (~> 1.16.3)
   http (~> 4)
   httpclient
   json-schema (< 3)

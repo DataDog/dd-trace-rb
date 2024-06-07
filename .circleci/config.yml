@@ -531,12 +531,12 @@ workflows:
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.6
-          integration_apps: 'rack rails-five rails-six sinatra2-classic sinatra2-modular'
+          integration_apps: 'rack rails-five rails-six sinatra2-classic sinatra2-modular hanami'
           ruby_version: '2.6'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-2.7
-          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular'
+          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular hanami'
           ruby_version: '2.7'
           <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:

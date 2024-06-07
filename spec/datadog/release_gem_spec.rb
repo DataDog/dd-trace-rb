@@ -46,6 +46,7 @@ RSpec.describe 'gem release process' do
             |\.circleci
             |\.github
             |\.gitlab
+            |\.vscode
             |lib-injection
             |appraisal
             |benchmarks
@@ -98,6 +99,12 @@ RSpec.describe 'gem release process' do
           'libddwaf',
           'msgpack',
         )
+      end
+    end
+
+    context 'licenses' do
+      it 'returns dual licenses (BSD-3-Clause and Apache-2)' do
+        expect(gemspec.licenses).to contain_exactly('BSD-3-Clause', 'Apache-2.0')
       end
     end
   end

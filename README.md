@@ -8,7 +8,7 @@
 
 ## Getting started
 
-**If you're upgrading from a 0.x version, check out our [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide.md#from-0x-to-10).**
+**If you're upgrading from a 1.x version, check out the [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/release/docs/UpgradeGuide2.md).**
 
 For a product overview, installation, and configuration check out our [documentation][public docs].
 

@@ -4,7 +4,21 @@ require 'bundler'
 require 'fileutils'
 require 'pathname'
 
+puts '=== RUBY_VERSION ==='
+puts RUBY_VERSION
+puts '=== RUBY_ENGINE ==='
+puts RUBY_ENGINE
+puts '=== RUBY_ENGINE_VERSION ==='
+puts RUBY_ENGINE_VERSION
+puts '=== RUBY_PLATFORM ==='
+puts RUBY_PLATFORM
+puts '=== GEM PLATFORM ==='
+puts Gem::Platform.local
+
 ruby_api_version = Gem.ruby_api_version
+
+puts '=== RUBY API VERISON ==='
+puts ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
@@ -19,6 +33,7 @@ gemfile_file_path = versioned_path.join('Gemfile')
 File.open(gemfile_file_path, 'w') do |file|
   file.write("source 'https://rubygems.org'\n")
   file.write("gem 'datadog', '#{ENV.fetch('RUBY_PACKAGE_VERSION')}', path: '#{current_path}'\n")
+  file.write("gem 'ffi', '1.16.3'\n")
   # Mimick outdated `msgpack` version, uncomment below line to test
   # file.write("gem 'msgpack', '1.6.0'\n")
 end
