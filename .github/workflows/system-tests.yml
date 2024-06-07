@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  ST_REF: vpellan/sca-env-var-telemetry
+  ST_REF: main
 
 jobs:
   build-harness:
