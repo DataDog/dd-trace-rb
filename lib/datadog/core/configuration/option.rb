@@ -290,10 +290,10 @@ module Datadog
 
           if definition.env
             Array(definition.env).each do |env|
-              next unless (env_val = ENV[env])
+              next if ENV[env].nil?
 
               resolved_env = env
-              value = coerce_env_variable(env_val)
+              value = coerce_env_variable(ENV[env])
               precedence = Precedence::PROGRAMMATIC
               break
             end
