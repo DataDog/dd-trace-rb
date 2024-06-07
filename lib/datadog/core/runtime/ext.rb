@@ -13,6 +13,7 @@ module Datadog
         # @public_api
         module Metrics
           ENV_ENABLED = 'DD_RUNTIME_METRICS_ENABLED'
+          ENV_OTEL_METRICS_EXPORTER = 'OTEL_METRICS_EXPORTER'
 
           METRIC_CLASS_COUNT = 'runtime.ruby.class_count'
           METRIC_GC_PREFIX = 'runtime.ruby.gc'

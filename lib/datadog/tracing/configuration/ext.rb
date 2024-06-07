@@ -9,6 +9,7 @@ module Datadog
       # e.g. Env vars, default values, enums, etc...
       module Ext
         ENV_ENABLED = 'DD_TRACE_ENABLED'
+        ENV_OTEL_TRACES_EXPORTER = 'OTEL_TRACES_EXPORTER'
         ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
 
@@ -39,10 +40,14 @@ module Datadog
           # W3C Trace Context
           PROPAGATION_STYLE_TRACE_CONTEXT = 'tracecontext'
 
+          PROPAGATION_STYLE_SUPPORTED = [PROPAGATION_STYLE_DATADOG, PROPAGATION_STYLE_B3_MULTI_HEADER,
+                                         PROPAGATION_STYLE_B3_SINGLE_HEADER, PROPAGATION_STYLE_TRACE_CONTEXT].freeze
+
           # Sets both extract and inject propagation style tho the provided value.
           # Has lower precedence than `DD_TRACE_PROPAGATION_STYLE_INJECT` or
           # `DD_TRACE_PROPAGATION_STYLE_EXTRACT`.
           ENV_PROPAGATION_STYLE = 'DD_TRACE_PROPAGATION_STYLE'
+          ENV_OTEL_PROPAGATION_STYLE = 'OTEL_PROPAGATORS'
 
           ENV_PROPAGATION_STYLE_INJECT = 'DD_TRACE_PROPAGATION_STYLE_INJECT'
 
@@ -68,6 +73,8 @@ module Datadog
           ENV_SAMPLE_RATE = 'DD_TRACE_SAMPLE_RATE'
           ENV_RATE_LIMIT = 'DD_TRACE_RATE_LIMIT'
           ENV_RULES = 'DD_TRACE_SAMPLING_RULES'
+          ENV_OTEL_TRACES_SAMPLER = 'OTEL_TRACES_SAMPLER'
+          OTEL_TRACES_SAMPLER_ARG = 'OTEL_TRACES_SAMPLER_ARG'
 
           # @public_api
           module Span

@@ -85,6 +85,40 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           it { is_expected.to be false }
         end
       end
+
+      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL}" do
+        around do |example|
+          ClimateControl.modify(
+            {
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED => dd_debug_env,
+              Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL => otel_level_env
+            }
+          ) do
+            example.run
+          end
+        end
+
+        context 'is set to debug' do
+          let(:dd_debug_env) { nil }
+          let(:otel_level_env) { 'DEBUG' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is not set to debug' do
+          let(:dd_debug_env) { nil }
+          let(:otel_level_env) { 'INFO' }
+
+          it { is_expected.to be false }
+        end
+
+        context 'and DD_TRACE_DEBUG is defined' do
+          let(:dd_debug_env) { 'true' }
+          let(:otel_level_env) { 'info' }
+
+          it { is_expected.to be true }
+        end
+      end
     end
 
     describe '#debug=' do
@@ -943,15 +977,30 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         is_expected.to eq('service-name-from-tag')
       end
 
-      context 'and defined via DD_SERVICE' do
+      context 'and defined via DD_SERVICE and OTEL_SERVICE_NAME' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service') do
+          ClimateControl.modify(
+            Datadog::Core::Environment::Ext::ENV_SERVICE => 'service-name-from-dd-service',
+            Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name'
+          ) do
             example.run
           end
         end
 
         it 'uses the service name from DD_SERVICE' do
           is_expected.to eq('service-name-from-dd-service')
+        end
+      end
+
+      context 'and defined via OTEL_SERVICE_NAME' do
+        around do |example|
+          ClimateControl.modify(Datadog::Core::Environment::Ext::ENV_OTEL_SERVICE => 'otel-service-name') do
+            example.run
+          end
+        end
+
+        it 'uses the service name from OTEL_SERVICE_NAME' do
+          is_expected.to eq('otel-service-name')
         end
       end
     end
@@ -1129,6 +1178,35 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         let(:version_value) { 'version-value' }
 
         it { is_expected.to include('version' => version_value) }
+      end
+    end
+
+    context "when #{Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES}" do
+      around do |example|
+        ClimateControl.modify(
+          Datadog::Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES => otel_tags,
+          Datadog::Core::Environment::Ext::ENV_TAGS => dd_tags
+        ) do
+          example.run
+        end
+      end
+
+      context 'is defined and DD_TAGS is set' do
+        let(:otel_tags) { 'deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1' }
+        let(:dd_tags) { 'service:moon-test,version:v42069,env:prod,token:gg' }
+        it { is_expected.to include('service' => 'moon-test', 'version' => 'v42069', 'env' => 'prod', 'token' => 'gg') }
+      end
+
+      context 'is defined and DD_TAGS is not set' do
+        let(:otel_tags) { 'deployment.environment=prod,service.name=bleh,service.version=1.0,mkey=val1' }
+        let(:dd_tags) { nil }
+        it { is_expected.to include('env' => 'prod', 'service' => 'bleh', 'version' => '1.0', 'mkey' => 'val1') }
+      end
+
+      context 'is not defined and DD_TAGS is not set' do
+        let(:otel_tags) { nil }
+        let(:dd_tags) { nil }
+        it { is_expected.to eq({}) }
       end
     end
   end

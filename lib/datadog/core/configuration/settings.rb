@@ -122,9 +122,18 @@ module Datadog
           # @default `DD_TRACE_DEBUG` environment variable, otherwise `false`
           # @return [Boolean]
           option :debug do |o|
-            o.env Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED
+            o.env [Datadog::Core::Configuration::Ext::Diagnostics::ENV_DEBUG_ENABLED,
+                   Datadog::Core::Configuration::Ext::Diagnostics::ENV_OTEL_LOG_LEVEL]
             o.default false
             o.type :bool
+            o.env_parser do |value|
+              if value
+                value = value.strip.downcase
+                # Debug is enabled when DD_TRACE_DEBUG is true or 1 OR
+                # when OTEL_LOG_LEVEL is set to debug
+                ['true', '1', 'debug'].include?(value)
+              end
+            end
             o.after_set do |enabled|
               # Enable rich debug print statements.
               # We do not need to unnecessarily load 'pp' unless in debugging mode.
@@ -465,7 +474,7 @@ module Datadog
           o.type :string, nilable: true
 
           # NOTE: service also gets set as a side effect of tags. See the WORKAROUND note in #initialize for details.
-          o.env Core::Environment::Ext::ENV_SERVICE
+          o.env [Core::Environment::Ext::ENV_SERVICE, Core::Environment::Ext::ENV_OTEL_SERVICE]
           o.default Core::Environment::Ext::FALLBACK_SERVICE_NAME
 
           # There's a few cases where we don't want to use the fallback service name, so this helper allows us to get a
@@ -500,14 +509,13 @@ module Datadog
         # @return [Hash<String,String>]
         option :tags do |o|
           o.type :hash, nilable: true
-          o.env Core::Environment::Ext::ENV_TAGS
+          o.env [Core::Environment::Ext::ENV_TAGS, Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES]
           o.env_parser do |env_value|
             values = if env_value.include?(',')
                        env_value.split(',')
                      else
                        env_value.split(' ') # rubocop:disable Style/RedundantArgument
                      end
-
             values.map! do |v|
               v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
 
@@ -517,7 +525,23 @@ module Datadog
             values.compact!
             values.each_with_object({}) do |tag, tags|
               key, value = tag.split(':', 2)
-              tags[key] = value if value && !value.empty?
+              if value.nil?
+                # support tags/attributes delimited by the OpenTelemetry separator (`=`)
+                key, value = tag.split('=', 2)
+              end
+              next if value.nil? || value.empty?
+
+              # maps OpenTelemetry semantic attributes to Datadog tags
+              case key.downcase
+              when 'deployment.environment'
+                tags['env'] = value
+              when 'service.version'
+                tags['version'] = value
+              when 'service.name'
+                tags['service'] = value
+              else
+                tags[key] = value
+              end
             end
           end
           o.setter do |new_value, old_value|

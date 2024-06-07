@@ -13,6 +13,8 @@ module Datadog
       # rubocop:disable Metrics/BlockLength
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -89,7 +91,7 @@ module Datadog
               # @return [Array<String>]
               option :propagation_style do |o|
                 o.type :array
-                o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
+                o.env [Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, Configuration::Ext::Distributed::ENV_OTEL_PROPAGATION_STYLE]
                 o.default []
                 o.after_set do |styles|
                   next if styles.empty?
@@ -97,6 +99,14 @@ module Datadog
                   # Make values case-insensitive
                   styles.map!(&:downcase)
 
+                  styles.select! do |s|
+                    if Configuration::Ext::Distributed::PROPAGATION_STYLE_SUPPORTED.include?(s)
+                      true
+                    else
+                      Datadog.logger.warn("Unsupported propagation style: #{s}")
+                      false
+                    end
+                  end
                   set_option(:propagation_style_extract, styles)
                   set_option(:propagation_style_inject, styles)
                 end
@@ -121,9 +131,23 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env Tracing::Configuration::Ext::ENV_ENABLED
+                o.env [Tracing::Configuration::Ext::ENV_ENABLED, Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER]
                 o.default true
                 o.type :bool
+                o.env_parser do |value|
+                  value = value&.downcase
+                  # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
+                  # DD_TRACE_ENABLED is 0 or false.
+                  if ['none', 'false', '0'].include?(value)
+                    false
+                  # Tracing is enabled when DD_TRACE_ENABLED is true or 1
+                  elsif ['true', '1'].include?(value)
+                    true
+                  else
+                    Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
+                    nil
+                  end
+                end
               end
 
               # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
@@ -245,7 +269,30 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
+                  o.env [Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER]
+                  o.env_parser do |value|
+                    # Parse the value as a float
+                    next if value.nil?
+
+                    value = value&.downcase
+                    if ['always_on', 'always_off', 'traceidratio'].include?(value)
+                      Datadog.logger.warn("The value '#{value}' is not yet supported. 'parentbased_#{value}' will be used instead.")
+                      value = "parentbased_#{value}"
+                    end
+                    # OTEL_TRACES_SAMPLER can be set to always_on, always_off, traceidratio, and/or parentbased value.
+                    # These values are mapped to a sample rate.
+                    # DD_TRACE_SAMPLE_RATE sets the sample rate to float.
+                    case value
+                    when 'parentbased_always_on'
+                      1.0
+                    when 'parentbased_always_off'
+                      0.0
+                    when 'parentbased_traceidratio'
+                      ENV.fetch(Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                    else
+                      value.to_f
+                    end
+                  end
                 end
 
                 # Rate limit for number of spans per second.
@@ -417,6 +464,8 @@ module Datadog
       # rubocop:enable Metrics/BlockLength
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end
