@@ -40,7 +40,7 @@ test_containers:
     DD_AGENT_HOST: testagent
     DD_TRACE_AGENT_PORT: 9126
     DATADOG_GEM_CI: true
-    RUBYOPT: -r/app/patch_log_device
+    RUBYOPT: -r/app/.circleci/patch_log_device
   - &container_parameters_environment
     - *container_base_environment
     - TEST_DATADOG_INTEGRATION: 1
