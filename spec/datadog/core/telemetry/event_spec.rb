@@ -70,8 +70,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['tracing.opentelemetry.enabled', false],
           ['logger.instance', 'MyLogger'],
           ['appsec.enabled', false],
-          ['appsec.sca_enabled', false],
-          ['ci.enabled', false]
+          ['appsec.sca_enabled', false]
         ),
         install_signature: { install_id: 'id', install_time: 'time', install_type: 'type' },
       )
