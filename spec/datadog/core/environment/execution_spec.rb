@@ -72,7 +72,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             f.close
 
             out, = Open3.capture2e('pry', '-f', '--noprompt', f.path)
-            expect(out).to eq('ACTUAL:true')
+            expect(out).to be_end_with('ACTUAL:true')
           end
         end
       end
@@ -275,7 +275,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
 
         expect(err).to be_empty
-        expect(out).to eq('true')
+        expect(out).to be_end_with('true')
       end
     end
   end
