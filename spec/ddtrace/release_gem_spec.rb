@@ -112,11 +112,22 @@ RSpec.describe 'gem release process' do
     describe '#metadata' do
       it do
         {
-          'allowed_push_host' => 'https://rubygems.org',
           'changelog_uri' => "https://github.com/DataDog/dd-trace-rb/blob/v#{gemspec.version}/CHANGELOG.md",
           'source_code_uri' => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}"
         }.each do |key, value|
           expect(gemspec.metadata[key]).to eq(value)
+        end
+      end
+
+      # `allowed_push_host` is overwritten by automated scripts
+      # in order to publish to another destination repository.
+      context 'allowed_push_host' do
+        it { expect(gemspec.metadata).to have_key('allowed_push_host') }
+
+        it do
+          expect(gemspec.metadata['allowed_push_host'])
+            .to eq('https://rubygems.org')
+            .or eq('https://rubygems.pkg.github.com/DataDog')
         end
       end
     end
