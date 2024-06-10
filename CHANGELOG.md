@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [2.1.0] - 2024-06-10
+
+### Added
+
+* Tracing: Configuration by OpenTelemetry environment variables ([#3657][])
+
+### Fixed
+
+* Tracing: Improved compatibility with W3C Trace Context propagation ([#3631][])
+
 ## [2.0.0] - 2024-06-06
 
 ### Added
@@ -2894,7 +2904,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.1.0...master
+[2.1.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.rc1...v2.0.0
 [2.0.0.rc1]: https://github.com/DataDog/dd-trace-rb/compare/v2.0.0.beta2...v2.0.0.rc1
 [1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
@@ -4267,8 +4278,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3624]: https://github.com/DataDog/dd-trace-rb/issues/3624
 [#3627]: https://github.com/DataDog/dd-trace-rb/issues/3627
 [#3630]: https://github.com/DataDog/dd-trace-rb/issues/3630
+[#3631]: https://github.com/DataDog/dd-trace-rb/issues/3631
 [#3645]: https://github.com/DataDog/dd-trace-rb/issues/3645
 [#3651]: https://github.com/DataDog/dd-trace-rb/issues/3651
+[#3657]: https://github.com/DataDog/dd-trace-rb/issues/3657
 [#3664]: https://github.com/DataDog/dd-trace-rb/issues/3664
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
