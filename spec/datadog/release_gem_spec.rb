@@ -107,5 +107,17 @@ RSpec.describe 'gem release process' do
         expect(gemspec.licenses).to contain_exactly('BSD-3-Clause', 'Apache-2.0')
       end
     end
+
+    describe '#metadata' do
+      it do
+        {
+          'allowed_push_host' => 'https://rubygems.org',
+          'changelog_uri' => "https://github.com/DataDog/dd-trace-rb/blob/v#{gemspec.version}/CHANGELOG.md",
+          'source_code_uri' => "https://github.com/DataDog/dd-trace-rb/tree/v#{gemspec.version}"
+        }.each do |key, value|
+          expect(gemspec.metadata[key]).to eq(value)
+        end
+      end
+    end
   end
 end
