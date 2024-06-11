@@ -12,8 +12,32 @@ module Datadog
         # These methods will be called by the GraphQL runtime to send the variables to the WAF.
         # We actually don't need to create any span/trace.
         module AppSecTrace
-          # Error handling
           def execute_multiplex(multiplex:)
+            require 'graphql/language/nodes'
+            args = {}
+            multiplex.queries.each_with_index do |query, index|
+              resolver_args = {}
+              selections = query.selected_operation.selections.dup
+              # Iterative tree traversal
+              while selections.any?
+                selection = selections.shift
+                if selection.arguments.any?
+                  selection.arguments.each do |arg|
+                    resolver_args[arg.name] =
+                      if arg.value.is_a?(::GraphQL::Language::Nodes::VariableIdentifier)
+                        # Look what happens if no provided_variables give
+                        query.provided_variables[arg.value.name]
+                      else
+                        arg.value
+                      end
+                  end
+                end
+                selections.concat(selection.selections)
+              end
+              args[query.operation_name || "query#{index + 1}"] ||= []
+              args[query.operation_name || "query#{index + 1}"] << resolver_args
+            end
+            # TODO: push the arguments to the WAF (resolve_all)
             catch(Ext::QUERY_INTERRUPT) do
               super
             end
