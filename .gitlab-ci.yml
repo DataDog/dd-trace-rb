@@ -1,22 +1,21 @@
 stages:
   - manual-images
   - package
-  - integration-tests
-  - deploy
+  - internal-publish
+  - test
+  - external-publish
   - macrobenchmarks
   - microbenchmarks
   - benchmarks
 
 include:
-  - remote: https://gitlab-templates.ddbuild.io/apm/packaging.yml
+  - remote: https://gitlab-templates.ddbuild.io/libdatadog/include-wip/one-pipeline.yml
   - local: ".gitlab/benchmarks.yml"
-  - local: ".gitlab/onboarding_tests.yml"
 
 variables:
-  DOWNSTREAM_BRANCH:
-    value: "master"
-    description: "Run a specific datadog-reliability-env branch downstream"
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
+  SKIP_LATEST_TAG: true
+  REPO_LANG: ruby # ruby is used rather that "rb"
 
 default:
   tags: ["runner:main", "size:large"]
@@ -98,10 +97,13 @@ build-gem:
       - tmp
       - lib/datadog/version.rb
 
-.install-dependencies:
+install-dependencies:
+  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
+  tags: [ "arch:$ARCH" ]
   parallel:
     matrix:
       - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
+        ARCH: [ "amd64", "arm64" ]
   stage: package
   needs:
     - build-gem
@@ -115,176 +117,19 @@ build-gem:
   artifacts:
     paths:
       - pkg
-      - tmp
+      - tmp/$ARCH
       - lib/datadog/version.rb
 
-install-dependencies-amd64:
-  extends: .install-dependencies
-  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-amd64:current
-  tags: ["runner:main"]
-
-install-dependencies-arm64:
-  extends: .install-dependencies
-  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-arm64:current
-  tags: ["arch:arm64"]
-
-package-amd64:
-  extends: .package
+package-oci:
   needs:
     - build-gem
-    - install-dependencies-amd64
-  script:
-    - ls ../pkg
-    - cp ../lib-injection/host_inject.rb ../tmp
-    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
-    - ../.gitlab/build-deb-rpm.sh
-    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
+    - install-dependencies
 
-package-arm64:
-  extends: .package-arm
-  needs:
-    - build-gem
-    - install-dependencies-arm64
-  script:
-    - ls ../pkg
-    - cp ../lib-injection/host_inject.rb ../tmp
-    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
-    - ../.gitlab/build-deb-rpm.sh
-    - find . -iregex '.*\.\(deb\|rpm\)' -printf '%f\0' | xargs -0 dd-pkg lint
-
-package-oci-amd64:
-  extends: .package-oci
-  stage: package
-  needs:
-    - build-gem
-    - install-dependencies-amd64
-  variables:
-    ARCH: amd64
-  script:
-    - cp ../lib-injection/host_inject.rb ../tmp
-    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
-    - ../.gitlab/build-oci-package.sh
-
-package-oci-arm64:
-  extends: .package-oci
-  stage: package
-  needs:
-    - build-gem
-    - install-dependencies-arm64
-  variables:
-    ARCH: arm64
-  script:
-    - cp ../lib-injection/host_inject.rb ../tmp
-    - export RUBY_PACKAGE_VERSION=$(cat ../tmp/version.txt)
-    - ../.gitlab/build-oci-package.sh
-
-oci-internal-publish:
-  extends: .oci-internal-publish
-  stage: package
-  needs: [ package-oci-arm64, package-oci-amd64 ]
+onboarding_tests_installer:
   rules:
     - when: on_success
-  variables:
-    FLAVOR: datadog-apm-library-ruby
-
-oci-internal-test-ecr-publish:
-  stage: package
-  needs: [ oci-internal-publish ]
-  rules:
-    - when: on_success
-  trigger:
-    project: DataDog/public-images
-    branch: main
-    strategy: depend
-  variables:
-    IMG_SOURCES: registry.ddbuild.io/ci/remote-updates/datadog-apm-library-ruby:pipeline-${CI_PIPELINE_ID}-1
-    IMG_DESTINATIONS: apm-library-ruby-package:pipeline-${CI_PIPELINE_ID}
-    IMG_REGISTRIES: agent-qa
-
-onboarding_tests:
-  extends: .base_job_onboarding_tests
-  stage: integration-tests
-  needs: [ package-amd64, package-arm64, oci-internal-test-ecr-publish]
   allow_failure: false
-  variables:
-    TEST_LIBRARY: ruby
-    ONBOARDING_FILTER_ENV: prod
   parallel:
       matrix:
-        - ONBOARDING_FILTER_WEBLOG: [test-app-ruby]
-          SCENARIO: [SIMPLE_HOST_AUTO_INJECTION]
-        - ONBOARDING_FILTER_WEBLOG: [test-app-ruby-container]
-          SCENARIO: [SIMPLE_CONTAINER_AUTO_INJECTION]
         - ONBOARDING_FILTER_WEBLOG: [test-app-ruby,test-app-ruby-container]
           SCENARIO: [INSTALLER_AUTO_INJECTION]
-  script:
-    - git clone https://git@github.com/DataDog/system-tests.git system-tests
-    - cp packaging/*.rpm system-tests/binaries
-    - cp packaging/*.deb system-tests/binaries
-    - export DD_INSTALLER_LIBRARY_VERSION="pipeline-${CI_PIPELINE_ID}"
-    - ls system-tests/binaries
-    - cd system-tests
-    - ./build.sh -i runner
-    - timeout 2700s ./run.sh $SCENARIO --vm-weblog ${ONBOARDING_FILTER_WEBLOG} --vm-env prod --vm-library ${TEST_LIBRARY} --vm-provider aws --vm-skip-branches ubuntu18_amd64
-
-.release-package:
-  stage: deploy
-  variables:
-    PRODUCT_NAME: auto_inject-ruby
-
-deploy_to_reliability_env:
-  stage: deploy
-  needs: [] # This allows the job to run without prerequisites
-  rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-      when: on_success
-    - when: manual
-      allow_failure: true
-  trigger:
-    project: DataDog/apm-reliability/datadog-reliability-env
-    branch: $DOWNSTREAM_BRANCH
-  variables:
-    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
-    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
-    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
-    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
-
-prepare_image_destinations:
-  stage: deploy
-  tags: ["arch:amd64"]
-  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
-  rules:
-    - if: '$POPULATE_CACHE'
-      when: never
-    - if:  $CI_COMMIT_TAG =~ /^v(\d+)\.(\d+)\.(\d+)$/ # Exclude prerelease
-      when: always
-    - when: manual
-      allow_failure: true
-  script:
-    - ruby -v
-    - gem -v
-    - bundle -v
-    - ./.gitlab/check_gem_presence.rb $CI_COMMIT_TAG
-    - |
-      IMG_DESTINATIONS=$(./.gitlab/prepare_image_destinations.rb dd-lib-ruby-init $CI_COMMIT_TAG) || {
-        echo "Failed to prepare image destinations: $CI_COMMIT_TAG"
-        exit 1
-      }
-      echo "IMG_DESTINATIONS=$IMG_DESTINATIONS" > build.env
-  artifacts:
-    reports:
-      dotenv: build.env
-
-deploy_to_docker_registries:
-  stage: deploy
-  needs:
-    - job: prepare_image_destinations
-      artifacts: true
-  trigger:
-    project: DataDog/public-images
-    branch: main
-    strategy: depend
-  variables:
-    IMG_SOURCES: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:$CI_COMMIT_TAG
-    IMG_DESTINATIONS: $IMG_DESTINATIONS
-    IMG_SIGNING: "false"
