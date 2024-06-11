@@ -54,16 +54,6 @@ GIT
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
 
-GIT
-  remote: https://github.com/DataDog/simplecov
-  revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  specs:
-    simplecov (0.21.2)
-      docile (~> 1.1)
-      simplecov-html (~> 0.11)
-      simplecov_json_formatter (~> 0.1)
-
 PATH
   remote: ..
   specs:
@@ -91,12 +81,10 @@ GEM
     builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    cri (2.15.11)
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.2.0)
     diff-lcs (1.5.0)
@@ -186,7 +174,6 @@ GEM
     rake (13.1.0)
     rake-compiler (1.2.5)
       rake
-    redcarpet (3.6.0)
     redis (3.3.5)
     redis-actionpack (5.1.0)
       actionpack (>= 4.0, < 7)
@@ -227,9 +214,10 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.3.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
+    simplecov (0.22.0)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -283,7 +271,6 @@ DEPENDENCIES
   rails!
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
   redis (< 4.0)
   redis-rails
   rexml (>= 3.2.7)
@@ -291,8 +278,7 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
-  simplecov!
+  simplecov (~> 0.22)
   simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)
   warning (~> 1)
@@ -300,4 +286,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26
