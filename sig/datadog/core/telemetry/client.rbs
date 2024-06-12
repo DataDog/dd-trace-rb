@@ -2,37 +2,37 @@ module Datadog
   module Core
     module Telemetry
       class Client
+        @enabled: bool
         @dependency_collection: bool
         @started: bool
         @stopped: bool
-
-        attr_reader emitter: untyped
+        @emitter: Datadog::Core::Telemetry::Emitter
+        @unsupported: bool
+        @worker: Datadog::Core::Telemetry::Heartbeat
 
         attr_reader enabled: bool
 
         attr_reader unsupported: bool
 
-        attr_reader worker: untyped
-
         include Core::Utils::Forking
 
         def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, enabled: bool) -> void
 
-        def disable!: () -> untyped
+        def disable!: () -> void
 
         def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
 
-        def started!: () -> (nil | untyped)
+        def started!: () -> void
 
-        def emit_closing!: () -> (nil | untyped)
+        def emit_closing!: () -> void
 
-        def stop!: () -> (nil | untyped)
+        def stop!: () -> void
 
-        def integrations_change!: () -> (nil | untyped)
+        def integrations_change!: () -> void
 
         private
 
-        def heartbeat!: () -> (nil | untyped)
+        def heartbeat!: () -> void
       end
     end
   end
