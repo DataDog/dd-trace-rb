@@ -39,10 +39,6 @@ docker build -t datadog/dd-apm-demo:agent -f $INTEGRATION_DIR/images/agent/Docke
 if test -n "$APP_RUBY_VERSION"; then
   docker build -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -f $INTEGRATION_DIR/images/ruby/$APP_RUBY_VERSION/Dockerfile $INTEGRATION_DIR/images
 else
-  docker build -t datadog/dd-apm-demo:rb-2.1 -f $INTEGRATION_DIR/images/ruby/2.1/Dockerfile $INTEGRATION_DIR/images
-  docker build -t datadog/dd-apm-demo:rb-2.2 -f $INTEGRATION_DIR/images/ruby/2.2/Dockerfile $INTEGRATION_DIR/images
-  docker build -t datadog/dd-apm-demo:rb-2.3 -f $INTEGRATION_DIR/images/ruby/2.3/Dockerfile $INTEGRATION_DIR/images
-  docker build -t datadog/dd-apm-demo:rb-2.4 -f $INTEGRATION_DIR/images/ruby/2.4/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-2.5 -f $INTEGRATION_DIR/images/ruby/2.5/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-2.6 -f $INTEGRATION_DIR/images/ruby/2.6/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-2.7 -f $INTEGRATION_DIR/images/ruby/2.7/Dockerfile $INTEGRATION_DIR/images
@@ -50,6 +46,7 @@ else
   docker build -t datadog/dd-apm-demo:rb-3.1 -f $INTEGRATION_DIR/images/ruby/3.1/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.2 -f $INTEGRATION_DIR/images/ruby/3.2/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.3 -f $INTEGRATION_DIR/images/ruby/3.3/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.4 -f $INTEGRATION_DIR/images/ruby/3.4/Dockerfile $INTEGRATION_DIR/images
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building base images. =="

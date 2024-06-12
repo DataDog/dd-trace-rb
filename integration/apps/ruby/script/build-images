@@ -25,10 +25,6 @@ echo "== Building Ruby app images... =="
 if [ -v APP_RUBY_VERSION ]; then
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-ruby .
 else
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.1 -t datadog/dd-apm-demo:rb-2.1-ruby .
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.2 -t datadog/dd-apm-demo:rb-2.2-ruby .
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.3 -t datadog/dd-apm-demo:rb-2.3-ruby .
-  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.4 -t datadog/dd-apm-demo:rb-2.4-ruby .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.5 -t datadog/dd-apm-demo:rb-2.5-ruby .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.6 -t datadog/dd-apm-demo:rb-2.6-ruby .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-ruby .
@@ -36,6 +32,7 @@ else
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.1 -t datadog/dd-apm-demo:rb-3.1-ruby .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.2 -t datadog/dd-apm-demo:rb-3.2-ruby .
   docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.3 -t datadog/dd-apm-demo:rb-3.3-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.4 -t datadog/dd-apm-demo:rb-3.4-ruby .
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building Ruby app images. =="
