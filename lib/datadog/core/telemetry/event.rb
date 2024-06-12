@@ -38,6 +38,7 @@ module Datadog
           private
 
           def products
+            # @type var products: Hash[Symbol, Hash[Symbol, Object]]
             products = {
               appsec: {
                 enabled: Datadog::AppSec.enabled?,

@@ -3,16 +3,17 @@ module Datadog
     module Telemetry
       class Heartbeat < Core::Worker
         include Core::Workers::Polling
+        include Core::Workers::Async::Thread
+        include Core::Workers::Async::Thread::PrependedMethods
+        include Core::Workers::IntervalLoop
 
-        DEFAULT_INTERVAL_SECONDS: 60
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric) ?{ () -> void } -> void
 
-        def initialize: (?enabled: bool, ?interval: untyped) ?{ () -> untyped } -> void
-
-        def loop_wait_before_first_iteration?: () -> true
+        def loop_wait_before_first_iteration?: () -> bool?
 
         private
 
-        def start: () -> untyped
+        def start: () -> void
       end
     end
   end

@@ -9,6 +9,8 @@ module Datadog
 
           def unsupported?: () -> nil
 
+          def code: () -> nil
+
           def not_found?: () -> nil
 
           def client_error?: () -> nil

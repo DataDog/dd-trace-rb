@@ -24,6 +24,8 @@ module Datadog
           HEADER_META_LANG_INTERPRETER: ::String
 
           HEADER_META_TRACER_VERSION: ::String
+
+          HEADER_DD_INTERNAL_UNTRACED_REQUEST: ::String
         end
 
         module Test
