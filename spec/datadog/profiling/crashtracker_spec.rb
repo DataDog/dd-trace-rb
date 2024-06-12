@@ -2,6 +2,7 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/crashtracker'
 
 require 'webrick'
+require 'fiddle'
 
 RSpec.describe Datadog::Profiling::Crashtracker do
   before do
@@ -175,33 +176,39 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
     let(:exporter_configuration) { [:agent, "http://#{hostname}:#{port}"] }
 
-    it 'reports crashes via http' do
-      fork_expectations = proc do |status:, stdout:, stderr:|
-        expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-        expect(stderr).to include('[BUG] Segmentation fault')
+    [:fiddle, :signal].each do |trigger|
+      it "reports crashes via http when app crashes with #{trigger}" do
+        fork_expectations = proc do |status:, stdout:, stderr:|
+          expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+          expect(stderr).to include('[BUG] Segmentation fault')
+        end
+
+        expect_in_fork(fork_expectations: fork_expectations) do
+          crashtracker.start
+
+          if trigger == :fiddle
+            Fiddle.free(42)
+          else
+            Process.kill('SEGV', Process.pid)
+          end
+        end
+
+        crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+
+        expect(crash_report[:stack_trace]).to_not be_empty
+        expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+
+        crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
+
+        expect(crash_report_message[:metadata]).to include(
+          profiling_library_name: 'dd-trace-rb',
+          profiling_library_version: Datadog::VERSION::STRING,
+          family: 'ruby',
+          tags: ['tag1:value1', 'tag2:value2'],
+        )
+        expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+        expect(crash_report_message[:os_info]).to_not be_empty
       end
-
-      expect_in_fork(fork_expectations: fork_expectations) do
-        crashtracker.start
-
-        Process.kill('SEGV', Process.pid)
-      end
-
-      crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
-
-      expect(crash_report[:stack_trace]).to_not be_empty
-      expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
-
-      crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
-
-      expect(crash_report_message[:metadata]).to include(
-        profiling_library_name: 'dd-trace-rb',
-        profiling_library_version: Datadog::VERSION::STRING,
-        family: 'ruby',
-        tags: ['tag1:value1', 'tag2:value2'],
-      )
-      expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
-      expect(crash_report_message[:os_info]).to_not be_empty
     end
   end
 end
