@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative 'ext'
-require_relative 'gateway/execute'
+require_relative 'gateway/multiplex'
 require_relative 'gateway/resolve'
 require_relative '../../instrumentation/gateway'
 
@@ -13,46 +14,31 @@ module Datadog
         # We actually don't need to create any span/trace.
         module AppSecTrace
           def execute_multiplex(multiplex:)
-            require 'graphql/language/nodes'
-            args = {}
-            multiplex.queries.each_with_index do |query, index|
-              resolver_args = {}
-              selections = query.selected_operation.selections.dup
-              # Iterative tree traversal
-              while selections.any?
-                selection = selections.shift
-                if selection.arguments.any?
-                  selection.arguments.each do |arg|
-                    resolver_args[arg.name] =
-                      if arg.value.is_a?(::GraphQL::Language::Nodes::VariableIdentifier)
-                        # Look what happens if no provided_variables give
-                        query.provided_variables[arg.value.name]
-                      else
-                        arg.value
-                      end
-                  end
+            gateway_multiplex = Gateway::Multiplex.new(multiplex)
+
+            multiplex_return, multiplex_response = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
+              super
+            end
+
+            # Returns an error * the number of queries so that the entire multiplex is blocked
+            if multiplex_response
+              blocked_event = multiplex_response.find { |action, _options| action == :block }
+              if blocked_event
+                multiplex_return = []
+                gateway_multiplex.queries.each do |query|
+                  query_result = ::GraphQL::Query::Result.new(
+                    query: query,
+                    values: JSON.parse(AppSec::Response.content_json)
+                  )
+                  multiplex_return << query_result
                 end
-                selections.concat(selection.selections)
               end
-              args[query.operation_name || "query#{index + 1}"] ||= []
-              args[query.operation_name || "query#{index + 1}"] << resolver_args
             end
-            # TODO: push the arguments to the WAF (resolve_all)
-            catch(Ext::QUERY_INTERRUPT) do
-              super
-            end
+
+            multiplex_return
           end
 
-          def execute_query(query:)
-            gateway_execute = Gateway::Execute.new(query)
-
-            execute_return, _execute_response = Instrumentation.gateway.push('graphql.execute', gateway_execute) do
-              super
-            end
-
-            execute_return
-          end
-
+          # TODO: Fix (or remove) graphql.server.resolver blocking
           def execute_field(**kwargs)
             gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query], kwargs[:field])
 
