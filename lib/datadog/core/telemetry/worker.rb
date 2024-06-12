@@ -7,7 +7,7 @@ module Datadog
   module Core
     module Telemetry
       # Periodically sends a heartbeat event to the telemetry API.
-      class Heartbeat < Core::Worker
+      class Worker < Core::Worker
         include Core::Workers::Polling
 
         def initialize(heartbeat_interval_seconds:, enabled: true, &block)

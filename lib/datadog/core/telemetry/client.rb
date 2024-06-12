@@ -2,7 +2,7 @@
 
 require_relative 'emitter'
 require_relative 'event'
-require_relative 'heartbeat'
+require_relative 'worker'
 require_relative '../utils/forking'
 
 module Datadog
@@ -27,7 +27,7 @@ module Datadog
           @started = false
           @dependency_collection = dependency_collection
 
-          @worker = Telemetry::Heartbeat.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
+          @worker = Telemetry::Worker.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
             next unless @started # `started!` should be the first event, thus ensure that `heartbeat!` is not sent first.
 
             heartbeat!
