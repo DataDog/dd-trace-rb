@@ -3,6 +3,7 @@
 require 'json'
 require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
+require_relative '../reactive/multiplex'
 require_relative '../reactive/resolve'
 require_relative '../../../reactive/operation'
 
@@ -17,47 +18,46 @@ module Datadog
               def watch
                 gateway = Instrumentation.gateway
 
-                watch_execute(gateway)
+                watch_multiplex(gateway)
                 watch_resolve(gateway)
               end
 
-              def watch_execute(gateway = Instrumentation.gateway)
-                require 'graphql/query/result'
-                gateway.watch('graphql.execute', :appsec) do |stack, gateway_execute|
+              # This time we don't throw but use next
+              def watch_multiplex(gateway = Instrumentation.gateway)
+                gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
+                  block = false
                   event = nil
-                  if gateway_execute.variables[:query] == 'threat'
-                    result = OpenStruct.new(
-                      actions: ['block'],
-                      derivatives: {},
-                      events: [],
-                      status: :match,
-                      timeout: false,
-                      total_runtime: 10000
-                    )
-                    event = OpenStruct.new(
-                      waf_result: result,
-                      request: gateway_execute,
-                      actions: result.actions
-                    )
+                  scope = AppSec::Scope.active_scope
+
+                  AppSec::Reactive::Operation.new('graphql.multiplex') do |op|
+                    GraphQL::Reactive::Multiplex.subscribe(op, scope.processor_context) do |result|
+                      event = {
+                        waf_result: result,
+                        trace: scope.trace,
+                        span: scope.service_entry_span,
+                        multiplex: gateway_multiplex,
+                        actions: result.actions
+                      }
+
+                      if scope.service_entry_span
+                        scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
+                        scope.service_entry_span.set_tag('appsec.event', 'true')
+                      end
+
+                      scope.processor_context.events << event
+                    end
+
+                    block = GraphQL::Reactive::Multiplex.publish(op, gateway_multiplex)
                   end
 
-                  if event && event.actions.include?('block')
-                    throw Ext::QUERY_INTERRUPT,
-                      ::GraphQL::Query::Result.new(
-                        query: gateway_execute.query,
-                        values: {
-                          data: nil,
-                          errors: [{
-                            message: 'Blocked',
-                            extensions: {
-                              detail: 'This message will be customised with WAF data (execute)'
-                            }
-                          }]
-                        }
-                      )
-                  end
+                  next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_execute.variables)
+                  ret, res = stack.call(gateway_multiplex.arguments)
+
+                  if event
+                    res ||= []
+                    res << [:monitor, event]
+                  end
 
                   [ret, res]
                 end
