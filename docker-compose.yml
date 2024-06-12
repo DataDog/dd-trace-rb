@@ -187,6 +187,7 @@ services:
       - postgres
       - presto
       - redis
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment-3x
@@ -197,6 +198,31 @@ services:
       - .:/app
       - extension-build-tmp:/app/tmp
       - bundle-3.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.4:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.4.0-dd
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - opensearch
+      - postgres
+      - presto
+      - redis
+      - testagent
+    env_file: ./.env
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.4
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   tracer-jruby-9.2:
@@ -388,6 +414,7 @@ volumes:
   bundle-3.1:
   bundle-3.2:
   bundle-3.3:
+  bundle-3.4:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2:
   bundle-jruby-9.3:
