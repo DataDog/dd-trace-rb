@@ -4,7 +4,6 @@ require 'json'
 require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../reactive/multiplex'
-require_relative '../reactive/resolve'
 require_relative '../../../reactive/operation'
 
 module Datadog
@@ -19,7 +18,6 @@ module Datadog
                 gateway = Instrumentation.gateway
 
                 watch_multiplex(gateway)
-                watch_resolve(gateway)
               end
 
               # This time we don't throw but use next
@@ -61,56 +59,6 @@ module Datadog
 
                   [ret, res]
                 end
-              end
-
-              def watch_resolve(gateway = Instrumentation.gateway)
-                require 'graphql/query/result'
-                gateway.watch('graphql.resolve', :appsec) do |stack, gateway_resolve|
-                  block = false
-                  event = nil
-                  scope = AppSec::Scope.active_scope
-
-                  AppSec::Reactive::Operation.new('graphql.resolve') do |op|
-                    GraphQL::Reactive::Resolve.subscribe(op, scope.processor_context) do |result|
-                      event = {
-                        waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
-                        resolve: gateway_resolve,
-                        actions: result.actions
-                      }
-
-                      if scope.service_entry_span
-                        scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                        scope.service_entry_span.set_tag('appsec.event', 'true')
-                      end
-
-                      scope.processor_context.events << event
-                    end
-
-                    block = GraphQL::Reactive::Resolve.publish(op, gateway_resolve)
-                  end
-
-                  throw Ext::QUERY_INTERRUPT, error_query(gateway_resolve) if block
-
-                  ret, res = stack.call(gateway_resolve.arguments)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
-                end
-              end
-
-              private
-
-              def error_query(gateway_resolve)
-                ::GraphQL::Query::Result.new(
-                  query: gateway_resolve.query,
-                  values: JSON.parse(AppSec::Response.content_json)
-                )
               end
             end
           end

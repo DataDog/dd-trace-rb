@@ -3,7 +3,6 @@
 require 'json'
 require_relative 'ext'
 require_relative 'gateway/multiplex'
-require_relative 'gateway/resolve'
 require_relative '../../instrumentation/gateway'
 
 module Datadog
@@ -36,27 +35,6 @@ module Datadog
             end
 
             multiplex_return
-          end
-
-          # TODO: Fix (or remove) graphql.server.resolver blocking
-          def execute_field(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query], kwargs[:field])
-
-            resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
-              super(**kwargs)
-            end
-
-            resolve_return
-          end
-
-          def execute_field_lazy(**kwargs)
-            gateway_resolve = Gateway::Resolve.new(kwargs[:arguments], kwargs[:query], kwargs[:field])
-
-            resolve_return, _resolve_response = Instrumentation.gateway.push('graphql.resolve', gateway_resolve) do
-              super(**kwargs)
-            end
-
-            resolve_return
           end
         end
       end
