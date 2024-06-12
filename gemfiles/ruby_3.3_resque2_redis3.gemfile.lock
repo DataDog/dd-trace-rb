@@ -1,3 +1,13 @@
+GIT
+  remote: https://github.com/DataDog/simplecov
+  revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
+  ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
+  specs:
+    simplecov (0.21.2)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
+
 PATH
   remote: ..
   specs:
@@ -124,10 +134,6 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    simplecov (0.22.0)
-      docile (~> 1.1)
-      simplecov-html (~> 0.11)
-      simplecov_json_formatter (~> 0.1)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -185,7 +191,7 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  simplecov (~> 0.22)
+  simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
