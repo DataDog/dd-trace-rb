@@ -319,6 +319,24 @@ RSpec.describe Datadog::Tracing::SpanOperation do
     end
   end
 
+  describe '#id=' do
+    subject!(:id=) { span_op.id = id }
+
+    context 'with a valid 64 bit integer' do
+      let(:id) { 2 ^ 64 - 1 }
+      it { expect(span_op.id).to eq(id) }
+    end
+  end
+
+  describe '#trace_id=' do
+    subject!(:trace_id=) { span_op.trace_id = trace_id }
+
+    context 'with a valid 128 bit integer' do
+      let(:trace_id) { 2 ^ 128 - 1 }
+      it { expect(span_op.trace_id).to eq(trace_id) }
+    end
+  end
+
   describe '#measure' do
     subject(:measure) { span_op.measure(&block) }
 

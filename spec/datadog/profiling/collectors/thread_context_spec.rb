@@ -547,9 +547,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             let(:t1) do
               Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                otel_tracer.in_span('profiler.test') do
-                  @t1_span_id = Datadog::Tracing.correlation.span_id
-                  @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                otel_tracer.in_span('profiler.test') do |span|
+                  @t1_span_id = span.context.hex_span_id.to_i(16)
+                  @t1_local_root_span_id = span.context.hex_span_id.to_i(16)
                   ready_queue << true
                   sleep
                 end
@@ -574,12 +574,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             context 'when there are multiple otel spans nested' do
               let(:t1) do
                 Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                  otel_tracer.in_span('profiler.test') do
-                    @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                  otel_tracer.in_span('profiler.test') do |root|
+                    @t1_local_root_span_id = root.context.hex_span_id.to_i(16)
                     otel_tracer.in_span('profiler.test.nested.1') do
                       otel_tracer.in_span('profiler.test.nested.2') do
-                        otel_tracer.in_span('profiler.test.nested.3') do
-                          @t1_span_id = Datadog::Tracing.correlation.span_id
+                        otel_tracer.in_span('profiler.test.nested.3') do |leaf|
+                          @t1_span_id = leaf.context.hex_span_id.to_i(16)
                           ready_queue << true
                           sleep
                         end
@@ -641,8 +641,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               context 'when top-level span is started from otel' do
                 let(:t1) do
                   Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                    otel_tracer.in_span('profiler.test') do
-                      @t1_local_root_span_id = Datadog::Tracing.correlation.span_id
+                    otel_tracer.in_span('profiler.test') do |root|
+                      @t1_local_root_span_id = root.context.hex_span_id.to_i(16)
                       otel_tracer.in_span('profiler.test.nested.1') do
                         Datadog::Tracing.trace('profiler.test.nested.2') do
                           otel_tracer.in_span('profiler.test.nested.3') do

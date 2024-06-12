@@ -329,6 +329,17 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(parent).to be_root_span
             expect(child.parent_id).to eq(parent.id)
           end
+
+          it 'the underlying datadog spans has the same span_id as the otel spans' do
+            existing_span.finish
+            start_span.finish
+            # parent otel span generates a Datadog span with the same ids
+            expect(existing_span.context.hex_trace_id.to_i(16)).to eq(parent.trace_id)
+            expect(existing_span.context.hex_span_id.to_i(16)).to eq(parent.id)
+            # child otel span generates a Datadog span with the same ids
+            expect(start_span.context.hex_trace_id.to_i(16)).to eq(child.trace_id)
+            expect(start_span.context.hex_span_id.to_i(16)).to eq(child.id)
+          end
         end
       end
 
@@ -802,7 +813,7 @@ RSpec.describe Datadog::OpenTelemetry do
         context 'with TraceContext headers' do
           let(:carrier) do
             {
-              'traceparent' => '00-00000000000000001111111111111111-2222222222222222-01'
+              'traceparent' => '00-11111111111111111111111111111111-2222222222222222-01'
             }
           end
 
@@ -817,7 +828,7 @@ RSpec.describe Datadog::OpenTelemetry do
               otel_tracer.in_span('otel') {}
             end
 
-            expect(span.trace_id).to eq(0x00000000000000001111111111111111)
+            expect(span.trace_id).to eq(0x11111111111111111111111111111111)
             expect(span.parent_id).to eq(0x2222222222222222)
           end
         end
