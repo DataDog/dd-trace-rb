@@ -8,7 +8,7 @@ module Datadog
         @stopped: bool
         @emitter: Datadog::Core::Telemetry::Emitter
         @unsupported: bool
-        @worker: Datadog::Core::Telemetry::Heartbeat
+        @worker: Datadog::Core::Telemetry::Worker
 
         attr_reader enabled: bool
 

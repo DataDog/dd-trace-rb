@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Heartbeat < Core::Worker
+      class Worker < Core::Worker
         include Core::Workers::Polling
         include Core::Workers::Async::Thread
         include Core::Workers::Async::Thread::PrependedMethods

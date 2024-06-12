@@ -213,10 +213,10 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
   describe '#stop!' do
     subject(:stop!) { client.stop! }
-    let(:worker) { instance_double(Datadog::Core::Telemetry::Heartbeat) }
+    let(:worker) { instance_double(Datadog::Core::Telemetry::Worker) }
 
     before do
-      allow(Datadog::Core::Telemetry::Heartbeat).to receive(:new)
+      allow(Datadog::Core::Telemetry::Worker).to receive(:new)
         .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds).and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
