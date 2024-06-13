@@ -217,7 +217,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
     before do
       allow(Datadog::Core::Telemetry::Worker).to receive(:new)
-        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds).and_return(worker)
+        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, emitter: emitter)
+        .and_return(worker)
       allow(worker).to receive(:start)
       allow(worker).to receive(:stop)
     end

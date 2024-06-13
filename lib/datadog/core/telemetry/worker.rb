@@ -1,31 +1,44 @@
 # frozen_string_literal: true
 
-require_relative '../worker'
+require_relative 'event'
+
 require_relative '../workers/polling'
+require_relative '../workers/queue'
 
 module Datadog
   module Core
     module Telemetry
-      # Periodically sends a heartbeat event to the telemetry API.
-      class Worker < Core::Worker
+      # Accumulates events and sends them to the API at a regular interval, including heartbeat event.
+      class Worker
+        include Core::Workers::Queue
         include Core::Workers::Polling
 
-        def initialize(heartbeat_interval_seconds:, enabled: true, &block)
+        def initialize(heartbeat_interval_seconds:, emitter:, enabled: true)
+          @emitter = emitter
+
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
           self.loop_base_interval = heartbeat_interval_seconds
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
-          super(&block)
-          start
         end
 
-        def loop_wait_before_first_iteration?; end
+        def start
+          return if !enabled? || forked?
+
+          perform
+        end
 
         private
 
-        def start
-          perform
+        def perform(*_events)
+          return if !enabled? || forked?
+
+          heartbeat!
+        end
+
+        def heartbeat!
+          @emitter.request(Event::AppHeartbeat.new)
         end
       end
     end

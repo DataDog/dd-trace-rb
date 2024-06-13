@@ -1,19 +1,22 @@
 module Datadog
   module Core
     module Telemetry
-      class Worker < Core::Worker
+      class Worker
         include Core::Workers::Polling
         include Core::Workers::Async::Thread
         include Core::Workers::Async::Thread::PrependedMethods
         include Core::Workers::IntervalLoop
+        include Core::Workers::Queue
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric) ?{ () -> void } -> void
+        @emitter: Emitter
 
-        def loop_wait_before_first_iteration?: () -> bool?
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric, emitter: Emitter) -> void
+
+        def start: () -> void
 
         private
 
-        def start: () -> void
+        def heartbeat!: () -> void
       end
     end
   end
