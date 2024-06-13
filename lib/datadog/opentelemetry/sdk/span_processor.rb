@@ -85,11 +85,6 @@ module Datadog
           name, kwargs = span_arguments(span, attributes)
 
           datadog_span = Tracing.trace(name, **kwargs)
-          # The Datadog span must have the same ID as the OpenTelemetry span
-          # DEV: We need to set the span ID after the span is created
-          datadog_span.id = span.context.hex_span_id.to_i(16)
-          datadog_span.trace_id = span.context.hex_trace_id.to_i(16)
-
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
 
@@ -146,6 +141,9 @@ module Datadog
           attributes.flatten!(1)
 
           kwargs[:tags] = attributes.to_h
+
+          # DEV: The datadog span must have the same ID as the OpenTelemetry span
+          kwargs[:id] = span.context.hex_span_id.to_i(16)
 
           [name, kwargs]
         end

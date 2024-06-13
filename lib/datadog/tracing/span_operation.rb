@@ -40,7 +40,8 @@ module Datadog
         tags: nil,
         trace_id: nil,
         type: nil,
-        links: nil
+        links: nil,
+        id: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
         #
@@ -52,7 +53,7 @@ module Datadog
         self.type = type
         self.resource = resource
 
-        @id = Tracing::Utils.next_id
+        @id = id.nil? ? Tracing::Utils.next_id : id
         @parent_id = parent_id || 0
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 

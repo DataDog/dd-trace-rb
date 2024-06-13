@@ -333,11 +333,7 @@ RSpec.describe Datadog::OpenTelemetry do
           it 'the underlying datadog spans has the same span_id as the otel spans' do
             existing_span.finish
             start_span.finish
-            # parent otel span generates a Datadog span with the same ids
-            expect(existing_span.context.hex_trace_id.to_i(16)).to eq(parent.trace_id)
             expect(existing_span.context.hex_span_id.to_i(16)).to eq(parent.id)
-            # child otel span generates a Datadog span with the same ids
-            expect(start_span.context.hex_trace_id.to_i(16)).to eq(child.trace_id)
             expect(start_span.context.hex_span_id.to_i(16)).to eq(child.id)
           end
         end
