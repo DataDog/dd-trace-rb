@@ -1,0 +1,39 @@
+# TODO: @ivoanjo As of June 2024 upstream rbs signatures do not include this method on module and even one of their
+# tests adds this directly
+# ( https://github.com/ruby/rbs/blob/28849d4522ba18f45d4f6edfca89a515a4816373/sig/unit_test/spy.rbs#L26C1-L28C4 )
+# so I'm taking the same approach.
+class Module
+  def ruby2_keywords: (*Symbol) -> void
+end
+
+module Datadog
+  module Profiling
+    module Ext
+      module DirMonkeyPatches
+        def self.apply!: () -> true
+      end
+
+      # The signatures below are somehow inspired on
+      # https://github.com/ruby/rbs/blob/28849d4522ba18f45d4f6edfca89a515a4816373/core/dir.rbs
+
+      module DirClassMonkeyPatches
+        def []: (*untyped) -> Array[String]
+        def children: (*untyped) -> Array[String]
+        def each_child: (*untyped) -> Enumerator[String, nil] | (*untyped) { (String filename) -> void } -> nil
+        def empty?: (path path_name) -> bool
+        def entries: (*untyped) -> Array[String]
+        def foreach: (*untyped) -> Enumerator[String, nil] | (*untyped) { (String filename) -> void } -> nil
+        def glob: (*untyped) -> Array[String] | (*untyped) { (String pathname) -> void } -> nil
+        def home: (?string? user) -> String
+      end
+
+      module DirInstanceMonkeyPatches
+        def each: () { (String) -> void } -> self | () -> Enumerator[String, self]
+        def each_child: () { (String) -> void } -> self | () -> Enumerator[String, self]
+        def children: () -> Array[String]
+        def tell: () -> Integer
+        def pos: () -> Integer
+      end
+    end
+  end
+end
