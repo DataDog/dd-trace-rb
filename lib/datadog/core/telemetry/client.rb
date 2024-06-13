@@ -27,11 +27,11 @@ module Datadog
           @started = false
           @dependency_collection = dependency_collection
 
-          @worker = Telemetry::Worker.new(enabled: @enabled, heartbeat_interval_seconds: heartbeat_interval_seconds) do
-            next unless @started # `started!` should be the first event, thus ensure that `heartbeat!` is not sent first.
-
-            heartbeat!
-          end
+          @worker = Telemetry::Worker.new(
+            enabled: @enabled,
+            heartbeat_interval_seconds: heartbeat_interval_seconds,
+            emitter: @emitter
+          )
         end
 
         def disable!
@@ -50,6 +50,8 @@ module Datadog
             @unsupported = true # Prevent telemetry from getting re-enabled
             return res
           end
+
+          @worker.start
 
           @emitter.request(Event::AppDependenciesLoaded.new) if @dependency_collection
 
@@ -80,14 +82,6 @@ module Datadog
           return if !@enabled || forked?
 
           @emitter.request(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
-        end
-
-        private
-
-        def heartbeat!
-          return if !@enabled || forked?
-
-          @emitter.request(Event::AppHeartbeat.new)
         end
       end
     end
