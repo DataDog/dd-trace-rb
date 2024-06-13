@@ -12,7 +12,7 @@
 
 ### Fixed
 
-AppSec: Fix undefined method error when Tracing disabled ([#3650][])
+* AppSec: Fix undefined method error when Tracing disabled ([#3650][])
 
 ## [1.23.0] - 2024-05-09
 
