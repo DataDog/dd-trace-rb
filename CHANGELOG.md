@@ -2,11 +2,17 @@
 
 ## [Unreleased]
 
+## [1.23.2] - 2024-06-13
+
+### Fixed
+
+* Profiling: Fix rpath for linking to libdatadog when loading from extension dir ([#3683][])
+
 ## [1.23.1] - 2024-06-06
 
 ### Fixed
 
-AppSec: Fix undefined method error when Tracing disabled ([#3650][])
+* AppSec: Fix undefined method error when Tracing disabled ([#3650][])
 
 ## [1.23.0] - 2024-05-09
 
@@ -2820,7 +2826,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.2...master
+[1.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.1...v1.23.2
 [1.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.0...v1.23.1
 [1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
 [1.22.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.21.1...v1.22.0
@@ -4134,6 +4141,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3619]: https://github.com/DataDog/dd-trace-rb/issues/3619
 [#3623]: https://github.com/DataDog/dd-trace-rb/issues/3623
 [#3650]: https://github.com/DataDog/dd-trace-rb/issues/3650
+[#3683]: https://github.com/DataDog/dd-trace-rb/issues/3683
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
