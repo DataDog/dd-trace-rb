@@ -41,9 +41,11 @@ module Datadog
           digest = @datadog_propagator.extract(carrier)
           return context unless digest
 
-          # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.  
-          trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack('Q>Q>') # 128-bit unsigned, big-endian integer  
-          span_id = [digest.span_id].pack('Q>') # 64-bit unsigned, big-endian integer 
+          # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
+          # 128-bit unsigned, big-endian integer
+          trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack('Q>Q>')
+          # 64-bit unsigned, big-endian integer
+          span_id = [digest.span_id].pack('Q>')
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)

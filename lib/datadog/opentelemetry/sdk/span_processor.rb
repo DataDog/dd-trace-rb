@@ -70,7 +70,8 @@ module Datadog
           if parent_context.trace
             Tracing.send(:tracer).send(:call_context).activate!(parent_context.ensure_trace)
           else
-            Tracing.continue_trace!(nil)
+            otel_trace_id = span.context.hex_trace_id.to_i(16)
+            Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(trace_id: otel_trace_id, span_remote: false))
           end
 
           datadog_span = start_datadog_span(span)
