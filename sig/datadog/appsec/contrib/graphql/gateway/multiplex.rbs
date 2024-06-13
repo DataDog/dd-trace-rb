@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Gateway
+          class Multiplex < Instrumentation::Gateway::Argument
+            @multiplex: untyped
+
+            @arguments: untyped
+
+            attr_reader multiplex: untyped
+
+            def initialize: (untyped multiplex) -> void
+
+            def arguments: () -> untyped
+
+            def queries: () -> untyped
+
+            private
+
+            def create_arguments_hash: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end
