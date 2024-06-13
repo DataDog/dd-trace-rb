@@ -142,7 +142,6 @@ module Datadog
         ruby2_keywords :home if respond_to?(:ruby2_keywords, true)
       end
 
-      # Same as DirMonkeyPatches, but instance methods on Dir.
       module DirInstanceMonkeyPatches
         def each(*args, &block)
           if block
