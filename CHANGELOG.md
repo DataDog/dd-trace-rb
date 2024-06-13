@@ -4,8 +4,6 @@
 
 ## [1.23.2] - 2024-06-13
 
-> Please categorize the following changes:
-
 ### Fixed
 
 * Profiling: Fix rpath for linking to libdatadog when loading from extension dir ([#3683][])
