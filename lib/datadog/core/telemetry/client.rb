@@ -10,9 +10,7 @@ module Datadog
     module Telemetry
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       class Client
-        attr_reader \
-          :enabled,
-          :unsupported
+        attr_reader :enabled
 
         include Core::Utils::Forking
 
@@ -23,7 +21,6 @@ module Datadog
           @enabled = enabled
           @emitter = Emitter.new
           @stopped = false
-          @unsupported = false
           @started = false
           @dependency_collection = dependency_collection
 
@@ -41,15 +38,6 @@ module Datadog
 
         def started!
           return if !@enabled || forked?
-
-          res = @emitter.request(Event::AppStarted.new)
-
-          if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
-            Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
-            disable!
-            @unsupported = true # Prevent telemetry from getting re-enabled
-            return res
-          end
 
           @worker.start
 

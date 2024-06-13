@@ -24,6 +24,7 @@ module Datadog
         end
 
         def stop(force_stop = false, timeout = DEFAULT_SHUTDOWN_TIMEOUT)
+          # p "in stop"
           if running?
             # Attempt graceful stop and wait
             stop_loop

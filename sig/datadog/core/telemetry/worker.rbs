@@ -9,14 +9,19 @@ module Datadog
         include Core::Workers::Queue
 
         @emitter: Emitter
+        @sent_started_event: bool
 
         def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric, emitter: Emitter) -> void
 
         def start: () -> void
 
+        def sent_started_event?: () -> bool
+
         private
 
         def heartbeat!: () -> void
+
+        def started!: () -> void
       end
     end
   end
