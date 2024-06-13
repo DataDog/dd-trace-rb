@@ -38,12 +38,10 @@ GEM
       sorted_set (~> 1, >= 1.0.2)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     connection_pool (2.3.0)
     crack (0.4.5)
       rexml
-    cri (2.15.11)
     dalli (3.2.0)
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
@@ -100,7 +98,6 @@ GEM
     rake-compiler (1.2.5)
       rake
     rbtree (0.4.6)
-    redcarpet (3.6.0)
     redis (4.8.1)
     redis-namespace (1.10.0)
       redis (>= 4)
@@ -132,9 +129,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.3.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
     ruby2_keywords (0.0.5)
     semantic_logger (4.12.0)
       concurrent-ruby (~> 1.0)
@@ -210,7 +204,6 @@ DEPENDENCIES
   rack-test
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
   resque
   rexml (>= 3.2.7)
   roda (>= 2.0.0)
@@ -218,7 +211,6 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   semantic_logger (~> 4.0)
   sidekiq
   simplecov!
@@ -230,4 +222,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26

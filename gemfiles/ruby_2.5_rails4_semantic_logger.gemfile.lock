@@ -91,12 +91,10 @@ GEM
     builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    cri (2.15.11)
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.2.0)
     diff-lcs (1.5.0)
@@ -185,7 +183,6 @@ GEM
     rake (13.1.0)
     rake-compiler (1.2.5)
       rake
-    redcarpet (3.6.0)
     rexml (3.2.8)
       strscan (>= 3.0.9)
     rspec (3.12.0)
@@ -207,9 +204,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.3.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
     semantic_logger (4.15.0)
       concurrent-ruby (~> 1.0)
     simplecov-cobertura (2.1.0)
@@ -265,13 +259,11 @@ DEPENDENCIES
   rails_semantic_logger (~> 4.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
   rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)
@@ -280,4 +272,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26
