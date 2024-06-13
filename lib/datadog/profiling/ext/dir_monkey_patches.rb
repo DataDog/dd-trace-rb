@@ -13,7 +13,19 @@ module Datadog
       # reimplementing them but share the same underlying buggy code. And so our monkey patches are a bit repetitive
       # as well.
       # We don't DRY out this file to have minimal overhead.
+      #
+      # These monkey patches are applied by the profiler when the "dir_interruption_workaround_enabled" setting is
+      # enabled. See the profiling settings for more detail.
       module DirMonkeyPatches
+        def self.apply!
+          ::Dir.singleton_class.prepend(Datadog::Profiling::Ext::DirClassMonkeyPatches)
+          ::Dir.prepend(Datadog::Profiling::Ext::DirInstanceMonkeyPatches)
+
+          true
+        end
+      end
+
+      module DirClassMonkeyPatches
         def [](*args, &block)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
           super
