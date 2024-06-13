@@ -8,11 +8,13 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   let(:enabled) { true }
-  let(:heartbeat_interval_seconds) { 1.2 }
+  let(:heartbeat_interval_seconds) { 0.5 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
 
   before do
-    allow(emitter).to receive(:request)
+    logger = double(Datadog::Core::Logger)
+    allow(logger).to receive(:debug).with(any_args)
+    allow(Datadog).to receive(:logger).and_return(logger)
   end
 
   after do
@@ -24,7 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     it 'creates a new worker in stopped state' do
       expect(worker).to have_attributes(
         enabled?: true,
-        loop_base_interval: 1.2, # seconds
+        loop_base_interval: heartbeat_interval_seconds,
         run_async?: false,
         running?: false,
         started?: false
@@ -34,19 +36,75 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   describe '#start' do
     context 'when enabled' do
-      it 'starts the worker and sends heartbeat event' do
-        worker.start
+      let(:response) do
+        double(Datadog::Core::Telemetry::Http::Adapters::Net::Response, not_found?: !backend_supports_telemetry?)
+      end
 
-        try_wait_until { worker.running? }
+      before do
+        expect(emitter).to receive(:request)
+          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
+          .and_return(response)
+      end
 
-        expect(worker).to have_attributes(
-          enabled?: true,
-          loop_base_interval: 1.2, # seconds
-          run_async?: true,
-          running?: true,
-          started?: true
-        )
-        expect(emitter).to have_received(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat))
+      context "when backend doesn't support telemetry" do
+        let(:backend_supports_telemetry?) { false }
+
+        it 'disables the worker' do
+          worker.start
+
+          try_wait_until { worker.sent_started_event? }
+
+          expect(worker).to have_attributes(
+            enabled?: false,
+            loop_base_interval: heartbeat_interval_seconds,
+          )
+          expect(Datadog.logger).to have_received(:debug).with(
+            'Agent does not support telemetry; disabling future telemetry events.'
+          )
+        end
+      end
+
+      context 'when backend supports telemetry' do
+        let(:backend_supports_telemetry?) { true }
+
+        it 'starts the worker and sends heartbeat event' do
+          expect(emitter).to receive(:request)
+            .with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat))
+
+          worker.start
+
+          try_wait_until { worker.sent_started_event? }
+
+          expect(worker).to have_attributes(
+            enabled?: true,
+            loop_base_interval: heartbeat_interval_seconds,
+            run_async?: true,
+            running?: true,
+            started?: true
+          )
+        end
+
+        it 'always sends heartbeat event after started event' do
+          @sent_hearbeat = false
+          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+            # app-started was already sent by now
+            expect(worker.sent_started_event?).to be(true)
+
+            @sent_hearbeat = true
+
+            response
+          end
+
+          worker.start
+
+          try_wait_until { @sent_hearbeat }
+        end
+      end
+
+      context 'when internal error returned by emitter' do
+        let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
+
+        it { expect { worker.start }.to_not raise_error }
       end
     end
 

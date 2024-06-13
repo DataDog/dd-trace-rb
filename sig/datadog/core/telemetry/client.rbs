@@ -7,12 +7,9 @@ module Datadog
         @started: bool
         @stopped: bool
         @emitter: Datadog::Core::Telemetry::Emitter
-        @unsupported: bool
         @worker: Datadog::Core::Telemetry::Worker
 
         attr_reader enabled: bool
-
-        attr_reader unsupported: bool
 
         include Core::Utils::Forking
 
@@ -29,10 +26,6 @@ module Datadog
         def stop!: () -> void
 
         def integrations_change!: () -> void
-
-        private
-
-        def heartbeat!: () -> void
       end
     end
   end
