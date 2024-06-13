@@ -97,14 +97,31 @@ module Datadog
           end
         end
 
-        Library = Struct.new(:kind, :name, :version, :path) do
+        # Represents metadata we have for a ruby gem
+        #
+        # Important note: This class gets encoded to JSON with the built-in JSON gem. But, we've found that in some
+        # buggy cases, some Ruby gems monkey patch the built-in JSON gem and forget to call #to_json, and instead
+        # encode this class instance-field-by-instance-field.
+        #
+        # Thus, this class was setup to match the JSON output. Take this into consideration if you are adding new
+        # fields. (Also, we have a spec for this)
+        class Library
+          attr_reader :kind, :name, :version
+
           def initialize(kind:, name:, version:, path:)
-            super(kind.freeze, name.dup.freeze, version.to_s.dup.freeze, path.dup.freeze)
+            @kind = kind.freeze
+            @name = name.dup.freeze
+            @version = version.to_s.dup.freeze
+            @paths = [path.dup.freeze].freeze
             freeze
           end
 
-          def to_json(*args)
-            { kind: kind, name: name, version: version, paths: [path] }.to_json(*args)
+          def to_json(arg = nil)
+            { kind: @kind, name: @name, version: @version, paths: @paths }.to_json(arg)
+          end
+
+          def path
+            @paths.first
           end
         end
       end

@@ -29,7 +29,7 @@ module Contrib
     # Retrieves all traces in the current tracer instance.
     # This method does not cache its results.
     def fetch_traces(tracer = self.tracer)
-      tracer.instance_variable_get(:@traces) || []
+      (tracer.instance_variable_defined?(:@traces) && tracer.instance_variable_get(:@traces)) || []
     end
 
     # Retrieves and sorts all spans in the current tracer instance.
@@ -102,11 +102,11 @@ module Contrib
         traces = fetch_traces(tracer)
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
-              tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
+              tracer.writer.transport.client.api.adapter.hostname == agent_host
             transport_options = {
               adapter: :net_http,
-              hostname: NetworkHelpers::TEST_AGENT_HOST,
-              port: NetworkHelpers::TEST_AGENT_PORT,
+              hostname: agent_host,
+              port: agent_port,
               timeout: 30
             }
             traces.each do |trace|
@@ -119,6 +119,16 @@ module Contrib
           end
         end
       end
+    end
+
+    # Gets the Datadog Trace Configuration and returns a comma separated string of key/value pairs.
+    #
+    # @return [String] Key/Value pairs representing relevant Tracer Configuration
+    def parse_tracer_config
+      dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+      dd_env_variables['DD_SERVICE'] = dd_env_variables['DD_TEST_EXPECTED_SERVICE']
+      dd_env_variables.delete('DD_TEST_EXPECTED_SERVICE')
+      dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
     end
 
     # Useful for integration testing.

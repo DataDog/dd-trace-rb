@@ -11,7 +11,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
         'host' => Datadog::Core::Environment::Socket.hostname,
         'language' => 'ruby',
         'process_id' => Process.pid.to_s,
-        'profiler_version' => start_with('1.'),
+        'profiler_version' => start_with('2.'),
         'runtime' => 'ruby',
         'runtime_engine' => RUBY_ENGINE,
         'runtime-id' => Datadog::Core::Environment::Identity.id,
@@ -76,6 +76,34 @@ RSpec.describe Datadog::Profiling::TagBuilder do
           expect([key, value]).to all(have_attributes(encoding: Encoding::UTF_8))
         end
         expect(result).to include('ascii-key' => 'ascii-value')
+      end
+    end
+
+    describe 'source code integration' do
+      context 'when git environment is available' do
+        before do
+          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(
+            'git_repository_url'
+          )
+          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return('git_commit_sha')
+        end
+
+        it 'includes the git repository URL and commit SHA' do
+          expect(call).to include(
+            'git.repository_url' => 'git_repository_url', 'git.commit.sha' => 'git_commit_sha'
+          )
+        end
+      end
+
+      context 'when git environment is not available' do
+        before do
+          allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(nil)
+          allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(nil)
+        end
+
+        it 'includes the git repository URL and commit SHA' do
+          expect(call).to_not include('git.repository_url', 'git.commit.sha')
+        end
       end
     end
   end

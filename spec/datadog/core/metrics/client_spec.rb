@@ -1,8 +1,7 @@
 require 'spec_helper'
-
 require 'datadog/statsd'
-
 require 'datadog/core/metrics/client'
+require 'support/metric_helpers'
 
 RSpec.describe Datadog::Core::Metrics::Client do
   include_context 'metrics'
@@ -217,7 +216,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         let(:value) { 'my-hostname' }
 
         around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => value) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => value) do
             example.run
           end
         end
@@ -227,7 +226,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
       context 'not set' do
         around do |example|
-          ClimateControl.modify(Datadog::Core::Configuration::Ext::Transport::ENV_DEFAULT_HOST => nil) do
+          ClimateControl.modify(Datadog::Core::Configuration::Ext::Agent::ENV_DEFAULT_HOST => nil) do
             example.run
           end
         end

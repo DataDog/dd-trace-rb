@@ -1,15 +1,16 @@
-require 'spec_helper'
+require 'datadog/profiling/spec_helper'
 
-require 'datadog/profiling/http_transport'
-require 'datadog/profiling/exporter'
 require 'datadog/profiling/scheduler'
 
 RSpec.describe Datadog::Profiling::Scheduler do
-  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, **options) }
+  before { skip_if_profiling_not_supported(self) }
 
   let(:exporter) { instance_double(Datadog::Profiling::Exporter) }
   let(:transport) { instance_double(Datadog::Profiling::HttpTransport) }
+  let(:interval) { 60 } # seconds
   let(:options) { {} }
+
+  subject(:scheduler) { described_class.new(exporter: exporter, transport: transport, interval: interval, **options) }
 
   describe '.new' do
     describe 'default settings' do
@@ -81,6 +82,55 @@ RSpec.describe Datadog::Profiling::Scheduler do
           result: nil
         )
       end
+
+      context 'when perform fails' do
+        before { Thread.report_on_exception = false if Thread.respond_to?(:report_on_exception=) }
+        after  { Thread.report_on_exception = true  if Thread.respond_to?(:report_on_exception=) }
+
+        it 'calls the on_failure_proc and logs the error' do
+          expect(scheduler).to receive(:flush_and_wait).and_raise(StandardError.new('Simulated error'))
+
+          # This is a bit ugly, but we want the logic in the background thread to be called immediately, and by
+          # default we don't do that
+          expect(scheduler).to receive(:loop_wait_before_first_iteration?).and_return(false)
+          expect(scheduler).to receive(:work_pending?).and_return(true)
+
+          allow(Datadog.logger).to receive(:debug)
+
+          expect(Datadog.logger).to receive(:warn).with(/Profiling::Scheduler thread error/)
+
+          proc_called = Queue.new
+
+          scheduler.start(on_failure_proc: proc { proc_called << true })
+
+          proc_called.pop
+        end
+      end
+
+      context 'when perform is interrupted' do
+        it 'logs the interruption' do
+          inside_flush = Queue.new
+
+          # This is a bit ugly, but we want the logic in the background thread to be called immediately, and by
+          # default we don't do that
+          expect(scheduler).to receive(:loop_wait_before_first_iteration?).and_return(false)
+          expect(scheduler).to receive(:work_pending?).and_return(true)
+
+          allow(Datadog.logger).to receive(:debug)
+          expect(Datadog.logger).to receive(:debug).with(/#flush was interrupted or failed/)
+
+          expect(scheduler).to receive(:flush_and_wait) do
+            inside_flush << true
+            sleep
+          end
+
+          scheduler.start
+          inside_flush.pop
+
+          scheduler.stop(true, 0)
+          scheduler.join
+        end
+      end
     end
   end
 
@@ -97,7 +147,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
     it 'changes its wait interval after flushing' do
       expect(scheduler).to receive(:loop_wait_time=) do |value|
-        expected_interval = described_class.const_get(:DEFAULT_INTERVAL_SECONDS) - flush_time
+        expected_interval = interval - flush_time
         expect(value).to be <= expected_interval
       end
 
@@ -108,7 +158,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
       let(:options) { { **super(), interval: 0.01 } }
 
       # Assert that the interval isn't set below the min interval
-      it "floors the wait interval to #{described_class.const_get(:MINIMUM_INTERVAL_SECONDS)}" do
+      it 'floors the wait interval to MINIMUM_INTERVAL_SECONDS' do
         expect(scheduler).to receive(:loop_wait_time=)
           .with(described_class.const_get(:MINIMUM_INTERVAL_SECONDS))
 

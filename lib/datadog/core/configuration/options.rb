@@ -1,6 +1,6 @@
-require_relative 'option_set'
+# frozen_string_literal: true
+
 require_relative 'option_definition'
-require_relative 'option_definition_set'
 
 module Datadog
   module Core
@@ -18,7 +18,7 @@ module Datadog
         module ClassMethods
           def options
             # Allows for class inheritance of option definitions
-            @options ||= superclass <= Options ? superclass.options.dup : OptionDefinitionSet.new
+            @options ||= superclass <= Options ? superclass.options.dup : {}
           end
 
           protected
@@ -64,11 +64,11 @@ module Datadog
         # @public_api
         module InstanceMethods
           def options
-            @options ||= OptionSet.new
+            @options ||= {}
           end
 
           def set_option(name, value, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
-            resolve_option(name).set(value, precedence: precedence)
+            resolve_option(name).set(value, precedence: precedence, resolved_env: resolved_env(name))
           end
 
           def unset_option(name, precedence: Configuration::Option::Precedence::PROGRAMMATIC)
@@ -101,7 +101,7 @@ module Datadog
           end
 
           def reset_options!
-            options.values.each(&:reset)
+            options.each_value(&:reset)
           end
 
           private
@@ -114,6 +114,10 @@ module Datadog
             assert_valid_option!(name)
             definition = self.class.options[name]
             options[name] = definition.build(self)
+          end
+
+          def resolved_env(name)
+            return options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)

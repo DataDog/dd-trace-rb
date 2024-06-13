@@ -13,6 +13,10 @@ module Datadog
 
           def poll_interval_seconds=: (::Float) -> void
 
+          def boot_timeout_seconds: () -> ::Float
+
+          def boot_timeout_seconds=: (::Float) -> void
+
           def service: () -> ::String?
 
           def service=: (::String) -> void
@@ -43,7 +47,25 @@ module Datadog
 
           def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
 
-          def using_default?: (Symbol option) -> bool
+          def block: () -> _AppSecBlock
+        end
+
+        interface _AppSecBlock
+          def templates: () -> _TemplatesBlock
+        end
+
+        interface _TemplatesBlock
+          def html=: (::String) -> void
+
+          def html: () -> ::String
+
+          def json=: (::String) -> void
+
+          def json: () -> ::String
+
+          def text=: (::String) -> void
+
+          def text: () -> ::String
         end
 
         def initialize: (*untyped _) -> untyped

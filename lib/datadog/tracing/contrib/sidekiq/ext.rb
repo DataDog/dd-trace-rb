@@ -9,9 +9,9 @@ module Datadog
         module Ext
           CLIENT_SERVICE_NAME = 'sidekiq-client'
           ENV_ENABLED = 'DD_TRACE_SIDEKIQ_ENABLED'
+          # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_SIDEKIQ_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_SIDEKIQ_ANALYTICS_SAMPLE_RATE'
-          ENV_TAG_JOB_ARGS = 'DD_SIDEKIQ_TAG_JOB_ARGS'
           SERVICE_NAME = 'sidekiq'
           SPAN_PUSH = 'sidekiq.push'
           SPAN_JOB = 'sidekiq.job'

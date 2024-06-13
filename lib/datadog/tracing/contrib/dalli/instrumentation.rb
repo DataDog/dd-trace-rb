@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
@@ -20,13 +22,18 @@ module Datadog
               Tracing.trace(Ext::SPAN_COMMAND) do |span|
                 span.resource = op.to_s.upcase
                 span.service = datadog_configuration[:service_name]
-                span.span_type = Ext::SPAN_TYPE_COMMAND
+                span.type = Ext::SPAN_TYPE_COMMAND
 
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                     datadog_configuration[:peer_service]
                   )
+                end
+
+                # Tag original global service name if not used
+                if span.service != Datadog.configuration.service
+                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                 end
 
                 span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -45,8 +52,10 @@ module Datadog
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
-                cmd = Quantize.format_command(op, args)
-                span.set_tag(Ext::TAG_COMMAND, cmd)
+                if datadog_configuration[:command_enabled]
+                  cmd = Quantize.format_command(op, args)
+                  span.set_tag(Ext::TAG_COMMAND, cmd)
+                end
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 super

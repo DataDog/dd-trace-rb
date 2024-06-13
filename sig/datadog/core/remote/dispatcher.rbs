@@ -4,7 +4,7 @@ module Datadog
       class Dispatcher
         attr_reader receivers: Array[Receiver]
 
-        def initialize: () -> void
+        def initialize: (::Array[Receiver]) -> void
 
         def dispatch: (Remote::Configuration::Repository::ChangeSet changes, Remote::Configuration::Repository repository) -> untyped
 

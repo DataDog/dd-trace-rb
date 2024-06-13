@@ -3,18 +3,29 @@ module Datadog
     class Profiler
       include Datadog::Core::Utils::Forking
 
-      attr_reader collectors: Array[untyped]
+      private
 
+      attr_reader worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
       attr_reader scheduler: Datadog::Profiling::Scheduler
+      attr_reader optional_crashtracker: Datadog::Profiling::Crashtracker
+
+      public
 
       def initialize: (
-        [Datadog::Profiling::Collectors::OldStack | Datadog::Profiling::Collectors::CpuAndWallTimeWorker] collectors,
-        Datadog::Profiling::Scheduler scheduler,
+        worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+        scheduler: Datadog::Profiling::Scheduler,
+        optional_crashtracker: Datadog::Profiling::Crashtracker?,
       ) -> void
 
       def start: () -> void
 
       def shutdown!: () -> void
+
+      private
+
+      def stop_worker: () -> void
+      def stop_scheduler: () -> void
+      def component_failed: (:worker | :scheduler failed_component) -> void
     end
   end
 end

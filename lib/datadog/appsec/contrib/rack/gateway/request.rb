@@ -40,9 +40,13 @@ module Datadog
             end
 
             def headers
-              request.env.each_with_object({}) do |(k, v), h|
-                h[k.gsub(/^HTTP_/, '').downcase.tr('_', '-')] = v if k =~ /^HTTP_/
+              result = request.env.each_with_object({}) do |(k, v), h|
+                h[k.gsub(/^HTTP_/, '').downcase!.tr('_', '-')] = v if k =~ /^HTTP_/
               end
+
+              result['content-type'] = request.content_type if request.content_type
+              result['content-length'] = request.content_length if request.content_length
+              result
             end
 
             def body

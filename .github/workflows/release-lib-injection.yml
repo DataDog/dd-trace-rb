@@ -1,15 +1,15 @@
-
 name: "Release Library Injection"
 on:
   push:
     tags:
       - 'v*.*.*'
+      - '!v*.*.*.*' # Exclude prerelease tags
 
 jobs:
   build-and-publish-release-image:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set version
         id: version
         run: echo "version=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
@@ -28,6 +28,6 @@ jobs:
           push: true
           tags: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:${{ steps.version.outputs.version }}
           platforms: 'linux/amd64,linux/arm64/v8'
-          build-args: DDTRACE_RUBY_VERSION=${{ steps.version.outputs.version }}
+          # The build arguments must match what is defined in lib-injection/Dockerfile
+          build-args: DATADOG_RUBY_GEM_VERSION=${{ steps.version.outputs.version }}
           context: ./lib-injection
-

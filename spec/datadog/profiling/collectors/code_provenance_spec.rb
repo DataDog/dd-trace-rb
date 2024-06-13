@@ -1,5 +1,6 @@
 require 'datadog/profiling/collectors/code_provenance'
 require 'json-schema'
+require 'yaml'
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
   subject(:code_provenance) { described_class.new }
@@ -19,8 +20,8 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
         ),
         have_attributes(
           kind: 'library',
-          name: 'ddtrace',
-          version: DDTrace::VERSION::STRING,
+          name: 'datadog',
+          version: Datadog::VERSION::STRING,
           path: start_with('/'),
         ),
         have_attributes(
@@ -32,13 +33,13 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       )
     end
 
-    it 'records the correct path for ddtrace' do
+    it 'records the correct path for datadog' do
       refresh
 
       current_file_directory = __dir__
-      dd_trace_root_directory = code_provenance.generate.find { |lib| lib.name == 'ddtrace' }.path
+      datadog_gem_root_directory = code_provenance.generate.find { |lib| lib.name == 'datadog' }.path
 
-      expect(current_file_directory).to start_with(dd_trace_root_directory)
+      expect(current_file_directory).to start_with(datadog_gem_root_directory)
     end
 
     it 'skips libraries not present in the loaded files' do
@@ -75,7 +76,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     context "when a gem's path is inside another gem's path" do
       # I'm not entirely sure if this can happen in end-user apps, but can happen in CI if bundler is configured to
-      # install dependencies into a subfolder of ddtrace. In particular GitHub Actions does this.
+      # install dependencies into a subfolder of datadog. In particular GitHub Actions does this.
 
       it 'matches the loaded file to the longest matching path' do
         code_provenance.refresh(
@@ -83,7 +84,7 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           loaded_specs: [
             instance_double(
               Gem::Specification,
-              name: 'ddtrace',
+              name: 'datadog',
               version: '1.2.3',
               gem_dir: '/dd-trace-rb'
             ),
@@ -170,9 +171,9 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
           'paths' => include(start_with('/')),
         ),
         hash_including(
-          'name' => 'ddtrace',
+          'name' => 'datadog',
           'kind' => 'library',
-          'version' => DDTrace::VERSION::STRING,
+          'version' => Datadog::VERSION::STRING,
           'paths' => include(start_with('/')),
         ),
         hash_including(
@@ -186,6 +187,77 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
 
     it 'renders the list of loaded libraries using the expected schema' do
       JSON::Validator.validate!(code_provenance_schema, code_provenance.generate_json)
+    end
+
+    # In PROF-9821 we run into an issue where some versions of OJ + activesupport + monkey patching the JSON gem
+    # would result in our Library instance being encoded instance-field-by-instance-field instead of by calling #to_json.
+    #
+    # This would obviously result in broken code provenance files. To fix this, we've adjusted the class to make sure
+    # that if you serialize it field-by-field, you still get a correct result.
+    #
+    # Reproducing this exact issue in CI is really annoying -- because it would be one more set of appraisails we'd run
+    # just to reproduce it and test.
+    #
+    # So instead in this test we use YAML as an example of an encoder that doesn't use #to_json, and does it
+    # field-by-field. Thus if the Library class doesn't match exactly what we want in the output, this test will fail.
+    #
+    # In case you want to reproduce the exact JSON issue, here's a reproducer:
+    # ````ruby
+    # require 'bundler/inline'
+    #
+    # gemfile do
+    #   source 'https://rubygems.org'
+    #   gem 'activesupport', '= 5.0.7.2'
+    #   gem 'oj', '= 2.18.5'
+    # end
+    #
+    # require 'json'
+    #
+    # class Example
+    #   def initialize = @hello = 1
+    #   def to_json(arg = nil) = {world: 2}.to_json(arg)
+    # end
+    #
+    # example = Example.new
+    # puts JSON.fast_generate(example)
+    #
+    # require 'oj'
+    # require 'active_support/core_ext/object/json'
+    # Oj.mimic_JSON()
+    #
+    # puts JSON.fast_generate(example)
+    # ```
+    #
+    # Incorrect output:
+    # {"world":2}
+    # {"hello":1}
+    #
+    describe 'when JSON encoder is broken and skips #to_json' do
+      let(:library_class_without_to_json) do
+        Class.new(Datadog::Profiling::Collectors::CodeProvenance::Library) do
+          undef to_json
+        end
+      end
+
+      it 'is still able to correctly encode a library instance' do
+        instance = library_class_without_to_json.new(
+          name: 'datadog',
+          kind: 'library',
+          version: '1.2.3',
+          path: '/example/path/to/datadog/gem',
+        )
+
+        serialized_without_to_json = YAML.dump(instance)
+        # Remove class annotation, so it deserializes back as a hash and not an instance of our class
+        serialized_without_to_json.gsub!(/---.*/, '---')
+
+        expect(YAML.safe_load(serialized_without_to_json)).to eq(
+          'name' => 'datadog',
+          'kind' => 'library',
+          'version' => '1.2.3',
+          'paths' => ['/example/path/to/datadog/gem'],
+        )
+      end
     end
   end
 end

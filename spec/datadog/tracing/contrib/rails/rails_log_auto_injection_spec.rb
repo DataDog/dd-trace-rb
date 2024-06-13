@@ -66,8 +66,6 @@ RSpec.describe 'Rails Log Auto Injection' do
       c.tracing.instrument :rails
       c.tracing.log_injection = log_injection
     end
-
-    allow(ENV).to receive(:[]).and_call_original
   end
 
   after do
@@ -91,15 +89,15 @@ RSpec.describe 'Rails Log Auto Injection' do
         expect(log_entries).to have(2).items
         rack_rails_logger_entry, my_entry = log_entries
 
-        expect(rack_rails_logger_entry).not_to include trace.id.to_s
+        expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-        expect(my_entry).not_to include trace.id.to_s
+        expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
       end
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -111,15 +109,15 @@ RSpec.describe 'Rails Log Auto Injection' do
           expect(log_entries).to have(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
-          expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+          expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-          expect(my_entry).to include trace.id.to_s
+          expect(my_entry).to include low_order_trace_id(trace.id).to_s
         end
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
+        let(:log_tags) do
+          %w[some_info some_other_info]
         end
 
         it 'injects trace_id into logs and preserve existing log tags' do
@@ -130,11 +128,11 @@ RSpec.describe 'Rails Log Auto Injection' do
           expect(log_entries).to have(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
-          expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+          expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
           expect(rack_rails_logger_entry).to include '[some_info]'
           expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-          expect(my_entry).to include trace.id.to_s
+          expect(my_entry).to include low_order_trace_id(trace.id).to_s
           expect(my_entry).to include '[some_info]'
           expect(my_entry).to include '[some_other_info]'
         end
@@ -146,8 +144,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge enabled' do
@@ -160,20 +158,22 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include low_order_trace_id(low_order_trace_id(trace.id)).to_s
               expect(controller_logger_entry).to include 'ddsource=ruby'
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
             end
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -185,21 +185,21 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include low_order_trace_id(trace.id).to_s
               expect(controller_logger_entry).to include 'ddsource=ruby'
               expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
               expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
             end
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'
@@ -216,14 +216,14 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(low_order_trace_id(trace.id)).to_s
 
-              expect(controller_logger_entry).to include trace.id.to_s
+              expect(controller_logger_entry).to include low_order_trace_id(trace.id).to_s
               expect(controller_logger_entry).to include 'ddsource=ruby'
               expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
               expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
             end
           end
         end
@@ -241,11 +241,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
+            expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-            expect(my_entry).not_to include trace.id.to_s
+            expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
 
-            expect(controller_logger_entry).not_to include trace.id.to_s
+            expect(controller_logger_entry).not_to include low_order_trace_id(trace.id).to_s
           end
         end
       end
@@ -254,9 +254,12 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:logger) do
+          ::ActiveSupport::TaggedLogging.new(super())
+        end
+
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge and tagged logging enabled' do
@@ -269,19 +272,17 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry.scan(low_order_trace_id(trace.id).to_s)).to have(2).times
               expect(controller_logger_entry).to include 'ddsource=ruby'
             end
           end
 
           context 'with tagged logging setup and existing log_tags' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-            end
+            let(:log_tags) { %w[some_info some_other_info] }
 
             it 'injects trace_id into logs and preserve existing log tags' do
               is_expected.to be_ok
@@ -291,15 +292,15 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
               expect(rack_rails_logger_entry).to include '[some_info]'
               expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
               expect(my_entry).to include '[some_info]'
               expect(my_entry).to include '[some_other_info]'
 
-              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry.scan(low_order_trace_id(trace.id).to_s)).to have(2).times
               expect(controller_logger_entry).to include 'ddsource=ruby'
               expect(controller_logger_entry).to include '[some_info]'
               expect(controller_logger_entry).to include '[some_other_info]'
@@ -307,10 +308,12 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -322,11 +325,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry.scan(low_order_trace_id(trace.id).to_s)).to have(2).times
               expect(controller_logger_entry).to include 'ddsource=ruby'
               expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
               expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
@@ -334,9 +337,9 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'
@@ -353,11 +356,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
 
-              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry.scan(low_order_trace_id(trace.id).to_s)).to have(2).times
               expect(controller_logger_entry).to include 'ddsource=ruby'
               expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
               expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
@@ -365,11 +368,14 @@ RSpec.describe 'Rails Log Auto Injection' do
           end
 
           context 'with existing log_tags and Lograge custom_options' do
-            before do
-              allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:log_tags) { %w[some_info some_other_info] }
+
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -381,15 +387,15 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
+              expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
               expect(rack_rails_logger_entry).to include '[some_info]'
               expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-              expect(my_entry).to include "dd.trace_id=#{trace.id}"
+              expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
               expect(my_entry).to include '[some_info]'
               expect(my_entry).to include '[some_other_info]'
 
-              expect(controller_logger_entry.scan(trace.id.to_s)).to have(2).times
+              expect(controller_logger_entry.scan(low_order_trace_id(trace.id).to_s)).to have(2).times
               expect(controller_logger_entry).to include '[some_info]'
               expect(controller_logger_entry).to include '[some_other_info]'
               expect(controller_logger_entry).to include 'ddsource=ruby'
@@ -414,15 +420,15 @@ RSpec.describe 'Rails Log Auto Injection' do
         expect(log_entries).to have(2).item
         rack_rails_logger_entry, my_entry = log_entries
 
-        expect(rack_rails_logger_entry).not_to include trace.id.to_s
+        expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-        expect(my_entry).not_to include trace.id.to_s
+        expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
       end
     end
 
     context 'with Tagged Logging' do
-      before do
-        allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
+      let(:logger) do
+        ::ActiveSupport::TaggedLogging.new(super())
       end
 
       context 'with Tagged logging setup and no tags' do
@@ -434,16 +440,14 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           rack_rails_logger_entry, my_entry = log_entries
 
-          expect(rack_rails_logger_entry).not_to include trace.id.to_s
+          expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-          expect(my_entry).not_to include trace.id.to_s
+          expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
         end
       end
 
       context 'with tagged logging setup and existing log_tags' do
-        before do
-          allow(ENV).to receive(:[]).with('LOG_TAGS').and_return(%w[some_info some_other_info])
-        end
+        let(:log_tags) { %w[some_info some_other_info] }
 
         it 'does not inject trace_id' do
           is_expected.to be_ok
@@ -453,11 +457,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           rack_rails_logger_entry, my_entry = log_entries
 
-          expect(rack_rails_logger_entry).not_to include trace.id.to_s
+          expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
           expect(rack_rails_logger_entry).to include '[some_info]'
           expect(rack_rails_logger_entry).to include '[some_other_info]'
 
-          expect(my_entry).not_to include trace.id.to_s
+          expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
           expect(my_entry).to include '[some_info]'
           expect(my_entry).to include '[some_other_info]'
         end
@@ -477,8 +481,8 @@ RSpec.describe 'Rails Log Auto Injection' do
             expect(log_entries).to have(2).items
 
             rack_rails_logger_entry, my_entry = log_entries
-            expect(rack_rails_logger_entry).to include "dd.trace_id=#{trace.id}"
-            expect(my_entry).to include "dd.trace_id=#{trace.id}"
+            expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(low_order_trace_id(trace.id))}"
+            expect(my_entry).to include "dd.trace_id=#{low_order_trace_id(low_order_trace_id(trace.id))}"
           end
         end
       end
@@ -489,8 +493,8 @@ RSpec.describe 'Rails Log Auto Injection' do
         # for log_injection testing
         require 'lograge'
 
-        before do
-          allow(ENV).to receive(:[]).with('USE_LOGRAGE').and_return(true)
+        let(:lograge_options) do
+          { enabled?: true }
         end
 
         context 'with lograge enabled' do
@@ -503,19 +507,21 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).not_to include low_order_trace_id(trace.id).to_s
             end
           end
 
           context 'with Lograge and existing custom_options as a hash' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                'some_hash_info' => 'test_hash_value',
-                'some_other_hash_info' => 'other_test_hash_value'
+            let(:lograge_options) do
+              super().merge(
+                custom_options: {
+                  'some_hash_info' => 'test_hash_value',
+                  'some_other_hash_info' => 'other_test_hash_value'
+                }
               )
             end
 
@@ -527,20 +533,20 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).not_to include low_order_trace_id(trace.id).to_s
               expect(controller_logger_entry).to include 'some_hash_info=test_hash_value'
               expect(controller_logger_entry).to include 'some_other_hash_info=other_test_hash_value'
             end
           end
 
           context 'with Lograge and existing custom_options as a lambda' do
-            before do
-              allow(ENV).to receive(:[]).with('LOGRAGE_CUSTOM_OPTIONS').and_return(
-                lambda do |_event|
+            let(:lograge_options) do
+              super().merge(
+                custom_options: lambda do |_event|
                   {
                     'some_lambda_info' => 'test_lambda_value',
                     'some_other_lambda_info' => 'other_test_lambda_value'
@@ -557,11 +563,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace.id.to_s
+              expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(my_entry).not_to include trace.id.to_s
+              expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
 
-              expect(controller_logger_entry).not_to include trace.id.to_s
+              expect(controller_logger_entry).not_to include low_order_trace_id(trace.id).to_s
               expect(controller_logger_entry).to include 'some_lambda_info=test_lambda_value'
               expect(controller_logger_entry).to include 'some_other_lambda_info=other_test_lambda_value'
             end
@@ -581,11 +587,11 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-            expect(rack_rails_logger_entry).not_to include trace.id.to_s
+            expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
 
-            expect(my_entry).not_to include trace.id.to_s
+            expect(my_entry).not_to include low_order_trace_id(trace.id).to_s
 
-            expect(controller_logger_entry).not_to include trace.id.to_s
+            expect(controller_logger_entry).not_to include low_order_trace_id(trace.id).to_s
           end
         end
       end

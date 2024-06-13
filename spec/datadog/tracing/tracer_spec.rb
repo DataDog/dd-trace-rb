@@ -18,7 +18,7 @@ require 'datadog/tracing/utils'
 require 'datadog/tracing/writer'
 
 RSpec.describe Datadog::Tracing::Tracer do
-  let(:writer) { FauxWriter.new disable_test_agent: true }
+  let(:writer) { FauxWriter.new }
   let(:tracer_options) { {} }
 
   subject(:tracer) { described_class.new(writer: writer, **tracer_options) }
@@ -108,11 +108,11 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
 
         context 'span_type:' do
-          let(:options) { { span_type: span_type } }
+          let(:options) { { type: span_type } }
           let(:span_type) { 'my-span_type' }
 
           it 'sets the span resource' do
-            expect(span.span_type).to eq(span_type)
+            expect(span.type).to eq(span_type)
           end
         end
 
@@ -273,12 +273,12 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(parent.name).to eq('parent')
           expect(parent.service).to eq('service-parent')
 
-          expect(child1.parent_id).to be(parent.span_id)
+          expect(child1.parent_id).to be(parent.id)
           expect(child1.name).to eq('child1')
           expect(child1.service).to eq(tracer.default_service)
           expect(child1.get_tag('tag')).to eq('tag_1')
 
-          expect(child2.parent_id).to be(parent.span_id)
+          expect(child2.parent_id).to be(parent.id)
           expect(child2.name).to eq('child2')
           expect(child2.service).to eq('service-child2')
           expect(child2.get_tag('tag')).to eq('tag_2')
@@ -324,11 +324,11 @@ RSpec.describe Datadog::Tracing::Tracer do
               expect(spans.all? { |s| s.trace_id == grandparent.trace_id }).to be true
 
               expect(grandparent).to be_root_span
-              expect(parent.parent_id).to be grandparent.span_id
-              expect(child.parent_id).to be parent.span_id
-              expect(grandchild.parent_id).to be child.span_id
-              expect(uncle.parent_id).to be grandparent.span_id
-              expect(nephew.parent_id).to be uncle.span_id
+              expect(parent.parent_id).to be grandparent.id
+              expect(child.parent_id).to be parent.id
+              expect(grandchild.parent_id).to be child.id
+              expect(uncle.parent_id).to be grandparent.id
+              expect(nephew.parent_id).to be uncle.id
             end
           end
 
@@ -566,37 +566,6 @@ RSpec.describe Datadog::Tracing::Tracer do
         end
       end
 
-      context 'with _context: option' do
-        let(:options) { { _context: context_value } }
-
-        context 'as a context' do
-          let(:context) { Datadog::Tracing::Context.new }
-          let(:context_value) { context }
-
-          it 'creates an unmanaged trace' do
-            tracer.trace 'another' do
-              expect(trace).to be_root_span
-              # This context is one-off, and isn't stored in
-              # the tracer at all. We can only see the span
-              # isn't tracked by the tracer.
-              expect(trace).to_not be(tracer.active_span)
-            end
-          end
-        end
-      end
-
-      context 'without context: option' do
-        let(:options) { {} }
-
-        it 'creates span with current context' do
-          tracer.trace 'root' do |_root_span|
-            tracer.trace 'another' do |another_span|
-              expect(trace.send(:parent)).to eq another_span
-            end
-          end
-        end
-      end
-
       context 'with child finishing after parent' do
         it "allows child span to exceed parent's end time" do
           parent = tracer.trace('parent')
@@ -736,19 +705,19 @@ RSpec.describe Datadog::Tracing::Tracer do
           example.run
         end
       end
-
       it 'produces an Identifier with data' do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
-        expect(active_correlation.trace_id).to eq(span.trace_id)
-        expect(active_correlation.span_id).to eq(span.span_id)
+        expect(active_correlation.trace_id)
+          .to eq(low_order_trace_id(span.trace_id).to_s)
+        expect(active_correlation.span_id).to eq(span.id.to_s)
       end
     end
 
     context 'when no trace is active' do
       it 'produces an empty Identifier' do
         is_expected.to be_a_kind_of(Datadog::Tracing::Correlation::Identifier)
-        expect(active_correlation.trace_id).to eq 0
-        expect(active_correlation.span_id).to eq 0
+        expect(active_correlation.trace_id).to eq '0'
+        expect(active_correlation.span_id).to eq '0'
       end
     end
 
@@ -786,7 +755,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -829,7 +798,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end
@@ -881,6 +850,8 @@ RSpec.describe Datadog::Tracing::Tracer do
             trace_state: 'my-state',
             trace_state_unknown_fields: 'any;field',
           )
+          expect(digest.span_remote).to be true
+          expect(trace.to_digest.span_remote).to be false
 
           expect(trace.send(:distributed_tags)).to eq('_dd.p.test' => 'value')
 
@@ -948,7 +919,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           expect(span).to have_attributes(
             parent_id: 0,
-            span_id: a_kind_of(Integer),
+            id: a_kind_of(Integer),
             trace_id: a_kind_of(Integer)
           )
         end

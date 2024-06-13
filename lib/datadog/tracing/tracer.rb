@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
 
@@ -118,7 +120,6 @@ module Datadog
       # @yield Optional block where new newly created {Datadog::Tracing::SpanOperation} captures the execution.
       # @yieldparam [Datadog::Tracing::SpanOperation] span_op the newly created and active [Datadog::Tracing::SpanOperation]
       # @yieldparam [Datadog::Tracing::TraceOperation] trace_op the active [Datadog::Tracing::TraceOperation]
-      # rubocop:disable Lint/UnderscorePrefixedVariableName
       # rubocop:disable Metrics/MethodLength
       def trace(
         name,
@@ -129,17 +130,13 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
-        span_type: nil,
-        _context: nil,
         &block
       )
         return skip_trace(name, &block) unless enabled
 
-        context, trace = nil
-
         # Resolve the trace
         begin
-          context = _context || call_context
+          context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
                     start_trace(continue_from: continue_from)
@@ -163,7 +160,7 @@ module Datadog
               service: service,
               start_time: start_time,
               tags: tags,
-              type: span_type || type,
+              type: type,
               _trace: trace,
               &block
             )
@@ -180,12 +177,11 @@ module Datadog
             service: service,
             start_time: start_time,
             tags: tags,
-            type: span_type || type,
+            type: type,
             _trace: trace
           )
         end
       end
-      # rubocop:enable Lint/UnderscorePrefixedVariableName
       # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
@@ -228,9 +224,10 @@ module Datadog
       # @return [Datadog::Tracing::Correlation::Identifier] correlation object
       def active_correlation(key = nil)
         trace = active_trace(key)
-        Correlation.identifier_from_digest(
-          trace && trace.to_digest
-        )
+
+        return Datadog::Tracing::Correlation::Identifier.new unless trace
+
+        trace.to_correlation
       end
 
       # Setup a new trace to continue from where another
@@ -329,11 +326,13 @@ module Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            remote_parent: digest.span_remote,
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            remote_parent: false,
           )
         end
       end
@@ -353,6 +352,8 @@ module Datadog
         end
       end
 
+      # Creates a new TraceOperation, with events bounds to this Tracer instance.
+      # @return [TraceOperation]
       def start_trace(continue_from: nil)
         # Build a new trace using digest if provided.
         trace = build_trace(continue_from)
@@ -378,11 +379,13 @@ module Datadog
       )
         trace = _trace || start_trace(continue_from: continue_from)
 
+        events = SpanOperation::Events.new
+
         if block
           # Ignore start time if a block has been given
           trace.measure(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
@@ -394,7 +397,7 @@ module Datadog
           # Return the new span
           span = trace.build_span(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
@@ -404,21 +407,11 @@ module Datadog
           )
 
           span.start(start_time)
+
           span
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
-
-      def build_span_events(events = nil)
-        case events
-        when SpanOperation::Events
-          events
-        when Hash
-          SpanOperation::Events.build(events)
-        else
-          SpanOperation::Events.new
-        end
-      end
 
       def resolve_tags(tags)
         if @tags.any? && tags

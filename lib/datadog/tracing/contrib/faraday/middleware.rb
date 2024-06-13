@@ -1,7 +1,9 @@
+# frozen_string_literal: true
+
 require 'faraday'
 
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../http_annotation_helper'
@@ -10,7 +12,7 @@ module Datadog
   module Tracing
     module Contrib
       module Faraday
-        # Middleware implements a faraday-middleware for ddtrace instrumentation
+        # Middleware implements a faraday-middleware for datadog instrumentation
         class Middleware < ::Faraday::Middleware
           include Contrib::HttpAnnotationHelper
 
@@ -24,7 +26,7 @@ module Datadog
             # Do this once to reduce expensive regex calls.
             request_options = build_request_options!(env)
 
-            Tracing.trace(Ext::SPAN_REQUEST) do |span, trace|
+            Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
               propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
@@ -38,13 +40,18 @@ module Datadog
           def annotate!(span, env, options)
             span.resource = resource_name(env)
             span.service = service_name(env[:url].host, options)
-            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
             if options[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 options[:peer_service]
               )
+            end
+
+            # Tag original global service name if not used
+            if span.service != Datadog.configuration.service
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -71,7 +78,7 @@ module Datadog
           end
 
           def handle_response(span, env, options)
-            span.set_error(["Error #{env[:status]}", env[:body]]) if options.fetch(:error_handler).call(env)
+            span.set_error(["Error #{env[:status]}", env[:body]]) if options[:error_status_codes].include? env[:status]
 
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, env[:status])
 
@@ -81,7 +88,7 @@ module Datadog
           end
 
           def propagate!(trace, span, env)
-            Tracing::Propagation::HTTP.inject!(trace, env[:request_headers])
+            Contrib::HTTP.inject(trace, env[:request_headers])
           end
 
           def resource_name(env)

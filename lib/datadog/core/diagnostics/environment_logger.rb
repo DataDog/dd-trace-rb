@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'date'
 require 'json'
 require 'rbconfig'
+require 'time'
 
 module Datadog
   module Core
@@ -21,16 +21,6 @@ module Datadog
 
         def logger
           Datadog.logger
-        end
-
-        # If logger should log and hasn't logged already, then output environment configuration and possible errors.
-        def log_once!
-          # Check if already been executed
-          return false if (defined?(@executed) && @executed) || !log?
-
-          yield if block_given?
-
-          @executed = true
         end
 
         # Are we logging the environment data?
@@ -58,9 +48,10 @@ module Datadog
       module EnvironmentLogger
         extend EnvironmentLogging
 
-        def self.collect_and_log!
-          log_once! do
+        def self.collect_and_log!(extra_fields = nil)
+          if log?
             data = EnvironmentCollector.collect_config!
+            data = data.merge(extra_fields) if extra_fields
             log_configuration!('CORE', data.to_json)
           end
         rescue => e
@@ -91,7 +82,7 @@ module Datadog
 
           # @return [String] current time in ISO8601 format
           def date
-            DateTime.now.iso8601
+            Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.
@@ -100,9 +91,9 @@ module Datadog
             RbConfig::CONFIG['host']
           end
 
-          # @return [String] ddtrace version
+          # @return [String] datadog version
           def version
-            DDTrace::VERSION::STRING
+            Datadog::VERSION::STRING
           end
 
           # @return [String] "ruby"
@@ -166,7 +157,7 @@ module Datadog
 
           # @return [Boolean, nil] health metrics enabled in configuration
           def health_metrics_enabled
-            !!Datadog.configuration.diagnostics.health_metrics.enabled
+            !!Datadog.configuration.health_metrics.enabled
           end
 
           private

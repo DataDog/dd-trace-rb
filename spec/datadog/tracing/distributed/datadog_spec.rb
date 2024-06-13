@@ -5,13 +5,13 @@ require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Datadog distributed format' do
-  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['datadog'] }
+  let(:propagation_style_extract) { ['datadog'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject(:inject!) { datadog.inject!(digest, data) }
+    subject(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     context 'with nil digest' do
@@ -103,6 +103,10 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context 'nil' do
+          before do
+            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+          end
+
           let(:tags) { nil }
           it do
             inject!
@@ -111,6 +115,10 @@ RSpec.shared_examples 'Datadog distributed format' do
         end
 
         context '{}' do
+          before do
+            Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+          end
+
           let(:tags) { {} }
           it do
             inject!
@@ -122,7 +130,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           let(:tags) { { key: 'value' } }
           it do
             inject!
-            expect(data).to include('x-datadog-tags' => 'key=value')
+            expect(data['x-datadog-tags']).to include('key=value')
           end
         end
 
@@ -130,7 +138,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           let(:tags) { { '_dd.p.dm' => '-1' } }
           it do
             inject!
-            expect(data).to include('x-datadog-tags' => '_dd.p.dm=-1')
+            expect(data['x-datadog-tags']).to include('_dd.p.dm=-1')
           end
         end
 
@@ -175,8 +183,10 @@ RSpec.shared_examples 'Datadog distributed format' do
             end
 
             context 'and no tags' do
+              before do
+                Datadog.configure { |c| c.tracing.trace_id_128_bit_generation_enabled = false }
+              end
               let(:tags) { {} }
-
               it 'does not set error for empty tags' do
                 expect(active_trace).to_not receive(:set_tag)
                 inject!
@@ -185,7 +195,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           end
 
           context 'with invalid tags' do
-            let(:tags) { 'not_a_tag_hash' }
+            let(:tags) { { 'key with=spaces' => 'value' } }
 
             it 'sets error tag' do
               expect(active_trace).to receive(:set_tag).with('_dd.propagation_error', 'encoding_error')
@@ -236,7 +246,7 @@ RSpec.shared_examples 'Datadog distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { datadog.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:digest) { extract }
 
     let(:data) { {} }
@@ -255,6 +265,7 @@ RSpec.shared_examples 'Datadog distributed format' do
       it { expect(digest.trace_id).to eq(10000) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to be nil }
+      it { expect(digest.span_remote).to be true }
 
       context 'with sampling priority' do
         let(:data) do
@@ -483,5 +494,8 @@ RSpec.shared_examples 'Datadog distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::Datadog do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'Datadog distributed format'
 end

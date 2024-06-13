@@ -64,18 +64,18 @@ RSpec.describe Datadog::Core::Environment::Identity do
     it { is_expected.to eq(Datadog::Core::Environment::Ext::LANG_VERSION) }
   end
 
-  describe '::tracer_version' do
-    subject(:tracer_version) { described_class.tracer_version }
+  describe '::gem_datadog_version' do
+    subject(:gem_datadog_version) { described_class.gem_datadog_version }
 
-    it { is_expected.to eq(Datadog::Core::Environment::Ext::TRACER_VERSION) }
+    it { is_expected.to eq(Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION) }
   end
 
-  describe '::tracer_version_semver2' do
-    subject(:tracer_version) { described_class.tracer_version_semver2 }
+  describe '::gem_datadog_version_semver2' do
+    subject(:gem_datadog_version) { described_class.gem_datadog_version_semver2 }
 
     context 'when not prerelease' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30')
+        expect(described_class).to receive(:gem_datadog_version).and_return('10.20.30'.freeze)
       end
 
       it { is_expected.to eq('10.20.30') }
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when prerelease' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40')
+        expect(described_class).to receive(:gem_datadog_version).and_return('10.20.30.beta40'.freeze)
       end
 
       it { is_expected.to eq('10.20.30-beta40') }
@@ -91,18 +91,20 @@ RSpec.describe Datadog::Core::Environment::Identity do
 
     context 'when development' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.gha12345.ga1b2c3d4.a.branch.name')
+        expect(described_class).to receive(:gem_datadog_version)
+          .and_return('10.20.30.b3fe268.gha12345.ga1b2c3d4'.freeze)
       end
 
-      it { is_expected.to eq('10.20.30+gha12345.ga1b2c3d4.a-branch-name') }
+      it { is_expected.to eq('10.20.30+b3fe268.gha12345.ga1b2c3d4') }
     end
 
     context 'when prerelease and development' do
       before do
-        expect(described_class).to receive(:tracer_version).and_return('10.20.30.beta40.gha12345.ga1b2c3d4.a.branch.name')
+        expect(described_class).to receive(:gem_datadog_version)
+          .and_return('10.20.30.beta40.b3fe268.gha12345.ga1b2c3d4'.freeze)
       end
 
-      it { is_expected.to eq('10.20.30-beta40+gha12345.ga1b2c3d4.a-branch-name') }
+      it { is_expected.to eq('10.20.30-beta40+b3fe268.gha12345.ga1b2c3d4') }
     end
   end
 end

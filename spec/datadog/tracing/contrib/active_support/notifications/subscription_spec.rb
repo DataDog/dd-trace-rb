@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 
 require 'active_support/notifications'
 require 'datadog/tracing/contrib/active_support/notifications/subscription'
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
 
         it 'sets the parent span operation' do
           parent = Datadog::Tracing.trace('parent_span_operation')
-          expect(subject.parent_id).to eq parent.span_id
+          expect(subject.parent_id).to eq parent.id
         end
 
         it 'sets span operation in payload' do

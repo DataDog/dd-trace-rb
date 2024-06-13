@@ -4,8 +4,10 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
+require_relative 'shared_examples'
+
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'tracing on the server connection' do
   subject(:server) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new }
@@ -27,7 +29,7 @@ RSpec.describe 'tracing on the server connection' do
 
   shared_examples 'span data contents' do
     it { expect(span.name).to eq 'grpc.service' }
-    it { expect(span.span_type).to eq 'web' }
+    it { expect(span.type).to eq 'web' }
     it { expect(span.service).to eq 'rspec' }
     it { expect(span.resource).to eq 'my.server.endpoint' }
     it { expect(span.get_tag('error.stack')).to be_nil }
@@ -70,11 +72,12 @@ RSpec.describe 'tracing on the server connection' do
     end
 
     context 'with an error' do
-      subject(:request_response) do
+      let(:request_response) do
         server.request_response(**keywords) { raise error_class, 'test error' }
       end
 
       let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+      let(:span_kind) { 'server' }
 
       context 'without an error handler' do
         it do
@@ -90,21 +93,25 @@ RSpec.describe 'tracing on the server connection' do
       end
 
       context 'with an error handler' do
-        let(:configuration_options) { { service_name: 'rspec', error_handler: error_handler } }
-        let(:error_handler) do
-          lambda do |span, error|
-            span.set_tag('custom.handler', "Got error #{error}, but ignored it")
-          end
+        subject(:server) do
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Server.new { |c| c.on_error = on_error }
         end
 
-        it do
-          expect { request_response }.to raise_error('test error')
-
-          expect(span).to_not have_error
-          expect(span.get_tag('custom.handler')).to eq('Got error test error, but ignored it')
-          expect(span.get_tag('rpc.system')).to eq('grpc')
-          expect(span.get_tag('span.kind')).to eq('server')
+        let(:on_error) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
         end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from interceptor'
+      end
+
+      context 'with an error handler defined in the configuration_options' do
+        let(:configuration_options) { { on_error: on_error } }
+
+        let(:on_error) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
+        end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from configuration'
       end
     end
   end

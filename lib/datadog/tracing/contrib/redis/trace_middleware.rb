@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'quantize'
@@ -9,54 +11,67 @@ module Datadog
       module Redis
         # Instrumentation for Redis 5+
         module TraceMiddleware
-          def call(commands, redis_config)
-            Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              datadog_configuration = resolve(redis_config)
-              resource = get_command(commands, datadog_configuration[:command_args])
-
-              span.service = datadog_configuration[:service_name]
-              span.span_type = Contrib::Redis::Ext::TYPE
-              span.resource = resource
-
-              Contrib::Redis::Tags.set_common_tags(redis_config, span, datadog_configuration[:command_args])
-
-              super
-            end
+          # Instruments {RedisClient::ConnectionMixin#call}.
+          def call(command, redis_config)
+            config = resolve(redis_config)
+            TraceMiddleware.call(redis_config, command, config[:service_name], config[:command_args]) { super }
           end
 
+          # Instruments {RedisClient::ConnectionMixin#call_pipelined}.
           def call_pipelined(commands, redis_config)
-            Tracing.trace(Contrib::Redis::Ext::SPAN_COMMAND) do |span|
-              datadog_configuration = resolve(redis_config)
-              pipelined_commands = get_pipeline_commands(commands, datadog_configuration[:command_args])
+            config = resolve(redis_config)
+            TraceMiddleware.call_pipelined(redis_config, commands, config[:service_name], config[:command_args]) { super }
+          end
 
-              span.service = datadog_configuration[:service_name]
-              span.span_type = Contrib::Redis::Ext::TYPE
-              span.resource = pipelined_commands.join("\n")
-              span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, pipelined_commands.length
+          class << self
+            def call(client, command, service_name, command_args)
+              Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
+                raw_command = get_command(command, true)
+                span.resource = command_args ? raw_command : get_command(command, false)
 
-              Contrib::Redis::Tags.set_common_tags(redis_config, span, datadog_configuration[:command_args])
+                Contrib::Redis::Tags.set_common_tags(client, span, raw_command)
 
-              super
+                yield
+              end
+            end
+
+            def call_pipelined(client, commands, service_name, command_args)
+              Tracing.trace(Redis::Ext::SPAN_COMMAND, type: Redis::Ext::TYPE, service: service_name) do |span|
+                raw_command = get_pipeline_commands(commands, true)
+                span.resource = command_args ? raw_command : get_pipeline_commands(commands, false)
+
+                span.set_metric Contrib::Redis::Ext::METRIC_PIPELINE_LEN, commands.length
+
+                Contrib::Redis::Tags.set_common_tags(client, span, raw_command)
+
+                yield
+              end
+            end
+
+            private
+
+            # Quantizes a single Redis command
+            def get_command(command, command_args)
+              if command_args
+                Contrib::Redis::Quantize.format_command_args(command)
+              else
+                Contrib::Redis::Quantize.get_verb(command)
+              end
+            end
+
+            # Quantizes a multi-command Redis pipeline execution
+            def get_pipeline_commands(commands, command_args)
+              list = if command_args
+                       commands.map { |c| Contrib::Redis::Quantize.format_command_args(c) }
+                     else
+                       commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
+                     end
+
+              list.empty? ? '(none)' : list.join("\n")
             end
           end
 
           private
-
-          def get_command(commands, boolean)
-            if boolean
-              Contrib::Redis::Quantize.format_command_args(commands)
-            else
-              Contrib::Redis::Quantize.get_verb(commands)
-            end
-          end
-
-          def get_pipeline_commands(commands, boolean)
-            if boolean
-              commands.map { |c| Contrib::Redis::Quantize.format_command_args(c) }
-            else
-              commands.map { |c| Contrib::Redis::Quantize.get_verb(c) }
-            end
-          end
 
           def resolve(redis_config)
             custom = redis_config.custom[:datadog] || {}

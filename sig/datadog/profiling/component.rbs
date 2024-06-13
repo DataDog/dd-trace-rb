@@ -5,38 +5,45 @@ module Datadog
         settings: untyped,
         agent_settings: Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
         optional_tracer: Datadog::Tracing::Tracer?,
-      ) -> Datadog::Profiling::Profiler?
+      ) -> [Datadog::Profiling::Profiler?, {profiling_enabled: bool}]
 
-      def self.build_profiler_old_recorder: (untyped settings) -> Datadog::Profiling::OldRecorder
+      def self.build_thread_context_collector: (
+        untyped settings,
+        Datadog::Profiling::StackRecorder recorder,
+        Datadog::Tracing::Tracer? optional_tracer,
+        bool timeline_enabled,
+      ) -> Datadog::Profiling::Collectors::ThreadContext
 
       def self.build_profiler_exporter: (
         untyped settings,
-        (Datadog::Profiling::StackRecorder | Datadog::Profiling::OldRecorder) recorder,
+        Datadog::Profiling::StackRecorder recorder,
+        Datadog::Profiling::Collectors::CpuAndWallTimeWorker worker,
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
       ) -> Datadog::Profiling::Exporter
-
-      def self.build_profiler_oldstack_collector: (
-        untyped settings,
-        Datadog::Profiling::OldRecorder old_recorder,
-        Datadog::Tracing::Tracer? tracer,
-      ) -> Datadog::Profiling::Collectors::OldStack
 
       def self.build_profiler_transport: (
         untyped settings,
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings
       ) -> untyped
 
+      def self.build_crashtracker: (
+        untyped settings,
+        untyped transport,
+      ) -> Datadog::Profiling::Crashtracker?
+
       def self.enable_gc_profiling?: (untyped settings) -> bool
-
-      def self.print_new_profiler_warnings: () -> void
-
-      def self.enable_new_profiler?: (untyped settings) -> bool
+      def self.enable_allocation_profiling?: (untyped settings) -> bool
+      def self.get_heap_sample_every: (untyped settings) -> ::Integer
+      def self.enable_heap_profiling?: (untyped settings, bool allocation_profiling_enabled, ::Integer heap_sample_every) -> bool
+      def self.enable_heap_size_profiling?: (untyped settings, bool heap_profiling_enabled) -> bool
 
       def self.no_signals_workaround_enabled?: (untyped settings) -> bool
 
       def self.incompatible_libmysqlclient_version?: (untyped settings) -> bool
-
-      def self.load_pprof_support: () -> void
+      def self.incompatible_passenger_version?: () -> bool
+      def self.flush_interval: (untyped settings) -> ::Numeric
+      def self.valid_overhead_target: (::Float overhead_target_percentage) -> ::Float
+      def self.looks_like_mariadb?: ({ header_version: ::String? }, ::Gem::Version) -> bool
     end
   end
 end

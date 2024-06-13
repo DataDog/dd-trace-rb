@@ -1,8 +1,6 @@
 require 'datadog/tracing/contrib/aws/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:aws) }
 
   describe '.version' do

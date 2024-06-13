@@ -1,5 +1,7 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
-require_relative '../../propagation/http'
+require_relative '../http'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
 
@@ -25,10 +27,10 @@ module Datadog
               Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
                 begin
                   span.service = service_name(host, request_options, client_config)
-                  span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                  span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
                   if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
-                    Tracing::Propagation::HTTP.inject!(trace, req.header)
+                    Contrib::HTTP.inject(trace, req.header)
                   end
 
                   # Add additional request specific tags to the span.
@@ -56,6 +58,11 @@ module Datadog
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   req_options[:peer_service]
                 )
+              end
+
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)

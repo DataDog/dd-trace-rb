@@ -4,18 +4,6 @@ source "https://rubygems.org"
 
   # gem 'rails', '5.2.2'
 
-google_protobuf_versions = [
-  '~> 3.0',
-  '!= 3.7.0.rc.2',
-  '!= 3.7.0.rc.3',
-  '!= 3.7.0',
-  '!= 3.7.1',
-  '!= 3.8.0.rc.1',
-  '!= 3.20.0.rc.1',
-  '!= 3.20.0.rc.2',
-  '!= 3.24.0.rc.1',
-]
-
 rails_version = ['~> 5.2', '>= 5.2.6']
 
 gem 'actioncable', *rails_version
@@ -31,19 +19,16 @@ gem 'mysql2'
 gem 'puma'
 gem 'unicorn'
 
-# Choose correct specs for 'ddtrace' demo environment
-gem 'ddtrace', *Datadog::DemoEnv.gem_spec('ddtrace')
+# Lock loofah's version as there were issues between specific loofah and nokogiri (a loofah dependency)
+# around loofah 2.20. We can't upgrade both loofah and nokogiri to their latest version because
+# they are not supported by Ruby < 2.5.
+gem 'loofah', '2.19.1'
+
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 gem 'dogstatsd-ruby'
 gem 'ffi'
-
-# Needed for ddtrace profiling
-if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.4')
-  gem 'google-protobuf', *google_protobuf_versions
-else
-  # Bundler resolves incorrect version (too new, incompatible with Ruby <= 2.3)
-  gem 'google-protobuf', '< 3.19.2'
-end
 
 # Fixes conflict with profiling (patch overwrite in Thread)
 # Upgrade this to latest when this patch is merged & released.

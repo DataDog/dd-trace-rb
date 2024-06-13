@@ -6,6 +6,8 @@ module Datadog
       include Metadata::Errors
       prepend Metadata::Analytics
 
+      attr_reader links: untyped
+
       attr_reader end_time: untyped
 
       attr_reader id: untyped
@@ -26,7 +28,7 @@ module Datadog
 
       attr_accessor status: untyped
 
-      def initialize: (untyped name, ?child_of: untyped?, ?events: untyped?, ?on_error: untyped?, ?parent_id: ::Integer, ?resource: untyped, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?trace_id: untyped?, ?type: untyped?) -> void
+      def initialize: (untyped name, ?child_of: untyped?, ?events: untyped?, ?on_error: untyped?, ?parent_id: ::Integer, ?resource: untyped, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?trace_id: untyped?, ?type: untyped?, ?links: untyped?) -> void
 
       def name=: (untyped name) -> untyped
 
@@ -124,12 +126,6 @@ module Datadog
       def start_time_nano: () -> untyped
 
       def duration_nano: () -> untyped
-
-      alias span_id id
-
-      alias span_type type
-
-      alias span_type= type=
     end
   end
 end

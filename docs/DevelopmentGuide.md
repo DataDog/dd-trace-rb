@@ -9,10 +9,8 @@ This guide covers some of the common how-tos and technical reference material fo
      - [Writing tests](#writing-tests)
      - [Running tests](#running-tests)
      - [Checking code quality](#checking-code-quality)
-     - [Running benchmarks](#running-benchmarks)
  - [Appendix](#appendix)
      - [Writing new integrations](#writing-new-integrations)
-     - [Custom transport adapters](#custom-transport-adapters)
 
 ## Setting up
 
@@ -22,7 +20,7 @@ The trace library uses Docker Compose to create a Ruby environment to develop an
 
 To start a development environment, choose a target Ruby version then run the following:
 
-```
+```bash
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
@@ -32,9 +30,6 @@ docker-compose run --rm tracer-3.0 /bin/bash
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
 bundle install
-
-# Install build targets
-bundle exec appraisal install
 ```
 
 Then within this container you can [run tests](#running-tests), or [run code quality checks](#checking-code-quality).
@@ -45,16 +40,38 @@ The test suite uses [RSpec](https://rspec.info/) tests to verify the correctness
 
 ### Writing tests
 
-New tests should be written as RSpec tests in the `spec/ddtrace` folder. Test files should generally mirror the structure of `lib`.
+New tests should be written as RSpec tests in the `spec/datadog` folder. Test files should generally mirror the structure of `lib`.
 
 All changes should be covered by a corresponding RSpec tests. Unit tests are preferred, and integration tests are accepted where appropriate (e.g. acceptance tests, verifying compatibility with datastores, etc) but should be kept to a minimum.
 
 **Considerations for CI**
 
-All tests should run in CI. When adding new `spec.rb` files, you may need to add a test task to ensure your test file is run in CI.
+All tests should run in CI. When adding new `_spec.rb` files, you may need to add rake task to ensure your test file is run in CI.
 
- - Ensure that there is a corresponding Rake task defined in `Rakefile` under the the `spec` namespace, whose pattern matches your test file.
- - Verify the Rake task is configured to run for the appropriate Ruby runtimes in the `ci` Rake task.
+ - Ensure that there is a corresponding Rake task defined in `Rakefile` under the `spec` namespace, whose pattern matches your test file. For example
+
+ ```ruby
+   namespace :spec do
+     RSpec::Core::RakeTask.new(:foo) do |t, args|
+       t.pattern = "spec/datadog/tracing/contrib/bar/**/*_spec.rb"
+       t.rspec_opts = args.to_a.join(' ')
+     end
+   end
+ ```
+
+ - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by introducing it to our test matrix. You should find the task with `bundle exec rake -T test:<foo>`.
+
+```ruby
+  TEST_METADATA = {
+    'foo' => {
+      # Without any appraisal group dependencies
+      ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+
+      # or with appraisal group definition `bar`
+      'bar' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+    },
+  }
+```
 
 ### Running tests
 
@@ -65,36 +82,55 @@ Simplest way to run tests is to run `bundle exec rake ci`, which will run the en
 Run the tests for the core library with:
 
 ```
-$ bundle exec rake spec:main
+$ bundle exec rake test:main
 ```
 
 **For integrations**
 
-Integrations which interact with dependencies not listed in the `ddtrace` gemspec will need to load these dependencies to run their tests.
+Integrations which interact with dependencies not listed in the `datadog` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
 
-To do so, load the dependencies using [Appraisal](https://github.com/thoughtbot/appraisal). You can see a list of available appraisals with `bundle exec appraisal list`, or examine the `Appraisals` file.
+To get a list of the test tasks, run `bundle exec rake -T test`
 
-Then to run tests, prefix the test commain with the appraisal.
+To run test, run `bundle exec rake test:<spec_name>`
 
-`bundle exec appraisal <appraisal_name> rake <test_comand>`
+Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different groups are tested.
 
+```ruby
+TEST_METADATA = {
+  'redis' => {
+    'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-5' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  }
+}
+```
 
-For example:
+**Working with appraisal groups**
+
+Checkout [Apppraisal](https://github.com/thoughtbot/appraisal) to learn the basics.
+
+Groups are defined under `appraisal/` directory and their names are prefixed with Ruby runtime based on the environment. `*.gemfile` and `*.gemfile.lock` from `gemfiles/` directory are generated from those definitions.
+
+To find out existing groups in your environment, run `bundle exec appraisal list`
+
+After introducing a new group definition or changing existing one, run `bundle exec appraisal generate` to propagate the changes.
+
+To install dependencies, run `bundle exec appraisal install`.
+
+In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment vairable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
 
 ```
-# Runs tests for Rails 6.1 + Postgres
-$ bundle exec appraisal ruby-3.0.4-rails61-postgres rake spec:rails
-# Runs tests for Redis
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
+# This would only install dependencies for `aws` group definition
+APPRAISAL_GROUP=aws bundle exec appraisal install
 ```
 
 **Passing arguments to tests**
 
-When running RSpec tests, you may pass additional args as parameters to the Rake task. For example:
+When running tests, you may pass additional args as parameters to the Rake task. For example:
 
 ```
 # Runs Redis tests with seed 1234
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis'[--seed,1234]'
+$ bundle exec rake test:redis'[--seed 1234]'
 ```
 
 This can be useful for replicating conditions from CI or isolating certain tests.
@@ -104,7 +140,7 @@ This can be useful for replicating conditions from CI or isolating certain tests
 You can check test code coverage by creating a report _after_ running a test suite:
 ```
 # Run the desired test suite
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:redis
+$ bundle exec rake test:redis
 # Generate report for the suite executed
 $ bundle exec rake coverage:report
 ```
@@ -128,11 +164,11 @@ Test leaked 1 thread: "Datadog::Workers::AsyncTransport integration tests"
 Ensure all threads are terminated when test finishes:
 1: #<Thread:0x00007fcbc99863d0 /Users/marco.costa/work/dd-trace-rb/spec/spec_helper.rb:145 sleep> (Thread)
 Thread Creation Site:
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'new'
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:245:in 'block (4 levels) in <top (required)>'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:245:in 'new'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:245:in 'block (4 levels) in <top (required)>'
 Thread Backtrace:
-        ./dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'sleep'
-        .dd-trace-rb/spec/ddtrace/workers_integration_spec.rb:262:in 'block (5 levels) in <top (required)>'
+        ./dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:262:in 'sleep'
+        .dd-trace-rb/spec/datadog/tracing/workers_integration_spec.rb:262:in 'block (5 levels) in <top (required)>'
         ./dd-trace-rb/spec/spec_helper.rb:147:in 'block in initialize'
 ```
 
@@ -146,8 +182,8 @@ Depending on the situation, the thread in question might need to be forced to te
 **The APM Test Agent**
 
 The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
-runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number 
-of 'Trace Checks'. For more information on these checks, see: 
+runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number
+of 'Trace Checks'. For more information on these checks, see:
 https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
 
 The APM Test Agent also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
@@ -168,16 +204,6 @@ The trace library uses Rubocop to enforce [code style](https://github.com/bbatso
 $ bundle exec rake rubocop
 ```
 
-### Running benchmarks
-
-If your changes can have a measurable performance impact, we recommend running our benchmark suite:
-
-```
-$ bundle exec appraisal ruby-3.0.4-contrib rake spec:benchmark
-```
-
-Results are printed to STDOUT as well as written to the `./tmp/benchmark/` directory.
-
 ## Appendix
 
 ### Writing new integrations
@@ -186,7 +212,7 @@ Integrations are extensions to the trace library that add support for external d
 
 Some general guidelines for adding new integrations:
 
- - An integration can either be added directly to `dd-trace-rb`, or developed as its own gem that depends on `ddtrace`.
+ - An integration can either be added directly to `dd-trace-rb`, or developed as its own gem that depends on `datadog`.
  - Integrations should implement the configuration API for easy, consistent implementation. (See existing integrations as examples of this.)
  - All new integrations require documentation, unit/integration tests written in RSpec, and passing CI builds.
  - It's highly encouraged to share screenshots or other demos of how the new integration looks and works.
@@ -201,68 +227,6 @@ Then [open a pull request](../CONTRIBUTING.md#have-a-patch) and be sure to add t
  - Links to the repository/website of the library being integrated
  - Screenshots showing a sample trace
  - Any additional code snippets, sample apps, benchmarks, or other resources that demonstrate its implementation are a huge plus!
-
-### Custom transport adapters
-
-The tracer can be configured with transports that customize how data is sent and where it is sent to. This is done through the use of adapters: classes that receive generic requests, process them, and return appropriate responses.
-
-#### Developing HTTP transport adapters
-
-To create a custom HTTP adapter, define a class that responds to `call(env)` which returns a kind of `Datadog::Transport::Response`:
-
-```ruby
-require 'ddtrace/transport/response'
-
-class CustomAdapter
-  # Sends HTTP request
-  # env: Datadog::Transport::HTTP::Env
-  def call(env)
-    # Add custom code here to send data.
-    # Then return a Response object.
-    Response.new
-  end
-
-  class Response
-    include Datadog::Transport::Response
-
-    # Implement the following methods as appropriate
-    # for your adapter.
-
-    # Return a String
-    def payload; end
-
-    # Return true/false
-    # Return nil if it does not apply
-    def ok?; end
-    def unsupported?; end
-    def not_found?; end
-    def client_error?; end
-    def server_error?; end
-    def internal_error?; end
-  end
-end
-```
-
-Optionally, you can register the adapter as a well-known type:
-
-```ruby
-Datadog::Transport::HTTP::Builder::REGISTRY.set(CustomAdapter, :custom)
-```
-
-Then pass an adapter instance to the tracer configuration:
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.transport_options = proc { |t|
-    # By name
-    t.adapter :custom
-
-    # By instance
-    custom_adapter = CustomAdapter.new
-    t.adapter custom_adapter
-  }
-end
-```
 
 ### Generating GRPC proto stubs for tests
 

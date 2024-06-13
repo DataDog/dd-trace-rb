@@ -1,37 +1,16 @@
 module Datadog
   module Profiling
-    GOOGLE_PROTOBUF_MINIMUM_VERSION: ::Gem::Version
-
-    self.@protobuf_loaded: bool
-
     def self.supported?: () -> bool
-
     def self.unsupported_reason: () -> ::String?
-
     def self.start_if_enabled: () -> bool
-
     def self.allocation_count: () -> ::Integer?
-
+    def self.enabled?: () -> bool
+    def self.wait_until_running: () -> true
     def self.replace_noop_allocation_count: () -> void
-
     def self.native_library_compilation_skipped?: () -> ::String?
-
     def self.try_reading_skipped_reason_file: (?untyped file_api) -> ::String?
-
-    def self.protobuf_gem_unavailable?: () -> ::String?
-
-    def self.protobuf_version_unsupported?: () -> ::String?
-
-    def self.protobuf_already_loaded?: () -> bool
-
-    def self.protobuf_failed_to_load?: () -> ::String?
-
-    def self.protobuf_loaded_successfully?: () -> bool
-
     def self.native_library_failed_to_load?: () -> ::String?
-
     def self.try_loading_native_library: () -> [bool, ::Exception?]
-
     def self.load_profiling: () -> bool
   end
 end

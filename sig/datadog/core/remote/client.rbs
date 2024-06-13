@@ -8,7 +8,7 @@ module Datadog
         class SyncError < StandardError
         end
 
-        attr_reader transport: Datadog::Core::Transport::Config::Transport
+        attr_reader transport: Datadog::Core::Remote::Transport::Config::Transport
 
         attr_reader repository: Configuration::Repository
 
@@ -18,7 +18,7 @@ module Datadog
 
         attr_reader capabilities: Capabilities
 
-        def initialize: (Datadog::Core::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
+        def initialize: (Datadog::Core::Remote::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
 
         def sync: () -> void
 
@@ -27,12 +27,12 @@ module Datadog
         @gem_specs: ::Hash[::String, ::Gem::Specification | untyped]
         @native_platform: ::String
         @ruby_engine_version: ::String
-        @tracer_version_semver2: ::String
+        @tracer_version: ::String
 
         def payload: () ->  ::Hash[Symbol, untyped]
         def service_name: () -> ::String
         def gem_spec: (::String) -> (::Gem::Specification | untyped)
-        def tracer_version_semver2: () -> ::String
+        def tracer_version: () -> ::String
         def native_platform: () -> ::String
         def ruby_engine_version: () -> ::String
 

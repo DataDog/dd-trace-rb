@@ -7,17 +7,6 @@ module Datadog
       ENV_AGENTLESS: "DD_PROFILING_AGENTLESS"
       ENV_ENDPOINT_COLLECTION_ENABLED: "DD_PROFILING_ENDPOINT_COLLECTION_ENABLED"
 
-      module Pprof
-        LABEL_KEY_LOCAL_ROOT_SPAN_ID: "local root span id"
-        LABEL_KEY_SPAN_ID: "span id"
-        LABEL_KEY_THREAD_ID: "thread id"
-        LABEL_KEY_TRACE_ENDPOINT: "trace endpoint"
-        SAMPLE_VALUE_NO_VALUE: 0
-        VALUE_TYPE_CPU: "cpu-time"
-        VALUE_TYPE_WALL: "wall-time"
-        VALUE_UNIT_NANOSECONDS: "nanoseconds"
-      end
-
       module Transport
         module HTTP
           FORM_FIELD_TAG_ENV: "env"
@@ -32,6 +21,8 @@ module Datadog
           FORM_FIELD_TAG_RUNTIME_VERSION: "runtime_version"
           FORM_FIELD_TAG_SERVICE: "service"
           FORM_FIELD_TAG_VERSION: "version"
+          TAG_GIT_REPOSITORY_URL: "git.repository_url"
+          TAG_GIT_COMMIT_SHA: "git.commit.sha"
           PPROF_DEFAULT_FILENAME: "rubyprofile.pprof"
           CODE_PROVENANCE_FILENAME: "code-provenance.json"
         end

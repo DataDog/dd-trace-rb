@@ -41,6 +41,10 @@ RSpec.describe Datadog::Core::Configuration do
           end
 
           it do
+            # We cannot mix `expect().to_not` with `expect().to(...).ordered`.
+            # One way around that is to force the method to raise an error if it's ever called.
+            allow(telemetry_client).to receive(:started!).and_raise('Should not be called')
+
             # Components should have changed
             expect { configure }
               .to change { test_class.send(:components) }
@@ -187,12 +191,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = new_statsd
-              c.diagnostics.health_metrics.statsd = new_statsd
+              c.health_metrics.statsd = new_statsd
             end
           end
 
@@ -212,7 +216,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = old_statsd
-              c.diagnostics.health_metrics.statsd = old_statsd
+              c.health_metrics.statsd = old_statsd
             end
 
             test_class.configure do |c|
@@ -234,12 +238,12 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
           end
 
@@ -256,7 +260,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             test_class.configure do |c|
               c.runtime_metrics.statsd = statsd
-              c.diagnostics.health_metrics.statsd = statsd
+              c.health_metrics.statsd = statsd
             end
 
             test_class.configure { |_c| }
@@ -312,30 +316,6 @@ RSpec.describe Datadog::Core::Configuration do
 
           it 'reuses the same tracer' do
             expect(test_class.send(:components).tracer).to be tracer
-          end
-        end
-      end
-
-      context 'when the profiler' do
-        context 'is not changed' do
-          before { skip_if_profiling_not_supported(self) }
-
-          context 'and profiling is enabled' do
-            before do
-              allow(test_class.configuration.profiling)
-                .to receive(:enabled)
-                .and_return(true)
-
-              allow_any_instance_of(Datadog::Profiling::Profiler)
-                .to receive(:start)
-              allow_any_instance_of(Datadog::Profiling::Tasks::Setup)
-                .to receive(:run)
-            end
-
-            it 'starts the profiler' do
-              configure
-              expect(test_class.send(:components).profiler).to have_received(:start)
-            end
           end
         end
       end
@@ -521,6 +501,8 @@ RSpec.describe Datadog::Core::Configuration do
     describe '#components' do
       context 'when components are not initialized' do
         it 'initializes the components' do
+          expect(telemetry_client).to receive(:started!)
+
           test_class.send(:components)
 
           expect(test_class.send(:components?)).to be true
@@ -528,6 +510,8 @@ RSpec.describe Datadog::Core::Configuration do
 
         context 'when allow_initialization is false' do
           it 'does not initialize the components' do
+            expect(telemetry_client).to_not receive(:started!)
+
             test_class.send(:components, allow_initialization: false)
 
             expect(test_class.send(:components?)).to be false
@@ -543,6 +527,7 @@ RSpec.describe Datadog::Core::Configuration do
         it 'returns the components without touching the COMPONENTS_WRITE_LOCK' do
           described_class.const_get(:COMPONENTS_WRITE_LOCK).lock
 
+          expect(telemetry_client).to_not receive(:started!)
           expect(test_class.send(:components)).to_not be_nil
         end
       end
@@ -599,7 +584,13 @@ RSpec.describe Datadog::Core::Configuration do
     describe '#handle_interrupt_shutdown!' do
       subject(:handle_interrupt_shutdown!) { test_class.send(:handle_interrupt_shutdown!) }
 
-      let(:fake_thread) { instance_double(Thread, 'fake thread') }
+      let(:fake_thread) do
+        instance_double(Thread, 'fake thread').tap do |it|
+          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
+            expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
+          end
+        end
+      end
 
       it 'calls #shutdown! in a background thread' do
         allow(fake_thread).to receive(:join).and_return(fake_thread)

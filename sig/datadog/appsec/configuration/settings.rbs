@@ -3,7 +3,6 @@ module Datadog
     module Configuration
       # Settings
       module Settings
-        extend Datadog::Core::Environment::VariableHelpers
         extend Datadog::Core::Configuration::Base::ClassMethods
         include Datadog::Core::Configuration::Base::InstanceMethods
         extend Datadog::Core::Configuration::Options::ClassMethods
@@ -12,6 +11,7 @@ module Datadog
         DEFAULT_OBFUSCATOR_KEY_REGEX: ::String
         DEFAULT_OBFUSCATOR_VALUE_REGEX: ::String
         APPSEC_VALID_TRACK_USER_EVENTS_MODE: ::Array[String]
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES: ::Array[String]
 
         def self.extended: (untyped base) -> untyped
 

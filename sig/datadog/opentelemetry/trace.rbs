@@ -1,0 +1,10 @@
+module Datadog
+  module OpenTelemetry
+    module Trace
+      def self.start_trace_copy: (Tracing::TraceOperation trace, ?parent_span: Tracing::SpanOperation?) -> Tracing::TraceOperation
+
+      private
+      def self.digest_with_parent_span: (Tracing::TraceOperation trace, Tracing::SpanOperation parent_span) -> Tracing::TraceDigest
+    end
+  end
+end

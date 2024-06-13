@@ -22,18 +22,6 @@ jobs:
       matrix:
         include:
           - engine: ruby
-            version: 2.1.10
-            dockerfile: Dockerfile-2.1.10
-          - engine: ruby
-            version: 2.2.10
-            dockerfile: Dockerfile-2.2.10
-          - engine: ruby
-            version: 2.3.8
-            dockerfile: Dockerfile-2.3.8
-          - engine: ruby
-            version: 2.4.10
-            dockerfile: Dockerfile-2.4.10
-          - engine: ruby
             version: 2.5.9
             dockerfile: Dockerfile-2.5.9
           - engine: ruby
@@ -62,13 +50,13 @@ jobs:
             version: 9.3.9.0
             dockerfile: Dockerfile-jruby-9.3.9.0
           - engine: jruby
-            version: 9.4.0.0
-            dockerfile: Dockerfile-jruby-9.4.0.0
+            version: 9.4.7.0
+            dockerfile: Dockerfile-jruby-9.4.7.0
     runs-on: ubuntu-latest
     name: Build (${{ matrix.engine }} ${{ matrix.version }})
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # Using docker-container engine enables advanced buildx features
       - name: Set up Docker container engine

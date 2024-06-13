@@ -6,7 +6,7 @@ require_relative '../workers/polling'
 module Datadog
   module Core
     module Telemetry
-      # Periodically (every DEFAULT_INTERVAL_SECONDS) sends a heartbeat event to the telemetry API.
+      # Periodically sends a heartbeat event to the telemetry API.
       class Heartbeat < Core::Worker
         include Core::Workers::Polling
 
@@ -20,9 +20,7 @@ module Datadog
           start
         end
 
-        def loop_wait_before_first_iteration?
-          true
-        end
+        def loop_wait_before_first_iteration?; end
 
         private
 

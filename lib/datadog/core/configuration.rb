@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'configuration/components'
 require_relative 'configuration/settings'
 require_relative 'telemetry/emitter'
@@ -45,6 +47,7 @@ module Datadog
       #
       # @return [Datadog::Core::Configuration::Settings]
       # @!attribute [r] configuration
+
       # @public_api
       def configuration
         @configuration ||= Settings.new
@@ -81,17 +84,22 @@ module Datadog
         configuration = self.configuration
         yield(configuration)
 
-        safely_synchronize do |write_components|
+        built_components = false
+
+        components = safely_synchronize do |write_components|
           write_components.call(
             if components?
               replace_components!(configuration, @components)
             else
               components = build_components(configuration)
-              components.telemetry.started!
+              built_components = true
               components
             end
           )
         end
+
+        # Should only be called the first time components are built
+        components.telemetry.started! if built_components
 
         configuration
       end
@@ -192,9 +200,20 @@ module Datadog
         current_components = COMPONENTS_READ_LOCK.synchronize { defined?(@components) && @components }
         return current_components if current_components || !allow_initialization
 
-        safely_synchronize do |write_components|
-          (defined?(@components) && @components) || write_components.call(build_components(configuration))
+        built_components = false
+
+        components = safely_synchronize do |write_components|
+          if defined?(@components) && @components
+            @components
+          else
+            built_components = true
+            write_components.call(build_components(configuration))
+          end
         end
+
+        # Should only be called the first time components are built
+        components&.telemetry&.started! if built_components
+        components
       end
 
       private
@@ -230,7 +249,7 @@ module Datadog
             yield write_components
           rescue ThreadError => e
             logger_without_components.error(
-              'Detected deadlock during ddtrace initialization. ' \
+              'Detected deadlock during datadog initialization. ' \
               'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug' \
               "\n\tSource:\n\t#{Array(e.backtrace).join("\n\t")}"
             )
@@ -273,6 +292,10 @@ module Datadog
       def handle_interrupt_shutdown!
         logger = Datadog.logger
         shutdown_thread = Thread.new { shutdown! }
+        unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          shutdown_thread.name = Datadog::Core::Configuration.name
+        end
+
         print_message_treshold_seconds = 0.2
 
         slow_shutdown = shutdown_thread.join(print_message_treshold_seconds).nil?

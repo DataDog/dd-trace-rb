@@ -15,15 +15,19 @@ module Datadog
         @run_mutex: ::Thread::Mutex
 
         def initialize: (Processor processor) -> void
-        def run: (data input, ?::Integer timeout) -> WAF::Result
+        def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
+        def extract_schema: () -> WAF::Result?
         def finalize: () -> void
+
+        private
+        def extract_schema?: () -> bool
       end
 
       def self.active_context: () -> Context
 
       private
 
-      attr_reader ruleset_info: untyped
+      attr_reader diagnostics: untyped
       attr_reader addresses: untyped
 
       @handle: WAF::Handle

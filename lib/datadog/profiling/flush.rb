@@ -4,9 +4,6 @@ require 'json'
 
 module Datadog
   module Profiling
-    # Represents a collection of events of a specific type being flushed.
-    EventGroup = Struct.new(:event_class, :events)
-
     # Entity class used to represent metadata for a given profile
     class Flush
       attr_reader \
@@ -17,7 +14,8 @@ module Datadog
         :code_provenance_file_name,
         :code_provenance_data, # gzipped json bytes
         :tags_as_array,
-        :internal_metadata_json
+        :internal_metadata_json,
+        :info_json
 
       def initialize(
         start:,
@@ -27,7 +25,8 @@ module Datadog
         code_provenance_file_name:,
         code_provenance_data:,
         tags_as_array:,
-        internal_metadata:
+        internal_metadata:,
+        info_json:
       )
         @start = start
         @finish = finish
@@ -36,7 +35,8 @@ module Datadog
         @code_provenance_file_name = code_provenance_file_name
         @code_provenance_data = code_provenance_data
         @tags_as_array = tags_as_array
-        @internal_metadata_json = JSON.fast_generate(internal_metadata.map { |k, v| [k, v.to_s] }.to_h)
+        @internal_metadata_json = JSON.fast_generate(internal_metadata)
+        @info_json = info_json
       end
     end
   end

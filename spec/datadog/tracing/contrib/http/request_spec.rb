@@ -7,13 +7,13 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 require 'datadog/tracing/contrib/support/http'
 
-require 'ddtrace'
+require 'datadog'
 require 'net/http'
 require 'time'
 require 'json'
 
 RSpec.describe 'net/http requests' do
-  before { call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options } }
+  before { WebMock.enable!(allow: agent_url) }
 
   after do
     WebMock.reset!
@@ -43,7 +43,7 @@ RSpec.describe 'net/http requests' do
     subject(:response) { client.get(path) }
     before { stub_request(:any, "#{uri}#{path}").to_return(status: status_code, body: '{}') }
 
-    include_examples 'with error status code configuration'
+    include_examples 'with error status code configuration', env: 'DD_TRACE_HTTP_ERROR_STATUS_CODES'
   end
 
   describe '#get' do
@@ -142,45 +142,6 @@ RSpec.describe 'net/http requests' do
       it_behaves_like 'environment service name', 'DD_TRACE_NET_HTTP_SERVICE_NAME'
       it_behaves_like 'configured peer service span', 'DD_TRACE_NET_HTTP_PEER_SERVICE'
       it_behaves_like 'schema version span'
-
-      context 'when configured with #after_request hook' do
-        before { Datadog::Tracing::Contrib::HTTP::Instrumentation.after_request(&callback) }
-
-        after { Datadog::Tracing::Contrib::HTTP::Instrumentation.instance_variable_set(:@after_request, nil) }
-
-        context 'which defines each parameter' do
-          let(:callback) do
-            proc do |span_op, http, request, response|
-              expect(span_op).to be_a_kind_of(Datadog::Tracing::SpanOperation)
-              expect(http).to be_a_kind_of(Net::HTTP)
-              expect(request).to be_a_kind_of(Net::HTTP::Get)
-              expect(response).to be_a_kind_of(Net::HTTPNotFound)
-            end
-          end
-
-          it { expect(response.code).to eq('404') }
-        end
-
-        context 'which changes the error status' do
-          let(:callback) do
-            proc do |span_op, _http, _request, response|
-              case response.code.to_i
-              when 400...599
-                if response.class.body_permitted? && !response.body.nil?
-                  span_op.set_error([response.class, response.body[0...4095]])
-                end
-              end
-            end
-          end
-
-          it 'generates a trace modified by the hook' do
-            expect(response.code).to eq('404')
-            expect(span.status).to eq(1)
-            expect(span.get_tag('error.type')).to eq('Net::HTTPNotFound')
-            expect(span.get_tag('error.message')).to eq(body)
-          end
-        end
-      end
     end
   end
 
@@ -267,7 +228,7 @@ RSpec.describe 'net/http requests' do
     end
 
     describe 'integration' do
-      let(:transport) { Datadog::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
 
       it 'does not create a span for the transport request' do
         expect(Datadog::Tracing).to_not receive(:trace)
@@ -376,8 +337,8 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            'x-datadog-parent-id' => span.span_id,
-            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-parent-id' => span.id,
+            'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
         end
@@ -422,8 +383,8 @@ RSpec.describe 'net/http requests' do
         let(:sampling_priority) { 10 }
         let(:distributed_tracing_headers) do
           {
-            'x-datadog-parent-id' => span.span_id,
-            'x-datadog-trace-id' => span.trace_id,
+            'x-datadog-parent-id' => span.id,
+            'x-datadog-trace-id' => low_order_trace_id(span.trace_id),
             'x-datadog-sampling-priority' => sampling_priority
           }
         end
@@ -539,7 +500,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when basic auth in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 
@@ -557,7 +518,7 @@ RSpec.describe 'net/http requests' do
 
   context 'when query string in url' do
     before do
-      call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
+      WebMock.enable!(allow: agent_url)
       stub_request(:get, /example.com/).to_return(status: 200)
     end
 

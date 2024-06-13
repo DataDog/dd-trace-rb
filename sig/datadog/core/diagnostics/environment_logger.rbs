@@ -7,10 +7,9 @@ module Datadog
         def log_error!: (untyped prefix, untyped type, untyped error) -> untyped
 
         def logger: () -> untyped
-        def log_once!: () ?{ () -> untyped } -> (false | untyped)
         def log?: () -> untyped
 
-        REPL_PROGRAM_NAMES: ::Array["irb" | "pry"]
+        REPL_PROGRAM_NAMES: ::Array[::String]
 
         def repl?: () -> untyped
 
@@ -19,7 +18,7 @@ module Datadog
       module EnvironmentLogger
         extend EnvironmentLogging
 
-        def self.collect_and_log!: () -> untyped
+        def self.collect_and_log!: (untyped extra_fields) -> untyped
       end
       module EnvironmentCollector
         def self.collect_config!: () -> { date: untyped, os_name: untyped, version: untyped, lang: untyped, lang_version: untyped, env: untyped, service: untyped, dd_version: untyped, debug: untyped, tags: untyped, runtime_metrics_enabled: untyped, vm: untyped, health_metrics_enabled: untyped }

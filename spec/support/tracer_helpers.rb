@@ -10,7 +10,7 @@ module TracerHelpers
 
   def new_tracer(options = {})
     writer = FauxWriter.new(
-      transport: Datadog::Transport::HTTP.default do |t|
+      transport: Datadog::Tracing::Transport::HTTP.default do |t|
         t.adapter :test
       end
     )
@@ -21,7 +21,7 @@ module TracerHelpers
 
   def get_test_writer(options = {})
     options = {
-      transport: Datadog::Transport::HTTP.default do |t|
+      transport: Datadog::Tracing::Transport::HTTP.default do |t|
         t.adapter :test
       end
     }.merge(options)
@@ -111,5 +111,16 @@ module TracerHelpers
     end
 
     without_warnings { Datadog.send(:reset!) }
+  end
+
+  # Wraps call to Tracing::Utils::TraceId.to_low_order for better test readability
+  def low_order_trace_id(trace_id)
+    Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
+  end
+
+  # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
+  # for better test readability
+  def high_order_hex_trace_id(trace_id)
+    Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16)
   end
 end

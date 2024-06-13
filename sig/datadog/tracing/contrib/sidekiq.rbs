@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        self.@propagation: Sidekiq::Distributed::Propagation
+
+        def self.inject: (TraceDigest digest, Hash[untyped, untyped] data) -> void
+        def self.extract: (Hash[untyped, untyped] data) -> (TraceDigest | nil)
+      end
+    end
+  end
+end

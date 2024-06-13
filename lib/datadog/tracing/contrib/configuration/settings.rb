@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/configuration/base'
 require_relative '../../../core/utils/only_once'
 
@@ -15,10 +17,12 @@ module Datadog
           option :enabled, default: true
           # TODO: Deprecate per-integration service name when first-class peer service support is added
           # TODO: We don't want to recommend per-integration service naming, but there are no equivalent alternatives today.
-          option :service_name
+          option :service_name do |o|
+            o.type :string, nilable: true
+          end
 
           def configure(options = {})
-            self.class.options.dependency_order.each do |name|
+            self.class.options.each do |name, _value|
               self[name] = options[name] if options.key?(name)
             end
 

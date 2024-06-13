@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'sql_comment/comment'
 require_relative 'sql_comment/ext'
 
@@ -21,7 +23,7 @@ module Datadog
             return sql unless mode.enabled?
 
             tags = {
-              Ext::KEY_DATABASE_SERVICE => span_op.service,
+              Ext::KEY_DATABASE_SERVICE => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE) || span_op.service,
               Ext::KEY_ENVIRONMENT => datadog_configuration.env,
               Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
               Ext::KEY_VERSION => datadog_configuration.version

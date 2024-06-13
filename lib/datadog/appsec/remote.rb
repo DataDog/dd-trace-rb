@@ -12,15 +12,17 @@ module Datadog
       class NoRulesError < StandardError; end
 
       class << self
-        CAP_ASM_ACTIVATION                = 1 << 1 # Remote activation via ASM_FEATURES product
-        CAP_ASM_IP_BLOCKING               = 1 << 2 # accept IP blocking data from ASM_DATA product
-        CAP_ASM_DD_RULES                  = 1 << 3 # read ASM rules from ASM_DD product
-        CAP_ASM_EXCLUSIONS                = 1 << 4 # exclusion filters (passlist) via ASM product
-        CAP_ASM_REQUEST_BLOCKING          = 1 << 5 # can block on request info
-        CAP_ASM_RESPONSE_BLOCKING         = 1 << 6 # can block on response info
-        CAP_ASM_USER_BLOCKING             = 1 << 7 # accept user blocking data from ASM_DATA product
-        CAP_ASM_CUSTOM_RULES              = 1 << 8 # accept custom rules
-        CAP_ASM_CUSTOM_BLOCKING_RESPONSE  = 1 << 9 # supports custom http code or redirect sa blocking response
+        CAP_ASM_RESERVED_1                = 1 << 0   # RESERVED
+        CAP_ASM_ACTIVATION                = 1 << 1   # Remote activation via ASM_FEATURES product
+        CAP_ASM_IP_BLOCKING               = 1 << 2   # accept IP blocking data from ASM_DATA product
+        CAP_ASM_DD_RULES                  = 1 << 3   # read ASM rules from ASM_DD product
+        CAP_ASM_EXCLUSIONS                = 1 << 4   # exclusion filters (passlist) via ASM product
+        CAP_ASM_REQUEST_BLOCKING          = 1 << 5   # can block on request info
+        CAP_ASM_RESPONSE_BLOCKING         = 1 << 6   # can block on response info
+        CAP_ASM_USER_BLOCKING             = 1 << 7   # accept user blocking data from ASM_DATA product
+        CAP_ASM_CUSTOM_RULES              = 1 << 8   # accept custom rules
+        CAP_ASM_CUSTOM_BLOCKING_RESPONSE  = 1 << 9   # supports custom http code or redirect sa blocking response
+        CAP_ASM_TRUSTED_IPS               = 1 << 10  # supports trusted ip
 
         # TODO: we need to dynamically add CAP_ASM_ACTIVATION once we support it
         ASM_CAPABILITIES = [
@@ -31,6 +33,8 @@ module Datadog
           CAP_ASM_RESPONSE_BLOCKING,
           CAP_ASM_DD_RULES,
           CAP_ASM_CUSTOM_RULES,
+          CAP_ASM_CUSTOM_BLOCKING_RESPONSE,
+          CAP_ASM_TRUSTED_IPS,
         ].freeze
 
         ASM_PRODUCTS = [
@@ -63,6 +67,7 @@ module Datadog
             data = []
             overrides = []
             exclusions = []
+            actions = []
 
             repository.contents.each do |content|
               parsed_content = parse_content(content)
@@ -76,6 +81,7 @@ module Datadog
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
+                actions.concat(parsed_content['actions']) if parsed_content['actions']
               end
             end
 
@@ -95,7 +101,7 @@ module Datadog
               custom_rules: custom_rules,
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions)
           end
 
           [receiver]

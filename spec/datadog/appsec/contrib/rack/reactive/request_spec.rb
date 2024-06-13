@@ -12,19 +12,34 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
     Datadog::AppSec::Contrib::Rack::Gateway::Request.new(
       Rack::MockRequest.env_for(
         'http://example.com:8080/?a=foo',
-        { 'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'HTTP_CONTENT_TYPE' => 'text/html' }
+        {
+          'REQUEST_METHOD' => 'GET',
+          'REMOTE_ADDR' => '10.10.10.10',
+          'CONTENT_TYPE' => 'text/html',
+          'HTTP_USER_AGENT' => 'foo',
+          'HTTP_COOKIE' => 'foo=bar'
+        }
       )
     )
+  end
+
+  let(:expected_headers_with_cookies) do
+    { 'content-length' => '0', 'content-type' => 'text/html', 'user-agent' => 'foo', 'cookie' => 'foo=bar' }
+  end
+
+  let(:expected_headers_without_cookies) do
+    { 'content-length' => '0', 'content-type' => 'text/html', 'user-agent' => 'foo' }
   end
 
   describe '.publish' do
     it 'propagates request attributes to the operation' do
       expect(operation).to receive(:publish).with('server.request.method', 'GET')
       expect(operation).to receive(:publish).with('request.query', { 'a' => ['foo'] })
-      expect(operation).to receive(:publish).with('request.headers', { 'content-type' => 'text/html' })
+      expect(operation).to receive(:publish).with('request.headers', expected_headers_with_cookies)
       expect(operation).to receive(:publish).with('request.uri.raw', '/?a=foo')
-      expect(operation).to receive(:publish).with('request.cookies', {})
+      expect(operation).to receive(:publish).with('request.cookies', { 'foo' => 'bar' })
       expect(operation).to receive(:publish).with('request.client_ip', '10.10.10.10')
+
       described_class.publish(operation, request)
     end
   end
@@ -52,11 +67,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
         expect(operation).to receive(:subscribe).and_call_original
 
         expected_waf_arguments = {
-          'server.request.cookies' => {},
+          'server.request.cookies' => { 'foo' => 'bar' },
           'server.request.query' => { 'a' => ['foo'] },
           'server.request.uri.raw' => '/?a=foo',
-          'server.request.headers' => { 'content-type' => 'text/html' },
-          'server.request.headers.no_cookies' => { 'content-type' => 'text/html' },
+          'server.request.headers' => expected_headers_with_cookies,
+          'server.request.headers.no_cookies' => expected_headers_without_cookies,
           'http.client_ip' => '10.10.10.10',
           'server.request.method' => 'GET',
         }
@@ -76,11 +91,10 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
       it 'yields result and no blocking action' do
         expect(operation).to receive(:subscribe).and_call_original
 
-        waf_result = double(:waf_result, status: :match, timeout: false, actions: [''])
+        waf_result = double(:waf_result, status: :match, timeout: false, actions: [])
         expect(waf_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, waf_context) do |result, block|
+        described_class.subscribe(operation, waf_context) do |result|
           expect(result).to eq(waf_result)
-          expect(block).to eq(false)
         end
         result = described_class.publish(operation, request)
         expect(result).to be_nil
@@ -91,13 +105,11 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
 
         waf_result = double(:waf_result, status: :match, timeout: false, actions: ['block'])
         expect(waf_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, waf_context) do |result, block|
+        described_class.subscribe(operation, waf_context) do |result|
           expect(result).to eq(waf_result)
-          expect(block).to eq(true)
         end
-        publish_result, publish_block = described_class.publish(operation, request)
-        expect(publish_result).to eq(waf_result)
-        expect(publish_block).to eq(true)
+        block = described_class.publish(operation, request)
+        expect(block).to eq(true)
       end
     end
 

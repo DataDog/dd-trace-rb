@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/excon/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Excon::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:excon) }
 
   describe '.version' do

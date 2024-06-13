@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
@@ -11,6 +13,7 @@ module Datadog
         # `MongoCommandSubscriber` listens to all events from the `Monitoring`
         # system available in the Mongo driver.
         class MongoCommandSubscriber
+          # rubocop:disable Metrics/AbcSize
           def started(event)
             return unless Tracing.enabled?
 
@@ -22,7 +25,7 @@ module Datadog
             # thread is involved in this execution so thread-local storage should be safe. Reference:
             # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring.rb#L70
             # https://github.com/mongodb/mongo-ruby-driver/blob/master/lib/mongo/monitoring/publishable.rb#L38-L56
-            span = Tracing.trace(Ext::SPAN_COMMAND, service: service, span_type: Ext::SPAN_TYPE_COMMAND)
+            span = Tracing.trace(Ext::SPAN_COMMAND, service: service, type: Ext::SPAN_TYPE_COMMAND)
             set_span(event, span)
 
             # build a quantized Query using the Parser module
@@ -34,6 +37,11 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 datadog_configuration[:peer_service]
               )
+            end
+
+            # Tag original global service name if not used
+            if span.service != Datadog.configuration.service
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -63,6 +71,7 @@ module Datadog
             # set the resource with the quantized query
             span.resource = serialized_query
           end
+          # rubocop:enable Metrics/AbcSize
 
           def failed(event)
             span = get_span(event)

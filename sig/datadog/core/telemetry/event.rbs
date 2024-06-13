@@ -2,24 +2,59 @@ module Datadog
   module Core
     module Telemetry
       class Event
-        include Telemetry::Collector
+        class Base
+          def payload: (int seq_id) -> Hash[Symbol, untyped]
+          def type: -> String?
+        end
 
-        API_VERSION: "v1"
+        class AppStarted < Base
+          TARGET_OPTIONS: Array[String]
 
-        attr_reader api_version: untyped
+          @seq_id: int
 
-        def initialize: () -> void
-        def telemetry_request: (request_type: untyped, seq_id: untyped) -> untyped
+          private
 
-        private
+          def products: -> Hash[Symbol, untyped]
 
-        def app_client_configuration_change: (Enumerable[[String, Numeric | bool | String]] changes)-> Datadog::Core::Telemetry::V2::AppClientConfigurationChange
+          def configuration: -> Array[Hash[Symbol, untyped]]
 
-        def payload: (untyped request_type) -> untyped
+          def agent_transport: (untyped config) -> String
 
-        def app_started: () -> untyped
+          def conf_value: (String name, Object value, ?String origin) -> Hash[Symbol, untyped]
 
-        def app_integrations_change: () -> untyped
+          def to_value: (Object value) -> Object
+
+          def install_signature: -> Hash[Symbol, Object]
+        end
+
+        class AppDependenciesLoaded < Base
+          private
+
+          def dependencies: -> Array[Hash[Symbol, String]]
+        end
+
+        class AppIntegrationsChange < Base
+          private
+
+          def integrations: -> Array[Hash[Symbol, string]]
+
+          def patch_error: (untyped integration) -> String
+        end
+
+        class AppClientConfigurationChange < Base
+          @changes: Enumerable[[String, Numeric | bool | String | int]]
+          @origin: String
+
+          def initialize: (Enumerable[[String, Numeric | bool | String]] changes, String origin) -> void
+
+          def configuration: (int seq_id) -> Array[Hash[Symbol, untyped]]
+        end
+
+        class AppHeartbeat < Base
+        end
+
+        class AppClosing < Base
+        end
       end
     end
   end

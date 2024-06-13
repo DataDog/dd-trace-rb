@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Profiling
     module Collectors
@@ -43,12 +45,13 @@ module Datadog
               end
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
+            @worker_thread.thread_variable_set(:fork_safe, true)
           end
 
           true
         end
 
-        def stop(*_unused)
+        def stop
           @start_stop_mutex.synchronize do
             Datadog.logger.debug('Requesting IdleSamplingHelper thread shut down')
 

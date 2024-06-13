@@ -8,11 +8,16 @@ module Datadog
 
         type rules = ::Hash[::String, untyped]
         type data = ::Array[::Hash[::String, untyped]]
-        type overrides = ::Array[::Hash[::String, untyped]]
-        type exclusions = ::Array[::Hash[::String, untyped]]
-        type custom_rules = ::Array[::Hash[::String, untyped]]
+        type overrides = ::Array[::Array[::Hash[::String, untyped]]]
+        type exclusions = ::Array[::Array[::Hash[::String, untyped]]]
+        type custom_rules = ::Array[::Array[::Hash[::String, untyped]]]
+        type processors = ::Array[::Hash[::String, untyped]]
+        type scanners = ::Array[::Hash[::String, untyped]]
 
-        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: ::Array[overrides], ?exclusions: ::Array[exclusions], ?custom_rules: ::Array[custom_rules]) -> rules
+        DEFAULT_WAF_PROCESSORS: processors
+        DEFAULT_WAF_SCANNERS: processors
+
+        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: overrides, ?exclusions: exclusions, ?custom_rules: custom_rules, ?processors: processors, ?scanners: scanners) -> rules
 
         private
 
@@ -20,13 +25,13 @@ module Datadog
 
         def self.combine_data: (::Array[data] data) -> data?
 
-        def self.merge_data_base_on_expiration: (data data1, data data2) -> ::Array[data]
+        def self.merge_data_base_on_expiration: (data data1, data data2) -> data
 
-        def self.combine_overrides: (::Array[overrides] overrides) -> ::Array[overrides]?
+        def self.combine_overrides: (overrides overrides) -> overrides?
 
-        def self.combine_exclusions: (::Array[exclusions] exclusions) -> ::Array[exclusions]?
+        def self.combine_exclusions: (exclusions exclusions) -> exclusions?
 
-        def self.combine_custom_rules: (::Array[custom_rules] custom_rules) -> ::Array[custom_rules]?
+        def self.combine_custom_rules: (custom_rules custom_rules) -> custom_rules?
       end
     end
   end

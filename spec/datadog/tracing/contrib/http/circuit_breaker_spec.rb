@@ -1,8 +1,8 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/http/circuit_breaker'
-require 'ddtrace/transport/ext'
+require 'datadog/core/transport/ext'
 
 RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
   subject(:circuit_breaker) { circuit_breaker_class.new }
@@ -60,10 +60,10 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
     subject(:internal_request?) { circuit_breaker.internal_request?(request) }
 
     context 'given an HTTP request' do
-      context "when the #{Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
+      context "when the #{Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION} header" do
         context 'is present' do
           let(:request) { ::Net::HTTP::Post.new('/some/path', headers) }
-          let(:headers) { { Datadog::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => DDTrace::VERSION::STRING } }
+          let(:headers) { { Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION => Datadog::VERSION::STRING } }
 
           it { is_expected.to be true }
         end

@@ -3,7 +3,6 @@ source 'https://rubygems.org'
 gemspec
 
 # Development dependencies
-gem 'addressable', '~> 2.4.0' # locking transitive dependency of webmock
 if RUBY_VERSION < '2.3'
   gem 'appraisal', '~> 2.2.0'
 else
@@ -57,7 +56,6 @@ else
   gem 'rspec_junit_formatter', '<= 0.4.1'
 end
 gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
-gem 'ruby-prof', '~> 1.4' if RUBY_PLATFORM != 'java' && RUBY_VERSION >= '2.4.0'
 if RUBY_VERSION >= '2.5.0'
   # Merging branch coverage results does not work for old, unsupported rubies.
   # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
@@ -72,9 +70,9 @@ end
 gem 'simplecov-html', '~> 0.10.2' if RUBY_VERSION < '2.4.0'
 gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
 gem 'webmock', '>= 3.10.0'
-if RUBY_VERSION < '2.3.0'
-  gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
-end
+
+gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
+
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
 if RUBY_VERSION >= '2.3.0'
   gem 'yard', '~> 0.9'
@@ -83,20 +81,21 @@ else
 end
 
 if RUBY_VERSION >= '2.6.0'
-  gem 'rubocop', '~> 1.34.0', require: false
+  # 1.50 is the last version to support Ruby 2.6
+  gem 'rubocop', '~> 1.50.0', require: false
   gem 'rubocop-packaging', '~> 0.5.2', require: false
   gem 'rubocop-performance', '~> 1.9', require: false
-  gem 'rubocop-rspec', '~> 2.2', require: false
+  # 2.20 is the last version to support Ruby 2.6
+  gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# dogstatsd v5, but lower than 5.2, has possible memory leak with datadog.
 # @see https://github.com/DataDog/dogstatsd-ruby/issues/182
 gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
-gem 'opentracing', '>= 0.4.1'
 
-# Profiler optional dependencies
+# Profiler testing dependencies
 # NOTE: We're excluding versions 3.7.0 and 3.7.1 for the reasons documented in #1424.
 #       Since most of our customers won't have BUNDLE_FORCE_RUBY_PLATFORM=true, it's not something we want to add
 #       to our CI, so we just shortcut and exclude specific versions that were affecting our CI.
@@ -111,12 +110,20 @@ if RUBY_PLATFORM != 'java'
 end
 
 group :check do
-  if RUBY_VERSION >= '2.7.0' && RUBY_PLATFORM != 'java'
-    gem 'rbs', '~> 3.1.0', require: false
-    gem 'steep', '~> 1.4.0', require: false
+  if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
+    gem 'rbs', '~> 3.2.0', require: false
+    gem 'steep', '~> 1.6.0', require: false
   end
 end
 
 gem 'docile', '~> 1.3.5' if RUBY_VERSION < '2.5'
-gem 'ffi', '~> 1.12.2' if RUBY_VERSION < '2.3'
+if RUBY_VERSION < '2.3'
+  gem 'ffi', '~> 1.12.2', require: false
+else
+  # `1.17.0` provides broken RBS type definitions
+  # https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
+  #
+  # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
+  gem 'ffi', '~> 1.16.3', require: false
+end
 gem 'msgpack', '~> 1.3.3' if RUBY_VERSION < '2.4'

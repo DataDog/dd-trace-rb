@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'time'
 
 require_relative '../core/environment/identity'
@@ -33,13 +35,10 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-
-      attr_accessor \
-        :status
+      attr_accessor :links, :status
 
       def initialize(
         name,
-        child_of: nil,
         events: nil,
         on_error: nil,
         parent_id: 0,
@@ -48,7 +47,8 @@ module Datadog
         start_time: nil,
         tags: nil,
         trace_id: nil,
-        type: nil
+        type: nil,
+        links: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
         #
@@ -65,6 +65,8 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils::TraceId.next_id
 
         @status = 0
+        # stores array of span links
+        @links = links || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -80,12 +82,6 @@ module Datadog
 
         # Set tags if provided.
         set_tags(tags) if tags
-
-        # Only set parent if explicitly provided.
-        # We don't want it to override context-derived
-        # IDs if it's a distributed trace w/o a parent span.
-        parent = child_of
-        self.parent = parent if parent
 
         # Some other SpanOperation-specific behavior
         @events = events || Events.new
@@ -421,7 +417,7 @@ module Datadog
       # Error when the span attempts to start again after being started
       class AlreadyStartedError < StandardError
         def message
-          'Cannot measure an already started span!'.freeze
+          'Cannot measure an already started span!'
         end
       end
 
@@ -432,8 +428,11 @@ module Datadog
       # it has been finished.
       attr_reader \
         :events,
-        :parent,
         :span
+
+      # Stored only for `service_entry` calculation.
+      # Use `parent_id` for the effective parent span id.
+      attr_reader :parent
 
       # Create a Span from the operation which represents
       # the finalized measurement. We #dup here to prevent
@@ -454,12 +453,14 @@ module Datadog
           status: @status,
           type: @type,
           trace_id: @trace_id,
+          links: @links,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end
 
-      # Set this span's parent, inheriting any properties not explicitly set.
-      # If the parent is nil, set the span as the root span.
+      # Set this span's parent, setting this span's trace_id to the parent's trace_id.
+      #
+      # If the parent is nil, set this span as the root span.
       #
       # DEV: This method creates a false expectation that
       # `self.parent.id == self.parent_id`, which is not the case
@@ -468,7 +469,7 @@ module Datadog
       # identifier. We should remove the ability to set a parent Span
       # object in the future.
       def parent=(parent)
-        @parent = parent
+        @parent = parent # Stored only for `service_entry` calculation.
 
         if parent.nil?
           @trace_id = @id
@@ -494,12 +495,6 @@ module Datadog
       def duration_nano
         (duration * 1e9).to_i
       end
-
-      # For backwards compatibility
-      # TODO: Deprecate and remove these in 2.0.
-      alias :span_id :id
-      alias :span_type :type
-      alias :span_type= :type=
     end
   end
 end

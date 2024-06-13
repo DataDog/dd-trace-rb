@@ -4,6 +4,7 @@ module Datadog
   module Tracing
     # Trace digest that represents the important parts of an active trace.
     # Used to propagate context and continue traces across execution boundaries.
+    # TODO: Update all references from span to parent (ex: span_id -> parent_id)
     # @public_api
     class TraceDigest
       # @!attribute [r] span_id
@@ -52,6 +53,10 @@ module Datadog
       # @!attribute [r] trace_service
       #   The service of the currently active trace.
       #   @return [String]
+      # @!attribute [r] span_remote
+      #   Represents whether a TraceDigest was propagated from a remote parent or created locally.
+      #   @see https://opentelemetry.io/docs/specs/otel/trace/api/#isremote
+      #   @return [Boolean]
       # @!attribute [r] trace_distributed_id
       #   The trace id extracted from a distributed context, if different from `trace_id`.
       #
@@ -96,7 +101,8 @@ module Datadog
         :trace_distributed_id,
         :trace_flags,
         :trace_state,
-        :trace_state_unknown_fields
+        :trace_state_unknown_fields,
+        :span_remote
 
       def initialize(
         span_id: nil,
@@ -117,7 +123,8 @@ module Datadog
         trace_distributed_id: nil,
         trace_flags: nil,
         trace_state: nil,
-        trace_state_unknown_fields: nil
+        trace_state_unknown_fields: nil,
+        span_remote: true
       )
         @span_id = span_id
         @span_name = span_name && span_name.dup.freeze
@@ -138,8 +145,40 @@ module Datadog
         @trace_flags = trace_flags
         @trace_state = trace_state && trace_state.dup.freeze
         @trace_state_unknown_fields = trace_state_unknown_fields && trace_state_unknown_fields.dup.freeze
-
+        @span_remote = span_remote
         freeze
+      end
+
+      # Creates a copy of this object, modifying the provided fields.
+      # @param field_value_pairs [Hash<String>] the fields to be overwritten
+      # @return [TraceDigest] returns a copy of this object with the `field_value_pairs` modified
+      def merge(field_value_pairs)
+        # DEV: Because we want to sometimes freeze the values provided to `TraceDigest`, it's best
+        # DEV: to let `#initialize` decide how to handle each field, instead of duplicating that logic here.
+        TraceDigest.new(
+          **{
+            span_id: span_id,
+            span_name: span_name,
+            span_resource: span_resource,
+            span_service: span_service,
+            span_type: span_type,
+            trace_distributed_tags: trace_distributed_tags,
+            trace_hostname: trace_hostname,
+            trace_id: trace_id,
+            trace_name: trace_name,
+            trace_origin: trace_origin,
+            trace_process_id: trace_process_id,
+            trace_resource: trace_resource,
+            trace_runtime_id: trace_runtime_id,
+            trace_sampling_priority: trace_sampling_priority,
+            trace_service: trace_service,
+            trace_distributed_id: trace_distributed_id,
+            trace_flags: trace_flags,
+            trace_state: trace_state,
+            trace_state_unknown_fields: trace_state_unknown_fields,
+            span_remote: span_remote,
+          }.merge!(field_value_pairs)
+        )
       end
     end
   end

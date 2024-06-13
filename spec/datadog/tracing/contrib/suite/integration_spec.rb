@@ -1,6 +1,7 @@
+require 'datadog/core/utils/base64'
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 # For testing dynamic configuration
 require 'semantic_logger'
@@ -72,7 +73,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
         target_files << {
           'path' => target,
-          'raw' => Base64.strict_encode64(raw),
+          'raw' => Datadog::Core::Utils::Base64.strict_encode64(raw),
         }
 
         targets_targets[target] = {
@@ -85,7 +86,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
       {
         'target_files' => target_files,
-        'targets' => Base64.strict_encode64(targets.to_json),
+        'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json),
         'client_configs' => client_configs,
       }.to_json
     end

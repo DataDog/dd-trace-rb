@@ -13,6 +13,7 @@ module Datadog
         # @public_api
         module Metrics
           ENV_ENABLED = 'DD_RUNTIME_METRICS_ENABLED'
+          ENV_OTEL_METRICS_EXPORTER = 'OTEL_METRICS_EXPORTER'
 
           METRIC_CLASS_COUNT = 'runtime.ruby.class_count'
           METRIC_GC_PREFIX = 'runtime.ruby.gc'
@@ -29,6 +30,7 @@ module Datadog
           METRIC_YJIT_LIVE_PAGE_COUNT = 'runtime.ruby.yjit.live_page_count'
           METRIC_YJIT_OBJECT_SHAPE_COUNT = 'runtime.ruby.yjit.object_shape_count'
           METRIC_YJIT_OUTLINED_CODE_SIZE = 'runtime.ruby.yjit.outlined_code_size'
+          METRIC_YJIT_YJIT_ALLOC_SIZE = 'runtime.ruby.yjit.yjit_alloc_size'
 
           TAG_SERVICE = 'service'
         end

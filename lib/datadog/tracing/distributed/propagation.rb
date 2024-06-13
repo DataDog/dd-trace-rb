@@ -9,15 +9,25 @@ module Datadog
     module Distributed
       # Provides extraction and injection of distributed trace data.
       class Propagation
-        # DEV: This class should receive the value for
-        # DEV: `Datadog.configuration.tracing.distributed_tracing.propagation_inject_style`
-        # DEV: at initialization time, instead of constantly reading global values.
-        # DEV: This means this class should be reconfigured on `Datadog.configure` calls, thus
-        # DEV: singleton instances should not used as they will become stale.
-        #
         # @param propagation_styles [Hash<String,Object>]
-        def initialize(propagation_styles:)
+        #  a map of propagation styles to their corresponding implementations
+        # @param propagation_style_inject [Array<String>]
+        #   a list of styles to use when injecting distributed trace data
+        # @param propagation_style_extract [Array<String>]
+        #   a list of styles to use when extracting distributed trace data
+        # @param propagation_extract_first [Boolean]
+        #   if true, only the first successfully extracted trace will be used
+        def initialize(
+          propagation_styles:,
+          propagation_style_inject:,
+          propagation_style_extract:,
+          propagation_extract_first:
+        )
           @propagation_styles = propagation_styles
+          @propagation_extract_first = propagation_extract_first
+
+          @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
+          @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -47,19 +57,14 @@ module Datadog
           result = false
 
           # Inject all configured propagation styles
-          ::Datadog.configuration.tracing.distributed_tracing.propagation_inject_style.each do |style|
-            propagator = @propagation_styles[style]
-            begin
-              if propagator
-                propagator.inject!(digest, data)
-                result = true
-              end
-            rescue => e
-              result = nil
-              ::Datadog.logger.error(
-                "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
-              )
-            end
+          @propagation_style_inject.each do |propagator|
+            propagator.inject!(digest, data)
+            result = true
+          rescue => e
+            result = nil
+            ::Datadog.logger.error(
+              "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
+            )
           end
 
           result
@@ -72,53 +77,71 @@ module Datadog
         #
         # @param data [Hash]
         def extract(data)
-          trace_digest = nil
-          dd_trace_digest = nil
+          return unless data
+          return if data.empty?
 
-          ::Datadog.configuration.tracing.distributed_tracing.propagation_extract_style.each do |style|
-            propagator = @propagation_styles[style]
-            next if propagator.nil?
+          extracted_trace_digest = nil
 
-            begin
+          @propagation_style_extract.each do |propagator|
+            # First extraction?
+            unless extracted_trace_digest
               extracted_trace_digest = propagator.extract(data)
-            rescue => e
-              ::Datadog.logger.error(
-                'Error extracting distributed trace data. ' \
-              "Cause: #{e} Location: #{Array(e.backtrace).first}"
+              next
+            end
+
+            # Return if we are only inspecting the first valid style.
+            next if @propagation_extract_first
+
+            # Continue parsing styles to find the W3C `tracestate` header, if present.
+            # `tracestate` must always be propagated, as it might contain pass-through data that we don't control.
+            # @see https://www.w3.org/TR/2021/REC-trace-context-1-20211123/#mutating-the-tracestate-field
+            next unless propagator.is_a?(TraceContext)
+
+            if (tracecontext_digest = propagator.extract(data))
+              # Only parse if it represent the same trace as the successfully extracted one
+              next unless tracecontext_digest.trace_id == extracted_trace_digest.trace_id
+
+              parent_id = extracted_trace_digest.span_id
+              distributed_tags = extracted_trace_digest.trace_distributed_tags
+              unless extracted_trace_digest.span_id == tracecontext_digest.span_id
+                # span_id in the tracecontext header takes precedence over the value in all conflicting headers
+                parent_id = tracecontext_digest.span_id
+                if (lp_id = last_datadog_parent_id(data, tracecontext_digest.trace_distributed_tags))
+                  distributed_tags = extracted_trace_digest.trace_distributed_tags&.dup || {}
+                  distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID] = lp_id
+                end
+              end
+              # Preserve the trace state and last datadog span id
+              extracted_trace_digest = extracted_trace_digest.merge(
+                span_id: parent_id,
+                trace_state: tracecontext_digest.trace_state,
+                trace_state_unknown_fields: tracecontext_digest.trace_state_unknown_fields,
+                trace_distributed_tags: distributed_tags
               )
             end
-
-            # Skip if no valid data was found
-            next if extracted_trace_digest.nil?
-
-            # Keep track of the Datadog extracted digest, we want to return it if we have it.
-            if extracted_trace_digest && style == Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG
-              dd_trace_digest = extracted_trace_digest
-            end
-
-            # No previously extracted trace data, use the one we just extracted
-            if trace_digest.nil?
-              trace_digest = extracted_trace_digest
-            else
-              unless trace_digest.trace_id == extracted_trace_digest.trace_id \
-                    && trace_digest.span_id == extracted_trace_digest.span_id
-                # We have two mismatched propagation contexts
-                ::Datadog.logger.debug do
-                  'Cannot extract distributed trace data: extracted styles differ, ' \
-                  "#{trace_digest.trace_id} != #{extracted_trace_digest.trace_id} && " \
-                  "#{trace_digest.span_id} != #{extracted_trace_digest.span_id}"
-                end
-
-                # It's safer to create a new context than to attach ourselves to the wrong context
-                return TraceDigest.new # Early return from the whole method
-              end
-            end
+          rescue => e
+            ::Datadog.logger.error(
+              "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
+            )
           end
 
-          # Return the extracted trace digest if we found one or else a new empty digest.
-          # Always return the Datadog trace digest if one exists since it has more
-          # information than the B3 digest, e.g. origin, priority sampling values.
-          dd_trace_digest || trace_digest || nil
+          extracted_trace_digest
+        end
+
+        private
+
+        def last_datadog_parent_id(headers, tracecontext_tags)
+          dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }
+          if tracecontext_tags&.fetch(
+            Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID,
+            Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+          ) != Tracing::Metadata::Ext::Distributed::DD_PARENT_ID_DEFAULT
+            # tracecontext headers contain a p value, ensure this value is sent to backend
+            tracecontext_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]
+          elsif dd_propagator && (dd_digest = dd_propagator.extract(headers))
+            # if p value is not present in tracestate, use the parent id from the datadog headers
+            format('%016x', dd_digest.span_id)
+          end
         end
       end
     end

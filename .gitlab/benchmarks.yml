@@ -5,104 +5,118 @@
 variables:
   GITLAB_BENCHMARKS_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-gitlab
   GITLAB_DDPROF_BENCHMARK_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:ruby-ddprof-benchmark
+  BASE_CI_IMAGE: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/benchmarking-platform:dd-trace-rb
 
 .benchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
   timeout: 1h
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_REF_NAME == "master"
       when: always
     - when: manual
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
-    - export ARTIFACTS_DIR="$(pwd)/reports" && (mkdir "${ARTIFACTS_DIR}" || :)
-    - export DD_API_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.dd-trace-rb.dd_api_key --with-decryption --query "Parameter.Value" --out text)
-    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform /platform && cd /platform
-    - ./steps/capture-hardware-software-info.sh
-    - ./steps/run-benchmarks.sh
-    - "./steps/upload-results-to-s3.sh || :"
+    - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
+    - bp-runner bp-runner.yml --debug
   artifacts:
-    name: "reports"
+    name: "artifacts"
+    when: always
     paths:
-      - reports/
+      - platform/artifacts/
     expire_in: 3 months
   variables:
-    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
-    DD_RELENV_DDTRACE_COMMIT_ID: $CI_COMMIT_SHORT_SHA
-    K6_RUN_ID_PREFIX: ci_rb
-    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
-  # Workaround: Currently we're not running the benchmarks on every PR, but GitHub still shows them as pending.
-  # By marking the benchmarks as allow_failure, this should go away. (This workaround should be removed once the
-  # benchmarks get changed to run on every PR)
-  allow_failure: true
-
-baseline-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: baseline
-
-only-tracing-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: only-tracing
-
-only-profiling-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
+    # Benchmark's env variables. Modify to tweak benchmark parameters.
+    DD_TRACE_DEBUG: "false"
+    DD_RUNTIME_METRICS_ENABLED: "true"
     # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
     # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
     # But in practice the endpoints we test it aren't affected, so we prefer to run the profiler in its default,
     # better accuracy, mode.
     DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
 
-only-profiling-timeline-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
+    # Default `false` for all features, overwrite by each variants.
+    DD_TRACE_ENABLED: "false"
+    DD_PROFILING_ENABLED: "false"
+    DD_APPSEC_ENABLED: "false"
 
-profiling-and-tracing-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
+    ADD_TO_GEMFILE: "gem 'datadog', require: 'datadog/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-tracing-and-appsec-benchmarks:
+    K6_OPTIONS_NORMAL_OPERATION_RATE: 30
+    K6_OPTIONS_NORMAL_OPERATION_DURATION: 10m
+    K6_OPTIONS_NORMAL_OPERATION_GRACEFUL_STOP: 1m
+    K6_OPTIONS_NORMAL_OPERATION_PRE_ALLOCATED_VUS: 4
+    K6_OPTIONS_NORMAL_OPERATION_MAX_VUS: 4
+
+    K6_OPTIONS_HIGH_LOAD_RATE: 200
+    K6_OPTIONS_HIGH_LOAD_DURATION: 5m
+    K6_OPTIONS_HIGH_LOAD_GRACEFUL_STOP: 30s
+    K6_OPTIONS_HIGH_LOAD_PRE_ALLOCATED_VUS: 4
+    K6_OPTIONS_HIGH_LOAD_MAX_VUS: 4
+
+    # Gitlab and BP specific env vars. Do not modify.
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
+
+  # Workaround: Currently we're not running the benchmarks on every PR, but GitHub still shows them as pending.
+  # By marking the benchmarks as allow_failure, this should go away. (This workaround should be removed once the
+  # benchmarks get changed to run on every PR)
+  allow_failure: true
+
+baseline:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: tracing-and-appsec
+    DD_BENCHMARKS_CONFIGURATION: baseline
+
+only-tracing:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-tracing
+    DD_TRACE_ENABLED: "true"
+
+only-profiling:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+
+only-profiling-alloc:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+
+only-profiling-heap:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+
+profiling-and-tracing:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
+    DD_TRACE_ENABLED: "true"
+    DD_PROFILING_ENABLED: "true"
+
+tracing-and-appsec:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
+    DD_TRACE_ENABLED: "true"
     DD_APPSEC_ENABLED: "true"
 
-tracing-and-appsec-and-no-remote-configuration-benchmarks:
+profiling-and-tracing-and-appsec:
   extends: .benchmarks
   variables:
-    DD_RELENV_CONFIGURATION: tracing-and-appsec-and-no-remote-configuration
-    DD_APPSEC_ENABLED: "true"
-    DD_REMOTE_CONFIGURATION_ENABLED: "false"
-
-profiling-and-tracing-and-appsec-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
-    DD_APPSEC_ENABLED: "true"
+    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
+    DD_TRACE_ENABLED: "true"
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-
-timeline-profiling-and-tracing-and-appsec-benchmarks:
-  extends: .benchmarks
-  variables:
-    DD_RELENV_CONFIGURATION: profiling-and-tracing-and-appsec
     DD_APPSEC_ENABLED: "true"
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_NO_SIGNALS_WORKAROUND_ENABLED: "false"
-    DD_PROFILING_EXPERIMENTAL_TIMELINE_ENABLED: "true"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
@@ -129,3 +143,33 @@ ddprof-benchmark:
     FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true" # Important tweak for stability of benchmarks
     LATEST_COMMIT_ID: $CI_COMMIT_SHA
     KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+benchmarks:
+  stage: benchmarks
+  when: always
+  tags: ["runner:apm-k8s-tweaked-metal"]
+  image: $BASE_CI_IMAGE
+  interruptible: true
+  timeout: 1h
+  script:
+    - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
+    - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - ./steps/capture-hardware-software-info.sh
+    - ./steps/run-benchmarks.sh
+    - ./steps/analyze-results.sh
+    - "./steps/upload-results-to-s3.sh || :"
+    - "./steps/upload-results-to-benchmarking-api.sh || :"
+    - "./steps/post-pr-comment.sh || :"
+  artifacts:
+    name: "artifacts"
+    when: always
+    paths:
+      - artifacts/
+    expire_in: 3 months
+  variables:
+    KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: dd-trace-rb
+    FF_USE_LEGACY_KUBERNETES_EXECUTION_STRATEGY: "true"
+    UPSTREAM_BRANCH: $CI_COMMIT_REF_NAME
+    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
+    UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
+    UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA

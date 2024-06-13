@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+require_relative 'trace/span'
+require_relative '../../tracing/span_link'
+require_relative '../../tracing/trace_digest'
+
 module Datadog
   module OpenTelemetry
     module SDK
@@ -27,7 +31,7 @@ module Datadog
         #
         # @param [Span] span the {Span} that just ended.
         def on_finish(span)
-          span.datadog_span.finish
+          span.datadog_span.finish(ns_to_time(span.end_timestamp))
         end
 
         # Export all ended spans to the configured `Exporter` that have not yet
@@ -76,14 +80,75 @@ module Datadog
         end
 
         def start_datadog_span(span)
-          tags = span.resource.attribute_enumerator.to_h
+          attributes = span.attributes.dup # Dup to allow modification of frozen Hash
 
-          kind = span.kind || 'internal'
-          tags[Tracing::Metadata::Ext::TAG_KIND] = kind
+          name, kwargs = span_arguments(span, attributes)
 
-          datadog_span = Tracing.trace(span.name, tags: tags)
+          datadog_span = Tracing.trace(name, **kwargs)
+
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
+          datadog_span.set_tags(span.attributes)
+
+          unless span.links.nil?
+            datadog_span.links = span.links.map do |link|
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: link.span_context.hex_trace_id.to_i(16),
+                  span_id: link.span_context.hex_span_id.to_i(16),
+                  trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
+                  trace_state: link.span_context.tracestate&.to_s,
+                  span_remote: link.span_context.remote?,
+                ),
+                attributes: link.attributes
+              )
+            end
+          end
+
           datadog_span
+        end
+
+        # Some special attributes can override Datadog Span fields
+        def span_arguments(span, attributes)
+          if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
+            attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = analytics_event.casecmp('true') == 0 ? 1 : 0
+          end
+
+          if attributes.key?('http.response.status_code')
+            attributes[Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE] = attributes.delete('http.response.status_code')
+          end
+
+          attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
+
+          kwargs = { start_time: ns_to_time(span.start_timestamp) }
+
+          name = if attributes.key?('operation.name')
+                   attributes['operation.name']
+                 elsif (rich_name = Datadog::OpenTelemetry::Trace::Span.enrich_name(span.kind, attributes))
+                   rich_name.downcase
+                 else
+                   span.kind
+                 end
+
+          kwargs[:resource] = attributes.key?('resource.name') ? attributes['resource.name'] : span.name
+          kwargs[:service] = attributes['service.name'] if attributes.key?('service.name')
+          kwargs[:type] = attributes['span.type'] if attributes.key?('span.type')
+
+          attributes.reject! { |key, _| OpenTelemetry::Trace::Span::DATADOG_SPAN_ATTRIBUTE_OVERRIDES.include?(key) }
+
+          # DEV: There's no `flat_map!`; we have to split it into two operations
+          attributes = attributes.map do |key, value|
+            Datadog::Tracing::Utils.serialize_attribute(key, value)
+          end
+          attributes.flatten!(1)
+
+          kwargs[:tags] = attributes.to_h
+
+          [name, kwargs]
+        end
+
+        # From nanoseconds, used by OpenTelemetry, to a {Time} object, used by the Datadog Tracer.
+        def ns_to_time(timestamp_ns)
+          Time.at(timestamp_ns / 1000000000.0)
         end
       end
     end

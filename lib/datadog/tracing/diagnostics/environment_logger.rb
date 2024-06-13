@@ -13,7 +13,7 @@ module Datadog
         extend Core::Diagnostics::EnvironmentLogging
 
         def self.collect_and_log!(responses: nil)
-          log_once! do
+          if log?
             env_data = EnvironmentCollector.collect_config!
             log_configuration!('TRACING', env_data.to_json)
 
@@ -40,7 +40,6 @@ module Datadog
               sampling_rules: sampling_rules,
               integrations_loaded: integrations_loaded,
               partial_flushing_enabled: partial_flushing_enabled,
-              priority_sampling_enabled: priority_sampling_enabled,
               **instrumented_integrations_settings
             }
           end
@@ -129,14 +128,15 @@ module Datadog
             !!Datadog.configuration.tracing.partial_flush.enabled
           end
 
-          # @return [Boolean, nil] priority sampling enabled in configuration
-          def priority_sampling_enabled
-            !!Datadog.configuration.tracing.priority_sampling
-          end
-
           private
 
           def instrumented_integrations
+            # `instrumented_integrations` method is added only if tracing contrib extensions are required.
+            # If tracing is used in manual mode without integrations enabled this method does not exist.
+            # CI visibility gem datadog-ci uses Datadog::Tracer without requiring datadog/tracing/contrib folder
+            # nor enabling any integrations by default which causes EnvironmentCollector to fail.
+            return {} unless Datadog.configuration.tracing.respond_to?(:instrumented_integrations)
+
             Datadog.configuration.tracing.instrumented_integrations
           end
 

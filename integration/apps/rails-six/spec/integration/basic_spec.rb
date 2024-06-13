@@ -14,7 +14,7 @@ RSpec.describe 'Basic scenarios' do
 
     let(:json_result) { JSON.parse(subject.body, symbolize_names: true) }
 
-    let(:expected_profiler_available) { RUBY_VERSION >= '2.3' && !RUBY_VERSION.start_with?('3.3.') }
+    let(:expected_profiler_available) { true }
 
     let(:expected_profiler_threads) do
       expected_profiler_available ? contain_exactly(
@@ -37,7 +37,6 @@ RSpec.describe 'Basic scenarios' do
       expect(json_result).to include(
         telemetry_enabled: true,
         telemetry_client_enabled: true,
-        telemetry_worker_enabled: true
       )
     end
 

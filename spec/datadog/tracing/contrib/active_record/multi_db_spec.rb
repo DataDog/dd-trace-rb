@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/integration_examples'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
@@ -211,6 +211,24 @@ RSpec.describe 'ActiveRecord multi-database implementation' do
           expect(gadget_span.service).to eq(default_db_service_name)
           # Widget belongs to its own database
           expect(widget_span.service).to eq(widget_db_service_name)
+        end
+      end
+
+      context 'an invalid value' do
+        context 'for a typical server' do
+          before do
+            Datadog.configure do |c|
+              c.tracing.instrument :active_record, describes: 'some invalid string' do |gadget_db|
+                gadget_db.service_name = gadget_db_service_name
+              end
+            end
+          end
+
+          it 'fails to configure' do
+            count
+
+            expect(gadget_span.service).to eq(default_db_service_name)
+          end
         end
       end
     end

@@ -24,7 +24,7 @@ RSpec.describe 'Rails cache' do
   let(:key) { 'custom-key' }
   let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
 
-  shared_examples 'a no-op when instrumentation is disabled' do
+  shared_examples 'an instrumented cache method' do
     context 'disabled at integration level' do
       before { Datadog.configuration.tracing[:active_support].enabled = false }
       after { Datadog.configuration.tracing[:active_support].reset! }
@@ -47,6 +47,44 @@ RSpec.describe 'Rails cache' do
         expect { subject }.to_not(change { fetch_spans })
       end
     end
+
+    context "with a cache different from Rails' default store" do
+      let(:cache) { ActiveSupport::Cache::MemoryStore.new }
+
+      before do
+        expect(cache).to_not be_a(Rails.cache.class) # Sanity check that they are different
+      end
+
+      it 'returns the matching backend type' do
+        subject
+        expect(spans[0].get_tag('rails.cache.backend')).to eq('memory_store')
+      end
+    end
+
+    context 'with a cache not in the ActiveSupport::Cache:: namespace' do
+      let(:cache_class) { stub_const('My::CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+      let(:cache) { cache_class.new }
+
+      it 'returns the matching backend type' do
+        subject
+        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+      end
+    end
+
+    context 'with an unnamespaced cache class' do
+      let(:cache_class) { stub_const('CustomCache', Class.new(ActiveSupport::Cache::MemoryStore)) }
+      let(:cache) { cache_class.new }
+
+      it 'returns the matching backend type' do
+        subject
+        expect(spans[0].get_tag('rails.cache.backend')).to eq('custom_cache')
+      end
+    end
+
+    it_behaves_like 'measured span for integration', false do
+      before { subject }
+      let(:span) { spans[0] }
+    end
   end
 
   describe '#read' do
@@ -54,13 +92,7 @@ RSpec.describe 'Rails cache' do
 
     before { cache.write(key, 50) }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
-    it_behaves_like 'measured span for integration', false do
-      before { read }
-
-      let(:span) { spans.first }
-    end
+    it_behaves_like 'an instrumented cache method'
 
     it do
       expect(read).to eq(50)
@@ -68,10 +100,10 @@ RSpec.describe 'Rails cache' do
       expect(spans).to have(2).items
       get, set = spans
       expect(get.name).to eq('rails.cache')
-      expect(get.span_type).to eq('cache')
+      expect(get.type).to eq('cache')
       expect(get.resource).to eq('GET')
       expect(get.service).to eq('rails-cache')
-      expect(get.get_tag('rails.cache.backend').to_s).to eq('file_store')
+      expect(get.get_tag('rails.cache.backend')).to eq('file_store')
       expect(get.get_tag('rails.cache.key')).to eq(key)
       expect(set.name).to eq('rails.cache')
 
@@ -92,23 +124,17 @@ RSpec.describe 'Rails cache' do
 
     before { multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) } }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
-    it_behaves_like 'measured span for integration', false do
-      before { read_multi }
-
-      let(:span) { spans[0] }
-    end
+    it_behaves_like 'an instrumented cache method'
 
     it do
       expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
       expect(spans).to have(1 + multi_keys.size).items
       get = spans[0]
       expect(get.name).to eq('rails.cache')
-      expect(get.span_type).to eq('cache')
+      expect(get.type).to eq('cache')
       expect(get.resource).to eq('MGET')
       expect(get.service).to eq('rails-cache')
-      expect(get.get_tag('rails.cache.backend').to_s).to eq('file_store')
+      expect(get.get_tag('rails.cache.backend')).to eq('file_store')
       expect(JSON.parse(get.get_tag('rails.cache.keys'))).to eq(multi_keys)
       expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_support')
@@ -128,19 +154,15 @@ RSpec.describe 'Rails cache' do
   describe '#write' do
     subject(:write) { cache.write(key, 50) }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
-    it_behaves_like 'measured span for integration', false do
-      before { write }
-    end
+    it_behaves_like 'an instrumented cache method'
 
     it do
       write
       expect(span.name).to eq('rails.cache')
-      expect(span.span_type).to eq('cache')
+      expect(span.type).to eq('cache')
       expect(span.resource).to eq('SET')
       expect(span.service).to eq('rails-cache')
-      expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+      expect(span.get_tag('rails.cache.backend')).to eq('file_store')
       expect(span.get_tag('rails.cache.key')).to eq(key)
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -181,19 +203,15 @@ RSpec.describe 'Rails cache' do
         end
       end
 
-      it_behaves_like 'a no-op when instrumentation is disabled'
-
-      it_behaves_like 'measured span for integration', false do
-        before { write_multi }
-      end
+      it_behaves_like 'an instrumented cache method'
 
       it do
         write_multi
         expect(span.name).to eq('rails.cache')
-        expect(span.span_type).to eq('cache')
+        expect(span.type).to eq('cache')
         expect(span.resource).to eq('MSET')
         expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
         expect(JSON.parse(span.get_tag('rails.cache.keys'))).to eq(multi_keys)
 
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -244,18 +262,15 @@ RSpec.describe 'Rails cache' do
   describe '#delete' do
     subject(:delete) { cache.delete(key) }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-    it_behaves_like 'measured span for integration', false do
-      before { delete }
-    end
+    it_behaves_like 'an instrumented cache method'
 
     it do
       delete
       expect(span.name).to eq('rails.cache')
-      expect(span.span_type).to eq('cache')
+      expect(span.type).to eq('cache')
       expect(span.resource).to eq('DELETE')
       expect(span.service).to eq('rails-cache')
-      expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+      expect(span.get_tag('rails.cache.backend')).to eq('file_store')
       expect(span.get_tag('rails.cache.key')).to eq(key)
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -268,14 +283,7 @@ RSpec.describe 'Rails cache' do
   describe '#fetch' do
     subject(:fetch) { cache.fetch(key) { 'default' } }
 
-    it_behaves_like 'a no-op when instrumentation is disabled'
-
-    it_behaves_like 'measured span for integration', false do
-      before { fetch }
-      # Choose either GET or SET span
-
-      let(:span) { spans.sample }
-    end
+    it_behaves_like 'an instrumented cache method'
 
     context 'with exception' do
       subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
@@ -284,10 +292,10 @@ RSpec.describe 'Rails cache' do
         expect { fetch }.to raise_error(StandardError)
 
         expect(span.name).to eq('rails.cache')
-        expect(span.span_type).to eq('cache')
+        expect(span.type).to eq('cache')
         expect(span.resource).to eq('GET')
         expect(span.service).to eq('rails-cache')
-        expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
         expect(span.get_tag('rails.cache.key')).to eq('exception')
         expect(span.get_tag('error.type')).to eq('RuntimeError')
         expect(span.get_tag('error.message')).to eq('oops')
@@ -310,14 +318,7 @@ RSpec.describe 'Rails cache' do
         end
       end
 
-      it_behaves_like 'a no-op when instrumentation is disabled'
-
-      it_behaves_like 'measured span for integration', false do
-        before { fetch_multi }
-        # Choose either GET or SET span
-
-        let(:span) { spans.sample }
-      end
+      it_behaves_like 'an instrumented cache method'
 
       context 'with exception' do
         subject(:fetch_multi) { cache.fetch_multi('exception', 'another', 'one') { raise 'oops' } }
@@ -325,10 +326,10 @@ RSpec.describe 'Rails cache' do
         it do
           expect { fetch_multi }.to raise_error(StandardError)
           expect(span.name).to eq('rails.cache')
-          expect(span.span_type).to eq('cache')
+          expect(span.type).to eq('cache')
           expect(span.resource).to eq('MGET')
           expect(span.service).to eq('rails-cache')
-          expect(span.get_tag('rails.cache.backend').to_s).to eq('file_store')
+          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
           expect(span.get_tag('rails.cache.keys')).to eq('["exception", "another", "one"]')
           expect(span.get_tag('error.type')).to eq('RuntimeError')
           expect(span.get_tag('error.message')).to eq('oops')

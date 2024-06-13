@@ -9,6 +9,7 @@ jobs:
           - ubuntu-latest
         ruby:
           - '3.2'
+          - '3.3'
           # ADD NEW RUBIES HERE
     name: Test (${{ matrix.os }}, ${{ matrix.ruby }})
     runs-on: ${{ matrix.os }}
@@ -18,13 +19,13 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
-        run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
-      - uses: ruby/setup-ruby@9669f3ee51dc3f4eda8447ab696b3ab19a90d14b # v1.144.0
+        run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically

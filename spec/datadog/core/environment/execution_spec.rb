@@ -3,10 +3,21 @@
 require 'spec_helper'
 
 require 'datadog/core/environment/execution'
+require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Execution do
-  describe '#development?' do
+  around do |example|
+    WebMock.enable!
+    example.run
+    WebMock.disable!
+  end
+
+  describe '.development?' do
     subject(:development?) { described_class.development? }
+
+    before do
+      WebMock.disable!
+    end
 
     context 'when in an RSpec test' do
       it { is_expected.to eq(true) }
@@ -29,15 +40,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
       end
 
-      let(:repl_script) do
+      let!(:repl_script) do
+        lib = File.expand_path('lib')
         <<-RUBY
-          # Load the working directory version of `ddtrace`
-          lib = File.expand_path('lib', __dir__)
-          $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+          # Load the working directory version of `datadog`
+          $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
           require 'datadog/core/environment/execution'
 
           # Print actual value to STDERR, as STDOUT tends to have more noise in REPL sessions.
-          STDERR.print Datadog::Core::Environment::Execution.development?
+          STDERR.print "ACTUAL:\#{Datadog::Core::Environment::Execution.development?}"
         RUBY
       end
 
@@ -61,7 +72,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
             f.close
 
             out, = Open3.capture2e('pry', '-f', '--noprompt', f.path)
-            expect(out).to eq('true')
+            expect(out).to eq('ACTUAL:true')
           end
         end
       end
@@ -77,6 +88,14 @@ RSpec.describe Datadog::Core::Environment::Execution do
             Object.const_set('ARGV', [])
 
             require 'minitest/autorun'
+
+            # MiniTest 5.22.1 requires a test to be defined, otherwise it will fail
+            # https://github.com/minitest/minitest/blob/master/History.rdoc#label-5.22.1+-2F+2024-02-06
+            Class.new(Minitest::Test) do
+              def test_it_does_something_useful
+                assert true
+              end
+            end
 
             is_expected.to eq(true)
           end
@@ -112,6 +131,151 @@ RSpec.describe Datadog::Core::Environment::Execution do
           _, err, = Open3.capture3('ruby', stdin_data: script)
           expect(err).to end_with('true')
         end
+      end
+
+      context 'for Rails' do
+        context 'not loaded' do
+          it { is_expected.to eq(false) }
+        end
+
+        context 'with environment' do
+          before { stub_const('Rails', rails) }
+          let(:rails) { double('Rails', env: env) }
+
+          context 'development' do
+            let(:env) { 'development' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'test' do
+            let(:env) { 'test' }
+            it { is_expected.to eq(true) }
+          end
+
+          context 'production' do
+            let(:env) { 'production' }
+            it { is_expected.to eq(false) }
+          end
+        end
+      end
+
+      context 'for Cucumber' do
+        before do
+          unless PlatformHelpers.ci? || Gem.loaded_specs['cucumber']
+            skip('cucumber gem not present. In CI, this test is never skipped.')
+          end
+        end
+
+        let(:script) do
+          <<-'RUBY'
+            require 'bundler/inline'
+
+            gemfile(true) do
+              source 'https://rubygems.org'
+              gem 'cucumber', '>= 3'
+            end
+
+            load Gem.bin_path('cucumber', 'cucumber')
+          RUBY
+        end
+
+        it 'returns true' do
+          Dir.mktmpdir do |dir|
+            Dir.chdir(dir) do
+              FileUtils.mkdir_p('features/support')
+
+              # Add our script to `env.rb`, which is always run before any feature is executed.
+              File.write('features/support/env.rb', repl_script)
+
+              _, err = Bundler.with_clean_env do
+                Open3.capture3('ruby', stdin_data: script)
+              end
+              expect(err).to include('ACTUAL:true')
+            end
+          end
+        end
+      end
+    end
+
+    context 'when webmock has enabled net-http adapter' do
+      before do
+        allow(described_class).to receive(:repl?).and_return(false)
+        allow(described_class).to receive(:test?).and_return(false)
+        allow(described_class).to receive(:rails_development?).and_return(false)
+
+        WebMock.enable!
+      end
+
+      it { is_expected.to eq(true) }
+    end
+  end
+
+  describe '.webmock_enabled?' do
+    context 'when missing constant `WebMock::HttpLibAdapters::NetHttpAdapter`' do
+      it do
+        hide_const('::WebMock::HttpLibAdapters::NetHttpAdapter')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when missing constant `Net::HTTP`' do
+      it do
+        hide_const('::Net::HTTP')
+        expect(described_class).not_to be_webmock_enabled
+      end
+    end
+
+    context 'when `WebMock::HttpLibAdapters::NetHttpAdapter` and `Net::HTTP` constants both exist' do
+      it do
+        WebMock.enable!
+
+        expect(described_class).to be_webmock_enabled
+      end
+
+      it do
+        WebMock.enable!(except: [:net_http])
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!
+
+        expect(described_class).not_to be_webmock_enabled
+      end
+
+      it do
+        WebMock.disable!(except: [:net_http])
+
+        expect(described_class).to be_webmock_enabled
+      end
+    end
+
+    context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
+      it do
+        out, err = Bundler.with_clean_env do
+          Open3.capture3('ruby', stdin_data: <<-RUBY
+            require 'bundler/inline'
+
+            gemfile(true, quiet: true) do
+              source 'https://rubygems.org'
+              gem 'webmock'
+            end
+
+            require 'webmock'
+            WebMock.enable!
+
+            lib = File.expand_path('lib', __dir__)
+            $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+            require 'datadog/core/environment/execution'
+
+            STDOUT.print Datadog::Core::Environment::Execution.webmock_enabled?
+          RUBY
+          )
+        end
+
+        expect(err).to be_empty
+        expect(out).to eq('true')
       end
     end
   end

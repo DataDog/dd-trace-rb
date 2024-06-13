@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../event'
@@ -14,8 +16,8 @@ module Datadog
           module SQL
             include ActiveRecord::Event
 
-            EVENT_NAME = 'sql.active_record'.freeze
-            PAYLOAD_CACHE = 'CACHE'.freeze
+            EVENT_NAME = 'sql.active_record'
+            PAYLOAD_CACHE = 'CACHE'
 
             module_function
 
@@ -40,10 +42,14 @@ module Datadog
               span.name = "#{adapter_name}.query"
               span.service = service_name
               span.resource = payload.fetch(:sql)
-              span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+              span.type = Tracing::Metadata::Ext::SQL::TYPE
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_SQL)
+
+              if service_name != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

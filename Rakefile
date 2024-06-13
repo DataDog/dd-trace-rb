@@ -1,5 +1,5 @@
 require 'bundler/gem_tasks'
-require 'ddtrace/version'
+require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
@@ -8,41 +8,351 @@ require 'os'
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
+# rubocop:disable Layout/HashAlignment
+TEST_METADATA = {
+  'main' => {
+    ''         => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'core-old' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'appsec:main' => {
+    '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'profiling:main' => {
+    'opentelemetry' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby',
+    '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'profiling:ractors' => {
+    '' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'contrib' => {
+    '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'opentelemetry' => {
+    'opentelemetry' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'action_pack' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'action_view' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'active_model_serializers' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'active_record' => {
+    'relational_db' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'active_support' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'autoinstrument' => {
+    # The testcase depends on a sinatra app
+    'sinatra-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'aws' => {
+    'aws' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'concurrent_ruby' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'dalli' => {
+    'contrib'     => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'contrib-old' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'delayed_job' => {
+    'relational_db' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'elasticsearch' => {
+    'elasticsearch-7' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'elasticsearch-8' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'ethon' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'excon' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'faraday' => {
+    'http'        => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'contrib-old' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby'
+  },
+  'grape' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'graphql' => {
+    'graphql-2.2'  => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'graphql-2.1'  => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'graphql-2.0'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    # Although GraphQL 1.13.x depends on Ruby >= 2.4, but it does not work with Ruby 2.5
+    #
+    # require 'graphql'
+    #
+    # 1: from /usr/local/bundle/gems/graphql-1.13.21/lib/graphql/schema/field.rb:289:in `initialize'
+    # NoMethodError (undefined method `each' for nil:NilClass)
+    'graphql-1.13' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'grpc' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'http' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'httpclient' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'httprb' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'kafka' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'lograge' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'mongodb' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'mysql2' => {
+    'relational_db' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'opensearch' => {
+    'opensearch-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'opensearch-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'pg' => {
+    'relational_db' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'presto' => {
+    'contrib-old' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'que' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'racecar' => {
+    'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'rack' => {
+    # Non-deprecated form of Regexp.new does not backport to Rack 1.x, see: https://github.com/rack/rack/pull/1998
+    'rack-1' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rack-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'rack-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'rake' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'resque' => {
+    'contrib'        => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'resque2-redis3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'resque2-redis4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'rest_client' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'roda' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'semantic_logger' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'sequel' => {
+    'relational_db' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'shoryuken' => {
+    'aws' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'sidekiq' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'sneakers' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'stripe' => {
+    'http' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'sucker_punch' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'suite' => {
+    'contrib' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'trilogy' => {
+    'relational_db' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'rails' => {
+    'rails4-mysql2'    => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails4-postgres'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-mysql2'    => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-mysql2'    => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-mysql2'   => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'rails61-postgres' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'rails61-trilogy'  => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  },
+  'railsautoinstrument' => {
+    'rails4-postgres'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby'
+  },
+  'railsdisableenv' => {
+    'rails4-postgres'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-postgres' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'railsredis_activesupport' => {
+    'rails4-postgres-redis'               => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-postgres-redis-activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres-redis-activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby'
+  },
+  'railsactivejob' => {
+    'rails4-postgres-sidekiq'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-postgres-sidekiq'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres-sidekiq'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-postgres-sidekiq' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'railssemanticlogger' => {
+    'rails4-semantic-logger'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails5-semantic-logger'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-semantic-logger'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-semantic-logger' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'action_cable' => {
+    'rails5-mysql2'  => '✅ 2.5 / ✅ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-mysql2'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-mysql2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'action_mailer' => {
+    'rails5-mysql2'  => '✅ 2.5 / ✅ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-mysql2'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-mysql2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'railsredis' => {
+    'rails5-postgres-redis'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails6-postgres-redis'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rails61-postgres-redis' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'hanami' => {
+    'hanami-1' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby'
+  },
+  'sinatra' => {
+    'sinatra-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'sinatra-3' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'sinatra-4' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'redis' => {
+    'redis-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-4' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'redis-5' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'appsec:rack' => {
+    # Non-deprecated form of Regexp.new does not backport to Rack 1.x, see: https://github.com/rack/rack/pull/1998
+    'rack-1' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ❌ 3.3 / ✅ jruby',
+    'rack-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'rack-3' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'appsec:sinatra' => {
+    'sinatra-2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'sinatra-3' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+    'sinatra-4' => '❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
+  },
+  'appsec:devise' => {
+    '' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+  },
+  'appsec:rails' => {
+    'rails4-mysql2'  => '✅ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby',
+    'rails5-mysql2'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby',
+    'rails6-mysql2'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby',
+    'rails61-mysql2' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby'
+  }
+}.freeze
+# rubocop:enable Layout/HashAlignment
+
+namespace :test do
+  desc 'Run all tests'
+  task all: TEST_METADATA.map { |k, _| "test:#{k}" }
+
+  ruby_version = RUBY_VERSION[0..2]
+
+  major, minor, = if defined?(RUBY_ENGINE_VERSION)
+                    Gem::Version.new(RUBY_ENGINE_VERSION).segments
+                  else
+                    # For Ruby < 2.3
+                    Gem::Version.new(RUBY_VERSION).segments
+                  end
+
+  ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
+
+  TEST_METADATA.each do |key, spec_metadata|
+    spec_task = "spec:#{key}"
+
+    desc "Run #{spec_task} tests"
+    task key, [:task_args] do |_, args|
+      spec_arguments = args.task_args
+
+      candidates = spec_metadata.select do |appraisal_group, rubies|
+        if RUBY_PLATFORM == 'java'
+          # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
+          next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
+
+          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
+        else
+          rubies.include?("✅ #{ruby_version}")
+        end
+      end
+
+      candidates.each do |appraisal_group, _|
+        command = if appraisal_group.empty?
+                    "bundle exec rake #{spec_task}"
+                  else
+                    "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake #{spec_task}"
+                  end
+
+        command += "'[#{spec_arguments}]'" if spec_arguments
+
+        total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
+        current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
+
+        if total_executors && current_executor && total_executors > 1
+          @execution_count ||= 0
+          @execution_count += 1
+          sh(command) if @execution_count % total_executors == current_executor
+        else
+          sh(command)
+        end
+      end
+    end
+  end
+end
+
 desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main, :benchmark,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
-             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument]
+             :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
+             :profiling]
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,opentracer,auto_instrument,opentelemetry}/**/*_spec.rb,'\
-                        ' spec/**/{auto_instrument,opentelemetry}_spec.rb'
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,auto_instrument,opentelemetry,profiling}/**/*_spec.rb,'\
+                        ' spec/**/{auto_instrument,opentelemetry}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
-  end
-  if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0') \
-    && Gem::Version.new(RUBY_VERSION) < Gem::Version.new('3.3.0')
-    # "bundle exec rake compile" currently only works on MRI Ruby on Linux
-    Rake::Task[:main].enhance([:clean])
-    Rake::Task[:main].enhance([:compile])
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
-    t.pattern = 'spec/ddtrace/benchmark/**/*_spec.rb'
+    t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
-  RSpec::Core::RakeTask.new(:opentracer) do |t, args|
-    t.pattern = 'spec/datadog/opentracer/**/*_spec.rb'
-    t.rspec_opts = args.to_a.join(' ')
-  end
-
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:opentelemetry) do |t, args|
     t.pattern = 'spec/datadog/opentelemetry/**/*_spec.rb,spec/datadog/opentelemetry_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
@@ -50,11 +360,13 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsredis_activesupport) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*redis*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -63,26 +375,31 @@ namespace :spec do
     ENV['EXPECT_RAILS_ACTIVESUPPORT'] = 'true'
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsactivejob) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*active_job*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsdisableenv) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*disable_env*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami_autoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -90,8 +407,9 @@ namespace :spec do
     ENV['TEST_AUTO_INSTRUMENT'] = 'true'
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:autoinstrument) do |t, args|
-    t.pattern = 'spec/ddtrace/auto_instrument_spec.rb'
+    t.pattern = 'spec/datadog/auto_instrument_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -103,11 +421,13 @@ namespace :spec do
   # rails_semantic_logger is the dog at the dog park that doesnt play nicely with other
   # logging gems, aka it tries to bite/monkeypatch them, so we have to put it in its own appraisal and rake task
   # in order to isolate its effects for rails logs auto injection
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railssemanticlogger) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*rails_semantic_logger*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
       'analytics',
@@ -158,7 +478,6 @@ namespace :spec do
     :opensearch,
     :pg,
     :presto,
-    :qless,
     :que,
     :racecar,
     :rack,
@@ -175,22 +494,12 @@ namespace :spec do
     :sneakers,
     :stripe,
     :sucker_punch,
-    :suite
+    :suite,
+    :trilogy
   ].each do |contrib|
+    desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
-      t.rspec_opts = args.to_a.join(' ')
-    end
-  end
-
-  # Datadog CI integrations
-  [
-    :cucumber,
-    :rspec,
-    :minitest
-  ].each do |contrib|
-    RSpec::Core::RakeTask.new(contrib) do |t, args|
-      t.pattern = "spec/datadog/ci/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
@@ -199,6 +508,7 @@ namespace :spec do
     task all: [:main, :rack, :rails, :sinatra, :devise]
 
     # Datadog AppSec main specs
+    desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:main) do |t, args|
       t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
       t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,auto_instrument}/**/*_spec.rb,'\
@@ -213,6 +523,7 @@ namespace :spec do
       :rails,
       :devise,
     ].each do |contrib|
+      desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
         t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
         t.rspec_opts = args.to_a.join(' ')
@@ -221,6 +532,40 @@ namespace :spec do
   end
 
   task appsec: [:'appsec:all']
+
+  namespace :profiling do
+    task all: [:main, :ractors]
+
+    task :compile_native_extensions do
+      # "bundle exec rake compile" currently only works on MRI Ruby on Linux
+      if RUBY_ENGINE == 'ruby' && OS.linux? && Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3.0')
+        Rake::Task[:clean].invoke
+        Rake::Task[:compile].invoke
+      end
+    end
+
+    # Datadog Profiling main specs without Ractor creation
+    # NOTE: Ractor creation will transition the entire Ruby VM into multi-ractor mode. This cannot be undone
+    #       and, as such, may introduce side-effects between tests and make them flaky depending on order of
+    #       execution. By splitting in two separate suites, the side-effect impact should be mitigated as
+    #       the non-ractor VM will never trigger the transition into multi-ractor mode.
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:main) do |t, args|
+      t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ~ractors'].join(' ')
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:ractors) do |t, args|
+      t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
+      t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+    end
+
+    # Make sure each profiling test suite has a dependency on compiled native extensions
+    Rake::Task[:all].prerequisite_tasks.each { |t| t.enhance([:compile_native_extensions]) }
+  end
+
+  task profiling: [:'profiling:all']
 end
 
 if defined?(RuboCop::RakeTask)
@@ -236,189 +581,12 @@ YARD::Rake::YardocTask.new(:docs) do |t|
   # as `.yardopts` can be read by external YARD tools, like the
   # hot-reload YARD server `yard server --reload`.
 
-  t.options += ['--title', "ddtrace #{DDTrace::VERSION::STRING} documentation"]
+  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
 end
 
-# Declare a command for execution.
 # Jobs are parallelized if running in CI.
-def declare(rubies_to_command)
-  rubies, command = rubies_to_command.first
-
-  return unless rubies.include?("✅ #{RUBY_VERSION[0..2]}")
-  return if RUBY_PLATFORM == 'java' && rubies.include?('❌ jruby')
-
-  total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
-  current_executor = ENV.key?('CIRCLE_NODE_INDEX') ? ENV['CIRCLE_NODE_INDEX'].to_i : nil
-
-  ruby_runtime = if defined?(RUBY_ENGINE_VERSION)
-                   "#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION}"
-                 else
-                   "#{RUBY_ENGINE}-#{RUBY_VERSION}" # For Ruby < 2.3
-                 end
-
-  command.sub!(/^bundle exec appraisal /, "bundle exec appraisal #{ruby_runtime}-")
-
-  if total_executors && current_executor && total_executors > 1
-    @execution_count ||= 0
-    @execution_count += 1
-    sh(command) if @execution_count % total_executors == current_executor
-  else
-    sh(command)
-  end
-end
-
 desc 'CI task; it runs all tests for current version of Ruby'
-task :ci do
-  # ADD NEW RUBIES HERE
-
-  # Main library
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec rake spec:main'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal core-old rake spec:main'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec rake spec:appsec:main'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec rake spec:contrib'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec rake spec:opentracer'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal opentelemetry rake spec:opentelemetry'
-
-  # Contrib specs
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:action_pack'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:action_view'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:active_model_serializers'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:active_record'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:active_support'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:autoinstrument'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:aws'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:concurrent_ruby'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:cucumber'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:dalli'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:delayed_job'
-  declare '✅ 2.1 / ✅ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:elasticsearch' # 2.3 and 2.4 are tested via contrib-old
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:ethon'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:excon'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:faraday'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:grape'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:graphql'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:grpc' # disabled on JRuby, protobuf not supported
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:http'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:httpclient'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:httprb'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:kafka'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:lograge'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:minitest'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:mongodb'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:mysql2' # disabled on JRuby, built-in jdbc is used instead
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:opensearch'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:pg'
-  declare '✅ 2.1 / ✅ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal contrib rake spec:presto'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:que'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:racecar' # disabled on 3.0 pending release of our fix: https://github.com/appsignal/rdkafka-ruby/pull/144
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:rack'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:rake'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:resque'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:rest_client'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:roda'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:rspec'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:semantic_logger'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:sequel'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:shoryuken'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:sidekiq'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:sneakers'
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:stripe'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:sucker_punch'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:suite'
-
-  # Contrib specs with old gem versions
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:dalli'
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:elasticsearch'
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:faraday'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:graphql'
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:presto'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib-old rake spec:qless'
-
-  # Rails specs
-  # On Ruby 2.4 and 2.5, we only test Rails 5+ because older versions require Bundler < 2.0
-  declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:active_record'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:rails'
-  declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:action_pack'
-  declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:action_view'
-  declare '✅ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:active_support'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:rails'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:railsautoinstrument'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres rake spec:railsdisableenv'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails32-postgres-redis rake spec:railsredis_activesupport'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-mysql2 rake spec:rails'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-postgres rake spec:rails'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-postgres rake spec:railsautoinstrument'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-postgres rake spec:railsdisableenv'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-postgres-redis rake spec:railsredis_activesupport'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-postgres-sidekiq rake spec:railsactivejob'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails4-semantic-logger rake spec:railssemanticlogger'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-mysql2 rake spec:action_cable'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-mysql2 rake spec:action_mailer'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-mysql2 rake spec:rails'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres rake spec:rails'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres rake spec:railsautoinstrument'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres rake spec:railsdisableenv'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres-redis rake spec:railsredis'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres-redis-activesupport rake spec:railsredis_activesupport'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-postgres-sidekiq rake spec:railsactivejob'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails5-semantic-logger rake spec:railssemanticlogger'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-mysql2 rake spec:action_cable'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-mysql2 rake spec:action_mailer'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-mysql2 rake spec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres rake spec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres rake spec:railsautoinstrument'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres rake spec:railsdisableenv'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres-redis rake spec:railsredis'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres-redis-activesupport rake spec:railsredis_activesupport'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-postgres-sidekiq rake spec:railsactivejob'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ✅ jruby' => 'bundle exec appraisal rails6-semantic-logger rake spec:railssemanticlogger'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_cable'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:action_mailer'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-postgres rake spec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-postgres rake spec:railsdisableenv'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-postgres-redis rake spec:railsredis'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-postgres-sidekiq rake spec:railsactivejob'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal rails61-semantic-logger rake spec:railssemanticlogger'
-
-  # explicitly test Hanami compatability
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal hanami-1 rake spec:hanami'
-
-  # explicitly test Sinatra compatability
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal sinatra rake spec:sinatra'
-
-  # explicitly test Redis compatability
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal redis-3 rake spec:redis'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal redis-4 rake spec:redis'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal redis-5 rake spec:redis'
-
-  # explicitly test resque-2x compatability
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal resque2-redis3 rake spec:resque'
-  declare '❌ 2.1 / ❌ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal resque2-redis4 rake spec:resque'
-
-  # explicitly test cucumber compatibility
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber3 rake spec:cucumber'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber4 rake spec:cucumber'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber5 rake spec:cucumber'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber6 rake spec:cucumber'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber7 rake spec:cucumber'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal cucumber8 rake spec:cucumber'
-
-  # AppSec contrib specs
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:rack'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:sinatra'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby' => 'bundle exec appraisal contrib rake spec:appsec:devise'
-
-  # AppSec Rails specs
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal rails32-mysql2 rake spec:appsec:rails'
-  declare '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ❌ 2.4 / ❌ 2.5 / ❌ 2.6 / ❌ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal rails4-mysql2 rake spec:appsec:rails'
-  declare '❌ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal rails5-mysql2 rake spec:appsec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ jruby' => 'bundle exec appraisal rails6-mysql2 rake spec:appsec:rails'
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec appraisal rails61-mysql2 rake spec:appsec:rails'
-
-  # Upstream gem test suite with ddtrace enabled
-  declare '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ❌ 2.4 / ❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ❌ jruby' => 'bundle exec rake upstream:opentelemetry'
-end
+task ci: 'test:all'
 
 namespace :coverage do
   # Generates one global report for all tracer tests
@@ -465,12 +633,44 @@ namespace :changelog do
   end
 end
 
-Rake::ExtensionTask.new("ddtrace_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_native_extension'
-end
+NATIVE_EXTS = [
+  Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_profiling_native_extension'
+  end,
 
-Rake::ExtensionTask.new("ddtrace_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-  ext.ext_dir = 'ext/ddtrace_profiling_loader'
+  Rake::ExtensionTask.new("datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/datadog_profiling_loader'
+  end
+].freeze
+
+NATIVE_CLEAN = ::Rake::FileList[]
+namespace :native_dev do
+  compile_commands_tasks = NATIVE_EXTS.map do |ext|
+    tmp_dir_dd_native_dev = "#{ext.tmp_dir}/dd_native_dev"
+    directory tmp_dir_dd_native_dev
+    NATIVE_CLEAN << tmp_dir_dd_native_dev
+
+    compile_commands_task = file "#{ext.ext_dir}/compile_commands.json" => [tmp_dir_dd_native_dev] do |t|
+      puts "Generating #{t.name}"
+      root_dir = Dir.pwd
+      cmd = ext.make_makefile_cmd(root_dir, tmp_dir_dd_native_dev, "#{ext.ext_dir}/#{ext.config_script}", nil)
+      abs_ext_dir = (Pathname.new(root_dir) + ext.ext_dir).realpath
+      chdir tmp_dir_dd_native_dev do
+        sh(*cmd)
+        sh('make clean; bear -- make; make clean')
+        cp('compile_commands.json', "#{abs_ext_dir}/compile_commands.json")
+      end
+    end
+
+    NATIVE_CLEAN << compile_commands_task.name
+
+    compile_commands_task
+  end
+
+  desc 'Setup dev environment for native extensions.'
+  task setup: compile_commands_tasks
+
+  CLEAN.concat(NATIVE_CLEAN)
 end
 
 desc 'Runs rubocop + main test suite'

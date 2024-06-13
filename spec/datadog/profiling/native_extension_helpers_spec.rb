@@ -1,4 +1,4 @@
-require 'ext/ddtrace_profiling_native_extension/native_extension_helpers'
+require 'ext/datadog_profiling_native_extension/native_extension_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
@@ -15,14 +15,9 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       it 'returns a relative path to libdatadog folder from the gem lib folder' do
         relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder
 
-        # RbConfig::CONFIG['SOEXT'] was only introduced in Ruby 2.5, so we have a fallback for older Rubies...
-        libdatadog_extension =
-          RbConfig::CONFIG['SOEXT'] ||
-          ('so' if PlatformHelpers.linux?) ||
-          ('dylib' if PlatformHelpers.mac?) ||
-          raise('Missing SOEXT for current platform')
+        libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
 
-        gem_lib_folder = "#{Gem.loaded_specs['ddtrace'].gem_dir}/lib"
+        gem_lib_folder = "#{Gem.loaded_specs['datadog'].gem_dir}/lib"
         full_libdatadog_path = "#{gem_lib_folder}/#{relative_path}/libdatadog_profiling.#{libdatadog_extension}"
 
         expect(relative_path).to start_with('../')
@@ -38,12 +33,53 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
     end
   end
 
+  describe '.libdatadog_folder_relative_to_ruby_extensions_folders' do
+    context 'when libdatadog is available' do
+      before do
+        skip_if_profiling_not_supported(self)
+        if PlatformHelpers.mac? && Libdatadog.pkgconfig_folder.nil? && ENV['LIBDATADOG_VENDOR_OVERRIDE'].nil?
+          raise 'You have a libdatadog setup without macOS support. Did you forget to set LIBDATADOG_VENDOR_OVERRIDE?'
+        end
+      end
+
+      it 'returns a relative path to libdatadog folder from the ruby extensions folders' do
+        extensions_relative, bundler_extensions_relative =
+          described_class.libdatadog_folder_relative_to_ruby_extensions_folders
+
+        libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
+        libdatadog = "libdatadog_profiling.#{libdatadog_extension}"
+
+        expect(extensions_relative).to start_with('../')
+        expect(bundler_extensions_relative).to start_with('../')
+
+        extensions_full =
+          "#{Gem.dir}/extensions/platform/extension_api_version/datadog_version/#{extensions_relative}/#{libdatadog}"
+        bundler_extensions_full =
+          "#{Gem.dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/" \
+          "#{bundler_extensions_relative}/#{libdatadog}"
+
+        expect(File.exist?(Pathname.new(extensions_full).cleanpath.to_s))
+          .to be(true), "Libdatadog not available in expected path: #{extensions_full.inspect}"
+        expect(File.exist?(Pathname.new(bundler_extensions_full).cleanpath.to_s))
+          .to be(true), "Libdatadog not available in expected path: #{bundler_extensions_full.inspect}"
+      end
+    end
+
+    context 'when libdatadog is unsupported' do
+      it do
+        expect(
+          described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)
+        ).to be nil
+      end
+    end
+  end
+
   describe '::LIBDATADOG_VERSION' do
     it 'must match the version restriction set on the gemspec' do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
       # the version on the `native_extension_helpers.rb` file. Kindly keep them in sync! :)
       expect(described_class::LIBDATADOG_VERSION).to eq(
-        Gem.loaded_specs['ddtrace'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
+        Gem.loaded_specs['datadog'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
       )
     end
   end
@@ -127,81 +163,61 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
         end
 
         shared_examples 'supported ruby validation' do
-          context 'when not on Ruby 2.1 or 2.2' do
-            before { stub_const('RUBY_VERSION', '2.3.0') }
+          before { stub_const('RUBY_VERSION', '2.5.0') }
 
-            shared_examples 'libdatadog available' do
-              context 'when libdatadog fails to activate' do
-                before do
-                  expect(described_class)
-                    .to receive(:gem).with('libdatadog', Datadog::Profiling::NativeExtensionHelpers::LIBDATADOG_VERSION)
-                    .and_raise(LoadError.new('Simulated error activating gem'))
-                end
-
-                it { is_expected.to include 'exception during loading' }
+          shared_examples 'libdatadog available' do
+            context 'when libdatadog fails to activate' do
+              before do
+                expect(described_class)
+                  .to receive(:gem).with('libdatadog', Datadog::Profiling::NativeExtensionHelpers::LIBDATADOG_VERSION)
+                  .and_raise(LoadError.new('Simulated error activating gem'))
               end
 
-              context 'when libdatadog successfully activates' do
-                include_examples 'libdatadog usable'
-              end
+              it { is_expected.to include 'exception during loading' }
             end
 
-            shared_examples 'libdatadog usable' do
-              context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
-                before do
-                  expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
-                  expect(Libdatadog).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
-                end
+            context 'when libdatadog successfully activates' do
+              include_examples 'libdatadog usable'
+            end
+          end
 
-                it { is_expected.to include 'platform variant' }
+          shared_examples 'libdatadog usable' do
+            context 'when libdatadog DOES NOT HAVE binaries for the current platform' do
+              before do
+                expect(Libdatadog).to receive(:pkgconfig_folder).and_return(nil)
+                expect(Libdatadog).to receive(:available_binaries).and_return(%w[fooarch-linux bararch-linux-musl])
               end
 
-              context 'when libdatadog HAS BINARIES for the current platform' do
-                before { expect(Libdatadog).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
-
-                it('marks the native extension as supported') { is_expected.to be nil }
-              end
+              it { is_expected.to include 'platform variant' }
             end
 
-            context 'on a Ruby version where we CAN NOT use the MJIT header' do
-              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
+            context 'when libdatadog HAS BINARIES for the current platform' do
+              before { expect(Libdatadog).to receive(:pkgconfig_folder).and_return('/simulated/pkgconfig_folder') }
+
+              it('marks the native extension as supported') { is_expected.to be nil }
+            end
+          end
+
+          context 'on a Ruby version where we CAN NOT use the MJIT header' do
+            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', false) }
+
+            include_examples 'libdatadog available'
+          end
+
+          context 'on a Ruby version where we CAN use the MJIT header' do
+            before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
+
+            context 'but DOES NOT have MJIT support' do
+              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
+
+              it { is_expected.to include 'without JIT' }
+            end
+
+            context 'and DOES have MJIT support' do
+              before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
 
               include_examples 'libdatadog available'
             end
-
-            context 'on a Ruby version where we CAN use the MJIT header' do
-              before { stub_const('Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER', true) }
-
-              context 'but DOES NOT have MJIT support' do
-                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('no') }
-
-                it { is_expected.to include 'without JIT' }
-              end
-
-              context 'and DOES have MJIT support' do
-                before { expect(RbConfig::CONFIG).to receive(:[]).with('MJIT_SUPPORT').and_return('yes') }
-
-                include_examples 'libdatadog available'
-              end
-            end
-          end
-
-          context 'when on Ruby 2.1' do
-            before { stub_const('RUBY_VERSION', '2.1.10') }
-
-            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
-          end
-
-          context 'when on Ruby 2.2' do
-            before { stub_const('RUBY_VERSION', '2.2.10') }
-
-            it { is_expected.to include 'profiler only supports Ruby 2.3 or newer' }
-          end
-
-          context 'when on Ruby 3.3' do
-            before { stub_const('RUBY_VERSION', '3.3.0') }
-
-            it { is_expected.to include "does not yet support\nRuby version 3.3." }
           end
         end
 

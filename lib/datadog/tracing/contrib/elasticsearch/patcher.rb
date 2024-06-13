@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
@@ -24,6 +26,7 @@ module Datadog
             require 'json'
             require_relative 'quantize'
 
+            transport_module::Client.prepend(DatadogPin)
             transport_module::Client.prepend(Client)
           end
 
@@ -34,26 +37,8 @@ module Datadog
             # rubocop:disable Metrics/MethodLength
             # rubocop:disable Metrics/AbcSize
             def perform_request(*args)
-              # DEV-2.0: Remove this access, as `Client#self` in this context is not exposed to the user
-              # since `elasticsearch` v8.0.0. In contrast, `Client#transport` is always available across
-              # all `elasticsearch` gem versions and should be used instead.
-              service = Datadog.configuration_for(self, :service_name)
-
-              if service
-                SELF_DEPRECATION_ONLY_ONCE.run do
-                  Datadog.logger.warn(
-                    'Providing configuration though the Elasticsearch client object is deprecated.' \
-                    'Configure the `client#transport` object instead: ' \
-                    'Datadog.configure_onto(client.transport, service_name: service_name, ...)'
-                  )
-                end
-              end
-
-              # `Client#transport` is most convenient object both this integration and the library
-              # user have shared access to across all `elasticsearch` versions.
-              #
-              # `Client#self` in this context is an internal object that the library user
-              # does not have access to since `elasticsearch` v8.0.0.
+              # `Client#transport` is the most convenient object both for this integration and the library
+              # as users have shared access to it across all `elasticsearch` versions.
               service ||= Datadog.configuration_for(transport, :service_name) || datadog_configuration[:service_name]
 
               method = args[0]
@@ -77,7 +62,12 @@ module Datadog
                     )
                   end
 
-                  span.span_type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
+                  # Tag original global service name if not used
+                  if span.service != Datadog.configuration.service
+                    span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+                  end
+
+                  span.type = Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_TYPE_QUERY
 
                   span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
                   span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_QUERY)
@@ -138,6 +128,25 @@ module Datadog
           end
           # rubocop:enable Metrics/MethodLength
           # rubocop:enable Metrics/AbcSize
+
+          # Patch to support both `elasticsearch` and `elastic-transport` versions
+          module DatadogPin
+            def datadog_pin=(pin)
+              pin.onto(pin_candidate)
+            end
+
+            def datadog_pin
+              Datadog.configuration_for(pin_candidate)
+            end
+
+            def pin_candidate(candidate = self)
+              if candidate.respond_to?(:transport)
+                pin_candidate(candidate.transport)
+              else
+                candidate
+              end
+            end
+          end
 
           # `Elasticsearch` namespace renamed to `Elastic` in version 8.0.0 of the transport gem:
           # @see https://github.com/elastic/elastic-transport-ruby/commit/ef804cbbd284f2a82d825221f87124f8b5ff823c

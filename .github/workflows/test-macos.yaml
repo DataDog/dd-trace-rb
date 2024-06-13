@@ -1,16 +1,19 @@
 name: Test macOS
-on: [push]
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
 jobs:
   test-macos:
     strategy:
       fail-fast: false
       matrix:
         os:
-          - macos-latest
+          - macos-13
         ruby:
-          - '2.2'
-          - '2.3'
-          - '2.4'
           - '2.5'
           - '2.6'
           - '2.7'
@@ -26,16 +29,16 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
-        run: sed -i~ -e '/spec\.required_ruby_version/d' ddtrace.gemspec
-      - uses: ruby/setup-ruby@7d546f4868fb108ed378764d873683f920672ae2 # v1.149.0
+        run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-          bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
-          cache-version: v2 # bump this to invalidate cache
+          rubygems: 3.3.26
+          bundler: 2.3.26 # needed to fix issue with steep on Ruby 3.0/3.1
+      - run: bundle install
       - run: bundle exec rake spec:main

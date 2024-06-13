@@ -3,4 +3,5 @@ module Datadog
   end
 
   extend Core::Configuration
+  extend Tracing::Contrib::Extensions::Helpers
 end

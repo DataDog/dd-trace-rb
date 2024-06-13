@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../reactive/request'
@@ -28,7 +30,7 @@ module Datadog
                   scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('rack.request') do |op|
-                    Rack::Reactive::Request.subscribe(op, scope.processor_context) do |result, _block|
+                    Rack::Reactive::Request.subscribe(op, scope.processor_context) do |result|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -48,7 +50,7 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::Request.publish(op, gateway_request)
+                    block = Rack::Reactive::Request.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
@@ -67,11 +69,12 @@ module Datadog
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
                   block = false
+
                   event = nil
                   scope = gateway_response.scope
 
                   AppSec::Reactive::Operation.new('rack.response') do |op|
-                    Rack::Reactive::Response.subscribe(op, scope.processor_context) do |result, _block|
+                    Rack::Reactive::Response.subscribe(op, scope.processor_context) do |result|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -91,7 +94,7 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::Response.publish(op, gateway_response)
+                    block = Rack::Reactive::Response.publish(op, gateway_response)
                   end
 
                   next [nil, [[:block, event]]] if block
@@ -110,11 +113,12 @@ module Datadog
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
                   block = false
+
                   event = nil
                   scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('rack.request.body') do |op|
-                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result, _block|
+                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -134,7 +138,7 @@ module Datadog
                       end
                     end
 
-                    _result, block = Rack::Reactive::RequestBody.publish(op, gateway_request)
+                    block = Rack::Reactive::RequestBody.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block

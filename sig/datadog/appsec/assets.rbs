@@ -5,6 +5,10 @@ module Datadog
 
       def self?.waf_rules: (?::Symbol kind) -> ::String
 
+      def self?.waf_processors: () -> ::String
+
+      def self?.waf_scanners: () -> ::String
+
       def self?.blocked: (?format: ::Symbol) -> ::String
 
       def self?.path: () -> ::Pathname
