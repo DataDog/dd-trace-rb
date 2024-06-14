@@ -1,13 +1,14 @@
 # frozen_literal_string: true
 
+require 'datadog/tracing/contrib/graphql/test_helpers'
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
 require 'datadog/appsec/contrib/graphql/gateway/multiplex'
 require 'datadog/appsec/contrib/graphql/reactive/multiplex'
+require 'datadog/appsec/reactive/shared_examples'
 
 require 'graphql'
-
-require_relative '../../../../tracing/contrib/graphql/test_helpers'
 
 class TestUserType < ::GraphQL::Schema::Object
   field :id, ::GraphQL::Types::ID, null: false
@@ -22,7 +23,7 @@ class TestGraphQLQuery < ::GraphQL::Schema::Object
   end
 
   def user(id:)
-    return OpenStruct.new(id: id, name: 'Zidane') if id == 10
+    return OpenStruct.new(id: id, name: 'Caniche') if id == 10
 
     OpenStruct.new(id: id, name: 'Bits')
   end
@@ -84,102 +85,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Reactive::Multiplex do
       end
     end
 
-    context 'waf result is a match' do
-      it 'yields result and no blocking action' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :match, timeout: false, actions: [])
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, waf_context) do |result|
-          expect(result).to eq(waf_result)
-        end
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-
-      it 'yields result and blocking action. The publish method catches the resul as well' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :match, timeout: false, actions: ['block'])
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        described_class.subscribe(operation, waf_context) do |result|
-          expect(result).to eq(waf_result)
-        end
-        block = described_class.publish(operation, multiplex)
-        expect(block).to eq(true)
-      end
-    end
-
-    context 'waf result is ok' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :ok, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'waf result is invalid_call' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :invalid_call, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'waf result is invalid_rule' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :invalid_rule, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'waf result is invalid_flow' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :invalid_flow, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'waf result is no_rule' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :no_rule, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
-    end
-
-    context 'waf result is unknown' do
-      it 'does not yield' do
-        expect(operation).to receive(:subscribe).and_call_original
-
-        waf_result = double(:waf_result, status: :foo, timeout: false)
-        expect(waf_context).to receive(:run).and_return(waf_result)
-        expect { |b| described_class.subscribe(operation, waf_context, &b) }.not_to yield_control
-        result = described_class.publish(operation, multiplex)
-        expect(result).to be_nil
-      end
+    it_behaves_like 'waf result' do
+      let(:gateway) { multiplex }
     end
   end
 end
