@@ -105,6 +105,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
 
         it do
+          expect(emitter).to receive(:request)
+            .with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat))
+
           expect do
             worker.start
 
