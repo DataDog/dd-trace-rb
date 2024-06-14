@@ -104,7 +104,21 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       context 'when internal error returned by emitter' do
         let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
 
-        it { expect { worker.start }.to_not raise_error }
+        it do
+          expect do
+            worker.start
+
+            try_wait_until { worker.sent_started_event? }
+
+            expect(worker).to have_attributes(
+              enabled?: true,
+              loop_base_interval: heartbeat_interval_seconds,
+              run_async?: true,
+              running?: true,
+              started?: true
+            )
+          end.to_not raise_error
+        end
       end
     end
 
