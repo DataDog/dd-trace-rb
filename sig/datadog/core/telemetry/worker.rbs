@@ -23,7 +23,7 @@ module Datadog
 
         def started!: () -> void
 
-        def send_events: (Array[Event::Base] events) -> void
+        def flush_events: (Array[Event::Base] events) -> void
 
         def send_event: (Event::Base event) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
       end

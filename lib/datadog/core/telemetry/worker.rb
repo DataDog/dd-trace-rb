@@ -41,18 +41,15 @@ module Datadog
         def perform(*events)
           return if !enabled? || forked?
 
-          unless @sent_started_event
-            started!
-            @sent_started_event = true
-          end
+          started! unless sent_started_event?
 
           heartbeat!
 
-          send_events(events)
+          flush_events(events)
         end
 
-        def send_events(events)
-          return unless enabled?
+        def flush_events(events)
+          return if !enabled? || !sent_started_event?
 
           Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
           (events || []).each do |event|
@@ -61,7 +58,7 @@ module Datadog
         end
 
         def heartbeat!
-          return unless enabled?
+          return if !enabled? || !sent_started_event?
 
           send_event(Event::AppHeartbeat.new)
         end
@@ -74,6 +71,11 @@ module Datadog
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
             self.enabled = false
+          end
+
+          if res.ok?
+            Datadog.logger.debug('Telemetry app-started event is successfully sent')
+            @sent_started_event = true
           end
         end
 
