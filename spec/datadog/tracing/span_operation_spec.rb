@@ -224,6 +224,20 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
+      describe ':id' do
+        let(:options) { { id: id } }
+
+        context 'that is nil' do
+          let(:id) { nil }
+          it { is_expected.to have_attributes(id: kind_of(Integer)) }
+        end
+
+        context 'that is an Integer' do
+          let(:id) { instance_double(Integer) }
+          it { is_expected.to have_attributes(id: id) }
+        end
+      end
+
       describe ':resource' do
         it_behaves_like 'a string property' do
           let(:property) { :resource }
@@ -316,24 +330,6 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       let(:resource) { 'legacy'.encode(Encoding::ASCII) }
       it { expect(span_op.resource).to eq(resource) }
       it { expect(span_op.resource.encoding).to eq(Encoding::UTF_8) }
-    end
-  end
-
-  describe '#id=' do
-    subject!(:id=) { span_op.id = id }
-
-    context 'with a valid 64 bit integer' do
-      let(:id) { 2 ^ 64 - 1 }
-      it { expect(span_op.id).to eq(id) }
-    end
-  end
-
-  describe '#trace_id=' do
-    subject!(:trace_id=) { span_op.trace_id = trace_id }
-
-    context 'with a valid 128 bit integer' do
-      let(:trace_id) { 2 ^ 128 - 1 }
-      it { expect(span_op.trace_id).to eq(trace_id) }
     end
   end
 
