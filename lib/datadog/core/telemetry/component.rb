@@ -9,7 +9,7 @@ module Datadog
   module Core
     module Telemetry
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
-      class Client
+      class Component
         attr_reader :enabled
 
         include Core::Utils::Forking
@@ -39,7 +39,6 @@ module Datadog
           return if !@enabled || forked?
 
           @worker.start
-
           @worker.enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
 
           @started = true
