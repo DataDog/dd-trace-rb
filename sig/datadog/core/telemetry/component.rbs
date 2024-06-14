@@ -1,7 +1,7 @@
 module Datadog
   module Core
     module Telemetry
-      class Client
+      class Component
         @enabled: bool
         @dependency_collection: bool
         @started: bool

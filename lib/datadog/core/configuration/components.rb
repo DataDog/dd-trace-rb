@@ -4,7 +4,7 @@ require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
 require_relative '../runtime/metrics'
-require_relative '../telemetry/client'
+require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
 
 require_relative '../remote/component'
@@ -60,7 +60,7 @@ module Datadog
               logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
             end
 
-            Telemetry::Client.new(
+            Telemetry::Component.new(
               enabled: enabled,
               heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
               dependency_collection: settings.telemetry.dependency_collection

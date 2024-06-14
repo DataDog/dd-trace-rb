@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-require 'datadog/core/telemetry/client'
+require 'datadog/core/telemetry/component'
 
-RSpec.describe Datadog::Core::Telemetry::Client do
-  subject(:client) do
+RSpec.describe Datadog::Core::Telemetry::Component do
+  subject(:telemetry) do
     described_class.new(
       enabled: enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
@@ -27,11 +27,11 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
   describe '#initialize' do
     after do
-      client.stop!
+      telemetry.stop!
     end
 
     context 'with default parameters' do
-      subject(:client) do
+      subject(:telemetry) do
         described_class.new(
           heartbeat_interval_seconds: heartbeat_interval_seconds,
           dependency_collection: dependency_collection
@@ -39,42 +39,42 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       end
 
       it { is_expected.to be_a_kind_of(described_class) }
-      it { expect(client.enabled).to be(true) }
+      it { expect(telemetry.enabled).to be(true) }
     end
 
     context 'when :enabled is false' do
       let(:enabled) { false }
       it { is_expected.to be_a_kind_of(described_class) }
-      it { expect(client.enabled).to be(false) }
+      it { expect(telemetry.enabled).to be(false) }
     end
 
     context 'when enabled' do
       let(:enabled) { true }
 
       it { is_expected.to be_a_kind_of(described_class) }
-      it { expect(client.enabled).to be(true) }
+      it { expect(telemetry.enabled).to be(true) }
     end
   end
 
   describe '#disable!' do
     after do
-      client.stop!
+      telemetry.stop!
     end
 
-    it { expect { client.disable! }.to change { client.enabled }.from(true).to(false) }
+    it { expect { telemetry.disable! }.to change { telemetry.enabled }.from(true).to(false) }
 
     it 'disables worker' do
-      client.disable!
+      telemetry.disable!
 
       expect(worker).to have_received(:"enabled=").with(false)
     end
   end
 
   describe '#started!' do
-    subject(:started!) { client.started! }
+    subject(:started!) { telemetry.started! }
 
     after do
-      client.stop!
+      telemetry.stop!
     end
 
     context 'when disabled' do
@@ -114,9 +114,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
-        client
+        telemetry
         expect_in_fork do
-          client.started!
+          telemetry.started!
 
           expect(worker).to_not have_received(:start)
         end
@@ -125,10 +125,10 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   end
 
   describe '#emit_closing!' do
-    subject(:emit_closing!) { client.emit_closing! }
+    subject(:emit_closing!) { telemetry.emit_closing! }
 
     after do
-      client.stop!
+      telemetry.stop!
     end
 
     context 'when disabled' do
@@ -155,9 +155,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
-        client
+        telemetry
         expect_in_fork do
-          client.started!
+          telemetry.started!
 
           expect(worker).not_to have_received(:enqueue)
         end
@@ -166,7 +166,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   end
 
   describe '#stop!' do
-    subject(:stop!) { client.stop! }
+    subject(:stop!) { telemetry.stop! }
 
     it 'stops worker once' do
       stop!
@@ -177,10 +177,10 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   end
 
   describe '#integrations_change!' do
-    subject(:integrations_change!) { client.integrations_change! }
+    subject(:integrations_change!) { telemetry.integrations_change! }
 
     after do
-      client.stop!
+      telemetry.stop!
     end
 
     context 'when disabled' do
@@ -207,9 +207,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
-        client
+        telemetry
         expect_in_fork do
-          client.started!
+          telemetry.started!
 
           expect(worker).not_to have_received(:enqueue)
         end
@@ -218,11 +218,11 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   end
 
   describe '#client_configuration_change!' do
-    subject(:client_configuration_change!) { client.client_configuration_change!(changes) }
+    subject(:client_configuration_change!) { telemetry.client_configuration_change!(changes) }
     let(:changes) { double('changes') }
 
     after do
-      client.stop!
+      telemetry.stop!
     end
 
     context 'when disabled' do
@@ -249,9 +249,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
-        client
+        telemetry
         expect_in_fork do
-          client.started!
+          telemetry.started!
 
           expect(worker).not_to have_received(:enqueue)
         end

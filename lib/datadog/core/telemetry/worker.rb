@@ -94,11 +94,11 @@ module Datadog
           if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
             Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
             self.enabled = false
-          end
-
-          if res.ok?
+          elsif res.ok?
             Datadog.logger.debug('Telemetry app-started event is successfully sent')
             @sent_started_event = true
+          else
+            Datadog.logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
           end
         end
 
