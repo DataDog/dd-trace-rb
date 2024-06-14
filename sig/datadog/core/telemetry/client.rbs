@@ -6,14 +6,13 @@ module Datadog
         @dependency_collection: bool
         @started: bool
         @stopped: bool
-        @emitter: Datadog::Core::Telemetry::Emitter
         @worker: Datadog::Core::Telemetry::Worker
 
         attr_reader enabled: bool
 
         include Core::Utils::Forking
 
-        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, enabled: bool) -> void
+        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, ?enabled: bool) -> void
 
         def disable!: () -> void
 

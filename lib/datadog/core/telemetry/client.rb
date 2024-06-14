@@ -19,7 +19,6 @@ module Datadog
         # @param [Boolean] dependency_collection Whether to send the `app-dependencies-loaded` event
         def initialize(heartbeat_interval_seconds:, dependency_collection:, enabled: true)
           @enabled = enabled
-          @emitter = Emitter.new
           @stopped = false
           @started = false
           @dependency_collection = dependency_collection
@@ -27,7 +26,7 @@ module Datadog
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
-            emitter: @emitter
+            emitter: Emitter.new
           )
         end
 
@@ -41,7 +40,7 @@ module Datadog
 
           @worker.start
 
-          @emitter.request(Event::AppDependenciesLoaded.new) if @dependency_collection
+          @worker.enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
 
           @started = true
         end
@@ -49,27 +48,28 @@ module Datadog
         def emit_closing!
           return if !@enabled || forked?
 
-          @emitter.request(Event::AppClosing.new)
+          @worker.enqueue(Event::AppClosing.new)
         end
 
         def stop!
           return if @stopped
 
-          @worker.stop(true, 0)
+          # gracefully stop the worker and send leftover events
+          @worker.stop
           @stopped = true
         end
 
         def integrations_change!
           return if !@enabled || forked?
 
-          @emitter.request(Event::AppIntegrationsChange.new)
+          @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
           return if !@enabled || forked?
 
-          @emitter.request(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
+          @worker.enqueue(Event::AppClientConfigurationChange.new(changes, 'remote_config'))
         end
       end
     end

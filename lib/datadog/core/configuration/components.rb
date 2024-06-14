@@ -169,8 +169,9 @@ module Datadog
           unused_statsd = (old_statsd - (old_statsd & new_statsd))
           unused_statsd.each(&:close)
 
-          telemetry.stop!
+          # enqueue closing event before stopping telemetry so it will be send out on shutdown
           telemetry.emit_closing! unless replacement
+          telemetry.stop!
         end
       end
     end

@@ -13,7 +13,15 @@ module Datadog
         include Core::Workers::Queue
         include Core::Workers::Polling
 
-        def initialize(heartbeat_interval_seconds:, emitter:, enabled: true)
+        DEFAULT_BUFFER_MAX_SIZE = 1000
+
+        def initialize(
+          heartbeat_interval_seconds:,
+          emitter:,
+          enabled: true,
+          shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
+          buffer_size: DEFAULT_BUFFER_MAX_SIZE
+        )
           @emitter = emitter
 
           @sent_started_event = false
@@ -23,6 +31,11 @@ module Datadog
           # Workers::IntervalLoop settings
           self.loop_base_interval = heartbeat_interval_seconds
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
+
+          @shutdown_timeout = shutdown_timeout
+          @buffer_size = buffer_size
+
+          self.buffer = buffer_klass.new(@buffer_size)
         end
 
         def start
@@ -30,6 +43,16 @@ module Datadog
 
           # starts async worker
           perform
+        end
+
+        def stop(force_stop = false, timeout = @shutdown_timeout)
+          buffer.close if running?
+
+          super
+        end
+
+        def enqueue(event)
+          buffer.push(event)
         end
 
         def sent_started_event?
@@ -84,6 +107,18 @@ module Datadog
           response = @emitter.request(event)
           Datadog.logger.debug { "Received response: #{response}" }
           response
+        end
+
+        def dequeue
+          buffer.pop
+        end
+
+        def buffer_klass
+          if Core::Environment::Ext::RUBY_ENGINE == 'ruby'
+            Core::Buffer::CRuby
+          else
+            Core::Buffer::ThreadSafe
+          end
         end
       end
     end
