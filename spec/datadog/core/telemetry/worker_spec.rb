@@ -11,10 +11,34 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:heartbeat_interval_seconds) { 0.5 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
 
+  let(:backend_supports_telemetry?) { true }
+  let(:response) do
+    double(
+      Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+      not_found?: !backend_supports_telemetry?,
+      ok?: backend_supports_telemetry?
+    )
+  end
+
   before do
     logger = double(Datadog::Core::Logger)
     allow(logger).to receive(:debug).with(any_args)
     allow(Datadog).to receive(:logger).and_return(logger)
+
+    @received_started = false
+    @received_heartbeat = false
+
+    allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)) do
+      @received_started = true
+
+      response
+    end
+
+    allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+      @received_heartbeat = true
+
+      response
+    end
   end
 
   after do
@@ -36,31 +60,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   describe '#start' do
     context 'when enabled' do
-      let(:response) do
-        double(
-          Datadog::Core::Telemetry::Http::Adapters::Net::Response,
-          not_found?: !backend_supports_telemetry?,
-          ok?: backend_supports_telemetry?
-        )
-      end
-
-      before do
-        @received_started = false
-        @received_heartbeat = false
-
-        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)) do
-          @received_started = true
-
-          response
-        end
-
-        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
-          @received_heartbeat = true
-
-          response
-        end
-      end
-
       context "when backend doesn't support telemetry" do
         let(:backend_supports_telemetry?) { false }
 
@@ -135,6 +134,26 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
         worker.start
       end
+    end
+  end
+
+  describe '#enqueue' do
+    it 'adds events to the buffer and flushes them later' do
+      events_received = 0
+      allow(emitter).to receive(:request).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+      ) do
+        events_received += 1
+      end
+
+      worker.start
+
+      events_sent = 3
+      events_sent.times do
+        worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      end
+
+      try_wait_until { events_received == events_sent }
     end
   end
 end

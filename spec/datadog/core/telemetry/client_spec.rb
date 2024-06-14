@@ -14,15 +14,15 @@ RSpec.describe Datadog::Core::Telemetry::Client do
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
   let(:dependency_collection) { true }
-  let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
-  let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+  let(:worker) { double(Datadog::Core::Telemetry::Worker) }
   let(:not_found) { false }
 
   before do
-    allow(Datadog::Core::Telemetry::Emitter).to receive(:new).and_return(emitter)
-    allow(emitter).to receive(:request).and_return(response)
-    allow(response).to receive(:not_found?).and_return(not_found)
-    allow(response).to receive(:ok?).and_return(!not_found)
+    allow(Datadog::Core::Telemetry::Worker).to receive(:new).and_return(worker)
+    allow(worker).to receive(:start)
+    allow(worker).to receive(:enqueue)
+    allow(worker).to receive(:stop)
+    allow(worker).to receive(:"enabled=")
   end
 
   describe '#initialize' do
@@ -62,6 +62,12 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     end
 
     it { expect { client.disable! }.to change { client.enabled }.from(true).to(false) }
+
+    it 'disables worker' do
+      client.disable!
+
+      expect(worker).to have_received(:"enabled=").with(false)
+    end
   end
 
   describe '#started!' do
@@ -75,7 +81,8 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         started!
-        expect(emitter).to_not have_received(:request)
+
+        expect(worker).to_not have_received(:start)
       end
     end
 
@@ -84,13 +91,11 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
       context 'when dependency_collection is true' do
         it do
-          dependencies = double
-          allow(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
-            .to receive(:new).with(no_args).and_return(dependencies)
-
           started!
 
-          expect(emitter).to have_received(:request).with(dependencies)
+          expect(worker).to have_received(:enqueue).with(
+            an_instance_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
+          )
         end
       end
 
@@ -98,13 +103,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
         let(:dependency_collection) { false }
 
         it do
-          dependencies = double
-          allow(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
-            .to receive(:new).with(no_args).and_return(dependencies)
-
           started!
 
-          expect(emitter).to_not have_received(:request).with(dependencies)
+          expect(worker).not_to have_received(:enqueue)
         end
       end
     end
@@ -115,8 +116,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         client
         expect_in_fork do
-          expect(emitter).to_not receive(:request)
           client.started!
+
+          expect(worker).to_not have_received(:start)
         end
       end
     end
@@ -133,21 +135,20 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         emit_closing!
-        expect(emitter).to_not have_received(:request)
+
+        expect(worker).not_to have_received(:enqueue)
       end
     end
 
     context 'when enabled' do
       let(:enabled) { true }
       it do
-        double = double()
-        allow(Datadog::Core::Telemetry::Event::AppClosing).to receive(:new).with(no_args).and_return(double)
-
         emit_closing!
-        expect(emitter).to have_received(:request).with(double)
-      end
 
-      it { is_expected.to be(response) }
+        expect(worker).to have_received(:enqueue).with(
+          an_instance_of(Datadog::Core::Telemetry::Event::AppClosing)
+        )
+      end
     end
 
     context 'when in fork' do
@@ -156,8 +157,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         client
         expect_in_fork do
-          expect(emitter).to_not receive(:request)
           client.started!
+
+          expect(worker).not_to have_received(:enqueue)
         end
       end
     end
@@ -165,32 +167,12 @@ RSpec.describe Datadog::Core::Telemetry::Client do
 
   describe '#stop!' do
     subject(:stop!) { client.stop! }
-    let(:worker) { instance_double(Datadog::Core::Telemetry::Worker) }
 
-    before do
-      allow(Datadog::Core::Telemetry::Worker).to receive(:new)
-        .with(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, emitter: emitter)
-        .and_return(worker)
-      allow(worker).to receive(:start)
-      allow(worker).to receive(:stop)
-    end
+    it 'stops worker once' do
+      stop!
+      stop!
 
-    context 'when disabled' do
-      let(:enabled) { false }
-      it 'does not raise error' do
-        stop!
-      end
-    end
-
-    context 'when enabled' do
-      let(:enabled) { true }
-
-      context 'when stop! has been called already' do
-        it 'does not raise error' do
-          stop!
-          stop!
-        end
-      end
+      expect(worker).to have_received(:stop).once
     end
   end
 
@@ -205,21 +187,20 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         integrations_change!
-        expect(emitter).to_not have_received(:request)
+
+        expect(worker).not_to have_received(:enqueue)
       end
     end
 
     context 'when enabled' do
       let(:enabled) { true }
       it do
-        double = double()
-        allow(Datadog::Core::Telemetry::Event::AppIntegrationsChange).to receive(:new).with(no_args).and_return(double)
-
         integrations_change!
-        expect(emitter).to have_received(:request).with(double)
-      end
 
-      it { is_expected.to be(response) }
+        expect(worker).to have_received(:enqueue).with(
+          an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+        )
+      end
     end
 
     context 'when in fork' do
@@ -228,8 +209,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         client
         expect_in_fork do
-          expect(emitter).to_not receive(:request)
           client.started!
+
+          expect(worker).not_to have_received(:enqueue)
         end
       end
     end
@@ -247,24 +229,20 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       let(:enabled) { false }
       it do
         client_configuration_change!
-        expect(emitter).to_not have_received(:request)
+
+        expect(worker).not_to have_received(:enqueue)
       end
     end
 
     context 'when enabled' do
       let(:enabled) { true }
       it do
-        double = double()
-        allow(Datadog::Core::Telemetry::Event::AppClientConfigurationChange).to receive(:new).with(
-          changes,
-          'remote_config'
-        ).and_return(double)
-
         client_configuration_change!
-        expect(emitter).to have_received(:request).with(double)
-      end
 
-      it { is_expected.to be(response) }
+        expect(worker).to have_received(:enqueue).with(
+          an_instance_of(Datadog::Core::Telemetry::Event::AppClientConfigurationChange)
+        )
+      end
     end
 
     context 'when in fork' do
@@ -273,8 +251,9 @@ RSpec.describe Datadog::Core::Telemetry::Client do
       it do
         client
         expect_in_fork do
-          expect(emitter).to_not receive(:request)
           client.started!
+
+          expect(worker).not_to have_received(:enqueue)
         end
       end
     end
