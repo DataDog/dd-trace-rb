@@ -32,7 +32,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     describe '.[]' do
       it 'matches the ruby behavior without monkey patching' do
         test_with_and_without_monkey_patch do
-          expect(Dir['*1', '*2', base: temporary_directory, sort: true]).to eq ['file1', 'file2']
+          expect(Dir['*1', '*2', base: temporary_directory]).to contain_exactly('file1', 'file2')
         end
       end
     end
@@ -152,9 +152,9 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
           test_with_and_without_monkey_patch do
             files = []
 
-            Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH, sort: true) { |it| files << it }
+            Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH) { |it| files << it }
 
-            expect(files).to eq(expected_files_result)
+            expect(files).to contain_exactly(*expected_files_result)
           end
         end
 
@@ -162,7 +162,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
           test_with_monkey_patch do
             ran_assertion = false
 
-            Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH, sort: true) do
+            Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH) do
               expect_sigprof_to_be(:unblocked)
               ran_assertion = true
             end
@@ -183,8 +183,8 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
 
         it 'matches the ruby behavior without monkey patching' do
           test_with_and_without_monkey_patch do
-            expect(Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH, sort: true))
-              .to eq(expected_files_result)
+            expect(Dir.glob(['*1', '*2'], base: temporary_directory, flags: File::FNM_DOTMATCH))
+              .to contain_exactly(*expected_files_result)
           end
         end
       end
