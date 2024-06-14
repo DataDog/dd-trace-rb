@@ -25,8 +25,16 @@ module Datadog
 
       # Span attributes
       # NOTE: In the future, we should drop the me
-      attr_accessor :id, :trace_id
-      attr_reader :end_time, :name, :parent_id, :resource, :service, :start_time, :type
+      attr_reader \
+        :end_time,
+        :id,
+        :name,
+        :parent_id,
+        :resource,
+        :service,
+        :start_time,
+        :trace_id,
+        :type
       attr_accessor :links, :status
 
       def initialize(

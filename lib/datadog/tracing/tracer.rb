@@ -113,6 +113,7 @@ module Datadog
       # @param [String] service the service name for this span.
       # @param [Time] start_time time which the span should have started.
       # @param [Hash<String,String>] tags extra tags which should be added to the span.
+      # @param [String] type the type of the span. See {Datadog::Tracing::Metadata::Ext::AppTypes}.
       # @param [Integer] the id of the new span.
       # @return [Object] If a block is provided, returns the result of the block execution.
       # @return [Datadog::Tracing::SpanOperation] If no block is provided, returns the active,
