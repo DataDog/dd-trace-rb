@@ -17,7 +17,13 @@ module Datadog
           return if span_op.nil?
 
           value = value == true || value == 1 ? 1 : 0 # rubocop:disable Style/MultipleComparison
-          span_op.set_metric(Metadata::Ext::Analytics::TAG_MEASURED, value)
+          span_options.set_metric(Metadata::Ext::Analytics::TAG_MEASURED, value)
+        end
+
+        def measured_span_option(span_options, value = true)
+          value = value == true || value == 1 ? 1 : 0 # rubocop:disable Style/MultipleComparison
+          span_options[:tags] ||= {}
+          span_options[:tags][Metadata::Ext::Analytics::TAG_MEASURED] = value
         end
       end
     end
