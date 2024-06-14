@@ -22,6 +22,7 @@ RSpec.describe Datadog::Core::Telemetry::Client do
     allow(Datadog::Core::Telemetry::Emitter).to receive(:new).and_return(emitter)
     allow(emitter).to receive(:request).and_return(response)
     allow(response).to receive(:not_found?).and_return(not_found)
+    allow(response).to receive(:ok?).and_return(!not_found)
   end
 
   describe '#initialize' do
