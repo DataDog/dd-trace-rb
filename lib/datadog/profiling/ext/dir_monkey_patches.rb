@@ -25,6 +25,7 @@ module Datadog
         end
       end
 
+      # Monkey patches for Dir.singleton_class. See DirMonkeyPatches above for more details.
       module DirClassMonkeyPatches
         def [](*args, &block)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
@@ -142,6 +143,7 @@ module Datadog
         ruby2_keywords :home if respond_to?(:ruby2_keywords, true)
       end
 
+      # Monkey patches for Dir. See DirMonkeyPatches above for more details.
       module DirInstanceMonkeyPatches
         def each(*args, &block)
           if block
