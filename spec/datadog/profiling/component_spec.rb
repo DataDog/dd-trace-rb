@@ -591,7 +591,9 @@ RSpec.describe Datadog::Profiling::Component do
       describe 'dir interruption workaround' do
         let(:no_signals_workaround_enabled) { false }
 
-        before { expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled) }
+        before do
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
+        end
 
         it 'is enabled by default' do
           expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
