@@ -48,7 +48,8 @@ module Datadog
         tags: nil,
         trace_id: nil,
         type: nil,
-        links: nil
+        links: nil,
+        inherit_parent_service: false
       )
         # Ensure dynamically created strings are UTF-8 encoded.
         #
@@ -89,6 +90,8 @@ module Datadog
 
         # Subscribe :on_error event
         @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
+
+        @inherit_parent_service = inherit_parent_service
 
         # Start the span with start time, if given.
         start(start_time) if start_time
@@ -428,7 +431,8 @@ module Datadog
       # it has been finished.
       attr_reader \
         :events,
-        :span
+        :span,
+        :inherit_parent_service
 
       # Stored only for `service_entry` calculation.
       # Use `parent_id` for the effective parent span id.
@@ -439,6 +443,11 @@ module Datadog
       # mutation by reference; when this span is returned,
       # we don't want this SpanOperation to modify it further.
       def build_span
+        # Use parent service if no service is set and @inherit_parent_service is set
+        service = self.service || (@parent&.service if @inherit_parent_service)
+
+        service_entry = @parent.nil? || (service && @parent.service != service)
+
         Span.new(
           @name,
           duration: duration,
@@ -448,13 +457,13 @@ module Datadog
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
           parent_id: @parent_id,
           resource: @resource,
-          service: @service,
+          service: service,
           start_time: @start_time,
           status: @status,
           type: @type,
           trace_id: @trace_id,
           links: @links,
-          service_entry: parent.nil? || (service && parent.service != service)
+          service_entry: service_entry
         )
       end
 

@@ -186,6 +186,20 @@ RSpec.describe Datadog::Tracing::Tracer do
           expect(span.name).to eq(name)
         end
 
+        it 'passes options to the trace operation' do
+          expect(Datadog::Profiling).to receive(:enabled?).and_return(true)
+
+          expect(Datadog::Tracing::TraceOperation).to receive(:new).with(
+            hostname: nil,
+            profiling_enabled: true,
+            remote_parent: false,
+            default_service: tracer.default_service,
+            inherit_parent_service: false
+          ).and_call_original
+
+          trace
+        end
+
         context 'with diagnostics debug enabled' do
           include_context 'tracer logging'
 
@@ -259,29 +273,55 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
 
       context 'when nesting spans' do
-        it 'propagates parent span and uses default service name' do
+        subject!(:nested_spans) do
           tracer.trace('parent', service: 'service-parent') do
             tracer.trace('child1') { |s| s.set_tag('tag', 'tag_1') }
             tracer.trace('child2', service: 'service-child2') { |s| s.set_tag('tag', 'tag_2') }
           end
+        end
 
-          expect(spans).to have(3).items
+        context 'when inherit_parent_service is false' do
+          it 'propagates parent span and uses default service name' do
+            expect(spans).to have(3).items
 
-          child1, child2, parent = spans # Spans are sorted alphabetically by operation name
+            child1, child2, parent = spans # Spans are sorted alphabetically by operation name
 
-          expect(parent).to be_root_span
-          expect(parent.name).to eq('parent')
-          expect(parent.service).to eq('service-parent')
+            expect(parent).to be_root_span
+            expect(parent.name).to eq('parent')
+            expect(parent.service).to eq('service-parent')
 
-          expect(child1.parent_id).to be(parent.id)
-          expect(child1.name).to eq('child1')
-          expect(child1.service).to eq(tracer.default_service)
-          expect(child1.get_tag('tag')).to eq('tag_1')
+            expect(child1.parent_id).to be(parent.id)
+            expect(child1.name).to eq('child1')
+            expect(child1.service).to eq(tracer.default_service)
+            expect(child1.get_tag('tag')).to eq('tag_1')
 
-          expect(child2.parent_id).to be(parent.id)
-          expect(child2.name).to eq('child2')
-          expect(child2.service).to eq('service-child2')
-          expect(child2.get_tag('tag')).to eq('tag_2')
+            expect(child2.parent_id).to be(parent.id)
+            expect(child2.name).to eq('child2')
+            expect(child2.service).to eq('service-child2')
+            expect(child2.get_tag('tag')).to eq('tag_2')
+          end
+        end
+
+        context 'when inherit_parent_service is true' do
+          let(:tracer_options) { super().merge(inherit_parent_service: true) }
+
+          it "propagates parent span and uses parent's service name" do
+            expect(spans).to have(3).items
+
+            child1, child2, parent = spans # Spans are sorted alphabetically by operation name
+
+            expect(parent).to be_root_span
+            expect(parent.name).to eq('parent')
+            expect(parent.service).to eq('service-parent')
+
+            expect(child1.parent_id).to be(parent.id)
+            expect(child1.name).to eq('child1')
+            expect(child1.service).to eq('service-parent')
+
+            expect(child2.parent_id).to be(parent.id)
+            expect(child2.name).to eq('child2')
+            expect(child2.service).to eq('service-child2')
+          end
         end
 
         it 'trace has a runtime ID and PID tags' do

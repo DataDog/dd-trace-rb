@@ -58,7 +58,8 @@ module Datadog
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new
+        writer: Writer.new,
+        inherit_parent_service: false
       )
         @trace_flush = trace_flush
         @default_service = default_service
@@ -68,6 +69,7 @@ module Datadog
         @span_sampler = span_sampler
         @tags = tags
         @writer = writer
+        @inherit_parent_service = inherit_parent_service
       end
 
       # Return a {Datadog::Tracing::SpanOperation span_op} and {Datadog::Tracing::TraceOperation trace_op}
@@ -327,12 +329,16 @@ module Datadog
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
+            default_service: @default_service,
+            inherit_parent_service: @inherit_parent_service,
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             remote_parent: false,
+            default_service: @default_service,
+            inherit_parent_service: @inherit_parent_service,
           )
         end
       end
@@ -341,12 +347,13 @@ module Datadog
         events = trace_op.send(:events)
 
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
-          event_trace_op.service ||= @default_service
-          event_span_op.service ||= @default_service
           sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
+          # Fallback in case the service was never set
+          event_span.service ||= @default_service
+
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
