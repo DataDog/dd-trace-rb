@@ -1,6 +1,7 @@
 require 'datadog/profiling/spec_helper'
 
 require 'datadog/profiling/collectors/cpu_and_wall_time_worker'
+require 'datadog/profiling/ext/dir_monkey_patches'
 
 # NOTE: Specs in this file are written so as to not leave the DirMonkeyPatches loaded into the Ruby VM after this
 # test executes. They do this by only applying these monkey patches in a separate process.
