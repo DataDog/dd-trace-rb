@@ -37,13 +37,28 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   describe '#start' do
     context 'when enabled' do
       let(:response) do
-        double(Datadog::Core::Telemetry::Http::Adapters::Net::Response, not_found?: !backend_supports_telemetry?)
+        double(
+          Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+          not_found?: !backend_supports_telemetry?,
+          ok?: backend_supports_telemetry?
+        )
       end
 
       before do
-        expect(emitter).to receive(:request)
-          .with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
-          .and_return(response)
+        @received_started = false
+        @received_heartbeat = false
+
+        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)) do
+          @received_started = true
+
+          response
+        end
+
+        allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+          @received_heartbeat = true
+
+          response
+        end
       end
 
       context "when backend doesn't support telemetry" do
@@ -52,7 +67,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         it 'disables the worker' do
           worker.start
 
-          try_wait_until { worker.sent_started_event? }
+          try_wait_until { @received_started }
 
           expect(worker).to have_attributes(
             enabled?: false,
@@ -61,6 +76,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           expect(Datadog.logger).to have_received(:debug).with(
             'Agent does not support telemetry; disabling future telemetry events.'
           )
+          expect(@received_heartbeat).to be(false)
         end
       end
 
@@ -68,12 +84,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         let(:backend_supports_telemetry?) { true }
 
         it 'starts the worker and sends heartbeat event' do
-          expect(emitter).to receive(:request)
-            .with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat))
-
           worker.start
 
-          try_wait_until { worker.sent_started_event? }
+          try_wait_until { @received_heartbeat }
 
           expect(worker).to have_attributes(
             enabled?: true,
@@ -104,23 +117,12 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       context 'when internal error returned by emitter' do
         let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
 
-        it do
-          expect(emitter).to receive(:request)
-            .with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat))
+        it 'does not send heartbeat event' do
+          worker.start
 
-          expect do
-            worker.start
+          try_wait_until { @received_started }
 
-            try_wait_until { worker.sent_started_event? }
-
-            expect(worker).to have_attributes(
-              enabled?: true,
-              loop_base_interval: heartbeat_interval_seconds,
-              run_async?: true,
-              running?: true,
-              started?: true
-            )
-          end.to_not raise_error
+          expect(@received_heartbeat).to be(false)
         end
       end
     end
