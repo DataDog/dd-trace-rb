@@ -53,10 +53,8 @@ module ProfileHelpers
         sample.location_id.map { |location_id| decode_frame_from_pprof(decoded_profile, location_id) },
         pretty_sample_types.zip(sample.value).to_h,
         sample.label.map do |it|
-          [
-            string_table[it.key].to_sym,
-            it.num == 0 ? string_table[it.str] : it.num,
-          ]
+          key = string_table[it.key].to_sym
+          [key, (it.num == 0 ? string_table[it.str] : ProfileHelpers.maybe_fix_label_range(key, it.num))]
         end.to_h,
       ).freeze
     end
@@ -102,6 +100,16 @@ module ProfileHelpers
       heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
     )
+  end
+
+  def self.maybe_fix_label_range(key, value)
+    if [:'local root span id', :'span id'].include?(key) && value < 0
+      # pprof labels are defined to be decoded as signed values BUT the backend explicitly interprets these as unsigned
+      # 64-bit numbers so we can still use them for these ids without having to fall back to strings
+      value + 2**64
+    else
+      value
+    end
   end
 end
 
