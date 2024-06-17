@@ -4,12 +4,18 @@ require 'datadog/core/telemetry/worker'
 
 RSpec.describe Datadog::Core::Telemetry::Worker do
   subject(:worker) do
-    described_class.new(enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds, emitter: emitter)
+    described_class.new(
+      enabled: enabled,
+      heartbeat_interval_seconds: heartbeat_interval_seconds,
+      emitter: emitter,
+      dependency_collection: dependency_collection
+    )
   end
 
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 0.5 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
+  let(:dependency_collection) { false }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
@@ -113,6 +119,26 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
           try_wait_until { sent_hearbeat }
         end
+
+        context 'when dependencies collection enabled' do
+          let(:dependency_collection) { true }
+
+          it 'sends dependencies loaded event after started event' do
+            sent_dependencies = false
+            allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)) do
+              # app-started was already sent by now
+              expect(worker.sent_started_event?).to be(true)
+
+              sent_dependencies = true
+
+              response
+            end
+
+            worker.start
+
+            try_wait_until { sent_dependencies }
+          end
+        end
       end
 
       context 'when internal error returned by emitter' do
@@ -147,7 +173,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             described_class.new(
               enabled: enabled,
               heartbeat_interval_seconds: heartbeat_interval_seconds,
-              emitter: emitter
+              emitter: emitter,
+              dependency_collection: dependency_collection
             )
           end
           workers.each(&:start)

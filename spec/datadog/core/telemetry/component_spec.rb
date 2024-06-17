@@ -18,7 +18,13 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:not_found) { false }
 
   before do
-    allow(Datadog::Core::Telemetry::Worker).to receive(:new).and_return(worker)
+    allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
+      heartbeat_interval_seconds: heartbeat_interval_seconds,
+      dependency_collection: dependency_collection,
+      enabled: enabled,
+      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter)
+    ).and_return(worker)
+
     allow(worker).to receive(:start)
     allow(worker).to receive(:enqueue)
     allow(worker).to receive(:stop)
@@ -70,60 +76,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
-  describe '#started!' do
-    subject(:started!) { telemetry.started! }
-
-    after do
-      telemetry.stop!
-    end
-
-    context 'when disabled' do
-      let(:enabled) { false }
-      it do
-        started!
-
-        expect(worker).to_not have_received(:enqueue)
-      end
-    end
-
-    context 'when enabled' do
-      let(:enabled) { true }
-
-      context 'when dependency_collection is true' do
-        it do
-          started!
-
-          expect(worker).to have_received(:enqueue).with(
-            an_instance_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)
-          )
-        end
-      end
-
-      context 'when dependency_collection is false' do
-        let(:dependency_collection) { false }
-
-        it do
-          started!
-
-          expect(worker).not_to have_received(:enqueue)
-        end
-      end
-    end
-
-    context 'when in fork' do
-      before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
-
-      it do
-        telemetry
-        expect_in_fork do
-          telemetry.started!
-
-          expect(worker).to_not have_received(:enqueue)
-        end
-      end
-    end
-  end
-
   describe '#emit_closing!' do
     subject(:emit_closing!) { telemetry.emit_closing! }
 
@@ -157,8 +109,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       it do
         telemetry
         expect_in_fork do
-          telemetry.started!
-
           expect(worker).not_to have_received(:enqueue)
         end
       end
@@ -209,8 +159,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       it do
         telemetry
         expect_in_fork do
-          telemetry.started!
-
           expect(worker).not_to have_received(:enqueue)
         end
       end
@@ -251,8 +199,6 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       it do
         telemetry
         expect_in_fork do
-          telemetry.started!
-
           expect(worker).not_to have_received(:enqueue)
         end
       end

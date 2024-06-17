@@ -15,8 +15,9 @@ module Datadog
         @sent_started_event: bool
         @shutdown_timeout: Integer
         @buffer_size: Integer
+        @dependency_collection: bool
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric, emitter: Emitter, ?shutdown_timeout: Integer, ?buffer_size: Integer) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric, emitter: Emitter, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
 
         def start: () -> void
 
