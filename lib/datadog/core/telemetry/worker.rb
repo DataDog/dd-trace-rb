@@ -100,7 +100,7 @@ module Datadog
             if res.ok?
               Datadog.logger.debug('Telemetry app-started event is successfully sent')
 
-              enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
+              send_event(Event::AppDependenciesLoaded.new) if @dependency_collection
 
               true
             else
