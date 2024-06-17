@@ -149,7 +149,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         exception = try_wait_until(backoff: 0.01) { cpu_and_wall_time_worker.send(:failure_exception) }
 
-        expect(exception.message).to include 'pre-existing SIGPROF'
+        expect(exception.message).to include 'pre-existing SIGTRAP'
       end
 
       it 'leaves the existing signal handler in place' do
@@ -842,7 +842,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # Without an empty SIGPROF signal handler (e.g. with no signal handler) the following command will make the VM
         # instantly terminate with a confusing "Profiling timer expired" message left behind. (This message doesn't
         # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
-        Process.kill('SIGPROF', Process.pid)
+        Process.kill('SIGTRAP', Process.pid)
       end
     end
 

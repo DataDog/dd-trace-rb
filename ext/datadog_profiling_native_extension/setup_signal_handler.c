@@ -7,7 +7,7 @@
 #include "setup_signal_handler.h"
 #include "ruby_helpers.h"
 
-// Used by Collectors::CpuAndWallTimeWorker to setup SIGPROF signal handlers used for cpu/wall-time profiling.
+// Used by Collectors::CpuAndWallTimeWorker to setup SIGTRAP signal handlers used for cpu/wall-time profiling.
 
 static void install_sigprof_signal_handler_internal(
   void (*signal_handler_function)(int, siginfo_t *, void *),
@@ -37,7 +37,7 @@ static void install_sigprof_signal_handler_internal(
   };
   sigemptyset(&signal_handler_config.sa_mask);
 
-  if (sigaction(SIGPROF, &signal_handler_config, &existing_signal_handler_config) != 0) {
+  if (sigaction(SIGTRAP, &signal_handler_config, &existing_signal_handler_config) != 0) {
     rb_exc_raise(rb_syserr_new_str(errno, rb_sprintf("Could not install profiling signal handler (%s)", handler_pretty_name)));
   }
 
@@ -55,15 +55,15 @@ static void install_sigprof_signal_handler_internal(
     // An unexpected/unknown signal handler already existed. Currently we don't support this situation, so let's just back out
     // of the installation.
 
-    if (sigaction(SIGPROF, &existing_signal_handler_config, NULL) != 0) {
+    if (sigaction(SIGTRAP, &existing_signal_handler_config, NULL) != 0) {
       rb_exc_raise(
         rb_syserr_new_str(
           errno,
           rb_sprintf(
             "Failed to install profiling signal handler (%s): " \
-            "While installing a SIGPROF signal handler, the profiler detected that another software/library/gem had " \
-            "previously installed a different SIGPROF signal handler. " \
-            "The profiler tried to restore the previous SIGPROF signal handler, but this failed. " \
+            "While installing a SIGTRAP signal handler, the profiler detected that another software/library/gem had " \
+            "previously installed a different SIGTRAP signal handler. " \
+            "The profiler tried to restore the previous SIGTRAP signal handler, but this failed. " \
             "The other software/library/gem may have been left in a broken state. ",
             handler_pretty_name
           )
@@ -73,7 +73,7 @@ static void install_sigprof_signal_handler_internal(
 
     rb_raise(
       rb_eRuntimeError,
-      "Could not install profiling signal handler (%s): There's a pre-existing SIGPROF signal handler",
+      "Could not install profiling signal handler (%s): There's a pre-existing SIGTRAP signal handler",
       handler_pretty_name
     );
   }
@@ -88,13 +88,13 @@ void remove_sigprof_signal_handler(void) {
   };
   sigemptyset(&signal_handler_config.sa_mask);
 
-  if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
+  if (sigaction(SIGTRAP, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
 }
 
 static inline void toggle_sigprof_signal_handler_for_current_thread(int action) {
   sigset_t signals_to_toggle;
   sigemptyset(&signals_to_toggle);
-  sigaddset(&signals_to_toggle, SIGPROF);
+  sigaddset(&signals_to_toggle, SIGTRAP);
   int error = pthread_sigmask(action, &signals_to_toggle, NULL);
   if (error) rb_exc_raise(rb_syserr_new_str(error, rb_sprintf("Unexpected failure in pthread_sigmask, action=%d", action)));
 }
@@ -111,5 +111,5 @@ VALUE is_sigprof_blocked_in_current_thread(void) {
   sigset_t current_signals;
   sigemptyset(&current_signals);
   ENFORCE_SUCCESS_GVL(pthread_sigmask(0, NULL, &current_signals));
-  return sigismember(&current_signals, SIGPROF) ? Qtrue : Qfalse;
+  return sigismember(&current_signals, SIGTRAP) ? Qtrue : Qfalse;
 }
