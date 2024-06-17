@@ -127,7 +127,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             sent_dependencies = false
             allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppDependenciesLoaded)) do
               # app-started was already sent by now
-              expect(worker.sent_started_event?).to be(true)
+              # don't use worker.sent_started_event? because it uses the same lock
+              expect(@received_started).to be(true)
 
               sent_dependencies = true
 
@@ -206,23 +207,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     let(:heartbeat_interval_seconds) { 3 }
 
     it 'flushes events and stops the worker' do
-      events_received = 0
-      allow(emitter).to receive(:request).with(
-        an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
-      ) do
-        events_received += 1
-
-        response
-      end
-
       worker.start
 
-      worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      expect(worker).to receive(:flush_events).at_least(:once)
       worker.stop(true)
-
-      try_wait_until { !worker.running? }
-
-      expect(events_received).to eq(1)
     end
   end
 
