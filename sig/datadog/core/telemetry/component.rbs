@@ -3,8 +3,6 @@ module Datadog
     module Telemetry
       class Component
         @enabled: bool
-        @dependency_collection: bool
-        @started: bool
         @stopped: bool
         @worker: Datadog::Core::Telemetry::Worker
 
@@ -17,8 +15,6 @@ module Datadog
         def disable!: () -> void
 
         def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
-
-        def started!: () -> void
 
         def emit_closing!: () -> void
 

@@ -21,11 +21,13 @@ module Datadog
         def initialize(
           heartbeat_interval_seconds:,
           emitter:,
+          dependency_collection:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
         )
           @emitter = emitter
+          @dependency_collection = dependency_collection
 
           # Workers::Polling settings
           self.enabled = enabled
@@ -97,6 +99,9 @@ module Datadog
 
             if res.ok?
               Datadog.logger.debug('Telemetry app-started event is successfully sent')
+
+              enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
+
               true
             else
               Datadog.logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')

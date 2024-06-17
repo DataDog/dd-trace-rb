@@ -11,7 +11,6 @@ RSpec.describe Datadog::Core::Configuration do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   before do
-    allow(telemetry).to receive(:started!)
     allow(telemetry).to receive(:stop!)
     allow(telemetry).to receive(:emit_closing!)
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
@@ -41,10 +40,6 @@ RSpec.describe Datadog::Core::Configuration do
           end
 
           it do
-            # We cannot mix `expect().to_not` with `expect().to(...).ordered`.
-            # One way around that is to force the method to raise an error if it's ever called.
-            allow(telemetry).to receive(:started!).and_raise('Should not be called')
-
             # Components should have changed
             expect { configure }
               .to change { test_class.send(:components) }
@@ -84,7 +79,6 @@ RSpec.describe Datadog::Core::Configuration do
               .with(test_class.configuration)
 
             expect(new_components).to_not have_received(:shutdown!)
-            expect(telemetry).to have_received(:started!)
           end
         end
       end
@@ -501,8 +495,6 @@ RSpec.describe Datadog::Core::Configuration do
     describe '#components' do
       context 'when components are not initialized' do
         it 'initializes the components' do
-          expect(telemetry).to receive(:started!)
-
           test_class.send(:components)
 
           expect(test_class.send(:components?)).to be true
@@ -510,8 +502,6 @@ RSpec.describe Datadog::Core::Configuration do
 
         context 'when allow_initialization is false' do
           it 'does not initialize the components' do
-            expect(telemetry).to_not receive(:started!)
-
             test_class.send(:components, allow_initialization: false)
 
             expect(test_class.send(:components?)).to be false
@@ -527,7 +517,6 @@ RSpec.describe Datadog::Core::Configuration do
         it 'returns the components without touching the COMPONENTS_WRITE_LOCK' do
           described_class.const_get(:COMPONENTS_WRITE_LOCK).lock
 
-          expect(telemetry).to_not receive(:started!)
           expect(test_class.send(:components)).to_not be_nil
         end
       end

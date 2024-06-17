@@ -20,13 +20,12 @@ module Datadog
         def initialize(heartbeat_interval_seconds:, dependency_collection:, enabled: true)
           @enabled = enabled
           @stopped = false
-          @started = false
-          @dependency_collection = dependency_collection
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
-            emitter: Emitter.new
+            emitter: Emitter.new,
+            dependency_collection: dependency_collection
           )
           @worker.start
         end
@@ -34,14 +33,6 @@ module Datadog
         def disable!
           @enabled = false
           @worker.enabled = false
-        end
-
-        def started!
-          return if !@enabled || forked?
-
-          @worker.enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
-
-          @started = true
         end
 
         def stop!
