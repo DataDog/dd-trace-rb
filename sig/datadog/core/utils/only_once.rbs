@@ -2,6 +2,9 @@ module Datadog
   module Core
     module Utils
       class OnlyOnce
+        @ran_once: bool
+        @mutex: Thread::Mutex
+
         def initialize: () -> untyped
 
         def run: () { () -> untyped } -> untyped
