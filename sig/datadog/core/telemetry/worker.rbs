@@ -8,6 +8,7 @@ module Datadog
         include Core::Workers::IntervalLoop
         include Core::Workers::Queue
 
+        TELEMETRY_STARTED_ONCE: Datadog::Core::Utils::OnlyOnceSuccessful
         DEFAULT_BUFFER_MAX_SIZE: 1000
 
         @emitter: Emitter
@@ -23,6 +24,8 @@ module Datadog
 
         def enqueue: (Event::Base event) -> void
 
+        def dequeue: () -> Array[Event::Base]
+
         private
 
         def heartbeat!: () -> void
@@ -32,6 +35,8 @@ module Datadog
         def flush_events: (Array[Event::Base] events) -> void
 
         def send_event: (Event::Base event) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
+
+        def disable_on_not_found!: (Datadog::Core::Telemetry::Http::Adapters::Net::Response response) -> void
 
         def buffer_klass: () -> untyped
       end

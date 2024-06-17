@@ -28,6 +28,7 @@ module Datadog
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             emitter: Emitter.new
           )
+          @worker.start
         end
 
         def disable!
@@ -38,24 +39,22 @@ module Datadog
         def started!
           return if !@enabled || forked?
 
-          @worker.start
           @worker.enqueue(Event::AppDependenciesLoaded.new) if @dependency_collection
 
           @started = true
+        end
+
+        def stop!
+          return if @stopped
+
+          @worker.stop(true)
+          @stopped = true
         end
 
         def emit_closing!
           return if !@enabled || forked?
 
           @worker.enqueue(Event::AppClosing.new)
-        end
-
-        def stop!
-          return if @stopped
-
-          # gracefully stop the worker and send leftover events
-          @worker.stop
-          @stopped = true
         end
 
         def integrations_change!

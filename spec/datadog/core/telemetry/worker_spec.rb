@@ -42,8 +42,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   after do
-    worker.stop(true, 0)
+    worker.stop(true)
     worker.join
+
+    Datadog::Core::Telemetry::Worker::TELEMETRY_STARTED_ONCE.send(:reset_ran_once_state_for_tests)
   end
 
   describe '.new' do
@@ -97,19 +99,19 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         end
 
         it 'always sends heartbeat event after started event' do
-          @sent_hearbeat = false
+          sent_hearbeat = false
           allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
             # app-started was already sent by now
             expect(worker.sent_started_event?).to be(true)
 
-            @sent_hearbeat = true
+            sent_hearbeat = true
 
             response
           end
 
           worker.start
 
-          try_wait_until { @sent_hearbeat }
+          try_wait_until { sent_hearbeat }
         end
       end
 
@@ -122,6 +124,42 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           try_wait_until { @received_started }
 
           expect(@received_heartbeat).to be(false)
+        end
+      end
+
+      context 'several workers running' do
+        it 'sends single started event' do
+          started_events = 0
+          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppStarted)) do
+            started_events += 1
+
+            response
+          end
+
+          heartbeat_events = 0
+          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+            heartbeat_events += 1
+
+            response
+          end
+
+          workers = Array.new(3) do
+            described_class.new(
+              enabled: enabled,
+              heartbeat_interval_seconds: heartbeat_interval_seconds,
+              emitter: emitter
+            )
+          end
+          workers.each(&:start)
+
+          try_wait_until { heartbeat_events >= 3 }
+
+          expect(started_events).to be(1)
+
+          workers.each do |w|
+            w.stop(true, 0)
+            w.join
+          end
         end
       end
     end
@@ -137,6 +175,36 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     end
   end
 
+  describe '#stop' do
+    let(:heartbeat_interval_seconds) { 3 }
+
+    it 'flushes events and stops the worker' do
+      events_received = 0
+      allow(emitter).to receive(:request).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+      ) do
+        events_received += 1
+
+        response
+      end
+
+      worker.start
+
+      worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      worker.stop(true)
+
+      try_wait_until { !worker.running? }
+
+      expect(worker).to have_attributes(
+        enabled?: true,
+        loop_base_interval: heartbeat_interval_seconds,
+        run_async?: false,
+        running?: false,
+        started?: true
+      )
+    end
+  end
+
   describe '#enqueue' do
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
@@ -144,6 +212,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         an_instance_of(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
       ) do
         events_received += 1
+
+        response
       end
 
       worker.start
