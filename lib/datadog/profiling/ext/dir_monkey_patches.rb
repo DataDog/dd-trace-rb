@@ -30,6 +30,7 @@ module Datadog
         def [](*args, &block)
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
           super
+          nil
         ensure
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
         end

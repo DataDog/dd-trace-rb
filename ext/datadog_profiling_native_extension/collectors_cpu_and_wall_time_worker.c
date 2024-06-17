@@ -609,7 +609,8 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
 static void *run_sampling_trigger_loop(void *state_ptr) {
   struct cpu_and_wall_time_worker_state *state = (struct cpu_and_wall_time_worker_state *) state_ptr;
 
-  uint64_t minimum_time_between_signals = MILLIS_AS_NS(10);
+  // uint64_t minimum_time_between_signals = MILLIS_AS_NS(1);
+  uint64_t minimum_time_between_signals = 0;
 
   while (atomic_load(&state->should_run)) {
     state->stats.trigger_sample_attempts++;
