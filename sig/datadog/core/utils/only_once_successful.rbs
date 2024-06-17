@@ -1,0 +1,8 @@
+module Datadog
+  module Core
+    module Utils
+      class OnlyOnceSuccessful < Datadog::Core::Utils::OnlyOnce
+      end
+    end
+  end
+end
