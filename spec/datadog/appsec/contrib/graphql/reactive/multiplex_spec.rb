@@ -12,7 +12,7 @@ require 'datadog/appsec/reactive/shared_examples'
 RSpec.describe Datadog::AppSec::Contrib::GraphQL::Reactive::Multiplex do
   include_context 'with GraphQL multiplex'
 
-  let(:expected_arguments) { { 'test' => [{ 'id' => 1 }, { 'id' => 10 }], 'query3' => [{ 'id' => 5 }] } }
+  let(:expected_arguments) { { 'test' => [{ 'id' => 1 }, { 'id' => 10 }], 'query3' => [{ 'name' => 'Caniche' }] } }
 
   describe '.publish' do
     it 'propagates multiplex attributes to the operation' do
