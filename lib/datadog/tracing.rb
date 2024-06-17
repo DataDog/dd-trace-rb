@@ -23,6 +23,7 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
+        id: nil,
         &block
       )
 
@@ -35,6 +36,7 @@ module Datadog
           start_time: start_time,
           tags: tags,
           type: type,
+          id: id,
           &block
         )
       end

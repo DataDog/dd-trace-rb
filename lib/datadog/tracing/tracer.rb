@@ -114,6 +114,7 @@ module Datadog
       # @param [Time] start_time time which the span should have started.
       # @param [Hash<String,String>] tags extra tags which should be added to the span.
       # @param [String] type the type of the span. See {Datadog::Tracing::Metadata::Ext::AppTypes}.
+      # @param [Integer] the id of the new span.
       # @return [Object] If a block is provided, returns the result of the block execution.
       # @return [Datadog::Tracing::SpanOperation] If no block is provided, returns the active,
       #         unfinished {Datadog::Tracing::SpanOperation}.
@@ -130,6 +131,7 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
+        id: nil,
         &block
       )
         return skip_trace(name, &block) unless enabled
@@ -162,6 +164,7 @@ module Datadog
               tags: tags,
               type: type,
               _trace: trace,
+              id: id,
               &block
             )
           end
@@ -178,7 +181,8 @@ module Datadog
             start_time: start_time,
             tags: tags,
             type: type,
-            _trace: trace
+            _trace: trace,
+            id: id
           )
         end
       end
@@ -375,6 +379,7 @@ module Datadog
         tags: nil,
         type: nil,
         _trace: nil,
+        id: nil,
         &block
       )
         trace = _trace || start_trace(continue_from: continue_from)
@@ -391,6 +396,7 @@ module Datadog
             service: service,
             tags: resolve_tags(tags),
             type: type,
+            id: id,
             &block
           )
         else
@@ -403,7 +409,8 @@ module Datadog
             service: service,
             start_time: start_time,
             tags: resolve_tags(tags),
-            type: type
+            type: type,
+            id: id
           )
 
           span.start(start_time)
