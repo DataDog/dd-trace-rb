@@ -222,13 +222,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
       try_wait_until { !worker.running? }
 
-      expect(worker).to have_attributes(
-        enabled?: true,
-        loop_base_interval: heartbeat_interval_seconds,
-        run_async?: false,
-        running?: false,
-        started?: true
-      )
+      expect(events_received).to eq(1)
     end
   end
 
