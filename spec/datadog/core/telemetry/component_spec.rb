@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       it do
         started!
 
-        expect(worker).to_not have_received(:start)
+        expect(worker).to_not have_received(:enqueue)
       end
     end
 
@@ -118,7 +118,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect_in_fork do
           telemetry.started!
 
-          expect(worker).to_not have_received(:start)
+          expect(worker).to_not have_received(:enqueue)
         end
       end
     end

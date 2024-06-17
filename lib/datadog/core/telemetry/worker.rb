@@ -2,6 +2,7 @@
 
 require_relative 'event'
 
+require_relative '../utils/only_once_successful'
 require_relative '../workers/polling'
 require_relative '../workers/queue'
 
@@ -15,6 +16,8 @@ module Datadog
 
         DEFAULT_BUFFER_MAX_SIZE = 1000
 
+        TELEMETRY_STARTED_ONCE = Utils::OnlyOnceSuccessful.new
+
         def initialize(
           heartbeat_interval_seconds:,
           emitter:,
@@ -23,8 +26,6 @@ module Datadog
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
         )
           @emitter = emitter
-
-          @sent_started_event = false
 
           # Workers::Polling settings
           self.enabled = enabled
@@ -48,6 +49,8 @@ module Datadog
         def stop(force_stop = false, timeout = @shutdown_timeout)
           buffer.close if running?
 
+          flush_events(dequeue) if work_pending?
+
           super
         end
 
@@ -56,7 +59,7 @@ module Datadog
         end
 
         def sent_started_event?
-          @sent_started_event
+          TELEMETRY_STARTED_ONCE.ran?
         end
 
         private
@@ -89,24 +92,25 @@ module Datadog
         def started!
           return unless enabled?
 
-          res = send_event(Event::AppStarted.new)
+          TELEMETRY_STARTED_ONCE.run do
+            res = send_event(Event::AppStarted.new)
 
-          if res.not_found? # Telemetry is only supported by agent versions 7.34 and up
-            Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
-            self.enabled = false
-          elsif res.ok?
-            Datadog.logger.debug('Telemetry app-started event is successfully sent')
-            @sent_started_event = true
-          else
-            Datadog.logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
+            if res.ok?
+              Datadog.logger.debug('Telemetry app-started event is successfully sent')
+              true
+            else
+              Datadog.logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
+              false
+            end
           end
         end
 
         def send_event(event)
-          Datadog.logger.debug { "Sending telemetry event: #{event}" }
-          response = @emitter.request(event)
-          Datadog.logger.debug { "Received response: #{response}" }
-          response
+          res = @emitter.request(event)
+
+          disable_on_not_found!(res)
+
+          res
         end
 
         def dequeue
@@ -119,6 +123,13 @@ module Datadog
           else
             Core::Buffer::ThreadSafe
           end
+        end
+
+        def disable_on_not_found!(response)
+          return unless response.not_found?
+
+          Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          self.enabled = false
         end
       end
     end
