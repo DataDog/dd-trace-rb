@@ -131,5 +131,11 @@ RSpec.describe 'gem release process' do
         end
       end
     end
+
+    describe '#post_install_message' do
+      it do
+        expect(gemspec.post_install_message).to_not be_nil
+      end
+    end
   end
 end
