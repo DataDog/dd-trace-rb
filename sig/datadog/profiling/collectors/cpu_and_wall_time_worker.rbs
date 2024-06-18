@@ -44,8 +44,8 @@ module Datadog
         def self._native_is_running?: (CpuAndWallTimeWorker self_instance) -> bool
         def self._native_allocation_count: () -> ::Integer?
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
-        def self._native_hold_interruptions: () -> void
-        def self._native_resume_interruptions: () -> void
+        def self._native_hold_signals: () -> void
+        def self._native_resume_signals: () -> void
 
         def wait_until_running: (timeout_seconds: ::Integer?) -> true
       end

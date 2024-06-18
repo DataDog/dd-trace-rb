@@ -28,18 +28,18 @@ module Datadog
       # Monkey patches for Dir.singleton_class. See DirMonkeyPatches above for more details.
       module DirClassMonkeyPatches
         def [](*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :[] if respond_to?(:ruby2_keywords, true)
 
         def children(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :children if respond_to?(:ruby2_keywords, true)
 
@@ -47,17 +47,17 @@ module Datadog
           if block
             begin
               # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                 # <-- We're safe now while running customer code
                 yield entry_name
                 # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               end
             ensure
               # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
             end
           else
             # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
@@ -68,18 +68,18 @@ module Datadog
         ruby2_keywords :each_child if respond_to?(:ruby2_keywords, true)
 
         def empty?(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :empty? if respond_to?(:ruby2_keywords, true)
 
         def entries(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :entries if respond_to?(:ruby2_keywords, true)
 
@@ -87,17 +87,17 @@ module Datadog
           if block
             begin
               # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                 # <-- We're safe now while running customer code
                 yield entry_name
                 # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               end
             ensure
               # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
             end
           else
             # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
@@ -111,34 +111,34 @@ module Datadog
           if block
             begin
               # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                 # <-- We're safe now while running customer code
                 yield entry_name
                 # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               end
             ensure
               # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
             end
           else
             begin
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               super
             ensure
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
             end
           end
         end
         ruby2_keywords :glob if respond_to?(:ruby2_keywords, true)
 
         def home(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :home if respond_to?(:ruby2_keywords, true)
       end
@@ -149,16 +149,16 @@ module Datadog
           if block
             begin
               # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                 # <-- We're safe now while running customer code
                 yield entry_name
                 # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
               end
             ensure
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions # <-- End critical region
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
             end
           else
             # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
@@ -173,17 +173,17 @@ module Datadog
             if block
               begin
                 # <-- Begin critical region
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 super do |entry_name|
-                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
                   # <-- We're safe now while running customer code
                   yield entry_name
                   # <-- We'll go back to the Dir internals, critical region again
-                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
                 end
               ensure
                 # <-- End critical region
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
               end
             else
               # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
@@ -194,27 +194,27 @@ module Datadog
           ruby2_keywords :each_child if respond_to?(:ruby2_keywords, true)
 
           def children(*args, &block)
-            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
           ensure
-            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
           ruby2_keywords :children if respond_to?(:ruby2_keywords, true)
         end
 
         def tell(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :tell if respond_to?(:ruby2_keywords, true)
 
         def pos(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
           super
         ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_interruptions
+          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
         end
         ruby2_keywords :pos if respond_to?(:ruby2_keywords, true)
       end

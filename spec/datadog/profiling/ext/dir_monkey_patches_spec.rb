@@ -13,8 +13,8 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
     File.open("#{temporary_directory}/file2", 'w') { |f| f.write('file2') }
     File.open("#{temporary_directory}/file3", 'w') { |f| f.write('file3') }
 
-    expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_hold_interruptions)
-    expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_resume_interruptions)
+    expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_hold_signals)
+    expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_resume_signals)
   end
 
   let(:temporary_directory) { Dir.mktmpdir }
@@ -316,17 +316,17 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
       RSpec::Mocks.space.proxy_for(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).reset
 
       allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-        .to receive(:_native_hold_interruptions).and_call_original
+        .to receive(:_native_hold_signals).and_call_original
       allow(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-        .to receive(:_native_resume_interruptions).and_call_original
+        .to receive(:_native_resume_signals).and_call_original
 
       Datadog::Profiling::Ext::DirMonkeyPatches.apply!
       yield
 
       expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-        .to have_received(:_native_hold_interruptions).exactly(expected_hold_resume_calls_count).times
+        .to have_received(:_native_hold_signals).exactly(expected_hold_resume_calls_count).times
       expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
-        .to have_received(:_native_resume_interruptions).exactly(expected_hold_resume_calls_count).times
+        .to have_received(:_native_resume_signals).exactly(expected_hold_resume_calls_count).times
     end
 
     if in_fork
