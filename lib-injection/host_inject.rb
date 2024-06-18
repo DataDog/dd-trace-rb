@@ -42,7 +42,7 @@ begin
       points: events
     }.to_json
 
-    output, = Open3.capture2e(ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'cat'), stdin_data: payload)
+    output, = Open3.capture2e("#{ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'echo')} library_entrypoint", stdin_data: payload)
     dd_debug_log output
   end
 
