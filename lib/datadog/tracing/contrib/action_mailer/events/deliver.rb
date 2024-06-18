@@ -30,14 +30,19 @@ module Datadog
               Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               super
 
-              span.type = span_type
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
+            end
+
+            def on_finish(span, event, _id, payload)
+              super
+
+              span.resource = payload[:mailer]
+
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
               span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
-
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
 
               # Since email data can contain PII we disable by default
               # Some of these fields can be either strings or arrays, so we try to normalize

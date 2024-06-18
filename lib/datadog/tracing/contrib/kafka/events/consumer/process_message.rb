@@ -17,7 +17,9 @@ module Datadog
 
               EVENT_NAME = 'process_message.consumer.kafka'
 
-              def self.process(span, _event, _id, payload)
+              module_function
+
+              def on_start(span, _event, _id, payload)
                 super
 
                 span.resource = payload[:topic]
@@ -28,8 +30,6 @@ module Datadog
                 span.set_tag(Ext::TAG_OFFSET, payload[:offset]) if payload.key?(:offset)
                 span.set_tag(Ext::TAG_OFFSET_LAG, payload[:offset_lag]) if payload.key?(:offset_lag)
               end
-
-              module_function
 
               def span_name
                 Ext::SPAN_PROCESS_MESSAGE

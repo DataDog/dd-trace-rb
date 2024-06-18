@@ -26,11 +26,12 @@ module Datadog
                 super
               end
 
-              def subscription(span_name = nil, options = nil)
+              def subscription(span_name = nil, options = nil, on_start: nil, on_finish: nil)
                 super(
                   span_name || self.span_name,
                   options || span_options,
-                  &method(:process)
+                  on_start: on_start,
+                  on_finish: on_finish
                 )
               end
 
@@ -40,7 +41,8 @@ module Datadog
                     pattern || event_name,
                     span_name || self.span_name,
                     options || span_options,
-                    &method(:process)
+                    on_start: method(:on_start),
+                    on_finish: method(:on_finish)
                   )
                 end
               end
@@ -61,6 +63,21 @@ module Datadog
               def payload_exception(payload)
                 payload[:exception_object] ||
                   payload[:exception] # Fallback for ActiveSupport < 5.0
+              end
+
+              def on_start(_span, _event, _id, _payload); end
+
+              def on_finish(span, _event, _id, payload)
+                record_exception(span, payload)
+              end
+
+              def record_exception(span, payload)
+                if payload[:exception_object]
+                  span.set_error(payload[:exception_object])
+                elsif payload[:exception]
+                  # Fallback for ActiveSupport < 5.0
+                  span.set_error(payload[:exception])
+                end
               end
             end
           end

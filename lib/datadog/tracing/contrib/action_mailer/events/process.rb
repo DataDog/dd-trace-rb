@@ -30,10 +30,11 @@ module Datadog
               Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               super
 
-              span.type = span_type
+              span.resource = payload[:mailer]
+
               span.set_tag(Ext::TAG_ACTION, payload[:action])
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
 
