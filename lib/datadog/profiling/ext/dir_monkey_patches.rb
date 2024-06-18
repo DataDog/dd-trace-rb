@@ -2,6 +2,7 @@
 
 module Datadog
   module Profiling
+    # Monkey patches needed for profiler features and compatibility
     module Ext
       # All Ruby versions as of this writing have bugs in the dir class implementation, causing issues such as
       # https://github.com/DataDog/dd-trace-rb/issues/3450 .
@@ -25,150 +26,23 @@ module Datadog
         end
       end
 
-      # Monkey patches for Dir.singleton_class. See DirMonkeyPatches above for more details.
-      module DirClassMonkeyPatches
-        def [](*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :[] if respond_to?(:ruby2_keywords, true)
-
-        def children(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :children if respond_to?(:ruby2_keywords, true)
-
-        def each_child(*args, &block)
-          if block
-            begin
-              # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                # <-- We're safe now while running customer code
-                yield entry_name
-                # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              end
-            ensure
-              # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-            end
-          else
-            # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-            # other branch once it gets going.
+      if RUBY_VERSION.start_with?('2.')
+        # Monkey patches for Dir.singleton_class (Ruby 2 version). See DirMonkeyPatches above for more details.
+        module DirClassMonkeyPatches
+          def [](*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
-        end
-        ruby2_keywords :each_child if respond_to?(:ruby2_keywords, true)
 
-        def empty?(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :empty? if respond_to?(:ruby2_keywords, true)
-
-        def entries(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :entries if respond_to?(:ruby2_keywords, true)
-
-        def foreach(*args, &block)
-          if block
-            begin
-              # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                # <-- We're safe now while running customer code
-                yield entry_name
-                # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              end
-            ensure
-              # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-            end
-          else
-            # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-            # other branch once it gets going.
+          def children(*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
-        end
-        ruby2_keywords :foreach if respond_to?(:ruby2_keywords, true)
 
-        def glob(*args, &block)
-          if block
-            begin
-              # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                # <-- We're safe now while running customer code
-                yield entry_name
-                # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              end
-            ensure
-              # <-- End critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-            end
-          else
-            begin
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              super
-            ensure
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-            end
-          end
-        end
-        ruby2_keywords :glob if respond_to?(:ruby2_keywords, true)
-
-        def home(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :home if respond_to?(:ruby2_keywords, true)
-      end
-
-      # Monkey patches for Dir. See DirMonkeyPatches above for more details.
-      module DirInstanceMonkeyPatches
-        def each(*args, &block)
-          if block
-            begin
-              # <-- Begin critical region
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              super do |entry_name|
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-                # <-- We're safe now while running customer code
-                yield entry_name
-                # <-- We'll go back to the Dir internals, critical region again
-                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-              end
-            ensure
-              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
-            end
-          else
-            # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
-            # other branch once it gets going.
-            super
-          end
-        end
-        ruby2_keywords :each if respond_to?(:ruby2_keywords, true)
-
-        unless RUBY_VERSION.start_with?('2.5.') # This is Ruby 2.6+
           def each_child(*args, &block)
             if block
               begin
@@ -191,32 +65,329 @@ module Datadog
               super
             end
           end
-          ruby2_keywords :each_child if respond_to?(:ruby2_keywords, true)
 
-          def children(*args, &block)
+          def empty?(*args, &block)
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
           ensure
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
-          ruby2_keywords :children if respond_to?(:ruby2_keywords, true)
-        end
 
-        def tell(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
-        end
-        ruby2_keywords :tell if respond_to?(:ruby2_keywords, true)
+          def entries(*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
 
-        def pos(*args, &block)
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
-          super
-        ensure
-          Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          def foreach(*args, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          def glob(*args, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              begin
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super
+              ensure
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            end
+          end
+
+          def home(*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
         end
-        ruby2_keywords :pos if respond_to?(:ruby2_keywords, true)
+      else
+        # Monkey patches for Dir.singleton_class (Ruby 3 version). See DirMonkeyPatches above for more details.
+        module DirClassMonkeyPatches
+          def [](*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def children(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def each_child(*args, **kwargs, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          def empty?(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def entries(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def foreach(*args, **kwargs, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          def glob(*args, **kwargs, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              begin
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super
+              ensure
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            end
+          end
+
+          def home(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+        end
+      end
+
+      if RUBY_VERSION.start_with?('2.')
+        # Monkey patches for Dir (Ruby 2 version). See DirMonkeyPatches above for more details.
+        module DirInstanceMonkeyPatches
+          def each(*args, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          unless RUBY_VERSION.start_with?('2.5.') # This is Ruby 2.6+
+            def each_child(*args, &block)
+              if block
+                begin
+                  # <-- Begin critical region
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                  super do |entry_name|
+                    Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                    # <-- We're safe now while running customer code
+                    yield entry_name
+                    # <-- We'll go back to the Dir internals, critical region again
+                    Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                  end
+                ensure
+                  # <-- End critical region
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                end
+              else
+                # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+                # other branch once it gets going.
+                super
+              end
+            end
+
+            def children(*args, &block)
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+              super
+            ensure
+              Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+            end
+          end
+
+          def tell(*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def pos(*args, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+        end
+      else
+        # Monkey patches for Dir (Ruby 3 version). See DirMonkeyPatches above for more details.
+        module DirInstanceMonkeyPatches
+          def each(*args, **kwargs, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals # <-- End critical region
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          def each_child(*args, **kwargs, &block)
+            if block
+              begin
+                # <-- Begin critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                super do |entry_name|
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+                  # <-- We're safe now while running customer code
+                  yield entry_name
+                  # <-- We'll go back to the Dir internals, critical region again
+                  Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+                end
+              ensure
+                # <-- End critical region
+                Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+              end
+            else
+              # This returns an enumerator. We don't want/need to intercede here, the enumerator will eventually call the
+              # other branch once it gets going.
+              super
+            end
+          end
+
+          def children(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def tell(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+
+          def pos(*args, **kwargs, &block)
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
+            super
+          ensure
+            Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
+          end
+        end
       end
     end
   end

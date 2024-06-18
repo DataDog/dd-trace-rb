@@ -1,11 +1,3 @@
-# TODO: @ivoanjo As of June 2024 upstream rbs signatures do not include this method on module and even one of their
-# tests adds this directly
-# ( https://github.com/ruby/rbs/blob/28849d4522ba18f45d4f6edfca89a515a4816373/sig/unit_test/spy.rbs#L26C1-L28C4 )
-# so I'm taking the same approach.
-class Module
-  def ruby2_keywords: (*Symbol) -> void
-end
-
 module Datadog
   module Profiling
     module Ext
@@ -15,6 +7,9 @@ module Datadog
 
       # The signatures below are somehow inspired on
       # https://github.com/ruby/rbs/blob/28849d4522ba18f45d4f6edfca89a515a4816373/core/dir.rbs
+
+      # NOTE: Because we have variants for Ruby 2.x and 3.x of the code, there's a bunch of warnings from steep about
+      # that ("Unknown variable: (kwrestarg :kwargs)"). Any suggestions on how to clean that up are welcome :/
 
       module DirClassMonkeyPatches
         def []: (*untyped) -> Array[String]
