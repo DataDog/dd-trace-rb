@@ -39,7 +39,7 @@ begin
         tracer_version: tracer_version,
         pid: pid
       },
-      points: Array(events)
+      points: events
     }.to_json
 
     output, = Open3.capture2e(ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'cat'), stdin_data: payload)
@@ -64,7 +64,7 @@ begin
   if RUBY_ENGINE != 'ruby' || supported_ruby_api_versions.none? { |v| ruby_api_version == v }
     dd_send_telemetry(
       [
-        { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime}'] },
+        { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
         { name: 'library_entrypoint.abort.runtime' }
       ]
     )
@@ -84,7 +84,7 @@ begin
       platform_support_matrix.fetch(:version).none? { |v| local_platform.version == v }
 
     dd_debug_log "Platform check failed: #{local_platform}"
-    dd_send_telemetry({ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform}'] })
+    dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
     dd_skip_injection!
     return # Skip injection
   end
@@ -98,7 +98,7 @@ begin
   if Bundler.frozen_bundle?
     dd_error_log "Skip injection: bundler is configured with 'deployment' or 'frozen'"
 
-    dd_send_telemetry({ name: 'library_entrypoint.abort', tags: ['reason:bundler'] })
+    dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
     dd_skip_injection!
     return
   end
@@ -106,7 +106,7 @@ begin
   unless Bundler::CLI.commands['add'] && Bundler::CLI.commands['add'].options.key?('require')
     dd_error_log "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
 
-    dd_send_telemetry({ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] })
+    dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
     dd_skip_injection!
     return
   end
@@ -161,7 +161,7 @@ begin
           ::FileUtils.cp datadog_lockfile, lockfile
         else
           dd_error_log "Injection failed: Unable to add datadog. Error output: #{output}"
-          dd_send_telemetry({ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] })
+          dd_send_telemetry([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
         end
       ensure
         # Remove the copies
@@ -176,12 +176,14 @@ begin
   # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
   ENV['GEM_PATH'] = Gem.path.join(':')
 
-  dd_send_telemetry({ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] })
+  dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
 rescue Exception => e
   if respond_to?(:dd_send_telemetry)
     dd_send_telemetry(
-      { name: 'library_entrypoint.error',
-        tags: ["error_type:#{e.class.name}"] }
+      [
+        { name: 'library_entrypoint.error',
+          tags: ["error_type:#{e.class.name}"] }
+      ]
     )
   end
   warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
