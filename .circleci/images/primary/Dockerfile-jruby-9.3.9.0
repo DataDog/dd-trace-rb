@@ -1,17 +1,6 @@
-# Note:
-#
-# There is an incompatibility between ethon and httprb on debian 11 bullseye.
-# This is why this image is based on debian 10 buster.
-#
-# See:
-# - https://github.com/jruby/jruby/issues/7033
-# - https://github.com/DataDog/dd-trace-rb/pull/2380#issuecomment-1320994823
-
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-# openjdk:11-jre image is from https://github.com/docker-library/openjdk/blob/8dfb0c5645098b8c330c4811c8228cae52f18388/11/jre/buster/Dockerfile
-# note: docker-library/openjdk is deprecated, there is a later move to https://hub.docker.com/_/eclipse-temurin
-FROM openjdk:11-jre-buster AS jruby-9.3.9.0-jre11
+FROM eclipse-temurin:11-jammy AS jruby-9.3.9.0-jre11
 
 RUN apt-get update && apt-get install -y libc6-dev --no-install-recommends && rm -rf /var/lib/apt/lists/*
 

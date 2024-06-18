@@ -1,6 +1,6 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-FROM ruby:3.3.0-bullseye
+FROM ruby:2.7.8-bullseye
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -57,7 +57,7 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
 # Install RubyGems
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
-# Upgrade RubyGems and Bundler
+# Upgrade RubyGems and Bundler # Upgrading disabled until https://github.com/thoughtbot/appraisal/issues/162 is fixed
 RUN gem update --system 3.3.26
 RUN gem install bundler -v '~> 2.3.26'
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
