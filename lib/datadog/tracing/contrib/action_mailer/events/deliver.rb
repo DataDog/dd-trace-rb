@@ -39,7 +39,7 @@ module Datadog
             def on_finish(span, event, _id, payload)
               super
 
-              span.resource = payload[:mailer]
+              span.resource = payload[:mailer] # Mailer is not available at `on_start`
 
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
               span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
