@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/contrib/graphql/graphql_helper'
+require 'datadog/tracing/contrib/graphql/support/application'
 
+require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/graphql/gateway/multiplex'
 
 RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do

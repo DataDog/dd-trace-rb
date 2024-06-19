@@ -364,7 +364,7 @@ services:
       - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
       - MYSQL_USER=$TEST_MYSQL_USER
     command:
-      - '--default-authentication-plugin=mysql_native_password'
+      - '--mysql_native_password=ON'
     expose:
       - "3306"
     ports:
