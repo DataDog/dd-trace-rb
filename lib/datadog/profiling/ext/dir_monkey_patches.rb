@@ -142,7 +142,6 @@ module Datadog
           def [](*args, **kwargs, &block)
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
-            nil
           ensure
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
@@ -243,6 +242,7 @@ module Datadog
           def home(*args, **kwargs, &block)
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_hold_signals
             super
+            nil
           ensure
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
