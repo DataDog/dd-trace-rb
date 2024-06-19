@@ -26,21 +26,21 @@ module Datadog
                 super
               end
 
-              def subscription(span_name = nil, options = nil, on_start: nil, on_finish: nil)
+              def subscription(span_name = nil, span_options = nil, on_start: nil, on_finish: nil)
                 super(
                   span_name || self.span_name,
-                  options || span_options,
+                  span_options || self.span_options,
                   on_start: on_start,
                   on_finish: on_finish
                 )
               end
 
-              def subscribe(pattern = nil, span_name = nil, options = nil)
+              def subscribe(pattern = nil, span_name = nil, span_options = nil)
                 if supported?
                   super(
                     pattern || event_name,
                     span_name || self.span_name,
-                    options || span_options,
+                    span_options || self.span_options,
                     on_start: method(:on_start),
                     on_finish: method(:on_finish)
                   )

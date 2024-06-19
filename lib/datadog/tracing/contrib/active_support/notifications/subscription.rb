@@ -9,19 +9,19 @@ module Datadog
           class Subscription
             attr_accessor \
               :span_name,
-              :options
+              :span_options
 
             # @param span_name [String] the operation name for the span
-            # @param options [Hash] options to pass during span creation
+            # @param span_options [Hash] span_options to pass during span creation
             # @param on_start [Proc] a block to run when the event is fired,
             #   might not include all required information in the `payload` argument.
             # @param on_finish [Proc] a block to run when the event has finished processing,
             #   possibly including more information in the `payload` argument.
-            def initialize(span_name, options, on_start: nil, on_finish: nil)
+            def initialize(span_name, span_options, on_start: nil, on_finish: nil)
               raise ArgumentError, 'Must be given either on_start or on_finish' unless on_start || on_finish
 
               @span_name = span_name
-              @options = options
+              @span_options = span_options
               @on_start = Handler.new(on_start)
               @on_finish = Handler.new(on_finish)
               @callbacks = Callbacks.new
@@ -85,7 +85,7 @@ module Datadog
               callbacks.run(name, :before_trace, id, payload, start)
 
               # Start a trace
-              span = Tracing.trace(@span_name, **@options)
+              span = Tracing.trace(@span_name, **@span_options)
 
               # Start span if time is provided
               span.start(start) unless start.nil?
@@ -126,17 +126,11 @@ module Datadog
               end
 
               def run(span, name, id, payload)
-                run!(span, name, id, payload) if @block
+                @block.call(span, name, id, payload) if @block
               rescue StandardError => e
                 Datadog.logger.debug(
                   "ActiveSupport::Notifications handler for '#{name}' failed: #{e.class.name} #{e.message}"
                 )
-              end
-
-              private
-
-              def run!(*args)
-                @block.call(*args)
               end
             end
 
