@@ -1,4 +1,3 @@
-require 'rails/all'
 # Loaded by the `bin/rails` script in a real Rails application
 require 'rails/command'
 

@@ -1,5 +1,3 @@
-require 'rails/all'
-
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
   require 'datadog/tracing/contrib/sidekiq/server_tracer'

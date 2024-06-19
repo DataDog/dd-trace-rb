@@ -13,6 +13,23 @@ module Datadog
         # We actually don't need to create any span/trace.
         module AppSecTrace
           def execute_multiplex(multiplex:)
+            return super unless Datadog::AppSec.enabled?
+
+            unless Datadog::AppSec.active_scope
+              ready = false
+
+              Datadog::AppSec.reconfigure_lock do
+                processor = Datadog::AppSec.processor
+
+                if !processor.nil? && processor.ready?
+                  Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
+                  ready = true
+                end
+              end
+            end
+
+            return super unless ready
+
             gateway_multiplex = Gateway::Multiplex.new(multiplex)
 
             multiplex_return, multiplex_response = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
@@ -35,6 +52,24 @@ module Datadog
             end
 
             multiplex_return
+          end
+
+          private
+
+          def active_trace
+            # TODO: factor out tracing availability detection
+
+            return unless defined?(Datadog::Tracing)
+
+            Datadog::Tracing.active_trace
+          end
+
+          def active_span
+            # TODO: factor out tracing availability detection
+
+            return unless defined?(Datadog::Tracing)
+
+            Datadog::Tracing.active_span
           end
         end
       end

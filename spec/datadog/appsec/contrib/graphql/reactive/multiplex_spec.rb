@@ -1,7 +1,7 @@
 # frozen_literal_string: true
 
 require 'datadog/tracing/contrib/graphql/test_helpers'
-require 'datadog/appsec/contrib/graphql/graphql_helper'
+require 'datadog/tracing/contrib/graphql/support/application'
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/reactive/operation'
@@ -17,8 +17,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Reactive::Multiplex do
   describe '.publish' do
     it 'propagates multiplex attributes to the operation' do
       expect(operation).to receive(:publish).with('graphql.server.all_resolvers', expected_arguments)
-
-      described_class.publish(operation, multiplex)
+      gateway_multiplex = Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex.new(multiplex)
+      described_class.publish(operation, gateway_multiplex)
     end
   end
 
@@ -45,13 +45,14 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Reactive::Multiplex do
           Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
         described_class.subscribe(operation, waf_context)
-        result = described_class.publish(operation, multiplex)
+        gateway_multiplex = Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex.new(multiplex)
+        result = described_class.publish(operation, gateway_multiplex)
         expect(result).to be_nil
       end
     end
 
     it_behaves_like 'waf result' do
-      let(:gateway) { multiplex }
+      let(:gateway) { Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex.new(multiplex) }
     end
   end
 end
