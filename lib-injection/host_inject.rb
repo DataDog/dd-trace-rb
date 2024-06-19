@@ -42,8 +42,7 @@ begin
       points: events
     }.to_json
 
-    output, = Open3.capture2e("#{ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'echo')} library_entrypoint", stdin_data: payload)
-    dd_debug_log output
+    Open3.capture2e("#{ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'echo')} library_entrypoint", stdin_data: payload)
   end
 
   unless Bundler::SharedHelpers.in_bundle?
