@@ -10,7 +10,9 @@ begin
   require 'json'
 
   def dd_debug_log(msg)
-    $stdout.puts "[datadog] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+    if ENV['DD_TRACE_DEBUG'] == 'true'
+      $stdout.puts "[datadog] #{msg}"
+    end
   end
 
   def dd_error_log(msg)
@@ -116,6 +118,18 @@ begin
     hash
   end
 
+  gemfile = Bundler::SharedHelpers.default_gemfile
+  lockfile = Bundler::SharedHelpers.default_lockfile
+
+  datadog_gemfile = gemfile.dirname + '.datadog-Gemfile'
+  datadog_lockfile = lockfile.dirname + '.datadog-Gemfile.lock'
+
+  # Copies for trial
+  ::FileUtils.cp gemfile, datadog_gemfile
+  ::FileUtils.cp lockfile, datadog_lockfile
+
+  injection_failure = false
+
   # This is order dependent
   [
     'msgpack',
@@ -125,57 +139,46 @@ begin
     'libddwaf',
     'datadog'
   ].each do |gem|
-    _, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
+    _show_output, show_status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
 
-    if status.success?
+    if show_status.success?
       dd_debug_log "#{gem} already installed... skipping..."
       next
+    end
+
+    bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
+    bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
+
+    dd_debug_log "Injection with `#{bundle_add_cmd}`"
+
+    env = { 'BUNDLE_GEMFILE' => datadog_gemfile.to_s,
+            'DD_TRACE_SKIP_LIB_INJECTION' => 'true',
+            'GEM_PATH' => dd_lib_injection_path }
+    add_output, add_status = Open3.capture2e(env, bundle_add_cmd)
+
+    if add_status.success?
+      dd_debug_log "Successfully injected #{gem} into the application."
     else
-      bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
-
-      bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
-
-      dd_debug_log "Injection with `#{bundle_add_cmd}`"
-
-      gemfile = Bundler::SharedHelpers.default_gemfile
-      lockfile = Bundler::SharedHelpers.default_lockfile
-
-      datadog_gemfile = gemfile.dirname + 'datadog-Gemfile'
-      datadog_lockfile = lockfile.dirname + 'datadog-Gemfile.lock'
-
-      begin
-        # Copies for trial
-        ::FileUtils.cp gemfile, datadog_gemfile
-        ::FileUtils.cp lockfile, datadog_lockfile
-
-        env = { 'BUNDLE_GEMFILE' => datadog_gemfile.to_s,
-                'DD_TRACE_SKIP_LIB_INJECTION' => 'true',
-                'GEM_PATH' => dd_lib_injection_path }
-        output, status = Open3.capture2e(env, bundle_add_cmd)
-
-        if status.success?
-          dd_debug_log "Successfully injected #{gem} into the application."
-
-          ::FileUtils.cp datadog_gemfile, gemfile
-          ::FileUtils.cp datadog_lockfile, lockfile
-        else
-          dd_error_log "Injection failed: Unable to add datadog. Error output: #{output}"
-          dd_send_telemetry([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
-        end
-      ensure
-        # Remove the copies
-        ::FileUtils.rm datadog_gemfile
-        ::FileUtils.rm datadog_lockfile
-      end
+      injection_failure = true
+      dd_error_log "Injection failed: Unable to add datadog. Error output: #{add_output}"
     end
   end
 
-  # Look for pre-installed tracers
-  Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
-  # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
-  ENV['GEM_PATH'] = Gem.path.join(':')
+  dd_skip_injection!
+  if injection_failure
+    ::FileUtils.rm datadog_gemfile
+    ::FileUtils.rm datadog_lockfile
+    dd_send_telemetry([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
+  else
+    # Look for pre-installed tracers
+    Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
 
-  dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
+    # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
+    ENV['GEM_PATH'] = Gem.path.join(':')
+    ENV['BUNDLE_GEMFILE'] = datadog_gemfile.to_s
+
+    dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
+  end
 rescue Exception => e
   if respond_to?(:dd_send_telemetry)
     dd_send_telemetry(
