@@ -595,6 +595,7 @@ target :datadog do
   library 'opentelemetry-api'
   library 'passenger'
   library 'webmock'
+  library 'graphql'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
