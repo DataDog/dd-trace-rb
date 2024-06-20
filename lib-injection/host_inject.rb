@@ -10,9 +10,7 @@ begin
   require 'json'
 
   def dd_debug_log(msg)
-    if ENV['DD_TRACE_DEBUG'] == 'true'
-      $stdout.puts "[datadog] #{msg}"
-    end
+    $stdout.puts "[datadog] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
   end
 
   def dd_error_log(msg)
@@ -91,8 +89,7 @@ begin
   end
 
   ['ddtrace', 'datadog'].each do |gem|
-    show_output, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
-    if status.success? && !show_output.include?("- exit -")
+    if (Bundler::CLI::Common.select_spec(gem) rescue false)
       dd_debug_log 'Skip injection: already installed'
       return
     end
@@ -141,9 +138,7 @@ begin
     'libddwaf',
     'datadog'
   ].each do |gem|
-    show_output, show_status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
-
-    if show_status.success? && !show_output.include?("- exit -")
+    if (Bundler::CLI::Common.select_spec(gem) rescue false)
       dd_debug_log "#{gem} already installed... skipping..."
       next
     end
