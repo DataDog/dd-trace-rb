@@ -90,10 +90,12 @@ begin
     return # Skip injection
   end
 
-  _, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, 'bundle show datadog')
-  if status.success?
-    dd_debug_log 'Skip injection: already installed'
-    return
+  ['ddtrace', 'datadog'].each do |gem|
+    show_output, status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
+    if status.success? && !show_output.include?("- exit -")
+      dd_debug_log 'Skip injection: already installed'
+      return
+    end
   end
 
   if Bundler.frozen_bundle?
@@ -139,9 +141,9 @@ begin
     'libddwaf',
     'datadog'
   ].each do |gem|
-    _show_output, show_status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
+    show_output, show_status = Open3.capture2e({ 'DD_TRACE_SKIP_LIB_INJECTION' => 'true' }, "bundle show #{gem}")
 
-    if show_status.success?
+    if show_status.success? && !show_output.include?("- exit -")
       dd_debug_log "#{gem} already installed... skipping..."
       next
     end
