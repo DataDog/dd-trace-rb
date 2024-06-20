@@ -1,0 +1,37 @@
+module GraphQL
+  class Schema
+    class Field
+    end
+
+    class Object
+    end
+
+    class Union
+    end
+  end
+
+  module Tracing
+    class Trace
+    end
+  end
+
+  module Language
+    module Nodes
+      class Document
+      end
+
+      class Field
+      end
+    end
+  end
+
+  class Query
+    class Result
+    end
+  end
+
+  module Execution
+    class Multiplex
+    end
+  end
+end

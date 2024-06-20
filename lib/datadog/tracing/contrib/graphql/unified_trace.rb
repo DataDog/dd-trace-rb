@@ -8,10 +8,10 @@ module Datadog
       module GraphQL
         # These methods will be called by the GraphQL runtime to trace the execution of queries
         module UnifiedTrace
-          # @param tracer [#trace] Deprecated
           # @param analytics_enabled [Boolean] Deprecated
           # @param analytics_sample_rate [Float] Deprecated
-          def initialize(tracer: nil, analytics_enabled: false, analytics_sample_rate: 1.0, service: nil, **rest)
+          # @param service [String|nil] The service name to be set on the spans
+          def initialize(analytics_enabled: false, analytics_sample_rate: 1.0, service: nil, **rest)
             @analytics_enabled = analytics_enabled
             @analytics_sample_rate = analytics_sample_rate
 
