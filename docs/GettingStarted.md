@@ -599,7 +599,7 @@ end
 
 | Key       | Env Var                         | Type   | Description                                  | Default |
 | --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
-| `enabled` | `DD_TRACE_CONCURRENT_RUBY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `enabled` | `DD_TRACE_CONCURRENT_RUBY_ENABLED` | `Bool` | Whether the integration propagates contexts. | `true` |
 
 ### Dalli
 
