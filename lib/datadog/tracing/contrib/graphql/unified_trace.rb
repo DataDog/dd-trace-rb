@@ -11,7 +11,7 @@ module Datadog
           # @param analytics_enabled [Boolean] Deprecated
           # @param analytics_sample_rate [Float] Deprecated
           # @param service [String|nil] The service name to be set on the spans
-          def initialize(analytics_enabled: false, analytics_sample_rate: 1.0, service: nil, **rest)
+          def initialize(*args, analytics_enabled: false, analytics_sample_rate: 1.0, service: nil, **kwargs)
             @analytics_enabled = analytics_enabled
             @analytics_sample_rate = analytics_sample_rate
 
@@ -20,37 +20,37 @@ module Datadog
             super
           end
 
-          def lex(query_string:)
+          def lex(*args, query_string:, **kwargs)
             trace(proc { super }, 'lex', query_string, query_string: query_string)
           end
 
-          def parse(query_string:)
+          def parse(*args, query_string:, **kwargs)
             trace(proc { super }, 'parse', query_string, query_string: query_string) do |span|
               span.set_tag('graphql.source', query_string)
             end
           end
 
-          def validate(query:, validate:)
+          def validate(*args, query:, validate:, **kwargs)
             trace(proc { super }, 'validate', query.selected_operation_name, query: query, validate: validate) do |span|
               span.set_tag('graphql.source', query.query_string)
             end
           end
 
-          def analyze_multiplex(multiplex:)
+          def analyze_multiplex(*args, multiplex:, **kwargs)
             trace(proc { super }, 'analyze_multiplex', multiplex_resource(multiplex), multiplex: multiplex)
           end
 
-          def analyze_query(query:)
+          def analyze_query(*args, query:, **kwargs)
             trace(proc { super }, 'analyze', query.query_string, query: query)
           end
 
-          def execute_multiplex(multiplex:)
+          def execute_multiplex(*args, multiplex:, **kwargs)
             trace(proc { super }, 'execute_multiplex', multiplex_resource(multiplex), multiplex: multiplex) do |span|
               span.set_tag('graphql.source', "Multiplex[#{multiplex.queries.map(&:query_string).join(', ')}]")
             end
           end
 
-          def execute_query(query:)
+          def execute_query(*args, query:, **kwargs)
             trace(proc { super }, 'execute', query.selected_operation_name, query: query) do |span|
               span.set_tag('graphql.source', query.query_string)
               span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
@@ -61,7 +61,7 @@ module Datadog
             end
           end
 
-          def execute_query_lazy(query:, multiplex:)
+          def execute_query_lazy(*args, query:, multiplex:, **kwargs)
             resource = if query
                          query.selected_operation_name || fallback_transaction_name(query.context)
                        else
@@ -84,13 +84,13 @@ module Datadog
             end
           end
 
-          def execute_field(**kwargs)
+          def execute_field(*args, **kwargs)
             # kwargs[:arguments] is { id => 1 } for 'user(id: 1) { name }'. This is what we want to send to the WAF.
-            execute_field_span(proc { super(**kwargs) }, 'resolve', **kwargs)
+            execute_field_span(proc { super }, 'resolve', **kwargs)
           end
 
-          def execute_field_lazy(**kwargs)
-            execute_field_span(proc { super(**kwargs) }, 'resolve_lazy', **kwargs)
+          def execute_field_lazy(*args, **kwargs)
+            execute_field_span(proc { super }, 'resolve_lazy', **kwargs)
           end
 
           def authorized_span(callable, span_key, **kwargs)
@@ -98,12 +98,12 @@ module Datadog
             trace(callable, span_key, platform_key, **kwargs)
           end
 
-          def authorized(**kwargs)
-            authorized_span(proc { super(**kwargs) }, 'authorized', **kwargs)
+          def authorized(*args, **kwargs)
+            authorized_span(proc { super }, 'authorized', **kwargs)
           end
 
-          def authorized_lazy(**kwargs)
-            authorized_span(proc { super(**kwargs) }, 'authorized_lazy', **kwargs)
+          def authorized_lazy(*args, **kwargs)
+            authorized_span(proc { super }, 'authorized_lazy', **kwargs)
           end
 
           def resolve_type_span(callable, span_key, **kwargs)
@@ -111,12 +111,12 @@ module Datadog
             trace(callable, span_key, platform_key, **kwargs)
           end
 
-          def resolve_type(**kwargs)
-            resolve_type_span(proc { super(**kwargs) }, 'resolve_type', **kwargs)
+          def resolve_type(*args, **kwargs)
+            resolve_type_span(proc { super }, 'resolve_type', **kwargs)
           end
 
-          def resolve_type_lazy(**kwargs)
-            resolve_type_span(proc { super(**kwargs) }, 'resolve_type_lazy', **kwargs)
+          def resolve_type_lazy(*args, **kwargs)
+            resolve_type_span(proc { super }, 'resolve_type_lazy', **kwargs)
           end
 
           include ::GraphQL::Tracing::PlatformTrace
@@ -128,15 +128,15 @@ module Datadog
           # def prepare_span(key, data, span)
           # end
 
-          def platform_field_key(field)
+          def platform_field_key(field, *args, **kwargs)
             field.path
           end
 
-          def platform_authorized_key(type)
+          def platform_authorized_key(type, *args, **kwargs)
             "#{type.graphql_name}.authorized"
           end
 
-          def platform_resolve_type_key(type)
+          def platform_resolve_type_key(type, *args, **kwargs)
             "#{type.graphql_name}.resolve_type"
           end
 

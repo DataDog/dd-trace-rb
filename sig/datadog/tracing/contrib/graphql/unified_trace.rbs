@@ -10,7 +10,7 @@ module Datadog
           @service_name: String?
 
           @has_prepare_span: bool
-          def initialize: (?analytics_enabled: bool, ?analytics_sample_rate: Float, ?service: String?, **Hash[Symbol, Object] rest) -> self
+          def initialize: (?analytics_enabled: bool, ?analytics_sample_rate: Float, ?service: String?, **Hash[Symbol, Object] kwargs) -> self
                         
           type lexerArray = Array[Integer | Symbol | String | nil | lexerArray]
 
