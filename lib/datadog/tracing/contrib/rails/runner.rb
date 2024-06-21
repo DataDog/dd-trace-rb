@@ -4,10 +4,6 @@ module Datadog
   module Tracing
     module Contrib
       module Rails
-        # Limit the maximum size of the source code captured in the source tag.
-        MAX_TAG_VALUE_SIZE = 4096
-        private_constant :MAX_TAG_VALUE_SIZE
-
         # Instruments the `bin/rails runner` command.
         # This command executes the provided code with the host Rails application loaded.
         # The command can be either:
@@ -16,6 +12,10 @@ module Datadog
         # * `inline code`: for code provided directly as a command line argument.
         # @see https://guides.rubyonrails.org/v6.1/command_line.html#bin-rails-runner
         module Runner
+          # Limit the maximum size of the source code captured in the source tag.
+          MAX_TAG_VALUE_SIZE = 4096
+          private_constant :MAX_TAG_VALUE_SIZE
+
           def runner(code_or_file = nil, *_command_argv)
             if code_or_file == '-'
               name = Ext::SPAN_RUNNER_STDIN
