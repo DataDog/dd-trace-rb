@@ -15,8 +15,9 @@ module Datadog
         include Core::Workers::Polling
 
         DEFAULT_BUFFER_MAX_SIZE = 1000
+        APP_STARTED_EVENT_RETRIES = 10
 
-        TELEMETRY_STARTED_ONCE = Utils::OnlyOnceSuccessful.new
+        TELEMETRY_STARTED_ONCE = Utils::OnlyOnceSuccessful.new(APP_STARTED_EVENT_RETRIES)
 
         def initialize(
           heartbeat_interval_seconds:,
@@ -61,7 +62,11 @@ module Datadog
         end
 
         def sent_started_event?
-          TELEMETRY_STARTED_ONCE.ran?
+          TELEMETRY_STARTED_ONCE.success?
+        end
+
+        def failed_to_start?
+          TELEMETRY_STARTED_ONCE.failed?
         end
 
         private
@@ -93,6 +98,12 @@ module Datadog
 
         def started!
           return unless enabled?
+
+          if failed_to_start?
+            Datadog.logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
+            self.enabled = false
+            return
+          end
 
           TELEMETRY_STARTED_ONCE.run do
             res = send_event(Event::AppStarted.new)

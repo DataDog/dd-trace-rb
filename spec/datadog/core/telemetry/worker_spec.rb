@@ -120,6 +120,71 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           try_wait_until { sent_hearbeat }
         end
 
+        context 'when app-started event fails' do
+          it 'retries' do
+            expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
+              .and_return(
+                double(
+                  Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+                  not_found?: false,
+                  ok?: false
+                )
+              ).once
+
+            expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted)) do
+              @received_started = true
+
+              response
+            end
+
+            sent_hearbeat = false
+            allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+              # app-started was already sent by now
+              expect(@received_started).to be(true)
+
+              sent_hearbeat = true
+
+              response
+            end
+
+            worker.start
+
+            try_wait_until { sent_hearbeat }
+          end
+        end
+
+        context 'when app-started event exhausted retries' do
+          let(:heartbeat_interval_seconds) { 0.1 }
+
+          it 'stops retrying, never sends heartbeat, and disables worker' do
+            expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
+              .and_return(
+                double(
+                  Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+                  not_found?: false,
+                  ok?: false
+                )
+              ).exactly(described_class::APP_STARTED_EVENT_RETRIES).times
+
+            sent_hearbeat = false
+            allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+              # app-started was already sent by now
+              expect(@received_started).to be(true)
+
+              sent_hearbeat = true
+
+              response
+            end
+
+            worker.start
+
+            try_wait_until { !worker.enabled? }
+
+            expect(sent_hearbeat).to be(false)
+            expect(worker.failed_to_start?).to be(true)
+          end
+        end
+
         context 'when dependencies collection enabled' do
           let(:dependency_collection) { true }
 
