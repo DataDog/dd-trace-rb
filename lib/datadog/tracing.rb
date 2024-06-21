@@ -122,6 +122,8 @@ module Datadog
       # @return [String] correlation information
       # @public_api
       def log_correlation
+        return '' unless enabled?
+
         correlation.to_log_format
       end
 
