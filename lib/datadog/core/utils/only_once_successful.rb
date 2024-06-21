@@ -18,6 +18,14 @@ module Datadog
       # In https://github.com/DataDog/dd-trace-rb/pull/1398#issuecomment-797378810 we have a discussion of alternatives,
       # including an alternative implementation that is Ractor-safe once spent.
       class OnlyOnceSuccessful < OnlyOnce
+        def initialize(limit = 0)
+          super()
+
+          @limit = limit
+          @failed = false
+          @retries = 0
+        end
+
         def run
           @mutex.synchronize do
             return if @ran_once
@@ -25,8 +33,34 @@ module Datadog
             result = yield
             @ran_once = !!result
 
+            if !@ran_once && limited?
+              @retries += 1
+              check_limit!
+            end
+
             result
           end
+        end
+
+        def success?
+          @mutex.synchronize { @ran_once && !@failed }
+        end
+
+        def failed?
+          @mutex.synchronize { @ran_once && @failed }
+        end
+
+        private
+
+        def check_limit!
+          if @retries >= @limit
+            @failed = true
+            @ran_once = true
+          end
+        end
+
+        def limited?
+          !@limit.nil? && @limit.positive?
         end
       end
     end
