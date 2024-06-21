@@ -2,6 +2,21 @@ module Datadog
   module Core
     module Utils
       class OnlyOnceSuccessful < Datadog::Core::Utils::OnlyOnce
+        @limit: Integer
+        @retries: Integer
+        @failed: bool
+
+        def initialize: (?Integer limit) -> void
+
+        def success?: () -> bool
+
+        def failed?: () -> bool
+
+        private
+
+        def check_limit!: () -> void
+
+        def limited?: () -> bool
       end
     end
   end
