@@ -119,7 +119,7 @@ module Datadog
       # # dd.env=prod dd.service=auth dd.version=13.8 dd.trace_id=5458478252992251 dd.span_id=7117552347370098 My message
       # ```
       #
-      # @return [String] correlation information
+      # @return [String] correlation information; or an empty String if Tracing is disabled (`!enabled?`)
       # @public_api
       def log_correlation
         return '' unless enabled?
