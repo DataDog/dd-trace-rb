@@ -855,12 +855,13 @@ YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
 
 The `instrument :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
 
-| Key                      | Env Var | Type     | Description                                                                                                                                                  | Default          |
-| ------------------------ | - | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| `enabled` | `DD_TRACE_GRAPHQL_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `schemas`                | | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]`             |
-| `with_deprecated_tracer` | | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                          | `false`          |
-| `service_name`           | | `String` | Service name used for graphql instrumentation                                                                                                                | `'ruby-graphql'` |
+| Key                      | Env Var                    | Type     | Description                                                                                                                                                                                                     | Default          |
+| ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
+| `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
+| `with_unified_tracer`    |                            | `Bool`   | Enable to instrument with `UnifiedTrace` tracer, enabling support for API Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` (Added in v2.2)  | `false`          |
+| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                               | `false`          |
+| `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
@@ -871,6 +872,14 @@ With `GraphQL::Tracing::DataDogTrace`
 ```ruby
 class YourSchema < GraphQL::Schema
   trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+
+With `UnifiedTracer` (Added in v2.2)
+
+```ruby
+class YourSchema < GraphQL::Schema
+  trace_with Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
 end
 ```
 
