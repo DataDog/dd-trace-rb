@@ -9,6 +9,7 @@ module Datadog
         include Core::Workers::Queue
 
         TELEMETRY_STARTED_ONCE: Datadog::Core::Utils::OnlyOnceSuccessful
+        APP_STARTED_EVENT_RETRIES: 10
         DEFAULT_BUFFER_MAX_SIZE: 1000
 
         @emitter: Emitter
@@ -22,6 +23,8 @@ module Datadog
         def start: () -> void
 
         def sent_started_event?: () -> bool
+
+        def failed_to_start?: () -> bool
 
         def enqueue: (Event::Base event) -> void
 

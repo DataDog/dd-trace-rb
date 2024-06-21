@@ -62,6 +62,14 @@ module Datadog
         def limited?
           !@limit.nil? && @limit.positive?
         end
+
+        def reset_ran_once_state_for_tests
+          @mutex.synchronize do
+            @ran_once = false
+            @failed = false
+            @retries = 0
+          end
+        end
       end
     end
   end
