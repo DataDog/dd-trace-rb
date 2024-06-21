@@ -877,6 +877,29 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
+        context 'when passenger gem is not available, but PhusionPassenger::VERSION_STRING is available' do
+          context 'on passenger >= 6.0.19' do
+            before { stub_const('PhusionPassenger::VERSION_STRING', '6.0.19') }
+
+            it { is_expected.to be false }
+          end
+
+          context 'on passenger < 6.0.19' do
+            before do
+              stub_const('PhusionPassenger::VERSION_STRING', '6.0.18')
+              allow(Datadog.logger).to receive(:warn)
+            end
+
+            it { is_expected.to be true }
+
+            it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+              no_signals_workaround_enabled?
+            end
+          end
+        end
+
         context 'when mysql2 / rugged gems + passenger are not available' do
           include_context('loaded gems', passenger: nil, mysql2: nil, rugged: nil)
 

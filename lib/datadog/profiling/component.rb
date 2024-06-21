@@ -397,8 +397,12 @@ module Datadog
 
       # See https://github.com/datadog/dd-trace-rb/issues/2976 for details.
       private_class_method def self.incompatible_passenger_version?
+        first_compatible_version = Gem::Version.new('6.0.19')
+
         if Gem.loaded_specs['passenger']
-          Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
+          Gem.loaded_specs['passenger'].version < first_compatible_version
+        elsif defined?(PhusionPassenger::VERSION_STRING)
+          Gem::Version.new(PhusionPassenger::VERSION_STRING) < first_compatible_version
         else
           true
         end
