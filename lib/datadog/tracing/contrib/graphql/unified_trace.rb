@@ -58,7 +58,7 @@ module Datadog
               span.set_tag('graphql.source', query.query_string)
               span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
               span.set_tag('graphql.operation.name', query.selected_operation_name) if query.selected_operation_name
-              query.provided_variables.each do |key, value|
+              query.variables.instance_variable_get(:@storage).each do |key, value|
                 span.set_tag("graphql.variables.#{key}", value)
               end
             end
