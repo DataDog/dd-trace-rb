@@ -853,6 +853,23 @@ end
 
 Do _NOT_ `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
+**Adding custom tags to Datadog spans**
+
+You can add custom tags to Datadog spans by implementing the `prepare_span` method in a subclass, then manually configuring your schema.
+
+```ruby
+class YourSchema < GraphQL::Schema
+  module CustomTracing
+    include Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
+    def prepare_span(trace_key, data, span)
+      span.set_tag("custom:#{trace_key}", data.keys.sort.join(","))
+    end
+  end
+  
+  trace_with CustomTracing
+end
+```
+
 ### gRPC
 
 The `grpc` integration adds both client and server interceptors, which run as middleware before executing the service's remote procedure call. As gRPC applications are often distributed, the integration shares trace information between client and server.
