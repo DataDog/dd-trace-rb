@@ -207,4 +207,22 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       is_expected.to eq({})
     end
   end
+
+  context 'GenerateMetrics' do
+    let(:event) { described_class::GenerateMetrics.new(namespace, metric_series) }
+
+    let(:namespace) { 'general' }
+    let(:metric_name) { 'request_count' }
+    let(:points) { [[123123123, 33]] }
+    let(:metric_series) { [{ metric: metric_name, points: points }] }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: metric_series
+        }
+      )
+    end
+  end
 end

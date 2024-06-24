@@ -55,6 +55,13 @@ module Datadog
 
         class AppClosing < Base
         end
+
+        class GenerateMetrics < Base
+          @namespace: String
+          @metric_series: Enumerable[Hash[Symbol, untyped]]
+
+          def initialize: (String namespace, Enumerable[Hash[Symbol, untyped]] metric_series) -> void
+        end
       end
     end
   end

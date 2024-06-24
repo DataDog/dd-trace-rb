@@ -286,6 +286,26 @@ module Datadog
             'app-closing'
           end
         end
+
+        # Telemetry class for the 'generate-metrics' event
+        class GenerateMetrics < Base
+          def type
+            'generate-metrics'
+          end
+
+          def initialize(namespace, metric_series)
+            super()
+            @namespace = namespace
+            @metric_series = metric_series
+          end
+
+          def payload(_)
+            {
+              namespace: @namespace,
+              series: @metric_series.map(&:to_h)
+            }
+          end
+        end
       end
     end
   end
