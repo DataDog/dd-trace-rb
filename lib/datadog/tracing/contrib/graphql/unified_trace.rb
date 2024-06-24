@@ -6,7 +6,10 @@ module Datadog
   module Tracing
     module Contrib
       module GraphQL
-        # These methods will be called by the GraphQL runtime to trace the execution of queries
+        # These methods will be called by the GraphQL runtime to trace the execution of queries.
+        # This tracer differs from the upstream one as it follows the unified naming convention specification,
+        # which is required to use features such as API Catalog.
+        # DEV-3.0: This tracer should be the default one in the next major version.
         module UnifiedTrace
           # @param analytics_enabled [Boolean] Deprecated
           # @param analytics_sample_rate [Float] Deprecated
@@ -71,6 +74,7 @@ module Datadog
           end
 
           def execute_field_span(callable, span_key, **kwargs)
+            # @platform_key_cache is initialized upstream, in ::GraphQL::Tracing::PlatformTrace
             platform_key = @platform_key_cache[UnifiedTrace].platform_field_key_cache[kwargs[:field]]
 
             if platform_key
@@ -85,7 +89,6 @@ module Datadog
           end
 
           def execute_field(*args, **kwargs)
-            # kwargs[:arguments] is { id => 1 } for 'user(id: 1) { name }'. This is what we want to send to the WAF.
             execute_field_span(proc { super }, 'resolve', **kwargs)
           end
 
@@ -120,13 +123,6 @@ module Datadog
           end
 
           include ::GraphQL::Tracing::PlatformTrace
-
-          # Implement this method in a subclass to apply custom tags to datadog spans
-          # @param key [String] The event being traced
-          # @param data [Hash] The runtime data for this event (@see GraphQL::Tracing for keys for each event)
-          # @param span [Datadog::Tracing::SpanOperation] The datadog span for this event
-          # def prepare_span(key, data, span)
-          # end
 
           def platform_field_key(field, *args, **kwargs)
             field.path
