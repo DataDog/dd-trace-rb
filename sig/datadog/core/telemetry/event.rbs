@@ -62,6 +62,9 @@ module Datadog
 
           def initialize: (String namespace, Enumerable[Hash[Symbol, untyped]] metric_series) -> void
         end
+
+        class Distributions < GenerateMetrics
+        end
       end
     end
   end

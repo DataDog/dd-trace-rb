@@ -225,4 +225,22 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       )
     end
   end
+
+  context 'Distributions' do
+    let(:event) { described_class::Distributions.new(namespace, metric_series) }
+
+    let(:namespace) { 'general' }
+    let(:metric_name) { 'request_duration' }
+    let(:points) { [13, 14, 15, 16] }
+    let(:metric_series) { [{ metric: metric_name, points: points }] }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: metric_series
+        }
+      )
+    end
+  end
 end
