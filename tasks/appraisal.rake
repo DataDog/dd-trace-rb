@@ -4,6 +4,7 @@ require 'pry'
 
 namespace :appraisal do # rubocop:disable Metrics/BlockLength
   def ruby_versions(versions)
+    versions = versions.map { |v| v.start_with?('ruby-') ? v.sub(/^ruby-/, '') : v }
     return TRACER_VERSIONS if versions.empty?
 
     TRACER_VERSIONS & versions
