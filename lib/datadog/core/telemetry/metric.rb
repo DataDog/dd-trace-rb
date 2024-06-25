@@ -3,10 +3,10 @@
 module Datadog
   module Core
     module Telemetry
-      # Telemetry metrics data model
+      # Telemetry metrics data model (internal Datadog metrics for client libraries)
       module Metric
         def self.metric_id(type, name, tags = [])
-          "#{type}:#{name}:#{tags.join(',')}"
+          "#{type}::#{name}::#{tags.join(',')}"
         end
 
         # Base class for all metric types
@@ -102,7 +102,7 @@ module Datadog
           def initialize(name, tags: {}, common: true, interval: nil)
             super
 
-            @value = 0
+            @value = 0.0
           end
 
           def type
@@ -112,7 +112,7 @@ module Datadog
           def track(value = 1.0)
             @value += value
 
-            rate = interval ? @value.to_f / interval : 0.0
+            rate = interval ? @value / interval : 0.0
             @values = [[Time.now.to_i, rate]]
           end
         end
