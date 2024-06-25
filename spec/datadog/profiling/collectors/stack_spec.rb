@@ -60,14 +60,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when marking sample as being in garbage collection' do
       let(:in_gc) { true }
 
-      it 'includes a placeholder frame for garbage collection' do
-        expect(stacks.fetch(:gathered)[0]).to have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0)
-      end
-
-      it 'matches the Ruby backtrace API' do
-        # We skip 4 frames here -- the garbage collection placeholder, as well as the 3 top stacks that differ from the
-        # reference stack (see the `let(:gathered_stack)` above for details)
-        expect(stacks.fetch(:gathered)[4..-1]).to eq reference_stack
+      it 'gathers a one-element stack with a "Garbage Collection" placeholder' do
+        expect(stacks.fetch(:gathered)).to contain_exactly(have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0))
       end
     end
   end
@@ -369,7 +363,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       context 'when sampling a thread blocked on Monitor#synchronize' do
         let(:expected_method_name) do
           # On older Rubies Monitor is implemented using Mutex instead of natively
-          if RUBY_VERSION.start_with?('2.3', '2.4', '2.5', '2.6')
+          if RUBY_VERSION.start_with?('2.5', '2.6')
             'lock'
           else
             'synchronize'
@@ -491,38 +485,6 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         expect(gathered_stack).to eq reference_stack
       end
     end
-
-    context 'when marking sample as being in garbage collection' do
-      let(:in_gc) { true }
-
-      it 'gathers exactly max_frames frames' do
-        expect(gathered_stack.size).to be max_frames
-      end
-
-      it 'matches the Ruby backtrace API, up to max_frames - 2' do
-        garbage_collection = 1
-        expect(gathered_stack[(0 + garbage_collection)...(max_frames - 1)]).to eq reference_stack[0...(max_frames - 1 - garbage_collection)]
-      end
-
-      it 'includes two placeholder frames: one for garbage collection and another for including the number of skipped frames' do
-        garbage_collection = 1
-        placeholder = 1
-        omitted_frames = target_stack_depth - max_frames + placeholder + garbage_collection
-
-        expect(omitted_frames).to be 97
-        expect(gathered_stack.last).to have_attributes(base_label: '', path: '97 frames omitted', lineno: 0)
-        expect(gathered_stack.first).to have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0)
-      end
-
-      context 'when stack is exactly one item less as deep as the configured max_frames' do
-        let(:target_stack_depth) { 4 }
-
-        it 'includes a placeholder frame for garbage collection and matches the Ruby backtrace API' do
-          garbage_collection = 1
-          expect(gathered_stack[(0 + garbage_collection)..-1]).to eq reference_stack
-        end
-      end
-    end
   end
 
   context 'when sampling a dead thread' do
@@ -600,11 +562,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     context 'when marking sample as being in garbage collection' do
       let(:in_gc) { true }
 
-      it 'gathers a two-element stack with a placeholder for "In native code" and another for garbage collection' do
-        expect(gathered_stack).to contain_exactly(
-          have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0),
-          have_attributes(base_label: '', path: 'In native code', lineno: 0),
-        )
+      it 'gathers a one-element stack with a "Garbage Collection" placeholder' do
+        expect(stacks.fetch(:gathered)).to contain_exactly(have_attributes(base_label: '', path: 'Garbage Collection', lineno: 0))
       end
     end
   end

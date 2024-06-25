@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'rack/test'
 require 'securerandom'
 require 'rack'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
 require_relative '../support/http'
 
@@ -10,19 +10,25 @@ RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
+  let(:remote_enabled) { false }
 
   before do
-    Datadog.configure do |c|
-      c.tracing.instrument :rack, rack_options
+    unless remote_enabled
+      Datadog.configure do |c|
+        c.remote.enabled = false
+        c.tracing.instrument :rack, rack_options
+      end
     end
   end
 
-  after { Datadog.registry[:rack].reset_configuration! }
+  after do
+    Datadog.registry[:rack].reset_configuration!
+  end
 
   shared_examples 'a rack GET 200 span' do
     it do
       expect(span.name).to eq('rack.request')
-      expect(span.span_type).to eq('web')
+      expect(span.type).to eq('web')
       expect(span.service).to eq(tracer.default_service)
       expect(span.resource).to eq('GET 200')
       expect(span.get_tag('http.method')).to eq('GET')
@@ -42,6 +48,286 @@ RSpec.describe 'Rack integration tests' do
         use Datadog::Tracing::Contrib::Rack::TraceMiddleware
         instance_eval(&app_routes)
       end.to_app
+    end
+
+    context 'with remote configuration' do
+      before do
+        if remote_enabled
+          allow(Datadog::Core::Remote::Transport::HTTP).to receive(:v7).and_return(transport_v7)
+          allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
+          allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
+
+          allow(client).to receive(:id).and_return(remote_client_id)
+          allow(worker).to receive(:start).and_call_original
+          allow(worker).to receive(:stop).and_call_original
+
+          Datadog.configure do |c|
+            c.remote.enabled = remote_enabled
+            c.remote.boot_timeout_seconds = remote_boot_timeout
+            c.remote.poll_interval_seconds = remote_poll_interval_seconds
+            c.tracing.instrument :rack, rack_options
+          end
+        end
+      end
+
+      let(:routes) do
+        proc do
+          map '/success/' do
+            run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          end
+        end
+      end
+
+      let(:remote_boot_timeout) { 1.0 }
+      let(:remote_poll_interval_seconds) { 100.0 }
+      let(:remote_client_id) { SecureRandom.uuid }
+
+      let(:response) { get route }
+
+      context 'disabled' do
+        let(:remote_enabled) { false }
+        let(:route) { '/success/' }
+
+        it 'has no remote configuration tags' do
+          expect(response).to be_ok
+          expect(spans).to have(1).items
+          expect(span).to_not have_tag('_dd.rc.boot.time')
+          expect(span).to_not have_tag('_dd.rc.boot.ready')
+          expect(span).to_not have_tag('_dd.rc.boot.timeout')
+          expect(span).to_not have_tag('_dd.rc.client_id')
+          expect(span).to_not have_tag('_dd.rc.status')
+          expect(span).to be_root_span
+        end
+      end
+
+      context 'enabled' do
+        let(:remote_enabled) { true }
+        let(:remote_boot_timeout) { 1.0 }
+        let(:route) { '/success/' }
+
+        let(:component) { Datadog::Core::Remote.active_remote }
+        let(:worker) { component.instance_eval { @worker } }
+        let(:client) { double('Client') }
+        let(:transport_v7) { double('Transport') }
+        let(:negotiation) { double('Negotiation') }
+
+        context 'and responding' do
+          before do
+            allow(negotiation).to receive(:endpoint?).and_return(true)
+            allow(worker).to receive(:call).and_call_original
+            allow(client).to receive(:sync).and_invoke(remote_client_sync)
+
+            # force evaluation to prevent locking from concurrent thread
+            remote_client_sync_delay
+          end
+
+          let(:remote_client_sync) do
+            lambda do
+              sleep(remote_client_sync_delay) unless remote_client_sync_delay.nil?
+
+              nil
+            end
+          end
+
+          context 'faster than timeout' do
+            let(:remote_client_sync_delay) { 0.1 }
+
+            it 'has boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.boot.time')
+              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+              expect(span).to have_tag('_dd.rc.boot.ready')
+              expect(span.get_tag('_dd.rc.boot.ready')).to eq 'true'
+              expect(span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.client_id')
+              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(span).to have_tag('_dd.rc.status')
+              expect(span.get_tag('_dd.rc.status')).to eq 'ready'
+            end
+
+            context 'on second request' do
+              let(:remote_client_sync_delay) { remote_boot_timeout }
+
+              let(:response) do
+                get route
+                sleep(2 * remote_client_sync_delay)
+                get route
+              end
+
+              let(:last_span) { spans.last }
+
+              it 'does not have boot tags' do
+                expect(response).to be_ok
+                expect(spans).to have(2).items
+                expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                expect(last_span).to be_root_span
+              end
+
+              it 'has remote configuration tags' do
+                expect(response).to be_ok
+                expect(spans).to have(2).items
+                expect(last_span).to have_tag('_dd.rc.client_id')
+                expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                expect(last_span).to have_tag('_dd.rc.status')
+                expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+              end
+            end
+          end
+
+          context 'and responding slower than timeout' do
+            let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
+
+            it 'has boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.boot.time')
+              expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+              expect(span).to have_tag('_dd.rc.boot.timeout')
+              expect(span.get_tag('_dd.rc.boot.timeout')).to eq 'true'
+              expect(span).to_not have_tag('_dd.rc.boot.ready')
+              expect(span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(1).items
+              expect(span).to have_tag('_dd.rc.client_id')
+              expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(span).to have_tag('_dd.rc.status')
+              expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            end
+
+            context 'on second request' do
+              context 'before sync' do
+                let(:response) do
+                  get route
+                  get route
+                end
+
+                let(:last_span) { spans.last }
+
+                it 'does not have boot tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to be_root_span
+                end
+
+                it 'has remote configuration tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to have_tag('_dd.rc.client_id')
+                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                  expect(last_span).to have_tag('_dd.rc.status')
+                  expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+                end
+              end
+
+              context 'after sync' do
+                let(:remote_client_sync_delay) { 2 * remote_boot_timeout }
+
+                let(:response) do
+                  get route
+                  sleep(2 * remote_client_sync_delay)
+                  get route
+                end
+
+                let(:last_span) { spans.last }
+
+                it 'does not have boot tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to_not have_tag('_dd.rc.boot.time')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+                  expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+                  expect(last_span).to be_root_span
+                end
+
+                it 'has remote configuration tags' do
+                  expect(response).to be_ok
+                  expect(spans).to have(2).items
+                  expect(last_span).to have_tag('_dd.rc.client_id')
+                  expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+                  expect(last_span).to have_tag('_dd.rc.status')
+                  expect(last_span.get_tag('_dd.rc.status')).to eq 'ready'
+                end
+              end
+            end
+          end
+        end
+
+        context 'not responding' do
+          let(:exception) { Class.new(StandardError) }
+
+          before do
+            allow(negotiation).to receive(:endpoint?).and_return(true)
+            allow(worker).to receive(:call).and_call_original
+            allow(client).to receive(:sync).and_raise(exception, 'test')
+            allow(Datadog.logger).to receive(:error).and_return(nil)
+          end
+
+          it 'has boot tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.boot.time')
+            expect(span.get_tag('_dd.rc.boot.time')).to be_a Float
+            expect(span).to_not have_tag('_dd.rc.boot.timeout')
+            expect(span).to have_tag('_dd.rc.boot.ready')
+            expect(span.get_tag('_dd.rc.boot.ready')).to eq 'false'
+            expect(span).to be_root_span
+          end
+
+          it 'has remote configuration tags' do
+            expect(response).to be_ok
+            expect(spans).to have(1).items
+            expect(span).to have_tag('_dd.rc.client_id')
+            expect(span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+            expect(span).to have_tag('_dd.rc.status')
+            expect(span.get_tag('_dd.rc.status')).to eq 'disconnected'
+          end
+
+          context 'on second request' do
+            let(:remote_client_sync_delay) { remote_boot_timeout }
+
+            let(:response) do
+              get route
+              sleep(2 * remote_client_sync_delay)
+              get route
+            end
+
+            let(:last_span) { spans.last }
+
+            it 'does not have boot tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to_not have_tag('_dd.rc.boot.time')
+              expect(last_span).to_not have_tag('_dd.rc.boot.ready')
+              expect(last_span).to_not have_tag('_dd.rc.boot.timeout')
+              expect(last_span).to be_root_span
+            end
+
+            it 'has remote configuration tags' do
+              expect(response).to be_ok
+              expect(spans).to have(2).items
+              expect(last_span).to have_tag('_dd.rc.client_id')
+              expect(last_span.get_tag('_dd.rc.client_id')).to eq remote_client_id
+              expect(last_span).to have_tag('_dd.rc.status')
+              expect(last_span.get_tag('_dd.rc.status')).to eq 'disconnected'
+            end
+          end
+        end
+      end
     end
 
     context 'with no routes' do
@@ -64,7 +350,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 404')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -275,7 +561,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('POST 200')
             expect(span.get_tag('http.method')).to eq('POST')
@@ -304,46 +590,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      describe 'when request queueing includes the request time' do
-        let(:rack_options) { { request_queuing: :include_request } }
-
-        it 'creates web_server_span and rack span' do
-          get 'request_queuing_enabled',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('GET 200')
-
-          expect(spans).to have(2).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('GET 200')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-        end
-      end
-
-      describe 'when request queueing excludes the request time' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      describe 'when request queueing enabled' do
+        let(:rack_options) { { request_queuing: true } }
 
         it 'creates web_server_span and rack span' do
           get 'request_queuing_enabled',
@@ -360,7 +608,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -369,7 +617,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -379,7 +627,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('GET 200')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -411,7 +659,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 400')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -449,7 +697,7 @@ RSpec.describe 'Rack integration tests' do
 
         it do
           expect(span.name).to eq('rack.request')
-          expect(span.span_type).to eq('web')
+          expect(span.type).to eq('web')
           expect(span.service).to eq(Datadog.configuration.service)
           expect(span.resource).to eq('GET 500')
           expect(span.get_tag('http.method')).to eq('GET')
@@ -489,7 +737,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -530,7 +778,7 @@ RSpec.describe 'Rack integration tests' do
 
           it do
             expect(span.name).to eq('rack.request')
-            expect(span.span_type).to eq('web')
+            expect(span.type).to eq('web')
             expect(span.service).to eq(Datadog.configuration.service)
             expect(span.resource).to eq('GET')
             expect(span.get_tag('http.method')).to eq('GET')
@@ -590,7 +838,7 @@ RSpec.describe 'Rack integration tests' do
               expect(trace.resource).to eq('GET /app/')
 
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET /app/')
               expect(span.get_tag('http.method')).to eq('GET_V2')
@@ -610,65 +858,8 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      context 'when `request_queuing` enabled with `:include_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :include_request } }
-        let(:routes) do
-          proc do
-            map '/resource_override' do
-              run(
-                proc do |_env|
-                  Datadog::Tracing.trace('nested_app', resource: 'UserController#show') do |span_op, trace_op|
-                    trace_op.resource = span_op.resource
-
-                    [200, { 'Content-Type' => 'text/html' }, ['OK']]
-                  end
-                end
-              )
-            end
-          end
-        end
-
-        it 'creates a web_server span and rack span with resource overriden' do
-          get '/resource_override',
-            nil,
-            { Datadog::Tracing::Contrib::Rack::QueueTime::REQUEST_START => "t=#{Time.now.to_f}" }
-
-          expect(trace.resource).to eq('UserController#show')
-
-          expect(spans).to have(3).items
-
-          server_queue_span = spans[0]
-          rack_span = spans[2]
-          nested_app_span = spans[1]
-
-          expect(server_queue_span).to be_root_span
-          expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_SERVER_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
-          expect(server_queue_span.service).to eq('web-server')
-          expect(server_queue_span.resource).to eq('http_server.queue')
-          expect(server_queue_span.get_tag('component')).to eq('rack')
-          expect(server_queue_span.get_tag('operation')).to eq('queue')
-          expect(server_queue_span.status).to eq(0)
-          expect(server_queue_span.get_tag('span.kind')).to eq('server')
-
-          expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
-          expect(rack_span.service).to eq(tracer.default_service)
-          expect(rack_span.resource).to eq('UserController#show')
-          expect(rack_span.get_tag('http.method')).to eq('GET')
-          expect(rack_span.get_tag('http.status_code')).to eq('200')
-          expect(rack_span.status).to eq(0)
-          expect(rack_span.get_tag('component')).to eq('rack')
-          expect(rack_span.get_tag('operation')).to eq('request')
-          expect(rack_span.get_tag('span.kind')).to eq('server')
-
-          expect(nested_app_span.name).to eq('nested_app')
-          expect(nested_app_span.resource).to eq('UserController#show')
-        end
-      end
-
-      context 'when `request_queuing` enabled with `:exclude_request` and trace resource overwritten by nested app' do
-        let(:rack_options) { { request_queuing: :exclude_request } }
+      context 'when `request_queuing` enabled and trace resource overwritten by nested app' do
+        let(:rack_options) { { request_queuing: true } }
         let(:routes) do
           proc do
             map '/resource_override' do
@@ -701,7 +892,7 @@ RSpec.describe 'Rack integration tests' do
 
           expect(server_request_span).to be_root_span
           expect(server_request_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_REQUEST)
-          expect(server_request_span.span_type).to eq('proxy')
+          expect(server_request_span.type).to eq('proxy')
           expect(server_request_span.service).to eq('web-server')
           expect(server_request_span.resource).to eq('http.proxy.request')
           expect(server_request_span.get_tag('component')).to eq('http_proxy')
@@ -710,7 +901,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_request_span.get_tag('span.kind')).to eq('proxy')
 
           expect(server_queue_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_HTTP_PROXY_QUEUE)
-          expect(server_queue_span.span_type).to eq('proxy')
+          expect(server_queue_span.type).to eq('proxy')
           expect(server_queue_span.service).to eq('web-server')
           expect(server_queue_span.resource).to eq('http.proxy.queue')
           expect(server_queue_span.get_tag('component')).to eq('http_proxy')
@@ -720,7 +911,7 @@ RSpec.describe 'Rack integration tests' do
           expect(server_queue_span).to be_measured
 
           expect(rack_span.name).to eq(Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST)
-          expect(rack_span.span_type).to eq('web')
+          expect(rack_span.type).to eq('web')
           expect(rack_span.service).to eq(tracer.default_service)
           expect(rack_span.resource).to eq('UserController#show')
           expect(rack_span.get_tag('http.method')).to eq('GET')
@@ -765,7 +956,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -808,7 +999,7 @@ RSpec.describe 'Rack integration tests' do
 
             it do
               expect(span.name).to eq('rack.request')
-              expect(span.span_type).to eq('web')
+              expect(span.type).to eq('web')
               expect(span.service).to eq(Datadog.configuration.service)
               expect(span.resource).to eq('GET 500')
               expect(span.get_tag('http.method')).to eq('GET')
@@ -1064,7 +1255,7 @@ RSpec.describe 'Rack integration tests' do
 
         expect(span).to be_root_span
         expect(span.name).to eq('rack.request')
-        expect(span.span_type).to eq('web')
+        expect(span.type).to eq('web')
         expect(span.service).to eq(tracer.default_service)
         expect(span.resource).to eq('POST 200')
         expect(span.get_tag('http.method')).to eq('POST')

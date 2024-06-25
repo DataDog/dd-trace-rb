@@ -12,8 +12,6 @@ threads max_threads_count, min_threads_count
 
 preload_app!
 
-rackup DefaultRackup
-
 port ENV.fetch("PORT") { 80 }
 
 environment ENV.fetch("HANAMI_ENV") { "development" }

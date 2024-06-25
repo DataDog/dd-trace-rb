@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/core/workers/runtime_metrics'
 
 RSpec.describe Datadog::Core::Workers::RuntimeMetrics do

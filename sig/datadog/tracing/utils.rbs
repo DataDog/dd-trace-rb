@@ -10,6 +10,9 @@ module Datadog
       def self.id_rng: () -> untyped
 
       def self.reset!: () -> untyped
+
+      def self.serialize_attribute: (untyped key, untyped value) -> (untyped | ::Array[::Array[untyped]])
+
       module TraceId
         MAX: untyped
         def self?.next_id: () -> untyped

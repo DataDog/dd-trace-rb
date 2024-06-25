@@ -1,9 +1,3 @@
-appraise 'hanami-1' do
-  gem 'rack'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-  gem 'hanami', '~> 1'
-end
-
 appraise 'rails5-mysql2' do
   gem 'rails', '~> 5.2.1'
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
@@ -170,6 +164,11 @@ end
 appraise 'aws' do
   gem 'aws-sdk'
   gem 'shoryuken'
+
+  # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
+  # `rexml` 3.2.7+ breaks because of strscan incompatibility
+  # `strsan` 3.1.0 does not fix the issue and raise TypeError when StringScanner#scan is given a string instead of Regexp
+  gem 'rexml', '= 3.2.6'
 end
 
 appraise 'http' do
@@ -229,7 +228,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'graphql', '>= 2.0'
   gem 'i18n', '1.8.7', platform: :jruby # Removal pending: https://github.com/ruby-i18n/i18n/issues/555#issuecomment-772112169
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
@@ -244,6 +242,14 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 
+[
+  '2.0',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
+end
+
 [1, 2, 3].each do |n|
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
@@ -252,14 +258,12 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
+[2].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 [3, 4, 5].each do |n|
@@ -271,7 +275,6 @@ end
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'faraday', '0.17'
-  gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
   gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby

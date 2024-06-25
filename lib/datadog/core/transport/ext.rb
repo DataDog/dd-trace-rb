@@ -1,18 +1,12 @@
 # frozen_string_literal: true
 
 require_relative '../configuration/ext'
-# DEV(2.0): This file should replace /ddtrace/transport/ext.rb
-# WARN: This file is used in /dd trace/transport/ext.rb which is a public API. Any changes here
-# should be treated as changes to a public API.
 module Datadog
   module Core
     module Transport
+      # @public_api
       module Ext
         module HTTP
-          ADAPTER = Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          DEFAULT_HOST = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_HOST
-          DEFAULT_PORT = Datadog::Core::Configuration::Ext::Agent::HTTP::DEFAULT_PORT
-
           HEADER_CONTAINER_ID = 'Datadog-Container-ID'
           HEADER_DD_API_KEY = 'DD-API-KEY'
           # Tells agent that `_dd.top_level` metrics have been set by the tracer.
@@ -25,6 +19,8 @@ module Datadog
           HEADER_META_LANG = 'Datadog-Meta-Lang'
           HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'
           HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'
+          # Use for distinguishing between CRuby, JRuby, and TruffleRuby.
+          HEADER_META_LANG_INTERPRETER_VENDOR = 'Datadog-Meta-Lang-Interpreter-Vendor'
           HEADER_META_TRACER_VERSION = 'Datadog-Meta-Tracer-Version'
 
           # Header that prevents the Net::HTTP integration from tracing internal trace requests.

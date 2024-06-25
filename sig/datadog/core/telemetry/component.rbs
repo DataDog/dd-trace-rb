@@ -1,0 +1,27 @@
+module Datadog
+  module Core
+    module Telemetry
+      class Component
+        @enabled: bool
+        @stopped: bool
+        @worker: Datadog::Core::Telemetry::Worker
+
+        attr_reader enabled: bool
+
+        include Core::Utils::Forking
+
+        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, ?enabled: bool) -> void
+
+        def disable!: () -> void
+
+        def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
+
+        def emit_closing!: () -> void
+
+        def stop!: () -> void
+
+        def integrations_change!: () -> void
+      end
+    end
+  end
+end

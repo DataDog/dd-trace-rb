@@ -16,22 +16,23 @@ module Datadog
         )
           unless setter == ::OpenTelemetry::Context::Propagation.text_map_setter
             Datadog.logger.error(
-              'Custom setter is not supported. Please inform the `ddtrace` team at ' \
+              'Custom setter is not supported. Please inform the `datadog` team at ' \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
             'OpenTelemetry::Context::Propagation.text_map_setter as a fallback setter.'
             )
           end
 
-          @datadog_propagator.inject!(context.trace.to_digest, carrier)
+          @datadog_propagator.inject(context.trace.to_digest, carrier)
         end
 
         def extract(
           carrier, context: ::OpenTelemetry::Context.current,
           getter: ::OpenTelemetry::Context::Propagation.text_map_getter
         )
-          unless getter == ::OpenTelemetry::Context::Propagation.text_map_getter
+          if getter != ::OpenTelemetry::Context::Propagation.text_map_getter &&
+              getter != ::OpenTelemetry::Common::Propagation.rack_env_getter
             Datadog.logger.error(
-              'Custom getter is not supported. Please inform the `ddtrace` team at ' \
+              "Custom getter #{getter} is not supported. Please inform the `datadog` team at " \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
             'OpenTelemetry::Context::Propagation.text_map_getter as a fallback getter.'
             )
@@ -40,8 +41,11 @@ module Datadog
           digest = @datadog_propagator.extract(carrier)
           return context unless digest
 
-          trace_id = to_otel_id(digest.trace_id)
-          span_id = to_otel_id(digest.span_id)
+          # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
+          # 128-bit unsigned, big-endian integer
+          trace_id = [digest.trace_id >> 64, digest.trace_id & 0xFFFFFFFFFFFFFFFF].pack('Q>Q>')
+          # 64-bit unsigned, big-endian integer
+          span_id = [digest.span_id].pack('Q>')
 
           if digest.trace_state || digest.trace_flags
             trace_flags = ::OpenTelemetry::Trace::TraceFlags.from_byte(digest.trace_flags)
@@ -76,14 +80,6 @@ module Datadog
         # DEV: Doesn't seem like it's used in production Otel code paths.
         def fields
           []
-        end
-
-        private
-
-        # Converts the {Numeric} Datadog id object to OpenTelemetry's byte array format.
-        # This method currently converts an unsigned 64-bit Integer to a binary String.
-        def to_otel_id(dd_id)
-          Array(dd_id).pack('Q')
         end
       end
     end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../tracing/configuration/ext'
 require_relative '../../core/environment/variable_helpers'
 require_relative 'http'
@@ -9,9 +11,10 @@ module Datadog
       # @public_api
       # rubocop:disable Metrics/AbcSize
       # rubocop:disable Metrics/BlockLength
-      # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/MethodLength
       # rubocop:disable Layout/LineLength
+      # rubocop:disable Metrics/CyclomaticComplexity
+      # rubocop:disable Metrics/PerceivedComplexity
       module Settings
         def self.extended(base)
           base.class_eval do
@@ -23,140 +26,101 @@ module Datadog
               # @configure_with {Datadog::Tracing}
               # @deprecated Use [Trace Retention and Ingestion](https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/)
               #   controls.
-              # @public_api
+              # @!visibility private
               settings :analytics do
                 # @default `DD_TRACE_ANALYTICS_ENABLED` environment variable, otherwise `nil`
                 # @return [Boolean,nil]
+                # @!visibility private
                 option :enabled do |o|
                   o.type :bool, nilable: true
                   o.env Tracing::Configuration::Ext::Analytics::ENV_TRACE_ANALYTICS_ENABLED
                 end
               end
 
-              # [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing) propagation
-              # style configuration.
+              # An ordered, case-insensitive list of what data propagation styles the tracer will use to extract distributed tracing propagation
+              # data from incoming requests and messages.
               #
-              # The supported formats are:
-              # * `Datadog`: Datadog propagation format, described by [Distributed Tracing](https://docs.datadoghq.com/tracing/setup_overview/setup/ruby/#distributed-tracing).
-              # * `b3multi`: B3 Propagation using multiple headers, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#multiple-headers).
-              # * `b3`: B3 Propagation using a single header, described by [openzipkin/b3-propagation](https://github.com/openzipkin/b3-propagation#single-header).
+              # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
+              # The first format to have valid data present will be used.
               #
-              # @public_api
-              settings :distributed_tracing do
-                # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
-                # data from incoming requests and messages.
-                #
-                # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
-                # The first format to have valid data present will be used.
-                #
-                # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
-                #   otherwise `['Datadog','b3multi','b3']`.
-                # @return [Array<String>]
-                option :propagation_extract_style do |o|
-                  o.type :array
-                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT_OLD
-                  o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
-                  # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                  # Look for all headers by default
-                  o.default(
-                    [
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER,
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER,
-                      Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-                    ]
-                  )
-                  o.after_set do |styles|
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
-                    end
-                  end
-                end
-
-                # The data propagation styles the tracer will use to inject distributed tracing propagation
-                # data into outgoing requests and messages.
-                #
-                # The tracer will inject data from all styles specified in this option.
-                #
-                # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['Datadog']`.
-                # @return [Array<String>]
-                option :propagation_inject_style do |o|
-                  o.type :array
-                  o.deprecated_env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT_OLD
-                  o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
-                  # DEV-2.0: Change default value to `tracecontext, Datadog`.
-                  o.default [
+              # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
+              #   otherwise `['datadog','b3multi','b3']`.
+              # @return [Array<String>]
+              option :propagation_style_extract do |o|
+                o.type :array
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_EXTRACT
+                o.default(
+                  [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
                   ]
-                  o.after_set do |styles|
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
+                )
+                o.after_set do |styles|
+                  # Make values case-insensitive
+                  styles.map!(&:downcase)
+                end
+              end
+
+              # The case-insensitive list of the data propagation styles the tracer will use to inject distributed tracing propagation
+              # data into outgoing requests and messages.
+              #
+              # The tracer will inject data from all styles specified in this option.
+              #
+              # @default `DD_TRACE_PROPAGATION_STYLE_INJECT` environment variable (comma-separated list), otherwise `['datadog','tracecontext']`.
+              # @return [Array<String>]
+              option :propagation_style_inject do |o|
+                o.type :array
+                o.env Tracing::Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE_INJECT
+                o.default [
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                ]
+                o.after_set do |styles|
+                  # Make values case-insensitive
+                  styles.map!(&:downcase)
+                end
+              end
+
+              # An ordered, case-insensitive list of what data propagation styles the tracer will use to extract distributed tracing propagation
+              # data from incoming requests and inject into outgoing requests.
+              #
+              # This configuration is the equivalent of configuring both {propagation_style_extract}
+              # {propagation_style_inject} to value set to {propagation_style}.
+              #
+              # @default `DD_TRACE_PROPAGATION_STYLE` environment variable (comma-separated list).
+              # @return [Array<String>]
+              option :propagation_style do |o|
+                o.type :array
+                o.env [Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE, Configuration::Ext::Distributed::ENV_OTEL_PROPAGATION_STYLE]
+                o.default []
+                o.after_set do |styles|
+                  next if styles.empty?
+
+                  # Make values case-insensitive
+                  styles.map!(&:downcase)
+
+                  styles.select! do |s|
+                    if Configuration::Ext::Distributed::PROPAGATION_STYLE_SUPPORTED.include?(s)
+                      true
+                    else
+                      Datadog.logger.warn("Unsupported propagation style: #{s}")
+                      false
                     end
                   end
+                  set_option(:propagation_style_extract, styles)
+                  set_option(:propagation_style_inject, styles)
                 end
+              end
 
-                # An ordered list of what data propagation styles the tracer will use to extract distributed tracing propagation
-                # data from incoming requests and inject into outgoing requests.
-                #
-                # This configuration is the equivalent of configuring both {propagation_extract_style}
-                # {propagation_inject_style} to value set to {propagation_style}.
-                #
-                # @default `DD_TRACE_PROPAGATION_STYLE` environment variable (comma-separated list).
-                # @return [Array<String>]
-                option :propagation_style do |o|
-                  o.type :array
-                  o.env Configuration::Ext::Distributed::ENV_PROPAGATION_STYLE
-                  o.default []
-                  o.after_set do |styles|
-                    next if styles.empty?
-
-                    # Modernize B3 options
-                    # DEV-2.0: Can be removed with the removal of deprecated B3 constants.
-                    styles.map! do |style|
-                      case style
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER
-                      when Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER_OLD
-                        Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER
-                      else
-                        style
-                      end
-                    end
-
-                    set_option(:propagation_extract_style, styles)
-                    set_option(:propagation_inject_style, styles)
-                  end
-                end
-
-                # Strictly stop at the first successfully serialized style.
-                # This prevents the tracer from enriching the extracted context with information from
-                # other valid propagations styles present in the request.
-                # @default `DD_TRACE_PROPAGATION_EXTRACT_FIRST` environment variable, otherwise `false`.
-                # @return [Boolean]
-                option :propagation_extract_first do |o|
-                  o.env Tracing::Configuration::Ext::Distributed::EXTRACT_FIRST
-                  o.default false
-                  o.type :bool
-                end
+              # Strictly stop at the first successfully serialized style.
+              # This prevents the tracer from enriching the extracted context with information from
+              # other valid propagations styles present in the request.
+              # @default `DD_TRACE_PROPAGATION_EXTRACT_FIRST` environment variable, otherwise `false`.
+              # @return [Boolean]
+              option :propagation_extract_first do |o|
+                o.env Tracing::Configuration::Ext::Distributed::EXTRACT_FIRST
+                o.default false
+                o.type :bool
               end
 
               # Enable trace collection and span generation.
@@ -167,9 +131,23 @@ module Datadog
               # @default `DD_TRACE_ENABLED` environment variable, otherwise `true`
               # @return [Boolean]
               option :enabled do |o|
-                o.env Tracing::Configuration::Ext::ENV_ENABLED
+                o.env [Tracing::Configuration::Ext::ENV_ENABLED, Tracing::Configuration::Ext::ENV_OTEL_TRACES_EXPORTER]
                 o.default true
                 o.type :bool
+                o.env_parser do |value|
+                  value = value&.downcase
+                  # Tracing is disabled when OTEL_TRACES_EXPORTER is none or
+                  # DD_TRACE_ENABLED is 0 or false.
+                  if ['none', 'false', '0'].include?(value)
+                    false
+                  # Tracing is enabled when DD_TRACE_ENABLED is true or 1
+                  elsif ['true', '1'].include?(value)
+                    true
+                  else
+                    Datadog.logger.warn("Unsupported value for exporting datadog traces: #{value}. Traces will be sent to Datadog.")
+                    nil
+                  end
+                end
               end
 
               # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
@@ -265,12 +243,6 @@ module Datadog
                 option :min_spans_threshold, default: 500, type: :int
               end
 
-              # Enables {https://docs.datadoghq.com/tracing/trace_retention_and_ingestion/#datadog-intelligent-retention-filter
-              # Datadog intelligent retention filter}.
-              # @default `true`
-              # @return [Boolean,nil]
-              option :priority_sampling
-
               option :report_hostname do |o|
                 o.env Tracing::Configuration::Ext::NET::ENV_REPORT_HOSTNAME
                 o.default false
@@ -297,7 +269,30 @@ module Datadog
                 # @return [Float, nil]
                 option :default_rate do |o|
                   o.type :float, nilable: true
-                  o.env Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE
+                  o.env [Tracing::Configuration::Ext::Sampling::ENV_SAMPLE_RATE, Tracing::Configuration::Ext::Sampling::ENV_OTEL_TRACES_SAMPLER]
+                  o.env_parser do |value|
+                    # Parse the value as a float
+                    next if value.nil?
+
+                    value = value&.downcase
+                    if ['always_on', 'always_off', 'traceidratio'].include?(value)
+                      Datadog.logger.warn("The value '#{value}' is not yet supported. 'parentbased_#{value}' will be used instead.")
+                      value = "parentbased_#{value}"
+                    end
+                    # OTEL_TRACES_SAMPLER can be set to always_on, always_off, traceidratio, and/or parentbased value.
+                    # These values are mapped to a sample rate.
+                    # DD_TRACE_SAMPLE_RATE sets the sample rate to float.
+                    case value
+                    when 'parentbased_always_on'
+                      1.0
+                    when 'parentbased_always_off'
+                      0.0
+                    when 'parentbased_traceidratio'
+                      ENV.fetch(Tracing::Configuration::Ext::Sampling::OTEL_TRACES_SAMPLER_ARG, 1.0).to_f
+                    else
+                      value.to_f
+                    end
+                  end
                 end
 
                 # Rate limit for number of spans per second.
@@ -326,6 +321,7 @@ module Datadog
                 # @return [String,nil]
                 # @public_api
                 option :rules do |o|
+                  o.type :string, nilable: true
                   o.default { ENV.fetch(Configuration::Ext::Sampling::ENV_RULES, nil) }
                 end
 
@@ -401,17 +397,6 @@ module Datadog
                 end
               end
 
-              # @see file:docs/GettingStarted.md#configuring-the-transport-layer Configuring the transport layer
-              #
-              # A {Proc} that configures a custom tracer transport.
-              # @yield Receives a {Datadog::Tracing::Transport::HTTP} that can be modified with custom adapters and settings.
-              # @yieldparam [Datadog::Tracing::Transport::HTTP] t transport to be configured.
-              # @default `nil`
-              # @return [Proc,nil]
-              option :transport_options do |o|
-                o.type :proc, nilable: true
-                o.default nil
-              end
               # A custom writer instance.
               # The object must respect the {Datadog::Tracing::Writer} interface.
               #
@@ -438,30 +423,14 @@ module Datadog
                 # Whether client IP collection is enabled. When enabled client IPs from HTTP requests will
                 #   be reported in traces.
                 #
-                # Usage of the DD_TRACE_CLIENT_IP_HEADER_DISABLED environment variable is deprecated.
-                #
                 # @see https://docs.datadoghq.com/tracing/configure_data_security#configuring-a-client-ip-header
                 #
                 # @default `DD_TRACE_CLIENT_IP_ENABLED` environment variable, otherwise `false`.
                 # @return [Boolean]
                 option :enabled do |o|
                   o.type :bool
-                  o.default do
-                    disabled = Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_DISABLED)
-
-                    enabled = if disabled.nil?
-                                false
-                              else
-                                Datadog::Core.log_deprecation do
-                                  "#{Tracing::Configuration::Ext::ClientIp::ENV_DISABLED} environment variable is deprecated, use #{Tracing::Configuration::Ext::ClientIp::ENV_ENABLED} instead."
-                                end
-
-                                !disabled
-                              end
-
-                    # ENABLED env var takes precedence over deprecated DISABLED
-                    Core::Environment::VariableHelpers.env_to_bool(Tracing::Configuration::Ext::ClientIp::ENV_ENABLED, enabled)
-                  end
+                  o.env Tracing::Configuration::Ext::ClientIp::ENV_ENABLED
+                  o.default false
                 end
 
                 # An optional name of a custom header to resolve the client IP from.
@@ -493,9 +462,10 @@ module Datadog
       end
       # rubocop:enable Metrics/AbcSize
       # rubocop:enable Metrics/BlockLength
-      # rubocop:enable Metrics/CyclomaticComplexity
       # rubocop:enable Metrics/MethodLength
       # rubocop:enable Layout/LineLength
+      # rubocop:enable Metrics/CyclomaticComplexity
+      # rubocop:enable Metrics/PerceivedComplexity
     end
   end
 end

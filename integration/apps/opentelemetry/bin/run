@@ -3,7 +3,7 @@
 # Start application process
 puts "\n== Starting application process =="
 
-profiling = Datadog::DemoEnv.feature?('profiling') ? 'DD_PROFILING_ENABLED=true ddtracerb exec ' : ''
+profiling = Datadog::DemoEnv.feature?('profiling') ? 'DD_PROFILING_ENABLED=true ddprofrb exec ' : ''
 process = (ARGV[0] || Datadog::DemoEnv.process)
 command = case process
           when 'main'

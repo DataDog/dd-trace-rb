@@ -3,6 +3,7 @@
 require 'spec_helper'
 
 require 'datadog/core/environment/execution'
+require 'open3'
 
 RSpec.describe Datadog::Core::Environment::Execution do
   around do |example|
@@ -42,7 +43,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       let!(:repl_script) do
         lib = File.expand_path('lib')
         <<-RUBY
-          # Load the working directory version of `ddtrace`
+          # Load the working directory version of `datadog`
           $LOAD_PATH.unshift("#{lib}") unless $LOAD_PATH.include?("#{lib}")
           require 'datadog/core/environment/execution'
 
@@ -87,6 +88,14 @@ RSpec.describe Datadog::Core::Environment::Execution do
             Object.const_set('ARGV', [])
 
             require 'minitest/autorun'
+
+            # MiniTest 5.22.1 requires a test to be defined, otherwise it will fail
+            # https://github.com/minitest/minitest/blob/master/History.rdoc#label-5.22.1+-2F+2024-02-06
+            Class.new(Minitest::Test) do
+              def test_it_does_something_useful
+                assert true
+              end
+            end
 
             is_expected.to eq(true)
           end

@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Workers
       module Polling
-        SHUTDOWN_TIMEOUT: 1
+        DEFAULT_SHUTDOWN_TIMEOUT: 1
 
         def self.included: (Class | Module base) -> void
 

@@ -14,7 +14,7 @@ dev/testing:
 
 # Changes to Profiling
 profiling:
-  - any: [ '{lib/datadog/profiling/**,ext/ddtrace_profiling_loader/**,ext/ddtrace_profiling_native_extension/**}' ]
+  - any: [ '{lib/datadog/profiling/**,ext/datadog_profiling_loader/**,ext/datadog_profiling_native_extension/**}' ]
 
 # Changes to CI-App
 ci-app:
@@ -42,4 +42,16 @@ dev/ci:
 
 # Version bump pull request
 release:
-  - all: [ '{CHANGELOG.md,lib/ddtrace/version.rb}' ]
+  - all: [ '{CHANGELOG.md,lib/datadog/version.rb}' ]
+
+# Changes to OpenTelemetry
+otel:
+  - any: [ 'lib/datadog/opentelemetry/**' ]
+
+# Changes to Single Step Instrumentation
+single-step:
+  - any: [ 'lib-injection/**' ]
+
+# Changes to Debugging
+debugging:
+  - any: [ 'lib/datadog/debugging/**' ]

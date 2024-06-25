@@ -10,8 +10,8 @@ module Datadog
           @thr = nil
 
           @starting = false
-          @stopping = false
           @started = false
+          @stopped = false
 
           @interval = interval
           raise ArgumentError, 'can not initialize a worker without a block' unless block
@@ -24,12 +24,18 @@ module Datadog
 
           acquire_lock
 
+          if @stopped
+            Datadog.logger.debug('remote worker: refusing to restart after previous stop')
+            return
+          end
+
           return if @starting || @started
 
           @starting = true
 
           thread = Thread.new { poll(@interval) }
           thread.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          thread.thread_variable_set(:fork_safe, true)
           @thr = thread
 
           @started = true
@@ -45,8 +51,6 @@ module Datadog
 
           acquire_lock
 
-          @stopping = true
-
           thread = @thr
 
           if thread
@@ -55,8 +59,8 @@ module Datadog
           end
 
           @started = false
-          @stopping = false
           @thr = nil
+          @stopped = true
 
           Datadog.logger.debug { 'remote worker stopped' }
         ensure

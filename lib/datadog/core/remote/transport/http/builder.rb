@@ -14,7 +14,7 @@ require_relative '../../../transport/http/api/map'
 # Separate classes are needed because of `include Trace::API::Instance`.
 #
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/api/instance'
+# require_relative '../../../../datadog/core/transport/http/api/instance'
 require_relative 'api/instance'
 
 # TODO: Decouple transport/http/client
@@ -23,13 +23,13 @@ require_relative 'api/instance'
 # stats updates, which may or may not be desirable in general.
 #
 # Below should be:
-# require_relative '../../../../ddtrace/transport/http/client'
+# require_relative '../../../../datadog/core/transport/http/client'
 require_relative 'client'
 
 # TODO: Decouple transport/http/builder
 #
 # This class is duplicated even though it is tantalisingly close to the
-# one in ddtrace/transport mostly because it refers to a different
+# one in datadog/core/transport mostly because it refers to a different
 # `API::Instance` in `#api_instance_class` but also because it operates on a
 # different `HTTP::Client`, as well as de-hardcoding the transport class
 # `Transport::Traces::Transport` in `#to_transport`

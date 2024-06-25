@@ -19,6 +19,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -31,9 +32,10 @@ module Datadog
               o.default 1.0
             end
 
-            option :quantize, default: DEFAULT_QUANTIZE
+            option :quantize, type: :hash, default: DEFAULT_QUANTIZE
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,

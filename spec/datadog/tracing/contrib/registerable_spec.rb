@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::Registerable do
   describe 'implemented' do

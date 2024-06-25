@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../configuration/settings'
 require_relative '../ext'
 
@@ -22,6 +24,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool, nilable: true
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -39,10 +42,13 @@ module Datadog
             option :middleware_names, default: false, type: :bool
             option :quantize, default: {}, type: :hash
             option :request_queuing do |o|
+              o.type :bool
               o.default false
             end
 
-            option :service_name
+            option :service_name do |o|
+              o.type :string, nilable: true
+            end
 
             option :web_service_name, default: Ext::DEFAULT_PEER_WEBSERVER_SERVICE_NAME, type: :string
           end

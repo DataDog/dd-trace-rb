@@ -11,10 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.17.0)
-      datadog-ci (~> 0.4.0)
-      debase-ruby_core_source (= 3.2.2)
-      libdatadog (~> 5.0.0.1.0)
+    datadog (2.1.0)
+      debase-ruby_core_source (= 3.3.1)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -69,7 +68,6 @@ GEM
       thor (>= 0.14.0)
     arel (9.0.0)
     ast (2.4.2)
-    base64 (0.2.0)
     benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -79,27 +77,18 @@ GEM
     byebug (11.1.3)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    cri (2.15.11)
-    datadog-ci (0.4.0)
-      msgpack
     date (3.3.3)
-    debase-ruby_core_source (3.2.2)
+    debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     erubi (1.12.0)
     extlz4 (0.3.3)
-    faraday (2.7.12)
-      base64
-      faraday-net_http (>= 2.0, < 3.1)
-      ruby2_keywords (>= 0.0.4)
-    faraday-net_http (3.0.2)
     ffi (1.16.3)
     globalid (1.1.0)
       activesupport (>= 5.0)
@@ -111,8 +100,8 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (5.0.0.1.0-aarch64-linux)
-    libdatadog (5.0.0.1.0-x86_64-linux)
+    libdatadog (9.0.0.1.0-aarch64-linux)
+    libdatadog (9.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -197,11 +186,11 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.1)
       rake
-    redcarpet (3.6.0)
     regexp_parser (2.8.1)
     request_store (1.5.1)
       rack (>= 1.4)
-    rexml (3.2.5)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -221,9 +210,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.4.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
     rubocop (1.50.2)
       json (~> 2.3)
       parallel (~> 1.10)
@@ -247,7 +233,6 @@ GEM
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
-    ruby2_keywords (0.0.5)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -260,6 +245,7 @@ GEM
       actionpack (>= 5.2)
       activesupport (>= 5.2)
       sprockets (>= 3.0.0)
+    strscan (3.1.0)
     thor (1.2.1)
     thread_safe (0.3.6)
     timeout (0.3.2)
@@ -289,10 +275,10 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
-  faraday
+  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   lograge (~> 0.11)
@@ -306,12 +292,11 @@ DEPENDENCIES
   rails (~> 5.2.1)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   rubocop (~> 1.50.0)
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)

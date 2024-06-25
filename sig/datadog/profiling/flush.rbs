@@ -1,7 +1,5 @@
 module Datadog
   module Profiling
-    EventGroup: untyped
-
     class Flush
       attr_reader start: ::Time
       attr_reader finish: ::Time
@@ -11,6 +9,7 @@ module Datadog
       attr_reader code_provenance_data: ::String?
       attr_reader tags_as_array: Array[[::String, ::String]]
       attr_reader internal_metadata_json: ::String
+      attr_reader info_json: ::String
 
       def initialize: (
         start: ::Time,
@@ -21,6 +20,7 @@ module Datadog
         code_provenance_data: ::String?,
         tags_as_array: Array[[::String, ::String]],
         internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
+        info_json: ::String,
       ) -> void
     end
   end

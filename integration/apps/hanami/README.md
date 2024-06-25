@@ -58,9 +58,9 @@ Then rebuild the application environment with:
 
 Finally start the application.
 
-#### Running the local version of `ddtrace`
+#### Running the local version of `datadog`
 
-Useful for debugging `ddtrace` internals or testing changes.
+Useful for debugging `datadog` internals or testing changes.
 
 Update the `app` --> `environment` section in `docker-compose.yml`:
 
@@ -69,11 +69,11 @@ version: '3.4'
 services:
   app:
     environment:
-      # Add the following env var (path to `ddtrace` gem dir in the Docker container)
-      - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
+      # Add the following env var (path to `datadog` gem dir in the Docker container)
+      - DD_DEMO_ENV_GEM_LOCAL_DATADOG=/vendor/dd-trace-rb
 ```
 
-#### Running a specific version of `ddtrace`
+#### Running a specific version of `datadog`
 
 Update the `app` --> `environment` section in `docker-compose.yml`:
 
@@ -84,10 +84,10 @@ services:
     environment:
       # Comment out any GEM_LOCAL env var.
       # Otherwise local source code will override your reference.
-      # - DD_DEMO_ENV_GEM_LOCAL_DDTRACE=/vendor/dd-trace-rb
+      # - DD_DEMO_ENV_GEM_LOCAL_DATADOG=/vendor/dd-trace-rb
       # Set these to the appropriate Git source and commit SHA:
-      - DD_DEMO_ENV_GEM_GIT_DDTRACE=https://github.com/DataDog/dd-trace-rb.git
-      - DD_DEMO_ENV_GEM_REF_DDTRACE=f233336994315bfa04dac581387a8152bab8b85a
+      - DD_DEMO_ENV_GEM_GIT_DATADOG=https://github.com/DataDog/dd-trace-rb.git
+      - DD_DEMO_ENV_GEM_REF_DATADOG=f233336994315bfa04dac581387a8152bab8b85a
 ```
 
 Then delete the old containers with `docker-compose down` and start the application again.

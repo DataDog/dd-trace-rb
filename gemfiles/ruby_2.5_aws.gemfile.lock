@@ -11,10 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    ddtrace (1.17.0)
-      datadog-ci (~> 0.4.0)
-      debase-ruby_core_source (= 3.2.2)
-      libdatadog (~> 5.0.0.1.0)
+    datadog (2.1.0)
+      debase-ruby_core_source (= 3.3.1)
+      libdatadog (~> 9.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -1455,42 +1454,15 @@ GEM
     builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    cri (2.15.11)
-    datadog-ci (0.4.0)
-      msgpack
-    debase-ruby_core_source (3.2.2)
+    debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.0)
     extlz4 (0.3.4)
-    faraday (1.10.3)
-      faraday-em_http (~> 1.0)
-      faraday-em_synchrony (~> 1.0)
-      faraday-excon (~> 1.1)
-      faraday-httpclient (~> 1.0)
-      faraday-multipart (~> 1.0)
-      faraday-net_http (~> 1.0)
-      faraday-net_http_persistent (~> 1.0)
-      faraday-patron (~> 1.0)
-      faraday-rack (~> 1.0)
-      faraday-retry (~> 1.0)
-      ruby2_keywords (>= 0.0.4)
-    faraday-em_http (1.0.0)
-    faraday-em_synchrony (1.0.0)
-    faraday-excon (1.1.0)
-    faraday-httpclient (1.0.1)
-    faraday-multipart (1.0.4)
-      multipart-post (~> 2)
-    faraday-net_http (1.0.1)
-    faraday-net_http_persistent (1.2.0)
-    faraday-patron (1.0.0)
-    faraday-rack (1.0.0)
-    faraday-retry (1.0.3)
     ffi (1.16.3)
     google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
@@ -1498,8 +1470,8 @@ GEM
     jmespath (1.6.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (5.0.0.1.0-aarch64-linux)
-    libdatadog (5.0.0.1.0-x86_64-linux)
+    libdatadog (9.0.0.1.0-aarch64-linux)
+    libdatadog (9.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -1507,7 +1479,6 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.7.2)
-    multipart-post (2.3.0)
     os (1.1.4)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
@@ -1521,8 +1492,8 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
-    redcarpet (3.6.0)
-    rexml (3.2.6)
+    rexml (3.2.8)
+      strscan (>= 3.0.9)
     rspec (3.12.0)
       rspec-core (~> 3.12.0)
       rspec-expectations (~> 3.12.0)
@@ -1542,10 +1513,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.3.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
-    ruby2_keywords (0.0.5)
     shoryuken (6.0.0)
       aws-sdk-core (>= 2)
       concurrent-ruby
@@ -1555,6 +1522,7 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
+    strscan (3.1.0)
     thor (1.2.2)
     warning (1.3.0)
     webmock (3.13.0)
@@ -1575,10 +1543,10 @@ DEPENDENCIES
   builder
   climate_control (~> 0.2.0)
   concurrent-ruby
-  ddtrace!
+  datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
-  faraday
+  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
@@ -1589,12 +1557,11 @@ DEPENDENCIES
   pry-stack_explorer
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
+  rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   shoryuken
   simplecov!
   simplecov-cobertura (~> 2.1.0)

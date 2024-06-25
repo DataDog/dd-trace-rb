@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe GRPC::InterceptionContext do
   subject(:interception_context) { described_class.new }
@@ -32,7 +32,7 @@ RSpec.describe GRPC::InterceptionContext do
     context 'when intercepting on the client' do
       shared_examples 'span data contents' do
         specify { expect(span.name).to eq 'grpc.client' }
-        specify { expect(span.span_type).to eq 'http' }
+        specify { expect(span.type).to eq 'http' }
         specify { expect(span.service).to eq 'rspec' }
         specify { expect(span.resource).to eq 'ruby.test.testing.basic' }
         specify { expect(span.get_tag('error.stack')).to be_nil }
@@ -88,7 +88,7 @@ RSpec.describe GRPC::InterceptionContext do
 
         specify do
           expect(span.name).to eq 'grpc.client'
-          expect(span.span_type).to eq 'http'
+          expect(span.type).to eq 'http'
           expect(span.service).to eq 'rspec'
           expect(span.resource).to eq 'ruby.test.testing.basic'
           expect(span.get_tag('error.stack')).to be_nil
@@ -117,7 +117,7 @@ RSpec.describe GRPC::InterceptionContext do
     context 'when intercepting on the server' do
       shared_examples 'span data contents' do
         specify { expect(span.name).to eq 'grpc.service' }
-        specify { expect(span.span_type).to eq 'web' }
+        specify { expect(span.type).to eq 'web' }
         specify { expect(span.service).to eq 'rspec' }
         specify { expect(span.resource).to eq 'my.server.endpoint' }
         specify { expect(span.get_tag('error.stack')).to be_nil }

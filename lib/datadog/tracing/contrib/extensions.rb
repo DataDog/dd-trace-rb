@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'set'
 
 require_relative '../../core/configuration/settings'
@@ -56,10 +58,10 @@ module Datadog
         # Configuration methods for Datadog module.
         module Configuration
           # TODO: Is is not possible to separate this configuration method
-          # TODO: from core ddtrace parts ()e.g. the registry).
+          # TODO: from core datadog parts ()e.g. the registry).
           # TODO: Today this method sits here in the `Datadog::Tracing::Contrib::Extensions` namespace
           # TODO: but cannot empirically constraints to the contrib domain only.
-          # TODO: We should promote most of this logic to core parts of ddtrace.
+          # TODO: We should promote most of this logic to core parts of datadog.
           def configure(&block)
             # Reconfigure core settings
             super(&block)
@@ -208,9 +210,6 @@ module Datadog
 
               integration
             end
-
-            # TODO: Deprecate in the next major version, as `instrument` better describes this method's purpose
-            alias_method :use, :instrument
 
             # For the provided `integration_name`, resolves a matching configuration
             # for the provided integration from an integration-specific `key`.

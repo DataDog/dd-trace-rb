@@ -17,6 +17,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -30,6 +31,7 @@ module Datadog
             end
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   '',

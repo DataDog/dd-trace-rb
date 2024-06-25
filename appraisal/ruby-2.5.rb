@@ -4,6 +4,50 @@ appraise 'hanami-1' do
   gem 'hanami', '~> 1'
 end
 
+appraise 'rails4-mysql2' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'mysql2', '< 1'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-semantic-logger' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sprockets', '< 4'
+  gem 'rails_semantic_logger', '~> 4.0'
+end
+
+appraise 'rails4-postgres-redis' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'redis-rails'
+  gem 'redis', '< 4.0'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
+appraise 'rails4-postgres-sidekiq' do
+  # Rails 4.2.11.3 with bundler unlocked to > 2.0
+  gem 'rails', git: 'https://github.com/DataDog/rails', ref: '592dfae8747db3bb28c3292a9730817f0fa76885'
+  gem 'pg', '< 1.0'
+  gem 'sidekiq'
+  gem 'activejob'
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'rails5-mysql2' do
   gem 'rails', '~> 5.2.1'
   gem 'mysql2', '< 1', platform: :ruby
@@ -204,7 +248,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'graphql', '>= 2.0'
   gem 'grpc', platform: :ruby
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
@@ -219,6 +262,14 @@ appraise 'contrib' do
   gem 'que', '>= 1.0.0', '< 2.0.0'
 end
 
+[
+  '2.0',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
+end
+
 [1, 2, 3].each do |n|
   appraise "rack-#{n}" do
     gem 'rack', "~> #{n}"
@@ -227,14 +278,12 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
+[2].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 [3, 4, 5].each do |n|
@@ -246,7 +295,6 @@ end
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'faraday', '0.17'
-  gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
 end

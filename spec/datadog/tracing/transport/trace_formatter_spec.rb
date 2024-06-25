@@ -66,10 +66,32 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     end
   end
 
+  shared_context 'git environment stub' do
+    before do
+      allow(Datadog::Core::Environment::Git).to receive(:git_repository_url).and_return(git_repository_url)
+      allow(Datadog::Core::Environment::Git).to receive(:git_commit_sha).and_return(git_commit_sha)
+    end
+  end
+
+  shared_context 'git metadata' do
+    let(:git_repository_url) { 'git_repository_url' }
+    let(:git_commit_sha) { 'git_commit_sha' }
+
+    include_context 'git environment stub'
+  end
+
+  shared_context 'no git metadata' do
+    let(:git_repository_url) { nil }
+    let(:git_commit_sha) { nil }
+
+    include_context 'git environment stub'
+  end
+
   shared_context 'no root span' do
     let(:trace) { Datadog::Tracing::TraceSegment.new(spans, **trace_options) }
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
+    let(:first_span) { spans.first }
   end
 
   shared_context 'missing root span' do
@@ -82,12 +104,14 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     end
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans.last }
+    let(:first_span) { spans.first }
   end
 
   shared_context 'available root span' do
     let(:trace) { Datadog::Tracing::TraceSegment.new(spans, root_span_id: root_span.id, **trace_options) }
     let(:spans) { Array.new(3) { Datadog::Tracing::Span.new('my.job') } }
     let(:root_span) { spans[1] }
+    let(:first_span) { spans.first }
   end
 
   describe '::new' do
@@ -194,6 +218,25 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
       end
 
+      shared_examples 'first span with no git metadata' do
+        it do
+          format!
+          expect(first_span.meta).to_not include('_dd.git.repository_url', '_dd.git.commit.sha')
+        end
+      end
+
+      shared_examples 'first span with git metadata' do
+        it do
+          format!
+          expect(first_span.meta).to include(
+            {
+              '_dd.git.repository_url' => git_repository_url,
+              '_dd.git.commit.sha' => git_commit_sha
+            }
+          )
+        end
+      end
+
       context 'with no root span' do
         include_context 'no root span'
 
@@ -230,6 +273,16 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span without generic tags'
+        end
+
+        context 'with git metadata' do
+          include_context 'git metadata'
+          it_behaves_like 'first span with git metadata'
+        end
+
+        context 'without git metadata' do
+          include_context 'no git metadata'
+          it_behaves_like 'first span with no git metadata'
         end
       end
 
@@ -269,6 +322,16 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span without generic tags'
+        end
+
+        context 'with git metadata' do
+          include_context 'git metadata'
+          it_behaves_like 'first span with git metadata'
+        end
+
+        context 'without git metadata' do
+          include_context 'no git metadata'
+          it_behaves_like 'first span with no git metadata'
         end
       end
 
@@ -310,6 +373,16 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
 
           it_behaves_like 'root span with tags'
           it_behaves_like 'root span with generic tags'
+        end
+
+        context 'with git metadata' do
+          include_context 'git metadata'
+          it_behaves_like 'first span with git metadata'
+        end
+
+        context 'without git metadata' do
+          include_context 'no git metadata'
+          it_behaves_like 'first span with no git metadata'
         end
       end
     end

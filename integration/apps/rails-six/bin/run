@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require '/vendor/dd-demo/build_ddtrace_profiling_native_extension' if ENV['DD_DEMO_ENV_BUILD_PROFILING_EXTENSION'] == 'true'
+require '/vendor/dd-demo/build_datadog_profiling_native_extension' if ENV['DD_DEMO_ENV_BUILD_PROFILING_EXTENSION'] == 'true'
 
 # Start application process
 puts "\n== Starting application process =="
@@ -8,13 +8,13 @@ puts "\n== Starting application process =="
 process = (ARGV[0] || Datadog::DemoEnv.process)
 command = case process
           when 'puma'
-            "bundle exec ddtracerb exec puma -C /app/config/puma.rb"
+            "bundle exec ddprofrb exec puma -C /app/config/puma.rb"
           when 'unicorn'
-            "bundle exec ddtracerb exec unicorn -c /app/config/unicorn.rb"
+            "bundle exec ddprofrb exec unicorn -c /app/config/unicorn.rb"
           when 'console'
-            "bundle exec ddtracerb exec rails c"
+            "bundle exec ddprofrb exec rails c"
           when 'irb'
-            "bundle exec ddtracerb exec irb"
+            "bundle exec ddprofrb exec irb"
           when nil, ''
             abort("\n== ERROR: Must specify a application process! ==")
           else

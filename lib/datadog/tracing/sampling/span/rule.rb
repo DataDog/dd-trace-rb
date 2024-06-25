@@ -29,12 +29,7 @@ module Datadog
             @sample_rate = sample_rate
             @rate_limit = rate_limit
 
-            @sampler = Sampling::RateSampler.new
-            # Set the sample_rate outside of the initializer to allow for
-            # zero to be a "drop all".
-            # The RateSampler initializer enforces non-zero, falling back to 100% sampling
-            # if zero is provided.
-            @sampler.sample_rate = sample_rate
+            @sampler = Sampling::RateSampler.new(sample_rate)
             @rate_limiter = Sampling::TokenBucket.new(rate_limit)
           end
 
@@ -52,13 +47,14 @@ module Datadog
           #
           # This method modifies the `span` if it matches the provided matcher.
           #
+          # @param [Datadog::Tracing::TraceOperation] trace_op trace for the span to be sampled
           # @param [Datadog::Tracing::SpanOperation] span_op span to be sampled
           # @return [:kept,:rejected] should this span be sampled?
           # @return [:not_matched] span did not satisfy the matcher, no changes are made to the span
-          def sample!(span_op)
+          def sample!(trace_op, span_op)
             return :not_matched unless @matcher.match?(span_op)
 
-            if @sampler.sample?(span_op) && @rate_limiter.allow?(1)
+            if @rate_limiter.allow?(1) && @sampler.sample!(trace_op)
               span_op.set_metric(Span::Ext::TAG_MECHANISM, Sampling::Ext::Mechanism::SPAN_SAMPLING_RATE)
               span_op.set_metric(Span::Ext::TAG_RULE_RATE, @sample_rate)
               span_op.set_metric(Span::Ext::TAG_MAX_PER_SECOND, @rate_limit)

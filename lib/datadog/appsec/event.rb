@@ -1,8 +1,10 @@
+# frozen_string_literal: true
+
 require 'json'
 require 'zlib'
-require 'base64'
 
 require_relative 'rate_limiter'
+require_relative '../core/utils/base64'
 
 module Datadog
   module AppSec
@@ -138,7 +140,7 @@ module Datadog
         private
 
         def compressed_and_base64_encoded(value)
-          Base64.encode64(gzip(value))
+          Datadog::Core::Utils::Base64.strict_encode64(gzip(value))
         rescue TypeError => e
           Datadog.logger.debug do
             "Failed to compress and encode value when populating AppSec::Event. Error: #{e.message}"

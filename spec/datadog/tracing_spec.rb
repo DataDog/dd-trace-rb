@@ -59,15 +59,45 @@ RSpec.describe Datadog::Tracing do
   end
 
   describe '.trace' do
-    subject(:trace) { described_class.trace(name, continue_from: continue_from, **span_options, &block) }
+    subject(:trace) do
+      described_class.trace(
+        name,
+        continue_from: continue_from,
+        on_error: on_error,
+        resource: resource,
+        service: service,
+        start_time: start_time,
+        tags: tags,
+        type: type,
+        id: id,
+        &block
+      )
+    end
+
     let(:name) { double('name') }
     let(:continue_from) { double('continue_from') }
-    let(:span_options) { { resource: double('option') } }
+    let(:on_error) { double('on_error') }
+    let(:resource) { double('resource') }
+    let(:service) { double('service') }
+    let(:start_time) { double('start_time') }
+    let(:tags) { double('tags') }
+    let(:type) { double('type') }
+    let(:id) { double(1) }
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
       expect(Datadog.send(:components).tracer).to receive(:trace)
-        .with(name, continue_from: continue_from, **span_options) { |&b| expect(b).to be(block) }
+        .with(
+          name,
+          continue_from: continue_from,
+          on_error: on_error,
+          resource: resource,
+          service: service,
+          start_time: start_time,
+          tags: tags,
+          type: type,
+          id: id
+        ) { |&b| expect(b).to be(block) }
         .and_return(returned)
       expect(trace).to eq(returned)
     end
@@ -128,9 +158,21 @@ RSpec.describe Datadog::Tracing do
 
   describe '.correlation' do
     subject(:correlation) { described_class.correlation }
+
     it 'delegates to the tracer' do
       expect(described_class.send(:tracer)).to receive(:active_correlation).and_return(returned)
       expect(correlation).to eq(returned)
+    end
+
+    context 'when dd-trace-rb is not initialized' do
+      before do
+        expect(Datadog.send(:components, allow_initialization: false)).to be nil
+      end
+
+      it 'does not cause components to be initialized' do
+        expect(correlation.span_id).to eq '0'
+        expect(Datadog.send(:components, allow_initialization: false)).to be nil
+      end
     end
   end
 

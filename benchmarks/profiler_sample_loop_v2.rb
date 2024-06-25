@@ -4,7 +4,7 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require 'benchmark/ips'
-require 'ddtrace'
+require 'datadog'
 require 'pry'
 require_relative 'dogstatsd_reporter'
 
@@ -16,7 +16,14 @@ class ProfilerSampleLoopBenchmark
   PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new(cpu_time_enabled: true, alloc_samples_enabled: true)
+    @recorder = Datadog::Profiling::StackRecorder.new(
+      cpu_time_enabled: true,
+      alloc_samples_enabled: false,
+      heap_samples_enabled: false,
+      heap_size_enabled: false,
+      heap_sample_every: 1,
+      timeline_enabled: false,
+    )
     @collector = Datadog::Profiling::Collectors::ThreadContext.new(
       recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: false
     )
@@ -36,8 +43,11 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? {time: 0.01, warmup: 0} : {time: 10, warmup: 2}
-      x.config(**benchmark_time, suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2'))
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_loop_v2')
+      )
 
       x.report("stack collector #{ENV['CONFIG']}") do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
@@ -52,7 +62,9 @@ class ProfilerSampleLoopBenchmark
 
   def run_forever
     while true
-      1000.times { Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD) }
+      1000.times do
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+      end
       @recorder.serialize
       print '.'
     end

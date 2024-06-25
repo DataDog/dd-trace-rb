@@ -16,7 +16,7 @@ RSpec.describe Datadog::OpenTelemetry do
       Datadog.configure do |c|
         c.tracing.writer = writer_
         c.tracing.partial_flush.min_spans_threshold = 1 # Ensure tests flush spans quickly
-        c.tracing.distributed_tracing.propagation_style = ['Datadog'] # Ensure test has consistent propagation configuration
+        c.tracing.propagation_style = ['datadog'] # Ensure test has consistent propagation configuration
       end
 
       ::OpenTelemetry::SDK.configure do |c|
@@ -45,9 +45,11 @@ RSpec.describe Datadog::OpenTelemetry do
 
     describe '#in_span' do
       context 'without an active span' do
-        subject!(:in_span) { otel_tracer.in_span('test', **span_options) {} }
+        subject(:in_span) { otel_tracer.in_span('test', **span_options) {} }
 
         it 'records a finished span' do
+          in_span
+
           expect(span).to be_root_span
           expect(span.name).to eq('internal')
           expect(span.resource).to eq('test')
@@ -56,6 +58,14 @@ RSpec.describe Datadog::OpenTelemetry do
 
         context 'with attributes' do
           let(:span_options) { { attributes: attributes } }
+
+          before do
+            Datadog.configure do |c|
+              c.tags = { 'global' => 'global_tag' }
+            end
+
+            in_span
+          end
 
           [
             [1, 1],
@@ -68,6 +78,10 @@ RSpec.describe Datadog::OpenTelemetry do
 
               it "sets tag #{expected}" do
                 expect(span.get_tag('tag')).to eq(expected)
+              end
+
+              it 'keeps the global trace tags' do
+                expect(span.get_tag('global')).to eq('global_tag')
               end
             end
           end
@@ -151,6 +165,15 @@ RSpec.describe Datadog::OpenTelemetry do
                 end
               end
             end
+
+            context 'for http.response.status_code' do
+              let(:attribute_name) { 'http.response.status_code' }
+              let(:attribute_value) { '200' }
+
+              it 'overrides the respective Datadog span name' do
+                expect(span.get_tag('http.status_code')).to eq('200')
+              end
+            end
           end
 
           context 'for OpenTelemetry semantic convention' do
@@ -208,6 +231,7 @@ RSpec.describe Datadog::OpenTelemetry do
           let(:span_options) { { start_timestamp: start_timestamp } }
           let(:start_timestamp) { Time.utc(2023) }
           it do
+            in_span
             expect(span.start_time).to eq(start_timestamp)
           end
         end
@@ -305,6 +329,17 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(parent).to be_root_span
             expect(child.parent_id).to eq(parent.id)
           end
+
+          it 'the underlying datadog spans has the same ids as the otel spans' do
+            existing_span.finish
+            start_span.finish
+            # Verify Span IDs are the same
+            expect(existing_span.context.hex_span_id.to_i(16)).to eq(parent.id)
+            expect(start_span.context.hex_span_id.to_i(16)).to eq(child.id)
+            # Verify Trace IDs are the same
+            expect(existing_span.context.hex_trace_id.to_i(16)).to eq(parent.trace_id)
+            expect(start_span.context.hex_trace_id.to_i(16)).to eq(child.trace_id)
+          end
         end
       end
 
@@ -315,6 +350,47 @@ RSpec.describe Datadog::OpenTelemetry do
           start_span.finish(end_timestamp: timestamp)
 
           expect(span.end_time).to eq(timestamp)
+        end
+      end
+
+      context 'with span_links' do
+        let(:sc1) do
+          OpenTelemetry::Trace::SpanContext.new(
+            trace_id: ['000000000000006d5b953ca4d9c834ab'].pack('H*'),
+            span_id: ['0000000fcec36d3f'].pack('H*')
+          )
+        end
+        let(:sc2) do
+          OpenTelemetry::Trace::SpanContext.new(
+            trace_id: ['0000000000000000000000000012d666'].pack('H*'),
+            span_id: ['000000000000000a'].pack('H*'),
+            trace_flags: OpenTelemetry::Trace::TraceFlags::SAMPLED,
+            tracestate: OpenTelemetry::Trace::Tracestate.from_string('otel=blahxd')
+          )
+        end
+        let(:links) do
+          [
+            OpenTelemetry::Trace::Link.new(sc1, { 'key' => 'val', '1' => true }),
+            OpenTelemetry::Trace::Link.new(sc2, { 'key2' => true, 'list' => [1, 2] }),
+          ]
+        end
+        let(:options) { { links: links } }
+
+        it 'sets span links' do
+          start_span.finish
+          expect(span.links.size).to eq(2)
+
+          expect(span.links[0].trace_id).to eq(2017294351542048535723)
+          expect(span.links[0].span_id).to eq(67893423423)
+          expect(span.links[0].trace_flags).to eq(0)
+          expect(span.links[0].trace_state).to eq('')
+          expect(span.links[0].attributes).to eq({ 'key' => 'val', '1' => true })
+
+          expect(span.links[1].trace_id).to eq(1234534)
+          expect(span.links[1].span_id).to eq(10)
+          expect(span.links[1].trace_flags).to eq(1)
+          expect(span.links[1].trace_state).to eq('otel=blahxd')
+          expect(span.links[1].attributes).to eq({ 'key2' => true, 'list' => [1, 2] })
         end
       end
     end
@@ -449,6 +525,15 @@ RSpec.describe Datadog::OpenTelemetry do
             it 'overrides the respective Datadog span tag' do
               expect(span.get_metric('_dd1.sr.eausr')).to eq(0)
             end
+          end
+        end
+
+        context 'for http.response.status_code' do
+          let(:attribute_name) { 'http.response.status_code' }
+          let(:attribute_value) { '200' }
+
+          it 'overrides the respective Datadog span name' do
+            expect(span.get_tag('http.status_code')).to eq('200')
           end
         end
 
@@ -620,14 +705,18 @@ RSpec.describe Datadog::OpenTelemetry do
 
     context 'OpenTelemetry.propagation' do
       describe '#inject' do
-        subject(:inject) { ::OpenTelemetry.propagation.inject(carrier) }
+        subject(:inject) do
+          ::OpenTelemetry.propagation.inject(carrier)
+        end
         let(:carrier) { {} }
+        let(:trace_id) { Datadog::Tracing.active_trace.id }
         def headers
           {
             'x-datadog-parent-id' => Datadog::Tracing.active_span.id.to_s,
             'x-datadog-sampling-priority' => '1',
-            'x-datadog-tags' => '_dd.p.dm=-0,_dd.p.tid=' +
-              high_order_hex_trace_id(Datadog::Tracing.active_trace.id),
+            'x-datadog-tags' => '_dd.p.dm=-0' + (
+              trace_id < 2**64 ? '' : ",_dd.p.tid=#{high_order_hex_trace_id(Datadog::Tracing.active_trace.id)}"
+            ),
             'x-datadog-trace-id' => low_order_trace_id(Datadog::Tracing.active_trace.id).to_s,
           }
         end
@@ -726,13 +815,13 @@ RSpec.describe Datadog::OpenTelemetry do
         context 'with TraceContext headers' do
           let(:carrier) do
             {
-              'traceparent' => '00-00000000000000001111111111111111-2222222222222222-01'
+              'traceparent' => '00-11111111111111111111111111111111-2222222222222222-01'
             }
           end
 
           before do
             Datadog.configure do |c|
-              c.tracing.distributed_tracing.propagation_extract_style = ['Datadog', 'tracecontext']
+              c.tracing.propagation_style_extract = ['datadog', 'tracecontext']
             end
           end
 
@@ -741,7 +830,7 @@ RSpec.describe Datadog::OpenTelemetry do
               otel_tracer.in_span('otel') {}
             end
 
-            expect(span.trace_id).to eq(0x00000000000000001111111111111111)
+            expect(span.trace_id).to eq(0x11111111111111111111111111111111)
             expect(span.parent_id).to eq(0x2222222222222222)
           end
         end

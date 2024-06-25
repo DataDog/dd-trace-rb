@@ -79,3 +79,36 @@ RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRate do
     option.call(new_value)
   end
 end
+
+RSpec.describe Datadog::Tracing::Configuration::Dynamic::TracingSamplingRules do
+  let(:old_value) { nil }
+
+  include_examples 'tracing dynamic simple option',
+    name: 'tracing_sampling_rules',
+    env_var: 'DD_TRACE_SAMPLING_RULES',
+    config_key: :rules,
+    value: RSpec::Matchers::BuiltIn::Match.new(->(rules) { rules == '[{"sample_rate":1}]' }),
+    config_object: Datadog.configuration.tracing.sampling do
+      let(:new_value) { [{ sample_rate: 1 }] }
+    end
+
+  context 'with tags' do
+    include_examples 'tracing dynamic simple option',
+      name: 'tracing_sampling_rules',
+      env_var: 'DD_TRACE_SAMPLING_RULES',
+      config_key: :rules,
+      value: RSpec::Matchers::BuiltIn::Match.new(
+        lambda do |rules|
+          rules == '[{"sample_rate":1,"tags":[{"key":"k","value_glob":"v"}]}]'
+        end
+      ),
+      config_object: Datadog.configuration.tracing.sampling do
+        let(:new_value) { [{ sample_rate: 1, tags: [{ key: 'k', value_glob: 'v' }] }] }
+      end
+  end
+
+  it 'reconfigures the live sampler' do
+    expect(Datadog.send(:components)).to receive(:reconfigure_live_sampler)
+    option.call(new_value)
+  end
+end

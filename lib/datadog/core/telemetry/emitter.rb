@@ -1,4 +1,6 @@
-require_relative 'event'
+# frozen_string_literal: true
+
+require_relative 'request'
 require_relative 'http/transport'
 require_relative '../utils/sequence'
 require_relative '../utils/forking'
@@ -12,7 +14,6 @@ module Datadog
 
         extend Core::Utils::Forking
 
-        # @param sequence [Datadog::Core::Utils::Sequence] Sequence object that stores and increments a counter
         # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
         #   telemetry requests via the agent
         def initialize(http_transport: Datadog::Core::Telemetry::Http::Transport.new)
@@ -20,18 +21,15 @@ module Datadog
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
-        # @param request_type [String] the type of telemetry request to collect data for
-        # @param data [Object] arbitrary object to be passed to the respective `request_type` handler
-        def request(request_type, data: nil)
+        def request(event)
           begin
-            request = Datadog::Core::Telemetry::Event.new.telemetry_request(
-              request_type: request_type,
-              seq_id: self.class.sequence.next,
-              data: data,
-            ).to_h
-            @http_transport.request(request_type: request_type.to_s, payload: request.to_json)
-          rescue StandardError => e
-            Datadog.logger.debug("Unable to send telemetry request for event `#{request_type}`: #{e}")
+            seq_id = self.class.sequence.next
+            payload = Request.build_payload(event, seq_id)
+            res = @http_transport.request(request_type: event.type, payload: payload.to_json)
+            Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
+            res
+          rescue => e
+            Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
             Telemetry::Http::InternalErrorResponse.new(e)
           end
         end

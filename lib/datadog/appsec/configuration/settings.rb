@@ -54,6 +54,10 @@ module Datadog
                 o.default :recommended
               end
 
+              option :ip_passlist do |o|
+                o.default []
+              end
+
               option :ip_denylist do |o|
                 o.type :array
                 o.default []
@@ -187,6 +191,11 @@ module Datadog
                     SampleRate.new(value)
                   end
                 end
+              end
+
+              option :sca_enabled do |o|
+                o.type :bool, nilable: true
+                o.env 'DD_APPSEC_SCA_ENABLED'
               end
             end
           end

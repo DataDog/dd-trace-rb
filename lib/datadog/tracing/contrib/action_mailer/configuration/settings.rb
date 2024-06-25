@@ -17,6 +17,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -30,7 +31,10 @@ module Datadog
             end
 
             option :service_name
-            option :email_data, default: false
+            option :email_data do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

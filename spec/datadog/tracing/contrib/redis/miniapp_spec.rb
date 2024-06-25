@@ -3,20 +3,27 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
-RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0') do
+RSpec.describe 'Redis mini app test' do
   before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
-
-    # Configure redis instance with custom options
-    Datadog.configure_onto(redis, service_name: 'test-service')
   end
 
   let(:redis_options) { { host: host, port: port } }
-  let(:redis) { Redis.new(redis_options.freeze) }
+  let(:redis) do
+    # Redis instance with custom options
+    if Gem::Version.new(::Redis::VERSION) >= Gem::Version.new('5.0.0')
+      custom_options = { custom: { datadog: { service_name: 'test-service' } } }
+      Redis.new(redis_options.merge(custom_options).freeze)
+    else
+      Redis.new(redis_options.freeze).tap do |redis|
+        Datadog.configure_onto(redis, service_name: 'test-service')
+      end
+    end
+  end
   let(:host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
@@ -31,9 +38,9 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
           subspan.service = 'datalayer'
           subspan.resource = 'home'
           redis.get 'data1'
-          redis.pipelined do
-            redis.set 'data2', 'something'
-            redis.get 'data2'
+          redis.pipelined do |pipeline|
+            pipeline.set 'data2', 'something'
+            pipeline.get 'data2'
           end
         end
       end
@@ -57,7 +64,7 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
         expect(publish_span.name).to eq('publish')
         expect(publish_span.service).to eq('webapp')
         expect(publish_span.resource).to eq('/index')
-        expect(publish_span.span_id).to_not eq(publish_span.trace_id)
+        expect(publish_span.id).to_not eq(publish_span.trace_id)
         expect(publish_span.parent_id).to eq(0)
       end
     end
@@ -67,7 +74,7 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
         expect(process_span.name).to eq('process')
         expect(process_span.service).to eq('datalayer')
         expect(process_span.resource).to eq('home')
-        expect(process_span.parent_id).to eq(publish_span.span_id)
+        expect(process_span.parent_id).to eq(publish_span.id)
         expect(process_span.trace_id).to eq(publish_span.trace_id)
       end
     end
@@ -76,14 +83,14 @@ RSpec.describe 'Redis mini app test', skip: Gem::Version.new(::Redis::VERSION) >
       it do
         expect(redis_cmd1_span.name).to eq('redis.command')
         expect(redis_cmd1_span.service).to eq('test-service')
-        expect(redis_cmd1_span.parent_id).to eq(process_span.span_id)
+        expect(redis_cmd1_span.parent_id).to eq(process_span.id)
         expect(redis_cmd1_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd1_span.get_tag('db.system')).to eq('redis')
         expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')
 
         expect(redis_cmd2_span.name).to eq('redis.command')
         expect(redis_cmd2_span.service).to eq('test-service')
-        expect(redis_cmd2_span.parent_id).to eq(process_span.span_id)
+        expect(redis_cmd2_span.parent_id).to eq(process_span.id)
         expect(redis_cmd2_span.trace_id).to eq(publish_span.trace_id)
         expect(redis_cmd2_span.get_tag('db.system')).to eq('redis')
         expect(redis_cmd2_span.get_tag('span.kind')).to eq('client')

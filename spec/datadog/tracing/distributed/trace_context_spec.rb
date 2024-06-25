@@ -4,13 +4,13 @@ require 'datadog/tracing/distributed/trace_context'
 require 'datadog/tracing/trace_digest'
 
 RSpec.shared_examples 'Trace Context distributed format' do
-  subject(:datadog) { described_class.new(fetcher: fetcher_class) }
-  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+  let(:propagation_style_inject) { ['tracecontext'] }
+  let(:propagation_style_extract) { ['tracecontext'] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
   describe '#inject!' do
-    subject!(:inject!) { datadog.inject!(digest, data) }
+    subject!(:inject!) { propagation.inject!(digest, data) }
     let(:data) { {} }
 
     let(:traceparent) { data['traceparent'] }
@@ -164,11 +164,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context 'nil' do
           let(:tags) { nil }
+          it { expect(digest.span_remote).to eq(true) }
           it { expect(tracestate).to be_nil }
         end
 
         context '{}' do
           let(:tags) { {} }
+          it { expect(digest.span_remote).to eq(true) }
           it { expect(tracestate).to be_nil }
         end
 
@@ -242,6 +244,27 @@ RSpec.shared_examples 'Trace Context distributed format' do
         end
       end
 
+      context 'with span_remote' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xC0FFEE,
+            span_id: 0xBEE,
+            trace_distributed_tags: {},
+            span_remote: remote,
+          )
+        end
+
+        context 'and with local span' do
+          let(:remote) { false }
+          it { expect(tracestate).to eq('dd=p:0000000000000bee') }
+        end
+
+        context 'and with remote span' do
+          let(:remote) { true }
+          it { expect(tracestate).to be_nil }
+        end
+      end
+
       context 'with a upstream tracestate' do
         let(:options) { { trace_state: upstream_tracestate } }
         let(:upstream_tracestate) { 'other=vendor' }
@@ -292,7 +315,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
   end
 
   describe '#extract' do
-    subject(:extract) { datadog.extract(data) }
+    subject(:extract) { propagation.extract(data) }
     let(:data) do
       { prepare_key['traceparent'] => traceparent,
         prepare_key['tracestate'] => tracestate }
@@ -348,7 +371,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to be_nil }
+      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
     end
 
     context 'with traceparent without tracestate' do
@@ -360,7 +383,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to be_nil }
+      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
     end
 
     context 'with traceparent and with empty tracestate' do
@@ -373,7 +396,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
       it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
-      it { expect(digest.trace_distributed_tags).to be_nil }
+      it { expect(digest.trace_distributed_tags).to eq({ '_dd.parent_id' => '0000000000000000' }) }
     end
 
     context 'with valid trace_id and parent_id' do
@@ -381,6 +404,7 @@ RSpec.shared_examples 'Trace Context distributed format' do
       it { expect(digest.span_id).to eq(0xBEE) }
       it { expect(digest.trace_origin).to be nil }
       it { expect(digest.trace_sampling_priority).to eq(0) }
+      it { expect(digest.span_remote).to be true }
 
       context 'and trace_id larger than 64 bits' do
         let(:trace_id) { 'ace00000000000000000000000c0ffee' }
@@ -428,17 +452,22 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
         context 'nil' do
           let(:tags) { nil }
-          it { is_expected.to be_nil }
+          it { is_expected.to eq({ '_dd.parent_id' => '0000000000000000' }) }
         end
 
         context 'an empty value' do
           let(:tags) { '' }
-          it { is_expected.to be_nil }
+          it { is_expected.to eq({ '_dd.parent_id' => '0000000000000000' }) }
         end
 
         context "{ '_dd.p.key' => 'value' }" do
           let(:tags) { 't.key:value' }
-          it { is_expected.to eq('_dd.p.key' => 'value') }
+          it { is_expected.to eq('_dd.p.key' => 'value', '_dd.parent_id' => '0000000000000000') }
+        end
+
+        context 'last datadog parent id in tracestate' do
+          let(:tracestate) { 'dd=p:cc00000000000aaa' }
+          it { is_expected.to eq({ '_dd.parent_id' => 'cc00000000000aaa' }) }
         end
 
         context "{ '_dd.p.dm' => '-1' }" do
@@ -451,13 +480,13 @@ RSpec.shared_examples 'Trace Context distributed format' do
 
           context 'with a kept trace' do
             let(:trace_flags) { '01' }
-            it { is_expected.to eq('_dd.p.dm' => '-1') }
+            it { is_expected.to eq({ '_dd.p.dm' => '-1', '_dd.parent_id' => '0000000000000000' }) }
           end
         end
 
         context "{ 'key' => 'value~with~tilde' }" do
           let(:tags) { 't.key:value~with~tilde' }
-          it { is_expected.to eq('_dd.p.key' => 'value=with=tilde') }
+          it { is_expected.to eq({ '_dd.p.key' => 'value=with=tilde', '_dd.parent_id' => '0000000000000000' }) }
         end
       end
 
@@ -537,5 +566,8 @@ RSpec.shared_examples 'Trace Context distributed format' do
 end
 
 RSpec.describe Datadog::Tracing::Distributed::TraceContext do
+  subject(:propagation) { described_class.new(fetcher: fetcher_class) }
+  let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
+
   it_behaves_like 'Trace Context distributed format'
 end

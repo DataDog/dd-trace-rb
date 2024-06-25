@@ -9,12 +9,13 @@ module Datadog
 
         def initialize: (
           gc_profiling_enabled: bool,
-          allocation_counting_enabled: bool,
           no_signals_workaround_enabled: bool,
           thread_context_collector: Datadog::Profiling::Collectors::ThreadContext,
+          dynamic_sampling_rate_overhead_target_percentage: Float,
           ?idle_sampling_helper: Datadog::Profiling::Collectors::IdleSamplingHelper,
           ?dynamic_sampling_rate_enabled: bool,
-          ?allocation_sample_every: Integer,
+          allocation_profiling_enabled: bool,
+          ?skip_idle_samples_for_testing: false,
         ) -> void
 
         def self._native_initialize: (
@@ -22,10 +23,11 @@ module Datadog
           ThreadContext thread_context_collector,
           bool gc_profiling_enabled,
           IdleSamplingHelper idle_sampling_helper,
-          bool allocation_counting_enabled,
           bool no_signals_workaround_enabled,
           bool dynamic_sampling_rate_enabled,
-          ::Integer allocation_sample_every,
+          Float dynamic_sampling_rate_overhead_target_percentage,
+          bool allocation_profiling_enabled,
+          bool skip_idle_samples_for_testing,
         ) -> true
 
         def start: (?on_failure_proc: ::Proc?) -> bool?
@@ -38,9 +40,12 @@ module Datadog
 
         def stats: () -> ::Hash[::Symbol, untyped]
         def self._native_stats: (CpuAndWallTimeWorker self_instance) -> ::Hash[::Symbol, untyped]
-
+        def self._native_stats_reset_not_thread_safe: (CpuAndWallTimeWorker self_instance) -> void
+        def self._native_is_running?: (CpuAndWallTimeWorker self_instance) -> bool
         def self._native_allocation_count: () -> ::Integer?
         def self._native_sampling_loop: (CpuAndWallTimeWorker self_instance) -> void
+
+        def wait_until_running: (timeout_seconds: ::Integer?) -> true
       end
     end
   end

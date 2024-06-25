@@ -1,5 +1,5 @@
 require 'spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/core/metrics/client'
 require 'datadog/core/runtime/metrics'
 
@@ -240,6 +240,12 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
             expect(runtime_metrics).to have_received(:gauge)
               .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE, kind_of(Numeric))
               .once
+
+            if RUBY_VERSION >= '3.3.0'
+              expect(runtime_metrics).to have_received(:gauge)
+                .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE, kind_of(Numeric))
+                .once
+            end
           end
         end
       end

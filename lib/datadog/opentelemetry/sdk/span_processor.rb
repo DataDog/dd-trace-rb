@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative 'trace/span'
+require_relative '../../tracing/span_link'
+require_relative '../../tracing/trace_digest'
 
 module Datadog
   module OpenTelemetry
@@ -68,7 +70,8 @@ module Datadog
           if parent_context.trace
             Tracing.send(:tracer).send(:call_context).activate!(parent_context.ensure_trace)
           else
-            Tracing.continue_trace!(nil)
+            otel_trace_id = span.context.hex_trace_id.to_i(16)
+            Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(trace_id: otel_trace_id, span_remote: false))
           end
 
           datadog_span = start_datadog_span(span)
@@ -83,9 +86,23 @@ module Datadog
           name, kwargs = span_arguments(span, attributes)
 
           datadog_span = Tracing.trace(name, **kwargs)
-
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
+
+          unless span.links.nil?
+            datadog_span.links = span.links.map do |link|
+              Datadog::Tracing::SpanLink.new(
+                Datadog::Tracing::TraceDigest.new(
+                  trace_id: link.span_context.hex_trace_id.to_i(16),
+                  span_id: link.span_context.hex_span_id.to_i(16),
+                  trace_sampling_priority: (link.span_context.trace_flags&.sampled? ? 1 : 0),
+                  trace_state: link.span_context.tracestate&.to_s,
+                  span_remote: link.span_context.remote?,
+                ),
+                attributes: link.attributes
+              )
+            end
+          end
 
           datadog_span
         end
@@ -95,6 +112,11 @@ module Datadog
           if attributes.key?('analytics.event') && (analytics_event = attributes['analytics.event']).respond_to?(:casecmp)
             attributes[Tracing::Metadata::Ext::Analytics::TAG_SAMPLE_RATE] = analytics_event.casecmp('true') == 0 ? 1 : 0
           end
+
+          if attributes.key?('http.response.status_code')
+            attributes[Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE] = attributes.delete('http.response.status_code')
+          end
+
           attributes[Tracing::Metadata::Ext::TAG_KIND] = span.kind || 'internal'
 
           kwargs = { start_time: ns_to_time(span.start_timestamp) }
@@ -115,11 +137,14 @@ module Datadog
 
           # DEV: There's no `flat_map!`; we have to split it into two operations
           attributes = attributes.map do |key, value|
-            Datadog::OpenTelemetry::Trace::Span.serialize_attribute(key, value)
+            Datadog::Tracing::Utils.serialize_attribute(key, value)
           end
           attributes.flatten!(1)
 
-          kwargs[:tags] = attributes
+          kwargs[:tags] = attributes.to_h
+
+          # DEV: The datadog span must have the same ID as the OpenTelemetry span
+          kwargs[:id] = span.context.hex_span_id.to_i(16)
 
           [name, kwargs]
         end

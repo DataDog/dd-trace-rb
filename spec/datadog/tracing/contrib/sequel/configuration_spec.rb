@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'sequel'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/sequel/patcher'
 
 RSpec.describe 'Sequel configuration' do

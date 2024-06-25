@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../response'
 
 module Datadog
@@ -13,7 +15,7 @@ module Datadog
               :timeout,
               :ssl
 
-            DEFAULT_TIMEOUT = 30
+            DEFAULT_TIMEOUT = 2
 
             def initialize(hostname:, port: nil, timeout: DEFAULT_TIMEOUT, ssl: true)
               @hostname = hostname

@@ -1,5 +1,6 @@
+# frozen_string_literal: true
+
 require_relative '../../configuration/resolver'
-require_relative '../vendor/connection_specification'
 require_relative 'makara_resolver'
 
 module Datadog
@@ -31,6 +32,7 @@ module Datadog
           # based on addition order (`#add`).
           class Resolver < Contrib::Configuration::Resolver
             prepend MakaraResolver
+            prepend Contrib::Configuration::CachingResolver
 
             def initialize(active_record_configuration = nil)
               super()
@@ -65,9 +67,14 @@ module Datadog
 
               config
             rescue => e
+              # Resolving a valid database configuration should not raise an exception,
+              # but if it does, it can be due to adding a broken pattern match prior to this call.
+              #
+              # `db_config` input may contain sensitive information such as passwords,
+              # hence provide a succinct summary for the error logging.
               Datadog.logger.error(
-                "Failed to resolve ActiveRecord configuration key #{db_config.inspect}. " \
-                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+                'Failed to resolve ActiveRecord database configuration. '\
+                "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
 
               nil
@@ -85,9 +92,11 @@ module Datadog
               normalized
             rescue => e
               Datadog.logger.error(
-                "Failed to resolve ActiveRecord configuration key #{matcher.inspect}. " \
-                "Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
+                "Failed to resolve key #{matcher.inspect}. " \
+                "Cause: #{e.class.name} Source: #{Array(e.backtrace).first}"
               )
+
+              nil
             end
 
             #
@@ -102,12 +111,8 @@ module Datadog
                 if defined?(::ActiveRecord::Base.configurations.resolve)
                   ::ActiveRecord::DatabaseConfigurations.new(active_record_configuration)
                 # From 4+ to 6.0.x
-                elsif defined?(::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver)
-                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 else
-                  Contrib::ActiveRecord::Vendor::ConnectionAdapters::ConnectionSpecification::Resolver.new(
-                    active_record_configuration
-                  )
+                  ::ActiveRecord::ConnectionAdapters::ConnectionSpecification::Resolver.new(active_record_configuration)
                 end
             end
 

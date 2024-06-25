@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'etc'
 
 require_relative 'identity'
@@ -9,12 +11,18 @@ module Datadog
       module Platform
         module_function
 
+        # @return [String] ISA of host; `uname -m`
+        def architecture
+          Identity.lang_version >= '2.2' ? Etc.uname[:machine] : Gem::Platform.local.cpu
+        end
+
         # @return [String] name of host; `uname -n`
         def hostname
           Identity.lang_version >= '2.2' ? Etc.uname[:nodename] : nil
         end
 
-        # @return [String] name of kernel; `uname -s`
+        # System name, normally `Linux` or `Darwin` (but 'Mac OS X' on JRuby);
+        # @return [String] name of kernel; `uname -s`.
         def kernel_name
           Identity.lang_version >= '2.2' ? Etc.uname[:sysname] : Gem::Platform.local.os.capitalize
         end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'core'
 require_relative 'core/environment/variable_helpers'
 require_relative 'core/utils/only_once'
@@ -63,6 +65,17 @@ module Datadog
       !!(profiler.send(:scheduler).running? if profiler)
     end
 
+    def self.wait_until_running(timeout_seconds: 5)
+      profiler = Datadog.send(:components).profiler
+      if profiler
+        # Use .send(...) to avoid exposing the attr_reader as an API to the outside
+        worker = profiler.send(:worker)
+        worker.wait_until_running(timeout_seconds: timeout_seconds)
+      else
+        raise 'Profiler not enabled or available'
+      end
+    end
+
     private_class_method def self.replace_noop_allocation_count
       def self.allocation_count # rubocop:disable Lint/NestedMethodDefinition (On purpose!)
         Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
@@ -72,12 +85,12 @@ module Datadog
     private_class_method def self.native_library_compilation_skipped?
       skipped_reason = try_reading_skipped_reason_file
 
-      "Your ddtrace installation is missing support for the Continuous Profiler because #{skipped_reason}" if skipped_reason
+      "Your datadog installation is missing support for the Continuous Profiler because #{skipped_reason}" if skipped_reason
     end
 
     private_class_method def self.try_reading_skipped_reason_file(file_api = File)
       # This file, if it exists, is recorded by extconf.rb during compilation of the native extension
-      skipped_reason_file = "#{__dir__}/../../ext/ddtrace_profiling_native_extension/skipped_reason.txt"
+      skipped_reason_file = "#{__dir__}/../../ext/datadog_profiling_native_extension/skipped_reason.txt"
 
       begin
         return unless file_api.exist?(skipped_reason_file)
@@ -123,13 +136,14 @@ module Datadog
       return false unless supported?
 
       require_relative 'profiling/ext/forking'
+      require_relative 'profiling/collectors/info'
       require_relative 'profiling/collectors/code_provenance'
       require_relative 'profiling/collectors/cpu_and_wall_time_worker'
       require_relative 'profiling/collectors/dynamic_sampling_rate'
       require_relative 'profiling/collectors/idle_sampling_helper'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/collectors/thread_context'
-      require_relative 'profiling/diagnostics/environment_logger'
+      require_relative 'profiling/crashtracker'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/exporter'
       require_relative 'profiling/flush'

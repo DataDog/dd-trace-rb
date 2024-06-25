@@ -1,0 +1,68 @@
+# Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
+
+FROM ruby:3.2.4-bookworm
+
+# Make apt non-interactive
+RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
+  && echo 'DPkg::Options "--force-confnew";' >> /etc/apt/apt.conf.d/90circleci
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required packages
+RUN set -ex; \
+        apt-get update; \
+        mkdir -p /usr/share/man/man1; \
+        apt-get install -y --no-install-recommends \
+            git mercurial xvfb \
+            locales sudo openssh-client ca-certificates tar gzip parallel \
+            net-tools netcat-openbsd unzip zip bzip2 gnupg curl wget \
+            tzdata rsync vim less jq; \
+        rm -rf /var/lib/apt/lists/*;
+
+# Set timezone to UTC by default
+RUN ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
+
+# Set language
+RUN locale-gen en_US.UTF-8
+ENV LANG en_US.UTF-8
+ENV LANGUAGE en_US:en
+
+# Install Docker
+RUN set -ex \
+  && export DOCKER_VERSION=$(curl --silent --fail --retry 3 https://download.docker.com/linux/static/stable/$(arch)/ | grep -o -e 'docker-[.0-9]*-ce\.tgz' | sort -r | head -n 1) \
+  && DOCKER_URL="https://download.docker.com/linux/static/stable/$(arch)/${DOCKER_VERSION}" \
+  && echo DOCKER_URL: $DOCKER_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /tmp/docker.tgz "${DOCKER_URL}" \
+  && ls -lha /tmp/docker.tgz \
+  && tar -xz -C /tmp -f /tmp/docker.tgz \
+  && mv /tmp/docker/* /usr/bin \
+  && rm -rf /tmp/docker /tmp/docker.tgz \
+  && which docker \
+  && (docker version || true)
+
+# Install Docker Compose
+RUN COMPOSE_URL="https://github.com/linuxserver/docker-docker-compose/releases/download/1.29.2-ls51/docker-compose-$(dpkg --print-architecture)" \
+  && echo COMPOSE_URL: $COMPOSE_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/bin/docker-compose $COMPOSE_URL \
+  && chmod +x /usr/bin/docker-compose \
+  && docker-compose version
+
+# Install Dockerize
+RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')" \
+  && echo DOCKERIZE_URL: $DOCKERIZE_URL \
+  && curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL \
+  && chmod +x /usr/local/bin/dockerize \
+  && dockerize --version
+
+# Install RubyGems
+RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
+
+# Upgrade RubyGems and Bundler
+RUN gem update --system 3.3.26
+RUN gem install bundler -v '~> 2.3.26'
+ENV BUNDLE_SILENCE_ROOT_WARNING 1
+
+RUN mkdir /app
+WORKDIR /app
+
+CMD ["/bin/sh"]

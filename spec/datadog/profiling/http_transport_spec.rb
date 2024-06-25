@@ -32,16 +32,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       ssl: ssl,
       hostname: hostname,
       port: port,
-      deprecated_for_removal_transport_configuration_proc: deprecated_for_removal_transport_configuration_proc,
-      timeout_seconds: nil,
+      timeout_seconds: nil
     )
   end
-  let(:adapter) { Datadog::Core::Transport::Ext::HTTP::ADAPTER }
+  let(:adapter) { Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER }
   let(:uds_path) { nil }
   let(:ssl) { false }
   let(:hostname) { '192.168.0.1' }
   let(:port) { '12345' }
-  let(:deprecated_for_removal_transport_configuration_proc) { nil }
   let(:site) { nil }
   let(:api_key) { nil }
   let(:upload_timeout_seconds) { 10 }
@@ -56,6 +54,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
       internal_metadata: { no_signals_workaround_enabled: true },
+      info_json: info_json,
     )
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
@@ -67,6 +66,29 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
   let(:code_provenance_data) { 'the_code_provenance_data' }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
+  let(:info_json) do
+    JSON.fast_generate(
+      {
+        application: {
+          start_time: '2024-01-24T11:17:22Z'
+        },
+        runtime: {
+          engine: 'ruby'
+        },
+      }
+    )
+  end
+  # Like above but with string keys (JSON parsing unsymbolizes keys by default)
+  let(:info_string_keys) do
+    {
+      'application' => {
+        'start_time' => '2024-01-24T11:17:22Z'
+      },
+      'runtime' => {
+        'engine' => 'ruby'
+      },
+    }
+  end
 
   describe '#initialize' do
     context 'when agent_settings are provided' do
@@ -103,35 +125,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
             .and_return([:ok, nil])
 
           http_transport
-        end
-      end
-
-      context 'when agent_settings includes a deprecated_for_removal_transport_configuration_proc' do
-        let(:deprecated_for_removal_transport_configuration_proc) { instance_double(Proc, 'Configuration proc') }
-
-        it 'logs a warning message' do
-          expect(Datadog.logger).to receive(:warn)
-
-          http_transport
-        end
-
-        it 'picks working mode from the agent_settings object' do
-          allow(Datadog.logger).to receive(:warn)
-
-          expect(described_class)
-            .to receive(:_native_validate_exporter)
-            .with([:agent, 'http://192.168.0.1:12345/'])
-            .and_return([:ok, nil])
-
-          http_transport
-        end
-      end
-
-      context 'when agent_settings requests an unsupported transport' do
-        let(:adapter) { :test }
-
-        it do
-          expect { http_transport }.to raise_error(ArgumentError, /Unsupported transport/)
         end
       end
     end
@@ -187,7 +180,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
-      internal_metadata_json = '{"no_signals_workaround_enabled":"true"}'
+      internal_metadata_json = '{"no_signals_workaround_enabled":true}'
+
+      info_json = '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
 
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
@@ -202,6 +197,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         code_provenance_data,
         tags_as_array,
         internal_metadata_json,
+        info_json,
       ).and_return([:ok, 200])
 
       export
@@ -283,18 +279,23 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 
+  describe '#exporter_configuration' do
+    it 'returns the current exporter configuration' do
+      expect(http_transport.exporter_configuration).to eq [:agent, 'http://192.168.0.1:12345/']
+    end
+  end
+
   context 'integration testing' do
     shared_context 'HTTP server' do
       let(:server) do
         WEBrick::HTTPServer.new(
-          Port: port,
+          Port: 0,
           Logger: log,
           AccessLog: access_log,
           StartCallback: -> { init_signal.push(1) }
         )
       end
       let(:hostname) { '127.0.0.1' }
-      let(:port) { 6006 }
       let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
       let(:access_log_buffer) { StringIO.new }
       let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
@@ -330,7 +331,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:request) { messages.first }
 
     let(:hostname) { '127.0.0.1' }
-    let(:port) { '6006' }
+    let(:port) { server[:Port] }
 
     shared_examples 'correctly reports profiling data' do
       it 'correctly reports profiling data' do
@@ -341,7 +342,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         expect(request.header).to include(
           'content-type' => [%r{^multipart/form-data; boundary=(.+)}],
           'dd-evp-origin' => ['dd-trace-rb'],
-          'dd-evp-origin-version' => [DDTrace::VERSION::STRING],
+          'dd-evp-origin-version' => [Datadog::VERSION::STRING],
         )
 
         # check body
@@ -357,7 +358,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => 'true' },
+          'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => info_string_keys,
         )
       end
 
@@ -381,7 +383,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     it 'exports data via http to the agent url' do
       http_transport.export(flush)
 
-      expect(request.request_uri.to_s).to eq 'http://127.0.0.1:6006/profiling/v1/input'
+      expect(request.request_uri.to_s).to eq "http://127.0.0.1:#{port}/profiling/v1/input"
     end
 
     context 'when code provenance data is not available' do
@@ -405,7 +407,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => 'true' },
+          'internal' => { 'no_signals_workaround_enabled' => true },
+          'info' => info_string_keys,
         )
 
         expect(body[code_provenance_file_name]).to be nil

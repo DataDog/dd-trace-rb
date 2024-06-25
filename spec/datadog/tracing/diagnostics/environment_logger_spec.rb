@@ -5,11 +5,15 @@ require 'datadog/tracing/diagnostics/environment_logger'
 require 'datadog/tracing/transport/io'
 
 RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
+  around { |example| ClimateControl.modify(environment) { example.run } }
+
   subject(:env_logger) { described_class }
 
   # Reading DD_AGENT_HOST allows this to work in CI
   let(:agent_hostname) { ENV['DD_AGENT_HOST'] || '127.0.0.1' }
   let(:agent_port) { ENV['DD_TRACE_AGENT_PORT'] || 8126 }
+
+  let(:environment) { {} }
 
   before do
     # Resets "only-once" execution pattern of `collect_and_log!`
@@ -45,17 +49,7 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           'sampling_rules' => nil,
           'integrations_loaded' => nil,
           'partial_flushing_enabled' => false,
-          'priority_sampling_enabled' => false,
         )
-      end
-    end
-
-    context 'with multiple invocations' do
-      it 'executes only once' do
-        env_logger.collect_and_log!
-        env_logger.collect_and_log!
-
-        expect(logger).to have_received(:info).once
       end
     end
 
@@ -140,7 +134,6 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           sampling_rules: nil,
           integrations_loaded: nil,
           partial_flushing_enabled: false,
-          priority_sampling_enabled: false,
         )
       end
 
@@ -163,12 +156,14 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
 
       context 'with unix socket transport' do
-        before do
-          allow(Datadog.configuration.tracing).to receive(:transport_options).and_return(
-            lambda { |t|
-              t.adapter :unix, '/tmp/trace.sock'
-            }
-          )
+        let(:environment) do
+          environment = {}
+
+          environment['DD_AGENT_HOST'] = nil
+          environment['DD_TRACE_AGENT_PORT'] = nil
+          environment['DD_TRACE_AGENT_URL'] = 'unix:///tmp/trace.sock'
+
+          environment
         end
 
         it { is_expected.to include agent_url: include('unix') }
@@ -203,24 +198,10 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           it { is_expected.to include integration_http_split_by_domain: 'false' }
         end
 
-        context 'with a complex setting value' do
-          let(:options) { { service_name: Class.new } }
-
-          it 'converts to a string' do
-            is_expected.to include integration_http_service_name: start_with('#<Class:')
-          end
-        end
-
         context 'with partial flushing enabled' do
           before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 
           it { is_expected.to include partial_flushing_enabled: true }
-        end
-
-        context 'with priority sampling enabled' do
-          before { expect(Datadog.configuration.tracing).to receive(:priority_sampling).and_return(true) }
-
-          it { is_expected.to include priority_sampling_enabled: true }
         end
       end
     end

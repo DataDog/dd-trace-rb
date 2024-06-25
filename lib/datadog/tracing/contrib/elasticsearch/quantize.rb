@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../utils/quantization/hash'
 
 module Datadog
@@ -6,8 +8,8 @@ module Datadog
       module Elasticsearch
         # Quantize contains ES-specific resource quantization tools.
         module Quantize
-          PLACEHOLDER = '?'.freeze
-          ID_PLACEHOLDER = '\1?'.freeze
+          PLACEHOLDER = '?'
+          ID_PLACEHOLDER = '\1?'
           EXCLUDE_KEYS = [].freeze
           SHOW_KEYS = [:_index, :_type, :_id].freeze
           DEFAULT_OPTIONS = {

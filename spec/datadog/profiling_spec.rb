@@ -87,6 +87,44 @@ RSpec.describe Datadog::Profiling do
     end
   end
 
+  describe '.wait_until_running' do
+    subject(:wait_until_running) { described_class.wait_until_running }
+
+    before do
+      allow(Datadog.send(:components)).to receive(:profiler).and_return(profiler)
+    end
+
+    context 'when no profiler is available' do
+      let(:profiler) { nil }
+
+      it 'raises an error' do
+        expect { wait_until_running }.to raise_error(/Profiler not enabled or available/)
+      end
+    end
+
+    context 'when a profiler is available' do
+      let(:profiler) { instance_double('Datadog::Profiling::Profiler', worker: worker) }
+      let(:worker) do
+        instance_double('Datadog::Profiling::Collectors::CpuAndWallTimeWorker', wait_until_running: worker_result)
+      end
+
+      context 'when the worker is ready' do
+        let(:worker_result) { true }
+        it { is_expected.to be(true) }
+      end
+
+      context 'when the worker times out' do
+        let(:worker_result) { nil }
+
+        before { expect(worker).to receive(:wait_until_running).and_raise(StandardError.new('Timeout')) }
+
+        it 'raises an error' do
+          expect { wait_until_running }.to raise_error(/Timeout/)
+        end
+      end
+    end
+  end
+
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
 
@@ -209,7 +247,7 @@ RSpec.describe Datadog::Profiling do
     let(:read) { '' }
 
     it 'tries to read the skipped_reason.txt file in the native extension folder' do
-      expected_path = File.expand_path('../../ext/ddtrace_profiling_native_extension/skipped_reason.txt', __dir__)
+      expected_path = File.expand_path('../../ext/datadog_profiling_native_extension/skipped_reason.txt', __dir__)
 
       expect(file_api).to receive(:exist?) do |path|
         expect(File.expand_path(path)).to eq expected_path

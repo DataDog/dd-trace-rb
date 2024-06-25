@@ -3,6 +3,8 @@ module Datadog
     class HttpTransport
       type exporter_configuration_array = [:agentless | :agent, untyped]
 
+      attr_reader exporter_configuration: exporter_configuration_array
+
       @upload_timeout_milliseconds: ::Integer
       @exporter_configuration: exporter_configuration_array
 
@@ -14,8 +16,6 @@ module Datadog
       ) -> void
 
       def export: (Datadog::Profiling::Flush flush) -> bool
-
-      def self.log_failure_to_process_tag: (::String failure_details) -> void
 
       private
 
@@ -42,6 +42,7 @@ module Datadog
         code_provenance_data: ::String?,
         tags_as_array: Array[[::String, ::String]],
         internal_metadata_json: ::String,
+        info_json: ::String,
       ) -> [:ok | :error, ::Integer | ::String]
 
       def self._native_do_export: (
@@ -57,6 +58,7 @@ module Datadog
         ::String? code_provenance_data,
         Array[[::String, ::String]] tags_as_array,
         ::String internal_metadata_json,
+        ::String info_json,
       ) -> [:ok | :error, ::Integer | ::String]
 
       def config_without_api_key: () -> ::Hash[:agent | :agentless, ::String]

@@ -8,7 +8,13 @@ module Datadog
       # Represents an instance of an integration configuration option
       # @public_api
       class Option
-        attr_reader :definition
+        # @!attribute [r] definition
+        #   The definition object that matches this option.
+        #   @return [Configuration::OptionDefinition]
+        # @!attribute [r] precedence_set
+        #   When this option was last set, what was the value precedence used?
+        #   @return [Precedence::Value]
+        attr_reader :definition, :precedence_set, :resolved_env
 
         # Option setting precedence.
         module Precedence
@@ -44,6 +50,7 @@ module Datadog
           @context = context
           @value = nil
           @is_set = false
+          @resolved_env = nil
 
           # One value is stored per precedence, to allow unsetting a higher
           # precedence value and falling back to a lower precedence one.
@@ -59,7 +66,7 @@ module Datadog
         #
         # @param value [Object] the new value to be associated with this option
         # @param precedence [Precedence] from what precedence order this new value comes from
-        def set(value, precedence: Precedence::PROGRAMMATIC)
+        def set(value, precedence: Precedence::PROGRAMMATIC, resolved_env: nil)
           # Is there a higher precedence value set?
           if @precedence_set > precedence
             # This should be uncommon, as higher precedence values tend to
@@ -78,7 +85,7 @@ module Datadog
             return @value
           end
 
-          internal_set(value, precedence)
+          internal_set(value, precedence, resolved_env)
         end
 
         def unset(precedence)
@@ -96,7 +103,7 @@ module Datadog
               # Look for value that is set.
               # The hash `@value_per_precedence` has a custom default value of `UNSET`.
               if (value = @value_per_precedence[p]) != UNSET
-                internal_set(value, p)
+                internal_set(value, p, nil)
                 return nil
               end
             end
@@ -168,11 +175,9 @@ module Datadog
               hash[pair[0]] = pair[1]
             end
           when :int
-            # DEV-2.0: Change to a more strict coercion method. Integer(value).
-            value.to_i
+            Integer(value, 10)
           when :float
-            # DEV-2.0: Change to a more strict coercion method. Float(value).
-            value.to_f
+            Float(value)
           when :array
             values = value.split(',')
 
@@ -191,14 +196,16 @@ module Datadog
           when :string, NilClass
             value
           else
-            raise ArgumentError,
+            raise InvalidDefinitionError,
               "The option #{@definition.name} is using an unsupported type option for env coercion `#{@definition.type}`"
           end
         end
 
-        def validate_type(value)
-          return value if skip_validation?
+        # For errors caused by illegal option declarations
+        class InvalidDefinitionError < StandardError
+        end
 
+        def validate_type(value)
           raise_error = false
 
           valid_type = validate(@definition.type, value)
@@ -220,10 +227,7 @@ module Datadog
                           "#{@definition.type}, but a `#{value.class}` was provided (#{value.inspect})."\
                         end
 
-            error_msg = "#{error_msg} Please update your `configure` block. "\
-            'Alternatively, you can disable this validation using the '\
-            '`DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION=true`environment variable. '\
-            'For help, please open an issue on <https://github.com/datadog/dd-trace-rb/issues/new/choose>.'
+            error_msg = "#{error_msg} Please update your `configure` block. "
 
             raise ArgumentError, error_msg
           end
@@ -235,8 +239,10 @@ module Datadog
           case type
           when :string
             value.is_a?(String)
-          when :int, :float
-            value.is_a?(Numeric)
+          when :int
+            value.is_a?(Integer)
+          when :float
+            value.is_a?(Float) || value.is_a?(Integer) || value.is_a?(Rational)
           when :array
             value.is_a?(Array)
           when :hash
@@ -255,16 +261,17 @@ module Datadog
         end
 
         # Directly manipulates the current value and currently set precedence.
-        def internal_set(value, precedence)
+        def internal_set(value, precedence, resolved_env)
           old_value = @value
           (@value = context_exec(validate_type(value), old_value, &definition.setter)).tap do |v|
             @is_set = true
             @precedence_set = precedence
+            @resolved_env = resolved_env
             # Store original value to ensure we can always safely call `#internal_set`
             # when restoring a value from `@value_per_precedence`, and we are only running `definition.setter`
             # on the original value, not on a valud that has already been processed by `definition.setter`.
             @value_per_precedence[precedence] = value
-            context_exec(v, old_value, &definition.after_set) if definition.after_set
+            context_exec(v, old_value, precedence, &definition.after_set) if definition.after_set
           end
         end
 
@@ -279,13 +286,21 @@ module Datadog
         def set_value_from_env_or_default
           value = nil
           precedence = nil
+          resolved_env = nil
 
-          if definition.env && ENV[definition.env]
-            value = coerce_env_variable(ENV[definition.env])
-            precedence = Precedence::PROGRAMMATIC
+          if definition.env
+            Array(definition.env).each do |env|
+              next if ENV[env].nil?
+
+              resolved_env = env
+              value = coerce_env_variable(ENV[env])
+              precedence = Precedence::PROGRAMMATIC
+              break
+            end
           end
 
           if value.nil? && definition.deprecated_env && ENV[definition.deprecated_env]
+            resolved_env = definition.deprecated_env
             value = coerce_env_variable(ENV[definition.deprecated_env])
             precedence = Precedence::PROGRAMMATIC
 
@@ -296,16 +311,12 @@ module Datadog
 
           option_value = value.nil? ? default_value : value
 
-          set(option_value, precedence: precedence || Precedence::DEFAULT)
+          set(option_value, precedence: precedence || Precedence::DEFAULT, resolved_env: resolved_env)
+        rescue ArgumentError
+          raise ArgumentError,
+            "Expected environment variable #{resolved_env} to be a #{@definition.type}, " \
+                              "but '#{ENV[resolved_env]}' was provided"
         end
-
-        def skip_validation?
-          ['true', '1'].include?(ENV.fetch('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION', '').strip)
-        end
-
-        # Used for testing
-        attr_reader :precedence_set
-        private :precedence_set
 
         # Anchor object that represents a value that is not set.
         # This is necessary because `nil` is a valid value to be set.

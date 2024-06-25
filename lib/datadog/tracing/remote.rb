@@ -12,12 +12,16 @@ module Datadog
       class << self
         PRODUCT = 'APM_TRACING'
 
+        CAPABILITIES = [
+          1 << 29 # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+        ].freeze
+
         def products
           [PRODUCT]
         end
 
         def capabilities
-          [] # No capabilities advertised
+          CAPABILITIES
         end
 
         def process_config(config, content)

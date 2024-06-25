@@ -107,7 +107,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'graphql', '>= 2.0'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
@@ -118,6 +117,17 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
+end
+
+[
+  '2.2',
+  '2.1',
+  '2.0',
+  '1.13',
+].each do |v|
+  appraise "graphql-#{v}" do
+    gem 'graphql', "~> #{v}.0"
+  end
 end
 
 [3, 4, 5].each do |n|
@@ -134,19 +144,16 @@ end
   end
 end
 
-appraise 'sinatra' do
-  gem 'sinatra', '>= 3'
-  gem 'rack-contrib'
-  gem 'rack-test' # Dev dependencies for testing rack-based code
-end
-
-appraise 'opentracing' do
-  gem 'opentracing', '>= 0.4.1'
+[2, 3, 4].each do |n|
+  appraise "sinatra-#{n}" do
+    gem 'sinatra', "~> #{n}"
+    gem 'rack-contrib'
+    gem 'rack-test' # Dev dependencies for testing rack-based code
+  end
 end
 
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
-  gem 'graphql', '~> 1.12.0', '< 2.0' # TODO: Support graphql 1.13.x
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
   gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby

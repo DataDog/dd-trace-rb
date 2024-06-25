@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/utils'
+require_relative '../core/environment/git'
 
 module Datadog
   module Profiling
@@ -18,11 +19,15 @@ module Datadog
         host: Core::Environment::Socket.hostname,
         language: Core::Environment::Identity.lang,
         pid: Process.pid.to_s,
-        profiler_version: Core::Environment::Identity.tracer_version,
+        # TODO: If profiling is extracted and its version diverges from the datadog gem, this is inaccurate.
+        #       Update if this ever occurs.
+        profiler_version: Core::Environment::Identity.gem_datadog_version,
         runtime_engine: Core::Environment::Identity.lang_engine,
         runtime_id: Core::Environment::Identity.id,
         runtime_platform: Core::Environment::Identity.lang_platform,
         runtime_version: Core::Environment::Identity.lang_version,
+        git_repository_url: Core::Environment::Git.git_repository_url,
+        git_commit_sha: Core::Environment::Git.git_commit_sha,
         # User-provided tags
         user_tags: settings.tags
       )
@@ -42,6 +47,8 @@ module Datadog
         tags[FORM_FIELD_TAG_ENV] = env if env
         tags[FORM_FIELD_TAG_SERVICE] = service if service
         tags[FORM_FIELD_TAG_VERSION] = version if version
+        tags[TAG_GIT_REPOSITORY_URL] = git_repository_url if git_repository_url
+        tags[TAG_GIT_COMMIT_SHA] = git_commit_sha if git_commit_sha
 
         # Make sure everything is an utf-8 string, to avoid encoding issues in native code/libddprof/further downstream
         user_tags.merge(tags).map do |key, value|

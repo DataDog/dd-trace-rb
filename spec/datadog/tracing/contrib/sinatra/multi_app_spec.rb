@@ -3,7 +3,7 @@ require 'rack/test'
 
 require 'sinatra/base'
 
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/sinatra/tracer'
 
 RSpec.describe 'Sinatra instrumentation for multi-apps' do

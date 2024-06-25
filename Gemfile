@@ -2,30 +2,16 @@ source 'https://rubygems.org'
 
 gemspec
 
-# Development dependencies
-if RUBY_VERSION < '2.3'
-  gem 'appraisal', '~> 2.2.0'
-else
-  gem 'appraisal', '~> 2.4.0'
-end
+gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'builder'
 gem 'climate_control', '~> 0.2.0'
-# Leave it open as we also have it as an integration and want Appraisal to control the version under test.
-if RUBY_VERSION >= '2.2.0'
-  gem 'concurrent-ruby'
-else
-  gem 'concurrent-ruby', '< 1.1.10'
-end
+
+gem 'concurrent-ruby'
 gem 'extlz4', '~> 0.3', '>= 0.3.3' if RUBY_PLATFORM != 'java' # Used to test lz4 compression done by libdatadog
-gem 'json', '< 2.6' if RUBY_VERSION < '2.3.0'
 gem 'json-schema', '< 3' # V3 only works with 2.5+
-if RUBY_VERSION >= '2.3.0'
-  gem 'memory_profiler', '~> 0.9'
-else
-  gem 'memory_profiler', '= 0.9.12'
-end
+gem 'memory_profiler', '~> 0.9'
 
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
@@ -35,50 +21,32 @@ if RUBY_PLATFORM != 'java'
   # There's also a few temproary incompatibilities with newer rubies
   gem 'pry-byebug' if RUBY_VERSION >= '2.6.0' && RUBY_ENGINE != 'truffleruby' && RUBY_VERSION < '3.2.0'
   gem 'pry-nav' if RUBY_VERSION < '2.6.0'
-  gem 'pry-stack_explorer' if RUBY_VERSION >= '2.5.0'
+  gem 'pry-stack_explorer'
 else
   gem 'pry-debugger-jruby'
 end
-if RUBY_VERSION >= '2.2.0'
-  gem 'rake', '>= 10.5'
-else
-  gem 'rake', '~> 12.3'
-end
+gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
-gem 'redcarpet', '~> 3.4' if RUBY_PLATFORM != 'java'
 gem 'rspec', '~> 3.12'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
-if RUBY_VERSION >= '2.3.0'
-  gem 'rspec_junit_formatter', '>= 0.5.1'
-else
-  # Newer versions do not support Ruby < 2.3.
-  gem 'rspec_junit_formatter', '<= 0.4.1'
-end
-gem 'rspec_n', '~> 1.3' if RUBY_VERSION >= '2.4.0'
-if RUBY_VERSION >= '2.5.0'
-  # Merging branch coverage results does not work for old, unsupported rubies.
-  # We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
-  # but given it only affects unsupported version of Ruby, it might not get merged.
-  gem 'simplecov', git: 'https://github.com/DataDog/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
-  gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
-else
-  # Compatible with older rubies. This version still produces compatible output
-  # with a newer version when the reports are merged.
-  gem 'simplecov', '~> 0.17'
-end
-gem 'simplecov-html', '~> 0.10.2' if RUBY_VERSION < '2.4.0'
-gem 'warning', '~> 1' if RUBY_VERSION >= '2.5.0'
+
+gem 'rspec_junit_formatter', '>= 0.5.1'
+
+# Merging branch coverage results does not work for old, unsupported rubies and JRuby
+# We have a fix up for review, https://github.com/simplecov-ruby/simplecov/pull/972,
+# but given it only affects unsupported version of Ruby, it might not get merged.
+gem 'simplecov', git: 'https://github.com/DataDog/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
+gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
+
+gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
-if RUBY_VERSION < '2.3.0'
-  gem 'rexml', '< 3.2.5' # Pinned due to https://github.com/ruby/rexml/issues/69
-end
+
+gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
+
 gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
-if RUBY_VERSION >= '2.3.0'
-  gem 'yard', '~> 0.9'
-else
-  gem 'yard', ['~> 0.9', '< 0.9.27'] # yard 0.9.27 starts pulling webrick as a gem dependency
-end
+
+gem 'yard', '~> 0.9' # NOTE: YardDoc is generated with ruby 3.2 in GitHub Actions
 
 if RUBY_VERSION >= '2.6.0'
   # 1.50 is the last version to support Ruby 2.6
@@ -91,7 +59,7 @@ end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
-# dogstatsd v5, but lower than 5.2, has possible memory leak with ddtrace.
+# dogstatsd v5, but lower than 5.2, has possible memory leak with datadog.
 # @see https://github.com/DataDog/dogstatsd-ruby/issues/182
 gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 
@@ -116,9 +84,11 @@ group :check do
   end
 end
 
-gem 'docile', '~> 1.3.5' if RUBY_VERSION < '2.5'
-gem 'ffi', '~> 1.12.2' if RUBY_VERSION < '2.3'
-gem 'msgpack', '~> 1.3.3' if RUBY_VERSION < '2.4'
+# `1.17.0` provides broken RBS type definitions
+# https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
+#
+# TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
+gem 'ffi', '~> 1.16.3', require: false
 
 
 gem 'faraday'

@@ -1,6 +1,6 @@
 ### Injection
 
-Injection is Datadog's strategy to [instrument application without touching application code](https://docs.datadoghq.com/tracing/trace_collection/library_injection_local/?tab=kubernetes). Currently, This strategy is implemented by adding `ddtrace` to your application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
+Injection is Datadog's strategy to [instrument application without touching application code](https://docs.datadoghq.com/tracing/trace_collection/library_injection_local/?tab=kubernetes). Currently, This strategy is implemented by adding `datadog` to your application's `Gemfile` to [instrument your application](https://docs.datadoghq.com/tracing/trace_collection/dd_libraries/ruby/#rails-or-hanami-applications)).
 
 * Supports `Ruby on Rails` and `Hanami` application
 * Requires [bundler](https://bundler.io/) version 2.3 or above
@@ -35,17 +35,17 @@ bundle install --deployment
 
 ### Packaging
 
-There's an internal gitlab build pipeline ships pre-installed `ddtrace` deb and rpm packages.
+There's an internal gitlab build pipeline ships pre-installed `datadog` deb and rpm packages.
 
 Currently, we support
 
 | Environment| version |
 |---|---|
 | Ruby  | `2.7`, `3.0`, `3.1`, `3.2`|
-| Arch  | `amd64` |
+| Arch  | `amd64`, `arm64` |
 | glibc |  2.28+ |
 
-In order to ship `ddtrace` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.
+In order to ship `datadog` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.
 
 * Use multiple custom built Ruby images to build native extensions. Those images are based on Debian `buster` to support older distribution and Ruby is compiled as a static library with `--disable-shared` option which disables the creation of shared libraries (also known as dynamic libraries or DLLs).
 * Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`.

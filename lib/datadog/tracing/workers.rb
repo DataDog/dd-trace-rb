@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'buffer'
 require_relative 'pipeline'
 
@@ -69,6 +71,7 @@ module Datadog
             Datadog.logger.debug { "Starting thread for: #{self}" }
             @worker = Thread.new { perform }
             @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+            @worker.thread_variable_set(:fork_safe, true)
 
             nil
           end
