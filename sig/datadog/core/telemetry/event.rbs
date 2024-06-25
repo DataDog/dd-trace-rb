@@ -58,9 +58,9 @@ module Datadog
 
         class GenerateMetrics < Base
           @namespace: String
-          @metric_series: Enumerable[Hash[Symbol, untyped]]
+          @metric_series: Enumerable[Datadog::Core::Telemetry::Metric::Base]
 
-          def initialize: (String namespace, Enumerable[Hash[Symbol, untyped]] metric_series) -> void
+          def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
         end
 
         class Distributions < GenerateMetrics

@@ -13,6 +13,10 @@ module Datadog
         class Base
           attr_reader :name, :tags, :values, :common, :interval
 
+          # @param name [String] metric name
+          # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of array of "tag:val" strings
+          # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
+          # @param interval [Integer] metrics aggregation interval in seconds
           def initialize(name, tags: {}, common: true, interval: nil)
             @name = name
             @values = []
