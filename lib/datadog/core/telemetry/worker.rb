@@ -58,6 +58,8 @@ module Datadog
         end
 
         def enqueue(event)
+          return if !enabled? || forked?
+
           buffer.push(event)
         end
 
