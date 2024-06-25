@@ -13,7 +13,7 @@ RSpec.describe 'loading of products' do
   REQUIRES.each do |req, const|
     context req do
       let(:code) do
-        <<-EOT
+        <<-E
           if defined?(Datadog)
             unless Datadog.constants == [:VERSION]
               exit 1
@@ -27,7 +27,7 @@ RSpec.describe 'loading of products' do
           end
 
           exit 0
-EOT
+        E
       end
 
       it 'loads successfully by itself' do
