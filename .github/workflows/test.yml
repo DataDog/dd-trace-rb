@@ -45,7 +45,7 @@ jobs:
       - name: Bundle install
         run: bundle install
       - name: Appraisal install
-        run: bundle exec rake appraisal:install[${{ matrix.engine.name}}-${{ matrix.engine.version }}]
+        run: bundle exec appraisal install
         env:
           APPRAISAL_DOCKER: 'false'
       - name: Run the test
