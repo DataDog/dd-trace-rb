@@ -34,6 +34,10 @@ jobs:
             version: '9.3'
           - name: jruby
             version: '9.2'
+    env:
+      SKIP_SIMPLECOV: 1
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
     container:
       image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
     steps:
