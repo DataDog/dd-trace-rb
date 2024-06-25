@@ -31,7 +31,7 @@ module Datadog
               metric: name,
               points: values,
               type: type,
-              tags: tags, # move to method
+              tags: tags,
               common: common
             }
             res[:interval] = interval if interval
@@ -134,7 +134,7 @@ module Datadog
             {
               metric: name,
               points: values,
-              tags: tags, # move to method
+              tags: tags,
               common: common
             }
           end
