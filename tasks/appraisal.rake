@@ -33,7 +33,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 
   def docker(ruby_version, cmd)
-    [
+    ENV['APPRAISAL_DOCKER'] == 'false' ? ['bash', '-c', "'#{cmd.join(' ')}'"] : [ # rubocop:disable Style/MultilineTernaryOperator
       'docker compose', 'run',
       '--no-deps',                                   # don't start services
       '-e', 'APPRAISAL_GROUP',                       # pass appraisal group if defined
