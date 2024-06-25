@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'core/configuration'
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
 require_relative 'appsec/scope'

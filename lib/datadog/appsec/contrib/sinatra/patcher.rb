@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/contrib/rack/middlewares'
+require_relative '../../../tracing/contrib'
 
 require_relative '../patcher'
 require_relative '../../response'
@@ -11,7 +11,6 @@ require_relative 'gateway/watcher'
 require_relative 'gateway/route_params'
 require_relative 'gateway/request'
 require_relative '../../../tracing/contrib/sinatra/framework'
-require_relative '../../../tracing/contrib'
 
 module Datadog
   module AppSec
