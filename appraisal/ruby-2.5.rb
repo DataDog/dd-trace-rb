@@ -266,7 +266,10 @@ end
   '2.0',
 ].each do |v|
   appraise "graphql-#{v}" do
+    gem 'rails', '~> 6.1.0'
     gem 'graphql', "~> #{v}.0"
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
   end
 end
 
