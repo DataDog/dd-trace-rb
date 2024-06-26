@@ -15,7 +15,9 @@ module Datadog
 
               EVENT_NAME = 'request.connection.kafka'
 
-              def self.process(span, _event, _id, payload)
+              module_function
+
+              def on_start(span, _event, _id, payload)
                 super
 
                 span.resource = payload[:api]
@@ -23,8 +25,6 @@ module Datadog
                 span.set_tag(Ext::TAG_REQUEST_SIZE, payload[:request_size]) if payload.key?(:request_size)
                 span.set_tag(Ext::TAG_RESPONSE_SIZE, payload[:response_size]) if payload.key?(:response_size)
               end
-
-              module_function
 
               def span_name
                 Ext::SPAN_CONNECTION_REQUEST
