@@ -14,7 +14,7 @@ module Datadog
 
             attr_reader ssl: bool
 
-            DEFAULT_TIMEOUT: 30
+            DEFAULT_TIMEOUT: 2
 
             def initialize: (hostname: String, ?port: Integer?, ?timeout: Float | Integer, ?ssl: bool?) -> void
 

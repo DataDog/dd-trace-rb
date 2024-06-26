@@ -1,0 +1,102 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Metric
+        type metric_type = "count" | "gauge" | "rate" | "distributions" | nil
+
+        type input_value = Integer | Float
+
+        type metric_value = Array[input_value]
+        type distribution_value = input_value
+
+        type tags_input = ::Hash[String, String] | Array[String]
+
+        def self.metric_id: (metric_type type, String name, ?Array[String] tags) -> ::String
+
+        class Base
+          @name: String
+
+          @values: Array[untyped]
+
+          @tags: Array[String]
+
+          @common: bool
+
+          @interval: Integer?
+
+          attr_reader name: String
+
+          attr_reader tags: Array[String]
+
+          attr_reader values: Array[untyped]
+
+          attr_reader common: bool
+
+          attr_reader interval: Integer?
+
+          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
+
+          def track: (Numeric value) -> void
+
+          def type: () -> metric_type
+
+          def to_h: () -> Hash[Symbol, untyped]
+
+          private
+
+          def tags_to_array: (tags_input tags) -> Array[String]
+        end
+
+        class Count < Base
+          TYPE: "count"
+
+          @values: Array[metric_value]
+          attr_reader values: Array[metric_value]
+
+          def type: () -> "count"
+
+          def inc: (?::Integer value) -> void
+
+          def dec: (?::Integer value) -> void
+
+          def track: (Integer value) -> void
+        end
+
+        class Gauge < Base
+          TYPE: "gauge"
+
+          def type: () -> "gauge"
+
+          def track: (input_value value) -> void
+        end
+
+        class Rate < Base
+          @value: Float
+
+          @values: Array[metric_value]
+          attr_reader values: Array[metric_value]
+
+          TYPE: "rate"
+
+          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
+
+          def type: () -> "rate"
+
+          def track: (?::Float value) -> void
+        end
+
+        class Distribution < Base
+          TYPE: "distributions"
+
+          @values: Array[distribution_value]
+          attr_reader values: Array[distribution_value]
+
+          def type: () -> "distributions"
+
+          def track: (input_value value) -> void
+          def to_h: () -> { metric: String, points: Array[distribution_value], tags: Array[String], common: bool }
+        end
+      end
+    end
+  end
+end
