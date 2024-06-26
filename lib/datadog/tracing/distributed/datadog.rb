@@ -109,7 +109,7 @@ module Datadog
 
           return tags if high_order == 0
 
-          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => high_order.to_s(16))
+          tags.merge(Tracing::Metadata::Ext::Distributed::TAG_TID => format('%016x', high_order))
         end
 
         # Side effect: Remove high order 64 bit hex-encoded `tid` tag from distributed tags
