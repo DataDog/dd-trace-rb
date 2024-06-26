@@ -13,6 +13,14 @@ module Datadog
         # Class methods for integrations
         # @public_api
         module ClassMethods
+          # The name of the Ruby gems instrumented by this integration.
+          #
+          # This name should match what is used in Ruby's `require` statement for that gem.
+          #
+          # When *ANY* these gems are loaded (`require 'gem_name'`), the integration can be
+          # automatically patched, if such configuration is enabled.
+          #
+          # @return [Array<String>] the names of the gems instrumented by this integration
           def gems
             []
           end
