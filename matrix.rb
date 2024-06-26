@@ -8,7 +8,7 @@ ruby_to_jruby = {
   '3.1' => ['9.4'],
 }
 
-matrix = map.each_with_object({}) do |(spec, appraisals), h|
+definitions = map.each_with_object({}) do |(spec, appraisals), h|
   h[spec] = appraisals.each_with_object({}) do |(group, rubies), h2|
     ruby = rubies.scan(/✅ (\S+)/).flatten
 
@@ -25,6 +25,29 @@ matrix = map.each_with_object({}) do |(spec, appraisals), h|
 end
 
 # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
-matrix.each { |_, appraisals| appraisals.each { |appraisal, engines| appraisal =~ /^rails4/ && engines.key?('jruby') && engines['jruby'].delete('9.2') } }
+definitions.each { |_, appraisals| appraisals.each { |appraisal, engines| appraisal =~ /^rails4/ && engines.key?('jruby') && engines['jruby'].delete('9.2') } }
 
-puts(JSON.dump(matrix))
+matrix = definitions.each_with_object([]) do |(spec, appraisals), a|
+  appraisals.each do |appraisal, engines|
+    engines.each do |engine, versions|
+      versions.each do |version|
+        a << {
+          spec: {
+            task: spec,
+            appraisal: appraisal,
+          },
+          engine: {
+            name: engine,
+            version: version
+          }
+        }
+      end
+    end
+  end
+end
+
+if (for_engine = ARGV[0]) && (for_version = ARGV[1])
+  matrix.select! { |e| e[:engine][:name] == for_engine && e[:engine][:version] == for_version }
+end
+
+puts(JSON.dump({ include: matrix }))
