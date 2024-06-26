@@ -1,6 +1,9 @@
 # Loaded by the `bin/rails` script in a real Rails application
 require 'rails/command'
 
+# We may not always want to require rails/all, especially when we don't have a database.
+# require is already done where Rails test application is used, manually or through rails_helper.
+
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
