@@ -87,7 +87,7 @@ module Datadog
           return if events.nil?
           return if !enabled? || !sent_started_event?
 
-          Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
+          Datadog.logger.debug { "Sending #{events.count} telemetry events" }
           events.each do |event|
             send_event(event)
           end
