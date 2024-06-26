@@ -197,13 +197,6 @@ module Datadog
             write_components.call(build_components(configuration))
           end
         end
-<<<<<<< HEAD
-
-        # Should only be called the first time components are built
-        components.telemetry.started! if built_components && components && components.telemetry
-        components
-=======
->>>>>>> 69adca124 (remove Telemetry::Component.started! as right now it just contains dependency collection event logic, move it to the Worker)
       end
 
       private
