@@ -11,9 +11,9 @@ on:
         type: string
 
 jobs:
-  prepare:
+  matrix:
     runs-on: ubuntu-latest
-    name: Prepare
+    name: Prepare matrix
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
