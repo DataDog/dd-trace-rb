@@ -859,6 +859,7 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | - | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
 | `enabled` | `DD_TRACE_GRAPHQL_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `schemas`                | | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]`             |
+| `with_unified_tracer`    | | `Bool`   | Enable to instrument with `UnifiedTrace` tracer, enabling support for API Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` (Added in v2.2)  | `false` |
 | `with_deprecated_tracer` | | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                          | `false`          |
 | `service_name`           | | `String` | Service name used for graphql instrumentation                                                                                                                | `'ruby-graphql'` |
 
@@ -874,6 +875,14 @@ class YourSchema < GraphQL::Schema
 end
 ```
 
+With `UnifiedTracer` (Added in v2.2)
+
+```ruby
+class YourSchema < GraphQL::Schema
+  trace_with Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
+end
+```
+
 or with `GraphQL::Tracing::DataDogTracing` (deprecated)
 
 ```ruby
@@ -885,6 +894,23 @@ end
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
 
 Do _NOT_ `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
+
+**Adding custom tags to Datadog spans**
+
+You can add custom tags to Datadog spans by implementing the `prepare_span` method in a subclass, then manually configuring your schema.
+
+```ruby
+class YourSchema < GraphQL::Schema
+  module CustomTracing
+    include Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
+    def prepare_span(trace_key, data, span)
+      span.set_tag("custom:#{trace_key}", data.keys.sort.join(","))
+    end
+  end
+  
+  trace_with CustomTracing
+end
+```
 
 ### gRPC
 
