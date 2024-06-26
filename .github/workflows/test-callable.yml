@@ -13,6 +13,8 @@ on:
 jobs:
   matrix:
     runs-on: ubuntu-latest
+    container:
+      image: "ruby:3.3"
     name: Prepare matrix
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
