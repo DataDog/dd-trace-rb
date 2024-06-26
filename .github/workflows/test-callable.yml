@@ -25,7 +25,7 @@ jobs:
         run: |
           matrix="$(ruby matrix.rb engine.name:${{ inputs.engine_name }} engine.version:${{ inputs.engine_version }})"
           echo "${matrix}"
-          echo "${matrix}" | jq
+          echo "${matrix}" | ruby -rjson -0777 -ne 'pp JSON.parse($_)'
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   test:
