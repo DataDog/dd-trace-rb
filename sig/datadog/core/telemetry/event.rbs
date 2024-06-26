@@ -55,6 +55,16 @@ module Datadog
 
         class AppClosing < Base
         end
+
+        class GenerateMetrics < Base
+          @namespace: String
+          @metric_series: Enumerable[Datadog::Core::Telemetry::Metric::Base]
+
+          def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
+        end
+
+        class Distributions < GenerateMetrics
+        end
       end
     end
   end
