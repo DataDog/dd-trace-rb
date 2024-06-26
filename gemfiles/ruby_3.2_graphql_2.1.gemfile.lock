@@ -302,7 +302,6 @@ DEPENDENCIES
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
-  net-smtp
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
