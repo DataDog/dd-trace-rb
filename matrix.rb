@@ -1,7 +1,7 @@
 require 'yaml'
 require 'json'
 
-map = eval(File.read('Matrixfile'))
+map = eval(File.open('Matrixfile', 'r:utf8').read)
 ruby_to_jruby = {
   '2.5' => ['9.2'],
   '2.6' => ['9.3'],
