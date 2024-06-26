@@ -46,8 +46,33 @@ matrix = definitions.each_with_object([]) do |(spec, appraisals), a|
   end
 end
 
-if (for_engine = ARGV[0]) && (for_version = ARGV[1])
-  matrix.select! { |e| e[:engine][:name] == for_engine && e[:engine][:version] == for_version }
+selected_engine_name = nil
+selected_engine_version = nil
+selected_spec_task = nil
+selected_spec_appraisal = nil
+ARGV.each do |arg|
+  case arg
+  when /^engine.name:(\S+)/ then selected_engine_name = $1
+  when /^engine.version:(\S+)/ then selected_engine_version = $1
+  when /^spec.task:(\S+)/ then selected_spec_task = $1
+  when /^spec.appraisal:(\S+)/ then selected_spec_appraisal = $1
+  end
+end
+
+if selected_engine_name
+  matrix.select! { |e| e[:engine][:name] == selected_engine_name }
+end
+
+if selected_engine_version
+  matrix.select! { |e| e[:engine][:version] == selected_engine_version }
+end
+
+if selected_spec_task
+  matrix.select! { |e| e[:spec][:task] == selected_spec_task }
+end
+
+if selected_spec_appraisal
+  matrix.select! { |e| e[:spec][:appraisal] == selected_spec_appraisal }
 end
 
 puts(JSON.dump({ include: matrix }))
