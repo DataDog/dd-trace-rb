@@ -8,7 +8,7 @@ require 'os'
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
-TEST_METADATA = eval(File.open('Matrixfile', 'r:UTF-8').read).freeze
+TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
 namespace :test do
   desc 'Run all tests'
