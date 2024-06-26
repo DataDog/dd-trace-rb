@@ -1,6 +1,6 @@
 # Note: See the "Publishing updates to images" note in ./README.md for how to publish new builds of this container image
 
-FROM ruby:3.0.4-bullseye
+FROM ruby:3.3.2-bookworm
 
 # Make apt non-interactive
 RUN echo 'APT::Get::Assume-Yes "true";' > /etc/apt/apt.conf.d/90circleci \
@@ -15,7 +15,7 @@ RUN set -ex; \
         apt-get install -y --no-install-recommends \
             git mercurial xvfb \
             locales sudo openssh-client ca-certificates tar gzip parallel \
-            net-tools netcat unzip zip bzip2 gnupg curl wget \
+            net-tools netcat-openbsd unzip zip bzip2 gnupg curl wget \
             tzdata rsync vim less jq; \
         rm -rf /var/lib/apt/lists/*;
 
