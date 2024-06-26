@@ -1,4 +1,5 @@
-require 'rails/all'
+# We may not always want to require rails/all, especially when we don't have a database.
+# Require is already always done where Rails test application is used, manually or through rails_helper.
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'

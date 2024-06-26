@@ -1,8 +1,8 @@
 require 'datadog/tracing/contrib/support/spec_helper'
+require 'datadog/tracing/contrib/graphql/support/application_helpers'
 
 require 'active_model/railtie'
 require 'action_controller/railtie'
-require 'action_mailer/railtie'
 require 'action_view/railtie'
 require 'active_job/railtie'
 require 'action_cable/engine'
@@ -27,61 +27,15 @@ ENV['RAILS_ENV'] = 'test'
 # version; this is controlled with Appraisals
 logger.info "Testing against Rails #{Rails.version} with GraphQL #{::GraphQL::VERSION}"
 
-class TestUserType < ::GraphQL::Schema::Object
-  field :id, ::GraphQL::Types::ID, null: false
-  field :name, ::GraphQL::Types::String, null: true
-  field :created_at, ::GraphQL::Types::String, null: false
-  field :updated_at, ::GraphQL::Types::String, null: false
-end
-
-class TestGraphQLQuery < ::GraphQL::Schema::Object
-  field :user, TestUserType, null: false, description: 'Find an user by ID' do
-    argument :id, ::GraphQL::Types::ID, required: true
-  end
-
-  def user(id:)
-    return OpenStruct.new(id: id, name: 'Caniche') if Integer(id) == 10
-
-    OpenStruct.new(id: id, name: 'Bits')
-  end
-
-  field :userByName, TestUserType, null: false, description: 'Find an user by name' do
-    argument :name, ::GraphQL::Types::String, required: true
-  end
-
-  # rubocop:disable Naming/MethodName
-  def userByName(name:)
-    return OpenStruct.new(id: 10, name: name) if name == 'Caniche'
-
-    OpenStruct.new(id: 1, name: name)
-  end
-  # rubocop:enable Naming/MethodName
-end
-
-class TestGraphQLSchema < ::GraphQL::Schema
-  query(TestGraphQLQuery)
-end
-
-def prepare_variables(variables_param)
-  case variables_param
-  when String
-    if variables_param.present?
-      JSON.parse(variables_param) || {}
-    else
-      {}
-    end
-  when Hash
-    variables_param
-  when ActionController::Parameters
-    variables_param.to_unsafe_hash # GraphQL-Ruby will validate name and type of incoming variables.
-  when nil
-    {}
-  else
-    raise ArgumentError, "Unexpected parameter: #{variables_param}"
-  end
-end
-
 RSpec.shared_context 'with GraphQL schema' do
+  # TODO: Cleaner way to reset the schema between tests (and most likely clean ::GraphQL::Schema too)
+  # stub_const is required for GraphqlController, and we cannot use variables defined in let blocks in stub_const
+  before do
+    Object.send(:remove_const, :TestGraphQLSchema) if defined?(TestGraphQLSchema)
+    Object.send(:remove_const, :TestGraphQLQuery) if defined?(TestGraphQLQuery)
+    Object.send(:remove_const, :TestUserType) if defined?(TestUserType)
+    load 'spec/datadog/tracing/contrib/graphql/support/application_helpers.rb'
+  end
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:schema) { TestGraphQLSchema }
 end
@@ -148,6 +102,25 @@ RSpec.shared_context 'GraphQL test application' do
                      )
                    end
           render json: result
+        end
+
+        def prepare_variables(variables_param)
+          case variables_param
+          when String
+            if variables_param.present?
+              JSON.parse(variables_param) || {}
+            else
+              {}
+            end
+          when Hash
+            variables_param
+          when ActionController::Parameters
+            variables_param.to_unsafe_hash # GraphQL-Ruby will validate name and type of incoming variables.
+          when nil
+            {}
+          else
+            raise ArgumentError, "Unexpected parameter: #{variables_param}"
+          end
         end
       end
     )
