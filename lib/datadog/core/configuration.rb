@@ -81,22 +81,15 @@ module Datadog
         configuration = self.configuration
         yield(configuration)
 
-        built_components = false
-
-        components = safely_synchronize do |write_components|
+        safely_synchronize do |write_components|
           write_components.call(
             if components?
               replace_components!(configuration, @components)
             else
-              components = build_components(configuration)
-              built_components = true
-              components
+              build_components(configuration)
             end
           )
         end
-
-        # Should only be called the first time components are built
-        components.telemetry.started! if built_components
 
         configuration
       end
@@ -197,20 +190,13 @@ module Datadog
         current_components = COMPONENTS_READ_LOCK.synchronize { defined?(@components) && @components }
         return current_components if current_components || !allow_initialization
 
-        built_components = false
-
-        components = safely_synchronize do |write_components|
+        safely_synchronize do |write_components|
           if defined?(@components) && @components
             @components
           else
-            built_components = true
             write_components.call(build_components(configuration))
           end
         end
-
-        # Should only be called the first time components are built
-        components.telemetry.started! if built_components && components && components.telemetry
-        components
       end
 
       private

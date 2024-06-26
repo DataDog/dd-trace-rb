@@ -7,7 +7,7 @@ require 'datadog/core/configuration/components'
 require 'datadog/core/diagnostics/environment_logger'
 require 'datadog/core/diagnostics/health'
 require 'datadog/core/logger'
-require 'datadog/core/telemetry/client'
+require 'datadog/core/telemetry/component'
 require 'datadog/core/runtime/metrics'
 require 'datadog/core/workers/runtime_metrics'
 require 'datadog/statsd'
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   let(:environment_logger_extra) { { hello: 123, world: '456' } }
 
@@ -46,7 +46,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     end
     allow(Datadog::Statsd).to receive(:new) { instance_double(Datadog::Statsd) }
     allow(Datadog::Core::Remote::Component).to receive(:new).and_return(remote)
-    allow(Datadog::Core::Telemetry::Client).to receive(:new).and_return(telemetry)
+    allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
   end
 
   around do |example|
@@ -223,7 +223,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     let(:logger) { instance_double(Logger) }
 
     context 'given settings' do
-      let(:telemetry_client) { instance_double(Datadog::Core::Telemetry::Client) }
+      let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
       let(:expected_options) do
         { enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
           dependency_collection: dependency_collection }
@@ -233,16 +233,16 @@ RSpec.describe Datadog::Core::Configuration::Components do
       let(:dependency_collection) { true }
 
       before do
-        expect(Datadog::Core::Telemetry::Client).to receive(:new).with(expected_options).and_return(telemetry_client)
+        expect(Datadog::Core::Telemetry::Component).to receive(:new).with(expected_options).and_return(telemetry)
         allow(settings.telemetry).to receive(:enabled).and_return(enabled)
       end
 
-      it { is_expected.to be(telemetry_client) }
+      it { is_expected.to be(telemetry) }
 
       context 'with :enabled true' do
         let(:enabled) { double('enabled') }
 
-        it { is_expected.to be(telemetry_client) }
+        it { is_expected.to be(telemetry) }
 
         context 'and :unix agent adapter' do
           let(:expected_options) do
@@ -255,7 +255,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
           it 'does not enable telemetry for unsupported non-http transport' do
             expect(logger).to receive(:debug)
-            is_expected.to be(telemetry_client)
+            is_expected.to be(telemetry)
           end
         end
       end
@@ -1168,7 +1168,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
-        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Client) }
+        let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)

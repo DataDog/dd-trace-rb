@@ -8,7 +8,7 @@ module Datadog
 
         extend Core::Utils::Forking
         def initialize: (?http_transport: untyped) -> void
-        def request: (String request_type, data: Object?) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
+        def request: (Datadog::Core::Telemetry::Event::Base event) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
         def self.sequence: () -> untyped
       end
     end
