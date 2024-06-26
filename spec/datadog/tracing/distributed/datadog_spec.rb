@@ -242,6 +242,19 @@ RSpec.shared_examples 'Datadog distributed format' do
           )
         end
       end
+
+      context 'with span_id nil' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 30000
+          )
+        end
+
+        it 'does not include the x-datadog-parent-id field' do
+          inject!
+          expect(data).to eq('x-datadog-trace-id' => '30000')
+        end
+      end
     end
   end
 

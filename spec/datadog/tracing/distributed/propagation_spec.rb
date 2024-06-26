@@ -56,6 +56,26 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         expect(data).to include('x-datadog-parent-id' => '9876543210')
       end
 
+      context 'when trace_id is nil' do
+        let(:trace_id) { nil }
+
+        before { skip('TraceOperation always has a trace_id') if trace.is_a?(Datadog::Tracing::TraceOperation) }
+
+        it 'does not inject the trace id' do
+          inject!
+          expect(data).to be_empty
+        end
+      end
+
+      context 'when span_id is nil' do
+        let(:span_id) { nil }
+
+        it 'includes an empty x-datadog-parent-id tag' do
+          inject!
+          expect(data).to_not have_key('x-datadog-parent-id')
+        end
+      end
+
       context 'when sampling priority is set' do
         let(:sampling_priority) { 0 }
 
