@@ -60,7 +60,7 @@ module Datadog
         end
 
         def limited?
-          !@limit.nil? && @limit.positive?
+          !@limit.nil? && @limit > 0
         end
 
         def reset_ran_once_state_for_tests
