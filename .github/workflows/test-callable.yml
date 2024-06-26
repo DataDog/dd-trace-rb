@@ -23,7 +23,7 @@ jobs:
       - name: Compute matrix
         id: matrix
         run: |
-          echo "matrix=$(ruby matrix.rb)" >> $GITHUB_OUTPUT
+          echo "matrix=$(ruby matrix.rb ${{ inputs.engine_name }} ${{ inputs.engine_version }})" >> $GITHUB_OUTPUT
 
   test:
     runs-on: ubuntu-latest
