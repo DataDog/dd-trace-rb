@@ -13,6 +13,8 @@ on:
 jobs:
   matrix:
     runs-on: ubuntu-latest
+    container:
+      image: "ghcr.io/datadog/images-rb/engines/ruby:3.3"
     name: Prepare matrix
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
@@ -21,7 +23,7 @@ jobs:
       - name: Compute matrix
         id: matrix
         run: |
-          echo "matrix=$(cat matrix.yml)" >> $GITHUB_OUTPUT
+          echo "matrix=$(ruby -ryaml -rjson -e 'puts JSON.dump(YAML.load(File.read("matrix.yml")))')" >> $GITHUB_OUTPUT
 
   test:
     runs-on: ubuntu-latest
