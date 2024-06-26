@@ -21,7 +21,7 @@ module Datadog
 
           CONTENT_TYPE_APPLICATION_JSON: "application/json"
 
-          API_VERSION: "v1"
+          API_VERSION: "v2"
 
           AGENT_ENDPOINT: "/telemetry/proxy/api/v2/apmtelemetry"
         end
