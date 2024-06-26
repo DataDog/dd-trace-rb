@@ -1,4 +1,3 @@
-require 'English'
 require 'shellwords'
 
 REQUIRES = {
