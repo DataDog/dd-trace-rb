@@ -20,7 +20,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: "Test ${{ matrix.appraisal }} (${{ matrix.engine.name }}:${{ matrix.engine.version }} ${{ matrix.spec }})"
-    needs: matrix
     strategy:
       fail-fast: false
       matrix:
