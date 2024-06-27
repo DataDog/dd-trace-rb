@@ -66,6 +66,8 @@ test_containers:
   - &presto_port 8080
   - &container_mysql
     image: mysql:8.0
+    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+    # rather than mysql_native_password which was the default in previous versions.
     command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_ROOT_PASSWORD=root
