@@ -8,7 +8,7 @@ module Datadog
     module Telemetry
       # MetricsCollection is a thread-safe collection of metrics per namespace
       class MetricsCollection
-        attr_reader :namespace
+        attr_reader :namespace, :interval
 
         def initialize(namespace, aggregation_interval:)
           @namespace = namespace

@@ -24,13 +24,13 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
   let(:namespace) { 'namespace' }
   let(:interval) { 10 }
 
+  let(:metric_name) { 'metric_name' }
+  let(:value) { 5 }
+  let(:tags) { { tag1: 'val1', tag2: 'val2' } }
+  let(:common) { true }
+
   describe '#inc' do
     subject(:inc) { collection.inc(metric_name, value, tags: tags, common: common) }
-
-    let(:metric_name) { 'metric_name' }
-    let(:value) { 5 }
-    let(:tags) { { tag1: 'val1', tag2: 'val2' } }
-    let(:common) { true }
 
     it 'tracks the metric' do
       expect { inc }.to change { metrics.size }.by(1)
@@ -77,11 +77,6 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
   describe '#dec' do
     subject(:dec) { collection.dec(metric_name, value, tags: tags, common: common) }
 
-    let(:metric_name) { 'metric_name' }
-    let(:value) { 5 }
-    let(:tags) { { tag1: 'val1', tag2: 'val2' } }
-    let(:common) { true }
-
     it 'tracks the metric' do
       expect { dec }.to change { metrics.size }.by(1)
       expect(first_metric_value).to eq(-value)
@@ -127,11 +122,6 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
   describe '#gauge' do
     subject(:gauge) { collection.gauge(metric_name, value, tags: tags, common: common) }
 
-    let(:metric_name) { 'metric_name' }
-    let(:value) { 5 }
-    let(:tags) { { tag1: 'val1', tag2: 'val2' } }
-    let(:common) { true }
-
     it 'tracks the metric' do
       expect { gauge }.to change { metrics.size }.by(1)
       expect(first_metric_value).to eq(value)
@@ -162,11 +152,6 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
   describe '#rate' do
     subject(:rate) { collection.rate(metric_name, value, tags: tags, common: common) }
-
-    let(:metric_name) { 'metric_name' }
-    let(:value) { 5 }
-    let(:tags) { { tag1: 'val1', tag2: 'val2' } }
-    let(:common) { true }
 
     it 'tracks the metric' do
       expect { rate }.to change { metrics.size }.by(1)
@@ -212,11 +197,6 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
   describe '#distribution' do
     subject(:distribution) { collection.distribution(metric_name, value, tags: tags, common: common) }
-
-    let(:metric_name) { 'metric_name' }
-    let(:value) { 5 }
-    let(:tags) { { tag1: 'val1', tag2: 'val2' } }
-    let(:common) { true }
 
     it 'tracks the metric' do
       expect { distribution }.to change { distributions.size }.by(1)
