@@ -26,7 +26,7 @@ jobs:
       - name: Compute matrix
         id: matrix
         run: |
-          matrix="$(ruby matrix.rb --json appraisals spec:#{{ inputs.spec }} engine.name:${{ inputs.engine_name }} engine.version:${{ inputs.engine_version }})"
+          matrix="$(ruby matrix.rb --json appraisals spec:${{ inputs.spec }} engine.name:${{ inputs.engine_name }} engine.version:${{ inputs.engine_version }})"
           echo "${matrix}" | ruby -rjson -0777 -ne 'puts JSON.pretty_generate JSON.parse($_)'
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
@@ -39,8 +39,8 @@ jobs:
         spec:
           - ${{ inputs.spec }}
         engine:
-          - name: $${ inputs.engine_name }}
-            version: $${ inputs.engine_version }}
+          - name: ${{ inputs.engine_name }}
+            version: ${{ inputs.engine_version }}
         appraisal: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     uses: ./.github/workflows/unit-test-appraisal.yml
     with:
