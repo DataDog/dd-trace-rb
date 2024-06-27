@@ -34,7 +34,7 @@ jobs:
         spec:
           - ${{ inputs.spec }}
         engine: ${{ fromJSON(needs.matrix.outputs.matrix) }}
-    uses: ./.github/workflows/unit-test/engine.yml
+    uses: ./.github/workflows/unit-test-engine.yml
     with:
       spec: ${{ matrix.spec }}
       engine_name: ${{ matrix.engine.name }}

@@ -43,7 +43,7 @@ jobs:
           - name: $${ inputs.engine_name }}
             version: $${ inputs.engine_version }}
         appraisal: ${{ fromJSON(needs.matrix.outputs.matrix) }}
-    uses: ./.github/workflows/unit-test/appraisal.yml
+    uses: ./.github/workflows/unit-test-appraisal.yml
     with:
       spec: ${{ matrix.spec }}
       engine_name: ${{ matrix.engine.name }}
