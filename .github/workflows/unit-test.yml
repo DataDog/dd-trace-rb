@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        spec: ${{ needs.matrix.outputs.matrix }}
+        spec: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     uses: ./.github/workflows/unit-test-spec.yml
     with:
       spec: ${{ matrix.spec }}
