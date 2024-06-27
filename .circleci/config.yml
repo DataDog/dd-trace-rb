@@ -486,12 +486,12 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.21.0'
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
-    resource_class_to_use: medium+
+    resource_class_to_use: large
   - &config-jruby-9_3
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.3.9.0'
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
-    resource_class_to_use: medium+
+    resource_class_to_use: large
 
 workflows:
   version: 2
