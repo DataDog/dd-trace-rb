@@ -1,40 +1,36 @@
-name: Unit Test Call
+name: Appraisal
 
 on:
   workflow_call:
     inputs:
+      spec:
+        required: true
+        type: string
       engine_name:
         required: true
         type: string
       engine_version:
         required: true
         type: string
+      appraisal:
+        required: true
+        type: string
 
 jobs:
-  matrix:
-    runs-on: ubuntu-latest
-    container:
-      image: "ruby:3.3"
-    name: Prepare matrix
-    outputs:
-      matrix: ${{ steps.matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Compute matrix
-        id: matrix
-        run: |
-          matrix="$(ruby matrix.rb engine.name:${{ inputs.engine_name }} engine.version:${{ inputs.engine_version }})"
-          echo "${matrix}"
-          echo "${matrix}" | ruby -rjson -0777 -ne 'pp JSON.parse($_)'
-          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
-
   test:
     runs-on: ubuntu-latest
-    name: Test ${{ matrix.spec.task }} ${{ matrix.spec.appraisal }} (${{ inputs.engine_name }} ${{ inputs.engine_version }})
+    name: "Test ${{ matrix.appraisal }} (${{ matrix.engine.name }}:${{ matrix.engine.version }} ${{ matrix.spec }})"
     needs: matrix
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+      matrix:
+        spec:
+          - ${{ inputs.spec }}
+        engine:
+          - name: $${ inputs.engine_name }}
+            version: $${ inputs.engine_version }}
+        appraisal:
+          - ${{ inputs.appraisal }}
     env:
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
@@ -60,4 +56,3 @@ jobs:
             export BUNDLE_GEMFILE
           fi
           bundle exec rake spec:${{ matrix.spec.task }}
-

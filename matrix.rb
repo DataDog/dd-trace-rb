@@ -2,6 +2,7 @@ require 'yaml'
 require 'json'
 
 map = eval(File.open('Matrixfile', 'r:UTF-8').read)
+
 ruby_to_jruby = {
   '2.5' => ['9.2'],
   '2.6' => ['9.3'],
@@ -50,12 +51,18 @@ selected_engine_name = nil
 selected_engine_version = nil
 selected_spec_task = nil
 selected_spec_appraisal = nil
+output = nil
+format = nil
 ARGV.each do |arg|
   case arg
   when /^engine.name:(\S+)/ then selected_engine_name = $1
   when /^engine.version:(\S+)/ then selected_engine_version = $1
-  when /^spec.task:(\S+)/ then selected_spec_task = $1
-  when /^spec.appraisal:(\S+)/ then selected_spec_appraisal = $1
+  when /^spec:(\S+)/ then selected_spec_task = $1
+  when /^appraisal:(\S*)/ then selected_spec_appraisal = $1
+  when 'engines' then output = 'engines'
+  when 'specs' then output = 'specs'
+  when 'appraisals' then output = 'appraisals'
+  when '--json' then format = 'json'
   end
 end
 
@@ -75,4 +82,20 @@ if selected_spec_appraisal
   matrix.select! { |e| e[:spec][:appraisal] == selected_spec_appraisal }
 end
 
-puts(JSON.dump({ include: matrix }))
+out = case output
+      when 'engines'
+        matrix.each_with_object([]) { |e, a| a << e[:engine] }.uniq
+      when 'specs'
+        matrix.each_with_object([]) { |e, a| a << e[:spec][:task] }.uniq
+      when 'appraisals'
+        matrix.each_with_object([]) { |e, a| a << e[:spec][:appraisal] }.uniq
+      else
+        { include: matrix }
+      end
+
+case format
+when 'json'
+  puts(JSON.dump(out))
+else
+  out.each { |e| puts e }
+end
