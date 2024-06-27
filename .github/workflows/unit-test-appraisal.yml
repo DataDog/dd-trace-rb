@@ -26,8 +26,8 @@ jobs:
         spec:
           - ${{ inputs.spec }}
         engine:
-          - name: $${ inputs.engine_name }}
-            version: $${ inputs.engine_version }}
+          - name: ${{ inputs.engine_name }}
+            version: ${{ inputs.engine_version }}
         appraisal:
           - ${{ inputs.appraisal }}
     env:
