@@ -1,0 +1,52 @@
+name: Engine
+
+on:
+  workflow_call:
+    inputs:
+      engine_name:
+        required: true
+        type: string
+      engine_version:
+        required: true
+        type: string
+      spec:
+        required: true
+        type: string
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    container:
+      image: "ruby:3.3"
+    name: Prepare matrix
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute matrix
+        id: matrix
+        run: |
+          matrix="$(ruby matrix.rb --json appraisals spec:#{{ inputs.spec }} engine.name:${{ inputs.engine_name }} engine.version:${{ inputs.engine_version }})"
+          echo "${matrix}" | ruby -rjson -0777 -ne 'puts JSON.pretty_generate JSON.parse($_)'
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+
+  test:
+    runs-on: ubuntu-latest
+    name: "${{ matrix.appraisal }} (${{ matrix.engine.name }}:${{ matrix.engine.version }} ${{ matrix.spec }})"
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        spec:
+          - ${{ inputs.spec }}
+        engine:
+          - name: $${ inputs.engine_name }}
+            version: $${ inputs.engine_version }}
+        appraisal: ${{ fromJSON(needs.matrix.outputs.matrix) }}
+    uses: ./.github/workflows/unit-test/appraisal.yml
+    with:
+      spec: ${{ matrix.spec }}
+      engine_name: ${{ matrix.engine.name }}
+      engine_version: ${{ matrix.engine.version }}
+      appraisal: ${{ matrix.appraisal }}
+

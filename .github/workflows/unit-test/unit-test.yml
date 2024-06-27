@@ -1,0 +1,32 @@
+name: Unit Test
+
+on:
+  push:
+
+jobs:
+  matrix:
+    runs-on: ubuntu-latest
+    container:
+      image: "ruby:3.3"
+    name: Prepare matrix
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute matrix
+        id: matrix
+        run: |
+          matrix="$(ruby matrix.rb --json specs)"
+          echo "${matrix}" | ruby -rjson -0777 -ne 'puts JSON.pretty_generate JSON.parse($_)'
+          echo "matrix=${matrix}" >> $GITHUB_OUTPUT
+  test:
+    name: "${{ matrix.spec }}"
+    needs: matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        spec: ${{ needs.matrix.outputs.matrix }}
+    uses: ./.github/workflows/unit-test/spec.yml
+    with:
+      spec: ${{ matrix.spec }}
+
