@@ -42,7 +42,11 @@ begin
       points: events
     }.to_json
 
-    Open3.capture2e("#{ENV.fetch('DD_TELEMETRY_FORWARDER_PATH', 'echo')} library_entrypoint", stdin_data: payload)
+    fowarder = ENV['DD_TELEMETRY_FORWARDER_PATH']
+
+    return if fowarder.nil? || fowarder.empty?
+
+    Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload)
   end
 
   unless Bundler::SharedHelpers.in_bundle?
@@ -88,11 +92,13 @@ begin
     return # Skip injection
   end
 
-  ['ddtrace', 'datadog'].each do |gem|
-    if (Bundler::CLI::Common.select_spec(gem) rescue false)
-      dd_debug_log 'Skip injection: already installed'
-      return
-    end
+  already_installed = ['ddtrace', 'datadog'].any? do |gem|
+    !!Bundler::CLI::Common.select_spec(gem) rescue false
+  end
+
+  if already_installed
+    dd_debug_log 'Skip injection: already installed'
+    return
   end
 
   if Bundler.frozen_bundle?
