@@ -35,16 +35,16 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
     container:
-      image: "ghcr.io/datadog/images-rb/engines/${{ inputs.engine_name }}:${{ inputs.engine_version }}"
+      image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
     steps:
       - uses: actions/checkout@v4
       - name: Bundle install
         run: bundle install
       - name: Appraisal install
         id: appraisal
-        if: ${{ matrix.spec.appraisal }}
+        if: ${{ matrix.appraisal }}
         run: |
-          BUNDLE_GEMFILE="gemfiles/${{ inputs.engine_name }}_${{ inputs.engine_version }}_$(echo ${{ matrix.spec.appraisal }} | tr '-' '_').gemfile"
+          BUNDLE_GEMFILE="gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_$(echo ${{ matrix.appraisal }} | tr '-' '_').gemfile"
           echo "BUNDLE_GEMFILE=${BUNDLE_GEMFILE}" >> $GITHUB_OUTPUT
           export BUNDLE_GEMFILE
           bundle install
