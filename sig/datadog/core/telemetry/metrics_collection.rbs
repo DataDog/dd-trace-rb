@@ -31,6 +31,10 @@ module Datadog
         def distribution: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
         def flush!: (_Queue queue) -> void
+
+        private
+
+        def fetch_or_add_metric: (untyped metric, Hash[untyped, untyped] collection) -> untyped
       end
     end
   end

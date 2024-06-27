@@ -24,12 +24,7 @@ module Datadog
           metric = Metric::Count.new(metric_name, tags: tags, common: common)
 
           @mutex.synchronize do
-            if @metrics.key?(metric.id)
-              metric = @metrics[metric.id]
-            else
-              @metrics[metric.id] = metric
-            end
-
+            metric = fetch_or_add_metric(metric, @metrics)
             metric.inc(value)
           end
           nil
@@ -39,12 +34,7 @@ module Datadog
           metric = Metric::Count.new(metric_name, tags: tags, common: common)
 
           @mutex.synchronize do
-            if @metrics.key?(metric.id)
-              metric = @metrics[metric.id]
-            else
-              @metrics[metric.id] = metric
-            end
-
+            metric = fetch_or_add_metric(metric, @metrics)
             metric.dec(value)
           end
           nil
@@ -54,12 +44,7 @@ module Datadog
           metric = Metric::Gauge.new(metric_name, tags: tags, common: common, interval: @interval)
 
           @mutex.synchronize do
-            if @metrics.key?(metric.id)
-              metric = @metrics[metric.id]
-            else
-              @metrics[metric.id] = metric
-            end
-
+            metric = fetch_or_add_metric(metric, @metrics)
             metric.track(value)
           end
           nil
@@ -69,12 +54,7 @@ module Datadog
           metric = Metric::Rate.new(metric_name, tags: tags, common: common, interval: @interval)
 
           @mutex.synchronize do
-            if @metrics.key?(metric.id)
-              metric = @metrics[metric.id]
-            else
-              @metrics[metric.id] = metric
-            end
-
+            metric = fetch_or_add_metric(metric, @metrics)
             metric.track(value)
           end
           nil
@@ -84,12 +64,7 @@ module Datadog
           metric = Metric::Distribution.new(metric_name, tags: tags, common: common)
 
           @mutex.synchronize do
-            if @distributions.key?(metric.id)
-              metric = @distributions[metric.id]
-            else
-              @distributions[metric.id] = metric
-            end
-
+            metric = fetch_or_add_metric(metric, @distributions)
             metric.track(value)
           end
           nil
@@ -104,6 +79,12 @@ module Datadog
             @distributions = {}
           end
           nil
+        end
+
+        private
+
+        def fetch_or_add_metric(metric, collection)
+          collection[metric.id] ||= metric
         end
       end
     end
