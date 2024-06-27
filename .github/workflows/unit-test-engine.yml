@@ -31,7 +31,6 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   test:
-    runs-on: ubuntu-latest
     name: "${{ matrix.appraisal }} (${{ matrix.engine.name }}:${{ matrix.engine.version }} ${{ matrix.spec }})"
     needs: matrix
     strategy:
