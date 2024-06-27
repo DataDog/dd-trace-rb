@@ -54,4 +54,4 @@ jobs:
             BUNDLE_GEMFILE="${{ steps.appraisal.outputs.BUNDLE_GEMFILE }}"
             export BUNDLE_GEMFILE
           fi
-          bundle exec rake spec:${{ matrix.spec.task }}
+          bundle exec rake spec:${{ matrix.spec }}
