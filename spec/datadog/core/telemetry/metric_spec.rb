@@ -6,16 +6,6 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
   let(:now) { 123123 }
   before { allow(Time).to receive(:now).and_return(now, now + 1, now + 2, now + 3) }
 
-  describe '.metric_id' do
-    subject(:metric_id) { described_class.metric_id(type, name, tags) }
-
-    let(:type) { 'type' }
-    let(:name) { 'name' }
-    let(:tags) { ['tag1:val1', 'tag2:val2'] }
-
-    it { is_expected.to eq('type::name::tag1:val1,tag2:val2') }
-  end
-
   describe Datadog::Core::Telemetry::Metric::Count do
     subject(:metric) { described_class.new(name, tags: tags) }
 
@@ -30,6 +20,12 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         common: true,
         values: []
       )
+    end
+
+    describe '#id' do
+      subject(:id) { metric.id }
+
+      it { is_expected.to eq('count::metric_name::tag1:val1,tag2:val2') }
     end
 
     describe '#type' do
@@ -102,6 +98,12 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       )
     end
 
+    describe '#id' do
+      subject(:id) { metric.id }
+
+      it { is_expected.to eq('gauge::metric_name::tag1:val1,tag2:val2') }
+    end
+
     describe '#type' do
       subject(:type) { metric.type }
 
@@ -161,6 +163,12 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         common: true,
         values: []
       )
+    end
+
+    describe '#id' do
+      subject(:id) { metric.id }
+
+      it { is_expected.to eq('rate::metric_name::tag1:val1,tag2:val2') }
     end
 
     describe '#type' do
@@ -231,6 +239,12 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         common: true,
         values: []
       )
+    end
+
+    describe '#id' do
+      subject(:id) { metric.id }
+
+      it { is_expected.to eq('distributions::metric_name::tag1:val1,tag2:val2') }
     end
 
     describe '#type' do
