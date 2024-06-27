@@ -75,6 +75,7 @@ MESSAGE
     before { cache.write(key, 50) }
 
     it do
+      read
       expect(read).to eq(50)
 
       expect(spans).to have(4).items
@@ -103,6 +104,41 @@ MESSAGE
 
   describe '#read' do
     it_behaves_like 'reader method', :read
+  end
+
+  describe '#read_multi' do
+    subject(:read_multi) { cache.read_multi(*multi_keys) }
+
+    let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
+
+    before do
+      multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) }
+      clear_traces!
+    end
+
+    it do
+      expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+      expect(spans).to have(2).items
+      get, redis, = spans
+      # expect(get.name).to eq('rails.cache')
+      expect(get.type).to eq('cache')
+      expect(get.resource).to eq('MGET')
+      expect(get.service).to eq('rails-cache')
+      expect(get.get_tag('rails.cache.backend')).to eq('file_store')
+      expect(JSON.parse(get.get_tag('rails.cache.keys'))).to eq(multi_keys)
+      expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(get.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+        .to eq('cache')
+
+      spans[1..-1].each do |set|
+        expect(set.name).to eq('rails.cache')
+        expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('cache')
+      end
+    end
   end
 
   describe '#fetch' do

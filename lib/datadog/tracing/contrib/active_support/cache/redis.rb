@@ -32,7 +32,13 @@ module Datadog
                 if patch_redis?(meth)
                   ::ActiveSupport::Cache::RedisStore
                 else
-                  super
+                  if defined?(::ActiveSupport::Cache::RedisCacheStore) \
+                    && ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
+                    ::ActiveSupport::Cache::RedisCacheStore
+                  else
+                    # TODO: We have to do both
+                    super
+                  end
                 end
               end
             end

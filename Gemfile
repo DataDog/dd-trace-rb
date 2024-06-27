@@ -89,3 +89,10 @@ end
 #
 # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
 gem 'ffi', '~> 1.16.3', require: false
+
+gem 'rails', '~> 6.1.0'
+gem 'pg', '>= 1.1', platform: :ruby
+gem 'redis', '~> 4'
+gem 'sprockets', '< 4'
+gem 'lograge', '~> 0.11'
+gem 'net-smtp'
