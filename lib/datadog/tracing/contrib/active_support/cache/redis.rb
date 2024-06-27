@@ -30,7 +30,10 @@ module Datadog
 
               def cache_store_class(meth)
                 if patch_redis?(meth)
-                  ::ActiveSupport::Cache::RedisStore
+                  [::ActiveSupport::Cache::RedisStore, ::ActiveSupport::Cache::Store]
+                elsif Gem.loaded_specs['redis'] && defined?(::ActiveSupport::Cache::RedisCacheStore) \
+                    && ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
+                  [::ActiveSupport::Cache::RedisCacheStore, ::ActiveSupport::Cache::Store]
                 else
                   super
                 end

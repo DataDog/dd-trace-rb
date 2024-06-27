@@ -9,7 +9,31 @@ module Datadog
     module Contrib
       module ActiveSupport
         module Cache
-          # Defines instrumentation for ActiveSupport caching
+          # DEV-3.0: Backwards compatibility code for the 2.x gem series.
+          # DEV-3.0:
+          # DEV-3.0: `ActiveSupport::Cache` is now instrumented by subscribing to ActiveSupport::Notifications events.
+          # DEV-3.0: The implementation is located at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Events::Cache}.
+          # DEV-3.0: The events emitted provide richer introspection points (e.g. events for cache misses on `#fetch`) while
+          # DEV-3.0: also ensuring we are using Rails' public API for improved compatibility.
+          # DEV-3.0:
+          # DEV-3.0: But a few operations holds us back:
+          # DEV-3.0: 1. `ActiveSupport::Cache::Store#fetch`:
+          # DEV-3.0:   This method does not have an event that can produce an equivalent span to today's 2.x implementation.
+          # DEV-3.0:   In 2.x, `#fetch` produces two separate, *nested* spans: one for the `#read` operation and
+          # DEV-3.0:   another for the `#write` operation that is called internally by `#fetch` when the cache key needs
+          # DEV-3.0:   to be populated on a cache miss.
+          # DEV-3.0:   But the ActiveSupport events emitted by `#fetch` provide two *sibling* events for the`#read` and
+          # DEV-3.0:   `#write` operations.
+          # DEV-3.0:   Moving from nested spans to sibling spans would be a breaking change. One notable difference is
+          # DEV-3.0:   that if the nested `#write` operation fails 2.x, the `#read` span is marked as an error. This would
+          # DEV-3.0:   not be the case with sibling spans, and would be a very visible change.
+          # DEV-3.0: 2. `ActiveSupport::Cache::Store#read_multi` & `ActiveSupport::Cache::Store#fetch_multi`:
+          # DEV-3.0:   ActiveSupport events were introduced in ActiveSupport 5.2.0 for these methods.
+          # DEV-3.0:
+          # DEV-3.0: At the end of the day, moving to ActiveSupport events is the better approach, but we have to retain
+          # DEV-3.0: this last few monkey patches (and all the supporting code) to avoid a breaking change for now.
+          #
+          # Defines the deprecate  monkey-patch instrumentation for `ActiveSupport::Cache::Store#fetch`
           module Instrumentation
             module_function
 
@@ -43,6 +67,10 @@ module Datadog
             # In most of the cases, `#fetch()` and `#read()` calls are nested.
             # Instrument both does not add any value.
             # This method checks if these two operations are nested.
+            #
+            # DEV-3.0: We should not have these checks in the 3.x series because ActiveSupport events provide more
+            # DEV-3.0: legible nested spans. While using ActiveSupport events, the nested spans actually provide meaningful
+            # DEV-3.0: information.
             def nested_read?
               current_span = Tracing.active_span
               current_span && current_span.name == Ext::SPAN_CACHE && current_span.resource == Ext::RESOURCE_CACHE_GET
@@ -107,29 +135,20 @@ module Datadog
               end
             end
 
-            # Defines instrumentation for ActiveSupport cache reading
-            module Read
-              include InstanceMethods
-
-              def read(*args, &block)
-                return super if Instrumentation.nested_read?
-
-                Instrumentation.trace(Ext::RESOURCE_CACHE_GET, dd_store_name, key: args[0]) { super }
-              end
-            end
-
-            # Defines instrumentation for ActiveSupport cache reading of multiple keys
+            # Defines the the legacy monkey-patching instrumentation for ActiveSupport cache read_multi
+            # DEV-3.0: ActiveSupport::Notifications events were introduced in ActiveSupport 5.2.0 for this method.
+            # DEV-3.0: As long as we support ActiveSupport < 5.2.0, we have to keep this method.
             module ReadMulti
               include InstanceMethods
 
-              def read_multi(*keys, &block)
+              def read_multi(*keys, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
                 Instrumentation.trace(Ext::RESOURCE_CACHE_MGET, dd_store_name, multi_key: keys) { super }
               end
             end
 
-            # Defines instrumentation for ActiveSupport cache fetching
+            # Defines the the legacy monkey-patching instrumentation for ActiveSupport cache fetch
             module Fetch
               include InstanceMethods
 
@@ -140,11 +159,13 @@ module Datadog
               end
             end
 
-            # Defines instrumentation for ActiveSupport cache fetching of multiple keys
+            # Defines the the legacy monkey-patching instrumentation for ActiveSupport cache fetch_multi
+            # DEV-3.0: ActiveSupport::Notifications events were introduced in ActiveSupport 5.2.0 for this method.
+            # DEV-3.0: As long as we support ActiveSupport < 5.2.0, we have to keep this method.
             module FetchMulti
               include InstanceMethods
 
-              def fetch_multi(*args, &block)
+              def fetch_multi(*args, **options, &block)
                 return super if Instrumentation.nested_multiread?
 
                 keys = args[-1].instance_of?(Hash) ? args[0..-2] : args
@@ -152,30 +173,13 @@ module Datadog
               end
             end
 
-            # Defines instrumentation for ActiveSupport cache writing
-            module Write
-              include InstanceMethods
-
-              def write(*args, &block)
-                Instrumentation.trace(Ext::RESOURCE_CACHE_SET, dd_store_name, key: args[0]) { super }
-              end
-            end
-
-            # Defines instrumentation for ActiveSupport cache writing of multiple keys
-            module WriteMulti
-              include InstanceMethods
-
-              def write_multi(hash, options = nil)
-                Instrumentation.trace(Ext::RESOURCE_CACHE_MSET, dd_store_name, multi_key: hash.keys) { super }
-              end
-            end
-
-            # Defines instrumentation for ActiveSupport cache deleting
-            module Delete
-              include InstanceMethods
-
-              def delete(*args, &block)
-                Instrumentation.trace(Ext::RESOURCE_CACHE_DELETE, dd_store_name, key: args[0]) { super }
+            # Backports the payload[:store] key present since Rails 6.1:
+            # https://github.com/rails/rails/commit/6fa747f2946ee244b2aab0cd8c3c064f05d950a5
+            module Store
+              def instrument(operation, key, options = nil)
+                polyfill_options = options&.dup || {}
+                polyfill_options[:store] = self.class.name
+                super(operation, key, polyfill_options)
               end
             end
           end

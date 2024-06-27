@@ -45,16 +45,28 @@ module Datadog
               end
 
               # Creates a subscription and immediately activates it.
-              def subscribe(pattern, span_name, span_options = {}, on_start: nil, on_finish: nil)
-                subscription(span_name, span_options, on_start: on_start, on_finish: on_finish).tap do |subscription|
+              def subscribe(pattern, span_name, span_options = {}, on_start: nil, on_finish: nil, trace: nil)
+                subscription(
+                  span_name,
+                  span_options,
+                  on_start: on_start,
+                  on_finish: on_finish,
+                  trace: trace
+                ).tap do |subscription|
                   subscription.subscribe(pattern)
                 end
               end
 
               # Creates a subscription without activating it.
               # Subscription is added to the inheriting class' list of subscriptions.
-              def subscription(span_name, span_options = {}, on_start: nil, on_finish: nil)
-                Subscription.new(span_name, span_options, on_start: on_start, on_finish: on_finish).tap do |subscription|
+              def subscription(span_name, span_options = {}, on_start: nil, on_finish: nil, trace: nil)
+                Subscription.new(
+                  span_name,
+                  span_options,
+                  on_start: on_start,
+                  on_finish: on_finish,
+                  trace: trace
+                ).tap do |subscription|
                   subscriptions << subscription
                 end
               end

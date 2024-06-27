@@ -26,12 +26,13 @@ module Datadog
                 super
               end
 
-              def subscription(span_name = nil, span_options = nil, on_start: nil, on_finish: nil)
+              def subscription(span_name = nil, span_options = nil, on_start: nil, on_finish: nil, trace: nil)
                 super(
                   span_name || self.span_name,
                   span_options || self.span_options,
                   on_start: on_start,
-                  on_finish: on_finish
+                  on_finish: on_finish,
+                  trace: trace
                 )
               end
 
@@ -42,7 +43,8 @@ module Datadog
                     span_name || self.span_name,
                     span_options || self.span_options,
                     on_start: method(:on_start),
-                    on_finish: method(:on_finish)
+                    on_finish: method(:on_finish),
+                    trace: method(:trace?)
                   )
                 end
               end
@@ -69,6 +71,10 @@ module Datadog
 
               def on_finish(span, _event, _id, payload)
                 record_exception(span, payload)
+              end
+
+              def trace?(_event, _payload)
+                true
               end
 
               def record_exception(span, payload)

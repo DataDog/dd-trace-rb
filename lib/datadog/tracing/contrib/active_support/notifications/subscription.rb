@@ -17,30 +17,26 @@ module Datadog
             #   might not include all required information in the `payload` argument.
             # @param on_finish [Proc] a block to run when the event has finished processing,
             #   possibly including more information in the `payload` argument.
-            def initialize(span_name, span_options, on_start: nil, on_finish: nil)
+            # @param trace [Proc] whether to trace the event. Defaults to returning `true`.
+            def initialize(span_name, span_options, on_start: nil, on_finish: nil, trace: nil)
               raise ArgumentError, 'Must be given either on_start or on_finish' unless on_start || on_finish
 
               @span_name = span_name
               @span_options = span_options
               @on_start = Handler.new(on_start)
               @on_finish = Handler.new(on_finish)
+              @trace = trace
               @callbacks = Callbacks.new
             end
 
-            # ActiveSupport 3.x calls this
-            def call(name, start, finish, id, payload)
-              start_span(name, id, payload, start)
-              finish_span(name, id, payload, finish)
-            end
-
-            # ActiveSupport 4+ calls this on start
+            # Called by ActiveSupport on event start
             def start(name, id, payload)
-              start_span(name, id, payload)
+              start_span(name, id, payload) if @trace&.call(name, payload)
             end
 
-            # ActiveSupport 4+ calls this on finish
+            # Called by ActiveSupport on event finish
             def finish(name, id, payload)
-              finish_span(name, id, payload)
+              finish_span(name, id, payload) if payload[:datadog_span]
             end
 
             def before_trace(&block)
