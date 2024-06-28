@@ -210,4 +210,12 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       end
     end
   end
+
+  describe '#disable!' do
+    subject(:disable!) { manager.disable! }
+
+    it 'disables the manager' do
+      expect { disable! }.to change(manager, :enabled).from(true).to(false)
+    end
+  end
 end
