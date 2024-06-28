@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: "ruby:3.3"
-    name: Prepare matrix
+    name: "spec:${{ inputs.spec }} engine:matrix"
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -25,7 +25,7 @@ jobs:
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
 
   test:
-    name: "${{ matrix.engine.name }}:${{ matrix.engine.version }} (${{ matrix.spec }})"
+    name: "spec:${{ matrix.spec }} ${{ matrix.engine.name }}:${{ matrix.engine.version }}"
     needs: matrix
     strategy:
       fail-fast: false
