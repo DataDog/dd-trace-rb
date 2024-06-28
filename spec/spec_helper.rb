@@ -17,6 +17,7 @@ if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |p
   require 'simplecov'
   SimpleCov.start do
     formatter SimpleCov::Formatter::SimpleFormatter
+    enable_for_subprocesses true # Ensure tests that fork count towards code coverage
   end
 end
 
