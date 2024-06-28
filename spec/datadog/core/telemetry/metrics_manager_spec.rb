@@ -209,6 +209,32 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
         flush!
       end
     end
+
+    context 'concurrently creating and flushing namespaces' do
+      let(:queue) { double('queue') }
+
+      it 'flushes all metrics' do
+        threads_count = 5
+        events_count = 0
+
+        allow(queue).to receive(:enqueue) do
+          events_count += 1
+        end
+
+        threads = Array.new(threads_count) do |n|
+          Thread.new do
+            2.times do
+              manager.inc("namespace #{n}", metric_name, value, tags: tags)
+            end
+            manager.flush!(queue)
+          end
+        end
+
+        threads.each(&:join)
+
+        expect(events_count).to eq(threads_count)
+      end
+    end
   end
 
   describe '#disable!' do
