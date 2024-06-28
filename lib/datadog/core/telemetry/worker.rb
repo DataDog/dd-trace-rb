@@ -52,8 +52,6 @@ module Datadog
         def stop(force_stop = false, timeout = @shutdown_timeout)
           buffer.close if running?
 
-          flush_events(dequeue) if work_pending?
-
           super
         end
 
@@ -134,6 +132,10 @@ module Datadog
 
         def dequeue
           buffer.pop
+        end
+
+        def work_pending?
+          run_loop? || !buffer.empty?
         end
 
         def buffer_klass

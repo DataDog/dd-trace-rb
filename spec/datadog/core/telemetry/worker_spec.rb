@@ -275,6 +275,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       worker.start
 
       expect(worker).to receive(:flush_events).at_least(:once)
+
+      worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
       worker.stop(true)
     end
   end
