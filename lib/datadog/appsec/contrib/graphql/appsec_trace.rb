@@ -15,21 +15,6 @@ module Datadog
           def execute_multiplex(multiplex:)
             return super unless Datadog::AppSec.enabled?
 
-            unless Datadog::AppSec.active_scope
-              ready = false
-
-              Datadog::AppSec.reconfigure_lock do
-                processor = Datadog::AppSec.processor
-
-                if !processor.nil? && processor.ready?
-                  Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
-                  ready = true
-                end
-              end
-            end
-
-            return super unless ready
-
             gateway_multiplex = Gateway::Multiplex.new(multiplex)
 
             multiplex_return, multiplex_response = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
