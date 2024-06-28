@@ -74,7 +74,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         it 'disables the worker' do
           worker.start
 
-          try_wait_until { @received_started }
+          try_wait_until { !worker.enabled? }
 
           expect(worker).to have_attributes(
             enabled?: false,
