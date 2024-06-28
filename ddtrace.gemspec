@@ -77,13 +77,12 @@ Gem::Specification.new do |spec|
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 
   spec.post_install_message = <<-MSG
-    Thank you for installing ddtrace.
+    Thank you for installing ddtrace. We have released our next major version!
 
-    As of version 2, the `ddtrace` gem has been renamed to `datadog` to better represent the full suite of Datadog products.
+    As of version 2, `ddtrace` gem has been renamed to `datadog`.
     The 1.x series will now only receive maintenance updates for security and critical bug fixes.
 
-    To upgrade, please update your Gemfile to replace `ddtrace` with `datadog`.
-
-    For detailed instructions on migration, see: https://github.com/DataDog/dd-trace-rb/blob/master/docs/UpgradeGuide2.md
+    To upgrade, please replace gem `ddtrace` with gem `datadog`.
+    For detailed instructions on migration, see: https://dtdg.co/ruby-v2-upgrade
   MSG
 end
