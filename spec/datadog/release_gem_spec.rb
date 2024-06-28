@@ -62,7 +62,7 @@ RSpec.describe 'gem release process' do
 
         expect(gemspec.files)
           .to match_array(
-            `git ls-files -z`
+            `git -c safe.directory='*' ls-files -z`
               .split("\x0")
               .reject { |f| f.match(directories_excluded) }
               .reject { |f| f.match(single_files_excluded) }
