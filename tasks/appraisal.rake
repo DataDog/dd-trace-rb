@@ -158,7 +158,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   task :clean do
     appraisal_files = Dir.glob('gemfiles/*')
 
-    ruby_versions = ['2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3']
+    ruby_versions = ['2.5', '2.6', '2.7', '3.0', '3.1', '3.2', '3.3', '3.4']
     # JRuby skips 2.7 and 3.0
     jruby_cruby_mapping = {
       '9.4' => '3.1',
@@ -202,6 +202,7 @@ TRACER_VERSIONS = [
   '3.1',
   '3.2',
   '3.3',
+  '3.4',
   # ADD NEW RUBIES HERE
   'jruby-9.2',
   'jruby-9.3',
@@ -219,4 +220,5 @@ FORCE_BUNDLER_VERSION = {
   '3.1' => '2.3.26',
   '3.2' => '2.3.26',
   '3.3' => '2.3.26',
+  '3.4' => '2.3.26',
 }.freeze
