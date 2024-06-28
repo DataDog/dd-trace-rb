@@ -135,7 +135,7 @@ module Datadog
         end
 
         def work_pending?
-          @run_loop || !buffer.empty?
+          run_loop? || !buffer.empty?
         end
 
         def buffer_klass
