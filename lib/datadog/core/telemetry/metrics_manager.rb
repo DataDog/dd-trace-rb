@@ -7,6 +7,8 @@ module Datadog
     module Telemetry
       # MetricsManager aggregates and flushes metrics and distributions
       class MetricsManager
+        attr_reader :enabled
+
         def initialize(aggregation_interval:, enabled:)
           @interval = aggregation_interval
           @enabled = enabled
@@ -57,6 +59,10 @@ module Datadog
             @collections.each_value { |col| col.flush!(queue) }
           end
           nil
+        end
+
+        def disable!
+          @enabled = false
         end
 
         private
