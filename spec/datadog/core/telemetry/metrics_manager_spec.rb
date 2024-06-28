@@ -206,6 +206,8 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       let(:enabled) { false }
 
       it 'does nothing' do
+        expect(Datadog::Core::Telemetry::MetricsCollection).to_not receive(:new)
+
         flush!
       end
     end
