@@ -1,9 +1,7 @@
 stages:
   - manual-images
   - package
-  - internal-publish
-  - test
-  - external-publish
+  - shared-pipeline
   - macrobenchmarks
   - microbenchmarks
   - benchmarks
