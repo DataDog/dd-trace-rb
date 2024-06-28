@@ -11,6 +11,12 @@ module Datadog
         module Cache
           # Defines instrumentation for ActiveSupport caching
           module Instrumentation
+            module New
+              def a
+                ActiveSupport::Notifications.instrument("cache_#{operation}.active_support", payload) { yield(payload) }
+              end
+            end
+
             module_function
 
             # @param action [String] type of cache operation. Will be set as the span resource.

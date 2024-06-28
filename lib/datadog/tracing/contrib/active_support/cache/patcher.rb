@@ -2,6 +2,7 @@
 
 require_relative '../../patcher'
 require_relative 'instrumentation'
+require_relative 'events'
 
 module Datadog
   module Tracing
@@ -19,13 +20,14 @@ module Datadog
             end
 
             def patch
-              patch_cache_store_read
-              patch_cache_store_read_multi
-              patch_cache_store_fetch
-              patch_cache_store_fetch_multi
-              patch_cache_store_write
-              patch_cache_store_write_multi
-              patch_cache_store_delete
+              Events.subscribe!
+              # patch_cache_store_read
+              # patch_cache_store_read_multi
+              # patch_cache_store_fetch
+              # patch_cache_store_fetch_multi
+              # patch_cache_store_write
+              # patch_cache_store_write_multi
+              # patch_cache_store_delete
             end
 
             # This method is overwritten by

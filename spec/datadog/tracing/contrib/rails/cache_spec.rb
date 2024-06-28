@@ -172,7 +172,9 @@ RSpec.describe 'Rails cache' do
     end
 
     context 'with custom cache_service' do
-      before { Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache' }
+      before {
+        Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache'
+      }
 
       it 'uses the proper service name' do
         write
