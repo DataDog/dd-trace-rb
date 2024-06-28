@@ -6,6 +6,8 @@ RSpec.describe 'gem release process' do
       # It's easy to forget to ship new files, especially when a new paradigm is
       # introduced (e.g. introducing native files requires the inclusion `ext/`)
       it 'includes all important files' do
+        skip 'broken git output' if RUBY_VERSION < '3.3.'
+
         single_files_excluded = %r{
           ^
           (
