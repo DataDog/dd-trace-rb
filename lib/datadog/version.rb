@@ -21,6 +21,6 @@ module Datadog
     # To allow testing with the next unreleased version of Ruby, the version check is performed
     # as `< #{MAXIMUM_RUBY_VERSION}`, meaning prereleases of MAXIMUM_RUBY_VERSION are allowed
     # but not stable MAXIMUM_RUBY_VERSION releases.
-    MAXIMUM_RUBY_VERSION = '3.4'
+    MAXIMUM_RUBY_VERSION = '3.5'
   end
 end
