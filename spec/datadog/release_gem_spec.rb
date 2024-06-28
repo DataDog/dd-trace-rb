@@ -30,6 +30,7 @@ RSpec.describe 'gem release process' do
            |Gemfile
            |Gemfile-.*
            |Rakefile
+           |Matrixfile
            |Steepfile
            |datadog\.gemspec
            |docker-compose\.yml
