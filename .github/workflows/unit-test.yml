@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: "ruby:3.3"
-    name: Prepare matrix
+    name: "spec:matrix"
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
@@ -20,7 +20,7 @@ jobs:
           echo "${matrix}" | ruby -rjson -0777 -ne 'puts JSON.pretty_generate JSON.parse($_)'
           echo "matrix=${matrix}" >> $GITHUB_OUTPUT
   test:
-    name: "${{ matrix.spec }}"
+    name: "spec:${{ matrix.spec }}"
     needs: matrix
     strategy:
       fail-fast: false
