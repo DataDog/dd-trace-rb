@@ -40,18 +40,18 @@ jobs:
       - uses: actions/checkout@v4
       - name: Bundle install
         run: bundle install
-      - name: Appraisal install
-        id: appraisal
-        if: ${{ matrix.appraisal }}
+      - name: Bundle install
+        id: bundle
         run: |
-          BUNDLE_GEMFILE="gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_$(echo ${{ matrix.appraisal }} | tr '-' '_').gemfile"
+          if [ -n "${{ matrix.appraisal }}" ]; then
+            BUNDLE_GEMFILE="gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_$(echo ${{ matrix.appraisal }} | tr '-' '_').gemfile"
+          elif [ "${{ matrix.engine.name }}" = "ruby" ]; then
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.version }}"
+          else
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.name }}-${{ matrix.engine.version }}"
+          fi
           echo "BUNDLE_GEMFILE=${BUNDLE_GEMFILE}" >> $GITHUB_OUTPUT
-          export BUNDLE_GEMFILE
-          bundle install
+          env BUNDLE_GEMFILE="${BUNDLE_GEMFILE}" bundle install
       - name: Run the test
         run: |
-          if [ -n "${{ steps.appraisal.outputs.BUNDLE_GEMFILE }}" ]; then
-            BUNDLE_GEMFILE="${{ steps.appraisal.outputs.BUNDLE_GEMFILE }}"
-            export BUNDLE_GEMFILE
-          fi
-          bundle exec rake spec:${{ matrix.spec }}
+          env BUNDLE_GEMFILE="${{ steps.bundle.outputs.BUNDLE_GEMFILE }}" bundle exec rake spec:${{ matrix.spec }}
