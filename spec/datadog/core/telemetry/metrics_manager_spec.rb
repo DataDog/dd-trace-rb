@@ -219,16 +219,17 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
         mutex = Mutex.new
 
         threads_count = 5
-        events_count = 0
+        metrics_per_thread = 3
 
-        allow(queue).to receive(:enqueue) do
-          mutex.synchronize { events_count += 1 }
+        flushed_metrics_count = 0
+        allow(queue).to receive(:enqueue) do |event|
+          mutex.synchronize { flushed_metrics_count += event.payload(1)[:series].count }
         end
 
         threads = Array.new(threads_count) do |n|
           Thread.new do
-            2.times do
-              manager.inc("namespace #{n}", metric_name, value, tags: tags)
+            metrics_per_thread.times do |i|
+              manager.inc("namespace #{n}", "#{metric_name} #{i}", value, tags: tags)
             end
             manager.flush!(queue)
           end
@@ -236,7 +237,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
 
         threads.each(&:join)
 
-        expect(events_count).to eq(threads_count)
+        expect(flushed_metrics_count).to eq(threads_count * metrics_per_thread)
       end
     end
   end
