@@ -65,7 +65,10 @@ test_containers:
     image: starburstdata/presto:332-e.9
   - &presto_port 8080
   - &container_mysql
-    image: mysql:5.6
+    image: mysql:8.0
+    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+    # rather than mysql_native_password which was the default in previous versions.
+    command: --default-authentication-plugin=mysql_native_password
     environment:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_PASSWORD=mysql
@@ -485,12 +488,12 @@ job_configuration:
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.21.0'
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
-    resource_class_to_use: medium+
+    resource_class_to_use: large
   - &config-jruby-9_3
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.3.9.0'
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
-    resource_class_to_use: medium+
+    resource_class_to_use: large
 
 workflows:
   version: 2
