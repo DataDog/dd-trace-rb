@@ -216,11 +216,13 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       let(:queue) { double('queue') }
 
       it 'flushes all metrics' do
+        mutex = Mutex.new
+
         threads_count = 5
         events_count = 0
 
         allow(queue).to receive(:enqueue) do
-          events_count += 1
+          mutex.synchronize { events_count += 1 }
         end
 
         threads = Array.new(threads_count) do |n|

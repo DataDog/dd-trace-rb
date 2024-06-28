@@ -293,10 +293,12 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
     end
 
     it 'does not loose metrics when running in multiple threads' do
+      mutex = Mutex.new
       threads_count = 5
       metrics_count = 0
+
       expect(queue).to receive(:enqueue) do |event|
-        metrics_count += event.payload(1)[:series].size
+        mutex.synchronize { metrics_count += event.payload(1)[:series].size }
       end.at_least(:once)
 
       threads = Array.new(threads_count) do |i|
