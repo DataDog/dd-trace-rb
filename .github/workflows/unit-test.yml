@@ -30,3 +30,11 @@ jobs:
     with:
       spec: ${{ matrix.spec }}
 
+  aggregate:
+    name: spec:aggregate
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: NOOP
+        run: |
+          true
