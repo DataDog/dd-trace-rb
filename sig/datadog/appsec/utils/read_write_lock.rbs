@@ -1,0 +1,29 @@
+module Datadog
+  module AppSec
+    module Utils
+      class ReadWriteLock
+        attr_reader reader_mutex: Thread::Mutex
+        attr_reader writer_mutex: Thread::Mutex
+        attr_reader writer_q: Thread::ConditionVariable
+        attr_reader reader_q: Thread::ConditionVariable
+        attr_reader reader_count: Integer
+        attr_reader reader_releases: Integer
+        attr_reader writter: bool
+
+        def initialize: () -> void
+
+        def with_rlock: () { () -> untyped } -> void
+
+        def with_lock: () { () -> untyped } -> void
+
+        def rlock: () -> void
+
+        def runlock: () -> void
+
+        def lock: () -> void
+
+        def unlock: () -> void
+      end
+    end
+  end
+end
