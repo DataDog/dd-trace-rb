@@ -1,0 +1,21 @@
+name: Lint
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ master ]
+jobs:
+  lint:
+    name: Check code for style violations
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@31a7f6d628878b80bc63375a93ae079ec50a1601 # v1.143.0
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Check  with Rubocop
+        run: bundle exec rake rubocop
+        env:
+          RUBOCOP_OPTS: --parallel
