@@ -67,6 +67,7 @@ module Datadog
         end
 
         class MessageBatch < Base
+          attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
           @events: Array[Datadog::Core::Telemetry::Event::Base]
 
           def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void

@@ -316,6 +316,8 @@ module Datadog
 
         # Telemetry class for the 'message-batch' event
         class MessageBatch
+          attr_reader :events
+
           def type
             'message-batch'
           end

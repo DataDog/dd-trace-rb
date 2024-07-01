@@ -82,19 +82,17 @@ module Datadog
         end
 
         def flush_events(events)
-          return if events.nil?
+          return if events.nil? || events.empty?
           return if !enabled? || !sent_started_event?
 
           Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
-          events.each do |event|
-            send_event(event)
-          end
+          send_event(Event::MessageBatch.new(events))
         end
 
         def heartbeat!
           return if !enabled? || !sent_started_event?
 
-          send_event(Event::AppHeartbeat.new)
+          enqueue(Event::AppHeartbeat.new)
         end
 
         def started!
