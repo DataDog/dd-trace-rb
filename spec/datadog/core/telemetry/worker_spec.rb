@@ -295,8 +295,10 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       allow(emitter).to receive(:request).with(
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ) do |event|
-        mutex.synchronize do
-          events_received += event.events.count
+        event.events.each do |subevent|
+          mutex.synchronize do
+            events_received += 1 if subevent.is_a?(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+          end
         end
 
         response
