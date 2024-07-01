@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.23.3] - 2024-07-01
+
+### Added
+
+* Add post install message about 2.x upgrade ([#3723][])
+
+### Fixed
+
+* Fix telemetry events blocking main thread ([#3740][])
+* Fix deadlock from telemetry threads ([#3745][])
+
 ## [1.23.2] - 2024-06-13
 
 ### Fixed
@@ -2826,7 +2837,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.2...1.x-stable
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.3...1.x-stable
+[1.23.3]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.2...v1.23.3
 [1.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.1...v1.23.2
 [1.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.0...v1.23.1
 [1.23.0]: https://github.com/DataDog/dd-trace-rb/compare/v1.22.0...v1.23.0
@@ -4142,6 +4154,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3623]: https://github.com/DataDog/dd-trace-rb/issues/3623
 [#3650]: https://github.com/DataDog/dd-trace-rb/issues/3650
 [#3683]: https://github.com/DataDog/dd-trace-rb/issues/3683
+[#3745]: https://github.com/DataDog/dd-trace-rb/issues/3745
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
