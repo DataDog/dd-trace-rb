@@ -252,4 +252,25 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       )
     end
   end
+
+  context 'MessageBatch' do
+    let(:event) { described_class::MessageBatch.new(events) }
+
+    let(:events) { [described_class::AppClosing.new, described_class::AppHeartbeat.new] }
+
+    it do
+      is_expected.to eq(
+        [
+          {
+            request_type: 'app-closing',
+            payload: {}
+          },
+          {
+            request_type: 'app-heartbeat',
+            payload: {}
+          }
+        ]
+      )
+    end
+  end
 end

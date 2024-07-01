@@ -313,6 +313,26 @@ module Datadog
             'distributions'
           end
         end
+
+        # Telemetry class for the 'message-batch' event
+        class MessageBatch
+          def type
+            'message-batch'
+          end
+
+          def initialize(events)
+            @events = events
+          end
+
+          def payload(seq_id)
+            @events.map do |event|
+              {
+                request_type: event.type,
+                payload: event.payload(seq_id),
+              }
+            end
+          end
+        end
       end
     end
   end

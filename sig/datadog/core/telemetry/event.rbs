@@ -3,7 +3,7 @@ module Datadog
     module Telemetry
       class Event
         class Base
-          def payload: (int seq_id) -> Hash[Symbol, untyped]
+          def payload: (int seq_id) -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
           def type: -> String?
         end
 
@@ -64,6 +64,12 @@ module Datadog
         end
 
         class Distributions < GenerateMetrics
+        end
+
+        class MessageBatch < Base
+          @events: Array[Datadog::Core::Telemetry::Event::Base]
+
+          def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void
         end
       end
     end
