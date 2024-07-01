@@ -37,11 +37,11 @@ RSpec.describe 'Rails Rack' do
 
         self.view_paths = [ActionView::FixtureResolver.new(
           'layouts/application.html.erb' => '<%= yield %>',
-          'test/full.html.erb' => 'Test template content',
+          'test/full.html.erb' => 'Test template content with type <%= Datadog::Tracing.active_span.type %>',
           'test/template_with_partial.html.erb' => 'Template with <%= render "test/outer_partial" %>',
           'test/partial_does_not_exist.html.erb' => '<%= render "test/no_partial_here" %>',
           'test/_outer_partial.html.erb' => 'a partial inside <%= render "test/inner_partial" %>',
-          'test/_inner_partial.html.erb' => 'a partial',
+          'test/_inner_partial.html.erb' => 'a partial with type <%= Datadog::Tracing.active_span.type %>',
           'test/error_template.html.erb' => '<%= 1/0 %>',
           'test/error_partial.html.erb' => 'Oops <%= render "test/inner_error" %>',
           'test/_inner_error.html.erb' => '<%= 1/0 %>'
@@ -183,8 +183,8 @@ RSpec.describe 'Rails Rack' do
       expect(render_span).to be_measured
     end
 
-    it 'tracing does not affect response body' do
-      expect(response.body).to eq('Test template content')
+    it 'populate span fields before the template runs' do
+      expect(response.body).to eq('Test template content with type template')
     end
 
     context 'without explicit layout' do
@@ -239,8 +239,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('render_partial')
     end
 
-    it 'tracing does not affect response body' do
-      expect(response.body).to eq('Template with a partial inside a partial')
+    it 'populate span fields before the partial runs' do
+      expect(response.body).to eq('Template with a partial inside a partial with type template')
     end
   end
 

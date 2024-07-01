@@ -54,4 +54,30 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::Settings do
       end
     end
   end
+
+  describe 'with_unified_tracer' do
+    context 'when default' do
+      it do
+        settings = described_class.new
+
+        expect(settings.with_unified_tracer).to eq(false)
+      end
+    end
+
+    context 'when given `true`' do
+      it do
+        settings = described_class.new(with_unified_tracer: true)
+
+        expect(settings.with_unified_tracer).to eq(true)
+      end
+    end
+
+    context 'when given `false`' do
+      it do
+        settings = described_class.new(with_unified_tracer: false)
+
+        expect(settings.with_unified_tracer).to eq(false)
+      end
+    end
+  end
 end

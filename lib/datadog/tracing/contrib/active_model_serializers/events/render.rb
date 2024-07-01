@@ -30,7 +30,7 @@ module Datadog
               Ext::SPAN_RENDER
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER)
 
               set_common_tags(span, payload)

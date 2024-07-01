@@ -6,7 +6,7 @@ module Datadog
       module Kafka
         # Defines basic behaviors for an event for a consumer.
         module ConsumerEvent
-          def process(span, _event, _id, payload)
+          def on_start(span, _event, _id, payload)
             super
 
             span.set_tag(Ext::TAG_GROUP, payload[:group_id])

@@ -13,6 +13,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
 
     describe 'class' do
       describe 'behavior' do
+        let(:on_start) { double('on start') }
+        let(:on_finish) { double('on finish') }
+
         describe '#subscriptions' do
           subject(:subscriptions) { test_class.subscriptions }
 
@@ -26,7 +29,8 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
                 :subscription,
                 double('span name'),
                 double('options'),
-                &proc {}
+                on_start: on_start,
+                on_finish: on_finish
               )
 
               is_expected.to contain_exactly(subscription)
@@ -87,16 +91,17 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
           end
 
           describe '#subscribe' do
-            subject(:subscription) { test_class.send(:subscribe, pattern, span_name, options, &block) }
+            subject(:subscription) do
+              test_class.send(:subscribe, pattern, span_name, options, on_start: on_start, on_finish: on_finish)
+            end
 
             let(:pattern) { double('pattern') }
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
-            let(:block) { proc {} }
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(span_name, options)
+                .with(span_name, options, on_start: on_start, on_finish: on_finish)
                 .and_call_original
 
               expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
@@ -109,15 +114,16 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
           end
 
           describe '#subscription' do
-            subject(:subscription) { test_class.send(:subscription, span_name, options, &block) }
+            subject(:subscription) do
+              test_class.send(:subscription, span_name, options, on_start: on_start, on_finish: on_finish)
+            end
 
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
-            let(:block) { proc {} }
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(span_name, options)
+                .with(span_name, options, on_start: on_start, on_finish: on_finish)
                 .and_call_original
             end
 
