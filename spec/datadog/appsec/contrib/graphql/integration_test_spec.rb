@@ -34,7 +34,6 @@ RSpec.describe 'GraphQL integration tests',
     let(:appsec_ruleset) { :recommended }
     let(:client_ip) { '127.0.0.1' }
 
-
     let(:blocking_testattack) do
       {
         'version' => '2.2',
@@ -127,6 +126,8 @@ RSpec.describe 'GraphQL integration tests',
     end
 
     before do
+      File.write('test.json', '{"errors": [{"title": "Blocked", "detail": "Security provided by Datadog."}]}')
+
       Datadog.configure do |c|
         c.tracing.enabled = tracing_enabled
         c.tracing.instrument :graphql, with_unified_tracer: true
@@ -136,10 +137,12 @@ RSpec.describe 'GraphQL integration tests',
         c.appsec.instrument :rails
         c.appsec.instrument :rack
         c.appsec.ruleset = appsec_ruleset
+        c.appsec.block.templates.json = 'test.json'
       end
     end
 
     after do
+      File.delete('test.json')
       Datadog.configuration.reset!
       Datadog.registry[:graphql].reset_configuration!
     end
@@ -216,7 +219,11 @@ RSpec.describe 'GraphQL integration tests',
           let(:query) { '{ userByName(name: "$testattack") { id } }' }
 
           it do
-            expect(last_response.body).to eq({ 'errors' => [{ 'title' => "You've been blocked", 'detail' => 'Sorry, you cannot access this page. Please contact the customer service team. Security provided by Datadog.' }]}.to_json )
+            expect(last_response.body).to eq(
+              {
+                'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              }.to_json
+            )
             expect(spans).to include(
               an_object_having_attributes(
                 name: 'graphql.parse',
@@ -232,7 +239,8 @@ RSpec.describe 'GraphQL integration tests',
             )
           end
 
-          it_behaves_like 'a POST 403 span'
+          # GraphQL errors should have no impact on the HTTP layer
+          it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
         end
