@@ -181,6 +181,7 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
+        id: nil,
         &block
       )
         # Don't allow more span measurements if the
@@ -197,7 +198,8 @@ module Datadog
           service: service,
           start_time: start_time,
           tags: tags,
-          type: type
+          type: type,
+          id: id
         )
 
         # Start span measurement
@@ -212,7 +214,8 @@ module Datadog
         service: nil,
         start_time: nil,
         tags: nil,
-        type: nil
+        type: nil,
+        id: nil
       )
         begin
           # Resolve span options:
@@ -249,7 +252,8 @@ module Datadog
             start_time: start_time,
             tags: tags,
             trace_id: trace_id,
-            type: type
+            type: type,
+            id: id
           )
         rescue StandardError => e
           Datadog.logger.debug { "Failed to build new span: #{e}" }

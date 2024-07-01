@@ -32,7 +32,9 @@ module Datadog
 
         # inject! populates the env with span ID, trace ID and sampling priority
         #
-        # This method will never raise errors, but instead log them to `Datadog.logger`.
+        # This method will never raise errors.
+        # It can propagate partial data, if deemed useful, instead of failing.
+        # In case of unrecoverable errors, it will log them to `Datadog.logger`.
         #
         # DEV-2.0: inject! should work without arguments, injecting the active_trace's digest
         # DEV-2.0: and returning a new Hash with the injected data.
@@ -45,7 +47,7 @@ module Datadog
         # @param digest [TraceDigest]
         # @param data [Hash]
         # @return [Boolean] `true` if injected successfully, `false` if no propagation style is configured
-        # @return [nil] in case of error, see `Datadog.logger` output for details.
+        # @return [nil] in case of unrecoverable errors, see `Datadog.logger` output for details.
         def inject!(digest, data)
           if digest.nil?
             ::Datadog.logger.debug('Cannot inject distributed trace data: digest is nil.')
@@ -53,6 +55,11 @@ module Datadog
           end
 
           digest = digest.to_digest if digest.respond_to?(:to_digest)
+
+          if digest.trace_id.nil?
+            ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id is nil.')
+            return nil
+          end
 
           result = false
 

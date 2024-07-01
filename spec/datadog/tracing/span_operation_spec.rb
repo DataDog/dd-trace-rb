@@ -224,6 +224,20 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         end
       end
 
+      describe ':id' do
+        let(:options) { { id: id } }
+
+        context 'that is nil' do
+          let(:id) { nil }
+          it { is_expected.to have_attributes(id: kind_of(Integer)) }
+        end
+
+        context 'that is an Integer' do
+          let(:id) { instance_double(Integer) }
+          it { is_expected.to have_attributes(id: id) }
+        end
+      end
+
       describe ':resource' do
         it_behaves_like 'a string property' do
           let(:property) { :resource }

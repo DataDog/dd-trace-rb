@@ -34,7 +34,7 @@ module Datadog
               Tracing::Metadata::Ext::AppTypes::TYPE_WEB
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               channel = payload[:broadcasting] # Channel has high cardinality
               span.service = configuration[:service_name] if configuration[:service_name]
               span.type = span_type

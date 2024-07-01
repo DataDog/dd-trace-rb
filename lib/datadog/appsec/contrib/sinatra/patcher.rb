@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../tracing/contrib/rack/middlewares'
+require_relative '../../../tracing/contrib'
 
 require_relative '../patcher'
 require_relative '../../response'

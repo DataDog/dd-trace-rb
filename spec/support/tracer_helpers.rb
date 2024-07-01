@@ -121,6 +121,6 @@ module TracerHelpers
   # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
   # for better test readability
   def high_order_hex_trace_id(trace_id)
-    Datadog::Tracing::Utils::TraceId.to_high_order(trace_id).to_s(16)
+    format('%016x', Datadog::Tracing::Utils::TraceId.to_high_order(trace_id))
   end
 end

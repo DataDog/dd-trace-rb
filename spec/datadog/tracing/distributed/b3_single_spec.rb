@@ -76,6 +76,18 @@ RSpec.shared_examples 'B3 Single distributed format' do
         expect(data).to eq(b3_single_header => 'aaaaaaaaaaaaaaaaffffffffffffffff-bbbbbbbbbbbbbbbb')
       end
     end
+
+    context 'with span_id nil' do
+      let(:digest) do
+        Datadog::Tracing::TraceDigest.new(
+          trace_id: 0xabcdef
+        )
+      end
+
+      it 'sets span component to all zeros' do
+        expect(data).to eq(b3_single_header => '00000000000000000000000000abcdef-0000000000000000')
+      end
+    end
   end
 
   describe '#extract' do

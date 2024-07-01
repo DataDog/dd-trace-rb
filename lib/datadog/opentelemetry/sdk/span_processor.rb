@@ -70,7 +70,8 @@ module Datadog
           if parent_context.trace
             Tracing.send(:tracer).send(:call_context).activate!(parent_context.ensure_trace)
           else
-            Tracing.continue_trace!(nil)
+            otel_trace_id = span.context.hex_trace_id.to_i(16)
+            Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(trace_id: otel_trace_id, span_remote: false))
           end
 
           datadog_span = start_datadog_span(span)
@@ -85,7 +86,6 @@ module Datadog
           name, kwargs = span_arguments(span, attributes)
 
           datadog_span = Tracing.trace(name, **kwargs)
-
           datadog_span.set_error([nil, span.status.description]) unless span.status.ok?
           datadog_span.set_tags(span.attributes)
 
@@ -142,6 +142,9 @@ module Datadog
           attributes.flatten!(1)
 
           kwargs[:tags] = attributes.to_h
+
+          # DEV: The datadog span must have the same ID as the OpenTelemetry span
+          kwargs[:id] = span.context.hex_span_id.to_i(16)
 
           [name, kwargs]
         end
