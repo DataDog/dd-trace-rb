@@ -291,10 +291,13 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   describe '#enqueue' do
     it 'adds events to the buffer and flushes them later' do
       events_received = 0
+      mutex = Mutex.new
       allow(emitter).to receive(:request).with(
         an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
       ) do |event|
-        events_received += event.events.count
+        mutex.synchronize do
+          events_received += event.events.count
+        end
 
         response
       end
