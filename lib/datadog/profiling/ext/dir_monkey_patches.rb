@@ -6,6 +6,7 @@ module Datadog
     module Ext
       # All Ruby versions as of this writing have bugs in the dir class implementation, causing issues such as
       # https://github.com/DataDog/dd-trace-rb/issues/3450 .
+      # See also https://bugs.ruby-lang.org/issues/20586 for more details.
       #
       # This monkey patch for the Ruby `Dir` class works around these bugs for affected Ruby versions by temporarily
       # blocking the profiler from interrupting system calls.
@@ -43,6 +44,12 @@ module Datadog
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
 
+          # NOTE: When wrapping methods that yield, it's OK if the `yield` raises an exception while signals are
+          # enabled. This is because:
+          # * We can call `_native_resume_signals` many times in a row, both because it's idempotent, as well as it's
+          #   very low overhead (see benchmarks/profiler_hold_resume_interruptions.rb)
+          # * When an exception is being raised, the iteration will stop anyway, so there's no longer a concern of a
+          #   signal causing Ruby to return an incorrect value
           def each_child(*args, &block)
             if block
               begin
@@ -80,6 +87,7 @@ module Datadog
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
 
+          # See note on methods that yield above.
           def foreach(*args, &block)
             if block
               begin
@@ -103,6 +111,7 @@ module Datadog
             end
           end
 
+          # See note on methods that yield above.
           def glob(*args, &block)
             if block
               begin
@@ -153,6 +162,7 @@ module Datadog
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
 
+          # See note on methods that yield above.
           def each_child(*args, **kwargs, &block)
             if block
               begin
@@ -190,6 +200,7 @@ module Datadog
             Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
           end
 
+          # See note on methods that yield above.
           def foreach(*args, **kwargs, &block)
             if block
               begin
@@ -213,6 +224,7 @@ module Datadog
             end
           end
 
+          # See note on methods that yield above.
           def glob(*args, **kwargs, &block)
             if block
               begin
@@ -251,6 +263,7 @@ module Datadog
       if RUBY_VERSION.start_with?('2.')
         # Monkey patches for Dir (Ruby 2 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
+          # See note on methods that yield above.
           def each(*args, &block)
             if block
               begin
@@ -274,6 +287,7 @@ module Datadog
           end
 
           unless RUBY_VERSION.start_with?('2.5.') # This is Ruby 2.6+
+            # See note on methods that yield above.
             def each_child(*args, &block)
               if block
                 begin
@@ -322,6 +336,7 @@ module Datadog
       else
         # Monkey patches for Dir (Ruby 3 version). See DirMonkeyPatches above for more details.
         module DirInstanceMonkeyPatches
+          # See note on methods that yield above.
           def each(*args, **kwargs, &block)
             if block
               begin
@@ -344,6 +359,7 @@ module Datadog
             end
           end
 
+          # See note on methods that yield above.
           def each_child(*args, **kwargs, &block)
             if block
               begin
