@@ -188,8 +188,10 @@ oci-internal-publish:
     FLAVOR: datadog-apm-library-ruby
 
 oci-internal-test-ecr-publish:
-  stage: package
-  needs: [ oci-internal-publish ]
+  stage: deploy
+  needs:
+    - onboarding_tests
+    - oci-internal-publish
   rules:
     - when: on_success
   trigger:
