@@ -283,10 +283,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       ) do |event|
         event.events.each do |subevent|
           mutex.synchronize do
-            if subevent.is_a?(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
-              p "received event"
-              events_received += 1
-            end
+            events_received += 1 if subevent.is_a?(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
           end
         end
 
@@ -294,7 +291,6 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       end
 
       worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
-      p "stop worker"
       worker.stop(true)
 
       try_wait_until { events_received == 1 }
