@@ -1,0 +1,41 @@
+module Datadog
+  module Core
+    module Telemetry
+      class MetricsManager
+        interface _Queue
+          def enqueue: (Datadog::Core::Telemetry::Event::Base event) -> void
+        end
+
+        @interval: Integer
+
+        @enabled: bool
+
+        @mutex: Thread::Mutex
+
+        @collections: Hash[String, Datadog::Core::Telemetry::MetricsCollection]
+
+        attr_reader enabled: bool
+
+        def initialize: (aggregation_interval: Integer, enabled: bool) -> void
+
+        def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def dec: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def gauge: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def rate: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def flush!: (_Queue queue) -> void
+
+        def disable!: () -> void
+
+        private
+
+        def fetch_or_create_collection: (String namespace) -> Datadog::Core::Telemetry::MetricsCollection
+      end
+    end
+  end
+end

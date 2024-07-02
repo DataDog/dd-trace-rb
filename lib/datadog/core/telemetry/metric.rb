@@ -5,10 +5,6 @@ module Datadog
     module Telemetry
       # Telemetry metrics data model (internal Datadog metrics for client libraries)
       module Metric
-        def self.metric_id(type, name, tags = [])
-          "#{type}::#{name}::#{tags.join(',')}"
-        end
-
         # Base class for all metric types
         class Base
           attr_reader :name, :tags, :values, :common, :interval
@@ -23,6 +19,10 @@ module Datadog
             @tags = tags_to_array(tags)
             @common = common
             @interval = interval
+          end
+
+          def id
+            @id ||= "#{type}::#{name}::#{tags.join(',')}"
           end
 
           def track(value); end
@@ -69,12 +69,15 @@ module Datadog
           end
 
           def track(value)
+            value = value.to_i
+
             if values.empty?
               values << [Time.now.to_i, value]
             else
               values[0][0] = Time.now.to_i
               values[0][1] += value
             end
+            nil
           end
         end
 
@@ -95,6 +98,7 @@ module Datadog
               values[0][0] = Time.now.to_i
               values[0][1] = value
             end
+            nil
           end
         end
 
@@ -116,8 +120,15 @@ module Datadog
           def track(value = 1.0)
             @value += value
 
-            rate = interval ? @value / interval : 0.0
+            rate =
+              if interval && interval.positive?
+                @value / interval
+              else
+                0.0
+              end
+
             @values = [[Time.now.to_i, rate]]
+            nil
           end
         end
 
@@ -131,6 +142,7 @@ module Datadog
 
           def track(value)
             values << value
+            nil
           end
 
           # distribution metric data does not have type field
