@@ -92,7 +92,7 @@ module Datadog
         def heartbeat!
           return if !enabled? || !sent_started_event?
 
-          enqueue(Event::AppHeartbeat.new)
+          send_event(Event::AppHeartbeat.new)
         end
 
         def started!

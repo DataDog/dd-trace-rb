@@ -40,10 +40,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       response
     end
 
-    allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)) do |event|
-      subevent = event.events.first
-
-      @received_heartbeat = true if subevent.is_a?(Datadog::Core::Telemetry::Event::AppHeartbeat)
+    allow(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+      @received_heartbeat = true
 
       response
     end
@@ -105,7 +103,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
         it 'always sends heartbeat event after started event' do
           sent_hearbeat = false
-          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::MessageBatch)) do
+          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
             # app-started was already sent by now
             expect(worker.sent_started_event?).to be(true)
 
@@ -137,7 +135,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             end
 
             sent_hearbeat = false
-            allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::MessageBatch)) do
+            allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
               # app-started was already sent by now
               expect(@received_started).to be(true)
 
@@ -229,11 +227,9 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           end
 
           heartbeat_events = 0
-          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::MessageBatch)) do |event|
-            event.events.each do |subevent|
-              mutex.synchronize do
-                heartbeat_events += 1 if subevent.is_a?(Datadog::Core::Telemetry::Event::AppHeartbeat)
-              end
+          allow(emitter).to receive(:request).with(kind_of(Datadog::Core::Telemetry::Event::AppHeartbeat)) do
+            mutex.synchronize do
+              heartbeat_events += 1
             end
 
             response
@@ -273,15 +269,35 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   describe '#stop' do
-    let(:heartbeat_interval_seconds) { 3 }
+    let(:heartbeat_interval_seconds) { 60 }
 
     it 'flushes events and stops the worker' do
       worker.start
 
-      expect(worker).to receive(:flush_events).at_least(:once)
+      try_wait_until { @received_heartbeat }
+
+      events_received = 0
+      mutex = Mutex.new
+      allow(emitter).to receive(:request).with(
+        an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+      ) do |event|
+        event.events.each do |subevent|
+          mutex.synchronize do
+            if subevent.is_a?(Datadog::Core::Telemetry::Event::AppIntegrationsChange)
+              p "received event"
+              events_received += 1
+            end
+          end
+        end
+
+        response
+      end
 
       worker.enqueue(Datadog::Core::Telemetry::Event::AppIntegrationsChange.new)
+      p "stop worker"
       worker.stop(true)
+
+      try_wait_until { events_received == 1 }
     end
   end
 
