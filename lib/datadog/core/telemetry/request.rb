@@ -17,7 +17,7 @@ module Datadog
               application: application,
               debug: false,
               host: host,
-              payload: event.payload(seq_id),
+              payload: event.payload,
               request_type: event.type,
               runtime_id: Core::Environment::Identity.id,
               seq_id: seq_id,
