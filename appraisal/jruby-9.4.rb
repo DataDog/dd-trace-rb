@@ -1,8 +1,6 @@
-# TODO: Actually test JRuby 9.4
-
 appraise 'rails61-mysql2' do
   gem 'rails', '~> 6.1.0'
-  gem 'activerecord-jdbcmysql-adapter', platform: :jruby
+  gem 'activerecord-jdbcmysql-adapter', '~> 61.0', platform: :jruby
   gem 'sprockets', '< 4'
   gem 'lograge', '~> 0.11'
   gem 'net-smtp'
@@ -82,12 +80,12 @@ end
 end
 
 appraise 'relational_db' do
-  gem 'activerecord', '~> 7'
+  gem 'activerecord', '~> 6.1.0'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
-  gem 'activerecord-jdbcmysql-adapter', platform: :jruby
-  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+  gem 'activerecord-jdbcmysql-adapter', '~> 61.0', platform: :jruby
+  gem 'activerecord-jdbcpostgresql-adapter', '~> 61.0', platform: :jruby
   gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
   gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
 end
