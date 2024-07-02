@@ -5,7 +5,7 @@ require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event do
   let(:id) { double('seq_id') }
-  subject(:payload) { event.payload(id) }
+  subject(:payload) { event.payload }
 
   context 'AppStarted' do
     let(:event) { described_class::AppStarted.new }
@@ -14,6 +14,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
 
     before do
+      allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
+
       Datadog.configure do |c|
         c.agent.host = '1.2.3.4'
         c.tracing.sampling.default_rate = 0.5
@@ -164,12 +166,17 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     let(:name) { 'key' }
     let(:value) { 'value' }
 
+    before do
+      allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
+    end
+
     it 'has a list of client configurations' do
       is_expected.to eq(
         configuration: [{
           name: name,
           value: value,
           origin: origin,
+          seq_id: id
         }]
       )
     end
@@ -185,7 +192,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         is_expected.to eq(
           configuration:
           [
-            { name: name, value: value, origin: origin },
+            { name: name, value: value, origin: origin, seq_id: id },
             { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
           ]
         )
