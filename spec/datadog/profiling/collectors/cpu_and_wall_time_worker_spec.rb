@@ -1176,6 +1176,20 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
   end
 
+  describe '._native_hold_signals and _native_resume_signals' do
+    it 'blocks/unblocks interruptions for the current thread' do
+      expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
+
+      described_class._native_hold_signals
+
+      expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be true
+
+      described_class._native_resume_signals
+
+      expect(described_class::Testing._native_is_sigprof_blocked_in_current_thread).to be false
+    end
+  end
+
   def wait_until_running
     cpu_and_wall_time_worker.wait_until_running
   end

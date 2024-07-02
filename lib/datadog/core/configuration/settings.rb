@@ -397,6 +397,22 @@ module Datadog
               end
             end
 
+            # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
+            #
+            # We've discovered that this can trigger a bug in a number of Ruby APIs in the `Dir` class, as
+            # described in https://github.com/DataDog/dd-trace-rb/issues/3450 . This workaround prevents the issue
+            # from happening by monkey patching the affected APIs.
+            #
+            # (In the future, once a fix lands upstream, we'll disable this workaround for Rubies that don't need it)
+            #
+            # @default `DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED` environment variable as a boolean,
+            # otherwise `true`
+            option :dir_interruption_workaround_enabled do |o|
+              o.env 'DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED'
+              o.type :bool
+              o.default true
+            end
+
             # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
             # interval between samples it takes so as to try and maintain the property that it spends no longer than
             # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will

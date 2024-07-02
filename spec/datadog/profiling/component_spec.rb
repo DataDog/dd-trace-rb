@@ -7,9 +7,10 @@ RSpec.describe Datadog::Profiling::Component do
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
-    # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
+    # Make sure these never get run so they doesn't apply our monkey patches to the RSpec process
     if Datadog::Profiling.supported?
       allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
+      allow(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!).and_return(true)
     end
   end
 
@@ -584,6 +585,40 @@ RSpec.describe Datadog::Profiling::Component do
           )
 
           build_profiler_component
+        end
+      end
+
+      describe 'dir interruption workaround' do
+        let(:no_signals_workaround_enabled) { false }
+
+        before do
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
+        end
+
+        it 'is enabled by default' do
+          expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+
+          build_profiler_component
+        end
+
+        context 'when the no signals workaround is enabled' do
+          let(:no_signals_workaround_enabled) { true }
+
+          it 'is not applied' do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+
+        context 'when the dir interruption workaround is disabled via configuration' do
+          before { settings.profiling.advanced.dir_interruption_workaround_enabled = false }
+
+          it 'is not applied' do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
         end
       end
     end
