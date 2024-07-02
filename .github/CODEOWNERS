@@ -37,3 +37,6 @@
 /spec/datadog/opentelemetry_spec.rb @DataDog/tracing-ruby
 /spec/datadog/profiling/ @DataDog/profiling-rb
 /spec/datadog/profiling_spec.rb @DataDog/profiling-rb
+
+# Security
+/.gitlab/software_composition_analysis.yaml @DataDog/software-integrity-and-trust
