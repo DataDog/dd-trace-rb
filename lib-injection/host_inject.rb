@@ -1,4 +1,9 @@
-return if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
+if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
+  if ENV['DD_GEMFILE']
+    ENV["BUNDLE_GEMFILE"] = ENV['DD_GEMFILE']
+  end
+  return
+end
 
 begin
   require 'rubygems'
@@ -178,6 +183,7 @@ begin
 
     # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
     ENV['GEM_PATH'] = Gem.path.join(':')
+    ENV['DD_GEMFILE'] = datadog_gemfile.to_s
     ENV['BUNDLE_GEMFILE'] = datadog_gemfile.to_s
 
     dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
@@ -196,3 +202,4 @@ rescue Exception => e
   # Skip injection if the environment variable is set
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
 end
+
