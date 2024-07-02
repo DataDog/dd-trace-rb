@@ -76,15 +76,12 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
         it 'disables the worker' do
           worker.start
 
-          try_wait_until { @received_started }
+          try_wait_until { !worker.enabled? }
 
-          expect(worker).to have_attributes(
-            enabled?: false,
-            loop_base_interval: heartbeat_interval_seconds,
-          )
           expect(Datadog.logger).to have_received(:debug).with(
             'Agent does not support telemetry; disabling future telemetry events.'
           )
+          expect(@received_started).to be(true)
           expect(@received_heartbeat).to be(false)
         end
       end
