@@ -22,8 +22,6 @@ module Datadog
 
           @common: bool
 
-          @interval: Integer?
-
           attr_reader name: String
 
           attr_reader tags: Array[String]
@@ -32,9 +30,8 @@ module Datadog
 
           attr_reader common: bool
 
-          attr_reader interval: Integer?
 
-          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
+          def initialize: (String name, ?tags: tags_input, ?common: bool) -> void
 
           def id: () -> String
 
@@ -47,6 +44,14 @@ module Datadog
           private
 
           def tags_to_array: (tags_input tags) -> Array[String]
+        end
+
+        class IntervalMetric < Base
+          @interval: Integer
+
+          attr_reader interval: Integer
+
+          def initialize: (String name, ?tags: tags_input, ?common: bool, interval: Integer) -> void
         end
 
         class Count < Base
@@ -64,7 +69,7 @@ module Datadog
           def track: (input_value value) -> void
         end
 
-        class Gauge < Base
+        class Gauge < IntervalMetric
           TYPE: "gauge"
 
           def type: () -> "gauge"
@@ -72,15 +77,13 @@ module Datadog
           def track: (input_value value) -> void
         end
 
-        class Rate < Base
+        class Rate < IntervalMetric
           @value: Float
 
           @values: Array[metric_value]
           attr_reader values: Array[metric_value]
 
           TYPE: "rate"
-
-          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
 
           def type: () -> "rate"
 

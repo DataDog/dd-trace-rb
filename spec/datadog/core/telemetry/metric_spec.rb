@@ -16,7 +16,6 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       is_expected.to have_attributes(
         name: name,
         tags: ['tag1:val1', 'tag2:val2'],
-        interval: nil,
         common: true,
         values: []
       )
@@ -198,8 +197,8 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       context 'interval is nil' do
         let(:interval) { nil }
 
-        it 'sets rate to zero' do
-          expect { track }.to change { metric.values }.from([]).to([[now, 0.0]])
+        it 'raises error' do
+          expect { metric }.to raise_error(ArgumentError, 'interval must be a positive number')
         end
       end
     end
@@ -235,7 +234,6 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       is_expected.to have_attributes(
         name: name,
         tags: ['tag1:val1', 'tag2:val2'],
-        interval: nil,
         common: true,
         values: []
       )
