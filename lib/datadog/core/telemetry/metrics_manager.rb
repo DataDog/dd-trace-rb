@@ -20,6 +20,7 @@ module Datadog
         def inc(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
+          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.inc(metric_name, value, tags: tags, common: common)
         end
@@ -27,6 +28,7 @@ module Datadog
         def dec(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
+          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.dec(metric_name, value, tags: tags, common: common)
         end
@@ -34,6 +36,7 @@ module Datadog
         def gauge(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
+          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.gauge(metric_name, value, tags: tags, common: common)
         end
@@ -41,6 +44,7 @@ module Datadog
         def rate(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
+          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.rate(metric_name, value, tags: tags, common: common)
         end
@@ -48,6 +52,7 @@ module Datadog
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           return unless @enabled
 
+          # collection is thread-safe internally
           collection = fetch_or_create_collection(namespace)
           collection.distribution(metric_name, value, tags: tags, common: common)
         end
@@ -55,9 +60,9 @@ module Datadog
         def flush!(queue)
           return unless @enabled
 
-          @mutex.synchronize do
-            @collections.each_value { |col| col.flush!(queue) }
-          end
+          collections = @mutex.synchronize { @collections.values }
+          collections.each { |col| col.flush!(queue) }
+
           nil
         end
 
