@@ -34,7 +34,9 @@ module Datadog
 
         private
 
-        def fetch_or_add_metric: (untyped metric, Hash[untyped, untyped] collection) -> untyped
+        def fetch_or_add_metric: (Datadog::Core::Telemetry::Metric::Base metric, Datadog::Core::Telemetry::Metric::input_value value) -> void
+
+        def fetch_or_add_distribution: (Datadog::Core::Telemetry::Metric::Distribution metric, Datadog::Core::Telemetry::Metric::input_value value) -> void
       end
     end
   end

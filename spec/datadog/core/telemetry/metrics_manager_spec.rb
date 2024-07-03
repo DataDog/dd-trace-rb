@@ -223,7 +223,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
 
         flushed_metrics_count = 0
         allow(queue).to receive(:enqueue) do |event|
-          mutex.synchronize { flushed_metrics_count += event.payload(1)[:series].count }
+          mutex.synchronize { flushed_metrics_count += event.payload[:series].count }
         end
 
         threads = Array.new(threads_count) do |n|

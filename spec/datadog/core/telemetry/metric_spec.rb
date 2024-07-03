@@ -33,30 +33,20 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       it { is_expected.to eq('count') }
     end
 
-    describe '#inc' do
-      subject(:inc) { metric.inc(value) }
+    describe '#track' do
+      subject(:track) { metric.track(value) }
 
       let(:value) { 5 }
 
       it 'tracks the value' do
-        expect { inc }.to change { metric.values }.from([]).to([[now, value]])
+        expect { track }.to change { metric.values }.from([]).to([[now, value]])
       end
 
-      context 'incrementing again' do
+      context 'tracking again' do
         it 'adds the value to the previous one and updates timestamp' do
-          metric.inc(value)
-          expect { inc }.to change { metric.values }.from([[now, value]]).to([[now + 1, value + value]])
+          metric.track(value)
+          expect { track }.to change { metric.values }.from([[now, value]]).to([[now + 1, value + value]])
         end
-      end
-    end
-
-    describe '#dec' do
-      subject(:dec) { metric.dec(value) }
-
-      let(:value) { 5 }
-
-      it 'tracks the value' do
-        expect { dec }.to change { metric.values }.from([]).to([[now, -value]])
       end
     end
 
@@ -65,7 +55,7 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
       let(:value) { 2 }
 
       before do
-        metric.inc(value)
+        metric.track(value)
       end
 
       it do

@@ -253,7 +253,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
       expect(queue).to receive(:enqueue) do |event|
         expect(event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
-        payload = event.payload(1)
+        payload = event.payload
 
         expect(payload[:namespace]).to eq(namespace)
         expect(payload[:series]).to have(2).items
@@ -275,7 +275,7 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
 
       expect(queue).to receive(:enqueue) do |event|
         expect(event).to be_a(Datadog::Core::Telemetry::Event::Distributions)
-        payload = event.payload(1)
+        payload = event.payload
 
         expect(payload[:namespace]).to eq(namespace)
         expect(payload[:series]).to have(2).items
@@ -292,13 +292,13 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
       expect(distributions.size).to eq(0)
     end
 
-    it 'does not loose metrics when running in multiple threads' do
+    it 'does not lose metrics when running in multiple threads' do
       mutex = Mutex.new
       threads_count = 5
       metrics_count = 0
 
       expect(queue).to receive(:enqueue) do |event|
-        mutex.synchronize { metrics_count += event.payload(1)[:series].size }
+        mutex.synchronize { metrics_count += event.payload[:series].size }
       end.at_least(:once)
 
       threads = Array.new(threads_count) do |i|

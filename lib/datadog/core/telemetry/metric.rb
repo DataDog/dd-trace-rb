@@ -82,14 +82,6 @@ module Datadog
             TYPE
           end
 
-          def inc(value = 1)
-            track(value)
-          end
-
-          def dec(value = 1)
-            track(-value)
-          end
-
           def track(value)
             value = value.to_i
 

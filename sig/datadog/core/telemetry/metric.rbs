@@ -62,10 +62,6 @@ module Datadog
 
           def type: () -> "count"
 
-          def inc: (?input_value value) -> void
-
-          def dec: (?input_value value) -> void
-
           def track: (input_value value) -> void
         end
 
