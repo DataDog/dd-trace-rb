@@ -202,7 +202,7 @@ end
 
 <h3 id="2.0-log-correlation">Log Correlation</h3>
 
-The following fields have been from `Datadog::Tracing::Correlation::Identifier`, and it no longer responds to them
+The following fields have been removed from `Datadog::Tracing::Correlation::Identifier`, and it no longer responds to them
 
 - `Datadog::Tracing::Correlation::Identifier#span_name`
 - `Datadog::Tracing::Correlation::Identifier#span_resource`
