@@ -178,7 +178,8 @@ begin
 
     # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
     ENV['GEM_PATH'] = Gem.path.join(':')
-    ENV['BUNDLE_GEMFILE'] = datadog_gemfile.to_s
+    ::FileUtils.cp datadog_gemfile, gemfile
+    ::FileUtils.cp datadog_lockfile, lockfile
 
     dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
   end
