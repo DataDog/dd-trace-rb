@@ -5,41 +5,40 @@ module Datadog
     module Telemetry
       # Telemetry metrics data model (internal Datadog metrics for client libraries)
       module Metric
-        def self.metric_id(type, name, tags = [])
-          "#{type}::#{name}::#{tags.join(',')}"
-        end
-
         # Base class for all metric types
         class Base
-          attr_reader :name, :tags, :values, :common, :interval
+          attr_reader :name, :tags, :values, :common
 
           # @param name [String] metric name
           # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of array of "tag:val" strings
           # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
-          # @param interval [Integer] metrics aggregation interval in seconds
-          def initialize(name, tags: {}, common: true, interval: nil)
+          def initialize(name, tags: {}, common: true)
             @name = name
             @values = []
             @tags = tags_to_array(tags)
             @common = common
-            @interval = interval
           end
 
-          def track(value); end
+          def id
+            @id ||= "#{type}::#{name}::#{tags.join(',')}"
+          end
 
-          def type; end
+          def track(value)
+            raise NotImplementedError, 'method must be implemented in subclasses'
+          end
+
+          def type
+            raise NotImplementedError, 'method must be implemented in subclasses'
+          end
 
           def to_h
-            # @type var res: Hash[Symbol, untyped]
-            res = {
+            {
               metric: name,
               points: values,
               type: type,
               tags: tags,
               common: common
             }
-            res[:interval] = interval if interval
-            res
           end
 
           private
@@ -48,6 +47,29 @@ module Datadog
             return tags if tags.is_a?(Array)
 
             tags.map { |k, v| "#{k}:#{v}" }
+          end
+        end
+
+        # Base class for metrics that require aggregation interval
+        class IntervalMetric < Base
+          attr_reader :interval
+
+          # @param name [String] metric name
+          # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of array of "tag:val" strings
+          # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
+          # @param interval [Integer] metrics aggregation interval in seconds
+          def initialize(name, interval:, tags: {}, common: true)
+            raise ArgumentError, 'interval must be a positive number' if interval.nil? || interval <= 0
+
+            super(name, tags: tags, common: common)
+
+            @interval = interval
+          end
+
+          def to_h
+            res = super
+            res[:interval] = interval
+            res
           end
         end
 
@@ -60,28 +82,23 @@ module Datadog
             TYPE
           end
 
-          def inc(value = 1)
-            track(value)
-          end
-
-          def dec(value = 1)
-            track(-value)
-          end
-
           def track(value)
+            value = value.to_i
+
             if values.empty?
               values << [Time.now.to_i, value]
             else
               values[0][0] = Time.now.to_i
               values[0][1] += value
             end
+            nil
           end
         end
 
         # A gauge type takes the last value reported during the interval. This type would make sense for tracking RAM or
         # CPU usage, where taking the last value provides a representative picture of the host’s behavior during the time
         # interval.
-        class Gauge < Base
+        class Gauge < IntervalMetric
           TYPE = 'gauge'
 
           def type
@@ -95,15 +112,16 @@ module Datadog
               values[0][0] = Time.now.to_i
               values[0][1] = value
             end
+            nil
           end
         end
 
         # The rate type takes the count and divides it by the length of the time interval. This is useful if you’re
         # interested in the number of hits per second.
-        class Rate < Base
+        class Rate < IntervalMetric
           TYPE = 'rate'
 
-          def initialize(name, tags: {}, common: true, interval: nil)
+          def initialize(name, interval:, tags: {}, common: true)
             super
 
             @value = 0.0
@@ -115,9 +133,8 @@ module Datadog
 
           def track(value = 1.0)
             @value += value
-
-            rate = interval ? @value / interval : 0.0
-            @values = [[Time.now.to_i, rate]]
+            @values = [[Time.now.to_i, @value / interval]]
+            nil
           end
         end
 
@@ -131,6 +148,7 @@ module Datadog
 
           def track(value)
             values << value
+            nil
           end
 
           # distribution metric data does not have type field

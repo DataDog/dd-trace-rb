@@ -9,20 +9,18 @@ module Datadog
         type metric_value = Array[input_value]
         type distribution_value = input_value
 
-        type tags_input = ::Hash[String, String] | Array[String]
-
-        def self.metric_id: (metric_type type, String name, ?Array[String] tags) -> ::String
+        type tags_input = ::Hash[String | Symbol, String] | Array[String]
 
         class Base
           @name: String
+
+          @id: String
 
           @values: Array[untyped]
 
           @tags: Array[String]
 
           @common: bool
-
-          @interval: Integer?
 
           attr_reader name: String
 
@@ -32,9 +30,10 @@ module Datadog
 
           attr_reader common: bool
 
-          attr_reader interval: Integer?
 
-          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
+          def initialize: (String name, ?tags: tags_input, ?common: bool) -> void
+
+          def id: () -> String
 
           def track: (Numeric value) -> void
 
@@ -47,6 +46,14 @@ module Datadog
           def tags_to_array: (tags_input tags) -> Array[String]
         end
 
+        class IntervalMetric < Base
+          @interval: Integer
+
+          attr_reader interval: Integer
+
+          def initialize: (String name, ?tags: tags_input, ?common: bool, interval: Integer) -> void
+        end
+
         class Count < Base
           TYPE: "count"
 
@@ -55,14 +62,10 @@ module Datadog
 
           def type: () -> "count"
 
-          def inc: (?::Integer value) -> void
-
-          def dec: (?::Integer value) -> void
-
-          def track: (Integer value) -> void
+          def track: (input_value value) -> void
         end
 
-        class Gauge < Base
+        class Gauge < IntervalMetric
           TYPE: "gauge"
 
           def type: () -> "gauge"
@@ -70,7 +73,7 @@ module Datadog
           def track: (input_value value) -> void
         end
 
-        class Rate < Base
+        class Rate < IntervalMetric
           @value: Float
 
           @values: Array[metric_value]
@@ -78,11 +81,9 @@ module Datadog
 
           TYPE: "rate"
 
-          def initialize: (String name, ?tags: tags_input, ?common: bool, ?interval: Integer?) -> void
-
           def type: () -> "rate"
 
-          def track: (?::Float value) -> void
+          def track: (?input_value value) -> void
         end
 
         class Distribution < Base
