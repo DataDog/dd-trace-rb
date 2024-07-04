@@ -25,7 +25,7 @@ module Datadog
             end
 
             def open(&block)
-              req = ::Net::HTTP.new(@hostname, @port)
+              req = net_http_client.new(@hostname, @port)
 
               req.use_ssl = @ssl
               req.open_timeout = req.read_timeout = @timeout
@@ -102,6 +102,14 @@ module Datadog
               def inspect
                 "#{super}, http_response:#{http_response}"
               end
+            end
+
+            private
+
+            def net_http_client
+              return ::Net::HTTP unless defined?(WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP)
+
+              WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP
             end
           end
         end

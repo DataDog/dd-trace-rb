@@ -4,6 +4,8 @@ module WebMock
       def self.enable!: -> void
 
       def self.disable!: -> void
+
+      OriginalNetHTTP: singleton(::Net::HTTP)
     end
   end
 end

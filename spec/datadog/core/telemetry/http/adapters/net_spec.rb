@@ -14,7 +14,8 @@ RSpec.describe Datadog::Core::Telemetry::Http::Adapters::Net do
     let(:http_connection) { instance_double(::Net::HTTP) }
 
     before do
-      allow(::Net::HTTP).to receive(:new)
+      # webmock stores real ::Net::HTTP in this constant
+      allow(::WebMock::HttpLibAdapters::NetHttpAdapter::OriginalNetHTTP).to receive(:new)
         .with(
           adapter.hostname,
           adapter.port,
@@ -90,25 +91,58 @@ RSpec.describe Datadog::Core::Telemetry::Http::Adapters::Net do
   end
 
   describe '#post' do
-    include_context 'HTTP connection stub'
     include_context 'HTTP Env'
 
-    subject(:post) { adapter.post(env) }
+    context 'with stubbed Net::HTTP' do
+      include_context 'HTTP connection stub'
 
-    let(:http_response) { double('http_response') }
+      subject(:post) { adapter.post(env) }
 
-    context 'when request goes through' do
-      before { expect(http_connection).to receive(:request).and_return(http_response) }
+      let(:http_response) { double('http_response') }
 
-      it 'produces a response' do
-        is_expected.to be_a_kind_of(described_class::Response)
-        expect(post.http_response).to be(http_response)
+      context 'when request goes through' do
+        before { expect(http_connection).to receive(:request).and_return(http_response) }
+
+        it 'produces a response' do
+          is_expected.to be_a_kind_of(described_class::Response)
+          expect(post.http_response).to be(http_response)
+        end
+      end
+
+      context 'when error in connecting to agent' do
+        before { expect(http_connection).to receive(:request).and_raise(StandardError) }
+        it { expect(post).to be_a_kind_of(Datadog::Core::Telemetry::Http::InternalErrorResponse) }
       end
     end
 
-    context 'when error in connecting to agent' do
-      before { expect(http_connection).to receive(:request).and_raise(StandardError) }
-      it { expect(post).to be_a_kind_of(Datadog::Core::Telemetry::Http::InternalErrorResponse) }
+    context 'with real Net::HTTP' do
+      subject(:post) { adapter.post(env) }
+
+      let(:hostname) { 'hostname_that_doesnt_exist' }
+      let(:port) { 4444 }
+      let(:timeout) { 1 }
+      let(:expected_error) do
+        # Socket::ResolutionError is for Ruby 3.3+
+        if defined?(Socket::ResolutionError)
+          Socket::ResolutionError
+        else
+          SocketError
+        end
+      end
+
+      before do
+        WebMock.disable_net_connect!
+      end
+
+      after do
+        WebMock.disable!
+      end
+
+      it 'makes real HTTP request and fails' do
+        response = post
+        expect(response).to be_a_kind_of(Datadog::Core::Telemetry::Http::InternalErrorResponse)
+        expect(response.error).to be_a_kind_of(expected_error)
+      end
     end
   end
 end
