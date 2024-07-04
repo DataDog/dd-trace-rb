@@ -135,7 +135,7 @@ RSpec.describe Datadog::Core::Telemetry::Http::Adapters::Net do
       end
 
       after do
-        WebMock.disable!
+        WebMock.allow_net_connect!
       end
 
       it 'makes real HTTP request and fails' do
