@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'datadog/tracing/contrib/graphql/support/application_helpers'
+require 'datadog/tracing/contrib/graphql/support/application_schema'
 
 require 'active_model/railtie'
 require 'action_controller/railtie'
@@ -33,8 +33,10 @@ RSpec.shared_context 'with GraphQL schema' do
   before do
     Object.send(:remove_const, :TestGraphQLSchema) if defined?(TestGraphQLSchema)
     Object.send(:remove_const, :TestGraphQLQuery) if defined?(TestGraphQLQuery)
+    Object.send(:remove_const, :TestGraphQLMutationType) if defined?(TestGraphQLMutationType)
+    Object.send(:remove_const, :Users) if defined?(Users)
     Object.send(:remove_const, :TestUserType) if defined?(TestUserType)
-    load 'spec/datadog/tracing/contrib/graphql/support/application_helpers.rb'
+    load 'spec/datadog/tracing/contrib/graphql/support/application_schema.rb'
   end
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:schema) { TestGraphQLSchema }

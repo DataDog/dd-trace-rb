@@ -31,7 +31,7 @@ module Datadog
               args = {}
               @multiplex.queries.each_with_index do |query, index|
                 resolver_args = {}
-                selections = query.selected_operation.selections.dup
+                selections = (query.selected_operation.selections.dup if query.selected_operation) || []
                 # Iterative tree traversal
                 while selections.any?
                   selection = selections.shift

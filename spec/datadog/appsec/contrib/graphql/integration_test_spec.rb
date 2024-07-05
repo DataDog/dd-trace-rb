@@ -168,6 +168,7 @@ RSpec.describe 'GraphQL integration tests',
         subject(:response) { post '/graphql', query: query }
 
         context 'with a non-triggering query' do
+          let(:appsec_ruleset) { blocking_testattack }
           let(:query) { '{ user(id: 1) { name } }' }
 
           it do
@@ -246,10 +247,96 @@ RSpec.describe 'GraphQL integration tests',
         end
       end
 
+      describe 'a mutation' do
+        subject(:response) { post '/graphql', query: mutation }
+
+        context 'with a non-triggering mutation' do
+          let(:appsec_ruleset) { blocking_testattack }
+          let(:mutation) { 'mutation { createUser(name: "k9") { user { name, id } } }' }
+
+          it do
+            expect(last_response.body).to eq(
+              { 'data' => { 'createUser' => { 'user' => { 'name' => 'k9', 'id' => '1' } } } }.to_json
+            )
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.parse',
+              ),
+              an_object_having_attributes(
+                name: 'graphql.execute_multiplex',
+              ),
+              an_object_having_attributes(
+                name: 'graphql.execute',
+              )
+            )
+          end
+
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+
+          context 'followed by a non-blocking query' do
+            it do
+              post '/graphql', query: '{ mutationUserByName(name: "k9") { id } }'
+              expect(JSON.parse(last_response.body)['data']['mutationUserByName']['id']).to eq('1')
+            end
+          end
+
+          context 'followed by a blocking query' do
+            # Should not modify the user list
+            it do
+              post '/graphql', query: 'mutation { createUser(name: "$testattack") { user { name, id } } }'
+              expect(JSON.parse(last_response.body)['errors'][0]['title']).to eq('Blocked')
+              expect(Users.users['$testattack']).to be_nil
+            end
+          end
+        end
+
+        context 'with a blocking mutation' do
+          let(:appsec_ruleset) { blocking_testattack }
+          let(:mutation) { 'mutation { createUser(name: "$testattack") { user { name, id } } }' }
+
+          it do
+            expect(last_response.body).to eq(
+              {
+                'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
+              }.to_json
+            )
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.parse',
+              ),
+              an_object_having_attributes(
+                name: 'graphql.execute_multiplex',
+              )
+            )
+            expect(spans).not_to include(
+              an_object_having_attributes(
+                name: 'graphql.execute',
+              )
+            )
+          end
+
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace with AppSec events'
+
+          context 'followed by a non-blocking query' do
+            it do
+              post '/graphql', query: '{ mutationUserByName(name: "k9") { id } }'
+              expect(JSON.parse(last_response.body)['errors'][0]['message']).to eq('User not found')
+            end
+          end
+        end
+      end
+
+      # Subscription does not mutate data, so regular queries testing should be enough
+
       describe 'a multiplex query' do
         subject(:response) { post '/graphql', _json: queries }
 
         context 'with a non-triggering multiplex' do
+          let(:appsec_ruleset) { blocking_testattack }
           let(:queries) do
             [
               {
