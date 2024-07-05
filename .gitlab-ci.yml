@@ -115,10 +115,11 @@ package-oci:
     - install-dependencies
 
 onboarding_tests_installer:
-  rules:
-    - when: on_success
-  allow_failure: false
   parallel:
-      matrix:
-        - ONBOARDING_FILTER_WEBLOG: [test-app-ruby,test-app-ruby-container]
-          SCENARIO: [INSTALLER_AUTO_INJECTION]
+    matrix:
+      - ONBOARDING_FILTER_WEBLOG: [test-app-ruby,test-app-ruby-container]
+
+onboarding_tests_k8s_injection:
+  parallel:
+    matrix:
+      - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
