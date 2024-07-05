@@ -10,7 +10,7 @@ module Datadog
 
         include Core::Utils::Forking
 
-        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, ?enabled: bool) -> void
+        def initialize: (heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool) -> void
 
         def disable!: () -> void
 

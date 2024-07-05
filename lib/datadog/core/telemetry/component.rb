@@ -15,15 +15,23 @@ module Datadog
         include Core::Utils::Forking
 
         # @param enabled [Boolean] Determines whether telemetry events should be sent to the API
+        # @param metrics_enabled [Boolean] Determines whether telemetry metrics should be sent to the API
         # @param heartbeat_interval_seconds [Float] How frequently heartbeats will be reported, in seconds.
+        # @param metrics_aggregation_interval_seconds [Float] How frequently metrics will be aggregated, in seconds.
         # @param [Boolean] dependency_collection Whether to send the `app-dependencies-loaded` event
-        def initialize(heartbeat_interval_seconds:, dependency_collection:, enabled: true)
+        def initialize(
+          heartbeat_interval_seconds:,
+          metrics_aggregation_interval_seconds:,
+          dependency_collection:, enabled: true,
+          metrics_enabled: true
+        )
           @enabled = enabled
           @stopped = false
 
           @worker = Telemetry::Worker.new(
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
+            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             emitter: Emitter.new,
             dependency_collection: dependency_collection
           )

@@ -6,13 +6,17 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
       enabled: enabled,
+      metrics_enabled: metrics_enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection
     )
   end
 
   let(:enabled) { true }
+  let(:metrics_enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
+  let(:metrics_aggregation_interval_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
   let(:not_found) { false }
@@ -20,6 +24,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   before do
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
       enabled: enabled,
       emitter: an_instance_of(Datadog::Core::Telemetry::Emitter)
@@ -40,6 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       subject(:telemetry) do
         described_class.new(
           heartbeat_interval_seconds: heartbeat_interval_seconds,
+          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection
         )
       end

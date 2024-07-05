@@ -17,8 +17,10 @@ module Datadog
         @shutdown_timeout: Integer
         @buffer_size: Integer
         @dependency_collection: bool
+        @ticks_per_heartbeat: Integer
+        @current_ticks: Integer
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Numeric, emitter: Emitter, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
 
         def start: () -> void
 

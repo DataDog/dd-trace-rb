@@ -7,6 +7,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     described_class.new(
       enabled: enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       emitter: emitter,
       dependency_collection: dependency_collection
     )
@@ -14,6 +15,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 0.5 }
+  let(:metrics_aggregation_interval_seconds) { 0.25 }
   let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
 
@@ -58,7 +60,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
     it 'creates a new worker in stopped state' do
       expect(worker).to have_attributes(
         enabled?: true,
-        loop_base_interval: heartbeat_interval_seconds,
+        loop_base_interval: metrics_aggregation_interval_seconds,
         run_async?: false,
         running?: false,
         started?: false
@@ -94,7 +96,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
           expect(worker).to have_attributes(
             enabled?: true,
-            loop_base_interval: heartbeat_interval_seconds,
+            loop_base_interval: metrics_aggregation_interval_seconds,
             run_async?: true,
             running?: true,
             started?: true
@@ -152,6 +154,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
         context 'when app-started event exhausted retries' do
           let(:heartbeat_interval_seconds) { 0.1 }
+          let(:metrics_aggregation_interval_seconds) { 0.05 }
 
           it 'stops retrying, never sends heartbeat, and disables worker' do
             expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
@@ -239,6 +242,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             described_class.new(
               enabled: enabled,
               heartbeat_interval_seconds: heartbeat_interval_seconds,
+              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               emitter: emitter,
               dependency_collection: dependency_collection
             )
@@ -270,11 +274,12 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
   describe '#stop' do
     let(:heartbeat_interval_seconds) { 60 }
+    let(:metrics_aggregation_interval_seconds) { 30 }
 
     it 'flushes events and stops the worker' do
       worker.start
 
-      try_wait_until { @received_heartbeat }
+      try_wait_until { @received_started }
 
       events_received = 0
       mutex = Mutex.new

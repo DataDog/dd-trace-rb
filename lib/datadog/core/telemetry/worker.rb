@@ -21,6 +21,7 @@ module Datadog
 
         def initialize(
           heartbeat_interval_seconds:,
+          metrics_aggregation_interval_seconds:,
           emitter:,
           dependency_collection:,
           enabled: true,
@@ -30,10 +31,13 @@ module Datadog
           @emitter = emitter
           @dependency_collection = dependency_collection
 
+          @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          @current_ticks = 0
+
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
-          self.loop_base_interval = heartbeat_interval_seconds
+          self.loop_base_interval = metrics_aggregation_interval_seconds
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
 
           @shutdown_timeout = shutdown_timeout
@@ -75,10 +79,14 @@ module Datadog
           return if !enabled? || forked?
 
           started! unless sent_started_event?
-
-          heartbeat!
-
+          # flush metrics here
           flush_events(events)
+
+          @current_ticks += 1
+          return if @current_ticks < @ticks_per_heartbeat
+
+          @current_ticks = 0
+          heartbeat!
         end
 
         def flush_events(events)
