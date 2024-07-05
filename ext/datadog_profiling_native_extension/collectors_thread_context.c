@@ -231,6 +231,7 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE active_span,
   VALUE otel_values
 );
+static VALUE _native_sample_missed_allocations(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE missed_allocations);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -261,6 +262,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
+  rb_define_singleton_method(testing_module, "_native_sample_missed_allocations", _native_sample_missed_allocations, 2);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -1399,4 +1401,33 @@ static void ddtrace_otel_trace_identifiers_for(
   *root_span = resolved_root_span;
   *active_trace = current_trace;
   *numeric_span_id = resolved_numeric_span_id;
+}
+
+void thread_context_collector_sample_missed_allocations(VALUE self_instance, unsigned int missed_allocations) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  ddog_prof_Label labels[] = {
+    {.key = DDOG_CHARSLICE_C("thread id"),        .str = DDOG_CHARSLICE_C("MA")},
+    {.key = DDOG_CHARSLICE_C("thread name"),      .str = DDOG_CHARSLICE_C("Missing Allocations")},
+    {.key = DDOG_CHARSLICE_C("allocation class"), .str = DDOG_CHARSLICE_C("(Missing Allocations)")},
+  };
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])};
+
+  record_placeholder_stack(
+    state->sampling_buffer,
+    state->recorder_instance,
+    (sample_values) {.alloc_samples = missed_allocations},
+    (sample_labels) {
+      .labels = slice_labels,
+      .state_label = NULL,
+      .end_timestamp_ns = 0, // For now we're not collecting timestamps for allocation events
+    },
+    DDOG_CHARSLICE_C("Missing Allocations")
+  );
+}
+
+static VALUE _native_sample_missed_allocations(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE missed_allocations) {
+  thread_context_collector_sample_missed_allocations(collector_instance, NUM2UINT(missed_allocations));
+  return Qtrue;
 }
