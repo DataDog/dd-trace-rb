@@ -10,11 +10,13 @@ begin
   require 'json'
 
   def dd_debug_log(msg)
-    $stdout.puts "[datadog] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+    pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
   end
 
   def dd_error_log(msg)
-    warn "[datadog] #{msg}"
+    pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+    warn "[datadog][#{pid}][#{$0}] #{msg}"
   end
 
   def dd_skip_injection!
@@ -90,6 +92,11 @@ begin
     dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
     dd_skip_injection!
     return # Skip injection
+  end
+
+  unless Process.respond_to?(:fork)
+    dd_debug_log 'Fork not supported... skipping injection'
+    return
   end
 
   already_installed = ['ddtrace', 'datadog'].any? do |gem|
@@ -204,7 +211,8 @@ rescue Exception => e
       ]
     )
   end
-  warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
+  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+  warn "[datadog][#{pid}][#{$0}] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
 
   # Skip injection if the environment variable is set
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
