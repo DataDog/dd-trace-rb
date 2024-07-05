@@ -10,11 +10,13 @@ begin
   require 'json'
 
   def dd_debug_log(msg)
-    $stdout.puts "[datadog] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+    pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
   end
 
   def dd_error_log(msg)
-    warn "[datadog] #{msg}"
+    pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+    warn "[datadog][#{pid}][#{$0}] #{msg}"
   end
 
   def dd_skip_injection!
@@ -92,8 +94,19 @@ begin
     return # Skip injection
   end
 
+  unless Process.respond_to?(:fork)
+    dd_debug_log 'Fork not supported... skipping injection'
+    return
+  end
+
   already_installed = ['ddtrace', 'datadog'].any? do |gem|
-    !!Bundler::CLI::Common.select_spec(gem) rescue false
+    fork {
+      $stdout = File.new("/dev/null", "w")
+      $stderr = File.new("/dev/null", "w")
+      Bundler::CLI::Common.select_spec(gem)
+    }
+    _, status = Process.wait2
+    status.success?
   end
 
   if already_installed
@@ -144,7 +157,14 @@ begin
     'libddwaf',
     'datadog'
   ].each do |gem|
-    if (Bundler::CLI::Common.select_spec(gem) rescue false)
+    fork {
+      $stdout = File.new("/dev/null", "w")
+      $stderr = File.new("/dev/null", "w")
+      Bundler::CLI::Common.select_spec(gem)
+    }
+
+    _, status = Process.wait2
+    if status.success?
       dd_debug_log "#{gem} already installed... skipping..."
       next
     end
@@ -191,7 +211,8 @@ rescue Exception => e
       ]
     )
   end
-  warn "[datadog] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
+  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+  warn "[datadog][#{pid}][#{$0}] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
 
   # Skip injection if the environment variable is set
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
