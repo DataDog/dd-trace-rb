@@ -22,7 +22,8 @@ module Datadog
         def initialize(
           heartbeat_interval_seconds:,
           metrics_aggregation_interval_seconds:,
-          dependency_collection:, enabled: true,
+          dependency_collection:,
+          enabled: true,
           metrics_enabled: true
         )
           @enabled = enabled
