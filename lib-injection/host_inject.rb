@@ -93,7 +93,13 @@ begin
   end
 
   already_installed = ['ddtrace', 'datadog'].any? do |gem|
-    !!Bundler::CLI::Common.select_spec(gem) rescue false
+    fork {
+      $stdout = File.new("/dev/null", "w")
+      $stderr = File.new("/dev/null", "w")
+      Bundler::CLI::Common.select_spec(gem)
+    }
+    _, status = Process.wait2
+    status.success?
   end
 
   if already_installed
@@ -144,7 +150,14 @@ begin
     'libddwaf',
     'datadog'
   ].each do |gem|
-    if (Bundler::CLI::Common.select_spec(gem) rescue false)
+    fork {
+      $stdout = File.new("/dev/null", "w")
+      $stderr = File.new("/dev/null", "w")
+      Bundler::CLI::Common.select_spec(gem)
+    }
+
+    _, status = Process.wait2
+    if status.success?
       dd_debug_log "#{gem} already installed... skipping..."
       next
     end
