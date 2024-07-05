@@ -437,6 +437,67 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
       end
     end
+
+    context 'when sampling a stack with a dynamically-generated template method name' do
+      let(:method_name) { '_app_views_layouts_explore_html_haml__2304485752546535910_211320' }
+      let(:filename) { '/myapp/app/views/layouts/explore.html.haml' }
+      let(:dummy_template) { double('Dummy template object') }
+
+      let(:do_in_background_thread) do
+        # rubocop:disable Security/Eval
+        # rubocop:disable Style/EvalWithLocation
+        # rubocop:disable Style/DocumentDynamicEvalDefinition
+        eval(
+          %(
+            def dummy_template.#{method_name}(ready_queue)
+              ready_queue << true
+              sleep
+            end
+
+            proc { |ready_queue| dummy_template.#{method_name}(ready_queue) }
+          ),
+          binding,
+          filename,
+          123456
+        )
+        # rubocop:enable Security/Eval
+        # rubocop:enable Style/EvalWithLocation
+        # rubocop:enable Style/DocumentDynamicEvalDefinition
+      end
+
+      it 'has a frame with a simplified method name' do
+        expect(gathered_stack).to include(
+          have_attributes(
+            path: '/myapp/app/views/layouts/explore.html.haml',
+            base_label: '_app_views_layouts_explore_html_haml',
+          )
+        )
+      end
+
+      context 'when filename ends with .rb' do
+        let(:filename) { 'example.rb' }
+
+        it 'does not trim the method name' do
+          expect(gathered_stack).to eq reference_stack
+        end
+      end
+
+      context 'when method_name does not end with __number_number' do
+        let(:method_name) { super().gsub('__', '_') }
+
+        it 'does not trim the method name' do
+          expect(gathered_stack).to eq reference_stack
+        end
+      end
+
+      context 'when method only has __number_number' do
+        let(:method_name) { '__2304485752546535910_211320' }
+
+        it 'does not trim the method name' do
+          expect(gathered_stack).to eq reference_stack
+        end
+      end
+    end
   end
 
   context 'when sampling a thread with a stack that is deeper than the configured max_frames' do
