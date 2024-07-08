@@ -34,6 +34,7 @@ static VALUE _native_sample(
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
+static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -199,6 +200,8 @@ void sample_thread(
     ddog_CharSlice name_slice = char_slice_from_ruby_string(name);
     ddog_CharSlice filename_slice = char_slice_from_ruby_string(filename);
 
+    maybe_trim_template_random_ids(&name_slice, &filename_slice);
+
     bool top_of_the_stack = i == 0;
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
@@ -266,6 +269,35 @@ void sample_thread(
     values,
     labels
   );
+}
+
+// Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
+// names such as "_app_views_layouts_explore_html_haml__2304485752546535910_211320".
+// This makes these stacks not aggregate well, as well as being not-very-useful data.
+// (Reference: https://github.com/rails/rails/blob/4fa56814f18fd3da49c83931fa773caa727d8096/actionview/lib/action_view/template.rb#L389 )
+//
+// This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
+static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice) {
+  // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
+  if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
+
+  int pos = name_slice->len - 1;
+
+  // Let's match on something__number_number:
+  // Find start of id suffix from the end...
+  if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
+
+  // ...now match a bunch of numbers and interspersed underscores
+  for (int underscores = 0; pos >= 0 && underscores < 2; pos--) {
+    if (name_slice->ptr[pos] == '_') underscores++;
+    else if (name_slice->ptr[pos] < '0' || name_slice->ptr[pos] > '9') return;
+  }
+
+  // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
+  if (pos <= 0 || name_slice->ptr[pos] != '_') return;
+
+  // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
+  name_slice->len = pos;
 }
 
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size) {
