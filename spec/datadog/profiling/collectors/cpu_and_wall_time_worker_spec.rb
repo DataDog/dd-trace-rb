@@ -543,15 +543,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # We then assign a weight to every sample to compensate for this; to avoid bias, we have a limit on this weight,
         # and we clamp it if it goes over the limit.
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
-        # remainder above the clamped value as a separate "Missing Allocations" step.
-        it 'records missed allocations when weights are clamped' do
+        # remainder above the clamped value as a separate "Skipped Samples" step.
+        it 'records skipped allocation samples when weights are clamped' do
           start
 
           thread_that_allocates_as_fast_as_possible = Thread.new { loop { BasicObject.new } }
 
           allocation_samples = try_wait_until do
             samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
-            samples if samples.any? { |it| it.labels[:'thread name'] == 'Missing Allocations' }
+            samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
           end
 
           thread_that_allocates_as_fast_as_possible.kill

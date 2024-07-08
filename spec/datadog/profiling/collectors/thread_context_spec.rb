@@ -79,8 +79,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight, new_object)
   end
 
-  def sample_missed_allocations(missed_allocations)
-    described_class::Testing._native_sample_missed_allocations(cpu_and_wall_time_collector, missed_allocations)
+  def sample_skipped_allocation_samples(missed_allocations)
+    described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, missed_allocations)
   end
 
   def thread_list
@@ -1214,28 +1214,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  describe '#sample_missed_allocations' do
+  describe '#sample_skipped_allocation_samples' do
     let(:single_sample) do
       expect(samples.size).to be 1
       samples.first
     end
-    before { sample_missed_allocations(123) }
+    before { sample_skipped_allocation_samples(123) }
 
-    it 'records the number of missed allocations' do
+    it 'records the number of skipped allocations' do
       expect(single_sample.values).to include('alloc-samples': 123)
     end
 
-    it 'attributes the missed allocations to a "Missing Allocations" thread' do
-      expect(single_sample.labels).to include('thread id': 'MA', 'thread name': 'Missing Allocations')
+    it 'attributes the missed allocations to a "Skipped Samples" thread' do
+      expect(single_sample.labels).to include('thread id': 'SA', 'thread name': 'Skipped Samples')
     end
 
-    it 'attributes the missed allocations to a "(Missing Allocations)" allocation class' do
-      expect(single_sample.labels).to include('allocation class': '(Missing Allocations)')
+    it 'attributes the missed allocations to a "(Skipped Samples)" allocation class' do
+      expect(single_sample.labels).to include('allocation class': '(Skipped Samples)')
     end
 
-    it 'includes a placeholder stack attributed to "Missing Allocations"' do
+    it 'includes a placeholder stack attributed to "Skipped Samples"' do
       expect(single_sample.locations.size).to be 1
-      expect(single_sample.locations.first.path).to eq 'Missing Allocations'
+      expect(single_sample.locations.first.path).to eq 'Skipped Samples'
     end
   end
 

@@ -1145,9 +1145,9 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
   // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
-  // ...but we still represent the missing allocations in the profile, thus the data will account for all allocations.
+  // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
-    thread_context_collector_sample_missed_allocations(state->thread_context_collector_instance, allocations_since_last_sample - weight);
+    thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, allocations_since_last_sample - weight);
   }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
