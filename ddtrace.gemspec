@@ -77,6 +77,7 @@ Gem::Specification.new do |spec|
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 
   spec.post_install_message = <<-MSG
-    The ddtrace gem has been renamed to datadog. We recommend upgrading: https://dtdg.co/ruby-v2-upgrade
+    The ddtrace gem has been renamed to datadog in version 2. Upgrading is easy: https://dtdg.co/ruby-v2-upgrade
+    ddtrace 1.x will only receive security updates and critical bug fixes.
   MSG
 end
