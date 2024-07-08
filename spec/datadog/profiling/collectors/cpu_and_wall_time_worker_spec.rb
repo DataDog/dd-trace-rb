@@ -654,6 +654,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
+        skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
