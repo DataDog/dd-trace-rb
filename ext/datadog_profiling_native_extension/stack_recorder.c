@@ -621,7 +621,15 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
     //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
     //        be fixed with some refactoring but for now this leads to a less impactful change.
-    end_heap_allocation_recording(state->heap_recorder, locations);
+    //
+    // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
+    // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
+    // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
+    int exception_state = end_heap_allocation_recording_with_rb_protect(state->heap_recorder, locations);
+    if (exception_state) {
+      sampler_unlock_active_profile(active_slot);
+      rb_jump_tag(exception_state);
+    }
   }
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(
