@@ -34,6 +34,10 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
     Datadog.registry[:active_record].reset_configuration!
   end
 
+  after do
+    Article.delete_all
+  end
+
   context 'when a model is instantiated' do
     before { article }
 
