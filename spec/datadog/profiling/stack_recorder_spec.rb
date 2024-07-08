@@ -137,14 +137,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             'cpu-samples' => 'count',
             'wall-time' => 'nanoseconds',
             'alloc-samples' => 'count',
+            'alloc-samples-unscaled' => 'count',
             'heap-live-samples' => 'count',
             'heap-live-size' => 'bytes',
             'timeline' => 'nanoseconds',
           }
         end
 
-        def profile_types_without(type)
-          all_profile_types.dup.tap { |it| it.delete(type) { raise 'Missing key' } }
+        def profile_types_without(*types)
+          result = all_profile_types.dup
+          types.each { |type| result.delete(type) { raise 'Missing key' } }
+          result
         end
 
         context 'when all profile types are enabled' do
@@ -165,7 +168,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           let(:alloc_samples_enabled) { false }
 
           it 'returns a pprof without the alloc-samples type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('alloc-samples'))
+            expect(sample_types_from(decoded_profile))
+              .to eq(profile_types_without('alloc-samples', 'alloc-samples-unscaled'))
           end
         end
 
@@ -243,7 +247,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when profile has a sample' do
       let(:metric_values) do
-        { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789, 'alloc-samples' => 4242, 'timeline' => 1111 }
+        {
+          'cpu-time' => 123,
+          'cpu-samples' => 456,
+          'wall-time' => 789,
+          'alloc-samples' => 4242,
+          'alloc-samples-unscaled' => 2222,
+          'timeline' => 1111,
+        }
       end
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
@@ -258,11 +269,12 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'encodes the sample with the metrics provided' do
         expect(samples.first.values)
           .to eq(
-            :'cpu-time' => 123,
-            :'cpu-samples' => 456,
-            :'wall-time' => 789,
-            :'alloc-samples' => 4242,
-            :timeline => 1111,
+            'cpu-time': 123,
+            'cpu-samples': 456,
+            'wall-time': 789,
+            'alloc-samples': 4242,
+            'alloc-samples-unscaled': 2222,
+            timeline: 1111,
           )
       end
 
@@ -270,8 +282,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:cpu_time_enabled) { false }
 
         it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
-          expect(samples.first.values)
-            .to eq(:'cpu-samples' => 456, :'wall-time' => 789, :'alloc-samples' => 4242, :timeline => 1111)
+          expect(samples.first.values).to eq(
+            'cpu-samples': 456, 'wall-time': 789, 'alloc-samples': 4242, 'alloc-samples-unscaled': 2222, timeline: 1111
+          )
         end
       end
 
@@ -526,7 +539,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { :'heap-live-samples' => 0, :'heap-live-size' => 0, }
+          expected_summed_values = { 'heap-live-samples': 0, 'heap-live-size': 0, 'alloc-samples-unscaled': 0 }
           metric_values.each_pair do |k, v|
             expected_summed_values[k.to_sym] = v * @num_allocations
           end
