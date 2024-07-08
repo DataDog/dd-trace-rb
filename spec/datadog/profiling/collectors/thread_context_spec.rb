@@ -1237,6 +1237,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(single_sample.locations.size).to be 1
       expect(single_sample.locations.first.path).to eq 'Skipped Samples'
     end
+
+    context 'when heap sampling is enabled' do
+      let(:recorder) { build_stack_recorder(heap_samples_enabled: true) }
+
+      it 'records only the number of skipped allocations, and does not record any heap samples' do
+        GC.start # Force any incorrect heap samples to have age > 1
+
+        expect(single_sample.values).to include('alloc-samples': 123, 'heap-live-samples': 0)
+      end
+    end
   end
 
   describe '#thread_list' do
