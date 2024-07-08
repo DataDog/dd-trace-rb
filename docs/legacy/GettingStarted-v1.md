@@ -2841,7 +2841,7 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 
 <!---->
 
-[header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
+[header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#collect-headers
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations
 [3]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#ci-visibility-integrations
