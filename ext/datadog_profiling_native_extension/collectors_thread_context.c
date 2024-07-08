@@ -231,7 +231,7 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE active_span,
   VALUE otel_values
 );
-static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE missed_allocations);
+static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -1403,7 +1403,7 @@ static void ddtrace_otel_trace_identifiers_for(
   *numeric_span_id = resolved_numeric_span_id;
 }
 
-void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int missed_allocations) {
+void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -1418,7 +1418,7 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
   record_placeholder_stack(
     state->sampling_buffer,
     state->recorder_instance,
-    (sample_values) {.alloc_samples = missed_allocations},
+    (sample_values) {.alloc_samples = skipped_samples},
     (sample_labels) {
       .labels = slice_labels,
       .state_label = NULL,
@@ -1428,7 +1428,7 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
   );
 }
 
-static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE missed_allocations) {
-  thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(missed_allocations));
+static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples) {
+  thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(skipped_samples));
   return Qtrue;
 }

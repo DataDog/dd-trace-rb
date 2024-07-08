@@ -79,8 +79,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight, new_object)
   end
 
-  def sample_skipped_allocation_samples(missed_allocations)
-    described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, missed_allocations)
+  def sample_skipped_allocation_samples(skipped_samples)
+    described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
   end
 
   def thread_list
@@ -1225,11 +1225,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(single_sample.values).to include('alloc-samples': 123)
     end
 
-    it 'attributes the missed allocations to a "Skipped Samples" thread' do
+    it 'attributes the skipped samples to a "Skipped Samples" thread' do
       expect(single_sample.labels).to include('thread id': 'SA', 'thread name': 'Skipped Samples')
     end
 
-    it 'attributes the missed allocations to a "(Skipped Samples)" allocation class' do
+    it 'attributes the skipped samples to a "(Skipped Samples)" allocation class' do
       expect(single_sample.labels).to include('allocation class': '(Skipped Samples)')
     end
 
