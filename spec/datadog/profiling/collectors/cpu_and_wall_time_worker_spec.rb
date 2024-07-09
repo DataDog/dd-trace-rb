@@ -549,6 +549,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           thread_that_allocates_as_fast_as_possible = Thread.new { loop { BasicObject.new } }
 
+          Thread.pass
+
           allocation_samples = try_wait_until do
             samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
             samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
@@ -556,6 +558,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           thread_that_allocates_as_fast_as_possible.kill
           thread_that_allocates_as_fast_as_possible.join
+
+          GC.start
 
           cpu_and_wall_time_worker.stop
 

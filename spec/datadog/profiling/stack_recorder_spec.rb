@@ -399,6 +399,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       before do
+        GC.start
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
                        { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
