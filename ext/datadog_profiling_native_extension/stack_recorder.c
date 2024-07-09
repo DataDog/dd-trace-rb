@@ -151,21 +151,23 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 #define WALL_TIME_VALUE_ID 2
 #define ALLOC_SAMPLES_VALUE     {.type_ = VALUE_STRING("alloc-samples"),     .unit = VALUE_STRING("count")}
 #define ALLOC_SAMPLES_VALUE_ID 3
+#define ALLOC_SAMPLES_UNSCALED_VALUE {.type_ = VALUE_STRING("alloc-samples-unscaled"), .unit = VALUE_STRING("count")}
+#define ALLOC_SAMPLES_UNSCALED_VALUE_ID 4
 #define HEAP_SAMPLES_VALUE      {.type_ = VALUE_STRING("heap-live-samples"), .unit = VALUE_STRING("count")}
-#define HEAP_SAMPLES_VALUE_ID 4
+#define HEAP_SAMPLES_VALUE_ID 5
 #define HEAP_SIZE_VALUE         {.type_ = VALUE_STRING("heap-live-size"),    .unit = VALUE_STRING("bytes")}
-#define HEAP_SIZE_VALUE_ID 5
+#define HEAP_SIZE_VALUE_ID 6
 #define TIMELINE_VALUE          {.type_ = VALUE_STRING("timeline"),          .unit = VALUE_STRING("nanoseconds")}
-#define TIMELINE_VALUE_ID 6
+#define TIMELINE_VALUE_ID 7
 
 static const ddog_prof_ValueType all_value_types[] =
-  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
+  {CPU_TIME_VALUE, CPU_SAMPLES_VALUE, WALL_TIME_VALUE, ALLOC_SAMPLES_VALUE, ALLOC_SAMPLES_UNSCALED_VALUE, HEAP_SAMPLES_VALUE, HEAP_SIZE_VALUE, TIMELINE_VALUE};
 
 // This array MUST be kept in sync with all_value_types above and is intended to act as a "hashmap" between VALUE_ID and the position it
 // occupies on the all_value_types array.
 // E.g. all_value_types_positions[CPU_TIME_VALUE_ID] => 0, means that CPU_TIME_VALUE was declared at position 0 of all_value_types.
 static const uint8_t all_value_types_positions[] =
-  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
+  {CPU_TIME_VALUE_ID, CPU_SAMPLES_VALUE_ID, WALL_TIME_VALUE_ID, ALLOC_SAMPLES_VALUE_ID, ALLOC_SAMPLES_UNSCALED_VALUE_ID, HEAP_SAMPLES_VALUE_ID, HEAP_SIZE_VALUE_ID, TIMELINE_VALUE_ID};
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
@@ -429,7 +431,7 @@ static VALUE _native_initialize(
 
   uint8_t requested_values_count = ALL_VALUE_TYPES_COUNT -
     (cpu_time_enabled == Qtrue ? 0 : 1) -
-    (alloc_samples_enabled == Qtrue? 0 : 1) -
+    (alloc_samples_enabled == Qtrue? 0 : 2) -
     (heap_samples_enabled == Qtrue ? 0 : 1) -
     (heap_size_enabled == Qtrue ? 0 : 1) -
     (timeline_enabled == Qtrue ? 0 : 1);
@@ -464,8 +466,12 @@ static VALUE _native_initialize(
   if (alloc_samples_enabled == Qtrue) {
     enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_VALUE;
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_enabled_pos++;
+
+    enabled_value_types[next_enabled_pos] = (ddog_prof_ValueType) ALLOC_SAMPLES_UNSCALED_VALUE;
+    state->position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID] = next_enabled_pos++;
   } else {
     state->position_for[ALLOC_SAMPLES_VALUE_ID] = next_disabled_pos++;
+    state->position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID] = next_disabled_pos++;
   }
 
   if (heap_samples_enabled == Qtrue) {
@@ -586,7 +592,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, bool placeholder) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -603,14 +609,23 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[CPU_SAMPLES_VALUE_ID]]   = values.cpu_or_wall_samples;
   metric_values[position_for[WALL_TIME_VALUE_ID]]     = values.wall_time_ns;
   metric_values[position_for[ALLOC_SAMPLES_VALUE_ID]] = values.alloc_samples;
+  metric_values[position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID]] = values.alloc_samples_unscaled;
   metric_values[position_for[TIMELINE_VALUE_ID]]      = values.timeline_wall_time_ns;
 
-  if (values.alloc_samples != 0) {
+  if (!placeholder && values.alloc_samples > 0) {
     // If we got an allocation sample end the heap allocation recording to commit the heap sample.
     // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
     //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
     //        be fixed with some refactoring but for now this leads to a less impactful change.
-    end_heap_allocation_recording(state->heap_recorder, locations);
+    //
+    // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
+    // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
+    // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
+    int exception_state = end_heap_allocation_recording_with_rb_protect(state->heap_recorder, locations);
+    if (exception_state) {
+      sampler_unlock_active_profile(active_slot);
+      rb_jump_tag(exception_state);
+    }
   }
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(

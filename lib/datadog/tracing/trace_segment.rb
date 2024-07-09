@@ -132,10 +132,13 @@ module Datadog
           || sampling_priority == Sampling::Ext::Priority::USER_KEEP
       end
 
+      # Returns the high order part of the trace id as a hexadecimal string; the most significant 64 bits.
+      # The String returned is padded with zeros, having a fixed length of 16 characters.
+      # If the high order part is zero, it returns nil.
       def high_order_tid
         high_order = Tracing::Utils::TraceId.to_high_order(@id)
 
-        high_order.to_s(16) if high_order != 0
+        format('%016x', high_order) if high_order != 0
       end
 
       protected

@@ -96,6 +96,13 @@ only-profiling-heap:
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
 
+only-profiling-crashtracking:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED: "true"
+
 profiling-and-tracing:
   extends: .benchmarks
   variables:
@@ -153,7 +160,7 @@ benchmarks:
   script:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
-    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform platform && cd platform
+    - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
     - ./steps/capture-hardware-software-info.sh
     - ./steps/run-benchmarks.sh
     - ./steps/analyze-results.sh

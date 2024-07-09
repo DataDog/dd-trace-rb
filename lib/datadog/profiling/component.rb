@@ -75,6 +75,10 @@ module Datadog
         crashtracker = build_crashtracker(settings, transport)
         profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crashtracker: crashtracker)
 
+        if dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
+          Datadog::Profiling::Ext::DirMonkeyPatches.apply!
+        end
+
         [profiler, { profiling_enabled: true }]
       end
 
@@ -397,8 +401,12 @@ module Datadog
 
       # See https://github.com/datadog/dd-trace-rb/issues/2976 for details.
       private_class_method def self.incompatible_passenger_version?
+        first_compatible_version = Gem::Version.new('6.0.19')
+
         if Gem.loaded_specs['passenger']
-          Gem.loaded_specs['passenger'].version < Gem::Version.new('6.0.19')
+          Gem.loaded_specs['passenger'].version < first_compatible_version
+        elsif defined?(PhusionPassenger::VERSION_STRING)
+          Gem::Version.new(PhusionPassenger::VERSION_STRING) < first_compatible_version
         else
           true
         end
@@ -444,6 +452,15 @@ module Datadog
         !!(header_version &&
           libmysqlclient_version < Gem::Version.new('5.0.0') &&
           header_version >= Gem::Version.new('10.0.0'))
+      end
+
+      private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
+        return false if no_signals_workaround_enabled
+
+        # NOTE: In the future this method will evolve to check for Ruby versions affected and not apply the workaround
+        # when it's not needed but currently all known Ruby versions are affected.
+
+        settings.profiling.advanced.dir_interruption_workaround_enabled
       end
     end
   end

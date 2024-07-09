@@ -69,6 +69,7 @@ RSpec.describe Datadog::Tracing do
         start_time: start_time,
         tags: tags,
         type: type,
+        id: id,
         &block
       )
     end
@@ -81,6 +82,7 @@ RSpec.describe Datadog::Tracing do
     let(:start_time) { double('start_time') }
     let(:tags) { double('tags') }
     let(:type) { double('type') }
+    let(:id) { double(1) }
     let(:block) { -> {} }
 
     it 'delegates to the tracer' do
@@ -93,7 +95,8 @@ RSpec.describe Datadog::Tracing do
           service: service,
           start_time: start_time,
           tags: tags,
-          type: type
+          type: type,
+          id: id
         ) { |&b| expect(b).to be(block) }
         .and_return(returned)
       expect(trace).to eq(returned)
@@ -133,6 +136,16 @@ RSpec.describe Datadog::Tracing do
       expect(log_correlation).to eq(returned)
     end
     # rubocop:enable RSpec/MessageChain
+
+    context 'with tracing disabled' do
+      before do
+        allow(Datadog.send(:components).tracer).to receive(:enabled).and_return(false)
+      end
+
+      it 'returns an empty string' do
+        expect(log_correlation).to eq('')
+      end
+    end
   end
 
   describe '.shutdown!' do

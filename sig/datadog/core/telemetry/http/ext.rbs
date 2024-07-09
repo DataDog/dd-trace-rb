@@ -13,9 +13,15 @@ module Datadog
 
           HEADER_DD_TELEMETRY_REQUEST_TYPE: "DD-Telemetry-Request-Type"
 
+          HEADER_CLIENT_LIBRARY_LANGUAGE: "DD-Client-Library-Language"
+
+          HEADER_CLIENT_LIBRARY_VERSION: "DD-Client-Library-Version"
+
+          HEADER_TELEMETRY_DEBUG_ENABLED: "DD-Telemetry-Debug-Enabled"
+
           CONTENT_TYPE_APPLICATION_JSON: "application/json"
 
-          API_VERSION: "v1"
+          API_VERSION: "v2"
 
           AGENT_ENDPOINT: "/telemetry/proxy/api/v2/apmtelemetry"
         end

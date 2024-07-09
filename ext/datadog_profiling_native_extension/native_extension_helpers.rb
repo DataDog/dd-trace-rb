@@ -15,7 +15,7 @@ module Datadog
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
       CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
-      LIBDATADOG_VERSION = '~> 9.0.0.1.0'
+      LIBDATADOG_VERSION = '~> 10.0.0.1.0'
 
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
@@ -65,6 +65,52 @@ module Datadog
         libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
         Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(profiling_native_lib_folder)).to_s
+      end
+
+      # In https://github.com/DataDog/dd-trace-rb/pull/3582 we got a report of a customer for which the native extension
+      # only got installed into the extensions folder.
+      #
+      # But then this fix was not enough to fully get them moving because then they started to see the issue from
+      # https://github.com/DataDog/dd-trace-rb/issues/2067 / https://github.com/DataDog/dd-trace-rb/pull/2125 :
+      #
+      # > Profiling was requested but is not supported, profiling disabled: There was an error loading the profiling
+      # > native extension due to 'RuntimeError Failure to load datadog_profiling_native_extension.3.2.2_x86_64-linux
+      # > due to libdatadog_profiling.so: cannot open shared object file: No such file or directory
+      #
+      # The problem is that when loading the native extension from the extensions directory, the relative rpath we add
+      # with the #libdatadog_folder_relative_to_native_lib_folder helper above is not correct, we need to add a relative
+      # rpath to the extensions directory.
+      #
+      # So how do we find the full path where the native extension is placed?
+      # * From https://github.com/ruby/ruby/blob/83f02d42e0a3c39661dc99c049ab9a70ff227d5b/lib/bundler/runtime.rb#L166
+      #   `extension_dirs = Dir["#{Gem.dir}/extensions/*/*/*"] + Dir["#{Gem.dir}/bundler/gems/extensions/*/*/*"]`
+      #   we get that's in one of two fixed subdirectories of `Gem.dir`
+      # * From https://github.com/ruby/ruby/blob/83f02d42e0a3c39661dc99c049ab9a70ff227d5b/lib/rubygems/basic_specification.rb#L111-L115
+      #   we get the structure of the subdirectory (platform/extension_api_version/gem_and_version)
+      #
+      # Thus, `Gem.dir` of `/var/app/current/vendor/bundle/ruby/3.2.0` becomes (for instance)
+      # `/var/app/current/vendor/bundle/ruby/3.2.0/extensions/x86_64-linux/3.2.0/datadog-2.0.0/` or
+      # `/var/app/current/vendor/bundle/ruby/3.2.0/bundler/gems/extensions/x86_64-linux/3.2.0/datadog-2.0.0/`
+      #
+      # We then compute the relative path between these folders and the libdatadog folder, and use that as a relative path.
+      def self.libdatadog_folder_relative_to_ruby_extensions_folders(
+        gem_dir: Gem.dir,
+        libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
+      )
+        return unless libdatadog_pkgconfig_folder
+
+        # For the purposes of calculating a folder relative to the other, we don't actually NEED to fill in the
+        # platform, extension_api_version and gem version. We're basically just after how many folders it is deep from
+        # the Gem.dir.
+        expected_ruby_extensions_folders = [
+          "#{gem_dir}/extensions/platform/extension_api_version/datadog_version/",
+          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/",
+        ]
+        libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
+
+        expected_ruby_extensions_folders.map do |folder|
+          Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(folder)).to_s
+        end
       end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their

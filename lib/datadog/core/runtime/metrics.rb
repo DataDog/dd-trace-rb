@@ -140,6 +140,7 @@ module Datadog
           gauge(metric_name, metric_value) if metric_value
         end
 
+        # rubocop:disable Metrics/MethodLength
         def flush_yjit_stats
           # Only on Ruby >= 3.2
           try_flush do
@@ -176,9 +177,14 @@ module Datadog
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_OUTLINED_CODE_SIZE,
                 Core::Environment::YJIT.outlined_code_size
               )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
+                Core::Environment::YJIT.yjit_alloc_size
+              )
             end
           end
         end
+        # rubocop:enable Metrics/MethodLength
       end
     end
   end

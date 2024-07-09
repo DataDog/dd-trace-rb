@@ -309,9 +309,15 @@ You can enable it through `Datadog.configure`:
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :action_cable
+  c.tracing.instrument :action_cable, **options
 end
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ACTION_CABLE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Action Mailer
 
@@ -329,9 +335,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key          | Type   | Description                                                                                                                                                                         | Default |
-| ------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| `email_data` | `Bool` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
+| Key          | Env Var | Type   | Description                                                                                                                                                                         | Default |
+| ------------ | - | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ACTION_MAILER_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `email_data` | | `Bool` | Whether or not to append additional email payload metadata to `action_mailer.deliver` spans. Fields include `['subject', 'to', 'from', 'bcc', 'cc', 'date', 'perform_deliveries']`. | `false` |
 
 ### Action Pack
 
@@ -342,9 +349,15 @@ require 'actionpack'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :action_pack
+  c.tracing.instrument :action_pack, **options
 end
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ACTION_PACK_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Action View
 
@@ -361,9 +374,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key                  | Type     | Description                                                                                                                        | Default    |
-| -------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `template_base_path` | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
+| Key                  | Env Var | Type     | Description                                                                                                                        | Default    |
+| -------------------- | - | ------- | ---------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `enabled` | `DD_TRACE_ACTION_VIEW_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `template_base_path` | | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value | `'views/'` |
 
 ### Active Job
 
@@ -374,11 +388,17 @@ require 'active_job'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :active_job
+  c.tracing.instrument :active_job, **options
 end
 
 ExampleJob.perform_later
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ACTIVE_JOB_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Active Model Serializers
 
@@ -389,12 +409,18 @@ require 'active_model_serializers'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :active_model_serializers
+  c.tracing.instrument :active_model_serializers, **options
 end
 
 my_object = MyModel.new(name: 'my object')
 ActiveModelSerializers::SerializableResource.new(test_obj).serializable_hash
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ACTIVE_MODEL_SERIALIZERS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Active Record
 
@@ -419,9 +445,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key            | Type     | Description                                                                                                                                                    | Default                                    |
-| -------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `service_name` | `String` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
+| Key            | Env Var | Type     | Description                                                                                                                                                    | Default                                    |
+| -------------- | - | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `enabled` | `DD_TRACE_ACTIVE_RECORD_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `service_name` | | `String` | Override the service name for the SQL query instrumentation. ActiveRecord instantiation instrumentation always uses the application's configured service name. | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring trace settings per database**
 
@@ -507,9 +534,10 @@ cache.read('city')
 
 `options` are the following keyword arguments:
 
-| Key             | Type     | Description                                                                                                                                                                                        | Default                |
-| --------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| `cache_service` | `String` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `active_support-cache` |
+| Key             | Env Var | Type     | Description                                                                                                                                                                                        | Default                |
+| --------------- | - | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `enabled` | `DD_TRACE_ACTIVE_SUPPORT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `cache_service` | | `String` | Name of application running the `active_support` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `active_support-cache` |
 
 ### AWS
 
@@ -531,6 +559,7 @@ Aws::S3::Client.new.list_buckets
 
 | Key            | Env Var                     | Type     | Description                                                                                                                                                                             | Default |
 | -------------- | --------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_AWS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
 | `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                    | `nil`   |
 
@@ -544,7 +573,7 @@ To activate your integration, use the `Datadog.configure` method:
 # Inside Rails initializer or equivalent
 Datadog.configure do |c|
   # Patches ::Concurrent::Future to use ExecutorService that propagates context
-  c.tracing.instrument :concurrent_ruby
+  c.tracing.instrument :concurrent_ruby, **options
 end
 
 # Pass context into code executed within Concurrent::Future
@@ -565,6 +594,12 @@ Datadog::Tracing.trace('outer') do
   MyClass.new.async.foo
 end
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_CONCURRENT_RUBY_ENABLED` | `Bool` | Whether the integration propagates contexts. | `true` |
 
 ### Dalli
 
@@ -588,6 +623,7 @@ client.set('abc', 123)
 
 | Key               | Env Var                              | Type     | Description                                                                                                                                                                               | Default     |
 | ----------------- | ------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `enabled` | `DD_TRACE_DALLI_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `command_enabled` | `DD_TRACE_MEMCACHED_COMMAND_ENABLED` | `Bool`   | Collect commands as the `memcached.command` tag. Command `keys` can potentially contain sensitive information.                                                                            | `false`     |
 | `service_name`    | `DD_TRACE_DALLI_SERVICE_NAME`        | `String` | Name of application running the `dalli` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `memcached` |
 | `peer_service`    | `DD_TRACE_DALLI_PEER_SERVICE`        | `String` | Name of external service the application connects to                                                                                                                                      | `nil`       |
@@ -608,9 +644,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key        | Type   | Description                                                                                                                                                                 | Default                                                           |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `on_error` | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_DELAYED_JOB_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Elasticsearch
 
@@ -636,6 +673,7 @@ Datadog.configure_onto(client.transport, **options)
 
 | Key            | Env Var                               | Type     | Description                                                                                                                                                                                       | Default         |
 | -------------- | ------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `enabled` | `DD_TRACE_ELASTICSEARCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_ELASTICSEARCH_SERVICE_NAME` | `String` | Name of application running the `elasticsearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `elasticsearch` |
 | `peer_service` | `DD_TRACE_ELASTICSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                              | `nil`           |
 | `quantize`     |                                       | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.       | `{}`            |
@@ -662,6 +700,7 @@ end
 
 | Key                   | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | --------------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_ETHON_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_ETHON_SERVICE_NAME` | `String` | Name of application running the `ethon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `ethon` |
 | `peer_service`        | `DD_TRACE_ETHON_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `distributed_tracing` |                               | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                       | `true`  |
@@ -694,6 +733,7 @@ connection.get
 
 | Key                   | Env Var                             | Type             | Description                                                                                                                                                                                                                                                                        | Default                                                           |
 | --------------------- | ----------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_EXCON_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_EXCON_SERVICE_NAME`       | `String`         | Name of application running the `excon` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                          | `excon`                                                           |
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
 | `distributed_tracing` |                                     | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
@@ -758,6 +798,7 @@ connection.get('/foo')
 
 | Key                   | Env Var                               | Type             | Description                                                                                                                                                                                                                                                                        | Default                                                           |
 | --------------------- | ------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_FARADAY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_FARADAY_SERVICE_NAME`       | `String`         | Name of application running the `faraday` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                        | `faraday`                                                         |
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
 | `distributed_tracing` |                                       | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
@@ -793,7 +834,7 @@ end
 
 | Key                  | Env Var                             | Type             | Description                                                                                                                                                                                                                                                                        | Default     |
 | -------------------- | ----------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
-| `enabled`            | `DD_TRACE_GRAPE_ENABLED`            | `Bool`           | Defines whether Grape should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                                                                                                                                | `true`      |
+| `enabled` | `DD_TRACE_GRAPE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `error_status_codes` | `DD_TRACE_GRAPE_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `500...600` |
 
 ### GraphQL
@@ -814,11 +855,13 @@ YourSchema.execute(query, variables: {}, context: {}, operation_name: nil)
 
 The `instrument :graphql` method accepts the following parameters. Additional options can be substituted in for `options`:
 
-| Key                      | Type     | Description                                                                                                                                                  | Default          |
-| ------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
-| `schemas`                | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]`             |
-| `with_deprecated_tracer` | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                          | `false`          |
-| `service_name`           | `String` | Service name used for graphql instrumentation                                                                                                                | `'ruby-graphql'` |
+| Key                      | Env Var | Type     | Description                                                                                                                                                  | Default          |
+| ------------------------ | - | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------- |
+| `enabled` | `DD_TRACE_GRAPHQL_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `schemas`                | | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas. | `[]`             |
+| `with_unified_tracer`    | | `Bool`   | Enable to instrument with `UnifiedTrace` tracer, enabling support for API Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` (Added in v2.2)  | `false` |
+| `with_deprecated_tracer` | | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                          | `false`          |
+| `service_name`           | | `String` | Service name used for graphql instrumentation                                                                                                                | `'ruby-graphql'` |
 
 **Manually configuring GraphQL schemas**
 
@@ -829,6 +872,14 @@ With `GraphQL::Tracing::DataDogTrace`
 ```ruby
 class YourSchema < GraphQL::Schema
   trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+
+With `UnifiedTracer` (Added in v2.2)
+
+```ruby
+class YourSchema < GraphQL::Schema
+  trace_with Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
 end
 ```
 
@@ -843,6 +894,23 @@ end
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
 
 Do _NOT_ `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
+
+**Adding custom tags to Datadog spans**
+
+You can add custom tags to Datadog spans by implementing the `prepare_span` method in a subclass, then manually configuring your schema.
+
+```ruby
+class YourSchema < GraphQL::Schema
+  module CustomTracing
+    include Datadog::Tracing::Contrib::GraphQL::UnifiedTrace
+    def prepare_span(trace_key, data, span)
+      span.set_tag("custom:#{trace_key}", data.keys.sort.join(","))
+    end
+  end
+  
+  trace_with CustomTracing
+end
+```
 
 ### gRPC
 
@@ -873,6 +941,7 @@ client.my_endpoint(DemoMessage.new(contents: 'hello!'))
 
 | Key                   | Env Var                      | Type     | Description                                                                                                                                                                              | Default                                                            |
 | --------------------- | ---------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `enabled` | `DD_TRACE_GRPC_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_GRPC_SERVICE_NAME` | `String` | Name of application running the `grpc` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `grpc`                                                             |
 | `peer_service`        | `DD_TRACE_GRPC_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                     | `nil`                                                              |
 | `distributed_tracing` |                              | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                      | `true`                                                             |
@@ -915,9 +984,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key            | Type     | Description                                | Default |
-| -------------- | -------- | ------------------------------------------ | ------- |
-| `service_name` | `String` | Service name for `hanami` instrumentation. | `nil`   |
+| Key            | Env Var | Type     | Description                                | Default |
+| -------------- | - | ------- | ------------------------------------------ | ------- |
+| `enabled` | `DD_TRACE_HANAMI_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `service_name` | | `String` | Service name for `hanami` instrumentation. | `nil`   |
 
 ### http.rb
 
@@ -940,6 +1010,7 @@ end
 
 | Key                   | Env Var                              | Type             | Description                                                                                                                                                                                                                                                                            | Default     |
 | --------------------- | ------------------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `enabled` | `DD_TRACE_HTTPRB_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_HTTPRB_SERVICE_NAME`       | `String`         | Name of application running the `httprb` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                             | `httprb`    |
 | `peer_service`        | `DD_TRACE_HTTPRB_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                                   | `nil`       |
 | `distributed_tracing` |                                      | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                    | `true`      |
@@ -967,6 +1038,7 @@ end
 
 | Key                   | Env Var                                  | Type             | Description                                                                                                                                                                                                                                                                        | Default      |
 | --------------------- | ---------------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `enabled` | `DD_TRACE_HTTPCLIENT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_HTTPCLIENT_SERVICE_NAME`       | `String`         | Name of application running the `httpclient` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                     | `httpclient` |
 | `peer_service`        | `DD_TRACE_HTTPCLIENT_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`        |
 | `distributed_tracing` |                                          | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`       |
@@ -1004,9 +1076,15 @@ require 'kafka'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :kafka
+  c.tracing.instrument :kafka, **options
 end
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_KAFKA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### MongoDB
 
@@ -1033,6 +1111,7 @@ Datadog.configure_onto(client, **options)
 
 | Key            | Env Var                       | Type     | Description                                                                                                                                                                                 | Default                                          |
 | -------------- | ----------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `enabled` | `DD_TRACE_MONGO_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_MONGO_SERVICE_NAME` | `String` | Name of application running the `mongo` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)   | `mongodb`                                        |
 | `peer_service` | `DD_TRACE_MONGO_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`                                            |
 | `quantize`     |                               | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely. | `{ show: [:collection, :database, :operation] }` |
@@ -1088,6 +1167,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 
 | Key                   | Env Var                        | Type     | Description                                                                                                                                                                                                                                                                                                                                                              | Default                                                           |
 | --------------------- | ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_MYSQL2_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_MYSQL2_SERVICE_NAME` | `String` | Name of application running the `mysql2` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                               | `mysql2`                                                          |
 | `peer_service`        | `DD_TRACE_MYSQL2_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                     | `nil`                                                             |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`      | `String` | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling SQL comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other third parties that have been granted access to the database._ | `'disabled'`                                                      |
@@ -1123,6 +1203,7 @@ content = Net::HTTP.get(URI('http://127.0.0.1/index.html'))
 
 | Key                   | Env Var                            | Type             | Description                                                                                                                                                                                                                                                                        | Default     |
 | --------------------- | ---------------------------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| `enabled` | `DD_TRACE_HTTP_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_NET_HTTP_SERVICE_NAME`   | `String`         | Name of application running the `net/http` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                       | `net/http`  |
 | `peer_service`        | `DD_TRACE_NET_HTTP_PEER_SERVICE`   | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`       |
 | `distributed_tracing` |                                    | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`      |
@@ -1161,6 +1242,7 @@ client.cluster.health
 
 | Key            | Env Var                            | Type     | Description                                                                                                                                                                                    | Default      |
 | -------------- | ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| `enabled` | `DD_TRACE_OPENSEARCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `opensearch` |
 | `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                           | `nil`        |
 | `quantize`     |                                    | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
@@ -1186,7 +1268,7 @@ end
 
 | Key                   | Env Var                    | Type                                       | Description                                                                                                                                                                                                                                                                                                                                                            | Default                                                           |
 | --------------------- | -------------------------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `enabled`             |                            | Defines whether Postgres should be traced. | `true`                                                                                                                                                                                                                                                                                                                                                                 |
+| `enabled`             | `DD_TRACE_PG_ENABLED`      | `true`                                     | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_PG_SERVICE_NAME` | `String`                                   | Name of application running the `pg` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration)                                                                                                                                                                                 | `pg`                                                              |
 | `peer_service`        | `DD_TRACE_PG_PEER_SERVICE` | `String`                                   | Name of external service the application connects to                                                                                                                                                                                                                                                                                                                   | `nil`                                                             |
 | `comment_propagation` | `DD_DBM_PROPAGATION_MODE`  | `String`                                   | SQL comment propagation mode for database monitoring. <br />(example: `disabled` \| `service`\| `full`). <br /><br />**Important**: _Note that enabling sql comment propagation results in potentially confidential data (service names) being stored in the databases which can then be accessed by other 3rd parties that have been granted access to the database._ | `'disabled'`                                                      |
@@ -1221,6 +1303,7 @@ client.run("select * from system.nodes")
 
 | Key            | Env Var                        | Type     | Description                                                                                                                                                                                | Default  |
 | -------------- | ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- |
+| `enabled` | `DD_TRACE_PRESTO_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_PRESTO_SERVICE_NAME` | `String` | Name of application running the `presto` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `presto` |
 | `peer_service` | `DD_TRACE_PRESTO_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                       | `nil`    |
 
@@ -1242,7 +1325,7 @@ end
 
 | Key        | Env Var                         | Type   | Description                                                                                                                                                                 | Default                                                            |
 | ---------- | ------------------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| `enabled`  | `DD_TRACE_QUE_ENABLED`          | `Bool` | Defines whether Que should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                           | `true`                                                             |
+| `enabled`  | `DD_TRACE_QUE_ENABLED`          | `Bool` | Whether the integration should create spans.                                                                           | `true`                                                             |
 | `tag_args` | `DD_TRACE_QUE_TAG_ARGS_ENABLED` | `Bool` | Enable tagging of a job's args field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `tag_data` | `DD_TRACE_QUE_TAG_DATA_ENABLED` | `Bool` | Enable tagging of a job's data field. `true` for on, `false` for off.                                                                                                       | `false`                                                            |
 | `on_error` |                                 | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error \| span.set_error(error) unless span.nil? }` |
@@ -1265,6 +1348,7 @@ end
 
 | Key            | Env Var                         | Type     | Description                                                                                                                                                                                 | Default   |
 | -------------- | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `enabled` | `DD_TRACE_RACECAR_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_RACECAR_SERVICE_NAME` | `String` | Name of application running the `racecar` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `racecar` |
 
 ### Rack
@@ -1292,23 +1376,24 @@ run app
 
 `options` are the following keyword arguments:
 
-| Key                              | Type     | Description                                                                                                                                                                                                                                                                                                                                                                          | Default                                          |
-| -------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| `application`                    | ???      | Your Rack application. Required for `middleware_names`.                                                                                                                                                                                                                                                                                                                              | `nil`                                            |
-| `distributed_tracing`            | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                          | `true`                                           |
-| `headers`                        | `Hash`   | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
-| `middleware_names`               | `Bool`   | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use.                                                                     | `false`                                          |
-| `quantize`                       | `Hash`   | Hash containing options for quantization. May include `:query` or `:fragment`.                                                                                                                                                                                                                                                                                                       | `{}`                                             |
-| `quantize.base`                  |          | Defines behavior for URL base (scheme, host, port). May be `:show` to keep URL base in `http.url` tag and not set `http.base_url` tag, or `nil` to remove URL base from `http.url` tag by default, leaving a path and setting `http.base_url`. Option must be nested inside the `quantize` option.                                                                                   | `nil`                                            |
-| `quantize.query`                 |          | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option.                                                                                                                                                                                                             | `{}`                                             |
-| `quantize.query.show`            |          | Defines which values should always be shown. May be an Array of strings, `:all` to show all values, or `nil` to show no values. Option must be nested inside the `query` option.                                                                                                                                                                                                     | `nil`                                            |
-| `quantize.query.exclude`         |          | Defines which values should be removed entirely. May be an Array of strings, `:all` to remove the query string entirely, or `nil` to exclude nothing. Option must be nested inside the `query` option.                                                                                                                                                                               | `nil`                                            |
-| `quantize.query.obfuscate`       |          | Defines query string redaction behaviour. May be a hash of options, `:internal` to use the default internal obfuscation settings, or `nil` to disable obfuscation. Note that obfuscation is a string-wise operation, not a key-value operation. When enabled, `query.show` defaults to `:all` if otherwise unset. Option must be nested inside the `query` option.                   | `nil`                                            |
-| `quantize.query.obfuscate.with`  |          | Defines the string to replace obfuscated matches with. May be a String. Option must be nested inside the `query.obfuscate` option.                                                                                                                                                                                                                                                   | `'<redacted>'`                                   |
-| `quantize.query.obfuscate.regex` |          | Defines the regex with which the query string will be redacted. May be a Regexp, or `:internal` to use the default internal Regexp, which redacts well-known sensitive data. Each match is redacted entirely by replacing it with `query.obfuscate.with`. Option must be nested inside the `query.obfuscate` option.                                                                 | `:internal`                                      |
-| `quantize.fragment`              |          | Defines behavior for URL fragments. May be `:show` to show URL fragments, or `nil` to remove fragments. Option must be nested inside the `quantize` option.                                                                                                                                                                                                                          | `nil`                                            |
-| `request_queuing`                | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP requwest queuing](#http-request-queuing) for setup details.                                                                                                                                                                                                                                             | `false`                                          |
-| `web_service_name`               | `String` | Service name for frontend server request queuing spans. (e.g. `'nginx'`)                                                                                                                                                                                                                                                                                                             | `'web-server'`                                   |
+| Key                              | Env Var | Type     | Description                                                                                                                                                                                                                                                                                                                                                                          | Default                                          |
+| -------------------------------- | - | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| `enabled` | `DD_TRACE_RACK_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `application`                    | | [`Rack Application`](https://github.com/rack/rack/blob/800e53fbe15b3424b7a8946b067bf6f2e648d5a8/SPEC.rdoc#label-Rack+applications)      | Your Rack application. Required for `middleware_names`.                                                                                                                                                                                                                                                                                                                              | `nil`                                            |
+| `distributed_tracing`            | | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                          | `true`                                           |
+| `headers`                        | | `Hash`   | Hash of HTTP request or response headers to add as tags to the `rack.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
+| `middleware_names`               | | `Bool`   | Enable this if you want to use the last executed middleware class as the resource name for the `rack` span. If enabled alongside the `rails` instrumention, `rails` takes precedence by setting the `rack` resource name to the active `rails` controller when applicable. Requires `application` option to use.                                                                     | `false`                                          |
+| `quantize`                       | | `Hash`   | Hash containing options for quantization. May include `:query` or `:fragment`.                                                                                                                                                                                                                                                                                                       | `{}`                                             |
+| `quantize.base`                  | |          | Defines behavior for URL base (scheme, host, port). May be `:show` to keep URL base in `http.url` tag and not set `http.base_url` tag, or `nil` to remove URL base from `http.url` tag by default, leaving a path and setting `http.base_url`. Option must be nested inside the `quantize` option.                                                                                   | `nil`                                            |
+| `quantize.query`                 | |          | Hash containing options for query portion of URL quantization. May include `:show` or `:exclude`. See options below. Option must be nested inside the `quantize` option.                                                                                                                                                                                                             | `{}`                                             |
+| `quantize.query.show`            | |          | Defines which values should always be shown. May be an Array of strings, `:all` to show all values, or `nil` to show no values. Option must be nested inside the `query` option.                                                                                                                                                                                                     | `nil`                                            |
+| `quantize.query.exclude`         | |          | Defines which values should be removed entirely. May be an Array of strings, `:all` to remove the query string entirely, or `nil` to exclude nothing. Option must be nested inside the `query` option.                                                                                                                                                                               | `nil`                                            |
+| `quantize.query.obfuscate`       | |          | Defines query string redaction behaviour. May be a hash of options, `:internal` to use the default internal obfuscation settings, or `nil` to disable obfuscation. Note that obfuscation is a string-wise operation, not a key-value operation. When enabled, `query.show` defaults to `:all` if otherwise unset. Option must be nested inside the `query` option.                   | `nil`                                            |
+| `quantize.query.obfuscate.with`  | |          | Defines the string to replace obfuscated matches with. May be a String. Option must be nested inside the `query.obfuscate` option.                                                                                                                                                                                                                                                   | `'<redacted>'`                                   |
+| `quantize.query.obfuscate.regex` | |          | Defines the regex with which the query string will be redacted. May be a Regexp, or `:internal` to use the default internal Regexp, which redacts well-known sensitive data. Each match is redacted entirely by replacing it with `query.obfuscate.with`. Option must be nested inside the `query.obfuscate` option.                                                                 | `:internal`                                      |
+| `quantize.fragment`              | |          | Defines behavior for URL fragments. May be `:show` to show URL fragments, or `nil` to remove fragments. Option must be nested inside the `quantize` option.                                                                                                                                                                                                                          | `nil`                                            |
+| `request_queuing`                | | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details.                                                                                                                                                                                                                                             | `false`                                          |
+| `web_service_name`               | | `String` | Service name for frontend server request queuing spans. (e.g. `'nginx'`)                                                                                                                                                                                                                                                                                                             | `'web-server'`                                   |
 
 Deprecation notice:
 
@@ -1369,7 +1454,9 @@ end
 
 The Rails integration will trace requests, database calls, templates rendering, and cache read/write/delete operations. The integration makes use of the Active Support Instrumentation, listening to the Notification API so that any operation instrumented by the API is traced.
 
-To enable the Rails instrumentation, create an initializer file in your `config/initializers` folder:
+To enable the Rails instrumentation, use the [Rails auto instrumentation instructions](#rails-or-hanami-applications).
+
+Alternatively, you can also create an initializer file in your `config/initializers` folder:
 
 ```ruby
 # config/initializers/datadog.rb
@@ -1382,14 +1469,15 @@ end
 
 `options` are the following keyword arguments:
 
-| Key                   | Type     | Description                                                                                                                                                 | Default                                                         |
-| --------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| `distributed_tracing` | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true`                                                          |
-| `request_queuing`     | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details.                     | `false`                                                         |
-| `middleware`          | `Bool`   | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load.                                                 | `true`                                                          |
-| `middleware_names`    | `Bool`   | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace.                                                 | `false`                                                         |
-| `service_name`        | `String` | Service name used when tracing application requests (on the `rack` level)                                                                                   | `'<app_name>'` (inferred from your Rails application namespace) |
-| `template_base_path`  | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value                          | `'views/'`                                                      |
+| Key                   | Env Var | Type     | Description                                                                                                                                                 | Default                                                         |
+| --------------------- | - | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_RAILS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `distributed_tracing` | | `Bool`   | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received | `true`                                                          |
+| `request_queuing`     | | `Bool`   | Track HTTP request time spent in the queue of the frontend server. See [HTTP request queuing](#http-request-queuing) for setup details.                     | `false`                                                         |
+| `middleware`          | | `Bool`   | Add the trace middleware to the Rails application. Set to `false` if you don't want the middleware to load.                                                 | `true`                                                          |
+| `middleware_names`    | | `Bool`   | Enables any short-circuited middleware requests to display the middleware name as a resource for the trace.                                                 | `false`                                                         |
+| `service_name`        | | `String` | Service name used when tracing application requests (on the `rack` level)                                                                                   | `'<app_name>'` (inferred from your Rails application namespace) |
+| `template_base_path`  | | `String` | Used when the template name is parsed. If you don't store your templates in the `views/` folder, you may need to change this value                          | `'views/'`                                                      |
 
 **Supported versions**
 
@@ -1429,12 +1517,13 @@ Rake::Task['my_task'].invoke
 
 `options` are the following keyword arguments:
 
-| Key            | Type     | Description                                                                                              | Default  |
-| -------------- | -------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| `enabled`      | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
-| `quantize`     | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
-| `service_name` | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
-| `tasks`        | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
+| Key            | Env Var| Type     | Description                                                                                              | Default  |
+| -------------- | - | ------- | -------------------------------------------------------------------------------------------------------- | -------- |
+| `enabled`      | | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
+| `quantize`     | | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
+| `service_name` | | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
+| `tasks`        | | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
+| `enabled` | `DD_TRACE_RAKE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 **Configuring task quantization behavior**
 
@@ -1491,6 +1580,7 @@ redis.set 'foo', 'bar'
 
 | Key            | Env Var                       | Type     | Description                                                                                                                                                                               | Default |
 | -------------- | ----------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_REDIS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_REDIS_SERVICE_NAME` | `String` | Name of application running the `redis` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `redis` |
 | `peer_service` | `DD_TRACE_REDIS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                      | `nil`   |
 | `command_args` | `DD_REDIS_COMMAND_ARGS`       | `Bool`   | Show the command arguments (for example, `key` in `GET key`) as resource name and tag. If `false`, only the command name is shown (for example, `GET`).                                   | false   |
@@ -1604,9 +1694,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key        | Type   | Description                                                                                                                                                                 | Default                                                           |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `on_error` | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_RESQUE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Rest Client
 
@@ -1625,6 +1716,7 @@ end
 
 | Key                   | Env Var                             | Type     | Description                                                                                                                                                                                     | Default       |
 | --------------------- | ----------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `enabled` | `DD_TRACE_REST_CLIENT_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name`        | `DD_TRACE_REST_CLIENT_SERVICE_NAME` | `String` | Name of application running the `rest_client` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `rest_client` |
 | `peer_service`        | `DD_TRACE_REST_CLIENT_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                            | `nil`         |
 | `distributed_tracing` |                                     | `Bool`   | Enables [distributed tracing](#distributed-tracing)                                                                                                                                             | `true`        |
@@ -1659,9 +1751,10 @@ end
 
 `options` are the following keyword arguments:
 
-| Key            | Type     | Description                              | Default |
-| -------------- | -------- | ---------------------------------------- | ------- |
-| `service_name` | `String` | Service name for `roda` instrumentation. | `nil`   |
+| Key            | Env Var | Type     | Description                              | Default |
+| -------------- | - | ------- | ---------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_RODA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `service_name` | | `String` | Service name for `roda` instrumentation. | `nil`   |
 
 ### Sequel
 
@@ -1691,9 +1784,10 @@ articles.all
 
 `options` are the following keyword arguments:
 
-| Key            | Type     | Description                               | Default                                    |
-| -------------- | -------- | ----------------------------------------- | ------------------------------------------ |
-| `service_name` | `String` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
+| Key            | Env Var | Type     | Description                               | Default                                    |
+| -------------- | - | ------- | ----------------------------------------- | ------------------------------------------ |
+| `enabled` | `DD_TRACE_SEQUEL_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `service_name` | | `String` | Service name for `sequel` instrumentation | Name of database adapter (e.g. `'mysql2'`) |
 
 **Configuring databases to use different settings**
 
@@ -1724,10 +1818,11 @@ end
 
 `options` are the following keyword arguments:
 
-| Key        | Type   | Description                                                                                                                                                                 | Default                                                           |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `tag_body` | `Bool` | Tag spans with the SQS message body `true` or `false`                                                                                                                       | `false`                                                           |
-| `on_error` | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_SHORYUKEN_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `tag_body` | | `Bool` | Tag spans with the SQS message body `true` or `false`                                                                                                                       | `false`                                                           |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Sidekiq
 
@@ -1745,11 +1840,12 @@ end
 
 `options` are the following keyword arguments:
 
-| Key                   | Type   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                           | Default                                                           |
-| --------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `distributed_tracing` | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
-| `on_error`            | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors.                                                                                                                                                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
-| `quantize`            | `Hash` | Hash containing options for quantization of job arguments.                                                                                                                                                                                                                                                                                                                                                                                            | `{}`                                                              |
+| Key                   | Env Var | Type   | Description                                                                                                                                                                                                                                                                                                                                                                                                                                           | Default                                                           |
+| --------------------- | - | ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled` | `DD_TRACE_SIDEKIQ_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `distributed_tracing` | | `Bool` | Enabling [distributed tracing](#distributed-tracing) creates a parent-child relationship between the `sidekiq.push` span and the `sidekiq.job` span. <br /><br />**Important**: _Enabling distributed_tracing for asynchronous processing can result in drastic changes in your trace graph. Such cases include long running jobs, retried jobs, and jobs scheduled in the far future. Make sure to inspect your traces after enabling this feature._ | `false`                                                           |
+| `on_error`            | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors.                                                                                                                                                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `quantize`            | | `Hash` | Hash containing options for quantization of job arguments.                                                                                                                                                                                                                                                                                                                                                                                            | `{}`                                                              |
 
 ### Sinatra
 
@@ -1801,11 +1897,12 @@ end
 
 `options` are the following keyword arguments:
 
-| Key                     | Type   | Description                                                                                                                                                                                                                                                                                                                                                                             | Default                                          |
-| ----------------------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| `distributed_tracing`   | `Bool` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                             | `true`                                           |
-| `headers`               | `Hash` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
-| `resource_script_names` | `Bool` | Prepend resource names with script name                                                                                                                                                                                                                                                                                                                                                 | `false`                                          |
+| Key                     | Env Var | Type   | Description                                                                                                                                                                                                                                                                                                                                                                             | Default                                          |
+| ----------------------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| `enabled` | `DD_TRACE_SINATRA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
+| `distributed_tracing`   | | `Bool` | Enables [distributed tracing](#distributed-tracing) so that this service trace is connected with a trace of another service if tracing headers are received                                                                                                                                                                                                                             | `true`                                           |
+| `headers`               | | `Hash` | Hash of HTTP request or response headers to add as tags to the `sinatra.request`. Accepts `request` and `response` keys with Array values e.g. `['Last-Modified']`. Adds `http.request.headers.*` and `http.response.headers.*` tags respectively. This option overrides the global `DD_TRACE_HEADER_TAGS`, see [Applying header tags to root spans][header tags] for more information. | `{ response: ['Content-Type', 'X-Request-ID'] }` |
+| `resource_script_names` | | `Bool` | Prepend resource names with script name                                                                                                                                                                                                                                                                                                                                                 | `false`                                          |
 
 ### Sneakers
 
@@ -1823,11 +1920,11 @@ end
 
 `options` are the following keyword arguments:
 
-| Key        | Type   | Description                                                                                                                                                                 | Default                                                           |
-| ---------- | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| `enabled`  | `Bool` | Defines whether Sneakers should be traced. Useful for temporarily disabling tracing. `true` or `false`                                                                      | `true`                                                            |
-| `tag_body` | `Bool` | Enable tagging of job message. `true` for on, `false` for off.                                                                                                              | `false`                                                           |
-| `on_error` | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| Key        | Env Var | Type   | Description                                                                                                                                                                 | Default                                                           |
+| ---------- | - | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `enabled`  | `DD_TRACE_SNEAKERS_ENABLED` | `Bool` | Whether the integration should create spans.                                                                      | `true`                                                            |
+| `tag_body` | | `Bool` | Enable tagging of job message. `true` for on, `false` for off.                                                                                                              | `false`                                                           |
+| `on_error` | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Stripe
 
@@ -1845,9 +1942,9 @@ end
 
 `options` are the following keyword arguments:
 
-| Key       | Type   | Description                                                                                          | Default |
-| --------- | ------ | ---------------------------------------------------------------------------------------------------- | ------- |
-| `enabled` | `Bool` | Defines whether Stripe should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`  |
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_STRIPE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Sucker Punch
 
@@ -1857,12 +1954,18 @@ The `sucker_punch` integration traces all scheduled jobs:
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :sucker_punch
+  c.tracing.instrument :sucker_punch, **options
 end
 
 # Execution of this job is traced
 LogJob.perform_async('login')
 ```
+
+`options` are the following keyword arguments:
+
+| Key       | Env Var                         | Type   | Description                                  | Default |
+| --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
+| `enabled` | `DD_TRACE_SUCKER_PUNCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 ### Trilogy
 
@@ -1884,6 +1987,7 @@ client.query("SELECT * FROM users WHERE group='x'")
 
 | Key            | Env Var                         | Type     | Description                                                                                                                                                                                 | Default   |
 | -------------- | ------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `enabled` | `DD_TRACE_TRILOGY_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_TRILOGY_SERVICE_NAME` | `String` | Name of application running the `trilogy` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `trilogy` |
 | `peer_service` | `DD_TRACE_TRILOGY_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                        | `nil`     |
 
@@ -2642,6 +2746,6 @@ See [this issue](https://github.com/DataDog/dd-trace-rb/issues/3015) for a discu
 
 <!---->
 
-[header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#applying-header-tags-to-root-spans
+[header tags]: https://docs.datadoghq.com/tracing/configure_data_security/#collect-headers
 [1]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby/
 [2]: https://docs.datadoghq.com/tracing/trace_collection/compatibility/ruby#integrations

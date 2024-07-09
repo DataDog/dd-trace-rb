@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.1.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 9.0.0.1.0)
+      libdatadog (~> 10.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -96,12 +96,10 @@ GEM
     builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    cri (2.15.11)
     date (3.3.3-java)
     debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
@@ -118,7 +116,7 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (9.0.0.1.0)
+    libdatadog (10.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
@@ -224,9 +222,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.4.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
     rubocop (1.50.2)
       json (~> 2.3)
       parallel (~> 1.10)
@@ -314,7 +309,6 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   rubocop (~> 1.50.0)
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)

@@ -57,7 +57,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // "Process.kill('SEGV', Process.pid)" gets run.
     .create_alt_stack = false,
     .endpoint = endpoint,
-    .resolve_frames = DDOG_PROF_STACKTRACE_COLLECTION_ENABLED,
+    .resolve_frames = DDOG_PROF_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_secs = FIX2INT(upload_timeout_seconds),
   };
 

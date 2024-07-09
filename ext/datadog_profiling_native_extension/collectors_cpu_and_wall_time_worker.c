@@ -222,6 +222,8 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
 static void delayed_error(struct cpu_and_wall_time_worker_state *state, const char *error);
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
+static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
+static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 
 // Note on sampler global state safety:
 //
@@ -285,7 +287,9 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_allocation_count", _native_allocation_count, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
-  // TODO: Remove `_native_is_running` from `testing_module` once `prof-correctness` has been updated to not need it
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_hold_signals", _native_hold_signals, 0);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_resume_signals", _native_resume_signals, 0);
+  // TODO: Remove `_native_is_running` from `testing_module` (should be in class) once `prof-correctness` has been updated to not need it
   rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
@@ -1136,9 +1140,15 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
     discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler) :
     // if we aren't, then we're sampling every event
     1;
-  // TODO: Signal in the profile that clamping happened?
+
+  // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
+  // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
+  // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
+  if (weight < allocations_since_last_sample) {
+    thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, allocations_since_last_sample - weight);
+  }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;
@@ -1158,4 +1168,18 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
   delayed_error(state, rb_string_value_cstr(&error_msg));
 
   return Qnil;
+}
+
+// Masks SIGPROF interruptions for the current thread. Please don't use this -- you may end up with incomplete
+// profiling data.
+static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self) {
+  block_sigprof_signal_handler_from_running_in_current_thread();
+  return Qtrue;
+}
+
+// Unmasks SIGPROF interruptions for the current thread. If there's a pending sample, it'll be triggered inside this
+// method.
+static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
+  unblock_sigprof_signal_handler_from_running_in_current_thread();
+  return Qtrue;
 }

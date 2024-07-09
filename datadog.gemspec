@@ -29,7 +29,8 @@ Gem::Specification.new do |spec|
 
   if spec.respond_to?(:metadata)
     spec.metadata['allowed_push_host'] = 'https://rubygems.org'
-    spec.metadata['changelog_uri'] = 'https://github.com/DataDog/dd-trace-rb/blob/master/CHANGELOG.md'
+    spec.metadata['changelog_uri'] = "https://github.com/DataDog/dd-trace-rb/blob/v#{spec.version}/CHANGELOG.md"
+    spec.metadata['source_code_uri'] = "https://github.com/DataDog/dd-trace-rb/tree/v#{spec.version}"
   else
     raise 'RubyGems 2.0 or newer is required to protect against public gem pushes.'
   end
@@ -71,7 +72,7 @@ Gem::Specification.new do |spec|
   # Used by profiling (and possibly others in the future)
   # When updating the version here, please also update the version in `native_extension_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 9.0.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 10.0.0.1.0'
 
   spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
 end

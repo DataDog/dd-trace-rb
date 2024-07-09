@@ -1,0 +1,76 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module UnifiedTrace
+          @analytics_enabled: bool
+
+          @analytics_sample_rate: Float
+
+          @service_name: String?
+
+          @has_prepare_span: bool
+          def initialize: (?analytics_enabled: bool, ?analytics_sample_rate: Float, ?service: String?, **Hash[Symbol, Object] kwargs) -> self
+                        
+          type lexerArray = Array[Integer | Symbol | String | nil | lexerArray]
+
+          def lex: (query_string: String) -> lexerArray
+
+          def parse: (query_string: String) -> GraphQL::Language::Nodes::Document
+
+          def validate: (query: GraphQL::Query, validate: bool) -> { remaining_timeout: Float?, error: Array[StandardError] }
+
+          def analyze_multiplex: (multiplex: GraphQL::Execution::Multiplex) -> Array[Object]
+
+          def analyze_query: (query: GraphQL::Query) -> Array[Object]
+
+          def execute_multiplex: (multiplex: GraphQL::Execution::Multiplex) -> Array[GraphQL::Query::Result]
+
+          def execute_query: (query: GraphQL::Query) -> GraphQL::Query::Result
+
+          def execute_query_lazy: (query: GraphQL::Query, multiplex: GraphQL::Execution::Multiplex) -> GraphQL::Query::Result
+                                
+          type executeFieldKwargs = {query: GraphQL::Query, field: GraphQL::Schema::Field, ast_node: GraphQL::Language::Nodes::Field, arguments: Hash[Symbol, String], object: GraphQL::Schema::Object?}
+
+          def execute_field_span: (Proc callable, String span_key, **executeFieldKwargs kwargs) -> Array[Object]
+
+          def execute_field: (**executeFieldKwargs kwargs) -> Array[Object]
+
+          def execute_field_lazy: (**executeFieldKwargs kwargs) -> Array[Object]
+                                
+          type authorizedKwargs = {query: GraphQL::Query, type: GraphQL::Schema::Object, object: GraphQL::Schema::Object?}
+
+          def authorized_span: (Proc callable, String span_key, **authorizedKwargs kwargs) -> GraphQL::Schema::Object?
+
+          def authorized: (**authorizedKwargs kwargs) -> GraphQL::Schema::Object?
+
+          def authorized_lazy: (**authorizedKwargs kwargs) -> GraphQL::Schema::Object?
+                             
+          type resolveTypeKwargs = {query: GraphQL::Query, type: GraphQL::Schema::Union, object: GraphQL::Schema::Object?}
+
+          def resolve_type_span: (Proc callable, String span_key, **resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
+
+          def resolve_type: (**resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
+
+          def resolve_type_lazy: (**resolveTypeKwargs kwargs) -> [GraphQL::Schema::Object, nil]
+
+          def platform_field_key: (GraphQL::Schema::Field field) -> String
+
+          def platform_authorized_key: (GraphQL::Schema::Object type) -> String
+
+          def platform_resolve_type_key: (GraphQL::Schema::Union type) -> String
+
+          private
+
+          type traceKwargsValues = GraphQL::Query | GraphQL::Schema::Union | GraphQL::Schema::Object | GraphQL::Schema::Field | GraphQL::Execution::Multiplex | GraphQL::Language::Nodes::Field | Hash[Symbol, String] | String | bool | nil
+
+          type traceResult = lexerArray | GraphQL::Language::Nodes::Document | { remaining_timeout: Float?, error: Array[StandardError] } | Array[Object] | GraphQL::Schema::Object? | [GraphQL::Schema::Object, nil]
+          
+          def trace: (Proc callable, String trace_key, String resource, **Hash[Symbol, traceKwargsValues ] kwargs) ?{ (Datadog::Tracing::SpanOperation) -> void } -> traceResult
+
+          def multiplex_resource: (GraphQL::Execution::Multiplex multiplex) -> String?
+        end
+      end
+    end
+  end
+end

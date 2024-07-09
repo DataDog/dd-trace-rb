@@ -2,9 +2,79 @@ module Datadog
   module Core
     module Telemetry
       class Event
+        extend Core::Utils::Forking
+
+        self.@sequence: Datadog::Core::Utils::Sequence
+
+        def self.configuration_sequence: () -> Datadog::Core::Utils::Sequence
+
         class Base
-          def payload: (int seq_id) -> ::Hash[Symbol, Object]
-          def type: -> string
+          def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
+          def type: -> String?
+        end
+
+        class AppStarted < Base
+          TARGET_OPTIONS: Array[String]
+
+          private
+
+          def products: -> Hash[Symbol, untyped]
+
+          def configuration: -> Array[Hash[Symbol, untyped]]
+
+          def agent_transport: (untyped config) -> String
+
+          def conf_value: (String name, Object value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
+
+          def to_value: (Object value) -> Object
+
+          def install_signature: -> Hash[Symbol, Object]
+        end
+
+        class AppDependenciesLoaded < Base
+          private
+
+          def dependencies: -> Array[Hash[Symbol, String]]
+        end
+
+        class AppIntegrationsChange < Base
+          private
+
+          def integrations: -> Array[Hash[Symbol, string]]
+
+          def patch_error: (untyped integration) -> String
+        end
+
+        class AppClientConfigurationChange < Base
+          @changes: Enumerable[[String, Numeric | bool | String | int]]
+          @origin: String
+
+          def initialize: (Enumerable[[String, Numeric | bool | String]] changes, String origin) -> void
+
+          def configuration: () -> Array[Hash[Symbol, untyped]]
+        end
+
+        class AppHeartbeat < Base
+        end
+
+        class AppClosing < Base
+        end
+
+        class GenerateMetrics < Base
+          @namespace: String
+          @metric_series: Enumerable[Datadog::Core::Telemetry::Metric::Base]
+
+          def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
+        end
+
+        class Distributions < GenerateMetrics
+        end
+
+        class MessageBatch < Base
+          attr_reader events: Array[Datadog::Core::Telemetry::Event::Base]
+          @events: Array[Datadog::Core::Telemetry::Event::Base]
+
+          def initialize: (Array[Datadog::Core::Telemetry::Event::Base] events) -> void
         end
       end
     end

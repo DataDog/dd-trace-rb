@@ -29,7 +29,7 @@ module Datadog
               Ext::SPAN_SQL
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               config = Utils.connection_config(payload[:connection], payload[:connection_id])
               settings = Datadog.configuration.tracing[:active_record, config]
               adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])

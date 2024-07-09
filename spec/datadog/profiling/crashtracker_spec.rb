@@ -2,13 +2,19 @@ require 'datadog/profiling/spec_helper'
 require 'datadog/profiling/crashtracker'
 
 require 'webrick'
+require 'fiddle'
 
 RSpec.describe Datadog::Profiling::Crashtracker do
   before do
     skip_if_profiling_not_supported(self)
 
-    crash_tracker_pids = `pgrep -f libdatadog-crashtracking-receiver`
-    expect(crash_tracker_pids).to be_empty, "No crash tracker process should be running, found #{crash_tracker_pids}"
+    # No crash tracker process should still be running at the start of each testcase
+    wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+  end
+
+  after do
+    # No crash tracker process should still be running at the end of each testcase
+    wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
   end
 
   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
@@ -58,7 +64,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     it 'starts the crash tracker' do
       start
 
-      expect(`pgrep -f libdatadog-crashtracking-receiver`).to_not be_empty
+      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to_not be_empty
 
       crashtracker.stop
     end
@@ -67,7 +73,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       it 'only starts the crash tracker once' do
         3.times { crashtracker.start }
 
-        expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 1
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
 
         crashtracker.stop
       end
@@ -94,13 +100,15 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
       it 'starts a second crash tracker for the fork' do
         expect_in_fork do
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
           crashtracker.reset_after_fork
 
-          expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 2
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 2
 
           crashtracker.stop
 
-          expect(`pgrep -f libdatadog-crashtracking-receiver`.lines.size).to be 1
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
         end
       end
     end
@@ -123,7 +131,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
       stop
 
-      expect(`pgrep -f libdatadog-crashtracking-receiver`).to be_empty
+      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
     end
   end
 
@@ -175,33 +183,39 @@ RSpec.describe Datadog::Profiling::Crashtracker do
 
     let(:exporter_configuration) { [:agent, "http://#{hostname}:#{port}"] }
 
-    it 'reports crashes via http' do
-      fork_expectations = proc do |status:, stdout:, stderr:|
-        expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-        expect(stderr).to include('[BUG] Segmentation fault')
+    [:fiddle, :signal].each do |trigger|
+      it "reports crashes via http when app crashes with #{trigger}" do
+        fork_expectations = proc do |status:, stdout:, stderr:|
+          expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+          expect(stderr).to include('[BUG] Segmentation fault')
+        end
+
+        expect_in_fork(fork_expectations: fork_expectations) do
+          crashtracker.start
+
+          if trigger == :fiddle
+            Fiddle.free(42)
+          else
+            Process.kill('SEGV', Process.pid)
+          end
+        end
+
+        crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+
+        expect(crash_report[:stack_trace]).to_not be_empty
+        expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+
+        crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
+
+        expect(crash_report_message[:metadata]).to include(
+          profiling_library_name: 'dd-trace-rb',
+          profiling_library_version: Datadog::VERSION::STRING,
+          family: 'ruby',
+          tags: ['tag1:value1', 'tag2:value2'],
+        )
+        expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+        expect(crash_report_message[:os_info]).to_not be_empty
       end
-
-      expect_in_fork(fork_expectations: fork_expectations) do
-        crashtracker.start
-
-        Process.kill('SEGV', Process.pid)
-      end
-
-      crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
-
-      expect(crash_report[:stack_trace]).to_not be_empty
-      expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
-
-      crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
-
-      expect(crash_report_message[:metadata]).to include(
-        profiling_library_name: 'dd-trace-rb',
-        profiling_library_version: Datadog::VERSION::STRING,
-        family: 'ruby',
-        tags: ['tag1:value1', 'tag2:value2'],
-      )
-      expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
-      expect(crash_report_message[:os_info]).to_not be_empty
     end
   end
 end

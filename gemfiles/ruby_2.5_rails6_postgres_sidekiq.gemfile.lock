@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.1.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 9.0.0.1.0)
+      libdatadog (~> 10.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -88,13 +88,11 @@ GEM
     builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
-    colorize (0.8.1)
     concurrent-ruby (1.2.2)
     connection_pool (2.3.0)
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    cri (2.15.11)
     debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
@@ -114,8 +112,8 @@ GEM
     io-wait (0.3.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (9.0.0.1.0-aarch64-linux)
-    libdatadog (9.0.0.1.0-x86_64-linux)
+    libdatadog (10.0.0.1.0-aarch64-linux)
+    libdatadog (10.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -203,7 +201,6 @@ GEM
     rake (13.0.6)
     rake-compiler (1.2.1)
       rake
-    redcarpet (3.6.0)
     redis (4.8.1)
     request_store (1.5.1)
       rack (>= 1.4)
@@ -228,9 +225,6 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    rspec_n (1.3.0)
-      colorize (~> 0.8.0)
-      cri (~> 2.15.3)
     sidekiq (6.5.8)
       connection_pool (>= 2.2.5, < 3)
       rack (~> 2.0)
@@ -295,13 +289,11 @@ DEPENDENCIES
   rails (~> 6.0.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redcarpet (~> 3.4)
   rexml (>= 3.2.7)
   rspec (~> 3.12)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  rspec_n (~> 1.3)
   sidekiq
   simplecov!
   simplecov-cobertura (~> 2.1.0)
@@ -311,4 +303,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26

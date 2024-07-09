@@ -3,7 +3,16 @@
 module Datadog
   module Core
     module Telemetry
+      # Collection of telemetry events
       class Event
+        extend Core::Utils::Forking
+
+        # returns sequence that increments every time the configuration changes
+        def self.configuration_sequence
+          after_fork! { @sequence = Datadog::Core::Utils::Sequence.new(1) }
+          @sequence ||= Datadog::Core::Utils::Sequence.new(1)
+        end
+
         # Base class for all Telemetry V2 events.
         class Base
           # The type of the event.
@@ -12,8 +21,7 @@ module Datadog
           def type; end
 
           # The JSON payload for the event.
-          # @param seq_id [Integer] The sequence ID for the event.
-          def payload(seq_id)
+          def payload
             {}
           end
         end
@@ -24,8 +32,7 @@ module Datadog
             'app-started'
           end
 
-          def payload(seq_id)
-            @seq_id = seq_id
+          def payload
             {
               products: products,
               configuration: configuration,
@@ -38,6 +45,7 @@ module Datadog
           private
 
           def products
+            # @type var products: Hash[Symbol, Hash[Symbol, Object]]
             products = {
               appsec: {
                 enabled: Datadog::AppSec.enabled?,
@@ -79,16 +87,19 @@ module Datadog
           ].freeze
 
           # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/MethodLength
           def configuration
             config = Datadog.configuration
+            seq_id = Event.configuration_sequence.next
 
             list = [
-              conf_value('DD_AGENT_HOST', config.agent.host),
-              conf_value('DD_AGENT_TRANSPORT', agent_transport(config)),
-              conf_value('DD_TRACE_SAMPLE_RATE', to_value(config.tracing.sampling.default_rate)),
+              conf_value('DD_AGENT_HOST', config.agent.host, seq_id),
+              conf_value('DD_AGENT_TRANSPORT', agent_transport(config), seq_id),
+              conf_value('DD_TRACE_SAMPLE_RATE', to_value(config.tracing.sampling.default_rate), seq_id),
               conf_value(
                 'DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED',
-                config.tracing.contrib.global_default_service_name.enabled
+                config.tracing.contrib.global_default_service_name.enabled,
+                seq_id
               ),
             ]
 
@@ -97,32 +108,45 @@ module Datadog
               peer_service_mapping = config.tracing.contrib.peer_service_mapping
               peer_service_mapping_str = peer_service_mapping.map { |key, value| "#{key}:#{value}" }.join(',')
             end
-            list << conf_value('DD_TRACE_PEER_SERVICE_MAPPING', peer_service_mapping_str)
+            list << conf_value('DD_TRACE_PEER_SERVICE_MAPPING', peer_service_mapping_str, seq_id)
 
             # Whitelist of configuration options to send in additional payload object
             TARGET_OPTIONS.each do |option|
               split_option = option.split('.')
-              list << conf_value(option, to_value(config.dig(*split_option)))
+              list << conf_value(option, to_value(config.dig(*split_option)), seq_id)
             end
 
             # Add some more custom additional payload values here
             list.push(
-              conf_value('tracing.auto_instrument.enabled', !defined?(Datadog::AutoInstrument::LOADED).nil?),
-              conf_value('tracing.writer_options.buffer_size', to_value(config.tracing.writer_options[:buffer_size])),
-              conf_value('tracing.writer_options.flush_interval', to_value(config.tracing.writer_options[:flush_interval])),
-              conf_value('tracing.opentelemetry.enabled', !defined?(Datadog::OpenTelemetry::LOADED).nil?),
+              conf_value('tracing.auto_instrument.enabled', !defined?(Datadog::AutoInstrument::LOADED).nil?, seq_id),
+              conf_value(
+                'tracing.writer_options.buffer_size',
+                to_value(config.tracing.writer_options[:buffer_size]),
+                seq_id
+              ),
+              conf_value(
+                'tracing.writer_options.flush_interval',
+                to_value(config.tracing.writer_options[:flush_interval]),
+                seq_id
+              ),
+              conf_value(
+                'tracing.opentelemetry.enabled',
+                !defined?(Datadog::OpenTelemetry::LOADED).nil?,
+                seq_id
+              ),
             )
-            list << conf_value('logger.instance', config.logger.instance.class.to_s) if config.logger.instance
+            list << conf_value('logger.instance', config.logger.instance.class.to_s, seq_id) if config.logger.instance
             if config.respond_to?('appsec')
-              list << conf_value('appsec.enabled', config.dig('appsec', 'enabled'))
-              list << conf_value('appsec.sca_enabled', config.dig('appsec', 'sca_enabled'))
+              list << conf_value('appsec.enabled', config.dig('appsec', 'enabled'), seq_id)
+              list << conf_value('appsec.sca_enabled', config.dig('appsec', 'sca_enabled'), seq_id)
             end
-            list << conf_value('ci.enabled', config.dig('ci', 'enabled')) if config.respond_to?('ci')
+            list << conf_value('ci.enabled', config.dig('ci', 'enabled'), seq_id) if config.respond_to?('ci')
 
             list.reject! { |entry| entry[:value].nil? }
             list
           end
           # rubocop:enable Metrics/AbcSize
+          # rubocop:enable Metrics/MethodLength
 
           def agent_transport(config)
             adapter = Core::Configuration::AgentSettingsResolver.call(config).adapter
@@ -133,12 +157,12 @@ module Datadog
             end
           end
 
-          def conf_value(name, value, origin = 'code')
+          def conf_value(name, value, seq_id, origin = 'code')
             {
               name: name,
               value: value,
               origin: origin,
-              seq_id: @seq_id,
+              seq_id: seq_id,
             }
           end
 
@@ -168,7 +192,7 @@ module Datadog
             'app-dependencies-loaded'
           end
 
-          def payload(seq_id)
+          def payload
             { dependencies: dependencies }
           end
 
@@ -191,7 +215,7 @@ module Datadog
             'app-integrations-change'
           end
 
-          def payload(seq_id)
+          def payload
             { integrations: integrations }
           end
 
@@ -244,18 +268,20 @@ module Datadog
             @origin = origin
           end
 
-          def payload(seq_id)
-            { configuration: configuration(seq_id) }
+          def payload
+            { configuration: configuration }
           end
 
-          def configuration(seq_id)
+          def configuration
             config = Datadog.configuration
+            seq_id = Event.configuration_sequence.next
 
             res = @changes.map do |name, value|
               {
                 name: name,
                 value: value,
                 origin: @origin,
+                seq_id: seq_id,
               }
             end
 
@@ -283,6 +309,55 @@ module Datadog
         class AppClosing < Base
           def type
             'app-closing'
+          end
+        end
+
+        # Telemetry class for the 'generate-metrics' event
+        class GenerateMetrics < Base
+          def type
+            'generate-metrics'
+          end
+
+          def initialize(namespace, metric_series)
+            super()
+            @namespace = namespace
+            @metric_series = metric_series
+          end
+
+          def payload
+            {
+              namespace: @namespace,
+              series: @metric_series.map(&:to_h)
+            }
+          end
+        end
+
+        # Telemetry class for the 'distributions' event
+        class Distributions < GenerateMetrics
+          def type
+            'distributions'
+          end
+        end
+
+        # Telemetry class for the 'message-batch' event
+        class MessageBatch
+          attr_reader :events
+
+          def type
+            'message-batch'
+          end
+
+          def initialize(events)
+            @events = events
+          end
+
+          def payload
+            @events.map do |event|
+              {
+                request_type: event.type,
+                payload: event.payload,
+              }
+            end
           end
         end
       end

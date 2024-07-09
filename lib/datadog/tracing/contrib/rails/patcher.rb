@@ -5,6 +5,7 @@ require_relative '../rack/middlewares'
 require_relative 'framework'
 require_relative 'log_injection'
 require_relative 'middlewares'
+require_relative 'runner'
 require_relative 'utils'
 require_relative '../semantic_logger/patcher'
 
@@ -28,6 +29,7 @@ module Datadog
           def patch
             patch_before_initialize
             patch_after_initialize
+            patch_rails_runner
           end
 
           def patch_before_initialize
@@ -80,6 +82,11 @@ module Datadog
           # Configure Rails tracing with settings
           def setup_tracer
             Contrib::Rails::Framework.setup
+          end
+
+          # Instruments the `bin/rails runner` command.
+          def patch_rails_runner
+            ::Rails::Command.singleton_class.prepend(Command) if defined?(::Rails::Command)
           end
         end
       end

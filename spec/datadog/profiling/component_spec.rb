@@ -7,9 +7,10 @@ RSpec.describe Datadog::Profiling::Component do
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
-    # Ensure the real task never gets run (so it doesn't apply our thread patches and other extensions to our test env)
+    # Make sure these never get run so they doesn't apply our monkey patches to the RSpec process
     if Datadog::Profiling.supported?
       allow(Datadog::Profiling::Tasks::Setup).to receive(:new).and_return(profiler_setup_task)
+      allow(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!).and_return(true)
     end
   end
 
@@ -586,6 +587,40 @@ RSpec.describe Datadog::Profiling::Component do
           build_profiler_component
         end
       end
+
+      describe 'dir interruption workaround' do
+        let(:no_signals_workaround_enabled) { false }
+
+        before do
+          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
+        end
+
+        it 'is enabled by default' do
+          expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+
+          build_profiler_component
+        end
+
+        context 'when the no signals workaround is enabled' do
+          let(:no_signals_workaround_enabled) { true }
+
+          it 'is not applied' do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+
+        context 'when the dir interruption workaround is disabled via configuration' do
+          before { settings.profiling.advanced.dir_interruption_workaround_enabled = false }
+
+          it 'is not applied' do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+      end
     end
   end
 
@@ -866,6 +901,29 @@ RSpec.describe Datadog::Profiling::Component do
             include_context('loaded gems', passenger: Gem::Version.new('6.0.18'), rugged: nil, mysql2: nil)
 
             before { allow(Datadog.logger).to receive(:warn) }
+
+            it { is_expected.to be true }
+
+            it 'logs a warning message mentioning that the no signals workaround is going to be used' do
+              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+
+              no_signals_workaround_enabled?
+            end
+          end
+        end
+
+        context 'when passenger gem is not available, but PhusionPassenger::VERSION_STRING is available' do
+          context 'on passenger >= 6.0.19' do
+            before { stub_const('PhusionPassenger::VERSION_STRING', '6.0.19') }
+
+            it { is_expected.to be false }
+          end
+
+          context 'on passenger < 6.0.19' do
+            before do
+              stub_const('PhusionPassenger::VERSION_STRING', '6.0.18')
+              allow(Datadog.logger).to receive(:warn)
+            end
 
             it { is_expected.to be true }
 

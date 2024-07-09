@@ -361,10 +361,10 @@ RSpec.describe Datadog::Tracing::TraceSegment do
     end
 
     context 'when given 128 bits id' do
-      let(:trace_id) { 0xaaaaaaaaaaaaaaaaffffffffffffffff }
+      let(:trace_id) { 0x0aaaaaaaaaaaaaaaffffffffffffffff }
 
-      it do
-        expect(trace_segment.high_order_tid).to eq('aaaaaaaaaaaaaaaa')
+      it 'returns a fixed-size, 16-char hex string' do
+        expect(trace_segment.high_order_tid).to eq('0aaaaaaaaaaaaaaa')
       end
     end
   end

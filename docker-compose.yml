@@ -187,6 +187,7 @@ services:
       - postgres
       - presto
       - redis
+      - testagent
     env_file: ./.env
     environment:
       <<: *common-environment-3x
@@ -197,6 +198,31 @@ services:
       - .:/app
       - extension-build-tmp:/app/tmp
       - bundle-3.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.4:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.4.0-dd
+    command: /bin/bash
+    depends_on:
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - opensearch
+      - postgres
+      - presto
+      - redis
+      - testagent
+    env_file: ./.env
+    environment:
+      <<: *common-environment-3x
+      BUNDLE_GEMFILE: /app/Gemfile-3.4
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.4:/usr/local/bundle
       - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
   # ADD NEW RUBIES HERE
   tracer-jruby-9.2:
@@ -331,14 +357,15 @@ services:
     ports:
       - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
   mysql:
-    image: mysql:8
+    image: mysql:8.0
     environment:
       - MYSQL_DATABASE=$TEST_MYSQL_DB
       - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
       - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
       - MYSQL_USER=$TEST_MYSQL_USER
-    command:
-      - '--default-authentication-plugin=mysql_native_password'
+    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+    # rather than mysql_native_password which was the default in previous versions.
+    command: --default-authentication-plugin=mysql_native_password
     expose:
       - "3306"
     ports:
@@ -388,6 +415,7 @@ volumes:
   bundle-3.1:
   bundle-3.2:
   bundle-3.3:
+  bundle-3.4:
   # ADD NEW RUBIES HERE
   bundle-jruby-9.2:
   bundle-jruby-9.3:

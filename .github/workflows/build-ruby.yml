@@ -28,20 +28,23 @@ jobs:
             version: 2.6.10
             dockerfile: Dockerfile-2.6.10
           - engine: ruby
-            version: 2.7.6
-            dockerfile: Dockerfile-2.7.6
+            version: 2.7.8
+            dockerfile: Dockerfile-2.7.8
           - engine: ruby
-            version: 3.0.4
-            dockerfile: Dockerfile-3.0.4
+            version: 3.0.7
+            dockerfile: Dockerfile-3.0.7
           - engine: ruby
-            version: 3.1.2
-            dockerfile: Dockerfile-3.1.2
+            version: 3.1.6
+            dockerfile: Dockerfile-3.1.6
           - engine: ruby
-            version: 3.2.0
-            dockerfile: Dockerfile-3.2.0
+            version: 3.2.4
+            dockerfile: Dockerfile-3.2.4
           - engine: ruby
-            version: 3.3.0
-            dockerfile: Dockerfile-3.3.0
+            version: 3.3.2
+            dockerfile: Dockerfile-3.3.2
+          - engine: ruby
+            version: 3.4.0
+            dockerfile: Dockerfile-3.4.0
           # ADD NEW RUBIES HERE
           - engine: jruby
             version: 9.2.21.0

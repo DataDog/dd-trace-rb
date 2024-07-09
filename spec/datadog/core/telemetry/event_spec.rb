@@ -1,10 +1,11 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/event'
+require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event do
   let(:id) { double('seq_id') }
-  subject(:payload) { event.payload(id) }
+  subject(:payload) { event.payload }
 
   context 'AppStarted' do
     let(:event) { described_class::AppStarted.new }
@@ -13,6 +14,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
 
     before do
+      allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
+
       Datadog.configure do |c|
         c.agent.host = '1.2.3.4'
         c.tracing.sampling.default_rate = 0.5
@@ -163,12 +166,17 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     let(:name) { 'key' }
     let(:value) { 'value' }
 
+    before do
+      allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
+    end
+
     it 'has a list of client configurations' do
       is_expected.to eq(
         configuration: [{
           name: name,
           value: value,
           origin: origin,
+          seq_id: id
         }]
       )
     end
@@ -184,7 +192,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         is_expected.to eq(
           configuration:
           [
-            { name: name, value: value, origin: origin },
+            { name: name, value: value, origin: origin, seq_id: id },
             { name: 'appsec.sca_enabled', value: false, origin: 'code', seq_id: id }
           ]
         )
@@ -205,6 +213,71 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
     it 'has no payload' do
       is_expected.to eq({})
+    end
+  end
+
+  context 'GenerateMetrics' do
+    let(:event) { described_class::GenerateMetrics.new(namespace, metrics) }
+
+    let(:namespace) { 'general' }
+    let(:metric_name) { 'request_count' }
+    let(:metric) do
+      Datadog::Core::Telemetry::Metric::Count.new(metric_name, tags: { status: '200' })
+    end
+    let(:metrics) { [metric] }
+
+    let(:expected_metric_series) { [metric.to_h] }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: expected_metric_series
+        }
+      )
+    end
+  end
+
+  context 'Distributions' do
+    let(:event) { described_class::Distributions.new(namespace, metrics) }
+
+    let(:namespace) { 'general' }
+    let(:metric_name) { 'request_duration' }
+    let(:metric) do
+      Datadog::Core::Telemetry::Metric::Distribution.new(metric_name, tags: { status: '200' })
+    end
+    let(:metrics) { [metric] }
+
+    let(:expected_metric_series) { [metric.to_h] }
+
+    it do
+      is_expected.to eq(
+        {
+          namespace: namespace,
+          series: expected_metric_series
+        }
+      )
+    end
+  end
+
+  context 'MessageBatch' do
+    let(:event) { described_class::MessageBatch.new(events) }
+
+    let(:events) { [described_class::AppClosing.new, described_class::AppHeartbeat.new] }
+
+    it do
+      is_expected.to eq(
+        [
+          {
+            request_type: 'app-closing',
+            payload: {}
+          },
+          {
+            request_type: 'app-heartbeat',
+            payload: {}
+          }
+        ]
+      )
     end
   end
 end

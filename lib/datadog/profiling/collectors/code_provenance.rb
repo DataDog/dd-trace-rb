@@ -92,8 +92,10 @@ module Datadog
 
             seen_files << file_path
 
-            _, found_library = libraries_by_path.find { |library_path, _| file_path.start_with?(library_path) }
-            seen_libraries << found_library if found_library
+            # NOTE: Don't use .find, it allocates a lot more memory (see commit that added this note for details)
+            libraries_by_path.any? do |library_path, library|
+              seen_libraries << library if file_path.start_with?(library_path)
+            end
           end
         end
 

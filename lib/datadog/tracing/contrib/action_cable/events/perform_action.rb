@@ -33,7 +33,7 @@ module Datadog
               Tracing::Metadata::Ext::AppTypes::TYPE_WEB
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               channel_class = payload[:channel_class]
               action = payload[:action]
 
