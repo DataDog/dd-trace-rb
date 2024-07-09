@@ -399,6 +399,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       before do
+        GC.start
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
                        { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
@@ -765,6 +766,33 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               s.has_location?(path: __FILE__, line: @recycled_sample_allocation_line)
             end
             expect(relevant_sample).to be nil
+          end
+        end
+
+        # NOTE: This is a regression test that exceptions in end_heap_allocation_recording_with_rb_protect are safely
+        # handled by the stack_recorder.
+        context 'when the heap sampler raises an exception during _native_sample' do
+          it 'propagates the exception' do
+            expect do
+              Datadog::Profiling::Collectors::Stack::Testing
+                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+            end.to raise_error(RuntimeError, /Ended a heap recording/)
+          end
+
+          it 'does not keep the active slot mutex locked' do
+            expect(active_slot).to be 1
+            expect(slot_one_mutex_locked?).to be false
+            expect(slot_two_mutex_locked?).to be true
+
+            begin
+              Datadog::Profiling::Collectors::Stack::Testing
+                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+            rescue # rubocop:disable Lint/SuppressedException
+            end
+
+            expect(active_slot).to be 1
+            expect(slot_one_mutex_locked?).to be false
+            expect(slot_two_mutex_locked?).to be true
           end
         end
       end
