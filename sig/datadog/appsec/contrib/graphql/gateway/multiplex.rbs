@@ -4,21 +4,21 @@ module Datadog
       module GraphQL
         module Gateway
           class Multiplex < Instrumentation::Gateway::Argument
-            @multiplex: untyped
+            @multiplex: GraphQL::Execution::Multiplex
 
-            @arguments: untyped
+            @arguments: Hash[String, Array[Hash[String, String]]]
 
-            attr_reader multiplex: untyped
+            attr_reader multiplex: GraphQL::Execution::Multiplex
 
-            def initialize: (untyped multiplex) -> void
+            def initialize: (GraphQL::Execution::Multiplex multiplex) -> void
 
-            def arguments: () -> untyped
+            def arguments: () -> Hash[String, Array[Hash[String, String]]]
 
-            def queries: () -> untyped
+            def queries: () -> Array[GraphQL::Query]
 
             private
 
-            def create_arguments_hash: () -> untyped
+            def create_arguments_hash: () -> Hash[String, Array[Hash[String, String]]]
           end
         end
       end

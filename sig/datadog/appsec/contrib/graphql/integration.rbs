@@ -5,9 +5,9 @@ module Datadog
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
-          MINIMUM_VERSION: untyped
+          MINIMUM_VERSION: ::Gem::Version
 
-          def self.version: () -> untyped
+          def self.version: () -> ::Gem::Version?
 
           def self.loaded?: () -> bool
 
@@ -15,7 +15,7 @@ module Datadog
 
           def self.auto_instrument?: () -> bool
 
-          def patcher: () -> untyped
+          def patcher: () -> Datadog::AppSec::Contrib::GraphQL::Patcher
         end
       end
     end

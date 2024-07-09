@@ -6,7 +6,7 @@ module Datadog
           module Watcher
             def self.watch: () -> untyped
 
-            def self.watch_multiplex: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> untyped
+            def self.watch_multiplex: (?Datadog::AppSec::Instrumentation::Gateway gateway) -> Hash[String, Datadog::AppSec::Instrumentation::Gateway::Middleware]?
           end
         end
       end
