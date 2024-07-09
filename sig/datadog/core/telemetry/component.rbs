@@ -4,6 +4,7 @@ module Datadog
       class Component
         @enabled: bool
         @stopped: bool
+        @metrics_manager: Datadog::Core::Telemetry::MetricsManager
         @worker: Datadog::Core::Telemetry::Worker
 
         attr_reader enabled: bool

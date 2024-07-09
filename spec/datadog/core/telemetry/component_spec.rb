@@ -210,4 +210,79 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
   end
+
+  context 'metrics support' do
+    let(:metrics_manager) { spy(:metrics_manager) }
+    let(:namespace) { double('namespace') }
+    let(:metric_name) { double('metric_name') }
+    let(:value) { double('value') }
+    let(:tags) { double('tags') }
+    let(:common) { double('common') }
+    before do
+      expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
+        aggregation_interval: metrics_aggregation_interval_seconds,
+        enabled: enabled && metrics_enabled
+      ).and_return(metrics_manager)
+    end
+
+    describe '#inc' do
+      subject(:inc) { telemetry.inc(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        inc
+
+        expect(metrics_manager).to have_received(:inc).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#dec' do
+      subject(:dec) { telemetry.dec(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        dec
+
+        expect(metrics_manager).to have_received(:dec).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#gauge' do
+      subject(:gauge) { telemetry.gauge(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        gauge
+
+        expect(metrics_manager).to have_received(:gauge).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#rate' do
+      subject(:rate) { telemetry.rate(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        rate
+
+        expect(metrics_manager).to have_received(:rate).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#distribution' do
+      subject(:distribution) { telemetry.distribution(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        distribution
+
+        expect(metrics_manager).to have_received(:distribution).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+  end
 end

@@ -47,11 +47,11 @@ module Datadog
         end
 
         class IntervalMetric < Base
-          @interval: Integer
+          @interval: Float
 
-          attr_reader interval: Integer
+          attr_reader interval: Float
 
-          def initialize: (String name, ?tags: tags_input, ?common: bool, interval: Integer) -> void
+          def initialize: (String name, ?tags: tags_input, ?common: bool, interval: Float) -> void
         end
 
         class Count < Base

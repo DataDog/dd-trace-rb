@@ -10,7 +10,7 @@ module Datadog
           attr_reader :name, :tags, :values, :common
 
           # @param name [String] metric name
-          # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of array of "tag:val" strings
+          # @param tags [Array<String>|Hash{String=>String}] metric tags as hash or array of "tag:val" strings
           # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
           def initialize(name, tags: {}, common: true)
             @name = name

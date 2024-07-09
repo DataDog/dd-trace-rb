@@ -6,7 +6,7 @@ module Datadog
           def enqueue: (Datadog::Core::Telemetry::Event::Base event) -> void
         end
 
-        @interval: Integer
+        @interval: Float
 
         @enabled: bool
 
@@ -16,7 +16,7 @@ module Datadog
 
         attr_reader enabled: bool
 
-        def initialize: (aggregation_interval: Integer, enabled: bool) -> void
+        def initialize: (aggregation_interval: Float, enabled: bool) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
