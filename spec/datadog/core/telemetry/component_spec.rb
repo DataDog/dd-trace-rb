@@ -27,7 +27,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
       enabled: enabled,
-      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter)
+      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter),
+      metrics_manager: anything
     ).and_return(worker)
 
     allow(worker).to receive(:start)
@@ -218,6 +219,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     let(:value) { double('value') }
     let(:tags) { double('tags') }
     let(:common) { double('common') }
+
     before do
       expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
         aggregation_interval: metrics_aggregation_interval_seconds,

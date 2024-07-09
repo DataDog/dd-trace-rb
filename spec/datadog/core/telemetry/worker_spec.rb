@@ -9,6 +9,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       heartbeat_interval_seconds: heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       emitter: emitter,
+      metrics_manager: metrics_manager,
       dependency_collection: dependency_collection
     )
   end
@@ -16,7 +17,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:enabled) { true }
   let(:heartbeat_interval_seconds) { 0.5 }
   let(:metrics_aggregation_interval_seconds) { 0.25 }
-  let(:emitter) { double(Datadog::Core::Telemetry::Emitter) }
+  let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
+  let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
 
   let(:backend_supports_telemetry?) { true }
@@ -205,6 +207,32 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             try_wait_until { sent_dependencies }
           end
         end
+
+        context 'when metrics are flushed' do
+          before do
+            allow(metrics_manager).to receive(:flush!).and_return(
+              [Datadog::Core::Telemetry::Event::GenerateMetrics.new('namespace', [])]
+            )
+          end
+
+          it 'sends metrics event' do
+            received_metrics = false
+
+            allow(emitter).to receive(:request).with(
+              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+            ) do |event|
+              event.events.each do |subevent|
+                received_metrics = true if subevent.is_a?(Datadog::Core::Telemetry::Event::GenerateMetrics)
+              end
+
+              response
+            end
+
+            worker.start
+
+            try_wait_until { received_metrics }
+          end
+        end
       end
 
       context 'when internal error returned by emitter' do
@@ -244,6 +272,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               emitter: emitter,
+              metrics_manager: metrics_manager,
               dependency_collection: dependency_collection
             )
           end

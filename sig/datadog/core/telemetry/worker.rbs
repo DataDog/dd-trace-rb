@@ -13,6 +13,7 @@ module Datadog
         DEFAULT_BUFFER_MAX_SIZE: 1000
 
         @emitter: Emitter
+        @metrics_manager: MetricsManager
         @sent_started_event: bool
         @shutdown_timeout: Integer
         @buffer_size: Integer
@@ -20,7 +21,7 @@ module Datadog
         @ticks_per_heartbeat: Integer
         @current_ticks: Integer
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
 
         def start: () -> void
 
@@ -40,9 +41,11 @@ module Datadog
 
         def flush_events: (Array[Event::Base] events) -> void
 
-        def send_event: (Event::Base event) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
+        def send_event: (Event::Base event) -> Http::Adapters::Net::Response
 
-        def disable_on_not_found!: (Datadog::Core::Telemetry::Http::Adapters::Net::Response response) -> void
+        def disable!: () -> void
+
+        def disable_on_not_found!: (Http::Adapters::Net::Response response) -> void
 
         def buffer_klass: () -> untyped
       end
