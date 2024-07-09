@@ -1048,6 +1048,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(single_sample.values).to include(:'alloc-samples' => 123)
     end
 
+    it 'tags the sample with the unscaled weight' do
+      sample_allocation(weight: 123)
+
+      expect(single_sample.values).to include('alloc-samples-unscaled': 1)
+    end
+
     it 'includes the thread names, if available' do
       thread_with_name = Thread.new do
         Thread.current.name = 'thread_with_name'
