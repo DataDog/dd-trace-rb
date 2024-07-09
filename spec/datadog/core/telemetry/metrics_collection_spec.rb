@@ -252,8 +252,8 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
       expect(event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
       payload = event.payload
 
-      expect(payload[:namespace]).to eq(namespace)
-      expect(payload[:series]).to have(2).items
+      expect(payload.fetch(:namespace)).to eq(namespace)
+      expect(payload.fetch(:series)).to have(2).items
 
       tags = payload[:series].map { |s| s[:tags] }.sort
       expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
@@ -274,8 +274,8 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
       expect(event).to be_a(Datadog::Core::Telemetry::Event::Distributions)
       payload = event.payload
 
-      expect(payload[:namespace]).to eq(namespace)
-      expect(payload[:series]).to have(2).items
+      expect(payload.fetch(:namespace)).to eq(namespace)
+      expect(payload.fetch(:series)).to have(2).items
 
       tags = payload[:series].map { |s| s[:tags] }.sort
       expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
