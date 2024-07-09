@@ -42,16 +42,12 @@ module Datadog
           private
 
           def active_trace
-            # TODO: factor out tracing availability detection
-
             return unless defined?(Datadog::Tracing)
 
             Datadog::Tracing.active_trace
           end
 
           def active_span
-            # TODO: factor out tracing availability detection
-
             return unless defined?(Datadog::Tracing)
 
             Datadog::Tracing.active_span
