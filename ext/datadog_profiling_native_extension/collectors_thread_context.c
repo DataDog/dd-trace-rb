@@ -1292,7 +1292,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* thread: */  current_thread,
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
-    (sample_values) {.alloc_samples = sample_weight},
+    (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     optional_class_name
