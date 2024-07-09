@@ -45,15 +45,17 @@ module Datadog
           fetch_or_add_distribution(metric, value)
         end
 
-        def flush!(queue)
+        def flush!
           @mutex.synchronize do
-            queue.enqueue(Event::GenerateMetrics.new(@namespace, @metrics.values)) if @metrics.any?
-            queue.enqueue(Event::Distributions.new(@namespace, @distributions.values)) if @distributions.any?
+            events = []
+            events << Event::GenerateMetrics.new(@namespace, @metrics.values) if @metrics.any?
+            events << Event::Distributions.new(@namespace, @distributions.values) if @distributions.any?
 
             @metrics = {}
             @distributions = {}
+
+            events
           end
-          nil
         end
 
         private

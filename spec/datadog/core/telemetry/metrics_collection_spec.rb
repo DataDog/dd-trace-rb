@@ -241,28 +241,22 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
   end
 
   describe '#flush!' do
-    let(:queue) { double('queue') }
-
-    before do
-      allow(queue).to receive(:enqueue)
-    end
-
     it 'flushes metrics' do
       collection.inc('metric_name', 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
       collection.inc('metric_name', 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
 
-      expect(queue).to receive(:enqueue) do |event|
-        expect(event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
-        payload = event.payload
+      events = collection.flush!
+      expect(events).to have(1).item
 
-        expect(payload[:namespace]).to eq(namespace)
-        expect(payload[:series]).to have(2).items
+      event = events.first
+      expect(event).to be_a(Datadog::Core::Telemetry::Event::GenerateMetrics)
+      payload = event.payload
 
-        tags = payload[:series].map { |s| s[:tags] }.sort
-        expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
-      end.once
+      expect(payload[:namespace]).to eq(namespace)
+      expect(payload[:series]).to have(2).items
 
-      collection.flush!(queue)
+      tags = payload[:series].map { |s| s[:tags] }.sort
+      expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
 
       expect(metrics.size).to eq(0)
     end
@@ -273,21 +267,21 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
       collection.distribution('metric_name', 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
       collection.distribution('metric_name', 7, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
 
-      expect(queue).to receive(:enqueue) do |event|
-        expect(event).to be_a(Datadog::Core::Telemetry::Event::Distributions)
-        payload = event.payload
+      events = collection.flush!
+      expect(events).to have(1).item
 
-        expect(payload[:namespace]).to eq(namespace)
-        expect(payload[:series]).to have(2).items
+      event = events.first
+      expect(event).to be_a(Datadog::Core::Telemetry::Event::Distributions)
+      payload = event.payload
 
-        tags = payload[:series].map { |s| s[:tags] }.sort
-        expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
+      expect(payload[:namespace]).to eq(namespace)
+      expect(payload[:series]).to have(2).items
 
-        values = payload[:series].map { |s| s[:points] }.sort
-        expect(values).to eq([[5, 6], [5, 7]])
-      end.once
+      tags = payload[:series].map { |s| s[:tags] }.sort
+      expect(tags).to eq([['tag1:val1', 'tag2:val2'], ['tag1:val1', 'tag2:val3']])
 
-      collection.flush!(queue)
+      values = payload[:series].map { |s| s[:points] }.sort
+      expect(values).to eq([[5, 6], [5, 7]])
 
       expect(distributions.size).to eq(0)
     end
@@ -297,18 +291,23 @@ RSpec.describe Datadog::Core::Telemetry::MetricsCollection do
       threads_count = 5
       metrics_count = 0
 
-      expect(queue).to receive(:enqueue) do |event|
-        mutex.synchronize { metrics_count += event.payload[:series].size }
-      end.at_least(:once)
-
       threads = Array.new(threads_count) do |i|
         Thread.new do
           collection.inc("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
-          collection.flush!(queue)
+
+          events = collection.flush!
+
           collection.inc("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
           collection.distribution("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val2' }, common: true)
           collection.distribution("metric_name_#{i}", 5, tags: { tag1: 'val1', tag2: 'val3' }, common: true)
-          collection.flush!(queue)
+
+          events += collection.flush!
+
+          mutex.synchronize do
+            events.each do |event|
+              metrics_count += event.payload[:series].size
+            end
+          end
         end
       end
 

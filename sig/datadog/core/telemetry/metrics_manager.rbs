@@ -2,10 +2,6 @@ module Datadog
   module Core
     module Telemetry
       class MetricsManager
-        interface _Queue
-          def enqueue: (Datadog::Core::Telemetry::Event::Base event) -> void
-        end
-
         @interval: Float
 
         @enabled: bool
@@ -28,7 +24,7 @@ module Datadog
 
         def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
-        def flush!: (_Queue queue) -> void
+        def flush!: () -> Array[Datadog::Core::Telemetry::Event::Base]
 
         def disable!: () -> void
 
