@@ -28,6 +28,12 @@ module Datadog
         @attributes = attributes&.map { |key, val| [key, val.to_s] }&.to_h || {}
         @time_unix_nano = time_unix_nano || Core::Utils::Time.now.to_f * 1e9
       end
+
+      def to_hash
+        h = { :name => @name, :time_unix_nano => @time_unix_nano }
+        h[:attributes] = @attributes unless @attributes.empty?
+        h
+      end
     end
   end
 end

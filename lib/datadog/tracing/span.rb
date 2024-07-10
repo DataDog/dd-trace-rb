@@ -145,14 +145,15 @@ module Datadog
           span_id: @id,
           trace_id: @trace_id,
           type: @type,
-          span_links: @links.map(&:to_hash),
-          events: @events.map(&:to_hash)
+          span_links: @links.map(&:to_hash)
         }
 
         if stopped?
           h[:start] = start_time_nano
           h[:duration] = duration_nano
         end
+
+        h[:meta]['events'] = @events.map(&:to_hash).to_json unless @events.empty?
 
         h
       end
