@@ -2,13 +2,9 @@ module Datadog
   module Core
     module Telemetry
       class MetricsCollection
-        interface _Queue
-          def enqueue: (Datadog::Core::Telemetry::Event::Base event) -> void
-        end
-
         @namespace: String
 
-        @interval: Integer
+        @interval: Float
 
         @mutex: Thread::Mutex
 
@@ -18,7 +14,7 @@ module Datadog
 
         attr_reader namespace: String
 
-        def initialize: (String namespace, aggregation_interval: Integer) -> void
+        def initialize: (String namespace, aggregation_interval: Float) -> void
 
         def inc: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
@@ -30,7 +26,7 @@ module Datadog
 
         def distribution: (String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 
-        def flush!: (_Queue queue) -> void
+        def flush!: () -> Array[Datadog::Core::Telemetry::Event::Base]
 
         private
 

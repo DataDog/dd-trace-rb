@@ -4,13 +4,14 @@ module Datadog
       class Component
         @enabled: bool
         @stopped: bool
+        @metrics_manager: Datadog::Core::Telemetry::MetricsManager
         @worker: Datadog::Core::Telemetry::Worker
 
         attr_reader enabled: bool
 
         include Core::Utils::Forking
 
-        def initialize: (heartbeat_interval_seconds: Numeric, dependency_collection: bool, ?enabled: bool) -> void
+        def initialize: (heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool) -> void
 
         def disable!: () -> void
 

@@ -6,13 +6,17 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
       enabled: enabled,
+      metrics_enabled: metrics_enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection
     )
   end
 
   let(:enabled) { true }
+  let(:metrics_enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
+  let(:metrics_aggregation_interval_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
   let(:not_found) { false }
@@ -20,9 +24,11 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   before do
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
       enabled: enabled,
-      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter)
+      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter),
+      metrics_manager: anything
     ).and_return(worker)
 
     allow(worker).to receive(:start)
@@ -40,6 +46,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       subject(:telemetry) do
         described_class.new(
           heartbeat_interval_seconds: heartbeat_interval_seconds,
+          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection
         )
       end
@@ -201,6 +208,82 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
         end
+      end
+    end
+  end
+
+  context 'metrics support' do
+    let(:metrics_manager) { spy(:metrics_manager) }
+    let(:namespace) { double('namespace') }
+    let(:metric_name) { double('metric_name') }
+    let(:value) { double('value') }
+    let(:tags) { double('tags') }
+    let(:common) { double('common') }
+
+    before do
+      expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
+        aggregation_interval: metrics_aggregation_interval_seconds,
+        enabled: enabled && metrics_enabled
+      ).and_return(metrics_manager)
+    end
+
+    describe '#inc' do
+      subject(:inc) { telemetry.inc(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        inc
+
+        expect(metrics_manager).to have_received(:inc).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#dec' do
+      subject(:dec) { telemetry.dec(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        dec
+
+        expect(metrics_manager).to have_received(:dec).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#gauge' do
+      subject(:gauge) { telemetry.gauge(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        gauge
+
+        expect(metrics_manager).to have_received(:gauge).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#rate' do
+      subject(:rate) { telemetry.rate(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        rate
+
+        expect(metrics_manager).to have_received(:rate).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#distribution' do
+      subject(:distribution) { telemetry.distribution(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        distribution
+
+        expect(metrics_manager).to have_received(:distribution).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
       end
     end
   end

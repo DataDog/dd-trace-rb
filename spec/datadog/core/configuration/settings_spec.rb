@@ -1476,6 +1476,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#metrics_enabled' do
+      subject(:metrics_enabled) { settings.telemetry.metrics_enabled }
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
+
+      context 'when DD_TELEMETRY_METRICS_ENABLED' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to be true }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:env_var_value) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#metrics_enabled=' do
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
+      let(:env_var_value) { 'true' }
+
+      it 'updates the #metrics_enabled setting' do
+        expect { settings.telemetry.metrics_enabled = false }
+          .to change { settings.telemetry.metrics_enabled }
+          .from(true)
+          .to(false)
+      end
+    end
+
     describe '#heartbeat_interval' do
       subject(:heartbeat_interval_seconds) { settings.telemetry.heartbeat_interval_seconds }
       let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }
@@ -1502,6 +1535,35 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       it 'updates the #heartbeat_interval setting' do
         expect { settings.telemetry.heartbeat_interval_seconds = 2.2 }
           .to change { settings.telemetry.heartbeat_interval_seconds }.from(1.1).to(2.2)
+      end
+    end
+
+    describe '#metrics_aggregation_interval_seconds' do
+      subject(:metrics_aggregation_interval_seconds) { settings.telemetry.metrics_aggregation_interval_seconds }
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL' }
+
+      context 'when DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq 10.0 }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '1.1' }
+
+          it { is_expected.to eq 1.1 }
+        end
+      end
+    end
+
+    describe '#metrics_aggregation_interval_seconds=' do
+      let(:env_var_name) { 'DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL' }
+      let(:env_var_value) { '1.1' }
+
+      it 'updates the #metrics_aggregation_interval_seconds setting' do
+        expect { settings.telemetry.metrics_aggregation_interval_seconds = 2.2 }
+          .to change { settings.telemetry.metrics_aggregation_interval_seconds }.from(1.1).to(2.2)
       end
     end
 

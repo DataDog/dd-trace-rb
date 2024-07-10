@@ -57,13 +57,11 @@ module Datadog
           collection.distribution(metric_name, value, tags: tags, common: common)
         end
 
-        def flush!(queue)
-          return unless @enabled
+        def flush!
+          return [] unless @enabled
 
           collections = @mutex.synchronize { @collections.values }
-          collections.each { |col| col.flush!(queue) }
-
-          nil
+          collections.reduce([]) { |events, collection| events + collection.flush! }
         end
 
         def disable!

@@ -21,19 +21,25 @@ module Datadog
 
         def initialize(
           heartbeat_interval_seconds:,
+          metrics_aggregation_interval_seconds:,
           emitter:,
+          metrics_manager:,
           dependency_collection:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
         )
           @emitter = emitter
+          @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
+
+          @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
+          @current_ticks = 0
 
           # Workers::Polling settings
           self.enabled = enabled
           # Workers::IntervalLoop settings
-          self.loop_base_interval = heartbeat_interval_seconds
+          self.loop_base_interval = metrics_aggregation_interval_seconds
           self.fork_policy = Core::Workers::Async::Thread::FORK_POLICY_STOP
 
           @shutdown_timeout = shutdown_timeout
@@ -76,13 +82,19 @@ module Datadog
 
           started! unless sent_started_event?
 
-          heartbeat!
+          metric_events = @metrics_manager.flush!
+          events = [] if events.nil?
+          flush_events(events + metric_events)
 
-          flush_events(events)
+          @current_ticks += 1
+          return if @current_ticks < @ticks_per_heartbeat
+
+          @current_ticks = 0
+          heartbeat!
         end
 
         def flush_events(events)
-          return if events.nil? || events.empty?
+          return if events.empty?
           return if !enabled? || !sent_started_event?
 
           Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
@@ -100,7 +112,7 @@ module Datadog
 
           if failed_to_start?
             Datadog.logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
-            self.enabled = false
+            disable!
             return
           end
 
@@ -144,11 +156,16 @@ module Datadog
           end
         end
 
+        def disable!
+          self.enabled = false
+          @metrics_manager.disable!
+        end
+
         def disable_on_not_found!(response)
           return unless response.not_found?
 
           Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
-          self.enabled = false
+          disable!
         end
       end
     end
