@@ -26,7 +26,8 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
     let(:callbacks) do
       {
         on_start: test_class.method(:on_start),
-        on_finish: test_class.method(:on_finish)
+        on_finish: test_class.method(:on_finish),
+        trace: test_class.method(:trace?)
       }
     end
 
@@ -99,16 +100,19 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Event do
           end
 
           context 'when given options' do
-            subject(:subscription) { test_class.subscription(span_name, options, on_start: on_start, on_finish: on_finish) }
+            subject(:subscription) do
+              test_class.subscription(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
+            end
 
             let(:span_name) { double('span name') }
             let(:options) { double('options') }
             let(:on_start) { double('on_start') }
             let(:on_finish) { double('on_finish') }
+            let(:trace) { double('trace') }
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(span_name, options, on_start: on_start, on_finish: on_finish)
+                .with(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
                 .and_call_original
             end
 

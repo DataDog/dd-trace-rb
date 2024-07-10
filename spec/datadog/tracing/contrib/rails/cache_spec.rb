@@ -172,7 +172,9 @@ RSpec.describe 'Rails cache' do
     end
 
     context 'with custom cache_service' do
-      before { Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache' }
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_service] = 'service-cache'
+      end
 
       it 'uses the proper service name' do
         write
@@ -242,14 +244,12 @@ RSpec.describe 'Rails cache' do
 
     context 'when the method is not defined' do
       before do
-        if ::ActiveSupport::Cache::Store.public_method_defined?(:write_multi)
-          skip 'Test is not applicable to this Rails version'
-        end
+        skip 'Test is not applicable to this Rails version' if ::ActiveSupport::Cache::Store.public_method_defined?(:fetch)
       end
 
       it do
         expect(::ActiveSupport::Cache::Store.ancestors).not_to(
-          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::WriteMulti)
+          include(::Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation::Fetch)
         )
       end
 
