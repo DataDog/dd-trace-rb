@@ -78,56 +78,26 @@ module Datadog
         end
 
         # Increments a count metric.
-        # @param namespace [String] metric namespace (per product, such as 'civisibility', 'tracers', 'profilers')
-        # @param metric_name [String] metric name
-        # @param value [Float] metric value
-        # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of tag:value pairs or array of "tag:val"
-        #                                                  strings
-        # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
         def inc(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.inc(namespace, metric_name, value, tags: tags, common: common)
         end
 
         # Decremenets a count metric.
-        # @param namespace [String] metric namespace (per product, such as 'civisibility', 'tracers', 'profilers')
-        # @param metric_name [String] metric name
-        # @param value [Float] metric value
-        # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of tag:value pairs or array of "tag:val"
-        #                                                  strings
-        # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
         def dec(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.dec(namespace, metric_name, value, tags: tags, common: common)
         end
 
         # Tracks gauge metric.
-        # @param namespace [String] metric namespace (per product, such as 'civisibility', 'tracers', 'profilers')
-        # @param metric_name [String] metric name
-        # @param value [Float] metric value
-        # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of tag:value pairs or array of "tag:val"
-        #                                                  strings
-        # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
         def gauge(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.gauge(namespace, metric_name, value, tags: tags, common: common)
         end
 
         # Tracks rate metric.
-        # @param namespace [String] metric namespace (per product, such as 'civisibility', 'tracers', 'profilers')
-        # @param metric_name [String] metric name
-        # @param value [Float] metric value
-        # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of tag:value pairs or array of "tag:val"
-        #                                                  strings
-        # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
         def rate(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.rate(namespace, metric_name, value, tags: tags, common: common)
         end
 
         # Tracks distribution metric.
-        # @param namespace [String] metric namespace (per product, such as 'civisibility', 'tracers', 'profilers')
-        # @param metric_name [String] metric name
-        # @param value [Float] metric value
-        # @param tags [Array<String>|Hash{String=>String}] metric tags as hash of tag:value pairs or array of "tag:val"
-        #                                                  strings
-        # @param common [Boolean] true if the metric is common for all languages, false for Ruby-specific metric
         def distribution(namespace, metric_name, value, tags: {}, common: true)
           @metrics_manager.distribution(namespace, metric_name, value, tags: tags, common: common)
         end
