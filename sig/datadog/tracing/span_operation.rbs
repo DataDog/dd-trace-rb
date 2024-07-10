@@ -8,6 +8,8 @@ module Datadog
 
       attr_reader links: untyped
 
+      attr_reader span_events: untyped
+
       attr_reader end_time: untyped
 
       attr_reader id: untyped

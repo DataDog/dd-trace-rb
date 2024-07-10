@@ -626,6 +626,41 @@ RSpec.describe Datadog::OpenTelemetry do
       end
     end
 
+    describe '#add_event' do
+      subject! do
+        start_span
+        start_span.add_event('Exception was raised!', **event_options)
+        start_span.finish
+      end
+
+      let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      context 'with name, attributes and timestamp' do
+        let(:event_options) do
+          { attributes: { 'raised' => false, 'handler' => 'default', 'count' => 1 }, timestamp: 17206369349 }
+        end
+
+        it 'adds one event to the span' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('Exception was raised!')
+          expect(span.events[0].time_unix_nano).to eq(17206369349000000000)
+          expect(span.events[0].attributes).to eq({ 'raised' => 'false', 'handler' => 'default', 'count' => '1' })
+        end
+      end
+
+      context 'without a timestamp or attributes' do
+        let(:event_options) { {} }
+
+        it 'adds one event with timestamp set to the current time and attributes set to an empty hash' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('Exception was raised!')
+          expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+          expect(span.events[0].attributes).to eq({})
+        end
+      end
+    end
+
     describe '#status=' do
       subject! do
         start_span

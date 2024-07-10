@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    # SpanEvent represents an annotation on a span.
+    # @public_api
+    class SpanEvent
+      @name: untyped
+
+      @attributes: untyped
+
+      @time_unix_nano: untyped
+
+      # @!attribute [r] name
+      #   @return [Integer]
+      attr_reader name: untyped
+
+      # @!attribute [r] attributes
+      #   @return [Hash<String,String>]
+      attr_reader attributes: untyped
+
+      # @!attribute [r] time_unix_nano
+      #   @return [Integer]
+      attr_reader time_unix_nano: untyped
+
+      def initialize: (untyped name, ?attributes: untyped?, ?time_unix_nano: untyped?) -> void
+    end
+  end
+end
