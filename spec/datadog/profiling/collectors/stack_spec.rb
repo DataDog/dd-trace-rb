@@ -465,13 +465,26 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         # rubocop:enable Style/DocumentDynamicEvalDefinition
       end
 
-      it 'has a frame with a simplified method name' do
+      it 'samples the frame with a simplified method name' do
         expect(gathered_stack).to include(
           have_attributes(
             path: '/myapp/app/views/layouts/explore.html.haml',
             base_label: '_app_views_layouts_explore_html_haml',
           )
         )
+      end
+
+      context 'when method name ends with three ___ instead of two' do
+        let(:method_name) { super().gsub('__', '___') }
+
+        it 'samples the frame with a simplified method name' do
+          expect(gathered_stack).to include(
+            have_attributes(
+              path: '/myapp/app/views/layouts/explore.html.haml',
+              base_label: '_app_views_layouts_explore_html_haml',
+            )
+          )
+        end
       end
 
       context 'when filename ends with .rb' do
