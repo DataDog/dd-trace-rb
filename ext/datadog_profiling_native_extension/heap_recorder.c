@@ -226,7 +226,8 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
 
-  if (heap_recorder->active_recording.object_record != NULL) {
+  if (heap_recorder->active_recording.object_record != NULL && heap_recorder->active_recording.object_record != &SKIPPED_RECORD) {
+    if (heap_recorder->active_recording.object_record == &SKIPPED_RECORD) fprintf(stderr, "HEAP RECORD IS SKIPPED RECORD!!!\n");
     // If there's a partial object record, clean it up as well
     object_record_free(heap_recorder->active_recording.object_record);
   }
@@ -283,6 +284,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
 }
 
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class) {
+  rb_raise(rb_eRuntimeError, "This is a test!");
   if (heap_recorder == NULL) {
     return;
   }

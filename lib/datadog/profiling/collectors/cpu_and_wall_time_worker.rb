@@ -23,7 +23,7 @@ module Datadog
           allocation_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
-          dynamic_sampling_rate_enabled: true,
+          dynamic_sampling_rate_enabled: false,
           skip_idle_samples_for_testing: false,
           idle_sampling_helper: IdleSamplingHelper.new
         )
@@ -74,6 +74,7 @@ module Datadog
                   "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
                 )
                 on_failure_proc&.call
+                exit!
               end
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap

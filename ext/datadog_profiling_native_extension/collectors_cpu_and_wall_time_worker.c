@@ -724,7 +724,7 @@ static VALUE rescued_sample_from_postponed_job(VALUE self_instance) {
 }
 
 static VALUE handle_sampling_failure(VALUE self_instance, VALUE exception) {
-  stop(self_instance, exception);
+  // stop(self_instance, exception);
   return Qnil;
 }
 
@@ -1084,6 +1084,8 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
 
   // Rescue against any exceptions that happen during sampling
   safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
+
+  fprintf(stderr, "@");
 
   if (state->dynamic_sampling_rate_enabled) {
     long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
