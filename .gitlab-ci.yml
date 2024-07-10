@@ -233,6 +233,7 @@ onboarding_tests:
     PRODUCT_NAME: auto_inject-ruby
 
 save_versions:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: deploy
   needs: []
   rules:
