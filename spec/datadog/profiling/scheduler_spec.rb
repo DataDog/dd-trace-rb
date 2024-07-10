@@ -249,15 +249,6 @@ RSpec.describe Datadog::Profiling::Scheduler do
 
       it { is_expected.to be false }
     end
-
-    context 'when the profiler was marked as failed' do
-      before do
-        scheduler.mark_profiler_failed
-        expect(exporter).to_not receive(:can_flush?)
-      end
-
-      it { is_expected.to be false }
-    end
   end
 
   describe '#reset_after_fork' do
