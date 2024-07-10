@@ -592,7 +592,7 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
-void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels, bool placeholder) {
+void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
@@ -612,20 +612,12 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   metric_values[position_for[ALLOC_SAMPLES_UNSCALED_VALUE_ID]] = values.alloc_samples_unscaled;
   metric_values[position_for[TIMELINE_VALUE_ID]]      = values.timeline_wall_time_ns;
 
-  if (!placeholder && values.alloc_samples > 0) {
+  if (values.alloc_samples != 0) {
     // If we got an allocation sample end the heap allocation recording to commit the heap sample.
     // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
     //        very late in the allocation-sampling path (which is shared with the cpu sampling path). This can
     //        be fixed with some refactoring but for now this leads to a less impactful change.
-    //
-    // NOTE: The heap recorder is allowed to raise exceptions if something's wrong. But we also need to handle it
-    // on this side to make sure we properly unlock the active slot mutex on our way out. Otherwise, this would
-    // later lead to deadlocks (since the active slot mutex is not expected to be locked forever).
-    int exception_state = end_heap_allocation_recording_with_rb_protect(state->heap_recorder, locations);
-    if (exception_state) {
-      sampler_unlock_active_profile(active_slot);
-      rb_jump_tag(exception_state);
-    }
+    end_heap_allocation_recording(state->heap_recorder, locations);
   }
 
   ddog_prof_Profile_Result result = ddog_prof_Profile_add(

@@ -79,10 +79,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_allocation(cpu_and_wall_time_collector, weight, new_object)
   end
 
-  def sample_skipped_allocation_samples(skipped_samples)
-    described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
-  end
-
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -1216,41 +1212,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(single_sample.labels).to_not include(:'allocation class' => anything)
         end
-      end
-    end
-  end
-
-  describe '#sample_skipped_allocation_samples' do
-    let(:single_sample) do
-      expect(samples.size).to be 1
-      samples.first
-    end
-    before { sample_skipped_allocation_samples(123) }
-
-    it 'records the number of skipped allocations' do
-      expect(single_sample.values).to include('alloc-samples': 123)
-    end
-
-    it 'attributes the skipped samples to a "Skipped Samples" thread' do
-      expect(single_sample.labels).to include('thread id': 'SA', 'thread name': 'Skipped Samples')
-    end
-
-    it 'attributes the skipped samples to a "(Skipped Samples)" allocation class' do
-      expect(single_sample.labels).to include('allocation class': '(Skipped Samples)')
-    end
-
-    it 'includes a placeholder stack attributed to "Skipped Samples"' do
-      expect(single_sample.locations.size).to be 1
-      expect(single_sample.locations.first.path).to eq 'Skipped Samples'
-    end
-
-    context 'when heap sampling is enabled' do
-      let(:recorder) { build_stack_recorder(heap_samples_enabled: true) }
-
-      it 'records only the number of skipped allocations, and does not record any heap samples' do
-        GC.start # Force any incorrect heap samples to have age > 1
-
-        expect(single_sample.values).to include('alloc-samples': 123, 'heap-live-samples': 0)
       end
     end
   end

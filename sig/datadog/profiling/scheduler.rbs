@@ -14,7 +14,6 @@ module Datadog
       def start: (?on_failure_proc: ::Proc?) -> void
 
       def reset_after_fork: () -> void
-      def mark_profiler_failed: () -> true
     end
   end
 end

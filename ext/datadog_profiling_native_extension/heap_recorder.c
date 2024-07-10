@@ -166,12 +166,6 @@ struct heap_recorder {
     size_t objects_frozen;
   } stats_last_update;
 };
-
-struct end_heap_allocation_args {
-  struct heap_recorder *heap_recorder;
-  ddog_prof_Slice_Location locations;
-};
-
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
 static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record);
@@ -182,7 +176,6 @@ static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_recording(heap_recorder*, heap_record*, recording);
-static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 
 // ==========================
 // Heap Recorder External API
@@ -347,28 +340,9 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   };
 }
 
-// end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
-// locks. To enable us to correctly unlock the profile on exception, we wrap the call to end_heap_allocation_recording
-// with an rb_protect.
-__attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
-  int exception_state;
-  struct end_heap_allocation_args end_heap_allocation_args = {
-    .heap_recorder = heap_recorder,
-    .locations = locations,
-  };
-  rb_protect(end_heap_allocation_recording, (VALUE) &end_heap_allocation_args, &exception_state);
-  return exception_state;
-}
-
-static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
-  struct end_heap_allocation_args *args = (struct end_heap_allocation_args *) end_heap_allocation_args;
-
-  struct heap_recorder *heap_recorder = args->heap_recorder;
-  ddog_prof_Slice_Location locations = args->locations;
-
+void end_heap_allocation_recording(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   if (heap_recorder == NULL) {
-    return Qnil;
+    return;
   }
 
   recording active_recording = heap_recorder->active_recording;
@@ -382,16 +356,15 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   // data required for committing though.
   heap_recorder->active_recording = (recording) {0};
 
-  if (active_recording.object_record == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
-    return Qnil;
+  if (active_recording.object_record == &SKIPPED_RECORD) {
+    // special marker when we decided to skip due to sampling
+    return;
   }
 
   heap_record *heap_record = get_or_create_heap_record(heap_recorder, locations);
 
   // And then commit the new allocation.
   commit_recording(heap_recorder, heap_record, active_recording);
-
-  return Qnil;
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {

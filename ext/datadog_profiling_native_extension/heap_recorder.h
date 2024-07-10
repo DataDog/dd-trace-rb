@@ -114,9 +114,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // @param locations The stacktrace representing the location of the allocation.
 //
 // WARN: It is illegal to call this without previously having called ::start_heap_allocation_recording.
-// WARN: This method rescues exceptions with `rb_protect`, returning the exception state integer for the caller to handle.
-__attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+void end_heap_allocation_recording(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
