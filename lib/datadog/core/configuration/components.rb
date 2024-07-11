@@ -63,6 +63,7 @@ module Datadog
             end
 
             Telemetry::Component.new(
+              http_transport: Datadog::Core::Telemetry::Http::Transport.new,
               enabled: enabled,
               metrics_enabled: enabled && settings.telemetry.metrics_enabled,
               heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,

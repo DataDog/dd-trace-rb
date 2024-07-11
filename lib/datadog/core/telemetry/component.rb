@@ -24,6 +24,7 @@ module Datadog
           heartbeat_interval_seconds:,
           metrics_aggregation_interval_seconds:,
           dependency_collection:,
+          http_transport:,
           enabled: true,
           metrics_enabled: true
         )
@@ -39,7 +40,7 @@ module Datadog
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            emitter: Emitter.new,
+            emitter: Emitter.new(http_transport: http_transport),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection
           )
