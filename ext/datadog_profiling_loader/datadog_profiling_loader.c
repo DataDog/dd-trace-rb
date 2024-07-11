@@ -1,6 +1,9 @@
 #include <stdbool.h>
 #include <dlfcn.h>
 #include <ruby.h>
+#include <ruby/thread.h>
+#include <ruby/thread_native.h>
+#include <ruby/debug.h>
 
 // Why this exists:
 //
@@ -48,11 +51,55 @@ static void unload_failed_library(void *handle);
 
 #define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
 
+static VALUE backtrace_class = Qnil;
+
+
+static VALUE raise_exception(DDTRACE_UNUSED VALUE unused) {
+  fprintf(stderr, "Raising!\n");
+  rb_raise(rb_eRuntimeError, "This is a test!");
+}
+
+static VALUE ignore_failure(VALUE self_instance, VALUE exception) {
+  fprintf(stderr, "Caught!\n");
+  return Qnil;
+}
+
+static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  fprintf(stderr, "Inside on_newobj_event\n");
+  VALUE klass = rb_class_of(rb_tracearg_object(rb_tracearg_from_tracepoint(tracepoint_data)));
+  if (klass == backtrace_class) {
+    fprintf(stderr, "Found backtrace class!\n");
+    abort();
+  } else {
+    rb_p(klass);
+  }
+  rb_rescue2(
+    raise_exception,
+    Qnil,
+    ignore_failure,
+    Qnil,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
+  fprintf(stderr, "Finished on_newobj_event\n");
+}
+
+static VALUE install_tracepoint(DDTRACE_UNUSED VALUE unused) {
+  VALUE tp = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
+  rb_tracepoint_enable(tp);
+  fprintf(stderr, "Tracepoint installed!\n");
+  return Qnil;
+}
+
+
 void DDTRACE_EXPORT Init_datadog_profiling_loader(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE loader_module = rb_define_module_under(profiling_module, "Loader");
   rb_define_singleton_method(loader_module, "_native_load", _native_load, 2);
+
+  backtrace_class = rb_define_class_under(rb_cThread, "Backtrace", rb_cObject);
+  rb_define_singleton_method(loader_module, "install_tracepoint", install_tracepoint, 0);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
