@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'graphql/language/nodes'
+
 require_relative '../../../instrumentation/gateway/argument'
 
 module Datadog
@@ -27,7 +29,6 @@ module Datadog
             private
 
             def create_arguments_hash
-              require 'graphql/language/nodes'
               args = {}
               @multiplex.queries.each_with_index do |query, index|
                 resolver_args = {}
