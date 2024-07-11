@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'json'
-require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../reactive/multiplex'
 require_relative '../../../reactive/operation'
