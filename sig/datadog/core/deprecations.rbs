@@ -1,0 +1,22 @@
+module Datadog
+  module Core
+    module Deprecations
+      interface _Hashing
+        def hash: () -> ::Integer
+        def eql?: (untyped) -> bool
+        def nil?: () -> bool
+      end
+
+      type key = _Hashing
+
+      @logged_deprecations: ::Hash[key, ::Integer]
+      def log_deprecation: (?disallowed_next_major: bool, ?key: key?) { () -> String } -> void
+
+      private
+      def log_deprecation?: (key key) -> bool
+
+      def deprecation_logged!: (key key) -> void
+      def logged_deprecations: () -> ::Hash[key, ::Integer]
+    end
+  end
+end
