@@ -4,12 +4,12 @@ require 'datadog/core/telemetry/http/transport'
 require 'datadog/core/telemetry/http/adapters/net'
 
 RSpec.describe Datadog::Core::Telemetry::Http::Transport do
-  subject(:transport) { described_class.new }
+  subject(:transport) { described_class.build_agent_transport }
 
   let(:hostname) { 'foo' }
   let(:port) { 1234 }
 
-  describe '#initialize' do
+  describe '.build_agent_transport' do
     before do
       Datadog.configuration.agent.host = hostname
       Datadog.configuration.agent.port = port

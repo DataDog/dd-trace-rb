@@ -13,18 +13,27 @@ module Datadog
         # Class to send telemetry data to Telemetry API
         # Currently only supports the HTTP protocol.
         class Transport
+          def self.build_agent_transport
+            agent_settings = Configuration::AgentSettingsResolver.call(Datadog.configuration)
+
+            Transport.new(
+              host: agent_settings.hostname,
+              port: agent_settings.port,
+              path: Http::Ext::AGENT_ENDPOINT
+            )
+          end
+
           attr_reader \
             :host,
             :port,
             :ssl,
             :path
 
-          def initialize
-            agent_settings = Configuration::AgentSettingsResolver.call(Datadog.configuration)
-            @host = agent_settings.hostname
-            @port = agent_settings.port
-            @ssl = false
-            @path = Http::Ext::AGENT_ENDPOINT
+          def initialize(host:, port:, path:, ssl: false)
+            @host = host
+            @port = port
+            @ssl = ssl
+            @path = path
           end
 
           def request(request_type:, payload:)
