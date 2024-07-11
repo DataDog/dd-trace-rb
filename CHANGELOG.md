@@ -6,7 +6,6 @@
 
 ### Added
 
-* Core: Support metrics telemetry ([#3734][], [#3742][], [#3768][])
 * Tracing: Add `Rails` Runner instrumentation ([#2509][])
 * Tracing: Introduce a new, reworked `GraphQL` tracer to comply with span attributes specification ([#3672][])
 * Tracing: Enhance `ActiveSupport::Cache` instrumentation with `ActiveSupport::Notifications` subscription ([#3772][])
@@ -4326,15 +4325,12 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3729]: https://github.com/DataDog/dd-trace-rb/issues/3729
 [#3730]: https://github.com/DataDog/dd-trace-rb/issues/3730
 [#3731]: https://github.com/DataDog/dd-trace-rb/issues/3731
-[#3734]: https://github.com/DataDog/dd-trace-rb/issues/3734
-[#3742]: https://github.com/DataDog/dd-trace-rb/issues/3742
 [#3743]: https://github.com/DataDog/dd-trace-rb/issues/3743
 [#3749]: https://github.com/DataDog/dd-trace-rb/issues/3749
 [#3750]: https://github.com/DataDog/dd-trace-rb/issues/3750
 [#3753]: https://github.com/DataDog/dd-trace-rb/issues/3753
 [#3757]: https://github.com/DataDog/dd-trace-rb/issues/3757
 [#3759]: https://github.com/DataDog/dd-trace-rb/issues/3759
-[#3768]: https://github.com/DataDog/dd-trace-rb/issues/3768
 [#3770]: https://github.com/DataDog/dd-trace-rb/issues/3770
 [#3772]: https://github.com/DataDog/dd-trace-rb/issues/3772
 [#3774]: https://github.com/DataDog/dd-trace-rb/issues/3774
