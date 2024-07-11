@@ -1,5 +1,11 @@
 #include <ruby.h>
 #include <ruby/thread.h>
+
+#include <ruby.h>
+#include <ruby/thread.h>
+#include <ruby/thread_native.h>
+#include <ruby/debug.h>
+
 #include <errno.h>
 #ifdef HAVE_MALLOC_STATS
   #include <malloc.h>
@@ -39,10 +45,39 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 
+static VALUE raise_exception(DDTRACE_UNUSED VALUE unused) {
+  rb_raise(rb_eRuntimeError, "This is a test!");
+}
+
+static VALUE ignore_failure(VALUE self_instance, VALUE exception) {
+  return Qnil;
+}
+
+static void on_newobj_event_wip(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+  rb_rescue2(
+    raise_exception,
+    Qnil,
+    ignore_failure,
+    Qnil,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
+  fprintf(stderr, "*");
+}
+
+static VALUE install_weird_tracepoint(DDTRACE_UNUSED VALUE unused) {
+  VALUE tp = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event_wip, NULL /* unused */);
+  rb_tracepoint_enable(tp);
+  fprintf(stderr, "installed weird tracepoint\n");
+  return Qnil;
+}
+
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
+
+  rb_define_singleton_method(native_extension_module, "install_weird_tracepoint", install_weird_tracepoint, 0);
 
   rb_define_singleton_method(native_extension_module, "native_working?", native_working_p, 0);
   rb_funcall(native_extension_module, rb_intern("private_class_method"), 1, ID2SYM(rb_intern("native_working?")));

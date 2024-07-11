@@ -1041,69 +1041,25 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
 
+static VALUE raise_exception(DDTRACE_UNUSED VALUE unused) {
+  rb_raise(rb_eRuntimeError, "This is a test!");
+}
+
+static VALUE ignore_failure(VALUE self_instance, VALUE exception) {
+  return Qnil;
+}
+
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
-  // Update thread-local allocation count
-  if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
-    allocation_count = 0;
-  } else {
-    allocation_count++;
-  }
-
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-  // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
-  // and disabled before it is cleared, but just in case...
-  if (state == NULL) return;
-
-  // In a few cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
-  // sample, so we just return early
-  if (state->during_sample) {
-    state->stats.allocations_during_sample++;
-    return;
-  }
-
-  if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error(state, ERR_CLOCK_FAIL);
-      return;
-    }
-    if (!discrete_dynamic_sampler_should_sample(&state->allocation_sampler, now)) {
-      state->stats.allocation_skipped++;
-      return;
-    }
-  }
-
-  // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
-  // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
-  // to keep this here for consistency -- every call to the thread context (other than the special gc calls which are
-  // defined as not being able to allocate) sets this.
-  state->during_sample = true;
-
-  // Rescue against any exceptions that happen during sampling
-  safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
-
-  fprintf(stderr, "@");
-
-  if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error(state, ERR_CLOCK_FAIL);
-      // NOTE: Not short-circuiting here to make sure cleanup happens
-    }
-    uint64_t sampling_time_ns = discrete_dynamic_sampler_after_sample(&state->allocation_sampler, now);
-    // NOTE: To keep things lean when dynamic sampling rate is disabled we skip clock interactions which is
-    //       why we're fine with having this inside this conditional.
-    state->stats.allocation_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_min);
-    state->stats.allocation_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.allocation_sampling_time_ns_max);
-    state->stats.allocation_sampling_time_ns_total += sampling_time_ns;
-  }
-
-  state->stats.allocation_sampled++;
-
-  state->during_sample = false;
+  rb_rescue2(
+    raise_exception,
+    Qnil,
+    handle_sampling_failure,
+    Qnil,
+    rb_eException, // rb_eException is the base class of all Ruby exceptions
+    0 // Required by API to be the last argument
+  );
 }
 
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
@@ -1129,6 +1085,8 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
 }
 
 static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
+  rb_raise(rb_eRuntimeError, "This is a test!");
+
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because on_newobj_event already checked for this, but just in case...
