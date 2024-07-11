@@ -663,6 +663,15 @@ module Datadog
             o.type :bool
           end
 
+          # Enable agentless mode for telemetry: submit telemetry events directly to the intake without Datadog Agent.
+          # @default `DD_TELEMETRY_AGENTLESS_ENABLED` environment variable, otherwise `false`.
+          # @return [Boolean]
+          option :agentless_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_AGENTLESS_ENABLED
+            o.default false
+          end
+
           # Enable metrics collection for telemetry. Metrics collection only works when telemetry is enabled and
           # metrics are enabled.
           # @default `DD_TELEMETRY_METRICS_ENABLED` environment variable, otherwise `true`.

@@ -1476,6 +1476,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#agentless_enabled' do
+      subject(:agentless_enabled) { settings.telemetry.agentless_enabled }
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' }
+
+      context 'when DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to be false }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:env_var_value) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#agentless_enabled=' do
+      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' }
+      let(:env_var_value) { 'false' }
+
+      it 'updates the #agentless_enabled setting' do
+        expect { settings.telemetry.agentless_enabled = true }
+          .to change { settings.telemetry.agentless_enabled }
+          .from(false)
+          .to(true)
+      end
+    end
+
     describe '#metrics_enabled' do
       subject(:metrics_enabled) { settings.telemetry.metrics_enabled }
       let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
