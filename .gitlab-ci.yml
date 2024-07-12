@@ -243,8 +243,8 @@ save_versions:
       allow_failure: true
   script:
     - git fetch --all
-    - echo 1_X_COMMIT_SHA=$(git rev-parse origin/1.x-stable) >> upstream.env
-    - echo 2_X_COMMIT_SHA=$(git rev-parse origin/master) >> upstream.env
+    - echo COMMIT_SHA_1X=$(git rev-parse origin/1.x-stable) >> upstream.env
+    - echo COMMIT_SHA_2X=$(git rev-parse origin/master) >> upstream.env
   artifacts:
     paths:
       - upstream.env
