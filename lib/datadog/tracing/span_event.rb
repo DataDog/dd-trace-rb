@@ -12,7 +12,7 @@ module Datadog
       attr_reader :name
 
       # @!attribute [r] attributes
-      #   @return [Hash<String,String>]
+      #   @return [Hash{String => String, Numeric, Boolean, Array<String, Numeric, Boolean>}]
       attr_reader :attributes
 
       # @!attribute [r] time_unix_nano
@@ -25,13 +25,20 @@ module Datadog
         time_unix_nano: nil
       )
         @name = name
-        @attributes = attributes&.map { |key, val| [key, val.to_s] }&.to_h || {}
+        @attributes = attributes || {}
         @time_unix_nano = time_unix_nano || Core::Utils::Time.now.to_f * 1e9
       end
 
       def to_hash
-        h = { :name => @name, :time_unix_nano => @time_unix_nano }
-        h[:attributes] = @attributes unless @attributes.empty?
+        h = { name: @name, time_unix_nano: @time_unix_nano }
+        # stringify array values in attributes
+        unless @attributes.empty?
+          h[:attributes] = attributes&.map do |key, val|
+            val = val.to_s if val.is_a?(Array)
+            [key, val]
+          end.to_h
+        end
+
         h
       end
     end

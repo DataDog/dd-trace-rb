@@ -145,7 +145,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
               Datadog::Tracing::SpanEvent.new(
                 "Another Event #{i}!",
                 time_unix_nano: 2_000_000_000,
-                attributes: { 'id' => i, 'required' => i == 1 },
+                attributes: { id: i, required: (i == 1) },
               ),
             ],
           )
@@ -160,9 +160,9 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         ).to eq(
           [
             '[{"name":"First Event","time_unix_nano":1000000000},{"name":"Another Event 0!","time_unix_nano":2000000000,' \
-            '"attributes":{"id":"0","required":"false"}}]',
+            '"attributes":{"id":0,"required":false}}]',
             '[{"name":"First Event","time_unix_nano":1000000000},{"name":"Another Event 1!","time_unix_nano":2000000000,' \
-            '"attributes":{"id":"1","required":"true"}}]',
+            '"attributes":{"id":1,"required":true}}]',
           ]
         )
       end

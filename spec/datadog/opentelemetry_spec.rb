@@ -638,14 +638,14 @@ RSpec.describe Datadog::OpenTelemetry do
 
       context 'with name, attributes and timestamp' do
         let(:event_options) do
-          { attributes: { 'raised' => false, 'handler' => 'default', 'count' => 1 }, timestamp: 17206369349 }
+          { attributes: { raised: false, handler: 'default', count: 1 }, timestamp: 17206369349 }
         end
 
         it 'adds one event to the span' do
           expect(span.events.count).to eq(1)
           expect(span.events[0].name).to eq('Exception was raised!')
           expect(span.events[0].time_unix_nano).to eq(17206369349000000000)
-          expect(span.events[0].attributes).to eq({ 'raised' => 'false', 'handler' => 'default', 'count' => '1' })
+          expect(span.events[0].attributes).to eq({ raised: false, handler: 'default', count: 1 })
         end
       end
 
