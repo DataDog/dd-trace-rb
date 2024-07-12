@@ -267,6 +267,8 @@ deploy_to_reliability_env:
     UPSTREAM_PROJECT_NAME: $CI_PROJECT_NAME
     UPSTREAM_COMMIT_SHA: $CI_COMMIT_SHA
     UPSTREAM_PACKAGE_JOB: save_versions
+    UPSTREAM_PIPELINE_ID: $CI_PIPELINE_ID
+    CI_SERVER_URL: $CI_SERVER_URL
 
 prepare_image_destinations:
   stage: deploy
