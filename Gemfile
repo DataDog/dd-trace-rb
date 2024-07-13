@@ -84,6 +84,10 @@ group :check do
   end
 end
 
+group :dev do
+  gem 'ruby-lsp', require: false if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
+end
+
 # `1.17.0` provides broken RBS type definitions
 # https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
 #

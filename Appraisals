@@ -17,6 +17,9 @@ REMOVED_GEMS = {
     'rbs',
     'steep',
   ],
+  :dev => [
+    'ruby-lsp',
+  ],
 }
 
 def appraise(group, &block)

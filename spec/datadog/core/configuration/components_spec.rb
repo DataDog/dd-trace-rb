@@ -225,11 +225,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
       let(:expected_options) do
-        { enabled: enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
+        { enabled: enabled, metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
+          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection }
       end
       let(:enabled) { true }
+      let(:metrics_enabled) { true }
       let(:heartbeat_interval_seconds) { 60 }
+      let(:metrics_aggregation_interval_seconds) { 10 }
       let(:dependency_collection) { true }
 
       before do
@@ -246,7 +249,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         context 'and :unix agent adapter' do
           let(:expected_options) do
-            { enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
+            { enabled: false, metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
+              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection }
           end
           let(:agent_settings) do

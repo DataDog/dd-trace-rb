@@ -123,17 +123,10 @@ RSpec.describe Datadog::Profiling::Profiler do
       before do
         allow(scheduler).to receive(:enabled=)
         allow(scheduler).to receive(:stop)
-        allow(scheduler).to receive(:mark_profiler_failed)
       end
 
       it 'logs the issue' do
         expect(Datadog.logger).to receive(:warn).with(/worker component/)
-
-        worker_on_failure
-      end
-
-      it 'marks the profiler as having failed in the scheduler' do
-        expect(scheduler).to receive(:mark_profiler_failed)
 
         worker_on_failure
       end

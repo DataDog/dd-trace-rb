@@ -15,6 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
       describe 'behavior' do
         let(:on_start) { double('on start') }
         let(:on_finish) { double('on finish') }
+        let(:trace) { double('trace') }
 
         describe '#subscriptions' do
           subject(:subscriptions) { test_class.subscriptions }
@@ -92,7 +93,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
 
           describe '#subscribe' do
             subject(:subscription) do
-              test_class.send(:subscribe, pattern, span_name, options, on_start: on_start, on_finish: on_finish)
+              test_class.send(
+                :subscribe,
+                pattern,
+                span_name,
+                options,
+                on_start: on_start,
+                on_finish: on_finish,
+                trace: trace
+              )
             end
 
             let(:pattern) { double('pattern') }
@@ -101,7 +110,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(span_name, options, on_start: on_start, on_finish: on_finish)
+                .with(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
                 .and_call_original
 
               expect_any_instance_of(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription)
@@ -115,7 +124,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
 
           describe '#subscription' do
             subject(:subscription) do
-              test_class.send(:subscription, span_name, options, on_start: on_start, on_finish: on_finish)
+              test_class.send(:subscription, span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
             end
 
             let(:span_name) { double('span name') }
@@ -123,7 +132,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrib
 
             before do
               expect(Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription).to receive(:new)
-                .with(span_name, options, on_start: on_start, on_finish: on_finish)
+                .with(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
                 .and_call_original
             end
 

@@ -268,15 +268,19 @@ void sample_thread(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = captured_frames},
     values,
-    labels,
-    /* placeholder: */ false
+    labels
   );
 }
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
-// names such as "_app_views_layouts_explore_html_haml__2304485752546535910_211320".
+// names such as:
+// * "_app_views_layouts_explore_html_haml__2304485752546535910_211320" (__number_number suffix -- two underscores)
+// * "_app_views_articles_index_html_erb___2022809201779434309_12900" (___number_number suffix -- three underscores)
 // This makes these stacks not aggregate well, as well as being not-very-useful data.
-// (Reference: https://github.com/rails/rails/blob/4fa56814f18fd3da49c83931fa773caa727d8096/actionview/lib/action_view/template.rb#L389 )
+// (Reference:
+//  https://github.com/rails/rails/blob/4fa56814f18fd3da49c83931fa773caa727d8096/actionview/lib/action_view/template.rb#L389
+//  The two vs three underscores happen when @identifier.hash is negative in that method: the "-" gets replaced with
+//  the extra "_".)
 //
 // This method trims these suffixes, so that we keep less data + the names correctly aggregate together.
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice) {
@@ -297,6 +301,9 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
 
   // Make sure there's something left before the underscores (hence the <= instead of <) + match the last underscore
   if (pos <= 0 || name_slice->ptr[pos] != '_') return;
+
+  // Does it have the optional third underscore? If so, remove it as well
+  if (pos > 1 && name_slice->ptr[pos-1] == '_') pos--;
 
   // If we got here, we matched on our pattern. Let's slice the length of the string to exclude it.
   name_slice->len = pos;
@@ -373,8 +380,7 @@ void record_placeholder_stack(
     recorder_instance,
     (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
     values,
-    labels,
-    /* placeholder: */ true
+    labels
   );
 }
 

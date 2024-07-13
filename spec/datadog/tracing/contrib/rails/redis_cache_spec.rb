@@ -75,6 +75,7 @@ MESSAGE
     before { cache.write(key, 50) }
 
     it do
+      read
       expect(read).to eq(50)
 
       expect(spans).to have(4).items
@@ -94,6 +95,47 @@ MESSAGE
         .to eq('active_support')
       expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
+
+      expect(cache.get_tag('rails.cache.key')).to eq(key)
+    end
+
+    it_behaves_like 'a peer service span' do
+      let(:span) { spans.last }
+    end
+  end
+
+  shared_examples 'multi reader method' do |method, fetch = false|
+    subject(:read_multi) { cache.public_send(method, *multi_keys) {} }
+
+    let(:multi_keys) { %w[custom-key-1 custom-key-2 custom-key-3] }
+
+    before do
+      multi_keys.each { |key| cache.write(key, 50 + key[-1].to_i) }
+      clear_traces!
+    end
+
+    it do
+      expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+      cache, *redises = spans
+      expect(redises).to have(fetch ? 2 : 1).items # Fetch will have an extra MSET redis span
+      redis = Rails::VERSION::MAJOR < 5 ? redises.first : redises.last
+      expect(cache.get_tag('rails.cache.backend')).to eq(cache_store_name)
+
+      expect(redis.name).to eq('redis.command')
+      expect(redis.type).to eq('redis')
+      expect(redis.resource).to eq('MGET')
+      expect(redis.get_tag('redis.raw_command')).to eq('MGET custom-key-1 custom-key-2 custom-key-3')
+      expect(redis.service).to eq('redis')
+      # the following ensures span will be correctly displayed (parent/child of the same trace)
+      expect(cache.trace_id).to eq(redis.trace_id)
+      expect(cache.id).to eq(redis.parent_id)
+
+      expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(cache.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+        .to eq('cache')
+
+      expect(cache.get_tag('rails.cache.keys')).to eq(multi_keys.to_s)
     end
 
     it_behaves_like 'a peer service span' do
@@ -103,6 +145,10 @@ MESSAGE
 
   describe '#read' do
     it_behaves_like 'reader method', :read
+  end
+
+  describe '#read_multi' do
+    it_behaves_like 'multi reader method', :read_multi
   end
 
   describe '#fetch' do
@@ -154,6 +200,10 @@ MESSAGE
           .to eq('cache')
       end
     end
+  end
+
+  describe '#fetch_multi' do
+    it_behaves_like 'multi reader method', :fetch_multi, true
   end
 
   describe '#write' do

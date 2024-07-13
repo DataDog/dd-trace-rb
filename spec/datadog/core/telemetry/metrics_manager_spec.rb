@@ -188,18 +188,18 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
   end
 
   describe '#flush!' do
-    subject(:flush!) { manager.flush!(queue) }
-
-    let(:queue) { [] }
+    subject(:flush!) { manager.flush! }
 
     it 'forwards flush to the collections' do
+      events = [double(:event)]
+
       collection = double(:collection)
       expect(Datadog::Core::Telemetry::MetricsCollection).to receive(:new).and_return(collection)
       expect(collection).to receive(:inc)
-      expect(collection).to receive(:flush!).with(queue)
+      expect(collection).to receive(:flush!).and_return(events)
 
       manager.inc(namespace, metric_name, value, tags: tags)
-      flush!
+      expect(flush!).to eq(events)
     end
 
     context 'when disabled' do
@@ -208,13 +208,11 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
       it 'does nothing' do
         expect(Datadog::Core::Telemetry::MetricsCollection).to_not receive(:new)
 
-        flush!
+        expect(flush!).to eq([])
       end
     end
 
     context 'concurrently creating and flushing namespaces' do
-      let(:queue) { double('queue') }
-
       it 'flushes all metrics' do
         mutex = Mutex.new
 
@@ -222,16 +220,19 @@ RSpec.describe Datadog::Core::Telemetry::MetricsManager do
         metrics_per_thread = 3
 
         flushed_metrics_count = 0
-        allow(queue).to receive(:enqueue) do |event|
-          mutex.synchronize { flushed_metrics_count += event.payload[:series].count }
-        end
 
         threads = Array.new(threads_count) do |n|
           Thread.new do
             metrics_per_thread.times do |i|
               manager.inc("namespace #{n}", "#{metric_name} #{i}", value, tags: tags)
             end
-            manager.flush!(queue)
+            events = manager.flush!
+
+            mutex.synchronize do
+              events.each do |event|
+                flushed_metrics_count += event.payload[:series].count
+              end
+            end
           end
         end
 

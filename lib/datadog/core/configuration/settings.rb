@@ -663,6 +663,16 @@ module Datadog
             o.type :bool
           end
 
+          # Enable metrics collection for telemetry. Metrics collection only works when telemetry is enabled and
+          # metrics are enabled.
+          # @default `DD_TELEMETRY_METRICS_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :metrics_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_METRICS_ENABLED
+            o.default true
+          end
+
           # The interval in seconds when telemetry must be sent.
           #
           # This method is used internally, for testing purposes only.
@@ -674,6 +684,19 @@ module Datadog
             o.type :float
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
+          end
+
+          # The interval in seconds when telemetry metrics are aggregated.
+          # Should be a denominator of `heartbeat_interval_seconds`.
+          #
+          # This method is used internally, for testing purposes only.
+          # @default `DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL` environment variable, otherwise `10`.
+          # @return [Float]
+          # @!visibility private
+          option :metrics_aggregation_interval_seconds do |o|
+            o.type :float
+            o.env Core::Telemetry::Ext::ENV_METRICS_AGGREGATION_INTERVAL
+            o.default 10.0
           end
 
           # The install id of the application.

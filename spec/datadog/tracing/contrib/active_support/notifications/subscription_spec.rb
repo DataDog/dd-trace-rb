@@ -6,79 +6,21 @@ require 'datadog/tracing/contrib/active_support/notifications/subscription'
 
 RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscription do
   describe 'instance' do
-    subject(:subscription) { described_class.new(span_name, options, on_start: on_start, on_finish: on_finish) }
+    subject(:subscription) do
+      described_class.new(span_name, options, on_start: on_start, on_finish: on_finish, trace: trace)
+    end
 
     let(:span_name) { double('span_name') }
     let(:options) { { resource: 'dummy_resource' } }
     let(:on_start) { proc { |span_op, name, id, payload| on_start_spy.call(span_op, name, id, payload) } }
     let(:on_finish) { proc { |span_op, name, id, payload| on_finish_spy.call(span_op, name, id, payload) } }
+    let(:trace) { proc { |_name, _payload| true } }
     let(:payload) { {} }
 
     let(:on_start_spy) { double('on_start_spy') }
     let(:on_finish_spy) { double('on_finish_spy') }
 
     describe 'behavior' do
-      describe '#call' do
-        subject(:result) { subscription.call(name, start, finish, id, payload) }
-
-        let(:name) { double('name') }
-        let(:start) { double('start') }
-        let(:finish) { double('finish') }
-        let(:id) { double('id') }
-        let(:payload) { {} }
-
-        let(:span_op) { instance_double(Datadog::Tracing::SpanOperation) }
-
-        before do
-          allow(on_start_spy).to receive(:call).with(span_op, name, id, payload)
-          allow(on_finish_spy).to receive(:call).with(span_op, name, id, payload)
-        end
-
-        it do
-          expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
-          expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
-          expect(on_start_spy).to receive(:call).with(span_op, name, id, payload).ordered
-          expect(on_finish_spy).to receive(:call).with(span_op, name, id, payload).ordered
-          expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
-          is_expected.to be(span_op)
-        end
-
-        context 'when on_start raises an error' do
-          let(:on_start) do
-            proc do |_span_op, _name, _id, _payload|
-              raise ArgumentError, 'Fail!'
-            end
-          end
-
-          around { |example| without_errors { example.run } }
-
-          it 'finishes tracing anyways' do
-            expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
-            expect(span_op).to receive(:start).with(start).and_return(span_op).ordered
-            expect(span_op).to receive(:finish).with(finish).and_return(span_op).ordered
-            is_expected.to be(span_op)
-          end
-        end
-
-        context 'when on_finish raises an error' do
-          let(:on_finish) do
-            proc do |_span_op, _name, _id, _payload|
-              raise ArgumentError, 'Fail!'
-            end
-          end
-
-          around { |example| without_errors { example.run } }
-
-          it 'finishes tracing anyways' do
-            expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op).ordered
-            expect(span_op).to receive(:start).with(start).and_return(span_op)
-            expect(span_op).to receive(:finish)
-            expect(on_start_spy).to receive(:call).with(span_op, name, id, payload).ordered
-            is_expected.to be(span_op)
-          end
-        end
-      end
-
       describe '#start' do
         subject(:result) { subscription.start(name, id, payload) }
 
@@ -92,6 +34,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
           expect(on_start_spy).to receive(:call).with(span_op, name, id, payload)
           expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op)
           is_expected.to be(span_op)
+          expect(payload[:datadog_span]).to eq(span_op)
         end
 
         it 'sets the parent span operation' do
@@ -103,6 +46,17 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
           expect(on_start_spy).to receive(:call).with(span_op, name, id, payload)
           expect(Datadog::Tracing).to receive(:trace).with(span_name, **options).and_return(span_op)
           expect { subject }.to change { payload[:datadog_span] }.to be(span_op)
+        end
+
+        context 'with trace? returning false' do
+          let(:trace) { proc { |_name, _payload| false } }
+
+          it 'does not start a span operation nor call the callback' do
+            expect(Datadog::Tracing).not_to receive(:trace)
+            expect(on_start_spy).to_not receive(:call)
+            is_expected.to be_nil
+            expect(payload[:datadog_span]).to be_nil
+          end
         end
       end
 
@@ -119,6 +73,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
           expect(on_finish_spy).to receive(:call).with(span_op, name, id, payload).ordered
           expect(span_op).to receive(:finish).and_return(span_op).ordered
           is_expected.to be(span_op)
+        end
+
+        context 'without a span started' do
+          let(:payload) { {} }
+
+          it 'does not call the callback' do
+            expect(on_finish_spy).to_not receive(:call)
+            is_expected.to be_nil
+          end
         end
       end
 
@@ -157,6 +120,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
             around { |example| without_errors { example.run } }
 
             it_behaves_like 'a before_trace callback'
+          end
+
+          context 'with trace? returning false' do
+            let(:trace) { proc { |_name, _payload| false } }
+
+            it 'does not call the callback' do
+              expect(callback_spy).not_to receive(:call)
+              subscription.start(double('name'), double('id'), payload)
+            end
           end
         end
       end
@@ -199,6 +171,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveSupport::Notifications::Subscrip
             around { |example| without_errors { example.run } }
 
             it_behaves_like 'an after_trace callback'
+          end
+
+          context 'with trace? returning false' do
+            let(:trace) { proc { |_name, _payload| false } }
+
+            it 'does not call the callback' do
+              expect(callback_spy).not_to receive(:call)
+              subscription.finish(double('name'), double('id'), payload)
+            end
           end
         end
       end
