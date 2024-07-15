@@ -171,7 +171,7 @@ begin
       next
     end
 
-    bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
+    bundle_add_cmd = "bundle add #{gem} --skip-install --verbose --version #{gem_version_mapping[gem]} "
     bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
 
     dd_debug_log "Injection with `#{bundle_add_cmd}`"
