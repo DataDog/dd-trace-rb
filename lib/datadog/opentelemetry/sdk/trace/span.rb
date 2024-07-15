@@ -15,6 +15,20 @@ module Datadog
           res
         end
 
+        def record_exception(exception, attributes: nil)
+          res = super
+          if (span = datadog_span)
+            span.set_error(
+              [
+                attributes&.fetch('exception.type', nil) || exception.class.to_s,
+                attributes&.fetch('exception.message', nil) || exception.message,
+                attributes&.fetch('exception.stacktrace', nil) || exception.backtrace
+              ]
+            )
+          end
+          res
+        end
+
         # `alias` performed to match {OpenTelemetry::SDK::Trace::Span} aliasing upstream
         alias []= set_attribute
 
