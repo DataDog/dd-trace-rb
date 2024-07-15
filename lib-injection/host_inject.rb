@@ -26,8 +26,10 @@ begin
   def dd_send_telemetry(events)
     pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
 
-    tracer_version = if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
-                       File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
+    tracer_version = if File.exist?('PATH_PLACEHOLDER/version.txt')
+                       File.read('PATH_PLACEHOLDER/version.txt').chomp
+                     elsif File.exist?('PATH_PLACEHOLDER/version')
+                       File.read('PATH_PLACEHOLDER/version').chomp
                      else
                        'unknown'
                      end
@@ -58,7 +60,7 @@ begin
 
   major, minor, = RUBY_VERSION.split('.')
   ruby_api_version = "#{major}.#{minor}.0"
-  dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+  dd_lib_injection_path = "PATH_PLACEHOLDER/#{ruby_api_version}"
   dd_debug_log "Loading from #{dd_lib_injection_path}..."
 
   supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0'].freeze
