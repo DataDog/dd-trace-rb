@@ -11,7 +11,7 @@ begin
 
   def dd_debug_log(msg)
     pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}"
   end
 
   def dd_error_log(msg)
