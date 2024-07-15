@@ -51,7 +51,7 @@ RSpec.describe Datadog::Tracing::SpanEvent do
       let(:attributes) { { 'event.name' => 'test_event', 'event.id' => 1, 'nested' => [true, [2, 3], 'val'] } }
       it {
         is_expected.to include(
-          attributes: { 'event.name' => 'test_event', 'event.id' => 1, 'nested' => '[true, [2, 3], "val"]' }
+          attributes: attributes
         )
       }
     end

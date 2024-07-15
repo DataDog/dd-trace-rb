@@ -31,14 +31,7 @@ module Datadog
 
       def to_hash
         h = { name: @name, time_unix_nano: @time_unix_nano }
-        # stringify array values in attributes
-        unless @attributes.empty?
-          h[:attributes] = attributes&.map do |key, val|
-            val = val.to_s if val.is_a?(Array)
-            [key, val]
-          end.to_h
-        end
-
+        h[:attributes] = attributes unless @attributes.empty?
         h
       end
     end
