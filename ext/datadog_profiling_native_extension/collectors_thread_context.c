@@ -1257,7 +1257,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
       // Thus, we need to make sure there's actually a class before getting its name.
 
       if (klass != 0) {
-        const char *name = rb_obj_classname(new_object);
+        const char *name = rb_class2name(klass);
         size_t name_length = name != NULL ? strlen(name) : 0;
 
         if (name_length > 0) {
