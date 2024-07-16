@@ -231,14 +231,18 @@ RSpec.describe Datadog::Core::Configuration::Components do
           dependency_collection: dependency_collection }
       end
       let(:enabled) { true }
+      let(:agentless_enabled) { false }
       let(:metrics_enabled) { true }
       let(:heartbeat_interval_seconds) { 60 }
       let(:metrics_aggregation_interval_seconds) { 10 }
       let(:dependency_collection) { true }
+      let(:api_key) { 'api_key' }
 
       before do
         expect(Datadog::Core::Telemetry::Component).to receive(:new).with(expected_options).and_return(telemetry)
+        allow(settings).to receive(:api_key).and_return(api_key)
         allow(settings.telemetry).to receive(:enabled).and_return(enabled)
+        allow(settings.telemetry).to receive(:agentless_enabled).and_return(agentless_enabled)
       end
 
       it { is_expected.to be(telemetry) }
@@ -260,6 +264,41 @@ RSpec.describe Datadog::Core::Configuration::Components do
           end
 
           it 'does not enable telemetry for unsupported non-http transport' do
+            expect(logger).to receive(:debug)
+            is_expected.to be(telemetry)
+          end
+        end
+      end
+
+      context 'with :agentless_enabled true' do
+        let(:agentless_enabled) { true }
+        let(:transport) { instance_double(Datadog::Core::Telemetry::Http::Transport) }
+        let(:expected_options) do
+          { enabled: enabled, http_transport: transport,
+            metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
+            metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+            dependency_collection: dependency_collection }
+        end
+
+        before do
+          expect(Datadog::Core::Telemetry::Http::Transport).to receive(:build_agentless_transport).with(
+            api_key: api_key,
+            dd_site: settings.site
+          ).and_return(transport)
+        end
+
+        it { is_expected.to be(telemetry) }
+
+        context 'and no api key' do
+          let(:api_key) { nil }
+          let(:expected_options) do
+            { enabled: false, http_transport: transport,
+              metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
+              metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+              dependency_collection: dependency_collection }
+          end
+
+          it 'does not enable telemetry when agentless mode requested but api key is not present' do
             expect(logger).to receive(:debug)
             is_expected.to be(telemetry)
           end
