@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../configuration/settings'
+require_relative '../../environment/ext'
 require_relative '../../transport/ext'
 require_relative 'env'
 require_relative 'ext'
@@ -23,17 +24,37 @@ module Datadog
             )
           end
 
+          def self.build_agentless_transport(api_key:, dd_site:)
+            host =
+              if dd_site == Environment::Ext::DD_SITE_STAGING
+                # special case for staging - the url is constructed differently
+                'all-http-intake.logs.datad0g.com'
+              else
+                "#{Http::Ext::AGENTLESS_HOST_PREFIX}.#{dd_site}"
+              end
+
+            Transport.new(
+              host: host,
+              port: 443,
+              path: Http::Ext::AGENTLESS_ENDPOINT,
+              ssl: true,
+              api_key: api_key
+            )
+          end
+
           attr_reader \
             :host,
             :port,
             :ssl,
-            :path
+            :path,
+            :api_key
 
-          def initialize(host:, port:, path:, ssl: false)
+          def initialize(host:, port:, path:, ssl: false, api_key: nil)
             @host = host
             @port = port
             @ssl = ssl
             @path = path
+            @api_key = api_key
           end
 
           def request(request_type:, payload:)
@@ -47,7 +68,7 @@ module Datadog
           private
 
           def headers(request_type:, api_version: Http::Ext::API_VERSION)
-            {
+            result = {
               Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => '1',
               Ext::HEADER_CONTENT_TYPE => Http::Ext::CONTENT_TYPE_APPLICATION_JSON,
               Ext::HEADER_DD_TELEMETRY_API_VERSION => api_version,
@@ -58,6 +79,10 @@ module Datadog
               # Enable debug mode for telemetry
               # HEADER_TELEMETRY_DEBUG_ENABLED => 'true',
             }
+
+            result[Ext::HEADER_DD_API_KEY] = api_key unless api_key.nil?
+
+            result
           end
 
           def adapter

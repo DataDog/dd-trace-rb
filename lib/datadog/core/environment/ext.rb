@@ -40,6 +40,8 @@ module Datadog
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'
 
+        DD_SITE_STAGING = 'datad0g.com'
+
         GEM_DATADOG_VERSION = Datadog::VERSION::STRING
       end
     end

@@ -6,4 +6,7 @@ rulesets:
     rules:
       percent-w:
         ignore:
-          - '**'
+          - "**"
+      symbols-as-keys:
+        ignore:
+          - "**"

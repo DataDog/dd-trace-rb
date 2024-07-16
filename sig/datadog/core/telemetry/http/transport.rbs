@@ -13,7 +13,9 @@ module Datadog
 
           attr_reader path: String
 
-          def initialize: (host: String, port: Integer, path: String, ?ssl: bool) -> void
+          attr_reader api_key: String?
+
+          def initialize: (host: String, port: Integer, path: String, ?ssl: bool, ?api_key: String?) -> void
 
           def request: (request_type: String, payload: String) -> Datadog::Core::Telemetry::Http::Adapters::Net::response
 
