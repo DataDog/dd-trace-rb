@@ -1,14 +1,4 @@
-# Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
-
-return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
-
-require 'benchmark/ips'
-require 'datadog'
-require 'pry'
-require 'securerandom'
-require 'socket'
-require_relative 'dogstatsd_reporter'
+require_relative 'lib/boot'
 
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #
@@ -19,9 +9,11 @@ require_relative 'dogstatsd_reporter'
 # This doesn't seem to be clearly documented anywhere, you just see people rediscovering it on the web, for instance
 # in https://gist.github.com/carlos8f/3473107 . If you're curious, the ports show up using the `netstat` tool.
 # Behavior on Linux seems to be different (or at least the defaults are way higher).
+benchmarks(__FILE__) do
+  require 'securerandom'
+  require 'socket'
 
-class ProfilerHttpTransportBenchmark
-  def initialize
+  before do
     raise(Datadog::Profiling.unsupported_reason) unless Datadog::Profiling.supported?
 
     @port = 6006
@@ -76,43 +68,16 @@ class ProfilerHttpTransportBenchmark
     ready_queue.pop
   end
 
-  def run_benchmark
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 70, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_http_transport')
-      )
-
-      x.report("http_transport #{ENV['CONFIG']}") do
-        run_once
-      end
-
-      x.save! 'profiler-http-transport-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-  end
-
-  def run_forever
-    while true
-      100.times { run_once }
-      print '.'
-    end
-  end
-
-  def run_once
+  benchmark("http_transport #{ENV['CONFIG']}", time: 70) do
     success = @transport.export(@flush)
 
     raise('Unexpected: Export failed') unless success
   end
-end
 
-puts "Current pid is #{Process.pid}"
-
-ProfilerHttpTransportBenchmark.new.instance_exec do
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
+  def run_forever
+    loop do
+      100.times { run_benchmarks }
+      print '.'
+    end
   end
 end

@@ -6,7 +6,7 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'datadog'
 require 'pry'
-require_relative 'dogstatsd_reporter'
+require_relative 'lib/dogstatsd_reporter'
 
 # This benchmark measures the performance of GC profiling
 
