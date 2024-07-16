@@ -50,8 +50,18 @@ module Datadog
           configured_response || default_response(env)
         end
 
-        def content_json
-          content('application/json')
+        def graphql_response(gateway_multiplex)
+          multiplex_return = []
+          gateway_multiplex.queries.each do |query|
+            # This method is only called in places where GraphQL-Ruby is already required
+            query_result = ::GraphQL::Query::Result.new(
+              query: query,
+              values: JSON.parse(content('application/json'))
+            )
+            multiplex_return << query_result
+          end
+
+          multiplex_return
         end
 
         private

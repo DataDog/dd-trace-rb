@@ -23,16 +23,7 @@ module Datadog
             # Returns an error * the number of queries so that the entire multiplex is blocked
             if multiplex_response
               blocked_event = multiplex_response.find { |action, _options| action == :block }
-              if blocked_event
-                multiplex_return = []
-                gateway_multiplex.queries.each do |query|
-                  query_result = ::GraphQL::Query::Result.new(
-                    query: query,
-                    values: JSON.parse(AppSec::Response.content_json)
-                  )
-                  multiplex_return << query_result
-                end
-              end
+              multiplex_return = AppSec::Response.graphql_response(gateway_multiplex) if blocked_event
             end
 
             multiplex_return
