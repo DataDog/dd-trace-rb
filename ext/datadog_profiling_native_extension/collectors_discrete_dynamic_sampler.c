@@ -359,6 +359,10 @@ static VALUE _native_new(VALUE klass) {
   }
   discrete_dynamic_sampler_init(&state->sampler, "test sampler", now_ns);
 
+  // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
+  // to keep them on the stack and mark them with RB_GC_GUARD -- otherwise it's possible for a GC to run and
+  // since the instance representing the state does not yet exist, such objects will not get marked.
+
   return TypedData_Wrap_Struct(klass, &sampler_typed_data, state);
 }
 
