@@ -20,7 +20,7 @@ module Datadog
           AGENTLESS_HOST_PREFIX = 'instrumentation-telemetry-intake'
 
           AGENT_ENDPOINT = '/telemetry/proxy/api/v2/apmtelemetry'
-          AGENTLESS_ENDPOINT = 'api/v2/apmtelemetry'
+          AGENTLESS_ENDPOINT = '/api/v2/apmtelemetry'
         end
       end
     end

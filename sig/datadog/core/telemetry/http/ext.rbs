@@ -27,7 +27,7 @@ module Datadog
 
           AGENT_ENDPOINT: "/telemetry/proxy/api/v2/apmtelemetry"
 
-          AGENTLESS_ENDPOINT: "api/v2/apmtelemetry"
+          AGENTLESS_ENDPOINT: "/api/v2/apmtelemetry"
         end
       end
     end
