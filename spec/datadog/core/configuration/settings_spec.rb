@@ -1681,7 +1681,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#shutdown_timeout_seconds' do
       subject(:shutdown_timeout_seconds) { settings.telemetry.shutdown_timeout_seconds }
 
-      it { is_expected.to be 1.0 }
+      it { is_expected.to eq 1.0 }
     end
 
     describe '#shutdown_timeout_seconds=' do
