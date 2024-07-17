@@ -116,7 +116,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Spans with the same ID are considered the same span

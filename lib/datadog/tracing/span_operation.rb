@@ -267,7 +267,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Return a string representation of the span.
