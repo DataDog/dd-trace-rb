@@ -33,6 +33,33 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
       }
       expect(request.headers).to eq(expected_headers)
     end
+
+    context 'with malformed headers' do
+      let(:request) do
+        described_class.new(
+          Rack::MockRequest.env_for(
+            'http://example.com:8080/?a=foo&a=bar&b=baz',
+            {
+              'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'CONTENT_TYPE' => 'text/html',
+              'HTTP_COOKIE' => 'foo=bar', 'HTTP_USER_AGENT' => 'WebKit',
+              'HTTP_' => 'empty header', 'HTTP_123' => 'numbered header'
+            }
+          )
+        )
+      end
+
+      it 'returns the header information. Strip the HTTP_ prefix and append content-type and content-length information' do
+        expected_headers = {
+          'content-type' => 'text/html',
+          'cookie' => 'foo=bar',
+          'user-agent' => 'WebKit',
+          'content-length' => '0',
+          '' => 'empty header',
+          '123' => 'numbered header'
+        }
+        expect(request.headers).to eq(expected_headers)
+      end
+    end
   end
 
   describe '#body' do
