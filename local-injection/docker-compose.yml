@@ -1,0 +1,16 @@
+services:
+  ruby-app:
+    image: ghcr.io/datadog/system-tests/dd-lib-ruby-init-test-rails:latest
+    environment:
+      DD_TRACE_DEBUG: true
+      RUBYOPT: -r/datadog-lib/auto_inject
+    depends_on:
+      - init-image
+    volumes:
+      - shared-init:/datadog-lib
+  init-image:
+    image: ghcr.io/datadog/dd-trace-rb/dd-lib-ruby-init:76ab2339929afe724d56c4cec77ef7b82fb1fff3
+    volumes:
+      - shared-init:/datadog-init/package
+volumes:
+  shared-init:
