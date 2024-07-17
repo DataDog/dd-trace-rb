@@ -18,13 +18,11 @@ module Datadog
         def record_exception(exception, attributes: nil)
           res = super
           if (span = datadog_span)
-            span.set_error_tags(
-              [
-                attributes&.fetch('exception.type', nil) || exception.class.to_s,
-                attributes&.fetch('exception.message', nil) || exception.message,
-                attributes&.fetch('exception.stacktrace', nil) || exception.backtrace
-              ]
-            )
+            span.set_error_tags([
+              attributes&.key?('exception.type') ? attributes['exception.type'] : exception.class.to_s,
+              attributes&.key?('exception.message') ? attributes['exception.message'] : exception.message,
+              attributes&.key?('exception.stacktrace') ? attributes['exception.stacktrace'] : exception.backtrace,
+            ])
           end
           res
         end
