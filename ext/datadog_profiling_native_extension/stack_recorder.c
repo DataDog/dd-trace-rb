@@ -342,6 +342,10 @@ static VALUE _native_new(VALUE klass) {
   // Note: At this point, slot_one_profile and slot_two_profile contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
 
+  // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
+  // to keep them on the stack and mark them with RB_GC_GUARD -- otherwise it's possible for a GC to run and
+  // since the instance representing the state does not yet exist, such objects will not get marked.
+
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
   // NOTE: We initialize this because we want a new recorder to be operational even without initialization and our

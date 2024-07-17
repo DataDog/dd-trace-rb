@@ -219,7 +219,7 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
 
-  if (heap_recorder->active_recording.object_record != NULL) {
+  if (heap_recorder->active_recording.object_record != NULL && heap_recorder->active_recording.object_record != &SKIPPED_RECORD) {
     // If there's a partial object record, clean it up as well
     object_record_free(heap_recorder->active_recording.object_record);
   }
