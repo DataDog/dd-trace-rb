@@ -14,6 +14,10 @@ module Datadog
         # Type of operation being performed (e.g. )
         TAG_OPERATION = 'operation'
         # Hostname of external service interacted with
+        #
+        # This tag also doesn't strictly need to be a “hostname”. It can be a raw IP address and in some cases it
+        # can even be a unix domain socket (i.e. postgres client setting host=/var/run/postgres).
+        # It should be whatever the client uses to point at the server it’s trying to talk to.
         TAG_PEER_HOSTNAME = 'peer.hostname'
         # Name of external service that performed the work
         TAG_PEER_SERVICE = 'peer.service'

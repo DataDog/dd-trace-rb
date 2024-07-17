@@ -6,6 +6,9 @@ module Datadog
           module Ext
             ENV_DBM_PROPAGATION_MODE: "DD_DBM_PROPAGATION_MODE"
             DISABLED: "disabled"
+            KEY_DB_NAME: string
+            KEY_HOSTNAME: string
+            KEY_PEER_SERVICE: string
             SERVICE: "service"
             FULL: "full"
             TAG_DBM_TRACE_INJECTED: "_dd.dbm_trace_injected"

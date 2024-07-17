@@ -22,12 +22,22 @@ module Datadog
           def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
+            parent_service = datadog_configuration.service
+            peer_service = span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
+
             tags = {
-              Ext::KEY_DATABASE_SERVICE => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE) || span_op.service,
               Ext::KEY_ENVIRONMENT => datadog_configuration.env,
-              Ext::KEY_PARENT_SERVICE => datadog_configuration.service,
-              Ext::KEY_VERSION => datadog_configuration.version
+              Ext::KEY_PARENT_SERVICE => parent_service,
+              Ext::KEY_VERSION => datadog_configuration.version,
+              Ext::KEY_HOSTNAME => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME),
+              Ext::KEY_DB_NAME => span_op.get_tag(Contrib::Ext::DB::TAG_INSTANCE),
+              Ext::KEY_PEER_SERVICE => peer_service,
             }
+
+            db_service = peer_service || span_op.service
+            if parent_service != db_service # Only set if it's different from parent_service; otherwise it's redundant
+              tags[Ext::KEY_DATABASE_SERVICE] = db_service
+            end
 
             if mode.full?
               # When tracing is disabled, trace_operation is a dummy object that does not contain data to build traceparent

@@ -6,6 +6,7 @@ module Datadog
           PEER_SERVICE_SOURCES: Array[string]
           TAG_INSTANCE: "db.instance"
 
+          TAG_PEER_DB_NAME: string
           TAG_USER: "db.user"
 
           TAG_SYSTEM: "db.system"

@@ -48,6 +48,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.type).to eq('sql')
       expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
       expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
+      expect(span.get_tag('db.instance')).to eq('mysql')
       expect(span.get_tag('active_record.db.name')).to eq('mysql')
       expect(span.get_tag('active_record.db.cached')).to eq(nil)
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))

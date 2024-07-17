@@ -3,7 +3,13 @@ module Datadog
     module Contrib
       module Propagation
         module SqlComment
-          Mode: untyped
+          class Mode < ::Struct[String]
+            attr_accessor mode: String
+
+            def enabled?: -> bool
+            def service?: -> bool
+            def full?: -> bool
+          end
         end
       end
     end

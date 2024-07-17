@@ -99,6 +99,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
           expect(spans.count).to eq(1)
           expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
