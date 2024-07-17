@@ -316,6 +316,8 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
+  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
@@ -340,13 +342,6 @@ static VALUE _native_new(VALUE klass) {
   state->during_sample = false;
 
   reset_stats_not_thread_safe(state);
-
-  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (now == 0) {
-    ruby_xfree(state);
-    rb_raise(rb_eRuntimeError, ERR_CLOCK_FAIL);
-  }
-
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
 
   // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
