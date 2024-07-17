@@ -15,14 +15,19 @@ module Datadog
           res
         end
 
+        # Captures exceptions raised while a span is active.
         def record_exception(exception, attributes: nil)
           res = super
           if (span = datadog_span)
-            span.set_error_tags([
-              attributes&.key?('exception.type') ? attributes['exception.type'] : exception.class.to_s,
-              attributes&.key?('exception.message') ? attributes['exception.message'] : exception.message,
-              attributes&.key?('exception.stacktrace') ? attributes['exception.stacktrace'] : exception.backtrace,
-            ])
+            # Sets the exception attributes as span error tags after recording the exception as a SpanEvent.
+            # The values in the attribute hash MUST take precedence over the type, message and stacktrace inferred from exception object
+            span.set_error_tags(
+              [
+                attributes&.key?('exception.type') ? attributes['exception.type'] : exception.class.to_s,
+                attributes&.key?('exception.message') ? attributes['exception.message'] : exception.message,
+                attributes&.key?('exception.stacktrace') ? attributes['exception.stacktrace'] : exception.backtrace,
+              ]
+            )
           end
           res
         end

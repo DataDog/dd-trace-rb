@@ -73,7 +73,7 @@ module Datadog
           end
 
           # serialize span events as meta tags
-          span.set_tag('events', span.events.map(&:to_hash).to_json) if span.events.count > 0
+          span.set_tag('events', span.events.map(&:to_hash).to_json) if span.events.any?
 
           # DEV: We use strings as keys here, instead of symbols, as
           # DEV: MessagePack will ultimately convert them to strings.

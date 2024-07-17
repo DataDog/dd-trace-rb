@@ -4,7 +4,7 @@ require 'time'
 
 module Datadog
   module Tracing
-    # SpanEvent represents an annotation on a span.
+    # Represents a timestamped annotation on a span. It is analogous to structured log message.
     # @public_api
     class SpanEvent
       # @!attribute [r] name
@@ -26,7 +26,9 @@ module Datadog
       )
         @name = name
         @attributes = attributes || {}
-        @time_unix_nano = time_unix_nano || Core::Utils::Time.now.to_f * 1e9
+        # OpenTelemetry SDK stores span event timestamps in nanoseconds (not seconds).
+        # We will do the same here to avoid unnecessary conversions and inconsistencies.
+        @time_unix_nano = time_unix_nano || (Time.now.to_r * 1_000_000_000).to_i
       end
 
       def to_hash

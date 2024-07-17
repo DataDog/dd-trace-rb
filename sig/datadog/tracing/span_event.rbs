@@ -10,7 +10,7 @@ module Datadog
       @time_unix_nano: untyped
 
       # @!attribute [r] name
-      #   @return [Integer]
+      #   @return [String]
       attr_reader name: untyped
 
       # @!attribute [r] attributes
