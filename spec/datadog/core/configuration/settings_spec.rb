@@ -1429,6 +1429,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   end
 
   describe '#telemetry' do
+    let(:env_var_name) { 'no_var' }
+    let(:env_var_value) { 'no_val' }
+
     around do |example|
       ClimateControl.modify(env_var_name => env_var_value) do
         example.run
@@ -1478,29 +1481,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#agentless_enabled' do
       subject(:agentless_enabled) { settings.telemetry.agentless_enabled }
-      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' }
 
-      context 'when DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' do
-        context 'is not defined' do
-          let(:env_var_value) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:env_var_value) { value.to_s }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
+      it { is_expected.to be false }
     end
 
     describe '#agentless_enabled=' do
-      let(:env_var_name) { 'DD_INSTRUMENTATION_TELEMETRY_AGENTLESS_ENABLED' }
-      let(:env_var_value) { 'false' }
-
       it 'updates the #agentless_enabled setting' do
         expect { settings.telemetry.agentless_enabled = true }
           .to change { settings.telemetry.agentless_enabled }
@@ -1690,6 +1675,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.install_time }
           .from('1703188212')
           .to('abc123')
+      end
+    end
+
+    describe '#shutdown_timeout_seconds' do
+      subject(:shutdown_timeout_seconds) { settings.telemetry.shutdown_timeout_seconds }
+
+      it { is_expected.to be 1.0 }
+    end
+
+    describe '#shutdown_timeout_seconds=' do
+      it 'updates the #shutdown_timeout_seconds setting' do
+        expect { settings.telemetry.shutdown_timeout_seconds = 42.0 }
+          .to change { settings.telemetry.shutdown_timeout_seconds }
+          .from(1.0)
+          .to(42.0)
       end
     end
   end

@@ -664,11 +664,10 @@ module Datadog
           end
 
           # Enable agentless mode for telemetry: submit telemetry events directly to the intake without Datadog Agent.
-          # @default `DD_TELEMETRY_AGENTLESS_ENABLED` environment variable, otherwise `false`.
+          #
           # @return [Boolean]
           option :agentless_enabled do |o|
             o.type :bool
-            o.env Core::Telemetry::Ext::ENV_AGENTLESS_ENABLED
             o.default false
           end
 
@@ -742,6 +741,14 @@ module Datadog
           option :install_time do |o|
             o.type :string, nilable: true
             o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
+          end
+
+          # Telemetry shutdown timeout in seconds
+          #
+          # @!visibility private
+          option :shutdown_timeout_seconds do |o|
+            o.type :float
+            o.default 1.0
           end
         end
 

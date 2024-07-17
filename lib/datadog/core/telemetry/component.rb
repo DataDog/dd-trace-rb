@@ -5,6 +5,7 @@ require_relative 'event'
 require_relative 'metrics_manager'
 require_relative 'worker'
 require_relative '../utils/forking'
+require_relative '../workers/polling'
 
 module Datadog
   module Core
@@ -25,6 +26,7 @@ module Datadog
           metrics_aggregation_interval_seconds:,
           dependency_collection:,
           http_transport:,
+          shutdown_timeout_seconds:,
           enabled: true,
           metrics_enabled: true
         )
@@ -42,7 +44,8 @@ module Datadog
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             emitter: Emitter.new(http_transport: http_transport),
             metrics_manager: @metrics_manager,
-            dependency_collection: dependency_collection
+            dependency_collection: dependency_collection,
+            shutdown_timeout: shutdown_timeout_seconds
           )
           @worker.start
         end

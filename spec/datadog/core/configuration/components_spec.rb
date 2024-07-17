@@ -228,13 +228,14 @@ RSpec.describe Datadog::Core::Configuration::Components do
         { enabled: enabled, http_transport: an_instance_of(Datadog::Core::Telemetry::Http::Transport),
           metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-          dependency_collection: dependency_collection }
+          dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds }
       end
       let(:enabled) { true }
       let(:agentless_enabled) { false }
       let(:metrics_enabled) { true }
       let(:heartbeat_interval_seconds) { 60 }
       let(:metrics_aggregation_interval_seconds) { 10 }
+      let(:shutdown_timeout_seconds) { 1.0 }
       let(:dependency_collection) { true }
       let(:api_key) { 'api_key' }
 
@@ -257,7 +258,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             { enabled: false, http_transport: an_instance_of(Datadog::Core::Telemetry::Http::Transport),
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection }
+              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds }
           end
           let(:agent_settings) do
             instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
@@ -277,7 +278,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           { enabled: enabled, http_transport: transport,
             metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            dependency_collection: dependency_collection }
+            dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds }
         end
 
         before do
@@ -295,7 +296,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             { enabled: false, http_transport: transport,
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-              dependency_collection: dependency_collection }
+              dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds }
           end
 
           it 'does not enable telemetry when agentless mode requested but api key is not present' do

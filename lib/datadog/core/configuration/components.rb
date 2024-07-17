@@ -84,7 +84,8 @@ module Datadog
               metrics_enabled: enabled && settings.telemetry.metrics_enabled,
               heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-              dependency_collection: settings.telemetry.dependency_collection
+              dependency_collection: settings.telemetry.dependency_collection,
+              shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
             )
           end
         end

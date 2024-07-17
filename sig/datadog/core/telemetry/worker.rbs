@@ -21,7 +21,7 @@ module Datadog
         @ticks_per_heartbeat: Integer
         @current_ticks: Integer
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float, ?buffer_size: Integer, dependency_collection: bool) -> void
 
         def start: () -> void
 
