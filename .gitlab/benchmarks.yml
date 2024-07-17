@@ -10,6 +10,7 @@ variables:
 .benchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
+  needs: []
   timeout: 1h
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
