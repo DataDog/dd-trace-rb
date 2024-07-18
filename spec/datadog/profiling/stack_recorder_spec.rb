@@ -394,7 +394,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     describe 'heap samples and sizes' do
       let(:sample_rate) { 50 }
       let(:metric_values) do
-        { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789, 'alloc-samples' => sample_rate, 'timeline' => 42 }
+        {
+          'cpu-time' => 101,
+          'cpu-samples' => 1,
+          'wall-time' => 789,
+          'alloc-samples' => sample_rate,
+          'timeline' => 42,
+          'heap_sample' => true,
+        }
       end
       let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
 
@@ -540,6 +547,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # for each profile-type there in.
           expected_summed_values = { 'heap-live-samples': 0, 'heap-live-size': 0, 'alloc-samples-unscaled': 0 }
           metric_values.each_pair do |k, v|
+            next if k == 'heap_sample' # This is not a metric, ignore it
+
             expected_summed_values[k.to_sym] = v * @num_allocations
           end
 
@@ -997,8 +1006,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       def sample_allocation(obj)
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
-        Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, { 'alloc-samples' => 1 }, [], [], 400, false)
+        Datadog::Profiling::Collectors::Stack::Testing._native_sample(
+          Thread.current, stack_recorder, { 'alloc-samples' => 1, 'heap_sample' => true }, [], [], 400, false
+        )
       end
 
       it 'includes heap recorder snapshot' do
