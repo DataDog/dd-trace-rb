@@ -20,7 +20,9 @@
 #define ERR_CLOCK_FAIL "failed to get clock time"
 
 // Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
-unsigned int MAX_ALLOC_WEIGHT = 65535;
+// See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
+// (Datadog-only link) for research backing the choice of this value.
+unsigned int MAX_ALLOC_WEIGHT = 10000;
 
 // Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
