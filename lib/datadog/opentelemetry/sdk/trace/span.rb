@@ -32,7 +32,7 @@ module Datadog
             # take precedence over the type, message and stacktrace inferred from the exception object
             type = attributes&.[]('exception.type') || exception.class.to_s
             message = attributes&.[]('exception.message') || exception.message
-            stacktrace = attributes&.[]('exception.stacktrace') || exception.backtrace
+            stacktrace = attributes&.[]('exception.stacktrace') || exception.full_message(highlight: false, order: :top)
             span.set_error_tags([type, message, stacktrace])
           end
           res
