@@ -8,15 +8,16 @@ begin
   require 'shellwords'
   require 'fileutils'
   require 'json'
+  require 'date'
 
   def dd_debug_log(msg)
     pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+    $stdout.puts "[datadog][#{DateTime.now}][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
   end
 
   def dd_error_log(msg)
     pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-    warn "[datadog][#{pid}][#{$0}] #{msg}"
+    warn "[datadog][#{DateTime.now}][#{pid}][#{$0}] #{msg}"
   end
 
   def dd_skip_injection!
