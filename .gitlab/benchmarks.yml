@@ -19,9 +19,10 @@ variables:
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
     - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
-    - './steps/start-gitlab.sh || :'
-    - 'echo "/go/src/github.com/DataDog/apm-reliability/dd-trace-rb.tmp/gitlab_runner_env" && cat /go/src/github.com/DataDog/apm-reliability/dd-trace-rb.tmp/gitlab_runner_env || :'
-    - 'echo "/opt/gitlab/embedded/service/gitlab-rails/config/environment.rb" && cat /opt/gitlab/embedded/service/gitlab-rails/config/environment.rb || :'
+    - printenv
+    #- './steps/start-gitlab.sh || :'
+    #- 'echo "/go/src/github.com/DataDog/apm-reliability/dd-trace-rb.tmp/gitlab_runner_env" && cat /go/src/github.com/DataDog/apm-reliability/dd-trace-rb.tmp/gitlab_runner_env || :'
+    #- 'echo "/opt/gitlab/embedded/service/gitlab-rails/config/environment.rb" && cat /opt/gitlab/embedded/service/gitlab-rails/config/environment.rb || :'
   artifacts:
     name: "artifacts"
     when: always
