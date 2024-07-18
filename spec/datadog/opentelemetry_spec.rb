@@ -681,7 +681,7 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.events[0].attributes).to eq(attributes)
           expect(span).to_not have_error
           expect(span).to have_error_message('NewError')
-          expect(span).to have_error_stack("funny_stack")
+          expect(span).to have_error_stack('funny_stack')
           expect(span).to have_error_type('CustomError')
         end
       end

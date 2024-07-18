@@ -69,6 +69,7 @@ module Datadog
         @status = 0
         # stores array of span links
         @links = links || []
+        # stores array of span events
         @span_events = span_events || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock

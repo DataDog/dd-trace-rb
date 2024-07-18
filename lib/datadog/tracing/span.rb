@@ -46,6 +46,7 @@ module Datadog
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
       # * +service_entry+: whether it is a service entry span.
+      # * +events+: the list of events that occurred while a span was active.
       def initialize(
         name,
         duration: nil,
