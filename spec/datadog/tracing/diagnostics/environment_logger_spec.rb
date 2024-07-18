@@ -53,6 +53,24 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
       end
     end
 
+    context 'with integrations loaded' do
+      before { Datadog.configure { |c| c.tracing.instrument :http } }
+
+      it 'logs the integration settings as debug' do
+        expect(logger).to receive(:debug).with start_with('DATADOG CONFIGURATION - TRACING INTEGRATIONS') do |msg|
+          json = JSON.parse(msg.partition('- TRACING INTEGRATIONS -')[2].strip)
+          expect(json).to include(
+            'http_analytics_enabled' => 'false',
+            'http_analytics_sample_rate' => '1.0',
+            'http_distributed_tracing' => 'true',
+            'http_split_by_domain' => 'false',
+          )
+        end
+
+        collect_and_log!
+      end
+    end
+
     context 'with agent error' do
       subject(:collect_and_log!) { env_logger.collect_and_log!(responses: [response]) }
 
@@ -188,22 +206,24 @@ RSpec.describe Datadog::Tracing::Diagnostics::EnvironmentLogger do
           is_expected.to include integrations_loaded: end_with("@#{RUBY_VERSION}")
         end
 
-        context 'with integration-specific settings' do
-          let(:options) { { service_name: 'my-http' } }
-
-          it { is_expected.to include integration_http_analytics_enabled: 'false' }
-          it { is_expected.to include integration_http_analytics_sample_rate: '1.0' }
-          it { is_expected.to include integration_http_service_name: 'my-http' }
-          it { is_expected.to include integration_http_distributed_tracing: 'true' }
-          it { is_expected.to include integration_http_split_by_domain: 'false' }
-        end
-
         context 'with partial flushing enabled' do
           before { expect(Datadog.configuration.tracing.partial_flush).to receive(:enabled).and_return(true) }
 
           it { is_expected.to include partial_flushing_enabled: true }
         end
       end
+    end
+
+    describe '#collect_integrations_settings!' do
+      subject(:collect_config!) { described_class.collect_integrations_settings! }
+
+      before { Datadog.configure { |c| c.tracing.instrument :http, service_name: 'my-http' } }
+
+      it { is_expected.to include http_analytics_enabled: 'false' }
+      it { is_expected.to include http_analytics_sample_rate: '1.0' }
+      it { is_expected.to include http_service_name: 'my-http' }
+      it { is_expected.to include http_distributed_tracing: 'true' }
+      it { is_expected.to include http_split_by_domain: 'false' }
     end
 
     describe '#collect_errors!' do

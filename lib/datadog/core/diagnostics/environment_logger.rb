@@ -13,6 +13,10 @@ module Datadog
           logger.info("DATADOG CONFIGURATION - #{prefix} - #{data}")
         end
 
+        def log_debug!(prefix, data)
+          logger.debug("DATADOG CONFIGURATION - #{prefix} - #{data}")
+        end
+
         def log_error!(prefix, type, error)
           logger.warn("DATADOG ERROR - #{prefix} - #{type}: #{error}")
         end
