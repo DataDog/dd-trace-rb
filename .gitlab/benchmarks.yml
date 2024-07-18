@@ -21,6 +21,8 @@ variables:
     - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
     - './steps/start-gitlab.sh || :'
     - cat /opt/gitlab/embedded/service/gitlab-rails/config/gitlab.yml
+    - echo "/opt/gitlab/embedded/service/gitlab-rails/config/initializers/1_settings.rb"
+    - cat /opt/gitlab/embedded/service/gitlab-rails/config/initializers/1_settings.rb
   artifacts:
     name: "artifacts"
     when: always
