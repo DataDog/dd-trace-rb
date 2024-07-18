@@ -19,7 +19,7 @@ variables:
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
     - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
-    - "bp-runner bp-runner.yml --debug || :"
+    - './steps/start-gitlab.sh || :'
     - cat /opt/gitlab/embedded/service/gitlab-rails/config/gitlab.yml
   artifacts:
     name: "artifacts"
