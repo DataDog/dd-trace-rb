@@ -72,6 +72,9 @@ module Datadog
             packer.write_map_header(number_of_elements_to_write) # Set header with how many elements in the map
           end
 
+          # serialize span events as meta tags
+          span.set_tag('events', span.events.map(&:to_hash).to_json) if span.events.any?
+
           # DEV: We use strings as keys here, instead of symbols, as
           # DEV: MessagePack will ultimately convert them to strings.
           # DEV: By providing strings directly, we skip this indirection operation.

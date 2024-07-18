@@ -3,6 +3,7 @@ require 'spec_helper'
 require 'msgpack'
 
 require 'datadog/tracing/span'
+require 'datadog/tracing/span_event'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/serializable_trace'
 
@@ -125,6 +126,44 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
              },
              { 'span_id' => 0, 'trace_id' => 0, 'flags' => 0 }]
           )
+        )
+      end
+    end
+
+    context 'when given span events' do
+      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
+
+      let(:spans) do
+        Array.new(2) do |i|
+          Datadog::Tracing::Span.new(
+            'dummy',
+            events: [
+              Datadog::Tracing::SpanEvent.new(
+                'First Event',
+                time_unix_nano: 1_000_000_000
+              ),
+              Datadog::Tracing::SpanEvent.new(
+                "Another Event #{i}!",
+                time_unix_nano: 2_000_000_000,
+                attributes: { id: i, required: (i == 1) },
+              ),
+            ],
+          )
+        end
+      end
+
+      it 'serializes span events' do
+        expect(
+          unpacked_trace.map do |s|
+            s['meta']['events']
+          end
+        ).to eq(
+          [
+            '[{"name":"First Event","time_unix_nano":1000000000},{"name":"Another Event 0!","time_unix_nano":2000000000,' \
+            '"attributes":{"id":0,"required":false}}]',
+            '[{"name":"First Event","time_unix_nano":1000000000},{"name":"Another Event 1!","time_unix_nano":2000000000,' \
+            '"attributes":{"id":1,"required":true}}]',
+          ]
         )
       end
     end
