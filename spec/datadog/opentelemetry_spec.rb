@@ -614,21 +614,26 @@ RSpec.describe Datadog::OpenTelemetry do
       let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
       let(:active_span) { Datadog::Tracing.active_span }
 
-      context 'without attributes' do
-        let(:attributes) { nil }
-        it 'sets records an event and sets the status of the span to error' do
-          expect(span.events.count).to eq(1)
-          expect(span.events[0].name).to eq('exception')
-          expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+      Array([nil, {}]).each do |attrs|
+        context "attributes is #{attrs.inspect}" do
+          let(:attributes) { attrs }
 
-          expect(span.events[0].attributes.keys).to match_array(
-            ['exception.message', 'exception.type',
-             'exception.stacktrace']
-          )
-          expect(span.events[0].attributes['exception.message']).to eq('Error')
-          expect(span.events[0].attributes['exception.type']).to eq('StandardError')
-          expect(span.events[0].attributes['exception.stacktrace']).to include(":in `full_message': Error (StandardError)")
-          expect(span).to_not have_error
+          it 'sets records an event and sets the status of the span to error' do
+            expect(span.events.count).to eq(1)
+            expect(span.events[0].name).to eq('exception')
+            expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+
+            expect(span.events[0].attributes.keys).to match_array(
+              ['exception.message', 'exception.type',
+               'exception.stacktrace']
+            )
+            expect(span.events[0].attributes['exception.message']).to eq('Error')
+            expect(span.events[0].attributes['exception.type']).to eq('StandardError')
+            expect(span.events[0].attributes['exception.stacktrace']).to include(
+              ":in `full_message': Error (StandardError)"
+            )
+            expect(span).to_not have_error
+          end
         end
       end
 
@@ -693,7 +698,7 @@ RSpec.describe Datadog::OpenTelemetry do
       end
 
       context 'without a timestamp or attributes' do
-        let(:attributes) { nil }
+        let(:attributes) { {} }
         let(:timestamp) { nil }
 
         it 'adds one event with timestamp set to the current time and attributes set to an empty hash' do
