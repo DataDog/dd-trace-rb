@@ -62,6 +62,7 @@ module Datadog
               cached = payload[:cached] || (payload[:name] == PAYLOAD_CACHE)
 
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
+              span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, config[:database])
               span.set_tag(Ext::TAG_DB_NAME, config[:database])
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]

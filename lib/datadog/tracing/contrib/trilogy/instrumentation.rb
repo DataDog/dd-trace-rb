@@ -49,6 +49,7 @@ module Datadog
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, connection_options[:database])
                 span.set_tag(Ext::TAG_DB_NAME, connection_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, connection_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, connection_options[:port])

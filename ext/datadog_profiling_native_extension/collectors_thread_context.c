@@ -345,17 +345,28 @@ static VALUE _native_new(VALUE klass) {
     st_init_numtable();
   state->recorder_instance = Qnil;
   state->tracer_context_key = MISSING_TRACER_CONTEXT_KEY;
-  state->thread_list_buffer = rb_ary_new();
+  VALUE thread_list_buffer = rb_ary_new();
+  state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
   state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
-  state->main_thread = rb_thread_main();
+  VALUE main_thread = rb_thread_main();
+  state->main_thread = main_thread;
   state->otel_current_span_key = Qnil;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
-  return TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
+  // Note: Remember to keep any new allocated objects that get stored in the state also on the stack + mark them with
+  // RB_GC_GUARD -- otherwise it's possible for a GC to run and
+  // since the instance representing the state does not yet exist, such objects will not get marked.
+
+  VALUE instance = TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
+
+  RB_GC_GUARD(thread_list_buffer);
+  RB_GC_GUARD(main_thread); // Arguably not needed, but perhaps can be move in some future Ruby release?
+
+  return instance;
 }
 
 static VALUE _native_initialize(
@@ -1257,7 +1268,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
       // Thus, we need to make sure there's actually a class before getting its name.
 
       if (klass != 0) {
-        const char *name = rb_obj_classname(new_object);
+        const char *name = rb_class2name(klass);
         size_t name_length = name != NULL ? strlen(name) : 0;
 
         if (name_length > 0) {
