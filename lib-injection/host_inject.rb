@@ -11,7 +11,7 @@ begin
 
   def dd_debug_log(msg)
     pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}"
+    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
   end
 
   def dd_error_log(msg)
@@ -171,7 +171,8 @@ begin
       next
     end
 
-    bundle_add_cmd = "bundle add #{gem} --skip-install --verbose --version #{gem_version_mapping[gem]} "
+    bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
+    bundle_add_cmd << ' --verbose ' if ENV['DD_TRACE_DEBUG'] == 'true'
     bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
 
     dd_debug_log "Injection with `#{bundle_add_cmd}`"
