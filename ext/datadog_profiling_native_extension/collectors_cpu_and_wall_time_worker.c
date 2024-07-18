@@ -1064,7 +1064,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   }
 
   if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+    long now = monotonic_coarse_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (now == 0) {
       delayed_error(state, ERR_CLOCK_FAIL);
       return;
