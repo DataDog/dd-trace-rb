@@ -19,7 +19,7 @@ variables:
   image: $GITLAB_BENCHMARKS_CI_IMAGE
   script:
     - git clone --branch ruby/gitlab https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/benchmarking-platform platform && cd platform
-    - export GITLAB_ENV="" # Empty GITLAB_ENV in order to use the default configuration
+    - unset GITLAB_ENV # Unset GITLAB_ENV in order to use the default configuration
     - bp-runner bp-runner.yml --debug
   artifacts:
     name: "artifacts"
