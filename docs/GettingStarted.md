@@ -1847,6 +1847,21 @@ end
 | `on_error`            | | `Proc` | Custom error handler invoked when a job raises an error. Provided `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors.                                                                                                                                                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `quantize`            | | `Hash` | Hash containing options for quantization of job arguments.                                                                                                                                                                                                                                                                                                                                                                                            | `{}`                                                              |
 
+#### Log Correlation
+
+To correlate Sidekiq logs with traces, you can configure [Sidekiq's logger](https://github.com/sidekiq/sidekiq/wiki/Logging)
+to either use an [existing supported logger instance](#for-logging-in-rails-applications) or use Sidekiq's JSON logger formatter:
+
+```ruby
+Sidekiq.configure_client do |config|
+   config.logger.formatter = Sidekiq::Logger::Formatters::JSON.new
+end
+
+Sidekiq.configure_server do |config|
+  config.logger.formatter = Sidekiq::Logger::Formatters::JSON.new
+end
+```
+
 ### Sinatra
 
 The Sinatra integration traces requests and template rendering.

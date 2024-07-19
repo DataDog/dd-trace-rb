@@ -18,17 +18,11 @@ module Datadog
           def initialize(options = {})
             @sidekiq_service = options[:service_name] || configuration[:service_name]
             @on_error = options[:on_error] || configuration[:on_error]
-            @distributed_tracing = options[:distributed_tracing] || configuration[:distributed_tracing]
             @quantize = options[:quantize] || configuration[:quantize]
           end
 
           def call(worker, job, queue)
             resource = job_resource(job)
-
-            if @distributed_tracing
-              trace_digest = Sidekiq.extract(job)
-              Datadog::Tracing.continue_trace!(trace_digest)
-            end
 
             Datadog::Tracing.trace(
               Ext::SPAN_JOB,
@@ -80,6 +74,48 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
+          end
+
+          # Since Sidekiq 5, the server logger runs before any middleware is run.
+          # (https://github.com/sidekiq/sidekiq/blob/40de8236e927d752fc1ec5d220f276a9b4b5c84b/lib/sidekiq/processor.rb#L135)
+          # Due of this, we cannot create a trace early enough using middlewares that allow log correlation to work
+          # A way around it is to create a TraceOperation early (and thus a `trace_id`), and let the middleware handle
+          # the span creation.
+          # This works because logs are correlated on the `trace_id`, not `span_id`.
+          module Processor
+            # Copy visibility from Sidekiq::Processor's class declaration, to ensure
+            # we are declaring `dispatch` with the correct visibility. Only applicable in testing mode.
+            # @see https://github.com/sidekiq/sidekiq/blob/40de8236e927d752fc1ec5d220f276a9b4b5c84b/lib/sidekiq/processor.rb#L68
+            private if defined?($TESTING) && $TESTING # rubocop:disable Layout/EmptyLinesAroundAccessModifier, Style/GlobalVars
+
+            # The main method used by Sidekiq to process jobs.
+            # The Sidekiq logger runs inside this method.
+            # @see Sidekiq::Processor#dispatch
+            def dispatch(*args, **kwargs, &block)
+              if Datadog.configuration.tracing[:sidekiq][:distributed_tracing]
+                trace_digest = Sidekiq.extract(args[0]) rescue nil
+              end
+
+              Datadog::Tracing.continue_trace!(trace_digest)
+
+              super
+            end
+          end
+
+          # Performs log correlation injecting for Sidekiq.
+          # Currently only supports Sidekiq's JSON formatter.
+          module JSONFormatter
+            SKIP_FIRST_STRING_CHAR = (1..-1).freeze
+
+            def call(severity, time, program_name, message)
+              entry = super
+
+              # Concatenate the correlation with the JSON string log entry,
+              # since there's no way to inject the correlation values into
+              # the original JSON.
+              correlation = ::Sidekiq.dump_json(Tracing.correlation.to_h)
+              "#{correlation.chop},#{entry[SKIP_FIRST_STRING_CHAR]}"
+            end
           end
         end
       end
