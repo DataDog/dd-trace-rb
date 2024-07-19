@@ -1045,8 +1045,27 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
   return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
 
+#define HANDLE_CLOCK_FAILURE(call) ({ \
+    long _result = (call); \
+    if (_result == 0) { \
+        delayed_error(state, ERR_CLOCK_FAIL); \
+        return; \
+    } \
+    _result; \
+})
+
 // Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
+//
+// When allocation sampling is enabled, this function gets called for almost all* objects allocated by the Ruby VM.
+// (*In some weird cases the VM may skip this tracepoint.)
+//
+// At a high level, there's two paths through this function:
+// 1. should_sample == false -> return
+// 2. should_sample == true -> sample
+//
+// On big applications, path 1. is the hottest, since we don't sample every option. So it's quite important for it to
+// be as fast as possible.
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
   // Update thread-local allocation count
   if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
@@ -1061,24 +1080,38 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   // and disabled before it is cleared, but just in case...
   if (state == NULL) return;
 
-  // In a few cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
+  // In rare cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
   // sample, so we just return early
   if (state->during_sample) {
     state->stats.allocations_during_sample++;
     return;
   }
 
-  if (state->dynamic_sampling_rate_enabled) {
-    long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-    if (now == 0) {
-      delayed_error(state, ERR_CLOCK_FAIL);
-      return;
+  // Hot path: Dynamic sampling rate is usually enabled and the sampling decision is usually false
+  if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
+    state->stats.allocation_skipped++;
+
+    coarse_instant now = monotonic_coarse_wall_time_now_ns();
+    HANDLE_CLOCK_FAILURE(now.timestamp_ns);
+
+    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->allocation_sampler, now);
+    if (RB_UNLIKELY(needs_readjust)) {
+      // We rarely readjust, so this is a cold path
+      // Also, while above we used the cheaper monotonic_coarse, for this call we want the regular monotonic call,
+      // which is why we end up getting time "again".
+      discrete_dynamic_sampler_readjust(
+        &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+      );
     }
-    if (!discrete_dynamic_sampler_should_sample(&state->allocation_sampler, now)) {
-      state->stats.allocation_skipped++;
-      return;
-    }
+
+    return;
   }
+
+  // From here on, we've decided to go ahead with the sample, which is way less common than skipping it
+
+  discrete_dynamic_sampler_before_sample(
+    &state->allocation_sampler, HANDLE_CLOCK_FAILURE(monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE))
+  );
 
   // @ivoanjo: Strictly speaking, this is not needed because Ruby should not call the same tracepoint while a previous
   // invocation is still pending, (e.g. it wouldn't call `on_newobj_event` while it's already running), but I decided
