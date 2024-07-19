@@ -44,10 +44,11 @@ module Datadog
                 # When multiple headers with the same name are present, they are concatenated with a comma
                 # https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
                 # Because headers are case insensitive, HTTP_FOO and HTTP_Foo is the same, and should be merged
-                if k =~ /^HTTP_/
-                  key = k.gsub(/^HTTP_/, '').tap(&:downcase!).tap { |s| s.tr!('_', '-') }
-                  h[key] = h[key].nil? ? v : "#{h[key]}, #{v}"
-                end
+                next unless k.start_with?('HTTP_')
+
+                key = k.delete_prefix('HTTP_').tap(&:downcase!).tap { |s| s.tr!('_', '-') }
+                current_val = h[key]
+                h[key] = current_val.nil? ? v : "#{current_val}, #{v}"
               end
 
               result['content-type'] = request.content_type if request.content_type
