@@ -20,6 +20,8 @@
 
 #define EMA_SMOOTHING_FACTOR 0.6
 
+static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns);
+
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns) {
   sampler->debug_name = debug_name;
   discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT, now_ns);
@@ -54,12 +56,10 @@ void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sa
   return discrete_dynamic_sampler_reset(sampler, now_ns);
 }
 
-static void maybe_readjust(discrete_dynamic_sampler *sampler, long now);
-
 bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns) {
   // For efficiency reasons we don't do true random sampling but rather systematic
   // sampling following a sample interval/skip. This can be biased and hide patterns
-  // but the dynamic interval and rather indeterministic pattern of allocations in
+  // but the dynamic interval and rather nondeterministic pattern of allocations in
   // most real applications should help reduce the bias impact.
   sampler->events_since_last_sample++;
   sampler->events_since_last_readjustment++;
@@ -109,8 +109,8 @@ static double ewma_adj_window(double latest_value, double avg, long current_wind
   return (1-alpha) * avg + alpha * latest_value;
 }
 
-static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
-  long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
+static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns) {
+  long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now_ns - sampler->last_readjust_time_ns;
 
   bool should_readjust_based_on_time = this_window_time_ns >= ADJUSTMENT_WINDOW_NS;
   bool should_readjust_based_on_samples = sampler->samples_since_last_readjustment >= ADJUSTMENT_WINDOW_SAMPLES;
@@ -143,7 +143,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     // Lets update our average sampling time per event
     long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampler->sampling_time_since_last_readjustment_ns / sampler->samples_since_last_readjustment;
     if (avg_sampling_time_in_window_ns > sampler->max_sampling_time_ns) {
-      // If the average sampling time in the previous window was deemed unnacceptable, clamp it to the
+      // If the average sampling time in the previous window was deemed unacceptable, clamp it to the
       // maximum acceptable value and register this operation in our counter.
       // NOTE: This is important so that events like suspensions or system overloads do not lead us to
       //       learn arbitrarily big sampling times which may then result in us not sampling anything
@@ -286,7 +286,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   sampler->events_since_last_readjustment = 0;
   sampler->samples_since_last_readjustment = 0;
   sampler->sampling_time_since_last_readjustment_ns = 0;
-  sampler->last_readjust_time_ns = now;
+  sampler->last_readjust_time_ns = now_ns;
   sampler->has_completed_full_adjustment_window = true;
 }
 
