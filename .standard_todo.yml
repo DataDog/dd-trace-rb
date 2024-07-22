@@ -189,7 +189,6 @@ ignore:
   - Layout/TrailingWhitespace
   - Layout/MultilineBlockLayout
   - Style/EmptyMethod
-  - Style/SingleLineMethods
   - Layout/IndentationWidth
   - Layout/BlockEndNewline
   - Layout/DefEndAlignment
