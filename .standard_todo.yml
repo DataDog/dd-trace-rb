@@ -135,7 +135,6 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Layout/ExtraSpacing
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArrayLiteral
 - spec/datadog/profiling/component_spec.rb:
@@ -177,7 +176,6 @@ ignore:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
-  - Layout/ExtraSpacing
   - Style/TrailingCommaInHashLiteral
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
@@ -199,7 +197,6 @@ ignore:
 - spec/datadog/profiling/scheduler_spec.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
-  - Layout/ExtraSpacing
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/spec_helper.rb:
   - Style/StringLiterals
