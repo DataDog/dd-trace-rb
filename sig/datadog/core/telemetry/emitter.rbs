@@ -4,12 +4,12 @@ module Datadog
       class Emitter
         self.@sequence: Datadog::Core::Utils::Sequence
 
-        attr_reader http_transport: untyped
+        attr_reader http_transport: Datadog::Core::Telemetry::Http::Transport
 
         extend Core::Utils::Forking
-        def initialize: (http_transport: untyped) -> void
-        def request: (Datadog::Core::Telemetry::Event::Base event) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
-        def self.sequence: () -> untyped
+        def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport) -> void
+        def request: (Datadog::Core::Telemetry::Event::Base event) -> (Datadog::Core::Telemetry::Http::Adapters::Net::Response | Datadog::Core::Telemetry::Http::InternalErrorResponse)
+        def self.sequence: () -> Datadog::Core::Utils::Sequence
       end
     end
   end

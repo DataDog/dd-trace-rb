@@ -21,7 +21,7 @@ module Datadog
         @ticks_per_heartbeat: Integer
         @current_ticks: Integer
 
-        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float, ?buffer_size: Integer, dependency_collection: bool) -> void
+        def initialize: (?enabled: bool, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, emitter: Emitter, metrics_manager: MetricsManager, ?shutdown_timeout: Float | Integer, ?buffer_size: Integer, dependency_collection: bool) -> void
 
         def start: () -> void
 
@@ -41,11 +41,11 @@ module Datadog
 
         def flush_events: (Array[Event::Base] events) -> void
 
-        def send_event: (Event::Base event) -> Http::Adapters::Net::Response
+        def send_event: (Event::Base event) -> (Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse)
 
         def disable!: () -> void
 
-        def disable_on_not_found!: (Http::Adapters::Net::Response response) -> void
+        def disable_on_not_found!: ((Http::Adapters::Net::Response | Telemetry::Http::InternalErrorResponse) response) -> void
 
         def buffer_klass: () -> untyped
       end
