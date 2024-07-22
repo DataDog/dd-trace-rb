@@ -9,13 +9,11 @@ ignore:
 - lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/idle_sampling_helper.rb:
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -81,7 +79,6 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/tasks/setup.rb:
   - Style/StringLiterals
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -111,7 +108,6 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Layout/EmptyLinesAroundBlockBody
 - spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInHashLiteral
@@ -166,7 +162,6 @@ ignore:
 - spec/datadog/profiling/ext/dir_monkey_patches_spec.rb:
   - Style/StringLiterals
   - Style/FileWrite
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -189,7 +184,6 @@ ignore:
   - Layout/SpaceInsideHashLiteralBraces
   - Layout/ExtraSpacing
   - Style/TrailingCommaInHashLiteral
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -223,7 +217,6 @@ ignore:
   - Style/HashSyntax
   - Layout/SpaceInsideHashLiteralBraces
   - Style/QuotedSymbols
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -244,7 +237,6 @@ ignore:
   - Style/TrailingCommaInArrayLiteral
 - spec/datadog/profiling_spec.rb:
   - Style/StringLiterals
-  - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
