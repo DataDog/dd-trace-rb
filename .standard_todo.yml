@@ -77,7 +77,6 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
   - Style/HashSyntax
-  - Performance/UnfreezeString
   - Style/RedundantParentheses
   - Style/TrailingCommaInHashLiteral
   - Style/RedundantBegin
