@@ -128,7 +128,6 @@ ignore:
   - Style/RedundantBegin
 - spec/datadog/profiling/ext/forking_spec.rb:
   - Style/StringLiterals
-  - Performance/StringIdentifierArgument
   - Style/EmptyMethod
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals

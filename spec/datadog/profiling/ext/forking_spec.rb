@@ -26,10 +26,10 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         # Clean up classes
         Object.send(:remove_const, :Process)
-        Object.const_set('Process', unmodified_process_class)
+        Object.const_set(:Process, unmodified_process_class)
 
         Object.send(:remove_const, :Kernel)
-        Object.const_set('Kernel', unmodified_kernel_class)
+        Object.const_set(:Kernel, unmodified_kernel_class)
 
         # Check for leaks (make sure test is properly cleaned up)
         expect(::Process <= described_class::Kernel).to be nil
