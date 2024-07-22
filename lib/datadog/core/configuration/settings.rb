@@ -666,6 +666,7 @@ module Datadog
           # Enable agentless mode for telemetry: submit telemetry events directly to the intake without Datadog Agent.
           #
           # @return [Boolean]
+          # @!visibility private
           option :agentless_enabled do |o|
             o.type :bool
             o.default false
