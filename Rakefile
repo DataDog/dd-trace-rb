@@ -415,8 +415,16 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
+task :standard_profiling do
+  sh 'standardrb lib/datadog/profiling* spec/datadog/profiling* ext/' if Gem.loaded_specs.key? 'standard'
+end
+
+task :standard_profiling_autofix do
+  sh 'standardrb --fix lib/datadog/profiling* spec/datadog/profiling* ext/' if Gem.loaded_specs.key? 'standard'
+end
+
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'typecheck', 'spec:main']
+task default: ['rubocop', 'standard_profiling', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard_profiling', 'typecheck', 'spec:main']

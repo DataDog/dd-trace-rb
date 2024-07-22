@@ -82,6 +82,7 @@ group :check do
     gem 'rbs', '~> 3.2.0', require: false
     gem 'steep', '~> 1.6.0', require: false
   end
+  gem 'standard'
 end
 
 group :dev do

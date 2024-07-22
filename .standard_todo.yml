@@ -1,0 +1,296 @@
+# Auto generated files with errors to ignore.
+# Remove from this list as you refactor files.
+---
+ignore:
+- lib/datadog/profiling/collectors/code_provenance.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Layout/SpaceInsideHashLiteralBraces
+- lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Style/SafeNavigation
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+- lib/datadog/profiling/collectors/idle_sampling_helper.rb:
+  - Style/SafeNavigation
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Style/StringLiterals
+  - Layout/RescueEnsureAlignment
+- lib/datadog/profiling/collectors/info.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInHashLiteral
+- lib/datadog/profiling/collectors/thread_context.rb:
+  - Style/TrailingCommaInArguments
+  - Style/SafeNavigation
+- lib/datadog/profiling/component.rb:
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInHashLiteral
+  - Layout/LineContinuationSpacing
+  - Style/StringLiteralsInInterpolation
+- lib/datadog/profiling/crashtracker.rb:
+  - Style/StringLiterals
+  - Layout/EmptyLinesAroundMethodBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Style/TrailingCommaInArguments
+- lib/datadog/profiling/exporter.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInHashLiteral
+  - Style/TrailingCommaInArguments
+- lib/datadog/profiling/ext.rb:
+  - Style/StringLiterals
+- lib/datadog/profiling/ext/dir_monkey_patches.rb:
+  - Style/StringLiterals
+- lib/datadog/profiling/ext/forking.rb:
+  - Style/TrailingCommaInArrayLiteral
+  - Layout/IndentationWidth
+  - Layout/EndAlignment
+  - Style/StringLiterals
+- lib/datadog/profiling/flush.rb:
+  - Style/StringLiterals
+- lib/datadog/profiling/http_transport.rb:
+  - Style/StringLiterals
+  - Style/StringLiteralsInInterpolation
+  - Layout/ArrayAlignment
+  - Style/TrailingCommaInArguments
+- lib/datadog/profiling/load_native_extension.rb:
+  - Style/StringLiterals
+  - Style/StringLiteralsInInterpolation
+- lib/datadog/profiling/preload.rb:
+  - Style/StringLiterals
+- lib/datadog/profiling/profiler.rb:
+  - Style/SafeNavigation
+  - Style/StringLiterals
+- lib/datadog/profiling/scheduler.rb:
+  - Style/StringLiterals
+  - Layout/EmptyLinesAroundMethodBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/CommentIndentation
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Style/RescueStandardError
+- lib/datadog/profiling/stack_recorder.rb:
+  - Style/TrailingCommaInArguments
+- lib/datadog/profiling/tag_builder.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInHashLiteral
+- lib/datadog/profiling/tasks/exec.rb:
+  - Style/StringLiterals
+  - Style/StringLiteralsInInterpolation
+- lib/datadog/profiling/tasks/setup.rb:
+  - Style/StringLiterals
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Layout/CommentIndentation
+  - Style/RescueStandardError
+- lib/datadog/profiling.rb:
+  - Style/StringLiterals
+  - Style/SafeNavigation
+  - Style/RescueStandardError
+  - Layout/EmptyLinesAroundMethodBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+- spec/datadog/profiling/collectors/code_provenance_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+- spec/datadog/profiling/collectors/cpu_and_wall_time_worker_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInArguments
+  - Style/QuotedSymbols
+  - Style/HashSyntax
+  - Performance/UnfreezeString
+  - Style/RedundantParentheses
+  - Style/TrailingCommaInHashLiteral
+  - Layout/CommentIndentation
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Layout/EmptyLinesAroundBlockBody
+- spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInHashLiteral
+- spec/datadog/profiling/collectors/dynamic_sampling_rate_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/collectors/idle_sampling_helper_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/collectors/info_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInHashLiteral
+  - Layout/SpaceInsideHashLiteralBraces
+  - Layout/ArrayAlignment
+- spec/datadog/profiling/collectors/interesting_backtrace_helper.rb:
+  - Style/GlobalVars
+  - Style/MissingRespondToMissing
+  - Lint/UselessTimes
+  - Style/EvalWithLocation
+- spec/datadog/profiling/collectors/stack_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInArrayLiteral
+  - Style/TernaryParentheses
+  - Style/TrailingCommaInArguments
+- spec/datadog/profiling/collectors/thread_context_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Style/QuotedSymbols
+  - Style/HashSyntax
+  - Layout/EmptyLinesAroundMethodBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Layout/ExtraSpacing
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInArrayLiteral
+- spec/datadog/profiling/component_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInHashLiteral
+- spec/datadog/profiling/crashtracker_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInHashLiteral
+  - Style/TrailingCommaInArguments
+  - Style/QuotedSymbols
+- spec/datadog/profiling/exporter_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInHashLiteral
+  - Style/TrailingCommaInArguments
+- spec/datadog/profiling/ext/dir_monkey_patches_spec.rb:
+  - Style/StringLiterals
+  - Style/FileWrite
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Layout/CommentIndentation
+- spec/datadog/profiling/ext/forking_spec.rb:
+  - Style/StringLiterals
+  - Performance/StringIdentifierArgument
+  - Style/SafeNavigation
+  - Layout/TrailingWhitespace
+  - Layout/MultilineBlockLayout
+  - Style/EmptyMethod
+  - Style/SingleLineMethods
+  - Layout/IndentationWidth
+  - Layout/BlockEndNewline
+  - Layout/DefEndAlignment
+  - Layout/BlockAlignment
+- spec/datadog/profiling/flush_spec.rb:
+  - Style/StringLiterals
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInHashLiteral
+  - Style/TrailingCommaInArguments
+- spec/datadog/profiling/http_transport_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Layout/SpaceInsideHashLiteralBraces
+  - Layout/ExtraSpacing
+  - Style/TrailingCommaInHashLiteral
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Layout/CommentIndentation
+- spec/datadog/profiling/load_native_extension_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/native_extension_helpers_spec.rb:
+  - Style/StringLiterals
+  - Style/StringLiteralsInInterpolation
+  - Style/SafeNavigation
+- spec/datadog/profiling/native_extension_spec.rb:
+  - Style/StringLiterals
+  - Style/HashSyntax
+- spec/datadog/profiling/pprof/pprof_pb.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/preload_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/profiler_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/scheduler_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Layout/ExtraSpacing
+  - Layout/SpaceInsideHashLiteralBraces
+- spec/datadog/profiling/spec_helper.rb:
+  - Style/StringLiterals
+  - Style/TernaryParentheses
+  - Style/TrailingCommaInArguments
+  - Style/QuotedSymbols
+- spec/datadog/profiling/stack_recorder_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInHashLiteral
+  - Style/HashSyntax
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/QuotedSymbols
+  - Layout/ArrayAlignment
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Style/TrailingCommaInArrayLiteral
+- spec/datadog/profiling/tag_builder_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArguments
+  - Layout/SpaceInsideHashLiteralBraces
+- spec/datadog/profiling/tasks/exec_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/tasks/help_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/tasks/setup_spec.rb:
+  - Style/StringLiterals
+- spec/datadog/profiling/validate_benchmarks_spec.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArrayLiteral
+- spec/datadog/profiling_spec.rb:
+  - Style/StringLiterals
+  - Layout/EmptyLinesAroundBlockBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+- ext/datadog_profiling_loader/extconf.rb:
+  - Style/StringLiterals
+- ext/datadog_profiling_native_extension/extconf.rb:
+  - Style/StringLiterals
+  - Style/RescueModifier
+  - Style/TrailingCommaInArguments
+  - Style/StringLiteralsInInterpolation
+  - Style/TrailingCommaInArrayLiteral
+- ext/datadog_profiling_native_extension/native_extension_helpers.rb:
+  - Style/StringLiterals
+  - Style/TrailingCommaInArrayLiteral
+  - Layout/SpaceInsideHashLiteralBraces
+  - Style/TrailingCommaInArguments
+  - Layout/EmptyLinesAroundMethodBody
+  - Layout/TrailingWhitespace
+  - Style/RedundantBegin
+  - Layout/IndentationWidth
+  - Layout/RescueEnsureAlignment
+  - Style/StringLiteralsInInterpolation
