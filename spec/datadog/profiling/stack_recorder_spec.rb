@@ -377,7 +377,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(samples.select { |it| labels_without_state.call(it[:labels]).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it[:labels]) == { 'local root span id': 456 }
+            labels_without_state.call(it.fetch(:labels)) == { 'local root span id': 456 }
           end
         ).to have(2).items
 

@@ -549,7 +549,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         it 'does not crash' do
           start
 
-          expect(Time.new.strftime(+'Potato')).to_not be nil
+          expect(Time.now.strftime(+'Potato')).to_not be nil
         end
       end
 
