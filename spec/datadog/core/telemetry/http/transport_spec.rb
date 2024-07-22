@@ -23,10 +23,13 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
   end
 
   describe '.build_agentless_transport' do
-    subject(:transport) { described_class.build_agentless_transport(api_key: api_key, dd_site: dd_site) }
+    subject(:transport) do
+      described_class.build_agentless_transport(api_key: api_key, dd_site: dd_site, url_override: url_override)
+    end
 
     let(:api_key) { 'dd_api_key' }
     let(:dd_site) { 'datadoghq.com' }
+    let(:url_override) { nil }
 
     it { expect(transport.host).to eq('instrumentation-telemetry-intake.datadoghq.com') }
     it { expect(transport.port).to eq(443) }
@@ -34,16 +37,20 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     it { expect(transport.path).to eq(Datadog::Core::Telemetry::Http::Ext::AGENTLESS_ENDPOINT) }
     it { expect(transport.api_key).to eq(api_key) }
 
-    context 'when dd_site is staging' do
-      let(:dd_site) { Datadog::Core::Environment::Ext::DD_SITE_STAGING }
-
-      it { expect(transport.host).to eq('all-http-intake.logs.datad0g.com') }
-    end
-
     context 'when dd_site is eu' do
       let(:dd_site) { 'datadoghq.eu' }
 
       it { expect(transport.host).to eq('instrumentation-telemetry-intake.datadoghq.eu') }
+    end
+
+    context 'when url_override is provided' do
+      let(:url_override) { 'http://localhost:1234' }
+
+      it { expect(transport.host).to eq('localhost') }
+      it { expect(transport.port).to eq(1234) }
+      it { expect(transport.ssl).to eq(false) }
+      it { expect(transport.path).to eq(Datadog::Core::Telemetry::Http::Ext::AGENTLESS_ENDPOINT) }
+      it { expect(transport.api_key).to eq(api_key) }
     end
   end
 

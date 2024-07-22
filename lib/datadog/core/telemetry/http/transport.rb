@@ -22,20 +22,17 @@ module Datadog
             )
           end
 
-          def self.build_agentless_transport(api_key:, dd_site:)
-            host =
-              if dd_site == Environment::Ext::DD_SITE_STAGING
-                # special case for staging - the url is constructed differently
-                'all-http-intake.logs.datad0g.com'
-              else
-                "#{Http::Ext::AGENTLESS_HOST_PREFIX}.#{dd_site}"
-              end
+          def self.build_agentless_transport(api_key:, dd_site:, url_override: nil)
+            url = url_override || "https://#{Http::Ext::AGENTLESS_HOST_PREFIX}.#{dd_site}:443"
+
+            uri = URI.parse(url)
+            raise "Invalid agentless mode URL: #{url}" if uri.host.nil?
 
             Transport.new(
-              host: host,
-              port: 443,
+              host: uri.host,
+              port: uri.port || 80,
               path: Http::Ext::AGENTLESS_ENDPOINT,
-              ssl: true,
+              ssl: uri.scheme == 'https' || uri.port == 443,
               api_key: api_key
             )
           end

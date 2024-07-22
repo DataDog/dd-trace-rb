@@ -289,7 +289,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
         before do
           expect(Datadog::Core::Telemetry::Http::Transport).to receive(:build_agentless_transport).with(
             api_key: api_key,
-            dd_site: settings.site
+            dd_site: settings.site,
+            url_override: settings.telemetry.agentless_url_override
           ).and_return(transport)
         end
 

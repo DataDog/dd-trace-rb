@@ -18,8 +18,6 @@ module Datadog
 
         ENGINE_VERSION: String
 
-        DD_SITE_STAGING: String
-
         ENV_API_KEY: String
 
         ENV_ENVIRONMENT: String

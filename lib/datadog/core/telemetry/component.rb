@@ -36,7 +36,8 @@ module Datadog
           transport = if agentless_enabled
                         Datadog::Core::Telemetry::Http::Transport.build_agentless_transport(
                           api_key: settings.api_key,
-                          dd_site: settings.site
+                          dd_site: settings.site,
+                          url_override: settings.telemetry.agentless_url_override
                         )
                       else
                         Datadog::Core::Telemetry::Http::Transport.build_agent_transport(agent_settings)

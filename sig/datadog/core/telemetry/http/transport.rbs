@@ -5,7 +5,7 @@ module Datadog
         class Transport
           @adapter: Http::Adapters::Net
 
-          def self.build_agentless_transport: (api_key: String?, dd_site: String) -> Transport
+          def self.build_agentless_transport: (api_key: String?, dd_site: String, ?url_override: String?) -> Transport
 
           def self.build_agent_transport: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Transport
 

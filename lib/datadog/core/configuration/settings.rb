@@ -672,6 +672,15 @@ module Datadog
             o.default false
           end
 
+          # Overrides agentless telemetry URL. To be used internally for testing purposes only.
+          #
+          # @return [String]
+          # @!visibility private
+          option :agentless_url_override do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_AGENTLESS_URL_OVERRIDE
+          end
+
           # Enable metrics collection for telemetry. Metrics collection only works when telemetry is enabled and
           # metrics are enabled.
           # @default `DD_TELEMETRY_METRICS_ENABLED` environment variable, otherwise `true`.
