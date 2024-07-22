@@ -105,7 +105,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
   describe '.unsupported_reason' do
     subject(:unsupported_reason) do
       reason = described_class.unsupported_reason
-      reason.fetch(:reason).join("\n") if reason
+      reason&.fetch(:reason)&.join("\n")
     end
 
     before do

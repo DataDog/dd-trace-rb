@@ -30,7 +30,7 @@ module Datadog
       profiler = Datadog.send(:components).profiler
       # ...but we still try to start it BECAUSE if the process forks, the profiler will exist but may
       # not yet have been started in the fork
-      profiler.start if profiler
+      profiler&.start
       !!profiler
     end
 
@@ -62,7 +62,7 @@ module Datadog
     def self.enabled?
       profiler = Datadog.send(:components).profiler
       # Use .send(...) to avoid exposing the attr_reader as an API to the outside
-      !!(profiler.send(:scheduler).running? if profiler)
+      !!profiler&.send(:scheduler)&.running?
     end
 
     def self.wait_until_running(timeout_seconds: 5)

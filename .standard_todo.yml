@@ -9,14 +9,12 @@ ignore:
 - lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
-  - Style/SafeNavigation
   - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/idle_sampling_helper.rb:
-  - Style/SafeNavigation
   - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
@@ -28,7 +26,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
 - lib/datadog/profiling/collectors/thread_context.rb:
   - Style/TrailingCommaInArguments
-  - Style/SafeNavigation
 - lib/datadog/profiling/component.rb:
   - Layout/SpaceInsideHashLiteralBraces
   - Style/StringLiterals
@@ -67,7 +64,6 @@ ignore:
 - lib/datadog/profiling/preload.rb:
   - Style/StringLiterals
 - lib/datadog/profiling/profiler.rb:
-  - Style/SafeNavigation
   - Style/StringLiterals
 - lib/datadog/profiling/scheduler.rb:
   - Style/StringLiterals
@@ -96,7 +92,6 @@ ignore:
   - Style/RescueStandardError
 - lib/datadog/profiling.rb:
   - Style/StringLiterals
-  - Style/SafeNavigation
   - Style/RescueStandardError
   - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
@@ -185,7 +180,6 @@ ignore:
 - spec/datadog/profiling/ext/forking_spec.rb:
   - Style/StringLiterals
   - Performance/StringIdentifierArgument
-  - Style/SafeNavigation
   - Layout/TrailingWhitespace
   - Layout/MultilineBlockLayout
   - Style/EmptyMethod
@@ -214,7 +208,6 @@ ignore:
   - Style/StringLiterals
 - spec/datadog/profiling/native_extension_helpers_spec.rb:
   - Style/StringLiterals
-  - Style/SafeNavigation
 - spec/datadog/profiling/native_extension_spec.rb:
   - Style/StringLiterals
   - Style/HashSyntax

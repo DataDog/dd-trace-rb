@@ -20,12 +20,12 @@ module Datadog
 
       def start
         after_fork! do
-          optional_crashtracker.reset_after_fork if optional_crashtracker
+          optional_crashtracker&.reset_after_fork
           worker.reset_after_fork
           scheduler.reset_after_fork
         end
 
-        optional_crashtracker.start if optional_crashtracker
+        optional_crashtracker&.start
         worker.start(on_failure_proc: proc { component_failed(:worker) })
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
@@ -35,7 +35,7 @@ module Datadog
 
         stop_worker
         stop_scheduler
-        optional_crashtracker.stop if optional_crashtracker
+        optional_crashtracker&.stop
       end
 
       private

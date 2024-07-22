@@ -48,12 +48,12 @@ module Datadog
         private
 
         def safely_extract_context_key_from(tracer)
-          provider = tracer && tracer.respond_to?(:provider) && tracer.provider
+          provider = tracer&.respond_to?(:provider) && tracer&.provider
 
           return unless provider
 
           context = provider.instance_variable_get(:@context)
-          context && context.instance_variable_get(:@key)
+          context&.instance_variable_get(:@key)
         end
       end
     end

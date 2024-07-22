@@ -102,7 +102,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         # Stub out actual forking, return mock result.
         # This also makes callback order deterministic.
         allow(Kernel).to receive(:fork) do |*_args, &b|
-          b.call unless b.nil?
+          b&.call
           fork_result
         end
       end
