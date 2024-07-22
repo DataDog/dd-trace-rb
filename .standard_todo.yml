@@ -11,12 +11,10 @@ ignore:
   - Style/TrailingCommaInArguments
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/idle_sampling_helper.rb:
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Style/StringLiterals
-  - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/info.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInHashLiteral
@@ -31,7 +29,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
   - Style/TrailingCommaInArguments
 - lib/datadog/profiling/exporter.rb:
   - Style/StringLiterals
@@ -59,7 +56,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
   - Style/RescueStandardError
 - lib/datadog/profiling/stack_recorder.rb:
   - Style/TrailingCommaInArguments
@@ -72,14 +68,12 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
   - Style/RescueStandardError
 - lib/datadog/profiling.rb:
   - Style/StringLiterals
   - Style/RescueStandardError
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/collectors/code_provenance_spec.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
@@ -94,7 +88,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInHashLiteral
@@ -124,7 +117,6 @@ ignore:
   - Style/HashSyntax
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArrayLiteral
 - spec/datadog/profiling/component_spec.rb:
@@ -148,7 +140,6 @@ ignore:
   - Style/FileWrite
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/ext/forking_spec.rb:
   - Style/StringLiterals
   - Performance/StringIdentifierArgument
@@ -166,7 +157,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/load_native_extension_spec.rb:
   - Style/StringLiterals
 - spec/datadog/profiling/native_extension_helpers_spec.rb:
@@ -197,7 +187,6 @@ ignore:
   - Style/QuotedSymbols
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
   - Style/TrailingCommaInArrayLiteral
 - spec/datadog/profiling/tag_builder_spec.rb:
   - Style/StringLiterals
@@ -216,7 +205,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
 - ext/datadog_profiling_loader/extconf.rb:
   - Style/StringLiterals
 - ext/datadog_profiling_native_extension/extconf.rb:
@@ -231,4 +219,3 @@ ignore:
   - Style/TrailingCommaInArguments
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/RescueEnsureAlignment
