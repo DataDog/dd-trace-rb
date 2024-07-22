@@ -105,6 +105,7 @@ else
     when !precheck.in_bundle?
       dd_debug_log 'Not in bundle... skipping injection'
     when !precheck.runtime_supported?
+      dd_debug_log "Runtime not supported: #{RUBY_DESCRIPTION}"
       dd_send_telemetry(
         [
           { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
@@ -112,7 +113,7 @@ else
         ]
       )
     when !precheck.platform_supported?
-      dd_debug_log "Platform check failed: #{local_platform}"
+      dd_debug_log "Platform not supported: #{local_platform}"
       dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
     when !Process.respond_to?(:fork)
       dd_debug_log 'Fork not supported... skipping injection'
