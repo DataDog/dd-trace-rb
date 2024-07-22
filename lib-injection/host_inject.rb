@@ -1,7 +1,18 @@
 if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
+  # Skip
+elsif !Process.respond_to?(:fork)
+  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+  $stdout.puts "[datadog][#{pid}][#{$0}] Fork not supported... skipping injection" if ENV['DD_TRACE_DEBUG'] == 'true'
 else
-  begin
-    require 'rubygems'
+  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+  $stdout.puts "[datadog][#{pid}][#{$0}] Starts injection" if ENV['DD_TRACE_DEBUG'] == 'true'
+  require 'rubygems'
+
+  read, write = IO.pipe
+
+  Process.fork do
+    read.close
+
     require 'open3'
     require 'bundler'
     require 'bundler/cli'
@@ -19,18 +30,14 @@ else
       warn "[datadog][#{pid}][#{$0}] #{msg}"
     end
 
-    def dd_skip_injection!
-      ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
-    end
-
     def dd_send_telemetry(events)
       pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
 
       tracer_version = if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
-                         File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
-                       else
-                         'unknown'
-                       end
+                          File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
+                        else
+                          'unknown'
+                        end
 
       payload = {
         metadata: {
@@ -106,17 +113,13 @@ else
       dd_debug_log 'Not in bundle... skipping injection'
     when !precheck.runtime_supported?
       dd_debug_log "Runtime not supported: #{RUBY_DESCRIPTION}"
-      dd_send_telemetry(
-        [
-          { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
-          { name: 'library_entrypoint.abort.runtime' }
-        ]
-      )
+      dd_send_telemetry([
+        { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
+        { name: 'library_entrypoint.abort.runtime' }
+      ])
     when !precheck.platform_supported?
       dd_debug_log "Platform not supported: #{local_platform}"
       dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
-    when !Process.respond_to?(:fork)
-      dd_debug_log 'Fork not supported... skipping injection'
     when precheck.already_installed?
       dd_debug_log 'Skip injection: already installed'
     when precheck.frozen_bundle?
@@ -193,30 +196,25 @@ else
         ::FileUtils.rm datadog_lockfile
         dd_send_telemetry([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
       else
-        # Look for pre-installed tracers
-        Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
-
-        # Also apply to the environment variable, to guarantee any spawned processes will respected the modified `GEM_PATH`.
-        ENV['GEM_PATH'] = Gem.path.join(':')
-        ENV['BUNDLE_GEMFILE'] = datadog_gemfile.to_s
-
+        write.puts datadog_gemfile
         dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
       end
     end
-    dd_skip_injection!
-  rescue Exception => e
-    if respond_to?(:dd_send_telemetry)
-      dd_send_telemetry(
-        [
-          { name: 'library_entrypoint.error',
-            tags: ["error_type:#{e.class.name}"] }
-        ]
-      )
-    end
-    pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-    warn "[datadog][#{pid}][#{$0}] Injection failed: #{e.class.name} #{e.message}\nBacktrace: #{e.backtrace.join("\n")}"
+  end
 
-    # Skip injection if the environment variable is set
-    ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
+  write.close
+  result = read.read
+
+  _, status = Process.wait2
+  ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
+
+  if status.success?
+    major, minor, = RUBY_VERSION.split('.')
+    ruby_api_version = "#{major}.#{minor}.0"
+    dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+
+    Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
+    ENV['GEM_PATH'] = Gem.path.join(':')
+    ENV['BUNDLE_GEMFILE'] = result.to_s.chomp
   end
 end
