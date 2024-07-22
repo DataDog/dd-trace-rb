@@ -76,7 +76,6 @@ ignore:
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
-  - Style/RedundantParentheses
   - Style/TrailingCommaInHashLiteral
   - Style/RedundantBegin
 - spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
