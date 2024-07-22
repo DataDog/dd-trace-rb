@@ -234,10 +234,12 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
   end
 
   describe Datadog::Profiling::Ext::Forking::ProcessDaemonPatch do
-    let(:process_module) { Module.new {
-      def self.daemon(nochdir = nil, noclose = nil)
-      end
-    } }
+    let(:process_module) {
+      Module.new {
+        def self.daemon(nochdir = nil, noclose = nil)
+        end
+      }
+    }
     let(:child_callback) { double('child', call: true) }
 
     before do

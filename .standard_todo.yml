@@ -182,7 +182,6 @@ ignore:
   - Layout/MultilineBlockLayout
   - Style/EmptyMethod
   - Layout/IndentationWidth
-  - Layout/BlockEndNewline
   - Layout/DefEndAlignment
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals
