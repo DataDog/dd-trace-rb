@@ -46,13 +46,13 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:worker_stats) do
     {
       statA: 123,
-      statB: 456,
+      statB: 456
     }
   end
   let(:recorder_stats) do
     {
       statC: 987,
-      statD: 654,
+      statD: 654
     }
   end
 
@@ -76,7 +76,7 @@ RSpec.describe Datadog::Profiling::Exporter do
           recorder_stats: recorder_stats,
           profile_stats: profile_stats,
           # GC stats are slightly different between ruby versions.
-          gc: hash_including(:count, :total_freed_objects),
+          gc: hash_including(:count, :total_freed_objects)
         }
       )
       expect(JSON.parse(flush.info_json, symbolize_names: true)).to eq(info)

@@ -66,7 +66,7 @@ module Datadog
         internal_metadata = {
           no_signals_workaround_enabled: no_signals_workaround_enabled,
           timeline_enabled: timeline_enabled,
-          heap_sample_every: heap_sample_every,
+          heap_sample_every: heap_sample_every
         }.freeze
 
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
