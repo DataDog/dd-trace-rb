@@ -32,7 +32,6 @@ ignore:
   - Layout/LineContinuationSpacing
 - lib/datadog/profiling/crashtracker.rb:
   - Style/StringLiterals
-  - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -64,7 +63,6 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/scheduler.rb:
   - Style/StringLiterals
-  - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -87,7 +85,6 @@ ignore:
 - lib/datadog/profiling.rb:
   - Style/StringLiterals
   - Style/RescueStandardError
-  - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -135,7 +132,6 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
   - Style/HashSyntax
-  - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -253,7 +249,6 @@ ignore:
   - Style/TrailingCommaInArrayLiteral
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArguments
-  - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
