@@ -61,6 +61,7 @@ module Datadog
           thread_context_collector: thread_context_collector,
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
+          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
         )
 
         internal_metadata = {

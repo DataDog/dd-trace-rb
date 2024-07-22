@@ -84,6 +84,8 @@ RSpec.describe Datadog::Profiling::Component do
             .and_return(:overhead_target_percentage_config)
           expect(described_class).to receive(:valid_overhead_target)
             .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
+          expect(settings.profiling.advanced)
+            .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -91,6 +93,7 @@ RSpec.describe Datadog::Profiling::Component do
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_profiling_enabled: false,
+            allocation_counting_enabled: :allocation_counting_enabled_config,
           )
 
           build_profiler_component

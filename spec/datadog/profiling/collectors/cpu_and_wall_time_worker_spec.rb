@@ -15,6 +15,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
+  let(:allocation_counting_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       thread_context_collector: build_thread_context_collector(recorder),
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
       **options
     }
   end
@@ -961,8 +963,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
       end
 
-      context 'when allocation profiling is enabled' do
+      context 'when allocation profiling and allocation counting is enabled' do
         let(:allocation_profiling_enabled) { true }
+        let(:allocation_counting_enabled) { true }
 
         it 'always returns a >= 0 value' do
           expect(described_class._native_allocation_count).to be >= 0
@@ -1040,10 +1043,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(after_t1 - before_t1).to be 100
           expect(after_allocations - before_allocations).to be < 10
         end
+
+        context 'when allocation profiling is enabled but allocation counting is disabled' do
+          let(:allocation_counting_enabled) { false }
+
+          it 'always returns a nil value' do
+            100.times { Object.new }
+
+            expect(described_class._native_allocation_count).to be nil
+          end
+        end
       end
 
       context 'when allocation profiling is disabled' do
         let(:allocation_profiling_enabled) { false }
+
         it 'always returns a nil value' do
           100.times { Object.new }
 
