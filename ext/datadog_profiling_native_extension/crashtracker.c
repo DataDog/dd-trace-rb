@@ -59,6 +59,9 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .endpoint = endpoint,
     .resolve_frames = DDOG_PROF_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_secs = FIX2INT(upload_timeout_seconds),
+    // Waits for crash tracker to finish reporting the issue before letting the Ruby process die; see
+    // https://github.com/DataDog/libdatadog/pull/477 for details
+    .wait_for_receiver = true,
   };
 
   ddog_prof_CrashtrackerMetadata metadata = {
@@ -83,7 +86,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   ddog_prof_CrashtrackerResult result =
     action == start_action ?
-      ddog_prof_Crashtracker_init(config, receiver_config, metadata) :
+      ddog_prof_Crashtracker_init_with_receiver(config, receiver_config, metadata) :
       ddog_prof_Crashtracker_update_on_fork(config, receiver_config, metadata);
 
   // Clean up before potentially raising any exceptions
