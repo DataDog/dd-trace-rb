@@ -5,7 +5,11 @@ require_relative 'native_extension_helpers'
 
 SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 # Not a problem if the file doesn't exist or we can't delete it
-File.delete(SKIPPED_REASON_FILE) rescue nil
+begin
+  File.delete(SKIPPED_REASON_FILE)
+rescue
+  nil
+end
 
 def skip_building_extension!(reason)
   fail_install_if_missing_extension =

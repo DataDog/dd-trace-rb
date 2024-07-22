@@ -182,7 +182,6 @@ ignore:
   - Style/StringLiterals
 - ext/datadog_profiling_native_extension/extconf.rb:
   - Style/StringLiterals
-  - Style/RescueModifier
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInArrayLiteral
 - ext/datadog_profiling_native_extension/native_extension_helpers.rb:
