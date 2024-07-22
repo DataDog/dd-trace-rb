@@ -184,7 +184,6 @@ ignore:
   - Layout/IndentationWidth
   - Layout/BlockEndNewline
   - Layout/DefEndAlignment
-  - Layout/BlockAlignment
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
