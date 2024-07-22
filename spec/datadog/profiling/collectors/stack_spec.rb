@@ -72,7 +72,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
     let(:expected_eval_path) do
       # Starting in Ruby 3.3, the path on evals went from being "(eval)" to being "(eval at some_file.rb:line)"
-      RUBY_VERSION < '3.3.' ? '(eval)' : match(/\(eval at .+stack_spec.rb:\d+\)/)
+      (RUBY_VERSION < '3.3.') ? '(eval)' : match(/\(eval at .+stack_spec.rb:\d+\)/)
     end
 
     before do
@@ -690,7 +690,7 @@ class DeepStackSimulator
     # Since in this helper we want to have precise control over how many frames are on the stack of a given thread,
     # we need to take into account that the DatadogThreadDebugger adds one more frame to the stack.
     first_method =
-      defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger) ? :deep_stack_2 : :deep_stack_1
+      (defined?(DatadogThreadDebugger) && Thread.include?(DatadogThreadDebugger)) ? :deep_stack_2 : :deep_stack_1
 
     thread = Thread.new(&DeepStackSimulator.new(target_depth: depth, ready_queue: ready_queue).method(first_method))
     thread.name = "Deep stack #{depth}" if thread.respond_to?(:name=)

@@ -54,7 +54,7 @@ module ProfileHelpers
         pretty_sample_types.zip(sample.value).to_h,
         sample.label.map do |it|
           key = string_table[it.key].to_sym
-          [key, (it.num == 0 ? string_table[it.str] : ProfileHelpers.maybe_fix_label_range(key, it.num))]
+          [key, ((it.num == 0) ? string_table[it.str] : ProfileHelpers.maybe_fix_label_range(key, it.num))]
         end.to_h,
       ).freeze
     end

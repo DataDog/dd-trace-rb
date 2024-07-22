@@ -147,7 +147,6 @@ ignore:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArrayLiteral
-  - Style/TernaryParentheses
   - Style/TrailingCommaInArguments
 - spec/datadog/profiling/collectors/thread_context_spec.rb:
   - Style/StringLiterals
@@ -238,7 +237,7 @@ ignore:
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/spec_helper.rb:
   - Style/StringLiterals
-  - Style/TernaryParentheses
+
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
 - spec/datadog/profiling/stack_recorder_spec.rb:
