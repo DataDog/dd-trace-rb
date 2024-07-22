@@ -261,7 +261,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds }
           end
           let(:agent_settings) do
-            instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: :unix)
+            instance_double(
+              Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+              adapter: :unix,
+              hostname: 'foo',
+              port: 1234
+            )
           end
 
           it 'does not enable telemetry for unsupported non-http transport' do

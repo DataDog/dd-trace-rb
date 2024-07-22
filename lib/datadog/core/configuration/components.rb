@@ -75,7 +75,7 @@ module Datadog
                             dd_site: settings.site
                           )
                         else
-                          Datadog::Core::Telemetry::Http::Transport.build_agent_transport
+                          Datadog::Core::Telemetry::Http::Transport.build_agent_transport(agent_settings)
                         end
 
             Telemetry::Component.new(

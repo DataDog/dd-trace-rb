@@ -4,8 +4,9 @@ require 'datadog/core/telemetry/http/transport'
 require 'datadog/core/telemetry/http/adapters/net'
 
 RSpec.describe Datadog::Core::Telemetry::Http::Transport do
-  subject(:transport) { described_class.build_agent_transport }
+  subject(:transport) { described_class.build_agent_transport(agent_settings) }
 
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(Datadog.configuration) }
   let(:hostname) { 'foo' }
   let(:port) { 1234 }
 
