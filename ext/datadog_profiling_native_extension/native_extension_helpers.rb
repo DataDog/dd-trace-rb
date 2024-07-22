@@ -104,7 +104,7 @@ module Datadog
         # the Gem.dir.
         expected_ruby_extensions_folders = [
           "#{gem_dir}/extensions/platform/extension_api_version/datadog_version/",
-          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/",
+          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/"
         ]
         libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
@@ -147,12 +147,12 @@ module Datadog
                 "`#{ENV_FAIL_INSTALL_IF_MISSING_EXTENSION}` environment variable is set",
                 'to `true`.',
                 'When contacting support, please include the <mkmf.log> file that is shown ',
-                'below.',
+                'below.'
               ]
             else
               [
                 'The Datadog Continuous Profiler will not be available,',
-                'but all other datadog features will work fine!',
+                'but all other datadog features will work fine!'
               ]
             end
 
@@ -233,7 +233,7 @@ module Datadog
         private_class_method def self.disabled_via_env?
           report_disabled = [
             'If you needed to use this, please tell us why on',
-            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
+            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)'
           ].freeze
 
           disabled_via_env = explain_issue(

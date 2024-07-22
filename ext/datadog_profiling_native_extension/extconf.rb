@@ -220,7 +220,7 @@ end
 # experimentation. We need to get these special characters across a lot of tools untouched...
 extra_relative_rpaths = [
   Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder,
-  *Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+  *Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_ruby_extensions_folders
 ]
 extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
 Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
