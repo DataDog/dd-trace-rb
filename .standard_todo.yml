@@ -11,12 +11,10 @@ ignore:
   - Style/TrailingCommaInArguments
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/idle_sampling_helper.rb:
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Style/StringLiterals
   - Layout/RescueEnsureAlignment
 - lib/datadog/profiling/collectors/info.rb:
@@ -34,7 +32,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Style/TrailingCommaInArguments
 - lib/datadog/profiling/exporter.rb:
@@ -47,7 +44,6 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/ext/forking.rb:
   - Style/TrailingCommaInArrayLiteral
-  - Layout/IndentationWidth
   - Style/StringLiterals
 - lib/datadog/profiling/flush.rb:
   - Style/StringLiterals
@@ -64,7 +60,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Style/RescueStandardError
 - lib/datadog/profiling/stack_recorder.rb:
@@ -78,7 +73,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Style/RescueStandardError
 - lib/datadog/profiling.rb:
@@ -86,7 +80,6 @@ ignore:
   - Style/RescueStandardError
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/collectors/code_provenance_spec.rb:
   - Style/StringLiterals
@@ -102,7 +95,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
   - Style/StringLiterals
@@ -133,7 +125,6 @@ ignore:
   - Style/HashSyntax
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArrayLiteral
@@ -158,7 +149,6 @@ ignore:
   - Style/FileWrite
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/ext/forking_spec.rb:
   - Style/StringLiterals
@@ -166,7 +156,6 @@ ignore:
   - Layout/TrailingWhitespace
   - Layout/MultilineBlockLayout
   - Style/EmptyMethod
-  - Layout/IndentationWidth
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
@@ -179,7 +168,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - spec/datadog/profiling/load_native_extension_spec.rb:
   - Style/StringLiterals
@@ -211,7 +199,6 @@ ignore:
   - Style/QuotedSymbols
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Style/TrailingCommaInArrayLiteral
 - spec/datadog/profiling/tag_builder_spec.rb:
@@ -231,7 +218,6 @@ ignore:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
 - ext/datadog_profiling_loader/extconf.rb:
   - Style/StringLiterals
@@ -247,5 +233,4 @@ ignore:
   - Style/TrailingCommaInArguments
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
