@@ -20,7 +20,7 @@ rescue LoadError => e
 end
 
 extension_name = "datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
-file_name = "#{extension_name}.#{RbConfig::CONFIG['DLEXT']}"
+file_name = "#{extension_name}.#{RbConfig::CONFIG["DLEXT"]}"
 full_file_path = "#{__dir__}/../../#{file_name}"
 
 unless File.exist?(full_file_path)
@@ -34,7 +34,7 @@ unless File.exist?(full_file_path)
   end
 end
 
-init_function_name = "Init_#{extension_name.split('.').first}"
+init_function_name = "Init_#{extension_name.split(".").first}"
 
 status, result = Datadog::Profiling::Loader._native_load(full_file_path, init_function_name)
 

@@ -73,7 +73,7 @@ module Datadog
       def base_url_from(agent_settings)
         case agent_settings.adapter
         when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"
+          "#{agent_settings.ssl ? "https" : "http"}://#{agent_settings.hostname}:#{agent_settings.port}/"
         when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           "unix://#{agent_settings.uds_path}"
         else

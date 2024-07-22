@@ -35,7 +35,6 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInHashLiteral
   - Layout/LineContinuationSpacing
-  - Style/StringLiteralsInInterpolation
 - lib/datadog/profiling/crashtracker.rb:
   - Style/StringLiterals
   - Layout/EmptyLinesAroundMethodBody
@@ -61,12 +60,10 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/http_transport.rb:
   - Style/StringLiterals
-  - Style/StringLiteralsInInterpolation
   - Layout/ArrayAlignment
   - Style/TrailingCommaInArguments
 - lib/datadog/profiling/load_native_extension.rb:
   - Style/StringLiterals
-  - Style/StringLiteralsInInterpolation
 - lib/datadog/profiling/preload.rb:
   - Style/StringLiterals
 - lib/datadog/profiling/profiler.rb:
@@ -88,7 +85,6 @@ ignore:
   - Style/TrailingCommaInHashLiteral
 - lib/datadog/profiling/tasks/exec.rb:
   - Style/StringLiterals
-  - Style/StringLiteralsInInterpolation
 - lib/datadog/profiling/tasks/setup.rb:
   - Style/StringLiterals
   - Layout/EmptyLinesAroundBlockBody
@@ -219,7 +215,6 @@ ignore:
   - Style/StringLiterals
 - spec/datadog/profiling/native_extension_helpers_spec.rb:
   - Style/StringLiterals
-  - Style/StringLiteralsInInterpolation
   - Style/SafeNavigation
 - spec/datadog/profiling/native_extension_spec.rb:
   - Style/StringLiterals
@@ -237,7 +232,6 @@ ignore:
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/spec_helper.rb:
   - Style/StringLiterals
-
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
 - spec/datadog/profiling/stack_recorder_spec.rb:
@@ -280,7 +274,6 @@ ignore:
   - Style/StringLiterals
   - Style/RescueModifier
   - Style/TrailingCommaInArguments
-  - Style/StringLiteralsInInterpolation
   - Style/TrailingCommaInArrayLiteral
 - ext/datadog_profiling_native_extension/native_extension_helpers.rb:
   - Style/StringLiterals
@@ -292,4 +285,3 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Style/StringLiteralsInInterpolation

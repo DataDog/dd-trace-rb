@@ -384,7 +384,7 @@ module Datadog
             looks_like_mariadb?(info, libmysqlclient_version)
 
           Datadog.logger.debug(
-            "The `mysql2` gem is using #{compatible ? 'a compatible' : 'an incompatible'} version of " \
+            "The `mysql2` gem is using #{compatible ? "a compatible" : "an incompatible"} version of " \
             "the `libmysqlclient` library (#{libmysqlclient_version})"
           )
 
