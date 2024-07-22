@@ -48,7 +48,6 @@ ignore:
 - lib/datadog/profiling/ext/forking.rb:
   - Style/TrailingCommaInArrayLiteral
   - Layout/IndentationWidth
-  - Layout/EndAlignment
   - Style/StringLiterals
 - lib/datadog/profiling/flush.rb:
   - Style/StringLiterals
