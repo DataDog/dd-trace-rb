@@ -88,6 +88,14 @@ only-profiling-alloc:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
 
+only-profiling-alloc-ddprof:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_DDPROF: "true"
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+
 only-profiling-heap:
   extends: .benchmarks
   variables:
