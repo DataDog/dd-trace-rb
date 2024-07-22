@@ -9,9 +9,9 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
   before do
     skip_if_profiling_not_supported(self)
 
-    File.open("#{temporary_directory}/file1", 'w') { |f| f.write('file1') }
-    File.open("#{temporary_directory}/file2", 'w') { |f| f.write('file2') }
-    File.open("#{temporary_directory}/file3", 'w') { |f| f.write('file3') }
+    File.write("#{temporary_directory}/file1", 'file1')
+    File.write("#{temporary_directory}/file2", 'file2')
+    File.write("#{temporary_directory}/file3", 'file3')
 
     expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_hold_signals)
     expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to_not receive(:_native_resume_signals)
@@ -141,7 +141,7 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
 
     describe '.glob' do
       before do
-        File.open("#{temporary_directory}/.hidden_file1", 'w') { |f| f.write('.hidden_file1') }
+        File.write("#{temporary_directory}/.hidden_file1", '.hidden_file1')
       end
 
       let(:expected_files_result) { ['.hidden_file1', 'file1', 'file2'] }
