@@ -10,7 +10,7 @@ module Datadog
 
         class Base
           def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
-          def type: -> String?
+          def type: -> String
         end
 
         class AppStarted < Base
