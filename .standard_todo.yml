@@ -27,7 +27,6 @@ ignore:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInHashLiteral
-  - Layout/LineContinuationSpacing
 - lib/datadog/profiling/crashtracker.rb:
   - Style/StringLiterals
   - Layout/TrailingWhitespace
