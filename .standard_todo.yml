@@ -76,7 +76,6 @@ ignore:
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
-  - Style/HashSyntax
   - Style/RedundantParentheses
   - Style/TrailingCommaInHashLiteral
   - Style/RedundantBegin
@@ -101,7 +100,6 @@ ignore:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
-  - Style/HashSyntax
   - Style/RedundantBegin
   - Layout/SpaceInsideHashLiteralBraces
   - Style/TrailingCommaInArrayLiteral
@@ -143,7 +141,6 @@ ignore:
   - Style/StringLiterals
 - spec/datadog/profiling/native_extension_spec.rb:
   - Style/StringLiterals
-  - Style/HashSyntax
 - spec/datadog/profiling/pprof/pprof_pb.rb:
   - Style/StringLiterals
 - spec/datadog/profiling/preload_spec.rb:
@@ -162,7 +159,6 @@ ignore:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInHashLiteral
-  - Style/HashSyntax
   - Layout/SpaceInsideHashLiteralBraces
   - Style/QuotedSymbols
   - Style/RedundantBegin

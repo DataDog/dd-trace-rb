@@ -231,10 +231,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'returns stats reporting no recorded samples' do
         expect(profile_stats).to match(
           hash_including(
-            :recorded_samples => 0,
-            :serialization_time_ns => be > 0,
-            :heap_iteration_prep_time_ns => be >= 0,
-            :heap_profile_build_time_ns => be >= 0,
+            recorded_samples: 0,
+            serialization_time_ns: be > 0,
+            heap_iteration_prep_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0,
           )
         )
       end
@@ -315,10 +315,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'returns stats reporting one recorded sample' do
         expect(profile_stats).to match(
           hash_including(
-            :recorded_samples => 1,
-            :serialization_time_ns => be > 0,
-            :heap_iteration_prep_time_ns => be >= 0,
-            :heap_profile_build_time_ns => be >= 0,
+            recorded_samples: 1,
+            serialization_time_ns: be > 0,
+            heap_iteration_prep_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0,
           )
         )
       end
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(samples.select { |it| labels_without_state.call(it[:labels]).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it[:labels]) == { :'local root span id' => 456 }
+            labels_without_state.call(it[:labels]) == { 'local root span id': 456 }
           end
         ).to have(2).items
 
@@ -385,7 +385,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(
           samples.select do |it|
             labels_without_state.call(it[:labels]) ==
-              { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
+              { 'local root span id': 123, 'trace endpoint': 'recorded-endpoint' }
           end
         ).to have(2).items
       end
@@ -486,7 +486,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(heap_samples.size).to eq(3)
 
           expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
-          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+          expect(heap_samples.map(&:labels)).to all(match(hash_including('gc gen age': be_a(Integer).and(be >= 0))))
         end
 
         it 'include accurate object sizes' do
@@ -628,9 +628,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           expect(profile_stats).to match(
             hash_including(
-              :recorded_samples => expected_allocation_samples + expected_heap_samples,
-              :heap_iteration_prep_time_ns => be > 0,
-              :heap_profile_build_time_ns => be > 0,
+              recorded_samples: expected_allocation_samples + expected_heap_samples,
+              heap_iteration_prep_time_ns: be > 0,
+              heap_profile_build_time_ns: be > 0,
             )
           )
         end
@@ -925,15 +925,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect(stats).to match(
         hash_including(
-          :serialization_successes => num_serializations,
-          :serialization_failures => 0,
+          serialization_successes: num_serializations,
+          serialization_failures: 0,
 
-          :serialization_time_ns_min => be > 0,
-          :serialization_time_ns_max => be > 0,
-          :serialization_time_ns_avg => be > 0,
-          :serialization_time_ns_total => be > 0,
+          serialization_time_ns_min: be > 0,
+          serialization_time_ns_max: be > 0,
+          serialization_time_ns_avg: be > 0,
+          serialization_time_ns_total: be > 0,
 
-          :heap_recorder_snapshot => nil,
+          heap_recorder_snapshot: nil,
         )
       )
 
@@ -1006,19 +1006,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         expect(stack_recorder.stats).to match(
           hash_including(
-            :heap_recorder_snapshot => hash_including(
+            heap_recorder_snapshot: hash_including(
               # Records for dead objects should have gone away
-              :num_object_records => live_heap_samples + age0_heap_samples,
+              num_object_records: live_heap_samples + age0_heap_samples,
               # We allocate from 3 different locations in this test but only 2
               # of them are for objects which should be alive at serialization time
-              :num_heap_records => 2,
+              num_heap_records: 2,
 
               # The update done during serialization should reflect the
               # state of the tracked heap objects at that time
-              :last_update_objects_alive => live_heap_samples,
-              :last_update_objects_dead => dead_heap_samples,
-              :last_update_objects_skipped => age0_heap_samples,
-              :last_update_objects_frozen => live_heap_samples / 2,
+              last_update_objects_alive: live_heap_samples,
+              last_update_objects_dead: dead_heap_samples,
+              last_update_objects_skipped: age0_heap_samples,
+              last_update_objects_frozen: live_heap_samples / 2,
             )
           )
         )

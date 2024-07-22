@@ -271,13 +271,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       gc_sample = all_samples.find { |sample| sample.labels[:'gc cause'] == 'GC.start()' }
 
       expect(gc_sample.labels).to match a_hash_including(
-        :state => 'had cpu',
-        :'thread id' => 'GC',
-        :'thread name' => 'Garbage Collection',
-        :event => 'gc',
-        :'gc reason' => an_instance_of(String),
-        :'gc cause' => 'GC.start()',
-        :'gc type' => 'major',
+        state: 'had cpu',
+        'thread id': 'GC',
+        'thread name': 'Garbage Collection',
+        event: 'gc',
+        'gc reason': an_instance_of(String),
+        'gc cause': 'GC.start()',
+        'gc type': 'major',
       )
       expect(gc_sample.locations.first.path).to eq 'Garbage Collection'
     end
@@ -501,7 +501,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
             .find { |s| s.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' }
 
-        expect(allocation_sample.values).to include(:'alloc-samples' => test_num_allocated_object)
+        expect(allocation_sample.values).to include('alloc-samples': test_num_allocated_object)
         expect(allocation_sample.locations.first.lineno).to eq allocation_line
       end
 
@@ -616,7 +616,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include(:'alloc-samples' => 0))
+        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include('alloc-samples': 0))
       end
     end
 
@@ -761,7 +761,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    context 'when called from a background ractor', :ractors => true do
+    context 'when called from a background ractor', ractors: true do
       # Even though we're not testing it explicitly, the GC profiling hooks can sometimes be called when running these
       # specs. Unfortunately, there's a VM crash in that case as well -- https://bugs.ruby-lang.org/issues/18464 --
       # so this must be disabled when interacting with Ractors.
@@ -1079,10 +1079,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(stats).to match(
         hash_including(
-          :cpu_sampled => be > 0,
-          :allocation_sampled => be > 0,
-          :cpu_sampling_time_ns_avg => be > 0,
-          :allocation_sampling_time_ns_avg => be > 0,
+          cpu_sampled: be > 0,
+          allocation_sampled: be > 0,
+          cpu_sampling_time_ns_avg: be > 0,
+          allocation_sampling_time_ns_avg: be > 0,
         )
       )
 
@@ -1090,10 +1090,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       expect(stats).to match(
         hash_including(
-          :cpu_sampled => 0,
-          :allocation_sampled => 0,
-          :cpu_sampling_time_ns_avg => nil,
-          :allocation_sampling_time_ns_avg => nil,
+          cpu_sampled: 0,
+          allocation_sampled: 0,
+          cpu_sampling_time_ns_avg: nil,
+          allocation_sampling_time_ns_avg: nil,
         )
       )
     end
