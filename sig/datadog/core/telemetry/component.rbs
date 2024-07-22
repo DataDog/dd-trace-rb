@@ -11,6 +11,8 @@ module Datadog
 
         include Core::Utils::Forking
 
+        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
+
         def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer) -> void
 
         def disable!: () -> void

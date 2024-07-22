@@ -56,37 +56,7 @@ module Datadog
           end
 
           def build_telemetry(settings, agent_settings, logger)
-            enabled = settings.telemetry.enabled
-            agentless_enabled = settings.telemetry.agentless_enabled
-
-            if !agentless_enabled && agent_settings.adapter != Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              enabled = false
-              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
-            end
-
-            if agentless_enabled && settings.api_key.nil?
-              enabled = false
-              logger.debug { 'Telemetry disabled. Agentless telemetry requires an DD_API_KEY variable to be set.' }
-            end
-
-            transport = if agentless_enabled
-                          Datadog::Core::Telemetry::Http::Transport.build_agentless_transport(
-                            api_key: settings.api_key,
-                            dd_site: settings.site
-                          )
-                        else
-                          Datadog::Core::Telemetry::Http::Transport.build_agent_transport(agent_settings)
-                        end
-
-            Telemetry::Component.new(
-              http_transport: transport,
-              enabled: enabled,
-              metrics_enabled: enabled && settings.telemetry.metrics_enabled,
-              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-              dependency_collection: settings.telemetry.dependency_collection,
-              shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
-            )
+            Telemetry::Component.build(settings, agent_settings, logger)
           end
         end
 
