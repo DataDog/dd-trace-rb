@@ -36,6 +36,8 @@ RSpec.describe 'gem release process' do
            |docker-compose\.yml
            |shell\.nix
            |static-analysis\.datadog\.yml
+           |\.standard\.yml
+           |\.standard_todo\.yml
           )
           $
         }x
