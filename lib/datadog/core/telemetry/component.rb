@@ -8,7 +8,6 @@ require_relative 'worker'
 
 require_relative '../configuration/ext'
 require_relative '../utils/forking'
-require_relative '../workers/polling'
 
 module Datadog
   module Core
