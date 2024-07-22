@@ -69,7 +69,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
             nil_opt: nil,
             advanced: {
               list_opt: [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol,
-                         a_string_including('#<ComplexObject:')],
+                a_string_including('#<ComplexObject:')],
               hash_opt: {
                 a: false,
                 b: 1,

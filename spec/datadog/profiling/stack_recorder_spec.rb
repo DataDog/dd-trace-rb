@@ -413,7 +413,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-                       { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
+          { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
@@ -439,7 +439,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # * Allocate some more stuff and clear again
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-                       { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+          { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
         allocations.clear
         GC.start
       end

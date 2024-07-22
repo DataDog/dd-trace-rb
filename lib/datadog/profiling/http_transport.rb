@@ -82,8 +82,10 @@ module Datadog
       end
 
       def validate_agent_settings(agent_settings)
-        supported_adapters = [Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
-                              Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER]
+        supported_adapters = [
+          Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
+          Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+        ]
         unless supported_adapters.include?(agent_settings.adapter)
           raise ArgumentError,
             "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \

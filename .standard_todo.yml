@@ -57,7 +57,6 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/http_transport.rb:
   - Style/StringLiterals
-  - Layout/ArrayAlignment
   - Style/TrailingCommaInArguments
 - lib/datadog/profiling/load_native_extension.rb:
   - Style/StringLiterals
@@ -128,7 +127,6 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInHashLiteral
   - Layout/SpaceInsideHashLiteralBraces
-  - Layout/ArrayAlignment
 - spec/datadog/profiling/collectors/interesting_backtrace_helper.rb:
   - Style/GlobalVars
   - Style/MissingRespondToMissing
@@ -233,7 +231,6 @@ ignore:
   - Style/HashSyntax
   - Layout/SpaceInsideHashLiteralBraces
   - Style/QuotedSymbols
-  - Layout/ArrayAlignment
   - Layout/EmptyLinesAroundBlockBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
