@@ -52,7 +52,6 @@ ignore:
 - lib/datadog/profiling/scheduler.rb:
   - Style/StringLiterals
   - Style/RedundantBegin
-  - Style/RescueStandardError
 - lib/datadog/profiling/stack_recorder.rb:
   - Style/TrailingCommaInArguments
 - lib/datadog/profiling/tag_builder.rb:
@@ -63,10 +62,8 @@ ignore:
 - lib/datadog/profiling/tasks/setup.rb:
   - Style/StringLiterals
   - Style/RedundantBegin
-  - Style/RescueStandardError
 - lib/datadog/profiling.rb:
   - Style/StringLiterals
-  - Style/RescueStandardError
   - Style/RedundantBegin
 - spec/datadog/profiling/collectors/code_provenance_spec.rb:
   - Style/StringLiterals
