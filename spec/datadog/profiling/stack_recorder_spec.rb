@@ -418,9 +418,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
           if i.even?
-            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+            sample_allocation(obj)
           else # rubocop:disable Lint/DuplicateBranch
-            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+            sample_allocation(obj)
           end
           @num_allocations += 1
           GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels

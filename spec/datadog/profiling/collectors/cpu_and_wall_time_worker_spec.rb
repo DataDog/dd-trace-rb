@@ -555,7 +555,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       context 'T_IMEMO internal VM objects' do
         let(:something_that_triggers_creation_of_imemo_objects) do
-          eval('proc { def self.foo; rand; end; foo }.call') # rubocop:disable Style/EvalWithLocation
+          eval('proc { def self.foo; rand; end; foo }.call')
         end
 
         context 'on Ruby 2.x' do

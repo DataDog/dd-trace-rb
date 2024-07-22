@@ -48,7 +48,9 @@ module Datadog
         private
 
         def safely_extract_context_key_from(tracer)
-          provider = tracer&.respond_to?(:provider) && tracer&.provider
+          return unless tracer
+
+          provider = tracer.respond_to?(:provider) && tracer.provider
 
           return unless provider
 
