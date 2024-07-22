@@ -69,7 +69,6 @@ ignore:
   - Layout/EmptyLinesAroundMethodBody
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
-  - Layout/CommentIndentation
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
   - Style/RescueStandardError
@@ -87,7 +86,6 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Layout/CommentIndentation
   - Style/RescueStandardError
 - lib/datadog/profiling.rb:
   - Style/StringLiterals
@@ -109,7 +107,6 @@ ignore:
   - Performance/UnfreezeString
   - Style/RedundantParentheses
   - Style/TrailingCommaInHashLiteral
-  - Layout/CommentIndentation
   - Layout/TrailingWhitespace
   - Style/RedundantBegin
   - Layout/IndentationWidth
@@ -174,7 +171,6 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Layout/CommentIndentation
 - spec/datadog/profiling/ext/forking_spec.rb:
   - Style/StringLiterals
   - Performance/StringIdentifierArgument
@@ -199,7 +195,6 @@ ignore:
   - Style/RedundantBegin
   - Layout/IndentationWidth
   - Layout/RescueEnsureAlignment
-  - Layout/CommentIndentation
 - spec/datadog/profiling/load_native_extension_spec.rb:
   - Style/StringLiterals
 - spec/datadog/profiling/native_extension_helpers_spec.rb:
