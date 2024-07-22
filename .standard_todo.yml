@@ -153,7 +153,6 @@ ignore:
   - Style/StringLiterals
   - Performance/StringIdentifierArgument
   - Layout/TrailingWhitespace
-  - Layout/MultilineBlockLayout
   - Style/EmptyMethod
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals
