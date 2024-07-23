@@ -1,16 +1,38 @@
+module DatadogInjectUtils
+  module_function
+
+  def debug(msg)
+    $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
+  end
+
+  def error(msg)
+    warn "[datadog][#{pid}][#{$0}] #{msg}"
+  end
+
+  def pid
+    Process.respond_to?(:pid) ? Process.pid : 0
+  end
+
+  def path
+    major, minor, = RUBY_VERSION.split('.')
+    ruby_api_version = "#{major}.#{minor}.0"
+
+    "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+  end
+end
+
 if ENV['DD_TRACE_SKIP_LIB_INJECTION'] == 'true'
   # Skip
 elsif !Process.respond_to?(:fork)
-  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-  $stdout.puts "[datadog][#{pid}][#{$0}] Fork not supported... skipping injection" if ENV['DD_TRACE_DEBUG'] == 'true'
+  DatadogInjectUtils.debug 'Fork not supported... skipping injection'
 else
-  pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-  $stdout.puts "[datadog][#{pid}][#{$0}] Starts injection" if ENV['DD_TRACE_DEBUG'] == 'true'
+  DatadogInjectUtils.debug 'Starts injection'
+
   require 'rubygems'
 
   read, write = IO.pipe
 
-  Process.fork do
+  fork do
     read.close
 
     require 'open3'
@@ -20,42 +42,37 @@ else
     require 'fileutils'
     require 'json'
 
-    def dd_debug_log(msg)
-      pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-      $stdout.puts "[datadog][#{pid}][#{$0}] #{msg}" if ENV['DD_TRACE_DEBUG'] == 'true'
-    end
+    telemetry = Module.new do
+      module_function
 
-    def dd_error_log(msg)
-      pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
-      warn "[datadog][#{pid}][#{$0}] #{msg}"
-    end
+      def emit(events)
+        tracer_version =
+          if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
+            File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
+          else
+            'unknown'
+          end
 
-    def dd_send_telemetry(events)
-      pid = Process.respond_to?(:pid) ? Process.pid : 0 # Not available on all platforms
+        payload = {
+          metadata: {
+            language_name: 'ruby',
+            language_version: RUBY_VERSION,
+            runtime_name: RUBY_ENGINE,
+            runtime_version: RUBY_VERSION,
+            tracer_version: tracer_version,
+            pid: DatadogInjectUtils.pid
+          },
+          points: events
+        }.to_json
 
-      tracer_version = if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
-                          File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
-                        else
-                          'unknown'
-                        end
+        DatadogInjectUtils.debug "Telemetry: #{payload}"
 
-      payload = {
-        metadata: {
-          language_name: 'ruby',
-          language_version: RUBY_VERSION,
-          runtime_name: RUBY_ENGINE,
-          runtime_version: RUBY_VERSION,
-          tracer_version: tracer_version,
-          pid: pid
-        },
-        points: events
-      }.to_json
+        fowarder = ENV['DD_TELEMETRY_FORWARDER_PATH']
 
-      fowarder = ENV['DD_TELEMETRY_FORWARDER_PATH']
+        return if fowarder.nil? || fowarder.empty?
 
-      return if fowarder.nil? || fowarder.empty?
-
-      Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload)
+        Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload)
+      end
     end
 
     precheck = Module.new do
@@ -108,33 +125,35 @@ else
       end
     end
 
-    case
-    when !precheck.in_bundle?
-      dd_debug_log 'Not in bundle... skipping injection'
-    when !precheck.runtime_supported?
-      dd_debug_log "Runtime not supported: #{RUBY_DESCRIPTION}"
-      dd_send_telemetry([
-        { name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
-        { name: 'library_entrypoint.abort.runtime' }
-      ])
-    when !precheck.platform_supported?
-      dd_debug_log "Platform not supported: #{local_platform}"
-      dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
-    when precheck.already_installed?
-      dd_debug_log 'Skip injection: already installed'
-    when precheck.frozen_bundle?
-      dd_error_log "Skip injection: bundler is configured with 'deployment' or 'frozen'"
-      dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
-    when !precheck.bundler_supported?
-      dd_error_log "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
-      dd_send_telemetry([{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
+    if !precheck.in_bundle?
+      DatadogInjectUtils.debug 'Not in bundle... skipping injection'
+      abort
+    elsif !precheck.runtime_supported?
+      DatadogInjectUtils.debug "Runtime not supported: #{RUBY_DESCRIPTION}"
+      telemetry.emit(
+        [{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
+         { name: 'library_entrypoint.abort.runtime' }]
+      )
+      abort
+    elsif !precheck.platform_supported?
+      DatadogInjectUtils.debug "Platform not supported: #{local_platform}"
+      telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
+      abort
+    elsif precheck.already_installed?
+      DatadogInjectUtils.debug 'Skip injection: already installed'
+    elsif precheck.frozen_bundle?
+      DatadogInjectUtils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
+      telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
+      abort
+    elsif !precheck.bundler_supported?
+      DatadogInjectUtils.error "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
+      telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
+      abort
     else
       # Injection
-      major, minor, = RUBY_VERSION.split('.')
-      ruby_api_version = "#{major}.#{minor}.0"
-      dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
-      dd_debug_log "Loading from #{dd_lib_injection_path}..."
-      lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file("#{dd_lib_injection_path}/Gemfile.lock"))
+      path = DatadogInjectUtils.path
+      DatadogInjectUtils.debug "Loading from #{path}..."
+      lock_file_parser = Bundler::LockfileParser.new(Bundler.read_file("#{path}/Gemfile.lock"))
       gem_version_mapping = lock_file_parser.specs.each_with_object({}) do |spec, hash|
         hash[spec.name] = spec.version.to_s
         hash
@@ -169,52 +188,54 @@ else
 
         _, status = Process.wait2
         if status.success?
-          dd_debug_log "#{gem} already installed... skipping..."
+          DatadogInjectUtils.debug "#{gem} already installed... skipping..."
           next
         end
 
         bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
         bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
 
-        dd_debug_log "Injection with `#{bundle_add_cmd}`"
+        DatadogInjectUtils.debug "Injection with `#{bundle_add_cmd}`"
 
         env = { 'BUNDLE_GEMFILE' => datadog_gemfile.to_s,
                 'DD_TRACE_SKIP_LIB_INJECTION' => 'true',
-                'GEM_PATH' => dd_lib_injection_path }
+                'GEM_PATH' => DatadogInjectUtils.path }
         add_output, add_status = Open3.capture2e(env, bundle_add_cmd)
 
         if add_status.success?
-          dd_debug_log "Successfully injected #{gem} into the application."
+          DatadogInjectUtils.debug "Successfully injected #{gem} into the application."
         else
           injection_failure = true
-          dd_error_log "Injection failed: Unable to add datadog. Error output: #{add_output}"
+          DatadogInjectUtils.error "Injection failed: Unable to add datadog. Error output: #{add_output}"
         end
       end
 
       if injection_failure
         ::FileUtils.rm datadog_gemfile
         ::FileUtils.rm datadog_lockfile
-        dd_send_telemetry([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
+        telemetry.emit([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
+        abort
       else
         write.puts datadog_gemfile
-        dd_send_telemetry([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
+        telemetry.emit([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
       end
     end
   end
 
   write.close
-  result = read.read
+  gemfile = read.read.to_s.chomp
 
   _, status = Process.wait2
   ENV['DD_TRACE_SKIP_LIB_INJECTION'] = 'true'
 
   if status.success?
-    major, minor, = RUBY_VERSION.split('.')
-    ruby_api_version = "#{major}.#{minor}.0"
-    dd_lib_injection_path = "/opt/datadog/apm/library/ruby/#{ruby_api_version}"
+    dd_lib_injection_path = DatadogInjectUtils.path
 
     Gem.paths = { 'GEM_PATH' => "#{dd_lib_injection_path}:#{ENV['GEM_PATH']}" }
     ENV['GEM_PATH'] = Gem.path.join(':')
-    ENV['BUNDLE_GEMFILE'] = result.to_s.chomp
+    ENV['BUNDLE_GEMFILE'] = gemfile
+    DatadogInjectUtils.debug "Fork success: Using Gemfile `#{gemfile}`"
+  else
+    DatadogInjectUtils.debug 'Fork abort'
   end
 end
