@@ -41,14 +41,7 @@ module Datadog
 
             def headers
               result = request.env.each_with_object({}) do |(k, v), h|
-                # When multiple headers with the same name are present, they are concatenated with a comma
-                # https://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
-                # Because headers are case insensitive, HTTP_FOO and HTTP_Foo is the same, and should be merged
-                next unless k.start_with?('HTTP_')
-
-                key = k.delete_prefix('HTTP_').tap(&:downcase!).tap { |s| s.tr!('_', '-') }
-                current_val = h[key]
-                h[key] = current_val.nil? ? v : "#{current_val}, #{v}"
+                h[k.delete_prefix('HTTP_').tap(&:downcase!).tap { |s| s.tr!('_', '-') }] = v if k.start_with?('HTTP_')
               end
 
               result['content-type'] = request.content_type if request.content_type

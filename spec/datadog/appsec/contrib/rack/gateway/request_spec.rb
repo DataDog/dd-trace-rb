@@ -43,8 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
               'REQUEST_METHOD' => 'GET', 'REMOTE_ADDR' => '10.10.10.10', 'CONTENT_TYPE' => 'text/html',
               'HTTP_COOKIE' => 'foo=bar', 'HTTP_USER_AGENT' => 'WebKit',
               'HTTP_' => 'empty header', 'HTTP_123' => 'numbered header',
-              'HTTP_123_FOO' => 'alphanumerical header', 'HTTP_FOO_123' => 'reverse alphanumerical header',
-              'HTTP_foo' => 'lowercase header', 'HTTP_Foo' => 'mixed case header'
+              'HTTP_123_FOO' => 'alphanumerical header', 'HTTP_FOO_123' => 'reverse alphanumerical header'
             }
           )
         )
@@ -59,8 +58,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
           '' => 'empty header',
           '123' => 'numbered header',
           '123-foo' => 'alphanumerical header',
-          'foo-123' => 'reverse alphanumerical header',
-          'foo' => 'lowercase header, mixed case header'
+          'foo-123' => 'reverse alphanumerical header'
         }
         expect(request.headers).to eq(expected_headers)
       end
