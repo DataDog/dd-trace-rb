@@ -30,6 +30,10 @@ variables:
     # Benchmark's env variables. Modify to tweak benchmark parameters.
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
+
+    DD_SERVICE: "bp-ruby-gitlab"
+    DD_ENV: "staging"
+
     # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
     # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
     # But in practice the endpoints we test it aren't affected, so we prefer to run the profiler in its default,
