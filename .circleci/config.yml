@@ -159,6 +159,14 @@ step_rubocop: &step_rubocop
     # The workaround is to use `cpu.shares / 1024`:
     # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
     command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake rubocop
+step_standardrb: &step_standardrb
+  run:
+    name: Delint with Standardrb
+    # There's no straightforward way to get the number of available processors & CPU threads in CircleCI.
+    # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
+    # The workaround is to use `cpu.shares / 1024`:
+    # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake standardrb_datadog:default
 step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems
@@ -377,6 +385,7 @@ orbs:
               keys:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
           - *step_rubocop
+          - *step_standardrb
       coverage:
         <<: *test_job_default
         steps:
