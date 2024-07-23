@@ -374,17 +374,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         labels_without_state = proc { |labels| labels.reject { |key| key == :state } }
 
         # Other samples have not been changed
-        expect(samples.select { |it| labels_without_state.call(it[:labels]).empty? }).to have(2).items
+        expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it.fetch(:labels)) == { 'local root span id': 456 }
+            labels_without_state.call(it.labels) == { 'local root span id': 456 }
           end
         ).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
         expect(
           samples.select do |it|
-            labels_without_state.call(it[:labels]) ==
+            labels_without_state.call(it.labels) ==
               { 'local root span id': 123, 'trace endpoint': 'recorded-endpoint' }
           end
         ).to have(2).items
