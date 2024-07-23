@@ -37,11 +37,11 @@ Style:
     - 'ext/**/*'
 Layout:
   Exclude:
-    - 'lib/datadog/profiling*'
-    - 'lib/datadog/profiling/**/*'
-    - 'spec/datadog/profiling*'
-    - 'spec/datadog/profiling/**/*'
-    - 'ext/**/*'
+    - 'lib/datadog/profiling/*'
+    - 'lib/datadog/profiling/**/**'
+    - 'spec/datadog/profiling/*'
+    - 'spec/datadog/profiling/**/**'
+    - 'ext/**/**'
 
 Layout/LineLength:
   Max: 124
