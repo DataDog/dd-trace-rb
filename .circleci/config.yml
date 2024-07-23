@@ -166,7 +166,7 @@ step_standardrb: &step_standardrb
     # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
     # The workaround is to use `cpu.shares / 1024`:
     # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
-    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake standardrb_datadog:default
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake standard
 step_appraisal_install: &step_appraisal_install
   run:
     name: Install Appraisal gems

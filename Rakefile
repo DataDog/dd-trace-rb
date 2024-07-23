@@ -1,6 +1,7 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
+require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 require 'yard'
@@ -415,23 +416,8 @@ namespace :native_dev do
   CLEAN.concat(NATIVE_CLEAN)
 end
 
-namespace :standardrb_datadog do
-  desc 'Validate style using standardrb (profiling only)'
-  task :profiling do
-    sh 'standardrb lib/datadog/profiling* spec/datadog/profiling* ext/' if Gem.loaded_specs.key? 'standard'
-  end
-
-  desc 'Autofix style using standardrb (profiling only)'
-  task :profiling_autofix do
-    sh 'standardrb --fix lib/datadog/profiling* spec/datadog/profiling* ext/' if Gem.loaded_specs.key? 'standard'
-  end
-
-  desc 'Validate style using standardrb (temporary until full adoption)'
-  task default: ['profiling']
-end
-
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'standardrb_datadog:default', 'typecheck', 'spec:main']
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'standardrb_datadog:default', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']

@@ -2,6 +2,38 @@
 # Remove from this list as you refactor files.
 ---
 ignore:
+# This disables standardrb for the rest of dd-trace-rb (other than profiling)
+- .pryrc
+- .simplecov
+- Appraisals
+- datadog.gemspec
+- Gemfile
+- Rakefile
+- Steepfile
+- appraisal/**/**
+- benchmarks/**/**
+- gemfiles/**/**
+- integration/**/**
+- lib-injection/**/**
+- lib/*
+- lib/datadog/*
+- lib/datadog/appsec/**/**
+- lib/datadog/core/**/**
+- lib/datadog/kit/**/**
+- lib/datadog/opentelemetry/**/**
+- lib/datadog/tracing/**/**
+- spec/*
+- spec/datadog/*
+- spec/datadog/appsec/**/**
+- spec/datadog/benchmark/**/**
+- spec/datadog/core/**/**
+- spec/datadog/kit/**/**
+- spec/datadog/tracing/**/**
+- spec/support/**/**
+- tasks/**/**
+- yard/**/**
+
+# These profiling ignores are ALL going to be fixed in separate PRs
 - lib/datadog/profiling/collectors/code_provenance.rb:
   - Style/StringLiterals
   - Style/TrailingCommaInArguments
