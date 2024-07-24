@@ -27,7 +27,7 @@ module Datadog
         def set_rubyopt!
           existing_rubyopt = ENV['RUBYOPT']
 
-          ENV['RUBYOPT'] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(' ')}" : rubyopts.join(' ')
+          ENV['RUBYOPT'] = existing_rubyopt ? "#{existing_rubyopt} #{rubyopts.join(" ")}" : rubyopts.join(' ')
         end
 
         # If there's an error here, rather than throwing a cryptic stack trace, let's instead have clearer messages, and
@@ -38,10 +38,10 @@ module Datadog
         def exec_with_error_handling(args)
           Kernel.exec(*args)
         rescue Errno::ENOENT => e
-          Kernel.warn "ddprofrb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(' ')}')"
+          Kernel.warn "ddprofrb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(" ")}')"
           Kernel.exit 127
         rescue Errno::EACCES, Errno::ENOEXEC => e
-          Kernel.warn "ddprofrb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(' ')}')"
+          Kernel.warn "ddprofrb exec failed: #{e.class.name} #{e.message} (command was '#{args.join(" ")}')"
           Kernel.exit 126
         end
       end

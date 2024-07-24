@@ -19,7 +19,7 @@ module Datadog
             platform: collect_platform_info,
             runtime: collect_runtime_info,
             application: collect_application_info(settings),
-            profiler: collect_profiler_info(settings),
+            profiler: collect_profiler_info(settings)
           }.freeze
         end
 
@@ -46,7 +46,7 @@ module Datadog
           @runtime_info ||= {
             engine: Datadog::Core::Environment::Identity.lang_engine,
             version: Datadog::Core::Environment::Identity.lang_version,
-            platform: Datadog::Core::Environment::Identity.lang_platform,
+            platform: Datadog::Core::Environment::Identity.lang_platform
           }.freeze
         end
 
@@ -55,7 +55,7 @@ module Datadog
             start_time: START_TIME.iso8601,
             env: settings.env,
             service: settings.service,
-            version: settings.version,
+            version: settings.version
           }.freeze
         end
 
@@ -67,7 +67,7 @@ module Datadog
               #       Update if this ever occurs.
               version: Datadog::Core::Environment::Identity.gem_datadog_version,
               libdatadog: "#{lib_datadog_gem.version}-#{lib_datadog_gem.platform}",
-              settings: collect_settings_recursively(settings.profiling),
+              settings: collect_settings_recursively(settings.profiling)
             }.freeze
           end
           @profiler_info

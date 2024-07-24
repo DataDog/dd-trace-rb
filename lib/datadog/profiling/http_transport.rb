@@ -73,7 +73,7 @@ module Datadog
       def base_url_from(agent_settings)
         case agent_settings.adapter
         when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"
+          "#{agent_settings.ssl ? "https" : "http"}://#{agent_settings.hostname}:#{agent_settings.port}/"
         when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           "unix://#{agent_settings.uds_path}"
         else
@@ -82,8 +82,10 @@ module Datadog
       end
 
       def validate_agent_settings(agent_settings)
-        supported_adapters = [Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
-                              Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER]
+        supported_adapters = [
+          Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
+          Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+        ]
         unless supported_adapters.include?(agent_settings.adapter)
           raise ArgumentError,
             "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \

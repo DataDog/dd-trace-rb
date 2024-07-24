@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
           ),
           profiler: hash_including(
             version: Datadog::Core::Environment::Identity.gem_datadog_version,
-          ),
+          )
         }
       )
     end
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
             nil_opt: nil,
             advanced: {
               list_opt: [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol,
-                         a_string_including('#<ComplexObject:')],
+                a_string_including('#<ComplexObject:')],
               hash_opt: {
                 a: false,
                 b: 1,
@@ -157,7 +157,7 @@ class TestSettings
             f: [1, 2, 3],
             g: { 'a' => 'a', 'b' => 'b' },
             h: :a_symbol,
-            i: ComplexObject.new,
+            i: ComplexObject.new
           }
         )
       end

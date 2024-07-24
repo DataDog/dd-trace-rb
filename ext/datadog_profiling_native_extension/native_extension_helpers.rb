@@ -104,7 +104,7 @@ module Datadog
         # the Gem.dir.
         expected_ruby_extensions_folders = [
           "#{gem_dir}/extensions/platform/extension_api_version/datadog_version/",
-          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/",
+          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/"
         ]
         libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
 
@@ -147,12 +147,12 @@ module Datadog
                 "`#{ENV_FAIL_INSTALL_IF_MISSING_EXTENSION}` environment variable is set",
                 'to `true`.',
                 'When contacting support, please include the <mkmf.log> file that is shown ',
-                'below.',
+                'below.'
               ]
             else
               [
                 'The Datadog Continuous Profiler will not be available,',
-                'but all other datadog features will work fine!',
+                'but all other datadog features will work fine!'
               ]
             end
 
@@ -175,7 +175,7 @@ module Datadog
 
         # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
         # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-        def self.pkg_config_missing?(command: $PKGCONFIG) # rubocop:disable Style/GlobalVars
+        def self.pkg_config_missing?(command: $PKGCONFIG) # standard:disable Style/GlobalVars
           pkg_config_available = command && xsystem("#{command} --version")
 
           pkg_config_available != true
@@ -233,7 +233,7 @@ module Datadog
         private_class_method def self.disabled_via_env?
           report_disabled = [
             'If you needed to use this, please tell us why on',
-            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)',
+            '<https://github.com/DataDog/dd-trace-rb/issues/new> so we can fix it :)'
           ].freeze
 
           disabled_via_env = explain_issue(
@@ -343,7 +343,7 @@ module Datadog
             'platform variant.',
             "(Your platform: `#{Libdatadog.current_platform}`)",
             '(Available binaries:',
-            "`#{Libdatadog.available_binaries.join('`, `')}`)",
+            "`#{Libdatadog.available_binaries.join("`, `")}`)",
             suggested: CONTACT_SUPPORT,
           )
 

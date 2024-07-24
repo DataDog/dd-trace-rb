@@ -21,7 +21,7 @@ module Datadog
           [
             ::Process.singleton_class, # Process.fork
             ::Kernel.singleton_class,  # Kernel.fork
-            ::Object,                  # fork without explicit receiver (it's defined as a method in ::Kernel)
+            ::Object                   # fork without explicit receiver (it's defined as a method in ::Kernel)
             # Note: Modifying Object as we do here is irreversible. During tests, this
             # change will stick around even if we otherwise stub `Process` and `Kernel`
           ].each { |target| target.prepend(Kernel) }
@@ -36,15 +36,16 @@ module Datadog
         module Kernel
           def fork
             # If a block is provided, it must be wrapped to trigger callbacks.
-            child_block = if block_given?
-                            proc do
-                              # Trigger :child callback
-                              datadog_at_fork_blocks[:child].each(&:call) if datadog_at_fork_blocks.key?(:child)
+            child_block =
+              if block_given?
+                proc do
+                  # Trigger :child callback
+                  datadog_at_fork_blocks[:child].each(&:call) if datadog_at_fork_blocks.key?(:child)
 
-                              # Invoke original block
-                              yield
-                            end
-                          end
+                  # Invoke original block
+                  yield
+                end
+              end
 
             # Start fork
             # If a block is provided, use the wrapped version.

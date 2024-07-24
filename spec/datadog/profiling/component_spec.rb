@@ -415,7 +415,7 @@ RSpec.describe Datadog::Profiling::Component do
               internal_metadata: {
                 no_signals_workaround_enabled: :no_signals_result,
                 timeline_enabled: :timeline_result,
-                heap_sample_every: 456,
+                heap_sample_every: 456
               }
             )
           )

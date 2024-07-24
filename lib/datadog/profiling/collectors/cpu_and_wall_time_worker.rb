@@ -54,7 +54,7 @@ module Datadog
 
         def start(on_failure_proc: nil)
           @start_stop_mutex.synchronize do
-            return if @worker_thread && @worker_thread.alive?
+            return if @worker_thread&.alive?
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
