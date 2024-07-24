@@ -1420,7 +1420,7 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
 
   ddog_prof_Label labels[] = {
     // Providing .num = 0 should not be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
-    {.key = DDOG_CHARSLICE_C("thread id"),        .str = DDOG_CHARSLICE_C("SA"),                .num = 0},
+    {.key = DDOG_CHARSLICE_C("thread id"),        .str = DDOG_CHARSLICE_C("SS"),                .num = 0},
     {.key = DDOG_CHARSLICE_C("thread name"),      .str = DDOG_CHARSLICE_C("Skipped Samples"),   .num = 0},
     {.key = DDOG_CHARSLICE_C("allocation class"), .str = DDOG_CHARSLICE_C("(Skipped Samples)"), .num = 0},
   };

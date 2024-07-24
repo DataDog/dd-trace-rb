@@ -1232,7 +1232,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     it 'attributes the skipped samples to a "Skipped Samples" thread' do
-      expect(single_sample.labels).to include('thread id': 'SA', 'thread name': 'Skipped Samples')
+      expect(single_sample.labels).to include('thread id': 'SS', 'thread name': 'Skipped Samples')
     end
 
     it 'attributes the skipped samples to a "(Skipped Samples)" allocation class' do
