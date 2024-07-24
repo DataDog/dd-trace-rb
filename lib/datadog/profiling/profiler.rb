@@ -59,6 +59,7 @@ module Datadog
         # we're operating in a degraded state and crash tracking may still be helpful.
 
         if failed_component == :worker
+          scheduler.mark_profiler_failed
           stop_scheduler
         elsif failed_component == :scheduler
           stop_worker

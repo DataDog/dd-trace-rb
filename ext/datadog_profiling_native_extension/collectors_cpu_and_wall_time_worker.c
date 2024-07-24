@@ -320,6 +320,8 @@ static const rb_data_type_t cpu_and_wall_time_worker_typed_data = {
 };
 
 static VALUE _native_new(VALUE klass) {
+  long now = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
   struct cpu_and_wall_time_worker_state *state = ruby_xcalloc(1, sizeof(struct cpu_and_wall_time_worker_state));
 
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
@@ -345,13 +347,6 @@ static VALUE _native_new(VALUE klass) {
   state->during_sample = false;
 
   reset_stats_not_thread_safe(state);
-
-  long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (now == 0) {
-    ruby_xfree(state);
-    rb_raise(rb_eRuntimeError, ERR_CLOCK_FAIL);
-  }
-
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
 
   // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
@@ -1189,9 +1184,15 @@ static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
     discrete_dynamic_sampler_events_since_last_sample(&state->allocation_sampler) :
     // if we aren't, then we're sampling every event
     1;
-  // TODO: Signal in the profile that clamping happened?
+
+  // To control bias from sampling, we clamp the maximum weight attributed to a single allocation sample. This avoids
+  // assigning a very large number to a sample, if for instance the dynamic sampling mechanism chose a really big interval.
   unsigned int weight = allocations_since_last_sample > MAX_ALLOC_WEIGHT ? MAX_ALLOC_WEIGHT : (unsigned int) allocations_since_last_sample;
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
+  // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
+  if (weight < allocations_since_last_sample) {
+    thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, allocations_since_last_sample - weight);
+  }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
   return Qnil;

@@ -231,6 +231,7 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE active_span,
   VALUE otel_values
 );
+static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -261,6 +262,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
   rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
+  rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -1301,7 +1303,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     /* thread: */  current_thread,
     /* stack_from_thread: */ current_thread,
     get_or_create_context_for(current_thread, state),
-    (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1},
+    (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     optional_class_name
@@ -1410,4 +1412,34 @@ static void ddtrace_otel_trace_identifiers_for(
   *root_span = resolved_root_span;
   *active_trace = current_trace;
   *numeric_span_id = resolved_numeric_span_id;
+}
+
+void thread_context_collector_sample_skipped_allocation_samples(VALUE self_instance, unsigned int skipped_samples) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  ddog_prof_Label labels[] = {
+    // Providing .num = 0 should not be needed but the tracer-2.7 docker image ships a buggy gcc that complains about this
+    {.key = DDOG_CHARSLICE_C("thread id"),        .str = DDOG_CHARSLICE_C("SS"),                .num = 0},
+    {.key = DDOG_CHARSLICE_C("thread name"),      .str = DDOG_CHARSLICE_C("Skipped Samples"),   .num = 0},
+    {.key = DDOG_CHARSLICE_C("allocation class"), .str = DDOG_CHARSLICE_C("(Skipped Samples)"), .num = 0},
+  };
+  ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])};
+
+  record_placeholder_stack(
+    state->sampling_buffer,
+    state->recorder_instance,
+    (sample_values) {.alloc_samples = skipped_samples},
+    (sample_labels) {
+      .labels = slice_labels,
+      .state_label = NULL,
+      .end_timestamp_ns = 0, // For now we're not collecting timestamps for allocation events
+    },
+    DDOG_CHARSLICE_C("Skipped Samples")
+  );
+}
+
+static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples) {
+  thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(skipped_samples));
+  return Qtrue;
 }
