@@ -47,6 +47,7 @@ module Datadog
     # (This is similar to some OS-based time representations.)
     #
     # Note 2: All fibers in the same thread will share the same counter values.
+    # Note 3: This counter is not accurate when using the M:N scheduler.
     #
     # Only available when the profiler is running, and allocation-related features are not disabled via configuration.
     #

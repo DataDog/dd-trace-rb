@@ -98,6 +98,7 @@ struct cpu_and_wall_time_worker_state {
   bool no_signals_workaround_enabled;
   bool dynamic_sampling_rate_enabled;
   bool allocation_profiling_enabled;
+  bool allocation_counting_enabled;
   bool skip_idle_samples_for_testing;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
@@ -183,6 +184,7 @@ static VALUE _native_initialize(
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_profiling_enabled,
+  VALUE allocation_counting_enabled,
   VALUE skip_idle_samples_for_testing
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
@@ -280,7 +282,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 9);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 10);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -327,6 +329,7 @@ static VALUE _native_new(VALUE klass) {
   state->no_signals_workaround_enabled = false;
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_profiling_enabled = false;
+  state->allocation_counting_enabled = false;
   state->skip_idle_samples_for_testing = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
@@ -368,6 +371,7 @@ static VALUE _native_initialize(
   VALUE dynamic_sampling_rate_enabled,
   VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_profiling_enabled,
+  VALUE allocation_counting_enabled,
   VALUE skip_idle_samples_for_testing
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
@@ -375,6 +379,7 @@ static VALUE _native_initialize(
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
+  ENFORCE_BOOLEAN(allocation_counting_enabled);
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
 
   struct cpu_and_wall_time_worker_state *state;
@@ -384,6 +389,7 @@ static VALUE _native_initialize(
   state->no_signals_workaround_enabled = (no_signals_workaround_enabled == Qtrue);
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
+  state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
@@ -1042,7 +1048,9 @@ static void sleep_for(uint64_t time_ns) {
 }
 
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
-  bool are_allocations_being_tracked = active_sampler_instance_state != NULL && active_sampler_instance_state->allocation_profiling_enabled;
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state;
+
+  bool are_allocations_being_tracked = state != NULL && state->allocation_profiling_enabled && state->allocation_counting_enabled;
 
   return are_allocations_being_tracked ? ULL2NUM(allocation_count) : Qnil;
 }
@@ -1069,18 +1077,20 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 // On big applications, path 1. is the hottest, since we don't sample every option. So it's quite important for it to
 // be as fast as possible.
 static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
-  // Update thread-local allocation count
-  if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
-    allocation_count = 0;
-  } else {
-    allocation_count++;
-  }
-
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
   // and disabled before it is cleared, but just in case...
   if (state == NULL) return;
+
+  if (RB_UNLIKELY(state->allocation_counting_enabled)) {
+    // Update thread-local allocation count
+    if (RB_UNLIKELY(allocation_count == UINT64_MAX)) {
+      allocation_count = 0;
+    } else {
+      allocation_count++;
+    }
+  }
 
   // In rare cases, we may actually be allocating an object as part of profiler sampling. We don't want to recursively
   // sample, so we just return early

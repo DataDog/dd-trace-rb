@@ -526,6 +526,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#allocation_counting_enabled' do
+        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+
+        it { is_expected.to be false }
+      end
+
+      describe '#allocation_counting_enabled=' do
+        it 'updates the #allocation_counting_enabled setting' do
+          expect { settings.profiling.advanced.allocation_counting_enabled = true }
+            .to change { settings.profiling.advanced.allocation_counting_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#experimental_heap_enabled' do
         subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
 
