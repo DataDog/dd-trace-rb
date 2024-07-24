@@ -58,7 +58,7 @@ module Datadog
             def mysql_hash
               {
                 database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
-                host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
+                host: ENV.fetch('TEST_MYSQL_HOST', 'localhost'),
                 password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
                 port: ENV.fetch('TEST_MYSQL_PORT', '3306')
               }

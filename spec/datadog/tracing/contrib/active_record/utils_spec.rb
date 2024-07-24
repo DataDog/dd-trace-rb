@@ -9,7 +9,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Utils do
     context 'when connected to mysql' do
       it 'returns `mysql2`' do
         root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
-        host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
+        host = ENV.fetch('TEST_MYSQL_HOST', 'localhost')
         port = ENV.fetch('TEST_MYSQL_PORT', '3306')
         db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
 
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Utils do
   describe 'regression: retrieving database without an active connection does not raise an error' do
     before do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
-      host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
+      host = ENV.fetch('TEST_MYSQL_HOST', 'localhost')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
       ActiveRecord::Base.establish_connection("mysql2://root:#{root_pw}@#{host}:#{port}/#{db}")
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Utils do
 
     after do
       root_pw = ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root')
-      host = ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1')
+      host = ENV.fetch('TEST_MYSQL_HOST', 'localhost')
       port = ENV.fetch('TEST_MYSQL_PORT', '3306')
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
       ActiveRecord::Base.establish_connection("mysql2://root:#{root_pw}@#{host}:#{port}/#{db}")

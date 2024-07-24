@@ -230,7 +230,7 @@ RSpec.describe 'Sequel instrumentation' do
       db = ENV.fetch('TEST_MYSQL_DB', 'mysql')
       "#{adapter}://#{host}:#{port}/#{db}?user=#{user}&password=#{password}"
     end
-    let(:host) { ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1') }
+    let(:host) { ENV.fetch('TEST_MYSQL_HOST', 'localhost') }
     let(:adapter) do
       if PlatformHelpers.jruby?
         'mysql'

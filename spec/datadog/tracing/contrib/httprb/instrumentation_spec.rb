@@ -335,6 +335,7 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
 
         expect(span.get_tag('http.url')).to eq('/sample/path')
         expect(span.get_tag('out.host')).to eq('localhost')
+        expect(span.get_tag('out.host')).to_not be_an_ip_address
       end
     end
 

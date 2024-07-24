@@ -20,7 +20,7 @@ RSpec.describe 'net/http requests' do
     WebMock.disable!
   end
 
-  let(:host) { '127.0.0.1' }
+  let(:host) { 'localhost' }
   let(:port) { 1234 }
   let(:uri) { "http://#{host}:#{port}" }
   let(:path) { '/my/path' }
@@ -66,6 +66,7 @@ RSpec.describe 'net/http requests' do
         expect(span.get_tag('http.method')).to eq('GET')
         expect(span.get_tag('http.status_code')).to eq('200')
         expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.host')).to_not be_an_ip_address
         expect(span.get_tag('out.port')).to eq(port.to_s)
         expect(span.get_tag('span.kind')).to eq('client')
         expect(span.status).to eq(0)
@@ -82,7 +83,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_val) { 'localhost' }
         let(:peer_service_source) { 'peer.hostname' }
       end
 
@@ -135,7 +136,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_val) { 'localhost' }
         let(:peer_service_source) { 'peer.hostname' }
       end
 
@@ -169,7 +170,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_val) { 'localhost' }
         let(:peer_service_source) { 'peer.hostname' }
       end
 
@@ -206,7 +207,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_val) { 'localhost' }
         let(:peer_service_source) { 'peer.hostname' }
       end
 
@@ -260,7 +261,7 @@ RSpec.describe 'net/http requests' do
       end
 
       it_behaves_like 'a peer service span' do
-        let(:peer_service_val) { '127.0.0.1' }
+        let(:peer_service_val) { 'localhost' }
         let(:peer_service_source) { 'peer.hostname' }
       end
     end
@@ -285,7 +286,7 @@ RSpec.describe 'net/http requests' do
       before do
         Datadog.configure do |c|
           c.tracing.instrument :http, configuration_options
-          c.tracing.instrument :http, describes: /127.0.0.1/ do |http|
+          c.tracing.instrument :http, describes: /localhost/ do |http|
             http.service_name = 'bar'
             http.split_by_domain = false
           end

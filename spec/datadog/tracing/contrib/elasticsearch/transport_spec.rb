@@ -25,7 +25,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     WebMock.disable!
   end
 
-  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', '127.0.0.1').freeze }
+  let(:host) { ENV.fetch('TEST_ELASTICSEARCH_HOST', 'localhost').freeze }
   let(:port) { ENV.fetch('TEST_ELASTICSEARCH_PORT', '1234').to_i }
   let(:server) { "http://#{host}:#{port}" }
 
@@ -111,6 +111,7 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(span.get_tag('elasticsearch.params')).to be nil
           expect(span.get_tag('elasticsearch.body')).to be nil
           expect(span.get_tag('out.host')).to eq(host)
+          expect(span.get_tag('out.host')).to_not be_an_ip_address
           expect(span.get_tag('out.port')).to eq(port)
         end
 

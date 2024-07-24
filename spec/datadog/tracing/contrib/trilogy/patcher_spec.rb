@@ -24,7 +24,7 @@ RSpec.describe 'Trlogy::Client patcher' do
     )
   end
 
-  let(:host) { ENV.fetch('TEST_MYSQL_HOST') { '127.0.0.1' } }
+  let(:host) { ENV.fetch('TEST_MYSQL_HOST') { 'localhost' } }
   let(:port) { ENV.fetch('TEST_MYSQL_PORT') { '3306' } }
   let(:database) { ENV.fetch('TEST_MYSQL_DB') { 'mysql' } }
   let(:username) { ENV.fetch('TEST_MYSQL_USER') { 'root' } }
@@ -88,6 +88,7 @@ RSpec.describe 'Trlogy::Client patcher' do
           expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('trilogy.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
+          expect(span.get_tag('out.host')).to_not be_an_ip_address
           expect(span.get_tag('out.port')).to eq(port.to_f)
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('trilogy')
