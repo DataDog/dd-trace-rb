@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Gateway
+          class Multiplex < Instrumentation::Gateway::Argument
+            @multiplex: GraphQL::Execution::Multiplex
+
+            @arguments: Hash[String, Array[Hash[String, String]]]
+
+            attr_reader multiplex: GraphQL::Execution::Multiplex
+
+            def initialize: (GraphQL::Execution::Multiplex multiplex) -> void
+
+            def arguments: () -> Hash[String, Array[Hash[String, String]]]
+
+            def queries: () -> Array[GraphQL::Query]
+
+            private
+
+            def create_arguments_hash: () -> Hash[String, Array[Hash[String, String]]]
+          end
+        end
+      end
+    end
+  end
+end

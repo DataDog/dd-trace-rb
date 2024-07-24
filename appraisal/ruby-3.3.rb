@@ -129,24 +129,17 @@ appraise 'contrib' do
 end
 
 [
+  '2.3',
   '2.2',
   '2.1',
   '2.0',
   '1.13',
 ].each do |v|
   appraise "graphql-#{v}" do
+    gem 'rails', '~> 6.1.0'
     gem 'graphql', "~> #{v}.0"
-  end
-end
-
-[
-  '2.2',
-  '2.1',
-  '2.0',
-  '1.13',
-].each do |v|
-  appraise "graphql-#{v}" do
-    gem 'graphql', "~> #{v}.0"
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
   end
 end
 
