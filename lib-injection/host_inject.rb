@@ -127,28 +127,28 @@ else
 
     if !precheck.in_bundle?
       DatadogInjectUtils.debug 'Not in bundle... skipping injection'
-      abort
+      exit!(1)
     elsif !precheck.runtime_supported?
       DatadogInjectUtils.debug "Runtime not supported: #{RUBY_DESCRIPTION}"
       telemetry.emit(
         [{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
          { name: 'library_entrypoint.abort.runtime' }]
       )
-      abort
+      exit!(1)
     elsif !precheck.platform_supported?
       DatadogInjectUtils.debug "Platform not supported: #{local_platform}"
       telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
-      abort
+      exit!(1)
     elsif precheck.already_installed?
       DatadogInjectUtils.debug 'Skip injection: already installed'
     elsif precheck.frozen_bundle?
       DatadogInjectUtils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
       telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
-      abort
+      exit!(1)
     elsif !precheck.bundler_supported?
       DatadogInjectUtils.error "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
       telemetry.emit([{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
-      abort
+      exit!(1)
     else
       # Injection
       path = DatadogInjectUtils.path
@@ -214,7 +214,7 @@ else
         ::FileUtils.rm datadog_gemfile
         ::FileUtils.rm datadog_lockfile
         telemetry.emit([{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
-        abort
+        exit!(1)
       else
         write.puts datadog_gemfile
         telemetry.emit([{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
