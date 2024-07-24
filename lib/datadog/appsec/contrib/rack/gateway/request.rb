@@ -41,7 +41,7 @@ module Datadog
 
             def headers
               result = request.env.each_with_object({}) do |(k, v), h|
-                h[k.gsub(/^HTTP_/, '').downcase!.tr('_', '-')] = v if k =~ /^HTTP_/
+                h[k.delete_prefix('HTTP_').tap(&:downcase!).tap { |s| s.tr!('_', '-') }] = v if k.start_with?('HTTP_')
               end
 
               result['content-type'] = request.content_type if request.content_type
