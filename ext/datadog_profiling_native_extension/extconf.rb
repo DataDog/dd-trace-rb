@@ -129,6 +129,9 @@ if RUBY_PLATFORM.include?('linux')
   # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
+
+  # Not available on macOS
+  $defs << '-DHAVE_CLOCK_MONOTONIC_COARSE'
 end
 
 have_func 'malloc_stats'
