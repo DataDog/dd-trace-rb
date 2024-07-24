@@ -107,7 +107,6 @@ struct cpu_and_wall_time_worker_state {
   dynamic_sampling_rate_state cpu_dynamic_sampling_rate;
   discrete_dynamic_sampler allocation_sampler;
   VALUE gc_tracepoint; // Used to get gc start/finish information
-  VALUE object_allocation_tracepoint; // Used to get allocation counts and allocation profiling
 
   // These are mutable and used to signal things between the worker thread and other threads
 
@@ -120,7 +119,7 @@ struct cpu_and_wall_time_worker_state {
 
   // Others
 
-  // Used to detect/avoid nested sampling, e.g. when the object_allocation_tracepoint gets triggered by a memory allocation
+  // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample.
   bool during_sample;
 
@@ -220,7 +219,7 @@ static void grab_gvl_and_sample(void);
 static void reset_stats_not_thread_safe(struct cpu_and_wall_time_worker_state *state);
 static void sleep_for(uint64_t time_ns);
 static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self);
-static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused);
+static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2);
 static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state);
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self);
 static VALUE rescued_sample_allocation(VALUE tracepoint_data);
@@ -228,6 +227,20 @@ static void delayed_error(struct cpu_and_wall_time_worker_state *state, const ch
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
+
+// We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
+// with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
+//
+// But in practice, because we pass the `RUBY_EVENT_HOOK_FLAG_RAW_ARG` flag to  `rb_add_event_hook2`, it casts the
+// expected signature into a `rb_event_hook_raw_arg_func_t`:
+// > typedef void (*rb_event_hook_raw_arg_func_t)(VALUE data, const rb_trace_arg_t *arg); (from vm_trace.c)
+// which does match `on_newobj_event`.
+//
+// So TL;DR we're just doing this here to avoid the warning and explain why the apparent mismatch in function signatures.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wcast-function-type"
+  static const rb_event_hook_func_t on_newobj_event_as_hook = (rb_event_hook_func_t) on_newobj_event;
+#pragma GCC diagnostic pop
 
 // Note on sampler global state safety:
 //
@@ -338,7 +351,6 @@ static VALUE _native_new(VALUE klass) {
   state->owner_thread = Qnil;
   dynamic_sampling_rate_init(&state->cpu_dynamic_sampling_rate);
   state->gc_tracepoint = Qnil;
-  state->object_allocation_tracepoint = Qnil;
 
   atomic_init(&state->should_run, false);
   state->failure_exception = Qnil;
@@ -401,7 +413,6 @@ static VALUE _native_initialize(
   state->thread_context_collector_instance = enforce_thread_context_collector_instance(thread_context_collector_instance);
   state->idle_sampling_helper_instance = idle_sampling_helper_instance;
   state->gc_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_GC_ENTER | RUBY_INTERNAL_EVENT_GC_EXIT, on_gc_event, NULL /* unused */);
-  state->object_allocation_tracepoint = rb_tracepoint_new(Qnil, RUBY_INTERNAL_EVENT_NEWOBJ, on_newobj_event, NULL /* unused */);
 
   return Qtrue;
 }
@@ -416,7 +427,6 @@ static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->failure_exception);
   rb_gc_mark(state->stop_thread);
   rb_gc_mark(state->gc_tracepoint);
-  rb_gc_mark(state->object_allocation_tracepoint);
 }
 
 // Called in a background thread created in CpuAndWallTimeWorker#start
@@ -762,7 +772,14 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
   // because they may raise exceptions.
   install_sigprof_signal_handler(handle_sampling_signal, "handle_sampling_signal");
   if (state->gc_profiling_enabled) rb_tracepoint_enable(state->gc_tracepoint);
-  if (state->allocation_profiling_enabled) rb_tracepoint_enable(state->object_allocation_tracepoint);
+  if (state->allocation_profiling_enabled) {
+    rb_add_event_hook2(
+      on_newobj_event_as_hook,
+      RUBY_INTERNAL_EVENT_NEWOBJ,
+      state->self_instance,
+      RUBY_EVENT_HOOK_FLAG_SAFE | RUBY_EVENT_HOOK_FLAG_RAW_ARG)
+    ;
+  }
 
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
   rb_funcall(instance, rb_intern("signal_running"), 0);
@@ -1059,7 +1076,7 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
     _result; \
 })
 
-// Implements memory-related profiling events. This function is called by Ruby via the `object_allocation_tracepoint`
+// Implements memory-related profiling events. This function is called by Ruby via the `rb_add_event_hook2`
 // when the RUBY_INTERNAL_EVENT_NEWOBJ event is triggered.
 //
 // When allocation sampling is enabled, this function gets called for almost all* objects allocated by the Ruby VM.
@@ -1069,9 +1086,13 @@ static VALUE _native_allocation_count(DDTRACE_UNUSED VALUE self) {
 // 1. should_sample == false -> return
 // 2. should_sample == true -> sample
 //
-// On big applications, path 1. is the hottest, since we don't sample every option. So it's quite important for it to
+// On big applications, path 1. is the hottest, since we don't sample every object. So it's quite important for it to
 // be as fast as possible.
-static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) {
+//
+// NOTE: You may be wondering why we don't use any of the arguments to this function. It turns out it's possible to just
+// call `rb_tracearg_from_tracepoint(anything)` anywhere during this function or its callees to get the data, so that's
+// why it's not being passed as an argument.
+static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *unused2) {
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because the tracepoint is always enabled after the instance is set
@@ -1127,7 +1148,7 @@ static void on_newobj_event(VALUE tracepoint_data, DDTRACE_UNUSED void *unused) 
   state->during_sample = true;
 
   // Rescue against any exceptions that happen during sampling
-  safely_call(rescued_sample_allocation, tracepoint_data, state->self_instance);
+  safely_call(rescued_sample_allocation, Qnil, state->self_instance);
 
   if (state->dynamic_sampling_rate_enabled) {
     long now = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
@@ -1152,9 +1173,7 @@ static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   if (state->gc_tracepoint != Qnil) {
     rb_tracepoint_disable(state->gc_tracepoint);
   }
-  if (state->object_allocation_tracepoint != Qnil) {
-    rb_tracepoint_disable(state->object_allocation_tracepoint);
-  }
+  rb_remove_event_hook_with_data(on_newobj_event_as_hook, state->self_instance);
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -1170,13 +1189,14 @@ static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
   }
 }
 
-static VALUE rescued_sample_allocation(VALUE tracepoint_data) {
+static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
   // This should not happen in a normal situation because on_newobj_event already checked for this, but just in case...
   if (state == NULL) return Qnil;
 
-  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(tracepoint_data);
+  // If we're getting called from inside a tracepoint/event hook, Ruby exposes the data using this function.
+  rb_trace_arg_t *data = rb_tracearg_from_tracepoint(Qnil);
   VALUE new_object = rb_tracearg_object(data);
 
   unsigned long allocations_since_last_sample = state->dynamic_sampling_rate_enabled ?
