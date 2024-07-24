@@ -226,7 +226,7 @@ else
           telemetry.emit(pid, [{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
           exit!(1)
         else
-          write.puts datadog_gemfile
+          write.puts datadog_gemfile.to_s
           telemetry.emit(pid, [{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
         end
       end
