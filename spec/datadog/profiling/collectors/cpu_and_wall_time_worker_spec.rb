@@ -547,6 +547,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
         # remainder above the clamped value as a separate "Skipped Samples" step.
         context 'with a high allocation rate' do
+          let(:options) { { **super(), dynamic_sampling_rate_overhead_target_percentage: 0.1 } }
           let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
 
           after do
