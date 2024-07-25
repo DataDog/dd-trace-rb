@@ -57,21 +57,26 @@ module Datadog
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
-
-                Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(
-                  sql,
-                  span,
-                  trace_op,
-                  propagation_mode
-                )
+                sql = inject_propagation(span, sql, trace_op)
 
                 super(sql, options)
               end
             end
 
             private
+
+            def inject_propagation(span, sql, trace_op)
+              propagation_mode = Contrib::Propagation::SqlComment::Mode.new(datadog_configuration[:comment_propagation])
+
+              Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
+              Contrib::Propagation::SqlComment.prepend_comment(
+                sql,
+                span,
+                trace_op,
+                propagation_mode,
+                datadog_configuration[:append]
+              )
+            end
 
             def datadog_configuration
               Datadog.configuration.tracing[:mysql2]
@@ -83,10 +88,6 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
-            end
-
-            def comment_propagation
-              datadog_configuration[:comment_propagation]
             end
           end
         end

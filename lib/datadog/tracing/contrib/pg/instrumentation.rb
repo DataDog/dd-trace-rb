@@ -120,7 +120,8 @@ module Datadog
                     sql,
                     span,
                     trace_op,
-                    propagation_mode
+                    propagation_mode,
+                    datadog_configuration[:append]
                   )
                 end
 

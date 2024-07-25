@@ -46,6 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     end
 
     let(:sql_statement) { 'SELECT 1' }
+    let(:append) { false }
 
     context 'when tracing is enabled' do
       before do
@@ -72,7 +73,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, append) }
 
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
@@ -152,6 +153,14 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
             )
           end
         end
+
+        context 'when append is true' do
+          let(:append) { true }
+
+          it 'appends the comment after the sql statement' do
+            is_expected.to eq("#{sql_statement} /*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/")
+          end
+        end
       end
 
       context 'when `full` mode' do
@@ -213,7 +222,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
           span_op.service = 'db_service'
 
-          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
+          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, append)
         end
 
         result

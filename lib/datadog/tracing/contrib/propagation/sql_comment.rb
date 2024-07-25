@@ -19,16 +19,18 @@ module Datadog
 
           # Inject span_op and trace_op instead of TraceDigest to improve memory usage
           # for `disabled` and `service` mode
-          def self.prepend_comment(sql, span_op, trace_op, mode)
+          def self.prepend_comment(sql, span_op, trace_op, mode, append)
             return sql unless mode.enabled?
 
-            parent_service = datadog_configuration.service
+            config = Datadog.configuration
+
+            parent_service = config.service
             peer_service = span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_SERVICE)
 
             tags = {
-              Ext::KEY_ENVIRONMENT => datadog_configuration.env,
+              Ext::KEY_ENVIRONMENT => config.env,
               Ext::KEY_PARENT_SERVICE => parent_service,
-              Ext::KEY_VERSION => datadog_configuration.version,
+              Ext::KEY_VERSION => config.version,
               Ext::KEY_HOSTNAME => span_op.get_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME),
               Ext::KEY_DB_NAME => span_op.get_tag(Contrib::Ext::DB::TAG_INSTANCE),
               Ext::KEY_PEER_SERVICE => peer_service,
@@ -41,7 +43,7 @@ module Datadog
 
             if mode.full?
               # When tracing is disabled, trace_operation is a dummy object that does not contain data to build traceparent
-              if datadog_configuration.tracing.enabled
+              if config.tracing.enabled
                 tags[Ext::KEY_TRACEPARENT] =
                   Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
               else
@@ -52,11 +54,11 @@ module Datadog
               end
             end
 
-            "#{Comment.new(tags)} #{sql}"
-          end
-
-          def self.datadog_configuration
-            Datadog.configuration
+            if append
+              "#{sql} #{Comment.new(tags)}"
+            else
+              "#{Comment.new(tags)} #{sql}"
+            end
           end
         end
       end

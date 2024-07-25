@@ -32,6 +32,8 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
 end
 
 RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
+  let(:append) { false }
+
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
       .to receive(:new).with(mode).and_return(propagation_mode)
@@ -68,7 +70,31 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
       sql_statement,
       a_span_operation_with(service: service_name),
       duck_type(:to_digest),
-      propagation_mode
+      propagation_mode,
+      append
     )
+  end
+
+  context 'in append mode' do
+    let(:append) { true }
+    let(:configuration_options) { super().merge(append: append) }
+
+    it 'appends sql comment to the sql statement' do
+      allow(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).and_call_original
+
+      if error
+        expect { subject }.to raise_error(error)
+      else
+        subject
+      end
+
+      expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
+        sql_statement,
+        a_span_operation_with(service: service_name),
+        duck_type(:to_digest),
+        propagation_mode,
+        append
+      )
+    end
   end
 end
