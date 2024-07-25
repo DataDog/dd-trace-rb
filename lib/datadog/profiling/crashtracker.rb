@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'libdatadog'
+require "libdatadog_api.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
 
 module Datadog
   module Profiling
