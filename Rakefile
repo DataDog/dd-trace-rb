@@ -383,7 +383,11 @@ NATIVE_EXTS = [
 
   Rake::ExtensionTask.new("datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/datadog_profiling_loader'
-  end
+  end,
+
+  Rake::ExtensionTask.new("libdatadog_ruby") do |ext|
+    ext.ext_dir = 'ext/libdatadog_ruby'
+  end,
 ].freeze
 
 NATIVE_CLEAN = ::Rake::FileList[]
