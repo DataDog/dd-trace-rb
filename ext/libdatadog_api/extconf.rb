@@ -1,4 +1,6 @@
-if RUBY_ENGINE != 'ruby' || Gem.win_platform?
+require_relative 'extconf_helpers'
+
+if RUBY_ENGINE != 'ruby' || Gem.win_platform? || !Datadog::LibdatadogApi::ExtconfHelpers::Supported.supported?
   $stderr.puts(
     'WARN: Skipping build of libdatadog_api. Some functionality will not be available.'
   )
@@ -49,6 +51,34 @@ if ENV['DDTRACE_DEBUG']
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
 end
+
+# If we got here, libdatadog is available and loaded
+ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
+Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+$stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
+
+unless pkg_config('datadog_profiling_with_rpath')
+  Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
+
+  raise( # TODO
+    if Datadog::LibdatadogApi::ExtconfHelpers::Supported.pkg_config_missing?
+      Datadog::LibdatadogApi::ExtconfHelpers::Supported::PKG_CONFIG_IS_MISSING
+    else
+      # Less specific error message
+      Datadog::LibdatadogApi::ExtconfHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG
+    end
+  )
+end
+
+# See comments on the helper methods being used for why we need to additionally set this.
+# The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
+# experimentation. We need to get these special characters across a lot of tools untouched...
+extra_relative_rpaths = [
+  Datadog::LibdatadogApi::ExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder,
+  *Datadog::LibdatadogApi::ExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+]
+extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
+Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
 
 # Tag the native extension library with the Ruby version and Ruby platform.
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
