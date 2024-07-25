@@ -28,41 +28,32 @@ else
     module_function
 
     def emit(pid, events)
-      callable = lambda do
-        tracer_version =
-          if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
-            File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
-          else
-            'unknown'
-          end
-
-        payload = {
-          metadata: {
-            language_name: 'ruby',
-            language_version: RUBY_VERSION,
-            runtime_name: RUBY_ENGINE,
-            runtime_version: RUBY_VERSION,
-            tracer_version: tracer_version,
-            pid: pid
-          },
-          points: events
-        }
-
-        fowarder = ENV['DD_TELEMETRY_FORWARDER_PATH']
-
-        if fowarder && !fowarder.empty?
-          require 'open3'
-          require 'json'
-
-          Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload.to_json)
+      tracer_version =
+        if File.exist?('/opt/datadog/apm/library/ruby/version.txt')
+          File.read('/opt/datadog/apm/library/ruby/version.txt').chomp
+        else
+          'unknown'
         end
-      end
 
-      if Process.respond_to?(:fork)
-        fork(&callable)
-        Process.wait2
-      else
-        callable.call
+      payload = {
+        metadata: {
+          language_name: 'ruby',
+          language_version: RUBY_VERSION,
+          runtime_name: RUBY_ENGINE,
+          runtime_version: RUBY_VERSION,
+          tracer_version: tracer_version,
+          pid: pid
+        },
+        points: events
+      }
+
+      fowarder = ENV['DD_TELEMETRY_FORWARDER_PATH']
+
+      if fowarder && !fowarder.empty?
+        require 'open3'
+        require 'json'
+
+        Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload.to_json)
       end
     end
   end
