@@ -74,5 +74,9 @@ Gem::Specification.new do |spec|
   # (and yes we have a test for it)
   spec.add_dependency 'libdatadog', '~> 11.0.0.1.0'
 
-  spec.extensions = ['ext/datadog_profiling_native_extension/extconf.rb', 'ext/datadog_profiling_loader/extconf.rb']
+  spec.extensions = [
+    'ext/datadog_profiling_native_extension/extconf.rb',
+    'ext/datadog_profiling_loader/extconf.rb',
+    'ext/libdatadog_api/extconf.rb'
+  ]
 end
