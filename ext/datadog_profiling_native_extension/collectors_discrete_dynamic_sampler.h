@@ -5,6 +5,8 @@
 
 #include <ruby.h>
 
+#include "time_helpers.h"
+
 // A sampler that will sample discrete events based on the overhead of their
 // sampling.
 //
@@ -62,7 +64,6 @@ typedef struct discrete_dynamic_sampler {
   unsigned long sampling_time_clamps;
 } discrete_dynamic_sampler;
 
-
 // Init a new sampler with sane defaults.
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns);
 
@@ -80,9 +81,38 @@ void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sa
 // @return True if the event associated with this decision should be sampled, false
 //         otherwise.
 //
-// NOTE: If true is returned we implicitly assume the start of a sampling operation
-//       and it is expected that a follow-up after_sample call is issued.
-bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns);
+// IMPORTANT: A call to this method MUST be followed by a call to either
+//            `discrete_dynamic_sampler_before_sample` if return is `true` or
+//            `discrete_dynamic_sampler_skipped_sample` if return is `false`.
+//
+// In the past, this method took care of before_sample/skipped_sample/readjust as well.
+// We've had to split it up because we wanted to both use coarse time and regular monotonic time depending on the
+// situation, but also wanted time to come as an argument from the outside.
+//
+// TL;DR here's how they should be used as Ruby code:
+// if discrete_dynamic_sampler_should_sample
+//   discrete_dynamic_sampler_before_sample(monotonic_wall_time_now_ns())
+// else
+//   needs_readjust = discrete_dynamic_sampler_skipped_sample(monotonic_coarse_wall_time_now_ns())
+//   discrete_dynamic_sampler_readjust(monotonic_wall_time_now_ns()) if needs_readjust
+// end
+__attribute__((warn_unused_result))
+bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler);
+
+// Signal the start of a sampling operation.
+// MUST be called after `discrete_dynamic_sampler_should_sample` returns `true`.
+void discrete_dynamic_sampler_before_sample(discrete_dynamic_sampler *sampler, long now_ns);
+
+// Signals that sampling did not happen
+// MUST be called after `discrete_dynamic_sampler_skipped_sample` returns `false`.
+//
+// @return True if the sampler needs to be readjusted.
+//
+// IMPORTANT: A call to this method MUST be followed by a call to `discrete_dynamic_sampler_readjust` if return is `true`.
+__attribute__((warn_unused_result))
+bool discrete_dynamic_sampler_skipped_sample(discrete_dynamic_sampler *sampler, coarse_instant now);
+
+void discrete_dynamic_sampler_readjust(discrete_dynamic_sampler *sampler, long now_ns);
 
 // Signal the end of a sampling operation.
 //

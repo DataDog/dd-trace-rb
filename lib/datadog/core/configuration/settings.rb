@@ -301,6 +301,16 @@ module Datadog
               o.default true
             end
 
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # Requires allocation profiling to be enabled.
+            #
+            # @default false
+            option :allocation_counting_enabled do |o|
+              o.type :bool
+              o.default false
+            end
+
             # Can be used to enable/disable the collection of heap profiles.
             #
             # This feature is alpha and disabled by default
@@ -663,6 +673,24 @@ module Datadog
             o.type :bool
           end
 
+          # Enable agentless mode for telemetry: submit telemetry events directly to the intake without Datadog Agent.
+          #
+          # @return [Boolean]
+          # @!visibility private
+          option :agentless_enabled do |o|
+            o.type :bool
+            o.default false
+          end
+
+          # Overrides agentless telemetry URL. To be used internally for testing purposes only.
+          #
+          # @return [String]
+          # @!visibility private
+          option :agentless_url_override do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_AGENTLESS_URL_OVERRIDE
+          end
+
           # Enable metrics collection for telemetry. Metrics collection only works when telemetry is enabled and
           # metrics are enabled.
           # @default `DD_TELEMETRY_METRICS_ENABLED` environment variable, otherwise `true`.
@@ -733,6 +761,14 @@ module Datadog
           option :install_time do |o|
             o.type :string, nilable: true
             o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
+          end
+
+          # Telemetry shutdown timeout in seconds
+          #
+          # @!visibility private
+          option :shutdown_timeout_seconds do |o|
+            o.type :float
+            o.default 1.0
           end
         end
 

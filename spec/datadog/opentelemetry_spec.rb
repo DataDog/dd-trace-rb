@@ -604,6 +604,89 @@ RSpec.describe Datadog::OpenTelemetry do
       let(:setter) { :set_attribute }
     end
 
+    describe '#record_exception' do
+      subject! do
+        start_span
+        start_span.record_exception(StandardError.new('Error'), attributes: attributes)
+        start_span.finish
+      end
+
+      let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      Array([nil, {}]).each do |attrs|
+        context "attributes is #{attrs.inspect}" do
+          let(:attributes) { attrs }
+
+          it 'sets records an exception event and sets span error tags using the Exception object' do
+            expect(span.events.count).to eq(1)
+            expect(span.events[0].name).to eq('exception')
+            expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+
+            expect(span.events[0].attributes.keys).to match_array(
+              ['exception.message', 'exception.type',
+               'exception.stacktrace']
+            )
+            expect(span.events[0].attributes['exception.message']).to eq('Error')
+            expect(span.events[0].attributes['exception.type']).to eq('StandardError')
+            expect(span.events[0].attributes['exception.stacktrace']).to include(
+              ":in `full_message': Error (StandardError)"
+            )
+            expect(span).to_not have_error
+            expect(span).to have_error_message('Error')
+            expect(span).to have_error_stack(include(":in `full_message': Error (StandardError)"))
+            expect(span).to have_error_type('StandardError')
+          end
+        end
+      end
+
+      context 'with attributes containing nil values' do
+        let(:attributes) { { 'exception.stacktrace' => nil, 'exception.type' => nil, 'exception.message' => nil } }
+
+        it 'sets records an exception event and sets span error tags using the Exception object' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('exception')
+          expect(span.events[0].attributes).to eq({})
+          expect(span).to_not have_error
+          expect(span).to have_error_message('Error')
+          expect(span).to have_error_stack(include(":in `full_message': Error (StandardError)"))
+          expect(span).to have_error_type('StandardError')
+        end
+      end
+
+      context 'with attributes containing empty values' do
+        let(:attributes) { { 'exception.stacktrace' => '', 'exception.type' => '', 'exception.message' => '' } }
+
+        it 'sets records an exception event and does NOT set span error tags' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('exception')
+          expect(span.events[0].attributes).to eq(attributes)
+          expect(span).to_not have_error
+          expect(span).to_not have_error_message
+          expect(span).to_not have_error_stack
+          expect(span).to_not have_error_type
+        end
+      end
+
+      context 'with attributes containing exception stacktrace, type and message' do
+        let(:attributes) do
+          { 'exception.stacktrace' => 'funny_stack', 'exception.type' => 'CustomError', 'exception.message' => 'NewError',
+            'candy' => true }
+        end
+
+        it 'sets records an exception event and sets span error tags using the attributes hash' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('exception')
+          expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+          expect(span.events[0].attributes).to eq(attributes)
+          expect(span).to_not have_error
+          expect(span).to have_error_message('NewError')
+          expect(span).to have_error_stack('funny_stack')
+          expect(span).to have_error_type('CustomError')
+        end
+      end
+    end
+
     describe '#[]=' do
       include_context 'Span#set_attribute'
       let(:setter) { :[]= }
@@ -623,6 +706,41 @@ RSpec.describe Datadog::OpenTelemetry do
 
         expect(span.get_tag('k1')).to eq('v1')
         expect(span.get_tag('k2')).to eq('v2')
+      end
+    end
+
+    describe '#add_event' do
+      subject! do
+        start_span
+        start_span.add_event('Exception was raised!', attributes: attributes, timestamp: timestamp)
+        start_span.finish
+      end
+
+      let(:start_span) { otel_tracer.start_span('start-span', **span_options) }
+      let(:active_span) { Datadog::Tracing.active_span }
+
+      context 'with name, attributes and timestamp' do
+        let(:attributes) { { 'raised' => false, 'handler' => 'default', 'count' => 1 } }
+        let(:timestamp) { 17206369349 }
+
+        it 'adds one event to the span' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('Exception was raised!')
+          expect(span.events[0].time_unix_nano).to eq(17206369349000000000)
+          expect(span.events[0].attributes).to eq(attributes)
+        end
+      end
+
+      context 'without a timestamp or attributes' do
+        let(:attributes) { {} }
+        let(:timestamp) { nil }
+
+        it 'adds one event with timestamp set to the current time and attributes set to an empty hash' do
+          expect(span.events.count).to eq(1)
+          expect(span.events[0].name).to eq('Exception was raised!')
+          expect(span.events[0].time_unix_nano / 1e9).to be_within(1).of(Time.now.to_f)
+          expect(span.events[0].attributes).to eq({})
+        end
       end
     end
 

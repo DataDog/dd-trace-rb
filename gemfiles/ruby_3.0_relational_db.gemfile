@@ -50,4 +50,8 @@ group :check do
 
 end
 
+group :dev do
+
+end
+
 gemspec path: "../"

@@ -2,6 +2,7 @@
 
 require_relative 'trace/span'
 require_relative '../../tracing/span_link'
+require_relative '../../tracing/span_event'
 require_relative '../../tracing/trace_digest'
 
 module Datadog
@@ -31,6 +32,15 @@ module Datadog
         #
         # @param [Span] span the {Span} that just ended.
         def on_finish(span)
+          unless span.events.nil?
+            span.datadog_span.span_events = span.events.map do |event|
+              Datadog::Tracing::SpanEvent.new(
+                event.name,
+                attributes: event.attributes,
+                time_unix_nano: event.timestamp
+              )
+            end
+          end
           span.datadog_span.finish(ns_to_time(span.end_timestamp))
         end
 

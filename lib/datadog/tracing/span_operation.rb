@@ -35,7 +35,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status
+      attr_accessor :links, :status, :span_events
 
       def initialize(
         name,
@@ -49,6 +49,7 @@ module Datadog
         trace_id: nil,
         type: nil,
         links: nil,
+        span_events: nil,
         id: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
@@ -68,6 +69,8 @@ module Datadog
         @status = 0
         # stores array of span links
         @links = links || []
+        # stores array of span events
+        @span_events = span_events || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -265,7 +268,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Return a string representation of the span.
@@ -455,6 +458,7 @@ module Datadog
           type: @type,
           trace_id: @trace_id,
           links: @links,
+          events: @span_events,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end

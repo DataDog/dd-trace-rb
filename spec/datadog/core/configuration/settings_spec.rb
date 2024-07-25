@@ -526,6 +526,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#allocation_counting_enabled' do
+        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+
+        it { is_expected.to be false }
+      end
+
+      describe '#allocation_counting_enabled=' do
+        it 'updates the #allocation_counting_enabled setting' do
+          expect { settings.profiling.advanced.allocation_counting_enabled = true }
+            .to change { settings.profiling.advanced.allocation_counting_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#experimental_heap_enabled' do
         subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
 
@@ -1429,6 +1444,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
   end
 
   describe '#telemetry' do
+    let(:env_var_name) { 'no_var' }
+    let(:env_var_value) { 'no_val' }
+
     around do |example|
       ClimateControl.modify(env_var_name => env_var_value) do
         example.run
@@ -1473,6 +1491,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.enabled }
           .from(true)
           .to(false)
+      end
+    end
+
+    describe '#agentless_enabled' do
+      subject(:agentless_enabled) { settings.telemetry.agentless_enabled }
+
+      it { is_expected.to be false }
+    end
+
+    describe '#agentless_enabled=' do
+      it 'updates the #agentless_enabled setting' do
+        expect { settings.telemetry.agentless_enabled = true }
+          .to change { settings.telemetry.agentless_enabled }
+          .from(false)
+          .to(true)
       end
     end
 
@@ -1657,6 +1690,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.telemetry.install_time }
           .from('1703188212')
           .to('abc123')
+      end
+    end
+
+    describe '#shutdown_timeout_seconds' do
+      subject(:shutdown_timeout_seconds) { settings.telemetry.shutdown_timeout_seconds }
+
+      it { is_expected.to eq 1.0 }
+    end
+
+    describe '#shutdown_timeout_seconds=' do
+      it 'updates the #shutdown_timeout_seconds setting' do
+        expect { settings.telemetry.shutdown_timeout_seconds = 42.0 }
+          .to change { settings.telemetry.shutdown_timeout_seconds }
+          .from(1.0)
+          .to(42.0)
       end
     end
   end

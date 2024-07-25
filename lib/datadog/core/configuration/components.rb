@@ -56,19 +56,7 @@ module Datadog
           end
 
           def build_telemetry(settings, agent_settings, logger)
-            enabled = settings.telemetry.enabled
-            if agent_settings.adapter != Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              enabled = false
-              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
-            end
-
-            Telemetry::Component.new(
-              enabled: enabled,
-              metrics_enabled: enabled && settings.telemetry.metrics_enabled,
-              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-              dependency_collection: settings.telemetry.dependency_collection
-            )
+            Telemetry::Component.build(settings, agent_settings, logger)
           end
         end
 

@@ -15,6 +15,29 @@ module Datadog
           res
         end
 
+        # Record an exception during the execution of this span. Multiple exceptions
+        # can be recorded on a span.
+        #
+        # @param [Exception] exception The exception to recorded
+        # @param [optional Hash{String => String, Numeric, Boolean, Array<String, Numeric, Boolean>}]
+        #   attributes One or more key:value pairs, where the keys must be
+        #   strings and the values may be (array of) string, boolean or numeric
+        #   type.
+        #
+        # @return [void]
+        def record_exception(exception, attributes: nil)
+          res = super
+          if (span = datadog_span)
+            # Sets the exception attributes as span error tags. The values in the attribute hash MUST
+            # take precedence over the type, message and stacktrace inferred from the exception object
+            type = attributes&.[]('exception.type') || exception.class.to_s
+            message = attributes&.[]('exception.message') || exception.message
+            stacktrace = attributes&.[]('exception.stacktrace') || exception.full_message(highlight: false, order: :top)
+            span.set_error_tags([type, message, stacktrace])
+          end
+          res
+        end
+
         # `alias` performed to match {OpenTelemetry::SDK::Trace::Span} aliasing upstream
         alias []= set_attribute
 

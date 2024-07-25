@@ -27,6 +27,7 @@ module Datadog
         :resource,
         :service,
         :links,
+        :events,
         :type,
         :start_time,
         :status,
@@ -45,6 +46,7 @@ module Datadog
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
       # * +service_entry+: whether it is a service entry span.
+      # * +events+: the list of events that occurred while a span was active.
       def initialize(
         name,
         duration: nil,
@@ -60,7 +62,8 @@ module Datadog
         type: nil,
         trace_id: nil,
         service_entry: nil,
-        links: nil
+        links: nil,
+        events: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -90,6 +93,8 @@ module Datadog
 
         @links = links || []
 
+        @events = events || []
+
         # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
       end
@@ -112,7 +117,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Spans with the same ID are considered the same span
@@ -148,6 +153,8 @@ module Datadog
           h[:start] = start_time_nano
           h[:duration] = duration_nano
         end
+
+        h[:meta]['events'] = @events.map(&:to_hash).to_json unless @events.empty?
 
         h
       end

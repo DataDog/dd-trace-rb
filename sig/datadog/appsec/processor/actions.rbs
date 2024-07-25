@@ -6,7 +6,7 @@ module Datadog
 
         def self.actions: () -> Array[Hash[String, untyped]]
 
-        def self.fecth_configuration: (String action) -> Hash[String, untyped]?
+        def self.fetch_configuration: (String action) -> Hash[String, untyped]?
 
         def self.merge: (Array[Hash[String, untyped]] actions_to_merge) -> Array[Hash[String, untyped]]?
 
