@@ -12,7 +12,6 @@ include:
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
-  SKIP_LATEST_TAG: "true"
   REPO_LANG: ruby # ruby is used rather that "rb"
 
 default:
