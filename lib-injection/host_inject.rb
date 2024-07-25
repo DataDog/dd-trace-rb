@@ -16,31 +16,33 @@ else
       Process.respond_to?(:pid) ? Process.pid : 0
     end
 
+    def root
+      File.expand_path(File.join(File.dirname(__FILE__), '.'))
+    end
+
     def path
       major, minor, = RUBY_VERSION.split('.')
       ruby_api_version = "#{major}.#{minor}.0"
 
-      "PATH_PLACEHOLDER/#{ruby_api_version}"
+      "#{root}/#{ruby_api_version}"
+    end
+
+    def version
+      File.exist?("#{root}/version") ? File.read("#{root}/version").chomp : 'unknown'
     end
   end
 
   telemetry = Module.new do
     module_function
 
-    def emit(pid, events)
-      tracer_version = if File.exist?('PATH_PLACEHOLDER/version')
-                         File.read('PATH_PLACEHOLDER/version').chomp
-                       else
-                         'unknown'
-                       end
-
+    def emit(pid, version, events)
       payload = {
         metadata: {
           language_name: 'ruby',
           language_version: RUBY_VERSION,
           runtime_name: RUBY_ENGINE,
           runtime_version: RUBY_VERSION,
-          tracer_version: tracer_version,
+          tracer_version: version,
           pid: pid
         },
         points: events
@@ -131,23 +133,24 @@ else
         utils.debug "Runtime not supported: #{RUBY_DESCRIPTION}"
         telemetry.emit(
           pid,
+          utils.version,
           [{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_runtime'] },
            { name: 'library_entrypoint.abort.runtime' }]
         )
         exit!(1)
       elsif !precheck.platform_supported?
         utils.debug "Platform not supported: #{local_platform}"
-        telemetry.emit(pid, [{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:incompatible_platform'] }])
         exit!(1)
       elsif precheck.already_installed?
         utils.debug 'Skip injection: already installed'
       elsif precheck.frozen_bundle?
         utils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
-        telemetry.emit(pid, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
         exit!(1)
       elsif !precheck.bundler_supported?
         utils.error "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
-        telemetry.emit(pid, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_version'] }])
         exit!(1)
       else
         # Injection
@@ -214,11 +217,11 @@ else
         if injection_failure
           ::FileUtils.rm datadog_gemfile
           ::FileUtils.rm datadog_lockfile
-          telemetry.emit(pid, [{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
+          telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.error', tags: ['error_type:injection_failure'] }])
           exit!(1)
         else
           write.puts datadog_gemfile.to_s
-          telemetry.emit(pid, [{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
+          telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.complete', tags: ['injection_forced:false'] }])
         end
       end
     end
@@ -241,6 +244,6 @@ else
     end
   else
     utils.debug 'Fork not supported... skipping injection'
-    telemetry.emit(pid, [{ name: 'library_entrypoint.abort', tags: ['reason:fork_not_supported'] }])
+    telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:fork_not_supported'] }])
   end
 end
