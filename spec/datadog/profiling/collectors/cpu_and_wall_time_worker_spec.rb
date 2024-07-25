@@ -546,22 +546,34 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # and we clamp it if it goes over the limit.
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
         # remainder above the clamped value as a separate "Skipped Samples" step.
-        it 'records skipped allocation samples when weights are clamped' do
-          start
+        context 'with a high allocation rate' do
+          let(:options) { { **super(), dynamic_sampling_rate_overhead_target_percentage: 0.1 } }
+          let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
 
-          thread_that_allocates_as_fast_as_possible = Thread.new { loop { BasicObject.new } }
-
-          allocation_samples = try_wait_until do
-            samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
-            samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
+          after do
+            thread_that_allocates_as_fast_as_possible.kill
+            thread_that_allocates_as_fast_as_possible.join
           end
 
-          thread_that_allocates_as_fast_as_possible.kill
-          thread_that_allocates_as_fast_as_possible.join
+          it 'records skipped allocation samples when weights are clamped' do
+            start
 
-          cpu_and_wall_time_worker.stop
+            # Trigger thread creation
+            thread_that_allocates_as_fast_as_possible
 
-          expect(allocation_samples).to_not be_empty
+            allocation_samples = try_wait_until do
+              samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
+              samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
+            end
+
+            # Stop thread earlier, since it will slow down the Ruby VM
+            thread_that_allocates_as_fast_as_possible.kill
+            thread_that_allocates_as_fast_as_possible.join
+
+            cpu_and_wall_time_worker.stop
+
+            expect(allocation_samples).to_not be_empty
+          end
         end
       end
 
