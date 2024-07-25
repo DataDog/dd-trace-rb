@@ -78,7 +78,7 @@ build-gem:
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
       fi
     - bundle install && chmod go-w -R . && bundle exec rake build
-    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version.txt
+    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
   artifacts:
     paths:
       - pkg
@@ -96,7 +96,7 @@ install-dependencies:
   needs:
     - build-gem
   script:
-    - export RUBY_PACKAGE_VERSION=$(cat tmp/version.txt)
+    - export RUBY_PACKAGE_VERSION=$(cat tmp/version)
     - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
     - ruby -v
     - gem -v
