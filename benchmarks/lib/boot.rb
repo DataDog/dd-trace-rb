@@ -84,19 +84,21 @@ class Benchmarker
   def run_after
     after_blocks.map(&:call)
   end
-end
 
-def benchmarks(source_file, &block)
-  return unless source_file == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
+  class << self
+    def benchmarks(source_file, &block)
+      return unless source_file == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-  require 'benchmark/ips'
-  require 'datadog'
-  require 'pry'
-  require_relative 'dogstatsd_reporter'
+      require 'benchmark/ips'
+      require 'datadog'
+      require 'pry'
+      require_relative 'dogstatsd_reporter'
 
-  # Create a new class so that methods can delegate to the base
-  # implementation via super.
-  Class.new(Benchmarker).new(source_file).tap do |benchmarker|
-    benchmarker.instance_exec(&block)
-  end.run
+      # Create a new class so that methods can delegate to the base
+      # implementation via super.
+      Class.new(Benchmarker).new(source_file).tap do |benchmarker|
+        benchmarker.instance_exec(&block)
+      end.run
+    end
+  end
 end

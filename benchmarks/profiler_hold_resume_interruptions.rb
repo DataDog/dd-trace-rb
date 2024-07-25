@@ -1,7 +1,7 @@
 require_relative 'lib/boot'
 
 # This benchmark measures the performance of the hold/resume interruptions used by the DirMonkeyPatches
-benchmarks(__FILE__) do
+Benchmarker.define(__FILE__) do
 
   def create_profiler
     Datadog.configure do |c|
