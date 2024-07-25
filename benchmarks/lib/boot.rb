@@ -86,7 +86,7 @@ class Benchmarker
   end
 
   class << self
-    def benchmarks(source_file, &block)
+    def define(source_file, &block)
       return unless source_file == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
       require 'benchmark/ips'
@@ -96,9 +96,11 @@ class Benchmarker
 
       # Create a new class so that methods can delegate to the base
       # implementation via super.
-      Class.new(Benchmarker).new(source_file).tap do |benchmarker|
-        benchmarker.instance_exec(&block)
-      end.run
+      cls_name = File.basename(source_file).sub(/\.rb\z/, '').gsub(/_(\w)/) { |m| m[1..].upcase }.gsub(/\A(.)/) { |m| m.upcase }
+      cls = Class.new(Benchmarker).new(source_file)
+      Object.const_set(cls_name, cls)
+      cls.instance_exec(&block)
+      cls.run
     end
   end
 end
