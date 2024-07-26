@@ -2,7 +2,8 @@ require 'datadog/tracing/contrib/propagation/sql_comment'
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
-  let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
+  let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
+  let(:append) { false }
 
   describe '.annotate!' do
     let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
@@ -73,7 +74,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         )
       end
 
-      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, append) }
+      subject { described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode) }
 
       context 'when `disabled` mode' do
         let(:mode) { 'disabled' }
@@ -222,7 +223,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
           span_op.service = 'db_service'
 
-          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode, append)
+          result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
         end
 
         result

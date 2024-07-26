@@ -19,7 +19,7 @@ module Datadog
 
           # Inject span_op and trace_op instead of TraceDigest to improve memory usage
           # for `disabled` and `service` mode
-          def self.prepend_comment(sql, span_op, trace_op, mode, append)
+          def self.prepend_comment(sql, span_op, trace_op, mode)
             return sql unless mode.enabled?
 
             config = Datadog.configuration
@@ -54,7 +54,7 @@ module Datadog
               end
             end
 
-            if append
+            if mode.append?
               "#{sql} #{Comment.new(tags)}"
             else
               "#{Comment.new(tags)} #{sql}"

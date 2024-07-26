@@ -1,7 +1,7 @@
 RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, error: nil|
   context 'when default `disabled`' do
     it_behaves_like 'propagates with sql comment', mode: 'disabled', span_op_name: span_op_name, error: error do
-      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled') }
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled', append) }
     end
   end
 
@@ -14,7 +14,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
     end
 
     it_behaves_like 'propagates with sql comment', mode: 'service', span_op_name: span_op_name, error: error do
-      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service') }
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service', append) }
     end
   end
 
@@ -25,7 +25,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
       end
 
       it_behaves_like 'propagates with sql comment', mode: mode, span_op_name: span_op_name, error: error do
-        let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
+        let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
       end
     end
   end
@@ -36,7 +36,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
 
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
-      .to receive(:new).with(mode).and_return(propagation_mode)
+      .to receive(:new).with(mode, append).and_return(propagation_mode)
 
     if error
       expect { subject }.to raise_error(error)
@@ -70,8 +70,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
       sql_statement,
       a_span_operation_with(service: service_name),
       duck_type(:to_digest),
-      propagation_mode,
-      append
+      propagation_mode
     )
   end
 
@@ -92,8 +91,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
         sql_statement,
         a_span_operation_with(service: service_name),
         duck_type(:to_digest),
-        propagation_mode,
-        append
+        propagation_mode
       )
     end
   end
