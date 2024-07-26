@@ -2505,9 +2505,22 @@ In many cases, such as logging, it may be useful to correlate trace IDs to other
 
 ##### Automatic
 
-For Rails applications using the default logger (`ActiveSupport::TaggedLogging`), `lograge` or `semantic_logger`, trace correlation injection is enabled by default.
+For Rails applications using the default logger (`ActiveSupport::TaggedLogging`), `lograge`, or `semantic_logger`, trace correlation injection is enabled by default.
 
 It can be disabled by setting the environment variable `DD_LOGS_INJECTION=false`.
+
+<div class="alert alert-warning">
+If using <code>lograge</code>, disable <code>ActiveSupport::TaggedLogging</code> to prevent plain-text <code>TaggedLogging</code> tags from polluting the log lines.
+</div>
+
+To disable `ActiveSupport::TaggedLogging`, in your Rails configuration, set:
+
+```ruby
+config.logger = ActiveSupport::Logger.new(STDOUT)
+config.active_job.logger = ActiveSupport::Logger.new(STDOUT)
+```
+
+This is not necessary when using `semantic_logger`.
 
 #### For logging in Ruby applications
 
