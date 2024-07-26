@@ -14,19 +14,19 @@ module Datadog
             end
 
             def service?
-              @mode == Ext::SERVICE
+              mode == Ext::SERVICE
             end
 
             def full?
-              @mode == Ext::FULL
+              mode == Ext::FULL
             end
 
             def prepend?
-              !@append
+              !append
             end
 
             def append?
-              @append
+              append
             end
           end
         end
