@@ -13,6 +13,7 @@ include:
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
   REPO_LANG: ruby # ruby is used rather that "rb"
+  BUILD_JOB_NAME: save_versions
 
 default:
   tags: ["runner:main", "size:large"]
@@ -122,3 +123,19 @@ onboarding_tests_k8s_injection:
   parallel:
     matrix:
       - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+
+save_versions:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  stage: package
+  needs: []
+  script:
+    - git fetch --all
+    - echo COMMIT_SHA_1X=$(git rev-parse origin/1.x-stable) >> upstream.env
+    - echo COMMIT_SHA_2X=$(git rev-parse origin/master) >> upstream.env
+  artifacts:
+    paths:
+      - upstream.env
+
+deploy_to_reliability_env:
+  needs:
+    - save_versions
