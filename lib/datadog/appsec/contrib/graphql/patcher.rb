@@ -2,6 +2,7 @@
 
 require_relative '../patcher'
 require_relative 'gateway/watcher'
+require_relative 'appsec_trace' if Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
 
 module Datadog
   module AppSec
@@ -22,7 +23,6 @@ module Datadog
           end
 
           def patch
-            require_relative 'appsec_trace'
             Gateway::Watcher.watch
             ::GraphQL::Schema.trace_with(AppSecTrace)
             Patcher.instance_variable_set(:@patched, true)

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'graphql/language/nodes'
+require 'graphql'
 
 require_relative '../../../instrumentation/gateway/argument'
 
