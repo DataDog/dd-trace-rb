@@ -287,7 +287,7 @@ RSpec.describe 'GraphQL integration tests',
             it do
               post '/graphql', query: 'mutation { createUser(name: "$testattack") { user { name, id } } }'
               expect(JSON.parse(last_response.body)['errors'][0]['title']).to eq('Blocked')
-              expect(Users.users['$testattack']).to be_nil
+              expect(TestGraphQL::Users.users['$testattack']).to be_nil
             end
           end
         end
