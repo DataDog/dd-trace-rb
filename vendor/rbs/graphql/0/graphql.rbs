@@ -22,6 +22,9 @@ module GraphQL
 
       class Field
       end
+
+      class Argument
+      end
     end
   end
 
