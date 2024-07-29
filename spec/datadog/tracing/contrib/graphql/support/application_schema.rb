@@ -7,10 +7,10 @@ module TestGraphQL
     locations FIELD
 
     TRANSFORMS = [
-      "upcase",
-      "downcase",
-      # ??
-    ]
+      'upcase',
+      'downcase',
+    ].freeze
+
     # Implement the Directive API
     def self.resolve(object, arguments, context)
       path = context.namespace(:interpreter)[:current_path]
@@ -27,9 +27,7 @@ module TestGraphQL
             break
           end
         end
-        if response
-          response[last] = return_value
-        end
+        response[last] = return_value if response
         nil
       end
     end
