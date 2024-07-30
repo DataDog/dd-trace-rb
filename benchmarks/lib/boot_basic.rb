@@ -111,6 +111,9 @@ class BasicBenchmarker
   def suite_for_dogstatsd_reporting(**args)
     # Basic benchmarker cannot have datadog loaded, therefore
     # it is currently unable to report stats to dogstatsd.
+    if ENV['REPORT_TO_DOGSTATSD'] == 'true'
+      warn "reporting to dogstatsd has been requested but the basic benchmarker is not able to report to dogstatsd"
+    end
     nil
   end
 end
