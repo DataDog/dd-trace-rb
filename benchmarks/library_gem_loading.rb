@@ -15,6 +15,7 @@ BasicBenchmarker.define(__FILE__) do
     end
   end
 
+  # Gem loading is quite slower than the other microbenchmarks
   benchmark 'gem loading', time: 60 do
     pid = fork { require 'datadog' }
 
