@@ -1,6 +1,5 @@
 require_relative './boot_basic'
 require 'datadog'
-require 'datadog/statsd'
 
 class Benchmarker < BasicBenchmarker
   class << self
