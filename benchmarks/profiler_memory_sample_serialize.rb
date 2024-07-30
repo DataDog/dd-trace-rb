@@ -85,7 +85,7 @@ class ProfilerMemorySampleSerializeBenchmark
         recorder.serialize
       end
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! 'profiler_memory_sample_serialize-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

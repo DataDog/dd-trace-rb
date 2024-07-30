@@ -30,7 +30,7 @@ class ProfilerHoldResumeInterruptions
         Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_resume_signals
       end
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! 'profiler_hold_resume_interruptions-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end

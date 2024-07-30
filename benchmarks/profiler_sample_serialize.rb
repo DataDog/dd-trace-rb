@@ -55,7 +55,7 @@ class ProfilerSampleSerializeBenchmark
         nil
       end
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! 'profiler_sample_serialize-results.json' unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
