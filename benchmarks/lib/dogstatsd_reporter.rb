@@ -1,6 +1,5 @@
 require 'datadog'
 require 'datadog/statsd'
-require 'benchmark/ips'
 require 'securerandom'
 
 # Implements a benchmark-ips "suite" that reports benchmark data via DogStatsD
