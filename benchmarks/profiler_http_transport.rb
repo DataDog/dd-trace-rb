@@ -9,7 +9,7 @@ require_relative 'lib/boot'
 # This doesn't seem to be clearly documented anywhere, you just see people rediscovering it on the web, for instance
 # in https://gist.github.com/carlos8f/3473107 . If you're curious, the ports show up using the `netstat` tool.
 # Behavior on Linux seems to be different (or at least the defaults are way higher).
-Benchmarker.define(__FILE__) do
+Benchmarker.define do
   require 'securerandom'
   require 'socket'
 

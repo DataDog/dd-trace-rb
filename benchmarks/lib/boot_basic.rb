@@ -86,8 +86,10 @@ class BasicBenchmarker
   end
 
   class << self
-    def define(source_file, &block)
-      return unless source_file == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
+    def define(&block)
+      caller_path = caller_locations.first.path
+
+      return unless caller_path == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
       require 'benchmark/ips'
 
@@ -95,8 +97,8 @@ class BasicBenchmarker
 
       # Create a new class so that methods can delegate to the base
       # implementation via super.
-      cls_name = File.basename(source_file).sub(/\.rb\z/, '').gsub(/_(\w)/) { |m| m[1..].upcase }.gsub(/\A(.)/) { |m| m.upcase }
-      cls = Class.new(self).new(source_file)
+      cls_name = File.basename(caller_path).sub(/\.rb\z/, '').gsub(/_(\w)/) { |m| m[1..].upcase }.gsub(/\A(.)/) { |m| m.upcase }
+      cls = Class.new(self).new(caller_path)
       Object.const_set(cls_name, cls)
       cls.instance_exec(&block)
       cls.run

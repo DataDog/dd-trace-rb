@@ -2,7 +2,7 @@ require_relative 'lib/boot'
 
 # This benchmark measures the performance of sampling + serializing profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time (e.g. timeline).
-Benchmarker.define(__FILE__) do
+Benchmarker.define do
 
   before do
     require 'libdatadog'

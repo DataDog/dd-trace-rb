@@ -10,7 +10,7 @@ require 'open3'
 # file by itself.
 #
 # The gem loading benchmark has never reported results to dogstatsd.
-BasicBenchmarker.define(__FILE__) do
+BasicBenchmarker.define do
   before do
     if defined?(::Datadog::Core)
       raise "Datadog is already defined, this benchmark must be run in a clean environment"

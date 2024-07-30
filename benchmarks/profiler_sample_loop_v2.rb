@@ -1,7 +1,7 @@
 require_relative 'lib/boot'
 
 # This benchmark measures the performance of the main stack sampling loop of the profiler
-Benchmarker.define(__FILE__) do
+Benchmarker.define do
   # This is needed because we're directly invoking the collector through a testing interface; in normal
   # use a profiler thread is automatically used.
   PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
