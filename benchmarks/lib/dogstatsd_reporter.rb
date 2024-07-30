@@ -11,18 +11,6 @@ require 'securerandom'
 #   x.config(suite: report_to_dogstatsd_if_enabled_via_environment_variable(...settings...))
 # ```
 
-REPORTING_DISABLED_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
-
-def report_to_dogstatsd_if_enabled_via_environment_variable(**args)
-  if ENV['REPORT_TO_DOGSTATSD'] == 'true'
-    puts "DogStatsD reporting ✅ enabled"
-    DogstatsdReporter.new(**args)
-  else
-    REPORTING_DISABLED_ONLY_ONCE.run { puts "DogStatsD reporting ❌ disabled" }
-    nil
-  end
-end
-
 class DogstatsdReporter
   private
 

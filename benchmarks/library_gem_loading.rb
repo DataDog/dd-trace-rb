@@ -8,6 +8,8 @@ require 'open3'
 # Now that this benchmark is in its own file, it does not need
 # to spawn a subprocess IF we would always execute this benchmark
 # file by itself.
+#
+# The gem loading benchmark has never reported results to dogstatsd.
 BasicBenchmarker.define(__FILE__) do
   before do
     if defined?(::Datadog::Core)

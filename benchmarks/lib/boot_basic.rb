@@ -44,7 +44,7 @@ class BasicBenchmarker
         _benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: time || default_benchmark_time, warmup: 2 }
         x.config(
           **_benchmark_time,
-          suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: source_file_without_ext)
+          suite: suite_for_dogstatsd_reporting(benchmark_name: source_file_without_ext)
         )
 
         x.report(name, &block)
@@ -103,6 +103,14 @@ class BasicBenchmarker
     end
 
     def preload_libs
+      # Do not preload anything in the basic benchmarker.
+      # Regular benchmarker preloads datadog and pry for convenience.
     end
+  end
+
+  def suite_for_dogstatsd_reporting(**args)
+    # Basic benchmarker cannot have datadog loaded, therefore
+    # it is currently unable to report stats to dogstatsd.
+    nil
   end
 end
