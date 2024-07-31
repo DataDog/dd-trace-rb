@@ -39,7 +39,7 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 | ----------- | ----------------------------------------------- | --------------------- | ------------------- |
 | OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+                | >= 0.16.0           |
 
-*Full* support indicates all tracer features are available.
+*Full* support indicates all APM SDK features are available.
 
 *Deprecated* indicates support will transition to *Maintenance* in a future release.
 
