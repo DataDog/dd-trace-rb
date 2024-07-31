@@ -2,6 +2,7 @@ stages:
   - manual-images
   - package
   - shared-pipeline
+  - vaccine
   - macrobenchmarks
   - microbenchmarks
   - benchmarks
@@ -139,3 +140,17 @@ save_versions:
 deploy_to_reliability_env:
   needs:
     - save_versions
+
+vaccine:
+  image: $DOCKER_REGISTRY/docker:20.10.13
+  tags: [ "arch:amd64" ]
+  stage: vaccine
+  needs: [create-multiarch-lib-injection-image]
+  script: |
+    GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token)
+
+    curl -X POST \
+      -H "Accept: application/vnd.github.v3+json" \
+      -H "Authorization: token $GH_VACCINE_PAT" \
+      https://api.github.com/repos/TonyCTHsu/vaccine/actions/workflows/vaccine.yml/dispatches \
+      -d '{"ref":"master", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}'
