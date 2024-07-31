@@ -547,8 +547,6 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context 'when crash tracking is enabled' do
-        before { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
-
         it 'initializes the crash tracker' do
           expect(Datadog::Profiling::Crashtracker).to receive(:new).with(
             exporter_configuration: array_including(:agent),
@@ -564,11 +562,11 @@ RSpec.describe Datadog::Profiling::Component do
 
           before do
             settings.profiling.exporter.transport = custom_transport
-            allow(Datadog.logger).to receive(:warn)
+            allow(Datadog.logger).to receive(:debug)
           end
 
-          it 'warns that crash tracking will not be enabled' do
-            expect(Datadog.logger).to receive(:warn).with(/Cannot enable profiling crash tracking/)
+          it 'debug logs that crash tracking will not be enabled' do
+            expect(Datadog.logger).to receive(:debug).with(/Cannot enable profiling crash tracking/)
 
             build_profiler_component
           end
