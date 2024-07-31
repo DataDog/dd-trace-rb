@@ -9,7 +9,23 @@ RSpec.describe 'Tracing benchmarks' do
     end
   end
 
-  describe 'tracing_trace' do
-    it('runs without raising errors') { expect_in_fork { load './benchmarks/tracing_trace.rb' } }
+  %w(
+    gem_loading
+    profiler_allocation
+    profiler_gc
+    profiler_hold_resume_interruptions
+    profiler_http_transport
+    profiler_memory_sample_serialize
+    profiler_sample_loop_v2
+    profiler_sample_serialize
+    tracing_trace
+  ).each do |benchmark|
+    describe benchmark do
+      it 'runs without raising errors' do
+        expect_in_fork do
+          load "./benchmarks/#{benchmark}.rb"
+        end
+      end
+    end
   end
 end
