@@ -93,7 +93,7 @@ module Datadog
             # @see Sidekiq::Processor#dispatch
             def dispatch(*args, **kwargs, &block)
               if Datadog.configuration.tracing[:sidekiq][:distributed_tracing]
-                trace_digest = Sidekiq.extract(args[0]) rescue nil
+                trace_digest = Sidekiq.extract(args.first) rescue nil
               end
 
               Datadog::Tracing.continue_trace!(trace_digest)
