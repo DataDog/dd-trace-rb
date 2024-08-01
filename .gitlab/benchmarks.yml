@@ -113,13 +113,6 @@ only-profiling-heap:
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-crashtracking:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED: "true"
-
 profiling-and-tracing:
   extends: .benchmarks
   variables:
