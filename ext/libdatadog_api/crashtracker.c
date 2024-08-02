@@ -5,9 +5,17 @@
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
+static void crashtracker_init(VALUE profiling_module);
 
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
+
+void DDTRACE_EXPORT Init_libdatadog_api(void) {
+  VALUE datadog_module = rb_define_module("Datadog");
+  VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
+
+  crashtracker_init(profiling_module);
+}
 
 void crashtracker_init(VALUE profiling_module) {
   VALUE crashtracker_class = rb_define_class_under(profiling_module, "Crashtracker", rb_cObject);
