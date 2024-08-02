@@ -15,7 +15,7 @@ module Datadog
     class Crashtracker
       LIBDATADOG_API_FAILURE =
         begin
-          require "libdatadog_api.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
+          require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
           nil
         rescue LoadError => e
           e.message

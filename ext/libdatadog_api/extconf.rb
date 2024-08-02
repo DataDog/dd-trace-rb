@@ -100,7 +100,7 @@ Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.ins
 # This makes it easier for development (avoids "oops I forgot to rebuild when I switched my Ruby") and ensures that
 # the wrong library is never loaded.
 # When requiring, we need to use the exact same string, including the version and the platform.
-EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
+EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}".freeze
 
 create_makefile(EXTENSION_NAME)
 
