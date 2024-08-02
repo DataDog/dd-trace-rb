@@ -82,6 +82,16 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
     end
   end
 
+  describe '::LIBDATADOG_VERSION' do
+    it 'must match the version restriction set on the gemspec' do
+      # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
+      # the version on the `libdatadog_extconf_helpers.rb` file. Kindly keep them in sync! :)
+      expect(described_class::LIBDATADOG_VERSION).to eq(
+        Gem.loaded_specs['datadog'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
+      )
+    end
+  end
+
   describe '.pkg_config_missing?' do
     subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
 
@@ -121,18 +131,6 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
 
         it { is_expected.to be true }
       end
-    end
-  end
-end
-
-RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
-  describe '::LIBDATADOG_VERSION' do
-    it 'must match the version restriction set on the gemspec' do
-      # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
-      # the version on the `native_extension_helpers.rb` file. Kindly keep them in sync! :)
-      expect(described_class::LIBDATADOG_VERSION).to eq(
-        Gem.loaded_specs['datadog'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
-      )
     end
   end
 end
@@ -220,8 +218,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           shared_examples 'libdatadog available' do
             context 'when libdatadog fails to activate' do
               before do
-                expect(described_class)
-                  .to receive(:gem).with('libdatadog', Datadog::Profiling::NativeExtensionHelpers::LIBDATADOG_VERSION)
+                expect(Datadog::LibdatadogExtconfHelpers)
+                  .to receive(:gem).with('libdatadog', Datadog::LibdatadogExtconfHelpers::LIBDATADOG_VERSION)
                   .and_raise(LoadError.new('Simulated error activating gem'))
               end
 

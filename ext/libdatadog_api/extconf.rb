@@ -2,7 +2,6 @@
 # rubocop:disable Style/GlobalVars
 
 require 'rubygems'
-require_relative 'extconf_helpers'
 require_relative '../libdatadog_extconf_helpers'
 
 def skip_building_extension!(reason)
@@ -16,8 +15,7 @@ end
 
 skip_building_extension!('current Ruby VM is not supported') if RUBY_ENGINE != 'ruby'
 skip_building_extension!('Microsoft Windows is not supported') if Gem.win_platform?
-
-skip_building_extension!('TODO FIXME') if !Datadog::LibdatadogApi::ExtconfHelpers::Supported.supported?
+skip_building_extension!('issue setting up `libdatadog` gem') if Datadog::LibdatadogExtconfHelpers.libdatadog_issue?
 
 require 'mkmf'
 

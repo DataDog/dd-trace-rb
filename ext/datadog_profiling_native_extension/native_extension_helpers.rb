@@ -12,8 +12,6 @@ module Datadog
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
       CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
-      LIBDATADOG_VERSION = '~> 11.0.0.1.0'
-
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
       end
@@ -216,22 +214,16 @@ module Datadog
         end
 
         private_class_method def self.libdatadog_not_available?
-          begin
-            gem 'libdatadog', LIBDATADOG_VERSION
-            require 'libdatadog'
-            nil
-          # rubocop:disable Lint/RescueException
-          rescue Exception => e
+          Datadog::LibdatadogExtconfHelpers.try_loading_libdatadog do |exception|
             explain_issue(
               'there was an exception during loading of the `libdatadog` gem:',
-              e.class.name,
-              *e.message.split("\n"),
-              *Array(e.backtrace),
+              exception.class.name,
+              *exception.message.split("\n"),
+              *Array(exception.backtrace),
               '.',
               suggested: CONTACT_SUPPORT,
             )
           end
-          # rubocop:enable Lint/RescueException
         end
 
         private_class_method def self.libdatadog_not_usable?

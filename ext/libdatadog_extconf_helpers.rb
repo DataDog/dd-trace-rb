@@ -6,6 +6,10 @@ require 'pathname'
 module Datadog
   # Contains a bunch of shared helpers that get used during building of extensions that link to libdatadog
   module LibdatadogExtconfHelpers
+    # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
+    # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
+    LIBDATADOG_VERSION = '~> 11.0.0.1.0'
+
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.
     #
@@ -104,6 +108,23 @@ module Datadog
       pkg_config_available = command && xsystem("#{command} --version")
 
       pkg_config_available != true
+    end
+
+    def self.try_loading_libdatadog
+      gem 'libdatadog', LIBDATADOG_VERSION
+      require 'libdatadog'
+      nil
+    rescue Exception => e # rubocop:disable Lint/RescueException
+      if block_given?
+        yield e
+      else
+        e
+      end
+    end
+
+    def self.libdatadog_issue?
+      try_loading_libdatadog { |_exception| return true }
+      Libdatadog.pkgconfig_folder.nil?
     end
   end
 end

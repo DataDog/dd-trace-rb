@@ -69,8 +69,7 @@ Gem::Specification.new do |spec|
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
 
-  # Used by profiling (and possibly others in the future)
-  # When updating the version here, please also update the version in `native_extension_helpers.rb`
+  # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
   spec.add_dependency 'libdatadog', '~> 11.0.0.1.0'
 
