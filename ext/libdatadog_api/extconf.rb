@@ -9,10 +9,21 @@ def skip_building_extension!(reason)
     "WARN: Skipping build of libdatadog_api (#{reason}). Some functionality will not be available."
   )
 
-  File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  fail_install_if_missing_extension = ENV['DD_FAIL_INSTALL_IF_MISSING_EXTENSION'].to_s.strip.downcase == 'true'
+
+  if fail_install_if_missing_extension
+    require 'mkmf'
+    Logging.message("[datadog] Failure cause: #{reason}")
+  else
+    File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
+  end
+
   exit
 end
 
+if ENV['DD_NO_EXTENSION'].to_s.strip.downcase == 'true'
+  skip_building_extension!('the `DD_NO_EXTENSION` environment variable is/was set to `true` during installation')
+end
 skip_building_extension!('current Ruby VM is not supported') if RUBY_ENGINE != 'ruby'
 skip_building_extension!('Microsoft Windows is not supported') if Gem.win_platform?
 skip_building_extension!('issue setting up `libdatadog` gem') if Datadog::LibdatadogExtconfHelpers.libdatadog_issue?
