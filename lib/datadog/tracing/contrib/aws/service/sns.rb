@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative './base'
 require_relative '../ext'
 
@@ -10,6 +12,23 @@ module Datadog
         module Service
           # SNS tag handlers.
           class SNS < Base
+            def process(config, trace, context)
+              inject_propagation(trace, context, 'Binary') if config[:propagation]
+
+              return unless config[:propagation]
+
+              case context.operation
+              when :publish
+                inject_propagation(trace, context, 'Binary')
+              when :publish_batch
+                if config[:batch_propagation]
+                  inject_propagation(trace, context, 'Binary')
+                else
+                  inject_propagation(trace, context, 'Binary')
+                end
+              end
+            end
+
             def add_tags(span, params)
               topic_arn = params[:topic_arn]
               topic_name = params[:name]

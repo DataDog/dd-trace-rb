@@ -45,7 +45,24 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
-          end
+
+            option :propagation do |o|
+              o.type :bool
+              # TODO: Add env var for this
+              # TODO: Add env var for this
+              # TODO: Add env var for this
+              # o.env Ext::ENV_PEER_SERVICE
+              o.default false
+            end
+
+            option :batch_propagation do |o|
+              o.type :bool
+              # TODO: Add env var for this
+              # TODO: Add env var for this
+              # TODO: Add env var for this
+              # o.env Ext::ENV_PEER_SERVICE
+              o.default false
+            end
         end
       end
     end

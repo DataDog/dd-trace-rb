@@ -3,6 +3,7 @@
 require_relative '../tracing'
 require_relative 'contrib/registry'
 require_relative 'contrib/extensions'
+require_relative 'contrib/component'
 
 module Datadog
   module Tracing
@@ -26,6 +27,40 @@ module Datadog
       # after the tracer has complete initialization. Use `Datadog::Tracing::Contrib::REGISTRY` instead
       # of `Datadog.registry` when you code might be called during tracer initialization.
       REGISTRY = Registry.new
+
+      def self.inject(digest, data)
+        raise 'Please invoke Datadog.configure at least once before calling this method' unless @propagation
+
+        @propagation.inject!(digest, data)
+      end
+
+      def self.extract(data)
+        raise 'Please invoke Datadog.configure at least once before calling this method' unless @propagation
+
+        @propagation.extract(data)
+      end
+
+      Contrib::Component.register('_contrib') do |config|
+        tracing = config.tracing
+        tracing.propagation_style # TODO: do we still need this?
+
+        @propagation = Datadog::Tracing::Distributed::Propagation.new(
+          propagation_styles: {
+            Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_MULTI_HEADER =>
+              Tracing::Distributed::B3Multi.new(fetcher: Tracing::Distributed::Fetcher),
+            Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_B3_SINGLE_HEADER =>
+              Tracing::Distributed::B3Single.new(fetcher: Tracing::Distributed::Fetcher),
+            Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG =>
+              Tracing::Distributed::Datadog.new(fetcher: Tracing::Distributed::Fetcher),
+            Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
+              Tracing::Distributed::TraceContext.new(fetcher: Tracing::Distributed::Fetcher),
+            Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
+          },
+          propagation_style_inject: tracing.propagation_style_inject,
+          propagation_style_extract: tracing.propagation_style_extract,
+          propagation_extract_first: tracing.propagation_extract_first
+        )
+      end
     end
   end
 end

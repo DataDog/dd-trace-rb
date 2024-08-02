@@ -19,9 +19,9 @@ module Datadog
         # Generates Spans for all interactions with AWS
         class Handler < Seahorse::Client::Handler
           def call(context)
-            Tracing.trace(Ext::SPAN_COMMAND) do |span|
+            Tracing.trace(Ext::SPAN_COMMAND) do |span, trace|
               @handler.call(context).tap do
-                annotate!(span, ParsedContext.new(context))
+                annotate!(span, trace, ParsedContext.new(context))
               end
             end
           end
@@ -29,8 +29,9 @@ module Datadog
           private
 
           # rubocop:disable Metrics/AbcSize
-          def annotate!(span, context)
-            span.service = configuration[:service_name]
+          def annotate!(span, trace, context)
+            config = configuration
+            span.service = config[:service_name]
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
@@ -38,13 +39,14 @@ module Datadog
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
             if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
+              handler.process(config, trace, context)
               handler.add_tags(span, params)
             end
 
-            if configuration[:peer_service]
+            if config[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                configuration[:peer_service]
+                config[:peer_service]
               )
             end
 
@@ -61,8 +63,8 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
 
             # Set analytics sample rate
-            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            if Contrib::Analytics.enabled?(config[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
             end
             Contrib::Analytics.set_measured(span)
 

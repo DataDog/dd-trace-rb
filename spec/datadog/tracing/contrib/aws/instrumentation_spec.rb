@@ -379,6 +379,37 @@ RSpec.describe 'AWS instrumentation' do
           .to eq('sqs.us-stubbed-1.amazonaws.com')
       end
     end
+
+    describe '#receive_message' do
+      subject!(:receive_message) do
+        client.receive_message(
+          {
+            queue_url: 'https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName',
+            attribute_names: ["All"],
+            max_number_of_messages: 1,
+            visibility_timeout: 1,
+            wait_time_seconds: 1,
+            receive_request_attempt_id: "my_receive_request_attempt_1",
+          }
+        )
+      end
+
+      let(:responses) do
+        { receive_message: {
+          messages: []
+        } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.type).to eq('http')
+        expect(span.resource).to eq('sqs.receive_message')
+
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('receive_message')
+      end
+    end
   end
 
   context 'with an SNS client' do
@@ -389,7 +420,14 @@ RSpec.describe 'AWS instrumentation' do
         client.publish(
           {
             topic_arn: 'arn:aws:sns:us-west-2:123456789012:my-topic-name',
-            message: 'Hello, world!'
+            message: 'Hello, world!',
+            message_attributes: {
+              'String' => {
+                data_type: 'String', # required
+                string_value: 'String',
+                binary_value: 'data',
+              },
+            },
           }
         )
       end
