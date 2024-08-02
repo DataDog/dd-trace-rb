@@ -2,8 +2,10 @@ require 'ext/datadog_profiling_native_extension/native_extension_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
-RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
+RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe '.libdatadog_folder_relative_to_native_lib_folder' do
+    let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
+
     context 'when libdatadog is available' do
       before do
         skip_if_profiling_not_supported(self)
@@ -13,7 +15,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       end
 
       it 'returns a relative path to libdatadog folder from the gem lib folder' do
-        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder
+        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(current_folder: extension_folder)
 
         libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
 
@@ -28,7 +30,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
 
     context 'when libdatadog is unsupported' do
       it do
-        expect(described_class.libdatadog_folder_relative_to_native_lib_folder(libdatadog_pkgconfig_folder: nil)).to be nil
+        expect(
+          described_class.libdatadog_folder_relative_to_native_lib_folder(
+            current_folder: extension_folder,
+            libdatadog_pkgconfig_folder: nil
+          )
+        ).to be nil
       end
     end
   end
@@ -73,7 +80,9 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       end
     end
   end
+end
 
+RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
   describe '::LIBDATADOG_VERSION' do
     it 'must match the version restriction set on the gemspec' do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update

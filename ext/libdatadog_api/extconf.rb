@@ -77,8 +77,8 @@ end
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
 extra_relative_rpaths = [
-  Datadog::LibdatadogApi::ExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder,
-  *Datadog::LibdatadogApi::ExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
+  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
 ]
 extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
 Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")
