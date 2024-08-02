@@ -46,7 +46,7 @@ append_cflags '-Wold-style-definition'
 append_cflags '-Wall'
 append_cflags '-Wextra'
 
-if ENV['DDTRACE_DEBUG']
+if ENV['DDTRACE_DEBUG'] == 'true'
   $defs << '-DDD_DEBUG'
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
