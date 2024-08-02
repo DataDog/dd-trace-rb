@@ -578,6 +578,25 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
+        context 'when there was a libdatadog_api failure during load' do
+          before do
+            allow(Datadog.logger).to receive(:debug)
+            stub_const('Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE', 'simulated load failure')
+          end
+
+          it 'debug logs that crash tracking will not be enabled' do
+            expect(Datadog.logger).to receive(:debug).with(/Cannot enable crashtracking: simulated load failure/)
+
+            build_profiler_component
+          end
+
+          it 'does not initialize the crash tracker' do
+            expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
+
+            build_profiler_component
+          end
+        end
+
         it 'initializes the profiler instance with the crash tracker' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: anything,
