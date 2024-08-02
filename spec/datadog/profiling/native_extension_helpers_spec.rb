@@ -1,4 +1,5 @@
 require 'ext/datadog_profiling_native_extension/native_extension_helpers'
+require 'ext/libdatadog_extconf_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
@@ -77,6 +78,48 @@ RSpec.describe Datadog::LibdatadogExtconfHelpers do
         expect(
           described_class.libdatadog_folder_relative_to_ruby_extensions_folders(libdatadog_pkgconfig_folder: nil)
         ).to be nil
+      end
+    end
+  end
+
+  describe '.pkg_config_missing?' do
+    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
+
+    before do
+      skip_if_profiling_not_supported(self)
+    end
+
+    context 'when command is not available' do
+      let(:command) { nil }
+
+      it { is_expected.to be true }
+    end
+
+    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
+    #
+    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
+    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
+    #
+    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
+    context 'when command is available' do
+      before do
+        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
+        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
+        without_partial_double_verification do
+          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
+        end
+      end
+
+      context 'and pkg-config can successfully be called' do
+        let(:command) { 'pkg-config' }
+
+        it { is_expected.to be false }
+      end
+
+      context 'and pkg-config cannot be called' do
+        let(:command) { 'does-not-exist' }
+
+        it { is_expected.to be true }
       end
     end
   end
@@ -257,48 +300,6 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
             include_examples 'supported ruby validation'
           end
         end
-      end
-    end
-  end
-
-  describe '.pkg_config_missing?' do
-    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
-
-    before do
-      skip_if_profiling_not_supported(self)
-    end
-
-    context 'when command is not available' do
-      let(:command) { nil }
-
-      it { is_expected.to be true }
-    end
-
-    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
-    #
-    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
-    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
-    #
-    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
-    context 'when command is available' do
-      before do
-        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
-        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
-        without_partial_double_verification do
-          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
-        end
-      end
-
-      context 'and pkg-config can successfully be called' do
-        let(:command) { 'pkg-config' }
-
-        it { is_expected.to be false }
-      end
-
-      context 'and pkg-config cannot be called' do
-        let(:command) { 'does-not-exist' }
-
-        it { is_expected.to be true }
       end
     end
   end

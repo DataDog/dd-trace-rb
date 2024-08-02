@@ -97,5 +97,13 @@ module Datadog
         Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(folder)).to_s
       end
     end
+
+    # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
+    # this helper to decide if we can show more specific error message vs a generic "something went wrong".
+    def self.pkg_config_missing?(command: $PKGCONFIG) # rubocop:disable Style/GlobalVars
+      pkg_config_available = command && xsystem("#{command} --version")
+
+      pkg_config_available != true
+    end
   end
 end

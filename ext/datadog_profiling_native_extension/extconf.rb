@@ -2,6 +2,7 @@
 # rubocop:disable Style/GlobalVars
 
 require_relative 'native_extension_helpers'
+require_relative '../libdatadog_extconf_helpers'
 
 SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 # Not a problem if the file doesn't exist or we can't delete it
@@ -201,7 +202,7 @@ unless pkg_config('datadog_profiling_with_rpath')
   Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
 
   skip_building_extension!(
-    if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
+    if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
       Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
     else
       # Less specific error message

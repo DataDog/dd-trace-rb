@@ -1,16 +1,23 @@
 # rubocop:disable Style/StderrPuts
 # rubocop:disable Style/GlobalVars
 
+require 'rubygems'
 require_relative 'extconf_helpers'
+require_relative '../libdatadog_extconf_helpers'
 
-if RUBY_ENGINE != 'ruby' || Gem.win_platform? || !Datadog::LibdatadogApi::ExtconfHelpers::Supported.supported?
+def skip_building_extension!(reason)
   $stderr.puts(
-    'WARN: Skipping build of libdatadog_api. Some functionality will not be available.'
+    "WARN: Skipping build of libdatadog_api (#{reason}). Some functionality will not be available."
   )
 
   File.write('Makefile', 'all install clean: # dummy makefile that does nothing')
   exit
 end
+
+skip_building_extension!('current Ruby VM is not supported') if RUBY_ENGINE != 'ruby'
+skip_building_extension!('Microsoft Windows is not supported') if Gem.win_platform?
+
+skip_building_extension!('TODO FIXME') if !Datadog::LibdatadogApi::ExtconfHelpers::Supported.supported?
 
 require 'mkmf'
 
@@ -63,14 +70,11 @@ $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfi
 unless pkg_config('datadog_profiling_with_rpath')
   Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
 
-  raise( # TODO
-    if Datadog::LibdatadogApi::ExtconfHelpers::Supported.pkg_config_missing?
-      Datadog::LibdatadogApi::ExtconfHelpers::Supported::PKG_CONFIG_IS_MISSING
-    else
-      # Less specific error message
-      Datadog::LibdatadogApi::ExtconfHelpers::Supported::FAILED_TO_CONFIGURE_LIBDATADOG
-    end
-  )
+  if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
+    skip_building_extension!('the `pkg-config` system tool is missing')
+  else
+    skip_building_extension!('there was a problem in setting up the `libdatadog` dependency')
+  end
 end
 
 # See comments on the helper methods being used for why we need to additionally set this.

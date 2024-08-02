@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../libdatadog_extconf_helpers'
-
 module Datadog
   module LibdatadogApi
     module ExtconfHelpers
@@ -58,14 +56,6 @@ module Datadog
         # This will be saved in a file to later be presented while operating the gem
         def self.render_skipped_reason_file(reason:, suggested:)
           [*reason, *suggested].join(' ')
-        end
-
-        # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
-        # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-        def self.pkg_config_missing?(command: $PKGCONFIG) # rubocop:disable Style/GlobalVars
-          pkg_config_available = command && xsystem("#{command} --version")
-
-          pkg_config_available != true
         end
 
         CONTACT_SUPPORT = [
