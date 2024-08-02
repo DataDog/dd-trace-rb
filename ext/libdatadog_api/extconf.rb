@@ -1,3 +1,6 @@
+# rubocop:disable Style/StderrPuts
+# rubocop:disable Style/GlobalVars
+
 require_relative 'extconf_helpers'
 
 if RUBY_ENGINE != 'ruby' || Gem.win_platform? || !Datadog::LibdatadogApi::ExtconfHelpers::Supported.supported?
@@ -87,3 +90,6 @@ Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.ins
 EXTENSION_NAME = "libdatadog_api.#{RUBY_VERSION}_#{RUBY_PLATFORM}".freeze
 
 create_makefile(EXTENSION_NAME)
+
+# rubocop:enable Style/GlobalVars
+# rubocop:enable Style/StderrPuts
