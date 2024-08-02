@@ -1,13 +1,5 @@
 #include <ruby.h>
-
-// Used to mark function arguments that are deliberately left unused
-#ifdef __GNUC__
-  #define DDTRACE_UNUSED  __attribute__((unused))
-#else
-  #define DDTRACE_UNUSED
-#endif
-
-#define DDTRACE_EXPORT __attribute__ ((visibility ("default")))
+#include "datadog_ruby_common.h"
 
 void crashtracker_init(VALUE profiling_module);
 

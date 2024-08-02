@@ -1,6 +1,7 @@
 #include <ruby.h>
-#include <datadog/common.h>
-#include <libdatadog_helpers.h>
+#include <datadog/profiling.h>
+
+#include "datadog_ruby_common.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
@@ -38,7 +39,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
-  VALUE version = ddtrace_version();
+  VALUE version = datadog_gem_version();
   ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
   // Tags are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
