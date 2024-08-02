@@ -3,6 +3,7 @@ require 'ext/libdatadog_extconf_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
+# TODO: This should be extracted out once the test suite setup is updated to build libdatadog_api separate from profiling
 RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe '.libdatadog_folder_relative_to_native_lib_folder' do
     let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
