@@ -15,7 +15,7 @@ module Datadog
           # @return [String] a valid trace ID.
           def generate_trace_id
             loop do
-              id = Random.bytes(8) # DEV: Change to 16 (16*8-byte) when 128-bit trace_id is supported.
+              id = Random.new.bytes(8) # DEV: Change to 16 (16*8-byte) when 128-bit trace_id is supported.
               return id unless id == ::OpenTelemetry::Trace::INVALID_SPAN_ID
             end
           end
