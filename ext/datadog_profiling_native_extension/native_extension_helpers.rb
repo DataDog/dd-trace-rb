@@ -1,8 +1,5 @@
 # frozen_string_literal: true
 
-require 'rubygems'
-require 'pathname'
-
 module Datadog
   module Profiling
     # Helpers for extconf.rb
@@ -15,102 +12,8 @@ module Datadog
       # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on debase-ruby_core_source
       CAN_USE_MJIT_HEADER = RUBY_VERSION.start_with?('2.6', '2.7', '3.0.', '3.1.', '3.2.')
 
-      LIBDATADOG_VERSION = '~> 11.0.0.1.0'
-
       def self.fail_install_if_missing_extension?
         ENV[ENV_FAIL_INSTALL_IF_MISSING_EXTENSION].to_s.strip.downcase == 'true'
-      end
-
-      # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
-      # libdatadog are moved after the extension gets compiled.
-      #
-      # Because the libddpprof native library is installed on a non-standard system path, in order for it to be
-      # found by the system dynamic linker (e.g. what takes care of dlopen(), which is used to load the profiling
-      # native extension), we need to add a "runpath" -- a list of folders to search for libdatadog.
-      #
-      # This runpath gets hardcoded at native library linking time. You can look at it using the `readelf` tool in
-      # Linux: e.g. `readelf -d datadog_profiling_native_extension.2.7.3_x86_64-linux.so`.
-      #
-      # In older versions of the datadog gem, we only set as runpath an absolute path to libdatadog.
-      # (This gets set automatically by the call
-      # to `pkg_config('datadog_profiling_with_rpath')` in `extconf.rb`). This worked fine as long as libdatadog was **NOT**
-      # moved from the folder it was present at datadog gem installation/linking time.
-      #
-      # Unfortunately, environments such as Heroku and AWS Elastic Beanstalk move gems around in the filesystem after
-      # installation. Thus, the profiling native extension could not be loaded in these environments
-      # (see https://github.com/DataDog/dd-trace-rb/issues/2067) because libdatadog could not be found.
-      #
-      # To workaround this issue, this method computes the **relative** path between the folder where the profiling
-      # native extension is going to be installed and the folder where libdatadog is installed, and returns it
-      # to be set as an additional runpath. (Yes, you can set multiple runpath folders to be searched).
-      #
-      # This way, if both gems are moved together (and it turns out that they are in these environments),
-      # the relative path can still be traversed to find libdatadog.
-      #
-      # This is incredibly awful, and it's kinda bizarre how it's not possible to just find these paths at runtime
-      # and set them correctly; rather than needing to set stuff at linking-time and then praying to $deity that
-      # weird moves don't happen.
-      #
-      # As a curiosity, `LD_LIBRARY_PATH` can be used to influence the folders that get searched but **CANNOT BE
-      # SET DYNAMICALLY**, e.g. it needs to be set at the start of the process (Ruby VM) and thus it's not something
-      # we could setup when doing a `require`.
-      #
-      def self.libdatadog_folder_relative_to_native_lib_folder(
-        current_folder: __dir__,
-        libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
-      )
-        return unless libdatadog_pkgconfig_folder
-
-        profiling_native_lib_folder = "#{current_folder}/../../lib/"
-        libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
-
-        Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(profiling_native_lib_folder)).to_s
-      end
-
-      # In https://github.com/DataDog/dd-trace-rb/pull/3582 we got a report of a customer for which the native extension
-      # only got installed into the extensions folder.
-      #
-      # But then this fix was not enough to fully get them moving because then they started to see the issue from
-      # https://github.com/DataDog/dd-trace-rb/issues/2067 / https://github.com/DataDog/dd-trace-rb/pull/2125 :
-      #
-      # > Profiling was requested but is not supported, profiling disabled: There was an error loading the profiling
-      # > native extension due to 'RuntimeError Failure to load datadog_profiling_native_extension.3.2.2_x86_64-linux
-      # > due to libdatadog_profiling.so: cannot open shared object file: No such file or directory
-      #
-      # The problem is that when loading the native extension from the extensions directory, the relative rpath we add
-      # with the #libdatadog_folder_relative_to_native_lib_folder helper above is not correct, we need to add a relative
-      # rpath to the extensions directory.
-      #
-      # So how do we find the full path where the native extension is placed?
-      # * From https://github.com/ruby/ruby/blob/83f02d42e0a3c39661dc99c049ab9a70ff227d5b/lib/bundler/runtime.rb#L166
-      #   `extension_dirs = Dir["#{Gem.dir}/extensions/*/*/*"] + Dir["#{Gem.dir}/bundler/gems/extensions/*/*/*"]`
-      #   we get that's in one of two fixed subdirectories of `Gem.dir`
-      # * From https://github.com/ruby/ruby/blob/83f02d42e0a3c39661dc99c049ab9a70ff227d5b/lib/rubygems/basic_specification.rb#L111-L115
-      #   we get the structure of the subdirectory (platform/extension_api_version/gem_and_version)
-      #
-      # Thus, `Gem.dir` of `/var/app/current/vendor/bundle/ruby/3.2.0` becomes (for instance)
-      # `/var/app/current/vendor/bundle/ruby/3.2.0/extensions/x86_64-linux/3.2.0/datadog-2.0.0/` or
-      # `/var/app/current/vendor/bundle/ruby/3.2.0/bundler/gems/extensions/x86_64-linux/3.2.0/datadog-2.0.0/`
-      #
-      # We then compute the relative path between these folders and the libdatadog folder, and use that as a relative path.
-      def self.libdatadog_folder_relative_to_ruby_extensions_folders(
-        gem_dir: Gem.dir,
-        libdatadog_pkgconfig_folder: Libdatadog.pkgconfig_folder
-      )
-        return unless libdatadog_pkgconfig_folder
-
-        # For the purposes of calculating a folder relative to the other, we don't actually NEED to fill in the
-        # platform, extension_api_version and gem version. We're basically just after how many folders it is deep from
-        # the Gem.dir.
-        expected_ruby_extensions_folders = [
-          "#{gem_dir}/extensions/platform/extension_api_version/datadog_version/",
-          "#{gem_dir}/bundler/gems/extensions/platform/extension_api_version/datadog_version/",
-        ]
-        libdatadog_lib_folder = "#{libdatadog_pkgconfig_folder}/../"
-
-        expected_ruby_extensions_folders.map do |folder|
-          Pathname.new(libdatadog_lib_folder).relative_path_from(Pathname.new(folder)).to_s
-        end
       end
 
       # Used to check if profiler is supported, including user-visible clear messages explaining why their
@@ -171,14 +74,6 @@ module Datadog
         # This will be saved in a file to later be presented while operating the gem
         def self.render_skipped_reason_file(reason:, suggested:)
           [*reason, *suggested].join(' ')
-        end
-
-        # mkmf sets $PKGCONFIG after the `pkg_config` gets used in extconf.rb. When `pkg_config` is unsuccessful, we use
-        # this helper to decide if we can show more specific error message vs a generic "something went wrong".
-        def self.pkg_config_missing?(command: $PKGCONFIG) # rubocop:disable Style/GlobalVars
-          pkg_config_available = command && xsystem("#{command} --version")
-
-          pkg_config_available != true
         end
 
         CONTACT_SUPPORT = [
@@ -319,22 +214,16 @@ module Datadog
         end
 
         private_class_method def self.libdatadog_not_available?
-          begin
-            gem 'libdatadog', LIBDATADOG_VERSION
-            require 'libdatadog'
-            nil
-          # rubocop:disable Lint/RescueException
-          rescue Exception => e
+          Datadog::LibdatadogExtconfHelpers.try_loading_libdatadog do |exception|
             explain_issue(
               'there was an exception during loading of the `libdatadog` gem:',
-              e.class.name,
-              *e.message.split("\n"),
-              *Array(e.backtrace),
+              exception.class.name,
+              *exception.message.split("\n"),
+              *Array(exception.backtrace),
               '.',
               suggested: CONTACT_SUPPORT,
             )
           end
-          # rubocop:enable Lint/RescueException
         end
 
         private_class_method def self.libdatadog_not_usable?

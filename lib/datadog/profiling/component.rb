@@ -132,6 +132,13 @@ module Datadog
           return
         end
 
+        if Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE
+          Datadog.logger.debug(
+            "Cannot enable crashtracking: #{Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE}"
+          )
+          return
+        end
+
         Datadog::Profiling::Crashtracker.new(
           exporter_configuration: transport.exporter_configuration,
           tags: Datadog::Profiling::TagBuilder.call(settings: settings),
