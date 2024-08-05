@@ -92,8 +92,9 @@ class Benchmarker
       return unless caller_path == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
       require 'benchmark/ips'
-
-      preload_libs
+      require 'datadog'
+      require 'pry'
+      require_relative 'dogstatsd_reporter'
 
       # Create a new class so that methods can delegate to the base
       # implementation via super.
@@ -102,12 +103,6 @@ class Benchmarker
       Object.const_set(cls_name, cls)
       cls.instance_exec(&block)
       cls.run
-    end
-
-    def preload_libs
-      require 'datadog'
-      require 'pry'
-      require_relative 'dogstatsd_reporter'
     end
   end
 
