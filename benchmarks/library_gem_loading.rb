@@ -1,6 +1,6 @@
 require_relative 'lib/boot_basic'
 
-require 'open3'
+require 'shellwords'
 
 # This benchmark needs to be run in a clean environment where datadog is
 # not loaded yet.
@@ -11,17 +11,29 @@ require 'open3'
 #
 # The gem loading benchmark has never reported results to dogstatsd.
 BasicBenchmarker.define do
-  before do
-    if defined?(::Datadog::Core)
-      raise "Datadog is already defined, this benchmark must be run in a clean environment"
-    end
-  end
-
   # Gem loading is quite slower than the other microbenchmarks
   benchmark 'gem loading', time: 60 do
-    pid = fork { require 'datadog' }
+    code = <<-E
+      if defined?(Datadog)
+        unless Datadog.constants == [:VERSION]
+          STDERR.puts "Datadog already loaded in the target process"
+          exit 1
+        end
+      end
 
-    _, status = Process.wait2(pid)
-    raise unless status.success?
+      require 'datadog'
+
+      unless defined?(Datadog::Core)
+        STDERR.puts "Datadog::Core not defined"
+        exit 1
+      end
+
+      exit 0
+    E
+
+    rv = system("ruby -e #{Shellwords.shellescape(code)}")
+    unless rv
+      raise "Gem loading failed"
+    end
   end
 end
