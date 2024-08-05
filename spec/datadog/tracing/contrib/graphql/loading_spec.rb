@@ -1,3 +1,5 @@
+require 'shellwords'
+
 RSpec.describe 'loading graphql' do
   context 'then datadog' do
     let(:code) do
