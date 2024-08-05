@@ -92,7 +92,8 @@ struct thread_context_collector_state {
   // "Update this when modifying state struct"
 
   // Required by Datadog::Profiling::Collectors::Stack as a scratch buffer during sampling
-  sampling_buffer *sampling_buffer;
+  // sampling_buffer *sampling_buffer;
+  uint16_t max_frames;
   // Hashmap <Thread Object, struct per_thread_context>
   st_table *hash_map_per_thread_context;
   // Datadog::Profiling::StackRecorder instance
@@ -138,6 +139,7 @@ struct thread_context_collector_state {
 
 // Tracks per-thread state
 struct per_thread_context {
+  sampling_buffer *sampling_buffer;
   char thread_id[THREAD_ID_LIMIT_CHARS];
   ddog_CharSlice thread_id_char_slice;
   char thread_invoke_location[THREAD_INVOKE_LOCATION_LIMIT_CHARS];
@@ -203,6 +205,7 @@ static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
 static struct per_thread_context *get_context_for(VALUE thread, struct thread_context_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state);
+static void free_context(struct per_thread_context* thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
@@ -308,10 +311,6 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 
   // Update this when modifying state struct
 
-  // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
-  // pointers that have been set NULL there may still be NULL here.
-  if (state->sampling_buffer != NULL) sampling_buffer_free(state->sampling_buffer);
-
   // Free each entry in the map
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_free_values, 0 /* unused */);
   // ...and then the map
@@ -330,7 +329,7 @@ static int hash_map_per_thread_context_mark(st_data_t key_thread, DDTRACE_UNUSED
 // Used to clear each of the per_thread_contexts inside the hash_map_per_thread_context
 static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thread, st_data_t value_per_thread_context, DDTRACE_UNUSED st_data_t _argument) {
   struct per_thread_context *per_thread_context = (struct per_thread_context*) value_per_thread_context;
-  ruby_xfree(per_thread_context);
+  free_context(per_thread_context);
   return ST_CONTINUE;
 }
 
@@ -341,7 +340,7 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   // Update this when modifying state struct
-  state->sampling_buffer = NULL;
+  state->max_frames = 0;
   state->hash_map_per_thread_context =
    // "numtable" is an awful name, but TL;DR it's what should be used when keys are `VALUE`s.
     st_init_numtable();
@@ -388,11 +387,8 @@ static VALUE _native_initialize(
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  int max_frames_requested = NUM2INT(max_frames);
-  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
-
   // Update this when modifying state struct
-  state->sampling_buffer = sampling_buffer_new(max_frames_requested);
+  state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
@@ -674,7 +670,6 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   }
 
   record_placeholder_stack(
-    state->sampling_buffer,
     state->recorder_instance,
     (sample_values) {
       // This event gets both a regular cpu/wall-time duration, as a normal cpu/wall-time sample would, as well as a
@@ -825,7 +820,7 @@ static void trigger_sample_for_thread(
 
   sample_thread(
     stack_from_thread,
-    state->sampling_buffer,
+    thread_context->sampling_buffer,
     state->recorder_instance,
     values,
     (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns}
@@ -888,6 +883,8 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
+  thread_context->sampling_buffer = sampling_buffer_new(state->max_frames);
+
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};
 
@@ -928,6 +925,11 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
 }
 
+static void free_context(struct per_thread_context* thread_context) {
+  sampling_buffer_free(thread_context->sampling_buffer);
+  ruby_xfree(thread_context);
+}
+
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -935,6 +937,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   VALUE result = rb_str_new2(" (native state)");
 
   // Update this when modifying state struct
+  rb_str_concat(result, rb_sprintf(" max_frames=%d", state->max_frames));
   rb_str_concat(result, rb_sprintf(" hash_map_per_thread_context=%"PRIsVALUE, per_thread_context_st_table_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" recorder_instance=%"PRIsVALUE, state->recorder_instance));
   VALUE tracer_context_key = state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY ? Qnil : ID2SYM(state->tracer_context_key);
@@ -1019,7 +1022,7 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 
   if (is_thread_alive(thread)) return ST_CONTINUE;
 
-  ruby_xfree(thread_context);
+  free_context(thread_context);
   return ST_DELETE;
 }
 
@@ -1427,7 +1430,6 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])};
 
   record_placeholder_stack(
-    state->sampling_buffer,
     state->recorder_instance,
     (sample_values) {.alloc_samples = skipped_samples},
     (sample_labels) {

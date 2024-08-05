@@ -15,7 +15,7 @@ static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
 struct sampling_buffer {
-  unsigned int max_frames;
+  uint16_t max_frames;
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
@@ -113,7 +113,6 @@ static VALUE _native_sample(
 
   if (in_gc == Qtrue) {
     record_placeholder_stack(
-      buffer,
       recorder_instance,
       values,
       (sample_labels) {.labels = slice_labels, .state_label = state_label},
@@ -373,7 +372,6 @@ static void record_placeholder_stack_in_native_code(
   sample_labels labels
 ) {
   record_placeholder_stack(
-    buffer,
     recorder_instance,
     values,
     labels,
@@ -382,26 +380,32 @@ static void record_placeholder_stack_in_native_code(
 }
 
 void record_placeholder_stack(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 ) {
-  ddog_prof_Function placeholder = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack};
-  buffer->locations[0] = (ddog_prof_Location) {.function = placeholder, .line = 0};
+  ddog_prof_Location placeholder_location = {
+    .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
+    .line = 0,
+  };
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
+    (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
     labels
   );
 }
 
-sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
-  if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
-  if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+uint16_t sampling_buffer_check_max_frames(int value) {
+  if (value < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
+  if (value > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+  return value;
+}
+
+sampling_buffer *sampling_buffer_new(uint16_t max_frames) {
+  sampling_buffer_check_max_frames(max_frames);
 
   // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
   sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
