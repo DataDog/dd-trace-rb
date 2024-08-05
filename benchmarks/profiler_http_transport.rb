@@ -1,4 +1,4 @@
-require_relative 'lib/boot'
+require_relative 'support/boot'
 
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #

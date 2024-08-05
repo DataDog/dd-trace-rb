@@ -1,4 +1,4 @@
-require_relative 'lib/boot'
+require_relative 'support/boot'
 
 # This benchmark measures the performance of sampling + serializing memory profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time.

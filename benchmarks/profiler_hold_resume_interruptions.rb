@@ -1,4 +1,4 @@
-require_relative 'lib/boot'
+require_relative 'support/boot'
 
 # This benchmark measures the performance of the hold/resume interruptions used by the DirMonkeyPatches
 Benchmarker.define do

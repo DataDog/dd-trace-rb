@@ -1,4 +1,4 @@
-require_relative 'lib/boot'
+require_relative 'support/boot'
 
 require 'shellwords'
 
