@@ -376,8 +376,8 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // Modifications:
 // * Renamed rb_profile_frames => ddtrace_rb_profile_frames
-// * Add thread argument
-// * Add is_ruby_frame argument
+// * Add thread argument (this is now upstream, actually!)
+// * Add frame_flags.is_ruby_frame argument
 // * Removed `if (lines)` tests -- require/assume that like `buff`, `lines` is always specified
 // * Skip dummy frame that shows up in main thread
 // * Add `end_cfp == NULL` and `end_cfp <= cfp` safety checks. These are used in a bunch of places in
@@ -392,6 +392,8 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   was called from.
 // * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
 // * Imported fix from https://github.com/ruby/ruby/pull/8415 to avoid potential crash when using YJIT.
+// * Add frame_flags.same_frame and logic to skip redoing work if the buffer already contains the same data we're collecting
+// * Skipped use of rb_callable_method_entry_t (cme) for Ruby frames as it doesn't impact us.
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -486,32 +488,26 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
               last_pc[i] = (void *) cfp->pc;
             }
 
-            /* record frame info */
+            // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
+            // instead of the iseq.
+            // In practice, they are usually the same; the difference is that when you have e.g. block, one gets you a
+            // reference to the block, and the other to the method containing the block.
+            // This would be important if we used `rb_profile_frame_label` and wanted the "block in foo" label instead
+            // of just "foo". But we're currently using `rb_profile_frame_base_label` which I believe is always the same
+            // between the rb_callable_method_entry_t and the iseq. Thus, to simplify a bit our logic and reduce a bit
+            // the overhead, we always use the iseq here.
+            //
             // cme = rb_vm_frame_method_entry(cfp);
 
             // if (cme && cme->def->type == VM_METHOD_TYPE_ISEQ &&
             //   // Fix: Do not use callable method entry when iseq is for an eval.
             //   // TL;DR: This fix is needed for us to match the Ruby reference API information in the
             //   // "when sampling an eval/instance eval inside an object" spec.
-            //   //
-            //   // Longer note:
-            //   // When a frame is a ruby frame (VM_FRAME_RUBYFRAME_P above), we can get information about it
-            //   // by introspecting both the callable method entry, as well as the iseq directly.
-            //   // Often they match... but sometimes they provide different info (as in the "iseq for an eval" situation
-            //   // here).
-            //   // If my reading of vm_backtrace.c is correct, the actual Ruby stack trace API **never** uses the
-            //   // callable method entry for Ruby frames, but only for VM_METHOD_TYPE_CFUNC (see `backtrace_each` method
-            //   // on that file).
-            //   // So... why does `rb_profile_frames` do something different? Is it a bug? Is it because it exposes
-            //   // more information than the Ruby stack frame API?
-            //   // As a final note, the `backtracie` gem (https://github.com/ivoanjo/backtracie) can be used to introspect
-            //   // the full metadata provided by both the callable method entry as well as the iseq, and is really useful
-            //   // to debug and learn more about these differences.
             //   cfp->iseq->body->type != ISEQ_TYPE_EVAL) {
             //     buff[i] = (VALUE)cme;
             // }
             // else {
-                buff[i] = (VALUE)cfp->iseq;
+            buff[i] = (VALUE)cfp->iseq;
             // }
 
             // The topmost frame may not have an updated PC because the JIT
