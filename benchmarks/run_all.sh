@@ -6,7 +6,7 @@
 set -ex
 
 for file in \
-  `dirname "$0"`/gem_loading.rb \
+  `dirname "$0"`/library_gem_loading.rb \
   `dirname "$0"`/profiler_allocation.rb \
   `dirname "$0"`/profiler_gc.rb \
   `dirname "$0"`/profiler_hold_resume_interruptions.rb \
