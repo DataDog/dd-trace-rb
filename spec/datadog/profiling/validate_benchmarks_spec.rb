@@ -10,13 +10,13 @@ RSpec.describe 'Profiling benchmarks' do
   end
 
   benchmarks_to_validate = [
-    'profiler_sample_loop_v2',
-    'profiler_http_transport',
-    'profiler_sample_serialize',
-    'profiler_memory_sample_serialize',
+    'profiler_allocation',
     'profiler_gc',
     'profiler_hold_resume_interruptions',
-    'profiler_allocation',
+    'profiler_http_transport',
+    'profiler_memory_sample_serialize',
+    'profiler_sample_loop_v2',
+    'profiler_sample_serialize',
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|
