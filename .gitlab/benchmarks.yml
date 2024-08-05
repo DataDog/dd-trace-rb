@@ -10,6 +10,7 @@ variables:
 .benchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
+  needs: []
   timeout: 1h
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
@@ -84,6 +85,7 @@ only-profiling:
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-alloc:
   extends: .benchmarks
@@ -91,6 +93,7 @@ only-profiling-alloc:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-alloc-ddprof:
   extends: .benchmarks
@@ -99,6 +102,7 @@ only-profiling-alloc-ddprof:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-heap:
   extends: .benchmarks
@@ -107,13 +111,7 @@ only-profiling-heap:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-
-only-profiling-crashtracking:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
   extends: .benchmarks

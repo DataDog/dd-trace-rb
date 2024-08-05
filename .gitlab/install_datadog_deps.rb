@@ -22,7 +22,7 @@ puts ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
-tmp_path = current_path.join('tmp')
+tmp_path = current_path.join('tmp', ENV["ARCH"])
 
 versioned_path = tmp_path.join(ruby_api_version)
 
