@@ -9,9 +9,9 @@ RSpec.describe 'Tracing benchmarks' do
     end
   end
 
-  benchmarks_to_validate = %w(
+  benchmarks_to_validate = %w[
     tracing_trace
-  )
+  ]
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do

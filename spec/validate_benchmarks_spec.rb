@@ -9,9 +9,9 @@ RSpec.describe 'Library benchmarks' do
     end
   end
 
-  benchmarks_to_validate = %w(
+  benchmarks_to_validate = %w[
     library_gem_loading
-  )
+  ]
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
