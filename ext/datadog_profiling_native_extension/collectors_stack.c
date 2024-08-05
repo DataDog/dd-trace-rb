@@ -19,6 +19,8 @@ struct sampling_buffer {
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
+  void **last_pc;
+  bool *same_frame;
   ddog_prof_Location *locations;
 }; // Note: typedef'd in the header to sampling_buffer
 
@@ -156,12 +158,22 @@ void sample_thread(
     buffer->max_frames,
     buffer->stack_buffer,
     buffer->lines_buffer,
-    buffer->is_ruby_frame
+    buffer->is_ruby_frame,
+    buffer->last_pc,
+    buffer->same_frame
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(buffer, recorder_instance, values, labels);
     return;
+  }
+
+  if (captured_frames > 0) {
+    int cache_hits = 0;
+    for (int i = 0; i < captured_frames; i++) {
+      if (buffer->same_frame[i]) cache_hits++;
+    }
+    fprintf(stderr, "Sampling cache hits: %f\n", ((double) cache_hits / captured_frames) * 100);
   }
 
   // Ruby does not give us path and line number for methods implemented using native code.
@@ -401,6 +413,9 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
   buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
 
+  buffer->last_pc       = ruby_xcalloc(max_frames, sizeof(void *));
+  buffer->same_frame    = ruby_xcalloc(max_frames, sizeof(bool));
+
   return buffer;
 }
 
@@ -411,6 +426,9 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   ruby_xfree(buffer->lines_buffer);
   ruby_xfree(buffer->is_ruby_frame);
   ruby_xfree(buffer->locations);
+
+  ruby_xfree(buffer->last_pc);
+  ruby_xfree(buffer->same_frame);
 
   ruby_xfree(buffer);
 }

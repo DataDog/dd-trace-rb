@@ -27,7 +27,7 @@ void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame, void **last_pc, bool *same_frame);
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
 

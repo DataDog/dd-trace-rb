@@ -115,7 +115,7 @@ add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
 
 if ENV['DDTRACE_DEBUG']
-  $defs << '-DDD_DEBUG'
+  # $defs << '-DDD_DEBUG'
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
 end
