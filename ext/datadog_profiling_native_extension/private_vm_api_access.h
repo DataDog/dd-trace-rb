@@ -18,6 +18,11 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
+typedef struct frame_flags {
+  bool is_ruby_frame : 1;
+  bool same_frame : 1;
+} frame_flags;
+
 rb_nativethread_id_t pthread_id_for(VALUE thread);
 bool is_current_thread_holding_the_gvl(void);
 current_gvl_owner gvl_owner(void);
@@ -27,7 +32,7 @@ void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame, void **last_pc, bool *same_frame);
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, frame_flags* frame_flags, void **last_pc);
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
 

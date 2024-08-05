@@ -421,7 +421,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //    and friends). We've found quite a few situations where the data from rb_profile_frames and the reference APIs
 //    disagree, and quite a few of them seem oversights/bugs (speculation from my part) rather than deliberate
 //    decisions.
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame, void **last_pc, bool *same_frame)
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, frame_flags* frame_flags, void **last_pc)
 {
     int i;
     // Modified from upstream: Instead of using `GET_EC` to collect info from the current thread,
@@ -479,7 +479,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
                 continue;
             }
 
-            if ((same_frame[i] = (buff[i] == (VALUE) cfp->iseq && last_pc[i] == cfp->pc))) {
+            if ((frame_flags[i].same_frame = (buff[i] == (VALUE) cfp->iseq && last_pc[i] == cfp->pc))) {
               i++;
               continue;
             } else {
@@ -528,13 +528,13 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
               lines[i] = calc_lineno(cfp->iseq, cfp->pc);
             #endif
 
-            is_ruby_frame[i] = true;
+            frame_flags[i].is_ruby_frame = true;
             i++;
         }
         else {
             cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
-                if ((same_frame[i] = (buff[i] == (VALUE) cme))) {
+                if ((frame_flags[i].same_frame = (buff[i] == (VALUE) cme))) {
                   last_pc[i] = NULL;
                   i++;
                   continue;
@@ -542,7 +542,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, i
 
                 buff[i] = (VALUE)cme;
                 lines[i] = 0;
-                is_ruby_frame[i] = false;
+                frame_flags[i].is_ruby_frame = false;
                 i++;
             }
         }

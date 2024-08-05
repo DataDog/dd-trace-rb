@@ -18,9 +18,8 @@ struct sampling_buffer {
   uint16_t max_frames;
   VALUE *stack_buffer;
   int *lines_buffer;
-  bool *is_ruby_frame;
+  frame_flags *frame_flags;
   void **last_pc;
-  bool *same_frame;
   ddog_prof_Location *locations;
 }; // Note: typedef'd in the header to sampling_buffer
 
@@ -157,9 +156,8 @@ void sample_thread(
     buffer->max_frames,
     buffer->stack_buffer,
     buffer->lines_buffer,
-    buffer->is_ruby_frame,
-    buffer->last_pc,
-    buffer->same_frame
+    buffer->frame_flags,
+    buffer->last_pc
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
@@ -196,7 +194,7 @@ void sample_thread(
     VALUE name, filename;
     int line;
 
-    if (buffer->is_ruby_frame[i]) {
+    if (buffer->frame_flags[i].is_ruby_frame) {
       last_ruby_frame = buffer->stack_buffer[i];
       last_ruby_line = buffer->lines_buffer[i];
 
@@ -225,7 +223,7 @@ void sample_thread(
     // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
     // GVL instrumentation API.)
     if (top_of_the_stack && only_wall_time) {
-      if (!buffer->is_ruby_frame[i]) {
+      if (!buffer->frame_flags[i].is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,
@@ -414,11 +412,9 @@ sampling_buffer *sampling_buffer_new(uint16_t max_frames) {
 
   buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
   buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
-  buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
+  buffer->frame_flags   = ruby_xcalloc(max_frames, sizeof(frame_flags));
   buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
-
   buffer->last_pc       = ruby_xcalloc(max_frames, sizeof(void *));
-  buffer->same_frame    = ruby_xcalloc(max_frames, sizeof(bool));
 
   return buffer;
 }
@@ -428,11 +424,9 @@ void sampling_buffer_free(sampling_buffer *buffer) {
 
   ruby_xfree(buffer->stack_buffer);
   ruby_xfree(buffer->lines_buffer);
-  ruby_xfree(buffer->is_ruby_frame);
+  ruby_xfree(buffer->frame_flags);
   ruby_xfree(buffer->locations);
-
   ruby_xfree(buffer->last_pc);
-  ruby_xfree(buffer->same_frame);
 
   ruby_xfree(buffer);
 }
