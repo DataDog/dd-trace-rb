@@ -1,4 +1,4 @@
-require_relative 'lib/boot_basic'
+require_relative 'lib/boot'
 
 require 'shellwords'
 
@@ -10,7 +10,7 @@ require 'shellwords'
 # file by itself.
 #
 # The gem loading benchmark has never reported results to dogstatsd.
-BasicBenchmarker.define do
+Benchmarker.define do
   # Gem loading is quite slower than the other microbenchmarks
   benchmark 'gem loading', time: 60 do
     code = <<-E
