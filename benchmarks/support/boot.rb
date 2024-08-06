@@ -118,10 +118,6 @@ class Benchmarker
     benchmarks.map(&:call)
   end
 
-  def run_after
-    after_blocks.map(&:call)
-  end
-
   class << self
     def define(&block)
       caller_path = caller_locations.first.path

@@ -1,18 +1,32 @@
-# Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+require_relative 'support/boot'
 
-return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
-
-require 'benchmark/ips'
-require 'datadog'
-
-class TracingTraceBenchmark
+Benchmarker.define do
   module NoopWriter
     def write(trace)
       # no-op
     end
   end
 
+  # @param [Integer] time in seconds. The default is 12 seconds because having over 105 samples allows the
+  #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
+  #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
+  # @param [Integer] warmup in seconds. The default is 2 seconds.
+  default_benchmark_time 12
+
+  before do
+    ::Datadog::Tracing::Writer.prepend(NoopWriter)
+  end
+
+  [1, 10, 100].each do |depth_|
+    depth = depth_
+
+    benchmark "#{depth} span trace - no writer" do
+      (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
+    end
+  end
+end
+
+Benchmarker.define do
   module NoopAdapter
     Response = Struct.new(:code, :body)
 
@@ -21,34 +35,10 @@ class TracingTraceBenchmark
     end
   end
 
-  # @param [Integer] time in seconds. The default is 12 seconds because having over 105 samples allows the
-  #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
-  #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
-  # @param [Integer] warmup in seconds. The default is 2 seconds.
-  def benchmark_time(time: 12, warmup: 2)
-    VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
-  end
+  default_benchmark_time 12
 
-  def benchmark_no_writer
-    ::Datadog::Tracing::Writer.prepend(NoopWriter)
-
-    Benchmark.ips do |x|
-      x.config(**benchmark_time)
-
-      def trace(x, depth)
-        x.report(
-          "#{depth} span trace - no writer",
-          (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
-        )
-      end
-
-      trace(x, 1)
-      trace(x, 10)
-      trace(x, 100)
-
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+  before do
+    ::Datadog::Core::Transport::HTTP::Adapters::Net.prepend(NoopAdapter)
   end
 
   # Because the writer runs in the background, on a timed interval, benchmark results will have
@@ -57,75 +47,46 @@ class TracingTraceBenchmark
   # but it creates high variability, depending on the sampled interval.
   # This means that this benchmark will be marked as internally "unstable",
   # but we trust it's total average result.
-  def benchmark_no_network
-    ::Datadog::Core::Transport::HTTP::Adapters::Net.prepend(NoopAdapter)
+  [1, 10, 100].each do |depth_|
+    depth = depth_
 
-    Benchmark.ips do |x|
-      x.config(**benchmark_time)
-
-      def trace(x, depth)
-        x.report(
-          "#{depth} span trace - no network",
-          (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
-        )
-      end
-
-      trace(x, 1)
-      trace(x, 10)
-      trace(x, 100)
-
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-      x.compare!
+    benchmark "#{depth} span trace - no network" do
+      (depth.times.map { "Datadog::Tracing.trace('op.name') {" } + depth.times.map { "}" }).join
     end
   end
+end
 
-  def benchmark_to_digest
+Benchmarker.define do
+  default_benchmark_time 12
+
+  around do |block|
     Datadog::Tracing.trace('op.name') do |span, trace|
-      Benchmark.ips do |x|
-        x.config(**benchmark_time)
-
-        x.report("trace.to_digest") do
-          trace.to_digest
-        end
-
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-        x.compare!
+      @trace = trace
+      unless block
+        require'byebug';byebug
       end
+      block.call
     end
   end
 
-  def benchmark_log_correlation
-    Datadog::Tracing.trace('op.name') do |span, trace|
-      Benchmark.ips do |x|
-        x.config(**benchmark_time)
-
-        x.report("Tracing.log_correlation") do
-          Datadog::Tracing.log_correlation
-        end
-
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-        x.compare!
-      end
-    end
+  benchmark "trace.to_digest" do
+    @trace.to_digest
   end
 
-  def benchmark_to_digest_continue
-    Datadog::Tracing.trace('op.name') do |span, trace|
-      Benchmark.ips do |x|
-        x.config(**benchmark_time)
-
-        x.report("trace.to_digest - Continue") do
-          digest = trace.to_digest
-          Datadog::Tracing.continue_trace!(digest)
-        end
-
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-        x.compare!
-      end
-    end
+  benchmark "trace.to_digest - Continue" do
+    digest = @trace.to_digest
+    Datadog::Tracing.continue_trace!(digest)
   end
+end
 
-  def benchmark_propagation_datadog
+Benchmarker.define do
+  benchmark "Tracing.log_correlation" do
+    Datadog::Tracing.log_correlation
+  end
+end
+
+Benchmarker.define do
+  before do
     Datadog.configure do |c|
       if defined?(c.tracing.distributed_tracing.propagation_extract_style)
         # Required to run benchmarks against ddtrace 1.x.
@@ -135,46 +96,44 @@ class TracingTraceBenchmark
         c.tracing.propagation_style = ['datadog']
       end
     end
+  end
 
+  around do |block|
     Datadog::Tracing.trace('op.name') do |span, trace|
-      injected_trace_digest = trace.to_digest
-      Benchmark.ips do |x|
-        x.config(**benchmark_time)
-
-        x.report("Propagation - Datadog") do
-          env = {}
-          Datadog::Tracing::Contrib::HTTP.inject(injected_trace_digest, env)
-          extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
-          raise unless extracted_trace_digest
-        end
-
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-        x.compare!
-      end
+      @injected_trace_digest = trace.to_digest
+      block.call
     end
   end
 
-  def benchmark_propagation_trace_context
+  benchmark "Propagation - Datadog" do
+    env = {}
+    Datadog::Tracing::Contrib::HTTP.inject(@injected_trace_digest, env)
+    extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
+    raise unless extracted_trace_digest
+  end
+end
+
+Benchmarker.define do
+  #run_in_fork
+
+  before do
     Datadog.configure do |c|
       c.tracing.propagation_style = ['tracecontext']
     end
+  end
 
+  around do |block|
     Datadog::Tracing.trace('op.name') do |span, trace|
-      injected_trace_digest = trace.to_digest
-      Benchmark.ips do |x|
-        x.config(**benchmark_time)
-
-        x.report("Propagation - Trace Context") do
-          env = {}
-          Datadog::Tracing::Contrib::HTTP.inject(injected_trace_digest, env)
-          extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
-          raise unless extracted_trace_digest
-        end
-
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
-        x.compare!
-      end
+      @injected_trace_digest = trace.to_digest
+      block.call
     end
+  end
+
+  benchmark "Propagation - Trace Context" do
+    env = {}
+    Datadog::Tracing::Contrib::HTTP.inject(@injected_trace_digest, env)
+    extracted_trace_digest = Datadog::Tracing::Contrib::HTTP.extract(env)
+    raise unless extracted_trace_digest
   end
 end
 
