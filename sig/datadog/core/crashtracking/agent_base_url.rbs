@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Crashtracking
+      module AgentBaseUrl
+        def self.resolve: (untyped) -> ::String?
+      end
+    end
+  end
+end

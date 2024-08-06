@@ -70,11 +70,13 @@ module Datadog
 
         def initialize: (*untyped _) -> untyped
 
-        def env: -> String
+        def env: -> String?
 
         def service: -> String
 
         def version: -> String?
+
+        def tags: -> ::Hash[::String, ::String]
 
         def logger=: (untyped logger) -> untyped
 

@@ -26,11 +26,6 @@ module Datadog
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings
       ) -> untyped
 
-      def self.build_crashtracker: (
-        untyped settings,
-        untyped transport,
-      ) -> Datadog::Profiling::Crashtracker?
-
       def self.enable_gc_profiling?: (untyped settings) -> bool
       def self.enable_allocation_profiling?: (untyped settings) -> bool
       def self.get_heap_sample_every: (untyped settings) -> ::Integer

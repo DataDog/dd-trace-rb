@@ -8,24 +8,21 @@ module Datadog
 
       private
 
-      attr_reader :worker, :scheduler, :optional_crashtracker
+      attr_reader :worker, :scheduler
 
       public
 
-      def initialize(worker:, scheduler:, optional_crashtracker:)
+      def initialize(worker:, scheduler:)
         @worker = worker
         @scheduler = scheduler
-        @optional_crashtracker = optional_crashtracker
       end
 
       def start
         after_fork! do
-          optional_crashtracker&.reset_after_fork
           worker.reset_after_fork
           scheduler.reset_after_fork
         end
 
-        optional_crashtracker&.start
         worker.start(on_failure_proc: proc { component_failed(:worker) })
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
@@ -35,7 +32,6 @@ module Datadog
 
         stop_worker
         stop_scheduler
-        optional_crashtracker&.stop
       end
 
       private

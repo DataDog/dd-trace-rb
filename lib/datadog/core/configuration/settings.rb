@@ -451,17 +451,16 @@ module Datadog
               o.default 60
             end
 
-            # Enables reporting of information when the Ruby VM crashes.
-            #
-            # This feature is no longer experimental, and we plan to deprecate this setting and replace it with a
-            # properly-named one soon.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED` environment variable as a boolean,
-            # otherwise `true`
+            # DEV-3.0: Remove `experimental_crash_tracking_enabled` option
             option :experimental_crash_tracking_enabled do |o|
-              o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
-              o.default true
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'and no longer does anything. Please remove it from your Datadog.configure block.'
+                  end
+                end
+              end
             end
           end
 
@@ -831,6 +830,15 @@ module Datadog
           # @default `nil`.
           # @return [String,nil]
           option :service
+        end
+
+        settings :crashtracking do
+          # Enables reporting of information when Ruby VM crashes.
+          option :enabled do |o|
+            o.type :bool
+            o.default true
+            o.env 'DD_CRASHTRACKING_ENABLED'
+          end
         end
 
         # TODO: Tracing should manage its own settings.
