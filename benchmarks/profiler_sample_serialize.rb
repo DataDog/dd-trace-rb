@@ -6,7 +6,6 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'datadog'
 require 'pry'
-require_relative 'dogstatsd_reporter'
 
 require 'libdatadog'
 
@@ -40,7 +39,6 @@ class ProfilerSampleSerializeBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_sample_serialize')
       )
 
       x.report("sample #{ENV['CONFIG']} timeline=#{ENV['TIMELINE'] == 'true'}") do
@@ -61,16 +59,6 @@ class ProfilerSampleSerializeBenchmark
 
     @recorder.serialize
   end
-
-  def run_forever
-    while true
-      1000.times do
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
-      end
-      @recorder.serialize
-      print '.'
-    end
-  end
 end
 
 puts "Current pid is #{Process.pid}"
@@ -78,9 +66,5 @@ puts "Current pid is #{Process.pid}"
 ProfilerSampleSerializeBenchmark.new.instance_exec do
   create_profiler
   10.times { Thread.new { sleep } }
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end
