@@ -1,16 +1,6 @@
-# Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
-VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+require_relative 'support/boot'
 
-return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
-
-require 'benchmark/ips'
-require 'datadog'
-require 'pry'
-require_relative 'lib/dogstatsd_reporter'
-
-# This benchmark measures the performance of GC profiling
-
-class ProfilerGcBenchmark
+module ProfilerGcSetup
   def create_profiler
     @recorder = Datadog::Profiling::StackRecorder.new(
       cpu_time_enabled: true,
@@ -29,128 +19,136 @@ class ProfilerGcBenchmark
     Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current)
   end
 
-  def run_benchmark
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc')
-      )
-
-      # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
-      # We're going as fast as possible (not realistic), but this should give us an upper bound for expected performance.
-      x.report('profiler gc') do
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
-      end
-
-      x.save! 'profiler-gc-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_minute')
-      )
-
-      # We cap the number of minor GC samples to not happen more often than TIME_BETWEEN_GC_EVENTS_NS (10)
-      minor_gc_per_second_upper_bound = 100
-      # ...but every major GC triggers a flush. Here we consider what would happen if we had 1000 major GCs per second
-      pessimistic_number_of_gcs_per_second = minor_gc_per_second_upper_bound * 10
-      estimated_gc_per_minute = pessimistic_number_of_gcs_per_second * 60
-
-      x.report("estimated profiler gc per minute (sample #{estimated_gc_per_minute} times + serialize result)") do
-        estimated_gc_per_minute.times do
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
-        end
-
-        @recorder.serialize
-      end
-
-      x.save! 'profiler-gc-minute-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
-      )
-
-      x.report('Major GC runs (profiling disabled)', 'GC.start')
-
-      x.save! 'profiler-gc-integration-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
+  def enable_profiling
     Datadog.configure do |c|
       c.profiling.enabled = true
       c.profiling.allocation_enabled = false
       c.profiling.advanced.gc_enabled = true
     end
     Datadog::Profiling.wait_until_running
+  end
 
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
-      )
-
-      x.report('Major GC runs (profiling enabled)', 'GC.start')
-
-      x.save! 'profiler-gc-integration-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
+  def disable_profiling
     Datadog.configure { |c| c.profiling.enabled = false }
+  end
+end
 
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
-      )
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
 
-      x.report('Allocations (profiling disabled)', 'Object.new')
+  before do
+    create_profiler
+  end
 
-      x.save! 'profiler-gc-integration-allocations-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
+  # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
+  # We're going as fast as possible (not realistic), but this should give us an upper bound for expected performance.
+  benchmark 'profiler gc', time: 10 do
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+  end
 
-    Datadog.configure do |c|
-      c.profiling.enabled = true
-      c.profiling.allocation_enabled = false
-      c.profiling.advanced.gc_enabled = true
-    end
-    Datadog::Profiling.wait_until_running
-
-    Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
-      x.config(
-        **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
-      )
-
-      x.report('Allocations (profiling enabled)', 'Object.new')
-
-      x.save! 'profiler-gc-integration-allocations-results.json' unless VALIDATE_BENCHMARK_MODE
-      x.compare!
-    end
-
+  after do
     @recorder.serialize
   end
 end
 
-puts "Current pid is #{Process.pid}"
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
 
-ProfilerGcBenchmark.new.instance_exec do
-  create_profiler
-  run_benchmark
+  before do
+    create_profiler
+
+    # We cap the number of minor GC samples to not happen more often than TIME_BETWEEN_GC_EVENTS_NS (10)
+    minor_gc_per_second_upper_bound = 100
+    # ...but every major GC triggers a flush. Here we consider what would happen if we had 1000 major GCs per second
+    pessimistic_number_of_gcs_per_second = minor_gc_per_second_upper_bound * 10
+    @estimated_gc_per_minute = pessimistic_number_of_gcs_per_second * 60
+  end
+
+  benchmark "estimated profiler gc per minute (sample #{estimated_gc_per_minute} times + serialize result)" do
+    @estimated_gc_per_minute.times do
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
+      Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+    end
+  end
+
+  after do
+    @recorder.serialize
+  end
+end
+
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
+
+  before do
+    create_profiler
+  end
+
+  after do
+    @recorder.serialize
+  end
+
+  benchmark 'Major GC runs (profiling disabled)' do
+    GC.start
+  end
+end
+
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
+
+  before do
+    create_profiler
+    enable_profiling
+  end
+
+  after do
+    disable_profiling
+    @recorder.serialize
+  end
+
+  benchmark 'Major GC runs (profiling enabled)' do
+    GC.start
+  end
+end
+
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
+
+  before do
+    create_profiler
+  end
+
+  after do
+    @recorder.serialize
+  end
+
+  benchmark 'Allocations (profiling disabled)' do
+    Object.new
+  end
+end
+
+# This benchmark measures the performance of GC profiling
+Bechmarker.define do
+  include ProfilerGcSetup
+
+  before do
+    create_profiler
+    enable_profiling
+  end
+
+  after do
+    disable_profiling
+    @recorder.serialize
+  end
+
+  benchmark 'Allocations (profiling enabled)' do
+    Object.new
+  end
 end
