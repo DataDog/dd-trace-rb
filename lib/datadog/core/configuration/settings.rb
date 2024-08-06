@@ -450,19 +450,6 @@ module Datadog
               o.env 'DD_PROFILING_UPLOAD_PERIOD'
               o.default 60
             end
-
-            # Enables reporting of information when the Ruby VM crashes.
-            #
-            # This feature is no longer experimental, and we plan to deprecate this setting and replace it with a
-            # properly-named one soon.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED` environment variable as a boolean,
-            # otherwise `true`
-            option :experimental_crash_tracking_enabled do |o|
-              o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
-              o.default true
-            end
           end
 
           # @public_api
@@ -831,6 +818,17 @@ module Datadog
           # @default `nil`.
           # @return [String,nil]
           option :service
+        end
+
+        settings :crash_tracking do
+          # Enables reporting of information when the Ruby VM crashes.
+          #
+          # @default `DD_CRASH_TRACKING_ENABLED` environment variable as a boolean,
+          # otherwise `true`
+          option :enabled do |o|
+            o.type :bool
+            o.default true
+          end
         end
 
         # TODO: Tracing should manage its own settings.

@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:, optional_crashtracker:) # rubocop:disable Metrics/MethodLength
         return [nil, { profiling_enabled: false }] unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -73,8 +73,7 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
-        crashtracker = build_crashtracker(settings, transport)
-        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crashtracker: crashtracker)
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler, optional_crashtracker: optional_crashtracker)
 
         if dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
           Datadog::Profiling::Ext::DirMonkeyPatches.apply!
@@ -115,35 +114,6 @@ module Datadog
             api_key: settings.api_key,
             upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
           )
-      end
-
-      private_class_method def self.build_crashtracker(settings, transport)
-        return unless settings.profiling.advanced.experimental_crash_tracking_enabled
-
-        # By default, the transport is an instance of HttpTransport, which validates the configuration and makes
-        # it available for us to use here.
-        # But we support overriding the transport with a user-specific one, which may e.g. write stuff to a file,
-        # and thus can't really provide a valid configuration to talk to a Datadog agent. Thus, in this situation,
-        # we can't use the crashtracker, even if enabled.
-        unless transport.respond_to?(:exporter_configuration)
-          Datadog.logger.debug(
-            'Cannot enable profiling crash tracking as a custom settings.profiling.exporter.transport is configured'
-          )
-          return
-        end
-
-        if Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE
-          Datadog.logger.debug(
-            "Cannot enable crashtracking: #{Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE}"
-          )
-          return
-        end
-
-        Datadog::Profiling::Crashtracker.new(
-          exporter_configuration: transport.exporter_configuration,
-          tags: Datadog::Profiling::TagBuilder.call(settings: settings),
-          upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-        )
       end
 
       private_class_method def self.enable_gc_profiling?(settings)
