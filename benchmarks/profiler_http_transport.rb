@@ -91,13 +91,6 @@ class ProfilerHttpTransportBenchmark
     end
   end
 
-  def run_forever
-    while true
-      100.times { run_once }
-      print '.'
-    end
-  end
-
   def run_once
     success = @transport.export(@flush)
 
@@ -108,9 +101,5 @@ end
 puts "Current pid is #{Process.pid}"
 
 ProfilerHttpTransportBenchmark.new.instance_exec do
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end

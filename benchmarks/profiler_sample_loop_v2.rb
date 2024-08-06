@@ -57,16 +57,6 @@ class ProfilerSampleLoopBenchmark
 
     @recorder.serialize
   end
-
-  def run_forever
-    while true
-      1000.times do
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
-      end
-      @recorder.serialize
-      print '.'
-    end
-  end
 end
 
 puts "Current pid is #{Process.pid}"
@@ -74,9 +64,5 @@ puts "Current pid is #{Process.pid}"
 ProfilerSampleLoopBenchmark.new.instance_exec do
   create_profiler
   4.times { thread_with_very_deep_stack }
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end

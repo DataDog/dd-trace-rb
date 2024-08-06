@@ -87,26 +87,11 @@ class ProfilerMemorySampleSerializeBenchmark
       x.compare!
     end
   end
-
-  def run_forever
-    loop do
-      recorder = @recorder_factory.call
-      1000.times do |i|
-        sample_object(recorder, i % 400)
-      end
-      recorder.serialize
-      print '.'
-    end
-  end
 end
 
 puts "Current pid is #{Process.pid}"
 
 ProfilerMemorySampleSerializeBenchmark.new.instance_exec do
   setup
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end
