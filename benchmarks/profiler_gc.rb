@@ -6,7 +6,6 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'datadog'
 require 'pry'
-require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of GC profiling
 
@@ -34,7 +33,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc')
       )
 
       # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
@@ -53,7 +51,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_minute')
       )
 
       # We cap the number of minor GC samples to not happen more often than TIME_BETWEEN_GC_EVENTS_NS (10)
@@ -80,7 +77,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
       )
 
       x.report('Major GC runs (profiling disabled)', 'GC.start')
@@ -100,7 +96,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
       )
 
       x.report('Major GC runs (profiling enabled)', 'GC.start')
@@ -115,7 +110,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
       )
 
       x.report('Allocations (profiling disabled)', 'Object.new')
@@ -135,7 +129,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
       )
 
       x.report('Allocations (profiling enabled)', 'Object.new')

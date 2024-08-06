@@ -6,7 +6,6 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'datadog'
 require 'pry'
-require_relative 'dogstatsd_reporter'
 
 require 'libdatadog'
 
@@ -66,7 +65,6 @@ class ProfilerMemorySampleSerializeBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 30, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_memory_sample_serialize')
       )
 
       x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do

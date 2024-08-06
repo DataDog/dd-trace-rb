@@ -8,7 +8,6 @@ require 'datadog'
 require 'pry'
 require 'securerandom'
 require 'socket'
-require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of the http_transport class used for reporting profiling data
 #
@@ -81,7 +80,6 @@ class ProfilerHttpTransportBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 70, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_http_transport')
       )
 
       x.report("http_transport #{ENV['CONFIG']}") do
