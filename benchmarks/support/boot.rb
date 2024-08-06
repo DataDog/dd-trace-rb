@@ -1,19 +1,63 @@
+require 'forwardable'
+
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
 VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
+class MiddlewareStack
+  def initialize
+    @stack = []
+  end
+
+  def before(&block)
+    @stack << [:before, block]
+  end
+
+  def after(&block)
+    @stack << [:after, block]
+  end
+
+  def around(&block)
+    @stack << [:around, block]
+  end
+
+  def call(&block)
+    do_call(@stack, &block)
+  end
+
+  private
+
+  def do_call(stack, &block)
+    kind, proc = stack.first
+    case kind
+    when :before
+      proc.call
+      do_call(stack[1..], &block)
+    when :after
+      do_call(stack[1..], &block)
+      proc.call
+    when :around
+      proc.call do
+        do_call(stack[1..], &block)
+      end
+    end
+  end
+end
+
 class Benchmarker
+  extend Forwardable
+
   def initialize(source_file)
     @source_file = source_file
-    @before_blocks = []
-    @after_blocks = []
+    @middlewares = MiddlewareStack.new
     @benchmarks = []
     @default_benchmark_time = 10
   end
 
   attr_reader :source_file
-  attr_reader :before_blocks
-  attr_reader :after_blocks
+  attr_reader :middlewares
   attr_reader :benchmarks
+
+  def_delegators :middlewares, :before, :after, :around
 
   def default_benchmark_time(*args)
     if args.any?
@@ -28,14 +72,6 @@ class Benchmarker
 
   def source_file_without_ext
     source_file.sub(/\.rb\z/, '')
-  end
-
-  def before(&block)
-    before_blocks << block
-  end
-
-  def after(&block)
-    after_blocks << block
   end
 
   def benchmark(name, time: nil, &block)
@@ -67,13 +103,14 @@ class Benchmarker
 
     report_pid
 
-    before_blocks.map(&:call)
-
-    if forever
-      run_forever
-    else
-      run_benchmarks
-      run_after
+    middlewares.call do
+      if forever
+        # run_forever does not normally return thus the "after" hooks
+        # will not be invoked.
+        run_forever
+      else
+        run_benchmarks
+      end
     end
   end
 
