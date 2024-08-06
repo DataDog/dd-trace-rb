@@ -62,9 +62,6 @@ Benchmarker.define do
   around do |block|
     Datadog::Tracing.trace('op.name') do |span, trace|
       @trace = trace
-      unless block
-        require'byebug';byebug
-      end
       block.call
     end
   end
@@ -137,6 +134,7 @@ Benchmarker.define do
   end
 end
 
+=begin
 puts "Current pid is #{Process.pid}"
 
 def run_benchmark(&block)
@@ -156,3 +154,4 @@ TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_propagation_datadog }
   run_benchmark { benchmark_propagation_trace_context }
 end
+=end
