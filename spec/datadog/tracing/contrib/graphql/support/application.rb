@@ -31,15 +31,16 @@ RSpec.shared_context 'with GraphQL schema' do
   # TODO: Cleaner way to reset the schema between tests (and most likely clean ::GraphQL::Schema too)
   # stub_const is required for GraphqlController, and we cannot use variables defined in let blocks in stub_const
   before do
-    Object.send(:remove_const, :TestGraphQLSchema) if defined?(TestGraphQLSchema)
-    Object.send(:remove_const, :TestGraphQLQuery) if defined?(TestGraphQLQuery)
-    Object.send(:remove_const, :TestGraphQLMutationType) if defined?(TestGraphQLMutationType)
-    Object.send(:remove_const, :Users) if defined?(Users)
-    Object.send(:remove_const, :TestUserType) if defined?(TestUserType)
+    TestGraphQL.send(:remove_const, :Case) if defined?(TestGraphQL::Case)
+    TestGraphQL.send(:remove_const, :Schema) if defined?(TestGraphQL::Schema)
+    TestGraphQL.send(:remove_const, :Query) if defined?(TestGraphQL::Query)
+    TestGraphQL.send(:remove_const, :MutationType) if defined?(TestGraphQL::MutationType)
+    TestGraphQL.send(:remove_const, :Users) if defined?(TestGraphQL::Users)
+    TestGraphQL.send(:remove_const, :UserType) if defined?(TestGraphQL::UserType)
     load 'spec/datadog/tracing/contrib/graphql/support/application_schema.rb'
   end
   let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
-  let(:schema) { TestGraphQLSchema }
+  let(:schema) { TestGraphQL::Schema }
 end
 
 RSpec.shared_context 'with GraphQL multiplex' do
@@ -94,9 +95,9 @@ RSpec.shared_context 'GraphQL test application' do
                          context: {}
                        }
                      end
-                     TestGraphQLSchema.multiplex(queries)
+                     TestGraphQL::Schema.multiplex(queries)
                    else
-                     TestGraphQLSchema.execute(
+                     TestGraphQL::Schema.execute(
                        query: params[:query],
                        operation_name: params[:operationName],
                        variables: prepare_variables(params[:variables]),

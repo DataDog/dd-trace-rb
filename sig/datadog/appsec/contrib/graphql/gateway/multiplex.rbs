@@ -19,6 +19,8 @@ module Datadog
             private
 
             def create_arguments_hash: () -> Hash[String, Array[Hash[String, String]]]
+
+            def set_hash_with_variables: (Hash[String, String] resolver_hash, Array[GraphQL::Language::Nodes::Argument] arguments, Hash[String, String|Integer] provided_variables) -> void
           end
         end
       end

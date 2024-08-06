@@ -28,10 +28,10 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
     expect(result.to_h['errors']).to eq(
       [
         {
-          'message' => "Field 'error' doesn't exist on type 'TestGraphQLQuery'",
+          'message' => "Field 'error' doesn't exist on type 'Query'",
           'locations' => [{ 'line' => 1, 'column' => 13 }],
           'path' => ['query test', 'error'],
-          'extensions' => { 'code' => 'undefinedField', 'typeName' => 'TestGraphQLQuery', 'fieldName' => 'error' }
+          'extensions' => { 'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error' }
         }
       ]
     )
@@ -89,10 +89,10 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::AppSecTrace do
           'errors' =>
           [
             {
-              'message' => "Field 'error' doesn't exist on type 'TestGraphQLQuery'",
+              'message' => "Field 'error' doesn't exist on type 'Query'",
               'locations' => [{ 'line' => 1, 'column' => 13 }],
               'path' => ['query test', 'error'],
-              'extensions' => { 'code' => 'undefinedField', 'typeName' => 'TestGraphQLQuery', 'fieldName' => 'error' }
+              'extensions' => { 'code' => 'undefinedField', 'typeName' => 'Query', 'fieldName' => 'error' }
             }
           ]
         }
