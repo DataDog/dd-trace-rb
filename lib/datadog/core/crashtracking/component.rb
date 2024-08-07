@@ -4,6 +4,8 @@ require 'libdatadog'
 
 require_relative 'tag_builder'
 require_relative 'agent_base_url'
+require_relative '../utils/only_once'
+require_relative '../utils/at_fork_monkey_patch'
 
 module Datadog
   module Core
@@ -23,6 +25,8 @@ module Datadog
           rescue LoadError => e
             e.message
           end
+
+        ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         def self.build(settings, agent_settings, logger:)
           tags = TagBuilder.call(settings)
@@ -57,11 +61,21 @@ module Datadog
         end
 
         def start
-          start_or_update_on_fork(action: :start)
+          start_or_update_on_fork(action: :start).tap do
+            reset_after_fork
+          end
         end
 
         def reset_after_fork
-          start_or_update_on_fork(action: :update_on_fork)
+          ONLY_ONCE.run do
+            if Process.respond_to?(:datadog_at_fork)
+              Process.datadog_at_fork(:child) do
+                start_or_update_on_fork(action: :update_on_fork)
+              end
+            else
+              logger.debug 'Unexpected: At fork hooks not available'
+            end
+          end
         end
 
         def stop

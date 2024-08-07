@@ -112,3 +112,9 @@ module Datadog
     end
   end
 end
+
+begin
+  Datadog::Core::Utils::AtForkMonkeyPatch.apply!
+rescue StandardError, ScriptError
+  # Do something?!
+end
