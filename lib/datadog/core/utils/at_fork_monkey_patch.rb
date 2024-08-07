@@ -73,7 +73,7 @@ module Datadog
 
             pid = super
 
-            datadog_at_fork_blocks[:child].each(&:call) if datadog_at_fork_blocks.key?(:child) && pid == 0
+            datadog_at_fork_blocks[:child].each(&:call) if pid == 0 && datadog_at_fork_blocks.key?(:child)
 
             pid
           end
