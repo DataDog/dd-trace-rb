@@ -22,14 +22,17 @@ class GemLoadingBenchmark
       $LOAD_PATH.unshift('#{__dir__}')
 
       VALIDATE_BENCHMARK_MODE = #{VALIDATE_BENCHMARK_MODE}
-      require 'benchmarks_ips_patch'
+      require 'benchmark/ips'
 
       Benchmark.ips do |x|
         # Gem loading is quite slower than the other microbenchmarks
         benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 60, warmup: 5 }
         x.config(**benchmark_time)
 
-        x.report("Gem loading") do
+        # Because this benchmark is run in a forked process that is passed
+        # the code via standard input, it cannot figure out the product
+        # prefix automatically.
+        x.report("library - Gem loading") do
           pid = fork { require 'datadog' }
 
           _, status = Process.wait2(pid)
