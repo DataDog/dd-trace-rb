@@ -24,21 +24,17 @@ module Datadog
             e.message
           end
 
-        def self.build(settings, agent_settings)
+        def self.build(settings, agent_settings, logger:)
           tags = TagBuilder.call(settings)
           agent_base_url = AgentBaseUrl.resolve(agent_settings)
-          unless agent_base_url
-            Datadog.logger.warn('Missing agent base URL; cannot enable crash tracking')
-          end
+          logger.warn('Missing agent base URL; cannot enable crash tracking') unless agent_base_url
 
           ld_library_path = Libdatadog.ld_library_path
-          unless ld_library_path
-            Datadog.logger.warn('Missing ld_library_path; cannot enable crash tracking')
-          end
+          logger.warn('Missing ld_library_path; cannot enable crash tracking') unless ld_library_path
 
           path_to_crashtracking_receiver_binary = Libdatadog.path_to_crashtracking_receiver_binary
           unless path_to_crashtracking_receiver_binary
-            Datadog.logger.warn('Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking')
+            logger.warn('Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking')
           end
 
           return if [agent_base_url, ld_library_path, path_to_crashtracking_receiver_binary].any?(&:nil?)
@@ -51,11 +47,12 @@ module Datadog
           ).tap(&:start)
         end
 
-        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:)
+        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:, logger:)
           @tags = tags
           @agent_base_url = agent_base_url
           @ld_library_path = ld_library_path
           @path_to_crashtracking_receiver_binary = path_to_crashtracking_receiver_binary
+          @logger = logger
         end
 
         def start
@@ -69,18 +66,18 @@ module Datadog
         def stop
           begin
             self.class._native_stop
-            Datadog.logger.debug('Crash tracking stopped successfully')
+            logger.debug('Crash tracking stopped successfully')
           rescue => e
-            Datadog.logger.error("Failed to stop crash tracking: #{e.message}")
+            logger.error("Failed to stop crash tracking: #{e.message}")
           end
         end
 
         private
 
-        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary
+        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
 
         def start_or_update_on_fork(action:)
-          Datadog.logger.debug("Crash tracking #{action}...")
+          logger.debug("Crash tracking #{action}...")
           begin
             self.class._native_start_or_update_on_fork(
               action: action,
@@ -90,9 +87,9 @@ module Datadog
               tags_as_array: tags.to_a,
               upload_timeout_seconds: 1
             )
-            Datadog.logger.debug("Crash tracking #{action} successful")
+            logger.debug("Crash tracking #{action} successful")
           rescue => e
-            Datadog.logger.error("Failed to #{action} crash tracking: #{e.message}")
+            logger.error("Failed to #{action} crash tracking: #{e.message}")
           end
         end
       end

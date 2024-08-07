@@ -86,7 +86,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_health_metrics)
         .with(settings)
         .and_return(health_metrics)
-
     end
 
     it do
