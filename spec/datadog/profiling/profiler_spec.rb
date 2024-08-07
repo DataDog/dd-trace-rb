@@ -25,7 +25,7 @@ RSpec.describe Datadog::Profiling::Profiler do
     end
 
     context 'when a crash tracker instance is provided' do
-      let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
+      let(:optional_crashtracker) { instance_double(Datadog::Core::Crashtracking::Component) }
 
       it 'signals the crash tracker to start before other components' do
         expect(optional_crashtracker).to receive(:start).ordered
@@ -55,7 +55,7 @@ RSpec.describe Datadog::Profiling::Profiler do
       end
 
       context 'when a crash tracker instance is provided' do
-        let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
+        let(:optional_crashtracker) { instance_double(Datadog::Core::Crashtracking::Component) }
 
         it 'resets the crash tracker before other coponents, as well as restarts it before other components' do
           profiler # make sure instance is created in parent, so it detects the forking
@@ -89,7 +89,7 @@ RSpec.describe Datadog::Profiling::Profiler do
     end
 
     context 'when a crash tracker instance is provided' do
-      let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
+      let(:optional_crashtracker) { instance_double(Datadog::Core::Crashtracking::Component) }
 
       it 'signals the crash tracker to stop, after other components have stopped' do
         expect(worker).to receive(:stop).ordered
@@ -106,7 +106,7 @@ RSpec.describe Datadog::Profiling::Profiler do
   describe 'Component failure handling' do
     let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, start: nil) }
     let(:scheduler) { instance_double(Datadog::Profiling::Scheduler, start: nil) }
-    let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker, start: nil) }
+    let(:optional_crashtracker) { instance_double(Datadog::Core::Crashtracking::Component, start: nil) }
 
     before { allow(Datadog.logger).to receive(:warn) }
 

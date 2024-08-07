@@ -15,7 +15,6 @@ module Datadog
           when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
             "unix://#{agent_settings.uds_path}"
           else
-            Datadog.logger.warn("Unexpected adapter: #{agent_settings.adapter}")
             nil
           end
         end
