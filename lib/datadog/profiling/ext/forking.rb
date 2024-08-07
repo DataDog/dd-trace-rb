@@ -60,8 +60,10 @@ module Datadog
           def at_fork(stage, &block)
             raise ArgumentError, 'Bad \'stage\' for ::at_fork' unless stage == :child
 
-            datadog_at_fork_blocks[stage] = [] unless datadog_at_fork_blocks.key?(stage)
+            datadog_at_fork_blocks[stage] ||= []
             datadog_at_fork_blocks[stage] << block
+
+            nil
           end
 
           module_function
