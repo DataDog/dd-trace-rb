@@ -828,14 +828,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be false }
+            it { is_expected.to be_nil }
           end
 
           [true, false].each do |value|
             context "is defined as #{value}" do
               let(:environment) { value.to_s }
 
-              it { is_expected.to be value }
+              it { is_expected.to be_nil }
             end
           end
         end
@@ -845,7 +845,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it 'updates the #experimental_crash_tracking_enabled setting' do
           expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
             .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
-            .from(false).to(true)
+            .from(nil).to(true)
         end
       end
 
