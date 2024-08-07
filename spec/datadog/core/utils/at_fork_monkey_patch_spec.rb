@@ -56,10 +56,10 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         expect(::Kernel.ancestors).to include(described_class::KernelMonkeyPatch)
         expect(toplevel_receiver.class.ancestors).to include(described_class::KernelMonkeyPatch)
 
-        expect(::Process.method(:fork).source_location.first).to match(%r{.*at_fork_monkey_patch.rb})
-        expect(::Process.method(:daemon).source_location.first).to match(%r{.*at_fork_monkey_patch.rb})
-        expect(::Kernel.method(:fork).source_location.first).to match(%r{.*at_fork_monkey_patch.rb})
-        expect(toplevel_receiver.method(:fork).source_location.first).to match(%r{.*at_fork_monkey_patch.rb})
+        expect(::Process.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(::Kernel.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(toplevel_receiver.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
       end
     end
 

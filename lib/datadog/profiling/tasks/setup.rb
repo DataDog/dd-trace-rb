@@ -40,7 +40,7 @@ module Datadog
               end
             end
           else
-            Datadog.logger.debug "Unexpected: At fork hooks not available"
+            Datadog.logger.debug 'Unexpected: At fork hooks not available'
           end
         end
       end
