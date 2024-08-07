@@ -1,9 +1,7 @@
 require 'spec_helper'
 require 'datadog/profiling/spec_helper'
 
-require 'datadog/profiling'
 require 'datadog/profiling/tasks/setup'
-require 'datadog/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Tasks::Setup do
   subject(:task) { described_class.new }
@@ -16,95 +14,20 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
     end
 
     it 'actives the forking extension before setting up the at_fork hooks' do
-      expect(task).to receive(:activate_forking_extensions).ordered
+      expect(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:apply!).ordered
       expect(task).to receive(:setup_at_fork_hooks).ordered
 
       run
     end
 
     it 'only sets up the extensions and hooks once, even across different instances' do
-      expect_any_instance_of(described_class).to receive(:activate_forking_extensions).once
+      expect(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:apply!).once
       expect_any_instance_of(described_class).to receive(:setup_at_fork_hooks).once
 
       task.run
       task.run
       described_class.new.run
       described_class.new.run
-    end
-  end
-
-  describe '#activate_forking_extensions' do
-    subject(:activate_forking_extensions) { task.send(:activate_forking_extensions) }
-
-    context 'when forking extensions are supported' do
-      before do
-        allow(Datadog::Profiling::Ext::Forking)
-          .to receive(:supported?)
-          .and_return(true)
-      end
-
-      context 'and succeeds' do
-        it 'applies forking extensions' do
-          expect(Datadog::Profiling::Ext::Forking).to receive(:apply!)
-          expect(Datadog.logger).to_not receive(:warn)
-          activate_forking_extensions
-        end
-      end
-
-      context 'but fails' do
-        before do
-          expect(Datadog::Profiling::Ext::Forking)
-            .to receive(:apply!)
-            .and_raise(StandardError)
-        end
-
-        it 'logs a warning' do
-          expect(Datadog.logger).to receive(:warn) do |&message|
-            expect(message.call).to include('forking extensions unavailable')
-          end
-
-          activate_forking_extensions
-        end
-      end
-    end
-
-    context 'when forking extensions are not supported' do
-      before do
-        allow(Datadog::Profiling::Ext::Forking)
-          .to receive(:supported?)
-          .and_return(false)
-      end
-
-      context 'and profiling is enabled' do
-        before do
-          allow(Datadog.configuration.profiling)
-            .to receive(:enabled)
-            .and_return(true)
-        end
-
-        it 'skips forking extensions with warning' do
-          expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect(Datadog.logger).to receive(:debug) do |message|
-            expect(message).to include('forking extensions skipped')
-          end
-
-          activate_forking_extensions
-        end
-      end
-
-      context 'and profiling is disabled' do
-        before do
-          allow(Datadog.configuration.profiling)
-            .to receive(:enabled)
-            .and_return(false)
-        end
-
-        it 'skips forking extensions without warning' do
-          expect(Datadog::Profiling::Ext::Forking).to_not receive(:apply!)
-          expect(Datadog.logger).to_not receive(:debug)
-          activate_forking_extensions
-        end
-      end
     end
   end
 
@@ -166,7 +89,9 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         allow(Process).to receive(:respond_to?).with(:datadog_at_fork).and_return(false)
       end
 
-      it 'does nothing' do
+      it 'logs a debug message' do
+        expect(Datadog.logger).to receive(:debug).with(/hooks not available/)
+
         without_partial_double_verification do
           expect(Process).to_not receive(:datadog_at_fork)
 

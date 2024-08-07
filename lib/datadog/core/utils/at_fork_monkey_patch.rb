@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 module Datadog
-  module Profiling
-    module Ext
+  module Core
+    module Utils
       # Monkey patches `Kernel#fork` and similar functions, adding a `Kernel#datadog_at_fork` callback mechanism which
       # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
       #
@@ -12,7 +12,7 @@ module Datadog
       # Known limitations: Does not handle `BasicObject`s that include `Kernel` directly; e.g.
       # `Class.new(BasicObject) { include(::Kernel); def call; fork { }; end }.new.call`.
       # This will be fixed once we move to hooking into `Process._fork`
-      module Forking
+      module AtForkMonkeyPatch
         def self.supported?
           Process.respond_to?(:fork)
         end
@@ -84,7 +84,7 @@ module Datadog
         # This monkey patch makes the `Kernel#datadog_at_fork` mechanism defined above also work in this situation.
         module ProcessDaemonMonkeyPatch
           def daemon(*args)
-            datadog_at_fork_blocks = Datadog::Profiling::Ext::Forking::KernelMonkeyPatch.datadog_at_fork_blocks
+            datadog_at_fork_blocks = Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch.datadog_at_fork_blocks
 
             result = super
 
