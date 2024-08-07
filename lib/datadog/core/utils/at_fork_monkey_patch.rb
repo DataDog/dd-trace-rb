@@ -60,6 +60,8 @@ module Datadog
             result
           end
 
+          # NOTE: You probably want to wrap any calls to datadog_at_fork with a OnlyOnce so as to not re-register
+          #       the same block/behavior more than once.
           def datadog_at_fork(stage, &block)
             raise ArgumentError, 'Bad \'stage\' for ::datadog_at_fork' unless stage == :child
 
