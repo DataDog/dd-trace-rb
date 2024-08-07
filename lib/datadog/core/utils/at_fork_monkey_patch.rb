@@ -23,7 +23,7 @@ module Datadog
             ].each { |target| target.prepend(KernelMonkeyPatch) }
           end
 
-          ::Process.singleton_class.prepend(ProcessDaemonMonkeyPatch)
+          ::Process.singleton_class.prepend(ProcessMonkeyPatch)
 
           true
         end
@@ -65,7 +65,7 @@ module Datadog
         end
 
         # Adds `datadog_at_fork` behavior; see parent module for details.
-        module ProcessDaemonMonkeyPatch
+        module ProcessMonkeyPatch
           # Hook provided by Ruby 3.1+ for observability libraries that want to know about fork, see
           # https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
           def _fork
@@ -94,7 +94,7 @@ module Datadog
           # NOTE: You probably want to wrap any calls to datadog_at_fork with a OnlyOnce so as to not re-register
           #       the same block/behavior more than once.
           def datadog_at_fork(stage, &block)
-            ProcessDaemonMonkeyPatch.datadog_at_fork(stage, &block)
+            ProcessMonkeyPatch.datadog_at_fork(stage, &block)
           end
 
           # Also allow calling without going through Process for tests

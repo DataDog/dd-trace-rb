@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
     context 'when forking is supported' do
       before do
-        if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch)
+        if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch)
           skip 'Monkey patch already applied (unclean state)'
         end
       end
@@ -23,7 +23,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             apply!
 
             expect(::Process.ancestors).to include(described_class::KernelMonkeyPatch)
-            expect(::Process.ancestors).to include(described_class::ProcessDaemonMonkeyPatch)
+            expect(::Process.ancestors).to include(described_class::ProcessMonkeyPatch)
             expect(::Kernel.ancestors).to include(described_class::KernelMonkeyPatch)
             expect(toplevel_receiver.class.ancestors).to include(described_class::KernelMonkeyPatch)
 
@@ -42,7 +42,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           expect_in_fork do
             apply!
 
-            expect(::Process.ancestors).to include(described_class::ProcessDaemonMonkeyPatch)
+            expect(::Process.ancestors).to include(described_class::ProcessMonkeyPatch)
             expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
             expect(::Process.method(:_fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
           end
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       let(:child) { double('child') }
 
       before do
-        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch.datadog_at_fork(:child) { child.call }
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child) { child.call }
       end
 
       after do
@@ -172,7 +172,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         let(:block) { proc { callback.call } }
 
         subject(:datadog_at_fork) do
-          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch.datadog_at_fork(:child, &block)
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child, &block)
         end
 
         it 'adds a child callback' do
@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch do
     let(:_fork_result) { nil }
     let(:process_module) do
       result = _fork_result
