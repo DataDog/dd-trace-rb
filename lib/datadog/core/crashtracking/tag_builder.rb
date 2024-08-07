@@ -8,14 +8,12 @@ require_relative '../environment/git'
 module Datadog
   module Core
     module Crashtracking
-      # Builds a hash of default plus user tags to be included in a profile
+      # This module builds a hash of tags
       module TagBuilder
         module_function
 
         def call(settings)
-          # When changing or adding these, make sure they are kept in sync with
-          # https://docs.google.com/spreadsheets/d/1LOGMf4c4Avbtn36uZ2SWvhIGKRPLM1BoWkUP4JYj7hA/ (Datadog internal link)
-          tags = {
+          hash = {
             'host' => Environment::Socket.hostname,
             'language' => Environment::Identity.lang,
             'process_id' => Process.pid.to_s,
@@ -27,16 +25,16 @@ module Datadog
             'runtime_version' => Environment::Identity.lang_version,
           }
 
-          tags['env'] = settings.env if settings.env
-          tags['service'] = settings.service if settings.service
-          tags['version'] = settings.version if settings.version
-          tags['git.repository_url'] = Environment::Git.git_repository_url if Environment::Git.git_repository_url
-          tags['git.commit.sha'] = Environment::Git.git_commit_sha if Environment::Git.git_commit_sha
+          hash['env'] = settings.env if settings.env
+          hash['service'] = settings.service if settings.service
+          hash['version'] = settings.version if settings.version
+          hash['git.repository_url'] = Environment::Git.git_repository_url if Environment::Git.git_repository_url
+          hash['git.commit.sha'] = Environment::Git.git_commit_sha if Environment::Git.git_commit_sha
 
-          # Make sure everything is an utf-8 string, to avoid encoding issues in native code/libddprof/further downstream
-          settings.tags.merge(tags).map do |key, value|
-            [Utils.utf8_encode(key), Utils.utf8_encode(value)]
-          end.to_h
+          # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
+          (settings.tags || {}).merge(hash).each_with_object({}) do |(key, value), h|
+            h[Utils.utf8_encode(key)] = Utils.utf8_encode(value)
+          end
         end
       end
     end

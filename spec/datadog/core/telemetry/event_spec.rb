@@ -44,7 +44,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           },
           profiler: {
             enabled: false,
-            # error: anything, # FIXME: This is not deterministic
+            error: anything,
           },
         },
         configuration: contain_configuration(
