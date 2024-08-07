@@ -1,9 +1,7 @@
-require 'datadog/profiling/spec_helper'
-
 require 'datadog/profiling/ext/forking'
 
 RSpec.describe Datadog::Profiling::Ext::Forking do
-  before { skip_if_profiling_not_supported(self) }
+  before { skip 'Forking not supported' unless Datadog::Profiling::Ext::Forking.supported? } # rubocop:disable RSpec/DescribedClass
 
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
@@ -79,8 +77,6 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
   end
 
   describe Datadog::Profiling::Ext::Forking::Kernel do
-    before { skip 'Forking not supported' unless Datadog::Profiling::Ext::Forking.supported? }
-
     shared_context 'fork class' do
       def new_fork_class
         Class.new.tap do |c|
