@@ -29,6 +29,8 @@ module Datadog
           ].each { |target| target.prepend(Kernel) }
 
           ::Process.singleton_class.prepend(ProcessDaemonMonkeyPatch)
+
+          true
         end
 
         module Kernel
