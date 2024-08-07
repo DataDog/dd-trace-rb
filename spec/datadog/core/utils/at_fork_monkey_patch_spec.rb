@@ -1,9 +1,7 @@
-require 'datadog/profiling/spec_helper'
+require 'datadog/core/utils/at_fork_monkey_patch'
 
-require 'datadog/profiling/ext/forking'
-
-RSpec.describe Datadog::Profiling::Ext::Forking do
-  before { skip_if_profiling_not_supported(self) }
+RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
+  before { skip 'Forking not supported' unless Datadog::Core::Utils::AtForkMonkeyPatch.supported? } # rubocop:disable RSpec/DescribedClass
 
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
@@ -15,7 +13,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         # NOTE: Do not move this to a before, since we also want to skip the around as well
         skip 'Forking not supported' unless described_class.supported?
 
-        if ::Process.singleton_class.ancestors.include?(Datadog::Profiling::Ext::Forking::Kernel)
+        if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch)
           skip 'Unclean Process class state.'
         end
 
@@ -32,11 +30,11 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         Object.const_set('Kernel', unmodified_kernel_class)
 
         # Check for leaks (make sure test is properly cleaned up)
-        expect(::Process <= described_class::Kernel).to be nil
-        expect(::Process <= described_class::ProcessDaemonPatch).to be nil
-        expect(::Kernel <= described_class::Kernel).to be nil
+        expect(::Process <= described_class::KernelMonkeyPatch).to be nil
+        expect(::Process <= described_class::ProcessDaemonMonkeyPatch).to be nil
+        expect(::Kernel <= described_class::KernelMonkeyPatch).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
-        # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
+        # expect(toplevel_receiver.class.ancestors.include?(described_class::KernelMonkeyPatch)).to be false
 
         expect(::Process.method(:fork).source_location).to be nil
         expect(::Kernel.method(:fork).source_location).to be nil
@@ -53,15 +51,15 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         apply!
 
-        expect(::Process.ancestors).to include(described_class::Kernel)
-        expect(::Process.ancestors).to include(described_class::ProcessDaemonPatch)
-        expect(::Kernel.ancestors).to include(described_class::Kernel)
-        expect(toplevel_receiver.class.ancestors).to include(described_class::Kernel)
+        expect(::Process.ancestors).to include(described_class::KernelMonkeyPatch)
+        expect(::Process.ancestors).to include(described_class::ProcessDaemonMonkeyPatch)
+        expect(::Kernel.ancestors).to include(described_class::KernelMonkeyPatch)
+        expect(toplevel_receiver.class.ancestors).to include(described_class::KernelMonkeyPatch)
 
-        expect(::Process.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
-        expect(::Process.method(:daemon).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
-        expect(::Kernel.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
-        expect(toplevel_receiver.method(:fork).source_location.first).to match(%r{.*datadog/profiling/ext/forking.rb})
+        expect(::Process.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(::Kernel.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+        expect(toplevel_receiver.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
       end
     end
 
@@ -78,14 +76,12 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
   end
 
-  describe Datadog::Profiling::Ext::Forking::Kernel do
-    before { skip 'Forking not supported' unless Datadog::Profiling::Ext::Forking.supported? }
-
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch do
     shared_context 'fork class' do
       def new_fork_class
         Class.new.tap do |c|
           c.singleton_class.class_eval do
-            prepend Datadog::Profiling::Ext::Forking::Kernel
+            prepend Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch
 
             def fork(&block)
               Kernel.fork(&block)
@@ -108,11 +104,11 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
     end
 
-    shared_context 'at_fork callbacks' do
+    shared_context 'datadog_at_fork callbacks' do
       let(:child) { double('child') }
 
       before do
-        fork_class.at_fork(:child) { child.call }
+        fork_class.datadog_at_fork(:child) { child.call }
       end
 
       after do
@@ -125,12 +121,12 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
       it do
         is_expected.to respond_to(:fork)
-        is_expected.to respond_to(:at_fork)
+        is_expected.to respond_to(:datadog_at_fork)
       end
 
       describe '#fork' do
         context 'when a block is not provided' do
-          include_context 'at_fork callbacks'
+          include_context 'datadog_at_fork callbacks'
 
           subject(:fork) { fork_class.fork }
 
@@ -172,7 +168,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
           end
 
           context 'when callbacks are configured' do
-            include_context 'at_fork callbacks'
+            include_context 'datadog_at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
               expect(child).to receive(:call)
@@ -183,22 +179,22 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         end
       end
 
-      describe '#at_fork' do
-        include_context 'at_fork callbacks'
+      describe '#datadog_at_fork' do
+        include_context 'datadog_at_fork callbacks'
 
         let(:callback) { double('callback') }
         let(:block) { proc { callback.call } }
 
         context 'given a stage' do
-          subject(:at_fork) do
-            fork_class.at_fork(stage, &block)
+          subject(:datadog_at_fork) do
+            fork_class.datadog_at_fork(stage, &block)
           end
 
           context ':child' do
             let(:stage) { :child }
 
             it 'adds a child callback' do
-              at_fork
+              datadog_at_fork
 
               expect(child).to receive(:call).ordered
               expect(callback).to receive(:call).ordered
@@ -215,8 +211,8 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
       let(:other_fork_class) { new_fork_class }
 
-      context 'and #at_fork is called in one' do
-        include_context 'at_fork callbacks'
+      context 'and #datadog_at_fork is called in one' do
+        include_context 'datadog_at_fork callbacks'
 
         it 'applies the callback to the original class' do
           expect(child).to receive(:call)
@@ -233,24 +229,24 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
   end
 
-  describe Datadog::Profiling::Ext::Forking::ProcessDaemonPatch do
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch do
     let(:process_module) { Module.new { def self.daemon(nochdir = nil, noclose = nil); end } }
     let(:child_callback) { double('child', call: true) }
 
     before do
       allow(process_module).to receive(:daemon)
 
-      process_module.singleton_class.prepend(Datadog::Profiling::Ext::Forking::Kernel)
+      process_module.singleton_class.prepend(Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch)
       process_module.singleton_class.prepend(described_class)
 
-      process_module.at_fork(:child) { child_callback.call }
+      process_module.datadog_at_fork(:child) { child_callback.call }
     end
 
     after do
-      Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks.clear
+      Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch.datadog_at_fork_blocks.clear
     end
 
-    it 'calls the child at_fork callbacks after calling Process.daemon' do
+    it 'calls the child datadog_at_fork callbacks after calling Process.daemon' do
       expect(process_module).to receive(:daemon).ordered
       expect(child_callback).to receive(:call).ordered
 
