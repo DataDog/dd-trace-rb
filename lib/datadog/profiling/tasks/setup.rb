@@ -40,8 +40,8 @@ module Datadog
         end
 
         def setup_at_fork_hooks
-          if Process.respond_to?(:at_fork)
-            Process.at_fork(:child) do
+          if Process.respond_to?(:datadog_at_fork)
+            Process.datadog_at_fork(:child) do
               begin
                 # Restart profiler, if enabled
                 Profiling.start_if_enabled

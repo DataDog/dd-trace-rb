@@ -3,7 +3,7 @@
 module Datadog
   module Profiling
     module Ext
-      # Monkey patches `Kernel#fork` and similar functions, adding a `Kernel#at_fork` callback mechanism which
+      # Monkey patches `Kernel#fork` and similar functions, adding a `Kernel#datadog_at_fork` callback mechanism which
       # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
       #
       # TODO: Use `Process._fork` on Ruby 3.1+, see
@@ -59,8 +59,8 @@ module Datadog
             result
           end
 
-          def at_fork(stage, &block)
-            raise ArgumentError, 'Bad \'stage\' for ::at_fork' unless stage == :child
+          def datadog_at_fork(stage, &block)
+            raise ArgumentError, 'Bad \'stage\' for ::datadog_at_fork' unless stage == :child
 
             datadog_at_fork_blocks[stage] ||= []
             datadog_at_fork_blocks[stage] << block
@@ -80,7 +80,7 @@ module Datadog
         # A call to Process.daemon ( https://rubyapi.org/3.1/o/process#method-c-daemon ) forks the current process and
         # keeps executing code in the child process, killing off the parent, thus effectively replacing it.
         #
-        # This monkey patch makes the `Kernel#at_fork` mechanism defined above also work in this situation.
+        # This monkey patch makes the `Kernel#datadog_at_fork` mechanism defined above also work in this situation.
         module ProcessDaemonMonkeyPatch
           def daemon(*args)
             datadog_at_fork_blocks = Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks

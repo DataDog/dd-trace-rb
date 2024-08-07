@@ -111,13 +111,13 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
   describe '#setup_at_fork_hooks' do
     subject(:setup_at_fork_hooks) { task.send(:setup_at_fork_hooks) }
 
-    context 'when Process#at_fork is available' do
+    context 'when Process#datadog_at_fork is available' do
       before do
-        allow(Process).to receive(:respond_to?).with(:at_fork).and_return(true)
+        allow(Process).to receive(:respond_to?).with(:datadog_at_fork).and_return(true)
         allow(Datadog::Profiling).to receive(:start_if_enabled)
 
         without_partial_double_verification do
-          allow(Process).to receive(:at_fork)
+          allow(Process).to receive(:datadog_at_fork)
         end
       end
 
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
         the_hook = nil
 
         without_partial_double_verification do
-          expect(Process).to receive(:at_fork).with(:child) do |&block|
+          expect(Process).to receive(:datadog_at_fork).with(:child) do |&block|
             the_hook = block
           end
         end
@@ -161,14 +161,14 @@ RSpec.describe Datadog::Profiling::Tasks::Setup do
       end
     end
 
-    context 'when #at_fork is not available' do
+    context 'when #datadog_at_fork is not available' do
       before do
-        allow(Process).to receive(:respond_to?).with(:at_fork).and_return(false)
+        allow(Process).to receive(:respond_to?).with(:datadog_at_fork).and_return(false)
       end
 
       it 'does nothing' do
         without_partial_double_verification do
-          expect(Process).to_not receive(:at_fork)
+          expect(Process).to_not receive(:datadog_at_fork)
 
           setup_at_fork_hooks
         end

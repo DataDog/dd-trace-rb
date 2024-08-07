@@ -104,11 +104,11 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       end
     end
 
-    shared_context 'at_fork callbacks' do
+    shared_context 'datadog_at_fork callbacks' do
       let(:child) { double('child') }
 
       before do
-        fork_class.at_fork(:child) { child.call }
+        fork_class.datadog_at_fork(:child) { child.call }
       end
 
       after do
@@ -121,12 +121,12 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
       it do
         is_expected.to respond_to(:fork)
-        is_expected.to respond_to(:at_fork)
+        is_expected.to respond_to(:datadog_at_fork)
       end
 
       describe '#fork' do
         context 'when a block is not provided' do
-          include_context 'at_fork callbacks'
+          include_context 'datadog_at_fork callbacks'
 
           subject(:fork) { fork_class.fork }
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
           end
 
           context 'when callbacks are configured' do
-            include_context 'at_fork callbacks'
+            include_context 'datadog_at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
               expect(child).to receive(:call)
@@ -179,22 +179,22 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         end
       end
 
-      describe '#at_fork' do
-        include_context 'at_fork callbacks'
+      describe '#datadog_at_fork' do
+        include_context 'datadog_at_fork callbacks'
 
         let(:callback) { double('callback') }
         let(:block) { proc { callback.call } }
 
         context 'given a stage' do
-          subject(:at_fork) do
-            fork_class.at_fork(stage, &block)
+          subject(:datadog_at_fork) do
+            fork_class.datadog_at_fork(stage, &block)
           end
 
           context ':child' do
             let(:stage) { :child }
 
             it 'adds a child callback' do
-              at_fork
+              datadog_at_fork
 
               expect(child).to receive(:call).ordered
               expect(callback).to receive(:call).ordered
@@ -211,8 +211,8 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
       let(:other_fork_class) { new_fork_class }
 
-      context 'and #at_fork is called in one' do
-        include_context 'at_fork callbacks'
+      context 'and #datadog_at_fork is called in one' do
+        include_context 'datadog_at_fork callbacks'
 
         it 'applies the callback to the original class' do
           expect(child).to receive(:call)
@@ -239,14 +239,14 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
       process_module.singleton_class.prepend(Datadog::Profiling::Ext::Forking::Kernel)
       process_module.singleton_class.prepend(described_class)
 
-      process_module.at_fork(:child) { child_callback.call }
+      process_module.datadog_at_fork(:child) { child_callback.call }
     end
 
     after do
       Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks.clear
     end
 
-    it 'calls the child at_fork callbacks after calling Process.daemon' do
+    it 'calls the child datadog_at_fork callbacks after calling Process.daemon' do
       expect(process_module).to receive(:daemon).ordered
       expect(child_callback).to receive(:call).ordered
 
