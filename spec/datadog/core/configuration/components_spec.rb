@@ -75,8 +75,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
         settings: settings,
         agent_settings: agent_settings,
-        optional_tracer: tracer,
-        optional_crashtracker: crashtracker
+        optional_tracer: tracer
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -1087,8 +1086,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: anything,
-            optional_crashtracker: anything,
+            optional_tracer: anything
           ).and_return([profiler, environment_logger_extra])
         end
 

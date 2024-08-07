@@ -95,13 +95,12 @@ module Datadog
 
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
-          crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
+          self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: @tracer,
-            optional_crashtracker: crashtracker
+            optional_tracer: @tracer
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 

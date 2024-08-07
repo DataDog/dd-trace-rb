@@ -61,6 +61,8 @@ module Datadog
         end
 
         def start
+          Datadog::Core::Utils::AtForkMonkeyPatch.apply!
+
           start_or_update_on_fork(action: :start).tap do
             reset_after_fork
           end

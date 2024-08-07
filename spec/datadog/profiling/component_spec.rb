@@ -16,14 +16,12 @@ RSpec.describe Datadog::Profiling::Component do
 
   describe '.build_profiler_component' do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
-    let(:crashtracker) { nil }
 
     subject(:build_profiler_component) do
       described_class.build_profiler_component(
         settings: settings,
         agent_settings: agent_settings,
-        optional_tracer: tracer,
-        optional_crashtracker: crashtracker
+        optional_tracer: tracer
       )
     end
 
@@ -397,8 +395,7 @@ RSpec.describe Datadog::Profiling::Component do
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
-            scheduler: anything,
-            optional_crashtracker: anything,
+            scheduler: anything
           )
 
           build_profiler_component
@@ -537,19 +534,6 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
             expect(transport).to be custom_transport
           end
-
-          build_profiler_component
-        end
-      end
-
-      context 'when crash tracking is enabled' do
-        let(:crashtracker) { instance_double(Datadog::Core::Crashtracking::Component) }
-        it 'initializes the profiler instance with the crash tracker' do
-          expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            worker: anything,
-            scheduler: anything,
-            optional_crashtracker: crashtracker,
-          )
 
           build_profiler_component
         end

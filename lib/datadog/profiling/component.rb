@@ -7,7 +7,7 @@ module Datadog
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
-      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:, optional_crashtracker: nil) # rubocop:disable Metrics/MethodLength
+      def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         return [nil, { profiling_enabled: false }] unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
@@ -75,8 +75,7 @@ module Datadog
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
         profiler = Profiling::Profiler.new(
           worker: worker,
-          scheduler: scheduler,
-          optional_crashtracker: optional_crashtracker
+          scheduler: scheduler
         )
 
         if dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
