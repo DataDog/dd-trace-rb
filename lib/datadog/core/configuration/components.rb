@@ -61,7 +61,7 @@ module Datadog
           end
 
           def build_crashtracker(settings, agent_settings)
-            return unless settings.crash_tracking.enabled
+            return unless settings.crashtracking.enabled
 
             if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
               Datadog.logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")

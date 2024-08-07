@@ -450,6 +450,22 @@ module Datadog
               o.env 'DD_PROFILING_UPLOAD_PERIOD'
               o.default 60
             end
+
+            # DEV-3.0: Remove `experimental_crash_tracking_enabled` option
+            option :experimental_crash_tracking_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
+              o.default false
+              o.after_set do |v|
+                if v
+                  Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
+                    'Crashtracking is enabled by default '\
+                      'and `experimental_crash_tracking_enabled` option is deprecated without functionality. '\
+                      'Use `DD_CRASHTRACKING_ENABLED` to enable or disable crashtracking.'
+                  end
+                end
+              end
+            end
           end
 
           # @public_api
@@ -820,14 +836,12 @@ module Datadog
           option :service
         end
 
-        settings :crash_tracking do
-          # Enables reporting of information when the Ruby VM crashes.
-          #
-          # @default `DD_CRASH_TRACKING_ENABLED` environment variable as a boolean,
-          # otherwise `true`
+        settings :crashtracking do
+          # Enables reporting of information when Ruby VM crashes.
           option :enabled do |o|
             o.type :bool
             o.default true
+            o.env 'DD_CRASHTRACKING_ENABLED'
           end
         end
 
