@@ -453,15 +453,11 @@ module Datadog
 
             # DEV-3.0: Remove `experimental_crash_tracking_enabled` option
             option :experimental_crash_tracking_enabled do |o|
-              o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
-              o.default false
-              o.after_set do |v|
-                if v
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
                   Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
-                    'Crashtracking is enabled by default '\
-                      'and `experimental_crash_tracking_enabled` option is deprecated without functionality. '\
-                      'Use `DD_CRASHTRACKING_ENABLED` to enable or disable crashtracking.'
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'and no longer does anything. Please remove it from your Datadog.configure block.'
                   end
                 end
               end
