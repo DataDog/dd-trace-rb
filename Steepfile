@@ -79,6 +79,7 @@ target :datadog do
   ignore 'lib/datadog/core/transport/http/env.rb'
   ignore 'lib/datadog/core/transport/http/response.rb'
   ignore 'lib/datadog/core/utils.rb'
+  ignore 'lib/datadog/core/utils/at_fork_monkey_patch.rb' # @ivoanjo: I wasn't able to type this one, it's kinda weird
   ignore 'lib/datadog/core/utils/forking.rb'
   ignore 'lib/datadog/core/utils/hash.rb' # Refinement module
   ignore 'lib/datadog/core/utils/network.rb'
@@ -110,7 +111,6 @@ target :datadog do
   ignore 'lib/datadog/opentelemetry/sdk/span_processor.rb'
   ignore 'lib/datadog/opentelemetry/sdk/trace/span.rb'
   ignore 'lib/datadog/profiling/collectors/code_provenance.rb'
-  ignore 'lib/datadog/profiling/ext/forking.rb'
   ignore 'lib/datadog/profiling/scheduler.rb'
   ignore 'lib/datadog/profiling/tag_builder.rb'
   ignore 'lib/datadog/profiling/tasks/setup.rb'

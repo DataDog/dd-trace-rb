@@ -6,7 +6,6 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 require 'benchmark/ips'
 require 'datadog'
 require 'pry'
-require_relative 'dogstatsd_reporter'
 
 # This benchmark measures the performance of allocation profiling
 
@@ -25,7 +24,6 @@ class ProfilerAllocationBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_allocation')
       )
 
       x.report('Allocations (baseline)', 'BasicObject.new')
@@ -48,7 +46,6 @@ class ProfilerAllocationBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_allocation')
       )
 
       x.report("Allocations (#{ENV['CONFIG']})", 'BasicObject.new')

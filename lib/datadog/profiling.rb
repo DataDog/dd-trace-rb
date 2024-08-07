@@ -136,7 +136,6 @@ module Datadog
     private_class_method def self.load_profiling
       return false unless supported?
 
-      require_relative 'profiling/ext/forking'
       require_relative 'profiling/ext/dir_monkey_patches'
       require_relative 'profiling/collectors/info'
       require_relative 'profiling/collectors/code_provenance'
