@@ -31,7 +31,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
 
         # Check for leaks (make sure test is properly cleaned up)
         expect(::Process <= described_class::Kernel).to be nil
-        expect(::Process <= described_class::ProcessDaemonPatch).to be nil
+        expect(::Process <= described_class::ProcessDaemonMonkeyPatch).to be nil
         expect(::Kernel <= described_class::Kernel).to be nil
         # Can't assert this because top level can't be reverted; can't guarantee pristine state.
         # expect(toplevel_receiver.class.ancestors.include?(described_class::Kernel)).to be false
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
         apply!
 
         expect(::Process.ancestors).to include(described_class::Kernel)
-        expect(::Process.ancestors).to include(described_class::ProcessDaemonPatch)
+        expect(::Process.ancestors).to include(described_class::ProcessDaemonMonkeyPatch)
         expect(::Kernel.ancestors).to include(described_class::Kernel)
         expect(toplevel_receiver.class.ancestors).to include(described_class::Kernel)
 
@@ -229,7 +229,7 @@ RSpec.describe Datadog::Profiling::Ext::Forking do
     end
   end
 
-  describe Datadog::Profiling::Ext::Forking::ProcessDaemonPatch do
+  describe Datadog::Profiling::Ext::Forking::ProcessDaemonMonkeyPatch do
     let(:process_module) { Module.new { def self.daemon(nochdir = nil, noclose = nil); end } }
     let(:child_callback) { double('child', call: true) }
 

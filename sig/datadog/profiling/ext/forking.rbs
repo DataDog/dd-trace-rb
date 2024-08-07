@@ -12,7 +12,7 @@ module Datadog
 
           def self?.datadog_at_fork_blocks: () -> untyped
         end
-        module ProcessDaemonPatch
+        module ProcessDaemonMonkeyPatch
           def daemon: (*untyped args) -> untyped
         end
       end

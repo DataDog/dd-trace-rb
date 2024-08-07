@@ -28,7 +28,7 @@ module Datadog
             # change will stick around even if we otherwise stub `Process` and `Kernel`
           ].each { |target| target.prepend(Kernel) }
 
-          ::Process.singleton_class.prepend(ProcessDaemonPatch)
+          ::Process.singleton_class.prepend(ProcessDaemonMonkeyPatch)
         end
 
         module Kernel
@@ -79,7 +79,7 @@ module Datadog
         # keeps executing code in the child process, killing off the parent, thus effectively replacing it.
         #
         # This monkey patch makes the `Kernel#at_fork` mechanism defined above also work in this situation.
-        module ProcessDaemonPatch
+        module ProcessDaemonMonkeyPatch
           def daemon(*args)
             datadog_at_fork_blocks = Datadog::Profiling::Ext::Forking::Kernel.datadog_at_fork_blocks
 
