@@ -19,9 +19,10 @@ class GemLoadingBenchmark
 
       lib = File.expand_path('../lib', '#{__dir__}')
       $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+      $LOAD_PATH.unshift('#{__dir__}')
 
       VALIDATE_BENCHMARK_MODE = #{VALIDATE_BENCHMARK_MODE}
-      require 'benchmark/ips'
+      require 'benchmarks_ips_patch'
 
       Benchmark.ips do |x|
         # Gem loading is quite slower than the other microbenchmarks
