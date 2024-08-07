@@ -3,13 +3,15 @@
 module Datadog
   module Profiling
     module Ext
-      # Monkey patches `Kernel#fork`, adding a `Kernel#at_fork` callback mechanism which is used to restore
-      # profiling abilities after the VM forks.
+      # Monkey patches `Kernel#fork` and similar functions, adding a `Kernel#at_fork` callback mechanism which
+      # is used to restart observability after the VM forks (e.g. in multiprocess Ruby apps).
+      #
+      # TODO: Use `Process._fork` on Ruby 3.1+, see
+      #       https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
       #
       # Known limitations: Does not handle `BasicObject`s that include `Kernel` directly; e.g.
       # `Class.new(BasicObject) { include(::Kernel); def call; fork { }; end }.new.call`.
-      #
-      # This will be fixed once we moved to hooking into `Process._fork`
+      # This will be fixed once we move to hooking into `Process._fork`
       module Forking
         def self.supported?
           Process.respond_to?(:fork)
@@ -29,10 +31,6 @@ module Datadog
           ::Process.singleton_class.prepend(ProcessDaemonPatch)
         end
 
-        # Extensions for kernel
-        #
-        # TODO: Consider hooking into `Process._fork` on Ruby 3.1+ instead, see
-        #       https://github.com/ruby/ruby/pull/5017 and https://bugs.ruby-lang.org/issues/17795
         module Kernel
           def fork
             # If a block is provided, it must be wrapped to trigger callbacks.
@@ -50,12 +48,12 @@ module Datadog
             # If a block is provided, use the wrapped version.
             result = child_block.nil? ? super : super(&child_block)
 
-            # Trigger correct callbacks depending on whether we're in the parent or child.
+            # When fork gets called without a block, it returns twice:
             # If we're in the fork, result = nil: trigger child callbacks.
-            # If we're in the parent, result = fork PID: trigger parent callbacks.
+            # If we're in the parent, result = pid: we do nothing.
+            # (If it gets called with a block, it only returns on the parent)
             datadog_at_fork_blocks[:child].each(&:call) if result.nil? && datadog_at_fork_blocks.key?(:child)
 
-            # Return PID from #fork
             result
           end
 
@@ -69,11 +67,9 @@ module Datadog
           module_function
 
           def datadog_at_fork_blocks
-            # Blocks should be shared across all users of this module,
+            # Blocks are shared across all users of this module,
             # e.g. Process#fork, Kernel#fork, etc. should all invoke the same callbacks.
-            # rubocop:disable Style/ClassVars
-            @@datadog_at_fork_blocks ||= {}
-            # rubocop:enable Style/ClassVars
+            @@datadog_at_fork_blocks ||= {} # rubocop:disable Style/ClassVars
           end
         end
 
