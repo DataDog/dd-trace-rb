@@ -385,9 +385,14 @@ void record_placeholder_stack(
   );
 }
 
-sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
+uint16_t sampling_buffer_check_max_frames(int max_frames) {
   if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+  return max_frames;
+}
+
+sampling_buffer *sampling_buffer_new(uint16_t max_frames) {
+  sampling_buffer_check_max_frames(max_frames);
 
   // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
   sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
