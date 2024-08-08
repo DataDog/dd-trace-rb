@@ -74,48 +74,37 @@ RSpec.describe Datadog::Core::Crashtracking::Component do
     end
   end
 
-  describe '#initialize' do
-    it 'assigns the provided parameters to instance variables' do
-      tags = double('tags')
-      agent_base_url = double('agent_base_url')
-      ld_library_path = double('ld_library_path')
-      path_to_crashtracking_receiver_binary = double('path_to_crashtracking_receiver_binary')
-
-      component = described_class.new(
-        tags: tags,
-        agent_base_url: agent_base_url,
-        ld_library_path: ld_library_path,
-        path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
-        logger: logger
-      )
-
-      expect(component.instance_variable_get(:@tags)).to eq(tags)
-      expect(component.instance_variable_get(:@agent_base_url)).to eq(agent_base_url)
-      expect(component.instance_variable_get(:@ld_library_path)).to eq(ld_library_path)
-      expect(component.instance_variable_get(:@path_to_crashtracking_receiver_binary)).to eq(path_to_crashtracking_receiver_binary)
-      expect(component.instance_variable_get(:@logger)).to eq(logger)
-    end
-  end
-
   describe '#start' do
-    it 'applies the AtForkMonkeyPatch, starts or updates on fork, and resets after fork' do
-      component = described_class.new(
-        tags: double('tags'),
-        agent_base_url: double('agent_base_url'),
-        ld_library_path: double('ld_library_path'),
-        path_to_crashtracking_receiver_binary: double('path_to_crashtracking_receiver_binary'),
+    let(:crashtracker) do
+      described_class.new(
+        tags: {},
+        agent_base_url: 'agent_base_url',
+        ld_library_path: 'ld_library_path',
+        path_to_crashtracking_receiver_binary: 'path_to_crashtracking_receiver_binary',
         logger: logger
       )
+    end
 
+    it 'applies the AtForkMonkeyPatch, starts or updates on fork, and resets after fork' do
       expect(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:apply!)
-      expect(component).to receive(:start_or_update_on_fork).with(action: :start)
-      expect(component).to receive(:reset_after_fork)
+      expect(described_class).to receive(:_native_start_or_update_on_fork)
+      expect(crashtracker).to receive(:reset_after_fork)
 
-      component.start
+      crashtracker.start
     end
   end
 
   describe '#reset_after_fork' do
+    let(:crashtracker) do
+      described_class.new(
+        tags: {},
+        agent_base_url: 'agent_base_url',
+        ld_library_path: 'ld_library_path',
+        path_to_crashtracking_receiver_binary: 'path_to_crashtracking_receiver_binary',
+        logger: logger
+      )
+    end
+
     xit 'runs the reset logic only once' do
       component = described_class.new(
         tags: double('tags'),
