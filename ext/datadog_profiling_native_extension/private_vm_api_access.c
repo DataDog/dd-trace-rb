@@ -392,6 +392,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 //   was called from.
 // * Imported fix from https://github.com/ruby/ruby/pull/7116 to avoid sampling threads that are still being created
 // * Imported fix from https://github.com/ruby/ruby/pull/8415 to avoid potential crash when using YJIT.
+// * Add frame_flags.same_frame and logic to skip redoing work if the buffer already contains the same data we're collecting
 // * Skipped use of rb_callable_method_entry_t (cme) for Ruby frames as it doesn't impact us.
 //
 // What is rb_profile_frames?
@@ -466,7 +467,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
     // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
     if (end_cfp <= cfp) return PLACEHOLDER_STACK_IN_NATIVE_CODE;
 
-    for (i=0; i<limit && cfp != end_cfp;) {
+    for (i=0; i<limit && cfp != end_cfp; cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp)) {
         if (cfp->iseq && !cfp->pc) {
           // Fix: Do nothing -- this frame should not be used
           //
@@ -477,6 +478,16 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             if (start > 0) {
                 start--;
                 continue;
+            }
+
+            stack_buffer[i].same_frame =
+              stack_buffer[i].is_ruby_frame &&
+              stack_buffer[i].as.ruby_frame.iseq == (VALUE) cfp->iseq &&
+              stack_buffer[i].as.ruby_frame.caching_pc == cfp->pc;
+
+            if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+              i++;
+              continue;
             }
 
             // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
@@ -499,6 +510,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             // }
             // else {
             stack_buffer[i].as.ruby_frame.iseq = (VALUE)cfp->iseq;
+            stack_buffer[i].as.ruby_frame.caching_pc = (void *) cfp->pc;
             // }
 
             // The topmost frame may not have an updated PC because the JIT
@@ -521,12 +533,21 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         else {
             cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                stack_buffer[i].same_frame =
+                  !stack_buffer[i].is_ruby_frame &&
+                  stack_buffer[i].as.native_frame.caching_cme == (VALUE) cme;
+
+                if (stack_buffer[i].same_frame) { // Nothing to do, buffer already contains this frame
+                  i++;
+                  continue;
+                }
+
+                stack_buffer[i].as.native_frame.caching_cme = (VALUE)cme;
                 stack_buffer[i].as.native_frame.method_id = cme->def->original_id;
                 stack_buffer[i].is_ruby_frame = false;
                 i++;
             }
         }
-        cfp = RUBY_VM_PREVIOUS_CONTROL_FRAME(cfp);
     }
 
     return i;

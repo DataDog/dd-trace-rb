@@ -161,6 +161,14 @@ void sample_thread(
     return;
   }
 
+  // if (captured_frames > 0) {
+  //   int cache_hits = 0;
+  //   for (int i = 0; i < captured_frames; i++) {
+  //     if (buffer->stack_buffer[i].same_frame) cache_hits++;
+  //   }
+  //   fprintf(stderr, "Sampling cache hits: %f\n", ((double) cache_hits / captured_frames) * 100);
+  // }
+
   // Ruby does not give us path and line number for methods implemented using native code.
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
   // on the stack that is below (e.g. directly or indirectly has called) the native method.

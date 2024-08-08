@@ -188,6 +188,7 @@ void update_metrics_and_sample(
   VALUE thread_being_sampled,
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
+  sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
 );
@@ -196,6 +197,7 @@ static void trigger_sample_for_thread(
   VALUE thread,
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
+  sampling_buffer* sampling_buffer,
   sample_values values,
   long current_monotonic_wall_time_ns,
   ddog_CharSlice *ruby_vm_type,
@@ -476,6 +478,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
       /* thread_being_sampled: */ thread,
       /* stack_from_thread: */ thread,
       thread_context,
+      thread_context->sampling_buffer,
       current_cpu_time_ns,
       current_monotonic_wall_time_ns
     );
@@ -492,6 +495,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     /* thread_being_sampled: */ current_thread,
     /* stack_from_thread: */ profiler_overhead_stack_thread,
     current_thread_context,
+    // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
+    get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
     cpu_time_now_ns(current_thread_context),
     monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
   );
@@ -502,6 +507,7 @@ void update_metrics_and_sample(
   VALUE thread_being_sampled,
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
+  sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
 ) {
@@ -527,6 +533,7 @@ void update_metrics_and_sample(
     thread_being_sampled,
     stack_from_thread,
     thread_context,
+    sampling_buffer,
     (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = wall_time_elapsed_ns},
     current_monotonic_wall_time_ns,
     NULL,
@@ -706,6 +713,7 @@ static void trigger_sample_for_thread(
   VALUE thread,
   VALUE stack_from_thread, // This can be different when attributing profiler overhead using a different stack
   struct per_thread_context *thread_context,
+  sampling_buffer* sampling_buffer,
   sample_values values,
   long current_monotonic_wall_time_ns,
   // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
@@ -826,7 +834,7 @@ static void trigger_sample_for_thread(
 
   sample_thread(
     stack_from_thread,
-    thread_context->sampling_buffer,
+    sampling_buffer,
     state->recorder_instance,
     values,
     (sample_labels) {.labels = slice_labels, .state_label = state_label, .end_timestamp_ns = end_timestamp_ns}
@@ -1307,11 +1315,14 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 
   track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
 
+  struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
+
   trigger_sample_for_thread(
     state,
     /* thread: */  current_thread,
     /* stack_from_thread: */ current_thread,
-    get_or_create_context_for(current_thread, state),
+    thread_context,
+    thread_context->sampling_buffer,
     (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,

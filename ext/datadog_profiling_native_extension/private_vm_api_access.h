@@ -22,13 +22,16 @@ typedef struct frame_info {
   union {
     struct {
       VALUE iseq;
+      void *caching_pc; // For caching only
       int line;
     } ruby_frame;
     struct {
+      VALUE caching_cme; // For caching only
       ID method_id;
     } native_frame;
   } as;
   bool is_ruby_frame : 1;
+  bool same_frame : 1;
 } frame_info;
 
 rb_nativethread_id_t pthread_id_for(VALUE thread);
