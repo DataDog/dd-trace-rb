@@ -203,6 +203,7 @@ static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
 static struct per_thread_context *get_context_for(VALUE thread, struct thread_context_collector_state *state);
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state);
+static void free_context(struct per_thread_context* thread_context);
 static VALUE _native_inspect(VALUE self, VALUE collector_instance);
 static VALUE per_thread_context_st_table_as_ruby_hash(struct thread_context_collector_state *state);
 static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value_context, st_data_t result_hash);
@@ -329,8 +330,8 @@ static int hash_map_per_thread_context_mark(st_data_t key_thread, DDTRACE_UNUSED
 
 // Used to clear each of the per_thread_contexts inside the hash_map_per_thread_context
 static int hash_map_per_thread_context_free_values(DDTRACE_UNUSED st_data_t _thread, st_data_t value_per_thread_context, DDTRACE_UNUSED st_data_t _argument) {
-  struct per_thread_context *per_thread_context = (struct per_thread_context*) value_per_thread_context;
-  ruby_xfree(per_thread_context);
+  struct per_thread_context *thread_context = (struct per_thread_context*) value_per_thread_context;
+  free_context(thread_context);
   return ST_CONTINUE;
 }
 
@@ -928,6 +929,10 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
 }
 
+static void free_context(struct per_thread_context* thread_context) {
+  ruby_xfree(thread_context);
+}
+
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -1019,7 +1024,7 @@ static int remove_if_dead_thread(st_data_t key_thread, st_data_t value_context, 
 
   if (is_thread_alive(thread)) return ST_CONTINUE;
 
-  ruby_xfree(thread_context);
+  free_context(thread_context);
   return ST_DELETE;
 }
 
