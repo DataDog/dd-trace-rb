@@ -9,57 +9,44 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
 
     context 'when forking is supported' do
-      around do |example|
-        # NOTE: Do not move this to a before, since we also want to skip the around as well
-        skip 'Forking not supported' unless described_class.supported?
-
-        if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch)
-          skip 'Unclean Process class state.'
+      before do
+        if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch)
+          skip 'Monkey patch already applied (unclean state)'
         end
-
-        unmodified_process_class = ::Process.dup
-        unmodified_kernel_class = ::Kernel.dup
-
-        example.run
-
-        # Clean up classes
-        Object.send(:remove_const, :Process)
-        Object.const_set('Process', unmodified_process_class)
-
-        Object.send(:remove_const, :Kernel)
-        Object.const_set('Kernel', unmodified_kernel_class)
-
-        # Check for leaks (make sure test is properly cleaned up)
-        expect(::Process <= described_class::KernelMonkeyPatch).to be nil
-        expect(::Process <= described_class::ProcessDaemonMonkeyPatch).to be nil
-        expect(::Kernel <= described_class::KernelMonkeyPatch).to be nil
-        # Can't assert this because top level can't be reverted; can't guarantee pristine state.
-        # expect(toplevel_receiver.class.ancestors.include?(described_class::KernelMonkeyPatch)).to be false
-
-        expect(::Process.method(:fork).source_location).to be nil
-        expect(::Kernel.method(:fork).source_location).to be nil
-        expect(::Process.method(:daemon).source_location).to be nil
-        # Can't assert this because top level can't be reverted; can't guarantee pristine state.
-        # expect(toplevel_receiver.method(:fork).source_location).to be nil
       end
 
-      it 'applies the Kernel patch' do
-        # NOTE: There's no way to undo a modification of the TOPLEVEL_BINDING.
-        #       The results of this will carry over into other tests...
-        #       Just assert that the receiver was patched instead.
-        #       Unfortunately means we can't test if "fork" works in main Object.
+      context 'on Ruby 3.0 or below' do
+        before { skip 'Test applies only to Ruby 3.0 or below' if RUBY_VERSION >= '3.1' }
 
-        apply!
+        it 'applies the monkey patch' do
+          expect_in_fork do
+            apply!
 
-        expect(::Process.ancestors).to include(described_class::KernelMonkeyPatch)
-        expect(::Process.ancestors).to include(described_class::ProcessDaemonMonkeyPatch)
-        expect(::Kernel.ancestors).to include(described_class::KernelMonkeyPatch)
-        expect(toplevel_receiver.class.ancestors).to include(described_class::KernelMonkeyPatch)
+            expect(::Process.ancestors).to include(described_class::KernelMonkeyPatch)
+            expect(::Process.ancestors).to include(described_class::ProcessMonkeyPatch)
+            expect(::Kernel.ancestors).to include(described_class::KernelMonkeyPatch)
+            expect(toplevel_receiver.class.ancestors).to include(described_class::KernelMonkeyPatch)
 
-        expect(::Process.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
-        expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
-        expect(::Kernel.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
-        expect(toplevel_receiver.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+            expect(::Process.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+            expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+            expect(::Kernel.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+            expect(toplevel_receiver.method(:fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+          end
+        end
+      end
+
+      context 'on Ruby 3.1 or above' do
+        before { skip 'Test applies only to Ruby 3.1 or above' if RUBY_VERSION < '3.1' }
+
+        it 'applies the monkey patch' do
+          expect_in_fork do
+            apply!
+
+            expect(::Process.ancestors).to include(described_class::ProcessMonkeyPatch)
+            expect(::Process.method(:daemon).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+            expect(::Process.method(:_fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
+          end
+        end
       end
     end
 
@@ -108,7 +95,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       let(:child) { double('child') }
 
       before do
-        fork_class.datadog_at_fork(:child) { child.call }
+        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child) { child.call }
       end
 
       after do
@@ -121,7 +108,6 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       it do
         is_expected.to respond_to(:fork)
-        is_expected.to respond_to(:datadog_at_fork)
       end
 
       describe '#fork' do
@@ -185,23 +171,17 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
         let(:callback) { double('callback') }
         let(:block) { proc { callback.call } }
 
-        context 'given a stage' do
-          subject(:datadog_at_fork) do
-            fork_class.datadog_at_fork(stage, &block)
-          end
+        subject(:datadog_at_fork) do
+          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child, &block)
+        end
 
-          context ':child' do
-            let(:stage) { :child }
+        it 'adds a child callback' do
+          datadog_at_fork
 
-            it 'adds a child callback' do
-              datadog_at_fork
+          expect(child).to receive(:call).ordered
+          expect(callback).to receive(:call).ordered
 
-              expect(child).to receive(:call).ordered
-              expect(callback).to receive(:call).ordered
-
-              fork_class.fork {}
-            end
-          end
+          fork_class.fork {}
         end
       end
     end
@@ -229,8 +209,16 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
     end
   end
 
-  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessDaemonMonkeyPatch do
-    let(:process_module) { Module.new { def self.daemon(nochdir = nil, noclose = nil); end } }
+  describe Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch do
+    let(:_fork_result) { nil }
+    let(:process_module) do
+      result = _fork_result
+
+      Module.new do
+        def self.daemon(nochdir = nil, noclose = nil); end
+        define_singleton_method(:_fork) { result }
+      end
+    end
     let(:child_callback) { double('child', call: true) }
 
     before do
@@ -263,6 +251,36 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       expect(process_module).to receive(:daemon).and_return(:process_daemon_result)
 
       expect(process_module.daemon).to be :process_daemon_result
+    end
+
+    describe 'Process._fork monkey patch' do
+      context 'in the child process' do
+        let(:_fork_result) { 0 }
+
+        it 'monkey patches _fork to call the child datadog_at_fork callbacks on the child process' do
+          expect(child_callback).to receive(:call)
+
+          expect(process_module._fork).to be 0
+        end
+
+        it 'returns the result from _fork' do
+          expect(process_module._fork).to be _fork_result
+        end
+      end
+
+      context 'in the parent process' do
+        let(:_fork_result) { 1234 }
+
+        it 'does not trigger any callbacks' do
+          expect(child_callback).to_not receive(:call)
+
+          process_module._fork
+        end
+
+        it 'returns the result from _fork' do
+          expect(process_module._fork).to be _fork_result
+        end
+      end
     end
   end
 end
