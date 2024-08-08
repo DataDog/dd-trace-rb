@@ -34,6 +34,11 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
+// These two functions are exposed as symbols by the VM but are not in any header.
+// Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
+extern VALUE rb_iseq_path(const VALUE);
+extern VALUE rb_iseq_base_label(const VALUE);
+
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
@@ -191,8 +196,8 @@ void sample_thread(
     int line;
 
     if (buffer->stack_buffer[i].is_ruby_frame) {
-      name = rb_profile_frame_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
-      filename = rb_profile_frame_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
       line = buffer->stack_buffer[i].as.ruby_frame.line;
 
       last_ruby_frame_filename = filename;
