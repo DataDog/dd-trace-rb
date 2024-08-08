@@ -911,7 +911,7 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer to individually configure the APM SDK settings for a schema (e.g. you have multiple schemas with different service names), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
 
 ```ruby
 # Class-based schema
@@ -2127,7 +2127,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.log_injection`                                 | `DD_LOGS_INJECTION`                                     | `true`                       | Injects [Trace Correlation](#trace-correlation) information into Rails logs if present. Supports the default logger (`ActiveSupport::TaggedLogging`), `lograge`, and `semantic_logger`.                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.partial_flush.enabled`                         |                                                         | `false`                      | Enables or disables partial flushing. Partial flushing submits completed portions of a trace to the agent. Used when tracing instruments long running tasks (e.g. jobs) with many spans.                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `tracing.partial_flush.min_spans_threshold`             |                                                         | `500`                        | The number of spans that must be completed in a trace before partial flushing submits those completed spans.                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| `tracing.sampler`                                       |                                                         | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                |
+| `tracing.sampler`                                       |                                                         | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the APM SDK will use this sampler to determine sampling behavior. See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                |
 | `tracing.sampling.default_rate`                         | `DD_TRACE_SAMPLE_RATE`                                  | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%). See [Application-side sampling](#application-side-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | `tracing.sampling.rate_limit`                           | `DD_TRACE_RATE_LIMIT`                                   | `100` (per second)           | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `tracing.sampling.rules`                                | `DD_TRACE_SAMPLING_RULES`                               | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name`, `service`, `resource`, and `tags` string attributes. `name`, `service`, `resource`, and `tags` control to which traces this sampling rule applies; if they are all absent, then this rule applies to all traces. Rules are evaluted in order of declartion in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
@@ -2166,7 +2166,7 @@ By default, the trace Agent (not this library, but the program running in the ba
     - If `DD_ENV`, `DD_SERVICE` or `DD_VERSION` are set, it will override any respective `env`/`service`/`version` tag defined in `DD_TAGS`.
     - If `DD_ENV`, `DD_SERVICE` or `DD_VERSION` are NOT set, tags defined in `DD_TAGS` will be used to populate `env`/`service`/`version` respectively.
 
-These values can also be overridden at the tracer level:
+These values can also be overridden at the APM SDK level:
 
 ```ruby
 Datadog.configure do |c|
@@ -2606,7 +2606,7 @@ By default, `ddtrace` will connect to the Agent using the first available settin
 2. Through Unix Domain Socket (UDS) located at `/var/run/datadog/apm.socket`
 3. Through HTTP over TCP to `127.0.0.1:8126`
 
-However, the tracer can be configured to send its trace data to alternative destinations, or by alternative protocols.
+However, the APM SDK can be configured to send its trace data to alternative destinations, or by alternative protocols.
 
 #### Changing default Agent hostname and port
 
@@ -2640,7 +2640,7 @@ end
 
 The `UnixSocket` adapter submits traces using `Net::HTTP` over Unix socket.
 
-To use, first configure your trace Agent to listen by Unix socket, then configure the tracer with:
+To use, first configure your trace Agent to listen by Unix socket, then configure the APM SDK with:
 
 ```ruby
 Datadog.configure do |c|
@@ -2701,7 +2701,7 @@ Span duration calculation will still use the system monotonic clock when availab
 
 ### Metrics
 
-The tracer and its integrations can produce some additional metrics that can provide useful insight into the performance of your application. These metrics are collected with `dogstatsd-ruby`, and can be sent to the same Datadog agent to which you send your traces.
+The APM SDK and its integrations can produce some additional metrics that can provide useful insight into the performance of your application. These metrics are collected with `dogstatsd-ruby`, and can be sent to the same Datadog agent to which you send your traces.
 
 To configure your application for metrics collection:
 
@@ -2758,9 +2758,9 @@ In addition, all metrics include the following tags:
 
 For setting up Datadog with OpenTracing, see our [Configuring OpenTracing](#configuring-opentracing) section for details.
 
-**Configuring Datadog tracer settings**
+**Configuring Datadog APM SDK settings**
 
-The underlying Datadog tracer can be configured by passing options (which match `Datadog::Tracer`) when configuring the global tracer:
+The underlying Datadog APM SDK can be configured by passing options (which match `Datadog::Tracer`) when configuring the global tracer:
 
 ```ruby
 # Where `options` is a Hash of options provided to Datadog::Tracer
