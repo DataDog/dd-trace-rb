@@ -169,8 +169,8 @@ void sample_thread(
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
   // on the stack that is below (e.g. directly or indirectly has called) the native method.
   // Thus, we keep that frame here to able to replicate that behavior.
-  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame)
-  VALUE last_ruby_frame = Qnil;
+  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame_filename)
+  VALUE last_ruby_frame_filename = Qnil;
   int last_ruby_line = 0;
 
   ddog_prof_Label *state_label = labels.state_label;
@@ -187,15 +187,15 @@ void sample_thread(
     int line;
 
     if (buffer->is_ruby_frame[i]) {
-      last_ruby_frame = buffer->stack_buffer[i];
-      last_ruby_line = buffer->lines_buffer[i];
-
       name = rb_profile_frame_base_label(buffer->stack_buffer[i]);
       filename = rb_profile_frame_path(buffer->stack_buffer[i]);
       line = buffer->lines_buffer[i];
+
+      last_ruby_frame_filename = filename;
+      last_ruby_line = line;
     } else {
       name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
-      filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
+      filename = last_ruby_frame_filename;
       line = last_ruby_line;
     }
 
