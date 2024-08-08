@@ -184,7 +184,7 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
 void update_metrics_and_sample(
   struct thread_context_collector_state *state,
   VALUE thread_being_sampled,
-  VALUE profiler_overhead_stack_thread,
+  VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
