@@ -92,6 +92,7 @@ struct thread_context_collector_state {
   // "Update this when modifying state struct"
 
   // Required by Datadog::Profiling::Collectors::Stack as a scratch buffer during sampling
+  ddog_prof_Location *locations;
   uint16_t max_frames;
   // Hashmap <Thread Object, struct per_thread_context>
   st_table *hash_map_per_thread_context;
@@ -310,6 +311,10 @@ static void thread_context_collector_typed_data_free(void *state_ptr) {
 
   // Update this when modifying state struct
 
+  // Important: Remember that we're only guaranteed to see here what's been set in _native_new, aka
+  // pointers that have been set NULL there may still be NULL here.
+  if (state->locations != NULL) ruby_xfree(state->locations);
+
   // Free each entry in the map
   st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_free_values, 0 /* unused */);
   // ...and then the map
@@ -339,6 +344,7 @@ static VALUE _native_new(VALUE klass) {
   // being leaked.
 
   // Update this when modifying state struct
+  state->locations = NULL;
   state->max_frames = 0;
   state->hash_map_per_thread_context =
    // "numtable" is an awful name, but TL;DR it's what should be used when keys are `VALUE`s.
@@ -388,6 +394,7 @@ static VALUE _native_initialize(
 
   // Update this when modifying state struct
   state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
+  state->locations = ruby_xcalloc(state->max_frames, sizeof(ddog_prof_Location));
   // hash_map_per_thread_context is already initialized, nothing to do here
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
@@ -882,7 +889,7 @@ static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
 }
 
 static void initialize_context(VALUE thread, struct per_thread_context *thread_context, struct thread_context_collector_state *state) {
-  thread_context->sampling_buffer = sampling_buffer_new(state->max_frames);
+  thread_context->sampling_buffer = sampling_buffer_new(state->max_frames, state->locations);
 
   snprintf(thread_context->thread_id, THREAD_ID_LIMIT_CHARS, "%"PRIu64" (%lu)", native_thread_id_for(thread), (unsigned long) thread_id_for(thread));
   thread_context->thread_id_char_slice = (ddog_CharSlice) {.ptr = thread_context->thread_id, .len = strlen(thread_context->thread_id)};

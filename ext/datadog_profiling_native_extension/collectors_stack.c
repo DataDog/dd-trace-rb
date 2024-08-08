@@ -16,10 +16,10 @@ static VALUE missing_string = Qnil;
 // Used as scratch space during sampling
 struct sampling_buffer {
   unsigned int max_frames;
+  ddog_prof_Location *locations;
   VALUE *stack_buffer;
   int *lines_buffer;
   bool *is_ruby_frame;
-  ddog_prof_Location *locations;
 }; // Note: typedef'd in the header to sampling_buffer
 
 static VALUE _native_sample(
@@ -105,7 +105,8 @@ static VALUE _native_sample(
   int max_frames_requested = NUM2INT(max_frames);
   if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
 
-  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
+  ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
+  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
@@ -126,6 +127,7 @@ static VALUE _native_sample(
     );
   }
 
+  ruby_xfree(locations);
   sampling_buffer_free(buffer);
 
   return Qtrue;
@@ -391,18 +393,17 @@ uint16_t sampling_buffer_check_max_frames(int max_frames) {
   return max_frames;
 }
 
-sampling_buffer *sampling_buffer_new(uint16_t max_frames) {
+sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *locations) {
   sampling_buffer_check_max_frames(max_frames);
 
   // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
   sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
 
   buffer->max_frames = max_frames;
-
+  buffer->locations = locations;
   buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
   buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
   buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
-  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
 
   return buffer;
 }
@@ -410,10 +411,10 @@ sampling_buffer *sampling_buffer_new(uint16_t max_frames) {
 void sampling_buffer_free(sampling_buffer *buffer) {
   if (buffer == NULL) rb_raise(rb_eArgError, "sampling_buffer_free called with NULL buffer");
 
+  // buffer->locations are owned by whoever called sampling_buffer_new, not us
   ruby_xfree(buffer->stack_buffer);
   ruby_xfree(buffer->lines_buffer);
   ruby_xfree(buffer->is_ruby_frame);
-  ruby_xfree(buffer->locations);
 
   ruby_xfree(buffer);
 }
