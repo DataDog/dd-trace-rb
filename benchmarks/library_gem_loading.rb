@@ -3,6 +3,7 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
+require_relative 'benchmarks_helper'
 require 'open3'
 
 class GemLoadingBenchmark
@@ -18,6 +19,7 @@ class GemLoadingBenchmark
 
       lib = File.expand_path('../lib', '#{__dir__}')
       $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+      $LOAD_PATH.unshift('#{__dir__}')
 
       VALIDATE_BENCHMARK_MODE = #{VALIDATE_BENCHMARK_MODE}
       require 'benchmark/ips'
@@ -27,7 +29,10 @@ class GemLoadingBenchmark
         benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: 60, warmup: 5 }
         x.config(**benchmark_time)
 
-        x.report("Gem loading") do
+        # Because this benchmark is run in a forked process that is passed
+        # the code via standard input, it cannot figure out the product
+        # prefix automatically.
+        x.report("library - Gem loading") do
           pid = fork { require 'datadog' }
 
           _, status = Process.wait2(pid)
