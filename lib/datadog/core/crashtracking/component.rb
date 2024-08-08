@@ -41,7 +41,9 @@ module Datadog
             logger.warn('Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking')
           end
 
-          return if [agent_base_url, ld_library_path, path_to_crashtracking_receiver_binary].any?(&:nil?)
+          return unless agent_base_url
+          return unless ld_library_path
+          return unless path_to_crashtracking_receiver_binary
 
           new(
             tags: tags,

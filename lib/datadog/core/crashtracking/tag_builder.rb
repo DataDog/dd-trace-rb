@@ -21,13 +21,12 @@ module Datadog
             'runtime-id' => Environment::Identity.id,
             'runtime_platform' => Environment::Identity.lang_platform,
             'runtime_version' => Environment::Identity.lang_version,
-          }
-
-          hash['env'] = settings.env if settings.env
-          hash['service'] = settings.service if settings.service
-          hash['version'] = settings.version if settings.version
-          hash['git.repository_url'] = Environment::Git.git_repository_url if Environment::Git.git_repository_url
-          hash['git.commit.sha'] = Environment::Git.git_commit_sha if Environment::Git.git_commit_sha
+            'env' => settings.env,
+            'service' => settings.service,
+            'version' => settings.version,
+            'git.repository_url' => Environment::Git.git_repository_url,
+            'git.commit.sha' => Environment::Git.git_commit_sha,
+          }.compact
 
           # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
           settings.tags.merge(hash).each_with_object({}) do |(key, value), h|
