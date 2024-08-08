@@ -1,221 +1,167 @@
-# require 'datadog/profiling/spec_helper'
-# require 'datadog/profiling/crashtracker'
+require 'spec_helper'
+require 'datadog/core/crashtracking/component'
 
-# require 'webrick'
-# require 'fiddle'
+RSpec.describe Datadog::Core::Crashtracking::Component do
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
+  let(:agent_settings) { double('agent_settings') }
+  let(:logger) { Logger.new($stdout) }
 
-# RSpec.describe Datadog::Profiling::Crashtracker do
-#   before do
-#     skip_if_profiling_not_supported(self)
+  describe '.build' do
+    let(:tags) { {} }
+    let(:agent_base_url) { 'agent_base_url' }
+    let(:ld_library_path) { 'ld_library_path' }
+    let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
 
-#     # No crash tracker process should still be running at the start of each testcase
-#     wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-#   end
+    context 'when all required parameters are provided' do
+      it 'creates a new instance of Component and starts it' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings).and_return(tags)
+        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path).and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary).and_return(path_to_crashtracking_receiver_binary)
 
-#   after do
-#     # No crash tracker process should still be running at the end of each testcase
-#     wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-#   end
+        component = double('component')
+        expect(described_class).to receive(:new).with(
+          tags: tags,
+          agent_base_url: agent_base_url,
+          ld_library_path: ld_library_path,
+          path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+          logger: logger
+        ).and_return(component)
 
-#   let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
+        expect(component).to receive(:start)
 
-#   let(:crashtracker_options) do
-#     {
-#       exporter_configuration: exporter_configuration,
-#       tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-#       upload_timeout_seconds: 123,
-#     }
-#   end
+        described_class.build(settings, agent_settings, logger: logger)
+      end
+    end
 
-#   subject(:crashtracker) { described_class.new(**crashtracker_options) }
+    context 'when missing `agent_base_url`' do
+      let(:agent_base_url) { nil }
 
-#   describe '#start' do
-#     subject(:start) { crashtracker.start }
+      it 'returns nil' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings).and_return(tags)
+        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path).and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary).and_return(path_to_crashtracking_receiver_binary)
 
-#     context 'when _native_start_or_update_on_fork raises an exception' do
-#       it 'logs the exception' do
-#         expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
-#         expect(Datadog.logger).to receive(:error).with(/Failed to start crash tracking: Test failure/)
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
 
-#         start
-#       end
-#     end
+    context 'when missing `ld_library_path`' do
+      let(:ld_library_path) { nil }
 
-#     context 'when path_to_crashtracking_receiver_binary is nil' do
-#       subject(:crashtracker) { described_class.new(**crashtracker_options, path_to_crashtracking_receiver_binary: nil) }
+      it 'returns nil' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings).and_return(tags)
+        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path).and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary).and_return(path_to_crashtracking_receiver_binary)
 
-#       it 'logs a warning' do
-#         expect(Datadog.logger).to receive(:warn).with(/no path_to_crashtracking_receiver_binary was found/)
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
 
-#         start
-#       end
-#     end
+    context 'when missing `path_to_crashtracking_receiver_binary`' do
+      let(:path_to_crashtracking_receiver_binary) { nil }
 
-#     context 'when ld_library_path is nil' do
-#       subject(:crashtracker) { described_class.new(**crashtracker_options, ld_library_path: nil) }
+      it 'returns nil' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings).and_return(tags)
+        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path).and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary).and_return(path_to_crashtracking_receiver_binary)
 
-#       it 'logs a warning' do
-#         expect(Datadog.logger).to receive(:warn).with(/no ld_library_path was found/)
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
+  end
 
-#         start
-#       end
-#     end
+  describe '#initialize' do
+    it 'assigns the provided parameters to instance variables' do
+      tags = double('tags')
+      agent_base_url = double('agent_base_url')
+      ld_library_path = double('ld_library_path')
+      path_to_crashtracking_receiver_binary = double('path_to_crashtracking_receiver_binary')
 
-#     it 'starts the crash tracker' do
-#       start
+      component = described_class.new(
+        tags: tags,
+        agent_base_url: agent_base_url,
+        ld_library_path: ld_library_path,
+        path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
+        logger: logger
+      )
 
-#       wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to_not be_empty
+      expect(component.instance_variable_get(:@tags)).to eq(tags)
+      expect(component.instance_variable_get(:@agent_base_url)).to eq(agent_base_url)
+      expect(component.instance_variable_get(:@ld_library_path)).to eq(ld_library_path)
+      expect(component.instance_variable_get(:@path_to_crashtracking_receiver_binary)).to eq(path_to_crashtracking_receiver_binary)
+      expect(component.instance_variable_get(:@logger)).to eq(logger)
+    end
+  end
 
-#       crashtracker.stop
-#     end
+  describe '#start' do
+    it 'applies the AtForkMonkeyPatch, starts or updates on fork, and resets after fork' do
+      component = described_class.new(
+        tags: double('tags'),
+        agent_base_url: double('agent_base_url'),
+        ld_library_path: double('ld_library_path'),
+        path_to_crashtracking_receiver_binary: double('path_to_crashtracking_receiver_binary'),
+        logger: logger
+      )
 
-#     context 'when calling start multiple times in a row' do
-#       it 'only starts the crash tracker once' do
-#         3.times { crashtracker.start }
+      expect(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:apply!)
+      expect(component).to receive(:start_or_update_on_fork).with(action: :start)
+      expect(component).to receive(:reset_after_fork)
 
-#         wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+      component.start
+    end
+  end
 
-#         crashtracker.stop
-#       end
-#     end
+  describe '#reset_after_fork' do
+    xit 'runs the reset logic only once' do
+      component = described_class.new(
+        tags: double('tags'),
+        agent_base_url: double('agent_base_url'),
+        ld_library_path: double('ld_library_path'),
+        path_to_crashtracking_receiver_binary: double('path_to_crashtracking_receiver_binary'),
+        logger: logger
+      )
 
-#     context 'when upload_timeout_seconds is not an Integer' do
-#       let(:crashtracker_options) { { **super(), upload_timeout_seconds: 12.34 } }
+      expect(Datadog::Core::Utils::OnlyOnce).to receive(:new).and_return(double('only_once', run: nil))
+      expect(Datadog::Core::Utils::AtForkMonkeyPatch).to receive(:at_fork).with(:child).and_yield
 
-#       it 'converts it to an Integer before calling _native_start_or_update_on_fork' do
-#         expect(described_class)
-#           .to receive(:_native_start_or_update_on_fork).with(hash_including(upload_timeout_seconds: 12))
+      component.reset_after_fork
+    end
+  end
 
-#         start
-#       end
-#     end
-#   end
+  describe '#stop' do
+    it 'stops the crash tracking' do
+      component = described_class.new(
+        tags: double('tags'),
+        agent_base_url: double('agent_base_url'),
+        ld_library_path: double('ld_library_path'),
+        path_to_crashtracking_receiver_binary: double('path_to_crashtracking_receiver_binary'),
+        logger: logger
+      )
 
-#   describe '#reset_after_fork' do
-#     subject(:reset_after_fork) { crashtracker.reset_after_fork }
+      expect(described_class).to receive(:_native_stop)
+      expect(logger).to receive(:debug).with('Crash tracking stopped successfully')
 
-#     context 'when called in a fork' do
-#       before { crashtracker.start }
-#       after { crashtracker.stop }
+      component.stop
+    end
 
-#       it 'starts a second crash tracker for the fork' do
-#         expect_in_fork do
-#           wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+    it 'logs an error if stopping the crash tracking fails' do
+      component = described_class.new(
+        tags: double('tags'),
+        agent_base_url: double('agent_base_url'),
+        ld_library_path: double('ld_library_path'),
+        path_to_crashtracking_receiver_binary: double('path_to_crashtracking_receiver_binary'),
+        logger: logger
+      )
 
-#           crashtracker.reset_after_fork
+      error_message = 'Failed to stop crash tracking'
+      expect(described_class).to receive(:_native_stop).and_raise(error_message)
+      expect(logger).to receive(:error).with("Failed to stop crash tracking: #{error_message}")
 
-#           wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 2
-
-#           crashtracker.stop
-
-#           wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
-#         end
-#       end
-#     end
-#   end
-
-#   describe '#stop' do
-#     subject(:stop) { crashtracker.stop }
-
-#     context 'when _native_stop_crashtracker raises an exception' do
-#       it 'logs the exception' do
-#         expect(described_class).to receive(:_native_stop) { raise 'Test failure' }
-#         expect(Datadog.logger).to receive(:error).with(/Failed to stop crash tracking: Test failure/)
-
-#         stop
-#       end
-#     end
-
-#     it 'stops the crash tracker' do
-#       crashtracker.start
-
-#       stop
-
-#       wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-#     end
-#   end
-
-#   context 'integration testing' do
-#     shared_context 'HTTP server' do
-#       let(:server) do
-#         WEBrick::HTTPServer.new(
-#           Port: 0,
-#           Logger: log,
-#           AccessLog: access_log,
-#           StartCallback: -> { init_signal.push(1) }
-#         )
-#       end
-#       let(:hostname) { '127.0.0.1' }
-#       let(:log) { WEBrick::Log.new(StringIO.new, WEBrick::Log::WARN) }
-#       let(:access_log_buffer) { StringIO.new }
-#       let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
-#       let(:server_proc) do
-#         proc do |req, res|
-#           messages << req.tap { req.body } # Read body, store message before socket closes.
-#           res.body = '{}'
-#         end
-#       end
-#       let(:init_signal) { Queue.new }
-
-#       let(:messages) { [] }
-
-#       before do
-#         server.mount_proc('/', &server_proc)
-#         @server_thread = Thread.new { server.start }
-#         init_signal.pop
-#       end
-
-#       after do
-#         unless RSpec.current_example.skipped?
-#           # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
-#           # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
-#           # and join to be called on a nil @server_thread
-#           server.shutdown
-#           @server_thread.join
-#         end
-#       end
-#     end
-
-#     include_context 'HTTP server'
-
-#     let(:request) { messages.first }
-#     let(:port) { server[:Port] }
-
-#     let(:exporter_configuration) { [:agent, "http://#{hostname}:#{port}"] }
-
-#     [:fiddle, :signal].each do |trigger|
-#       it "reports crashes via http when app crashes with #{trigger}" do
-#         fork_expectations = proc do |status:, stdout:, stderr:|
-#           expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-#           expect(stderr).to include('[BUG] Segmentation fault')
-#         end
-
-#         expect_in_fork(fork_expectations: fork_expectations) do
-#           crashtracker.start
-
-#           if trigger == :fiddle
-#             Fiddle.free(42)
-#           else
-#             Process.kill('SEGV', Process.pid)
-#           end
-#         end
-
-#         crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
-
-#         expect(crash_report[:stack_trace]).to_not be_empty
-#         expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
-
-#         crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
-
-#         expect(crash_report_message[:metadata]).to include(
-#           profiling_library_name: 'dd-trace-rb',
-#           profiling_library_version: Datadog::VERSION::STRING,
-#           family: 'ruby',
-#           tags: ['tag1:value1', 'tag2:value2'],
-#         )
-#         expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
-#         expect(crash_report_message[:os_info]).to_not be_empty
-#       end
-#     end
-#   end
-# end
+      component.stop
+    end
+  end
+end

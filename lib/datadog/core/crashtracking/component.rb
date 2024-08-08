@@ -33,10 +33,10 @@ module Datadog
           agent_base_url = AgentBaseUrl.resolve(agent_settings)
           logger.warn('Missing agent base URL; cannot enable crash tracking') unless agent_base_url
 
-          ld_library_path = Libdatadog.ld_library_path
+          ld_library_path = ::Libdatadog.ld_library_path
           logger.warn('Missing ld_library_path; cannot enable crash tracking') unless ld_library_path
 
-          path_to_crashtracking_receiver_binary = Libdatadog.path_to_crashtracking_receiver_binary
+          path_to_crashtracking_receiver_binary = ::Libdatadog.path_to_crashtracking_receiver_binary
           unless path_to_crashtracking_receiver_binary
             logger.warn('Missing path_to_crashtracking_receiver_binary; cannot enable crash tracking')
           end
@@ -61,7 +61,7 @@ module Datadog
         end
 
         def start
-          Datadog::Core::Utils::AtForkMonkeyPatch.apply!
+          Utils::AtForkMonkeyPatch.apply!
 
           start_or_update_on_fork(action: :start)
           reset_after_fork
@@ -69,12 +69,8 @@ module Datadog
 
         def reset_after_fork
           ONLY_ONCE.run do
-            if Process.respond_to?(:datadog_at_fork)
-              Process.datadog_at_fork(:child) do
-                start_or_update_on_fork(action: :update_on_fork)
-              end
-            else
-              logger.debug 'Unexpected: At fork hooks not available'
+            Utils::AtForkMonkeyPatch.at_fork(:child) do
+              start_or_update_on_fork(action: :update_on_fork)
             end
           end
         end
