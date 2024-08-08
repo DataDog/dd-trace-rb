@@ -269,9 +269,7 @@ void discrete_dynamic_sampler_readjust(discrete_dynamic_sampler *sampler, long n
     double num_this_windows_in_60s = 60 * 1e9 / this_window_time_ns;
     double real_total_sampling_time_in_60s = sampler->sampling_time_since_last_readjustment_ns * num_this_windows_in_60s / 1e9;
 
-    const char* readjustment_reason = should_readjust_based_on_time ? "time" : "samples";
-
-    fprintf(stderr, "[dds.%s] readjusting due to %s...\n", sampler->debug_name, readjustment_reason);
+    fprintf(stderr, "[dds.%s] readjusting...\n", sampler->debug_name);
     fprintf(stderr, "events_since_last_readjustment=%ld\n", sampler->events_since_last_readjustment);
     fprintf(stderr, "samples_since_last_readjustment=%ld\n", sampler->samples_since_last_readjustment);
     fprintf(stderr, "this_window_time=%ld\n", this_window_time_ns);
