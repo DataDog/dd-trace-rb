@@ -33,7 +33,7 @@ static VALUE _native_sample(
   VALUE in_gc
 );
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
 
 void collectors_stack_init(VALUE profiling_module) {
@@ -111,7 +111,6 @@ static VALUE _native_sample(
 
   if (in_gc == Qtrue) {
     record_placeholder_stack(
-      buffer,
       recorder_instance,
       values,
       (sample_labels) {.labels = slice_labels, .state_label = state_label},
@@ -160,7 +159,7 @@ void sample_thread(
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(buffer, recorder_instance, values, labels);
+    record_placeholder_stack_in_native_code(recorder_instance, values, labels);
     return;
   }
 
@@ -355,13 +354,11 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
 
 static void record_placeholder_stack_in_native_code(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels
 ) {
   record_placeholder_stack(
-    buffer,
     recorder_instance,
     values,
     labels,
@@ -370,18 +367,19 @@ static void record_placeholder_stack_in_native_code(
 }
 
 void record_placeholder_stack(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 ) {
-  ddog_prof_Function placeholder = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack};
-  buffer->locations[0] = (ddog_prof_Location) {.function = placeholder, .line = 0};
+  ddog_prof_Location placeholder_location = {
+    .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
+    .line = 0,
+  };
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
+    (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
     labels
   );

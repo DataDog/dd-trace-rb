@@ -17,7 +17,6 @@ void sample_thread(
   sample_labels labels
 );
 void record_placeholder_stack(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,

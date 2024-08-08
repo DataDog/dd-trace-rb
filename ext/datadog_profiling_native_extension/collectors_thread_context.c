@@ -675,7 +675,6 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
   }
 
   record_placeholder_stack(
-    state->sampling_buffer,
     state->recorder_instance,
     (sample_values) {
       // This event gets both a regular cpu/wall-time duration, as a normal cpu/wall-time sample would, as well as a
@@ -1432,7 +1431,6 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = sizeof(labels) / sizeof(labels[0])};
 
   record_placeholder_stack(
-    state->sampling_buffer,
     state->recorder_instance,
     (sample_values) {.alloc_samples = skipped_samples},
     (sample_labels) {
