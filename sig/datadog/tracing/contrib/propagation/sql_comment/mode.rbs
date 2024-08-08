@@ -3,12 +3,14 @@ module Datadog
     module Contrib
       module Propagation
         module SqlComment
-          class Mode < ::Struct[String]
-            attr_accessor mode: String
+          class Mode < ::Struct[untyped]
+            def initialize: (string mode, bool append) -> void
 
             def enabled?: -> bool
             def service?: -> bool
             def full?: -> bool
+            def prepend?: -> bool
+            def append?: -> bool
           end
         end
       end
