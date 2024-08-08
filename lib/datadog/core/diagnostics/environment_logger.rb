@@ -8,6 +8,8 @@ module Datadog
   module Core
     module Diagnostics
       # Base class for EnvironmentLoggers - should allow for easy reporting by users to Datadog support.
+      #
+      # The EnvironmentLogger should not pollute the logs in a development environment.
       module EnvironmentLogging
         def log_configuration!(prefix, data)
           logger.info("DATADOG CONFIGURATION - #{prefix} - #{data}")
@@ -31,20 +33,11 @@ module Datadog
         def log?
           startup_logs_enabled = Datadog.configuration.diagnostics.startup_logs.enabled
           if startup_logs_enabled.nil?
-            !repl? && !rspec? # Suppress logs if we are running in a REPL or rspec
+            # Do not pollute the logs in a development environment.
+            !Datadog::Core::Environment::Execution.development?
           else
             startup_logs_enabled
           end
-        end
-
-        REPL_PROGRAM_NAMES = %w[irb pry].freeze
-
-        def repl?
-          REPL_PROGRAM_NAMES.include?($PROGRAM_NAME)
-        end
-
-        def rspec?
-          $PROGRAM_NAME.end_with?('rspec')
         end
       end
 
