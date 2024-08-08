@@ -7,9 +7,7 @@ module Datadog
     module Crashtracking
       # This module provides a method to resolve the base URL of the agent
       module AgentBaseUrl
-        module_function
-
-        def resolve(agent_settings)
+        def self.resolve(agent_settings)
           case agent_settings.adapter
           when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
             "#{agent_settings.ssl ? 'https' : 'http'}://#{agent_settings.hostname}:#{agent_settings.port}/"

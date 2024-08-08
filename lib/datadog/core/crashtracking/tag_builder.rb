@@ -10,9 +10,7 @@ module Datadog
     module Crashtracking
       # This module builds a hash of tags
       module TagBuilder
-        module_function
-
-        def call(settings)
+        def self.call(settings)
           hash = {
             'host' => Environment::Socket.hostname,
             'language' => Environment::Identity.lang,
@@ -32,7 +30,7 @@ module Datadog
           hash['git.commit.sha'] = Environment::Git.git_commit_sha if Environment::Git.git_commit_sha
 
           # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
-          (settings.tags || {}).merge(hash).each_with_object({}) do |(key, value), h|
+          settings.tags.merge(hash).each_with_object({}) do |(key, value), h|
             h[Utils.utf8_encode(key)] = Utils.utf8_encode(value)
           end
         end
