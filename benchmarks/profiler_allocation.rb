@@ -28,7 +28,7 @@ class ProfilerAllocationBenchmark
 
       x.report('Allocations (baseline)', 'BasicObject.new')
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -50,7 +50,7 @@ class ProfilerAllocationBenchmark
 
       x.report("Allocations (#{ENV['CONFIG']})", 'BasicObject.new')
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
