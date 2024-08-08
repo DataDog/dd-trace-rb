@@ -6,14 +6,14 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
   describe '::apply!' do
     subject(:apply!) { described_class.apply! }
 
-    let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
-
     context 'when forking is supported' do
       before do
         if ::Process.singleton_class.ancestors.include?(Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch)
           skip 'Monkey patch already applied (unclean state)'
         end
       end
+
+      let(:toplevel_receiver) { TOPLEVEL_BINDING.receiver }
 
       context 'on Ruby 3.0 or below' do
         before { skip 'Test applies only to Ruby 3.0 or below' if RUBY_VERSION >= '3.1' }
@@ -47,6 +47,20 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
             expect(::Process.method(:_fork).source_location.first).to match(/.*at_fork_monkey_patch.rb/)
           end
         end
+
+        it 'does not monkey patch Kernel/Object' do
+          expect_in_fork do
+            apply!
+
+            expect(::Process.ancestors).to_not include(described_class::KernelMonkeyPatch)
+            expect(::Kernel.ancestors).to_not include(described_class::KernelMonkeyPatch)
+            expect(toplevel_receiver.class.ancestors).to_not include(described_class::KernelMonkeyPatch)
+
+            expect(::Process.method(:fork).source_location&.first).to_not match(/.*at_fork_monkey_patch.rb/)
+            expect(::Kernel.method(:fork).source_location&.first).to_not match(/.*at_fork_monkey_patch.rb/)
+            expect(toplevel_receiver.method(:fork).source_location&.first).to_not match(/.*at_fork_monkey_patch.rb/)
+          end
+        end
       end
     end
 
@@ -57,7 +71,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           .and_return(false)
       end
 
-      it 'skips the Kernel patch' do
+      it 'skips the monkey patch' do
         is_expected.to be false
       end
     end
@@ -91,15 +105,15 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       end
     end
 
-    shared_context 'datadog_at_fork callbacks' do
+    shared_context 'at_fork callbacks' do
       let(:child) { double('child') }
 
       before do
-        Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child) { child.call }
+        Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) { child.call }
       end
 
       after do
-        described_class.datadog_at_fork_blocks.clear
+        Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
       end
     end
 
@@ -112,14 +126,12 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
 
       describe '#fork' do
         context 'when a block is not provided' do
-          include_context 'datadog_at_fork callbacks'
+          include_context 'at_fork callbacks'
 
           subject(:fork) { fork_class.fork }
 
           context 'and returns from the parent context' do
-            # By setting the fork result = integer, we're
-            # simulating #fork running in the parent process.
-            let(:fork_result) { rand(100) }
+            let(:fork_result) { 1234 } # simulate parent: result is a pid
 
             it do
               expect(child).to_not receive(:call)
@@ -129,9 +141,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           end
 
           context 'and returns from the child context' do
-            # By setting the fork result = nil, we're
-            # simulating #fork running in the child process.
-            let(:fork_result) { nil }
+            let(:fork_result) { nil } # simulate child: result is a nil
 
             it do
               expect(child).to receive(:call)
@@ -154,7 +164,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
           end
 
           context 'when callbacks are configured' do
-            include_context 'datadog_at_fork callbacks'
+            include_context 'at_fork callbacks'
 
             it 'invokes all the callbacks in order' do
               expect(child).to receive(:call)
@@ -162,48 +172,6 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
               is_expected.to be fork_result
             end
           end
-        end
-      end
-
-      describe '#datadog_at_fork' do
-        include_context 'datadog_at_fork callbacks'
-
-        let(:callback) { double('callback') }
-        let(:block) { proc { callback.call } }
-
-        subject(:datadog_at_fork) do
-          Datadog::Core::Utils::AtForkMonkeyPatch::ProcessMonkeyPatch.datadog_at_fork(:child, &block)
-        end
-
-        it 'adds a child callback' do
-          datadog_at_fork
-
-          expect(child).to receive(:call).ordered
-          expect(callback).to receive(:call).ordered
-
-          fork_class.fork {}
-        end
-      end
-    end
-
-    context 'when applied to multiple classes with forking' do
-      include_context 'fork class'
-
-      let(:other_fork_class) { new_fork_class }
-
-      context 'and #datadog_at_fork is called in one' do
-        include_context 'datadog_at_fork callbacks'
-
-        it 'applies the callback to the original class' do
-          expect(child).to receive(:call)
-
-          fork_class.fork {}
-        end
-
-        it 'applies the callback to the other class' do
-          expect(child).to receive(:call)
-
-          other_fork_class.fork {}
         end
       end
     end
@@ -215,49 +183,42 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       result = _fork_result
 
       Module.new do
-        def self.daemon(nochdir = nil, noclose = nil); end
+        def self.daemon(nochdir = nil, noclose = nil)
+          [nochdir, noclose]
+        end
         define_singleton_method(:_fork) { result }
       end
     end
     let(:child_callback) { double('child', call: true) }
 
     before do
-      allow(process_module).to receive(:daemon)
-
-      process_module.singleton_class.prepend(Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch)
       process_module.singleton_class.prepend(described_class)
 
-      process_module.datadog_at_fork(:child) { child_callback.call }
+      Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) { child_callback.call }
     end
 
     after do
-      Datadog::Core::Utils::AtForkMonkeyPatch::KernelMonkeyPatch.datadog_at_fork_blocks.clear
+      Datadog::Core::Utils::AtForkMonkeyPatch.const_get(:AT_FORK_CHILD_BLOCKS).clear
     end
 
-    it 'calls the child datadog_at_fork callbacks after calling Process.daemon' do
-      expect(process_module).to receive(:daemon).ordered
-      expect(child_callback).to receive(:call).ordered
+    describe '.daemon' do
+      it 'calls the child at_fork callbacks after calling Process.daemon' do
+        expect(process_module).to receive(:daemon).ordered.and_call_original
+        expect(child_callback).to receive(:call).ordered
 
-      process_module.daemon
+        process_module.daemon
+      end
+
+      it 'passes any arguments to Process.daemon and returns its results' do
+        expect(process_module.daemon(:arg1, :arg2)).to eq([:arg1, :arg2])
+      end
     end
 
-    it 'passes any arguments to Process.daemon' do
-      expect(process_module).to receive(:daemon).with(true, true)
-
-      process_module.daemon(true, true)
-    end
-
-    it 'returns the result of calling Process.daemon' do
-      expect(process_module).to receive(:daemon).and_return(:process_daemon_result)
-
-      expect(process_module.daemon).to be :process_daemon_result
-    end
-
-    describe 'Process._fork monkey patch' do
+    describe '_fork' do
       context 'in the child process' do
         let(:_fork_result) { 0 }
 
-        it 'monkey patches _fork to call the child datadog_at_fork callbacks on the child process' do
+        it 'triggers the child callbacks' do
           expect(child_callback).to receive(:call)
 
           expect(process_module._fork).to be 0
@@ -271,7 +232,7 @@ RSpec.describe Datadog::Core::Utils::AtForkMonkeyPatch do
       context 'in the parent process' do
         let(:_fork_result) { 1234 }
 
-        it 'does not trigger any callbacks' do
+        it 'does not trigger the child callbacks' do
           expect(child_callback).to_not receive(:call)
 
           process_module._fork
