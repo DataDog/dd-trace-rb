@@ -15,7 +15,7 @@ static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
 struct sampling_buffer {
-  unsigned int max_frames;
+  uint16_t max_frames;
   ddog_prof_Location *locations;
   VALUE *stack_buffer;
   int *lines_buffer;
