@@ -17,9 +17,7 @@ static VALUE missing_string = Qnil;
 struct sampling_buffer {
   uint16_t max_frames;
   ddog_prof_Location *locations;
-  VALUE *stack_buffer;
-  int *lines_buffer;
-  bool *is_ruby_frame;
+  frame_info *stack_buffer;
 }; // Note: typedef'd in the header to sampling_buffer
 
 static VALUE _native_sample(
@@ -155,9 +153,7 @@ void sample_thread(
     thread,
     0 /* stack starting depth */,
     buffer->max_frames,
-    buffer->stack_buffer,
-    buffer->lines_buffer,
-    buffer->is_ruby_frame
+    buffer->stack_buffer
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
@@ -186,15 +182,15 @@ void sample_thread(
     VALUE name, filename;
     int line;
 
-    if (buffer->is_ruby_frame[i]) {
-      name = rb_profile_frame_base_label(buffer->stack_buffer[i]);
-      filename = rb_profile_frame_path(buffer->stack_buffer[i]);
-      line = buffer->lines_buffer[i];
+    if (buffer->stack_buffer[i].is_ruby_frame) {
+      name = rb_profile_frame_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      filename = rb_profile_frame_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      line = buffer->stack_buffer[i].as.ruby_frame.line;
 
       last_ruby_frame_filename = filename;
       last_ruby_line = line;
     } else {
-      name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
+      name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
       filename = last_ruby_frame_filename;
       line = last_ruby_line;
     }
@@ -215,7 +211,7 @@ void sample_thread(
     // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
     // GVL instrumentation API.)
     if (top_of_the_stack && only_wall_time) {
-      if (!buffer->is_ruby_frame[i]) {
+      if (!buffer->stack_buffer[i].is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,
@@ -401,9 +397,7 @@ sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *lo
 
   buffer->max_frames = max_frames;
   buffer->locations = locations;
-  buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
-  buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
-  buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
+  buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
 
   return buffer;
 }
@@ -413,8 +407,6 @@ void sampling_buffer_free(sampling_buffer *buffer) {
 
   // buffer->locations are owned by whoever called sampling_buffer_new, not us
   ruby_xfree(buffer->stack_buffer);
-  ruby_xfree(buffer->lines_buffer);
-  ruby_xfree(buffer->is_ruby_frame);
 
   ruby_xfree(buffer);
 }
