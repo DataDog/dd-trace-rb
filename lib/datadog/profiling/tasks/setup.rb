@@ -27,20 +27,16 @@ module Datadog
         private
 
         def setup_at_fork_hooks
-          if Process.respond_to?(:datadog_at_fork)
-            Process.datadog_at_fork(:child) do
-              begin
-                # Restart profiler, if enabled
-                Profiling.start_if_enabled
-              rescue StandardError => e
-                Datadog.logger.warn do
-                  "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
-                  "Location: #{Array(e.backtrace).first}"
-                end
+          Datadog::Core::Utils::AtForkMonkeyPatch.at_fork(:child) do
+            begin
+              # Restart profiler, if enabled
+              Profiling.start_if_enabled
+            rescue StandardError => e
+              Datadog.logger.warn do
+                "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
+                "Location: #{Array(e.backtrace).first}"
               end
             end
-          else
-            Datadog.logger.debug 'Unexpected: At fork hooks not available'
           end
         end
       end
