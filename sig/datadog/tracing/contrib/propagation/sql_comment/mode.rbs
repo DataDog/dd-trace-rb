@@ -9,7 +9,6 @@ module Datadog
             def enabled?: -> bool
             def service?: -> bool
             def full?: -> bool
-            def prepend?: -> bool
             def append?: -> bool
           end
         end

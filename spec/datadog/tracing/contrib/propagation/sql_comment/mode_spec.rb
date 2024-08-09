@@ -45,18 +45,6 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment::Mode do
     end
   end
 
-  describe '#prepend?' do
-    [
-      [false, true],
-      [true, false]
-    ].each do |value, result|
-      context "when given `#{value}`" do
-        subject { described_class.new('full', value).prepend? }
-        it { is_expected.to be result }
-      end
-    end
-  end
-
   describe '#append?' do
     [
       [false, false],

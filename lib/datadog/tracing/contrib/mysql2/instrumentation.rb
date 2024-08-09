@@ -68,7 +68,7 @@ module Datadog
             def inject_propagation(span, sql, trace_op)
               propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
                 datadog_configuration[:comment_propagation],
-                datadog_configuration[:append]
+                datadog_configuration[:append_comment]
               )
 
               Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)

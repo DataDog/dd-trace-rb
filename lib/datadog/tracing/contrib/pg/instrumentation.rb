@@ -116,7 +116,7 @@ module Datadog
                 if sql
                   propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
                     comment_propagation,
-                    datadog_configuration[:append]
+                    datadog_configuration[:append_comment]
                   )
                   Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                   propagated_sql_statement = Contrib::Propagation::SqlComment.prepend_comment(

@@ -57,7 +57,7 @@ module Datadog
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
                 propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
-                  comment_propagation, datadog_configuration[:append]
+                  comment_propagation, datadog_configuration[:append_comment]
                 )
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)

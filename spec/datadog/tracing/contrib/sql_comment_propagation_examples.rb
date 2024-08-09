@@ -32,7 +32,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
 end
 
 RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:, error: nil|
-  let(:append) { false }
+  let(:append_comment) { false }
 
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
@@ -75,7 +75,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
   end
 
   context 'in append mode' do
-    let(:append) { true }
+    let(:append_comment) { true }
     let(:configuration_options) { super().merge(append: append) }
 
     it 'appends sql comment to the sql statement' do

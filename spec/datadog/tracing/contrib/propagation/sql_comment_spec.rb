@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
   let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
-  let(:append) { false }
+  let(:append_comment) { false }
 
   describe '.annotate!' do
     let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
@@ -47,7 +47,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     end
 
     let(:sql_statement) { 'SELECT 1' }
-    let(:append) { false }
+    let(:append_comment) { false }
 
     context 'when tracing is enabled' do
       before do
@@ -156,7 +156,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         end
 
         context 'when append is true' do
-          let(:append) { true }
+          let(:append_comment) { true }
 
           it 'appends the comment after the sql statement' do
             is_expected.to eq("#{sql_statement} /*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/")

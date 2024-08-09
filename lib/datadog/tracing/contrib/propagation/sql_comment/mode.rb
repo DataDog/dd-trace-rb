@@ -21,10 +21,6 @@ module Datadog
               mode == Ext::FULL
             end
 
-            def prepend?
-              !append
-            end
-
             def append?
               append
             end
