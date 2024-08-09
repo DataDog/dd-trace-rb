@@ -35,7 +35,7 @@ VALUE datadog_gem_version(void);
 
 inline static ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
-  ddog_CharSlice char_slice = {.ptr = StringValuePtr(string), .len = RSTRING_LEN(string)};
+  ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
 }
 

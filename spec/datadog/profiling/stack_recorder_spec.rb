@@ -1027,6 +1027,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
         GC.start # All dead objects above will be GCed, all living strings will have age = 0
 
+        # @ivoanjo: For some weird reason, the last object sampled in the "dead_heap_samples" does not always
+        # get collected the first time, leading to a flaky spec.
+        # I was able to reproduce it with `rspec spec/datadog/profiling --seed 48141 --fail-fast` and it's
+        # kinda bizarre since e.g. if you add one more `Object.new` it also stops flaking, so is it perhaps
+        # related to Ruby's conservative GC?
+        # I've bisected this and undoing 3d4b7fcf30b529b191ca737ae13629eb27b8ab63 also makes the flakiness
+        # go away, but again, that change doesn't seem to have anything to do with GC.
+        # As the weird behavior is transitory, e.g. it provably goes away on the next GC, I'll go with this
+        # workaround for now.
+        GC.start
+
         begin
           # Allocate some extra objects in a block with GC disabled and ask for a serialization
           # to ensure these strings have age=0 by the time we try to serialize the profile

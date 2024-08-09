@@ -17,11 +17,11 @@ void sample_thread(
   sample_labels labels
 );
 void record_placeholder_stack(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 );
-sampling_buffer *sampling_buffer_new(unsigned int max_frames);
+uint16_t sampling_buffer_check_max_frames(int max_frames);
+sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *locations);
 void sampling_buffer_free(sampling_buffer *buffer);
