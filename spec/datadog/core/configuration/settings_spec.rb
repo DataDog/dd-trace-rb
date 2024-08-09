@@ -828,14 +828,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be true }
+            it { is_expected.to be_nil }
           end
 
           [true, false].each do |value|
             context "is defined as #{value}" do
               let(:environment) { value.to_s }
 
-              it { is_expected.to be value }
+              it { is_expected.to be_nil }
             end
           end
         end
@@ -843,10 +843,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       describe '#experimental_crash_tracking_enabled=' do
         it 'updates the #experimental_crash_tracking_enabled setting' do
-          expect { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
+          expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
             .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
-            .from(true)
-            .to(false)
+            .from(nil).to(true)
         end
       end
 
@@ -1833,6 +1832,42 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           .to change { settings.remote.service }
           .from(nil)
           .to('foo')
+      end
+    end
+  end
+
+  describe '#crashtracking' do
+    describe '#enabled' do
+      subject(:crashtracking_enabled) { settings.crashtracking.enabled }
+
+      context 'when DD_CRASHTRACKING_ENABLED' do
+        around do |example|
+          ClimateControl.modify('DD_CRASHTRACKING_ENABLED' => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be true }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:environment) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#enabled=' do
+      it 'updates the #enabled setting' do
+        expect { settings.crashtracking.enabled = false }
+          .to change { settings.crashtracking.enabled }
+          .from(true).to(false)
       end
     end
   end

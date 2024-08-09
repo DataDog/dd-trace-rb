@@ -18,7 +18,11 @@ RSpec.describe Datadog::Profiling::Component do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
 
     subject(:build_profiler_component) do
-      described_class.build_profiler_component(settings: settings, agent_settings: agent_settings, optional_tracer: tracer)
+      described_class.build_profiler_component(
+        settings: settings,
+        agent_settings: agent_settings,
+        optional_tracer: tracer
+      )
     end
 
     context 'when profiling is not supported' do
@@ -391,8 +395,7 @@ RSpec.describe Datadog::Profiling::Component do
         it 'sets up the Profiler with the CpuAndWallTimeWorker collector' do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),
-            scheduler: anything,
-            optional_crashtracker: anything,
+            scheduler: anything
           )
 
           build_profiler_component
@@ -531,78 +534,6 @@ RSpec.describe Datadog::Profiling::Component do
           expect(Datadog::Profiling::Scheduler).to receive(:new) do |transport:, **_|
             expect(transport).to be custom_transport
           end
-
-          build_profiler_component
-        end
-      end
-
-      context 'when crash tracking is disabled' do
-        before { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
-
-        it 'does not initialize the crash tracker' do
-          expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
-
-          build_profiler_component
-        end
-      end
-
-      context 'when crash tracking is enabled' do
-        it 'initializes the crash tracker' do
-          expect(Datadog::Profiling::Crashtracker).to receive(:new).with(
-            exporter_configuration: array_including(:agent),
-            tags: hash_including('runtime' => 'ruby'),
-            upload_timeout_seconds: settings.profiling.upload.timeout_seconds,
-          )
-
-          build_profiler_component
-        end
-
-        context 'when a custom transport is provided' do
-          let(:custom_transport) { double('Custom transport') }
-
-          before do
-            settings.profiling.exporter.transport = custom_transport
-            allow(Datadog.logger).to receive(:debug)
-          end
-
-          it 'debug logs that crash tracking will not be enabled' do
-            expect(Datadog.logger).to receive(:debug).with(/Cannot enable profiling crash tracking/)
-
-            build_profiler_component
-          end
-
-          it 'does not initialize the crash tracker' do
-            expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
-
-            build_profiler_component
-          end
-        end
-
-        context 'when there was a libdatadog_api failure during load' do
-          before do
-            allow(Datadog.logger).to receive(:debug)
-            stub_const('Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE', 'simulated load failure')
-          end
-
-          it 'debug logs that crash tracking will not be enabled' do
-            expect(Datadog.logger).to receive(:debug).with(/Cannot enable crashtracking: simulated load failure/)
-
-            build_profiler_component
-          end
-
-          it 'does not initialize the crash tracker' do
-            expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
-
-            build_profiler_component
-          end
-        end
-
-        it 'initializes the profiler instance with the crash tracker' do
-          expect(Datadog::Profiling::Profiler).to receive(:new).with(
-            worker: anything,
-            scheduler: anything,
-            optional_crashtracker: instance_of(Datadog::Profiling::Crashtracker),
-          )
 
           build_profiler_component
         end

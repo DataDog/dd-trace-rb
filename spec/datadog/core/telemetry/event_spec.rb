@@ -42,10 +42,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           appsec: {
             enabled: false,
           },
-          profiler: {
-            enabled: false,
-            error: anything,
-          },
+          profiler: hash_including(enabled: false),
         },
         configuration: contain_configuration(
           ['DD_AGENT_HOST', '1.2.3.4'],
