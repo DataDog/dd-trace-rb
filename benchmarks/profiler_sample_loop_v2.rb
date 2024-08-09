@@ -51,7 +51,7 @@ class ProfilerSampleLoopBenchmark
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
       end
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
