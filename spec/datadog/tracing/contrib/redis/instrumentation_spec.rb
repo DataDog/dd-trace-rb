@@ -4,7 +4,7 @@ require 'redis'
 require 'datadog'
 
 RSpec.describe 'Redis instrumentation test' do
-  let(:test_host) { ENV.fetch('TEST_REDIS_HOST', '127.0.0.1') }
+  let(:test_host) { ENV.fetch('TEST_REDIS_HOST', 'localhost') }
   let(:test_port) { ENV.fetch('TEST_REDIS_PORT', 6379).to_i }
 
   # Redis instance supports 16 databases,
@@ -37,6 +37,7 @@ RSpec.describe 'Redis instrumentation test' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('command')
 
       expect(span.get_tag('out.host')).to eq(@host)
+      expect(span.get_tag('out.host')).to_not be_an_ip_address
       expect(span.get_tag('out.port')).to eq(@port.to_f)
       expect(span.get_tag('redis.raw_command')).to eq(@raw_command)
       expect(span.get_tag('db.system')).to eq('redis')

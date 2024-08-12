@@ -51,7 +51,9 @@ RSpec.describe 'ActiveRecord instrumentation' do
       expect(span.get_tag('db.instance')).to eq('mysql')
       expect(span.get_tag('active_record.db.name')).to eq('mysql')
       expect(span.get_tag('active_record.db.cached')).to eq(nil)
+      # TODO: MYSQL is correct CONTINUE WITH OTHERS
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
+      expect(span.get_tag('out.host')).to_not be_an_ip_address if PlatformHelpers.ci? # This test is hard to run locally because mysql considers `localhost` as a unix socket
       expect(span.get_tag('out.port')).to eq(ENV.fetch('TEST_MYSQL_PORT', 3306).to_f)
       expect(span.get_tag('sql.query')).to eq(nil)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('active_record')

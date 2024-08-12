@@ -93,3 +93,22 @@ end
 #
 # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
 gem 'ffi', '~> 1.16.3', require: false
+
+gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
+gem 'rails', '~> 6'
+gem 'mysql2'
+gem 'trilogy'
+gem 'pg'
+gem 'dalli'
+gem 'elasticsearch'
+
+gem 'ethon'
+gem 'excon'
+gem 'faraday'
+gem 'http'
+gem 'httpclient'
+gem 'rest-client'
+gem 'stripe', '~> 7.0'
+gem 'typhoeus'
+gem 'redis'

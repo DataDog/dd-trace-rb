@@ -52,7 +52,7 @@ module Datadog
               end
             end
 
-            "#{Comment.new(tags)} #{sql}"
+            "#{sql} #{Comment.new(tags)}"
           end
 
           def self.datadog_configuration

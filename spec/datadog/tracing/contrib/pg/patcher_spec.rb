@@ -25,7 +25,7 @@ RSpec.describe 'PG::Connection patcher' do
     )
   end
 
-  let(:host) { ENV.fetch('TEST_POSTGRES_HOST') { '127.0.0.1' } }
+  let(:host) { ENV.fetch('TEST_POSTGRES_HOST') { 'localhost' } }
   let(:port) { ENV.fetch('TEST_POSTGRES_PORT') { '5432' } }
   let(:dbname) { ENV.fetch('TEST_POSTGRES_DB') { 'postgres' } }
   let(:user) { ENV.fetch('TEST_POSTGRES_USER') { 'postgres' } }
@@ -115,7 +115,8 @@ RSpec.describe 'PG::Connection patcher' do
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_INSTANCE)).to eq(dbname)
             expect(span.get_tag(Datadog::Tracing::Contrib::Ext::DB::TAG_USER)).to eq(user)
             expect(span.get_tag('db.system')).to eq('postgresql')
-            expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_HOST)).to eq(host)
+            expect(span.get_tag('out.host')).to eq(host)
+            expect(span.get_tag('out.host')).to_not be_an_ip_address
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_TARGET_PORT)).to eq(port.to_i)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_NAME)).to eq(host)
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::NET::TAG_DESTINATION_PORT)).to eq(port.to_i)

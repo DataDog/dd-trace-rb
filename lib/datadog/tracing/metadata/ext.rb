@@ -22,6 +22,13 @@ module Datadog
         # Name of external service that performed the work
         TAG_PEER_SERVICE = 'peer.service'
 
+        # The server domain name that the network client is talking to,
+        # before DNS resolution (e.g. what the user provided in the client's initializer/configuration);
+        # otherwise, IP address or Unix domain socket name.
+        #
+        # @see https://opentelemetry.io/docs/specs/semconv/general/attributes/#server-attributes
+        TAG_SERVER_ADDRESS = 'server.address'
+
         TAG_KIND = 'span.kind'
 
         # Set this tag to `1.0` if the span is a Service Entry span.

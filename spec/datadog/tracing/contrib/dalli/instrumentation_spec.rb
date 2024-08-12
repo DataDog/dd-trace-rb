@@ -10,7 +10,7 @@ require 'datadog'
 require 'datadog/tracing/contrib/dalli/patcher'
 
 RSpec.describe 'Dalli instrumentation' do
-  let(:test_host) { ENV.fetch('TEST_MEMCACHED_HOST', '127.0.0.1') }
+  let(:test_host) { ENV.fetch('TEST_MEMCACHED_HOST', 'localhost') }
   let(:test_port) { ENV.fetch('TEST_MEMCACHED_PORT', '11211') }
 
   let(:client) { ::Dalli::Client.new("#{test_host}:#{test_port}") }
@@ -72,6 +72,7 @@ RSpec.describe 'Dalli instrumentation' do
       expect(span.resource).to eq('SET')
       expect(span).to_not have_tag('memcached.command')
       expect(span.get_tag('out.host')).to eq(test_host)
+      expect(span.get_tag('out.host')).to_not be_an_ip_address
       expect(span.get_tag('out.port')).to eq(test_port.to_f)
       expect(span.get_tag('db.system')).to eq('memcached')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_KIND)).to eq('client')

@@ -102,6 +102,7 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
+          expect(span.get_tag('out.host')).to_not be_an_ip_address if PlatformHelpers.ci? # This test is hard to run locally because mysql considers `localhost` as a unix socket
           expect(span.get_tag('out.port')).to eq(port)
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('mysql2')

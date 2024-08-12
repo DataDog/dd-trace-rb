@@ -100,6 +100,7 @@ RSpec.describe 'Presto::Client instrumentation' do
         expect(span.get_tag('presto.http_proxy')).to eq(http_proxy)
         expect(span.get_tag('presto.model_version')).to eq(model_version)
         expect(span.get_tag('out.host')).to eq(host)
+        expect(span.get_tag('out.host')).to_not be_an_ip_address
         expect(span.get_tag('out.port')).to eq(port)
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('presto')
         expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq(operation)

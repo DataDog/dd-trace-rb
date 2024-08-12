@@ -205,6 +205,7 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
 
         expect(span.get_tag('http.url')).to eq('/sample/path')
         expect(span.get_tag('out.host')).to eq('example.com')
+        expect(span.get_tag('out.host')).to_not be_an_ip_address
       end
     end
 
