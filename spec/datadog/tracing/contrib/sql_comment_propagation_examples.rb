@@ -1,7 +1,7 @@
 RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, error: nil|
   context 'when default `disabled`' do
     it_behaves_like 'propagates with sql comment', mode: 'disabled', span_op_name: span_op_name, error: error do
-      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled', append) }
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('disabled', append_comment) }
     end
   end
 
@@ -14,7 +14,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
     end
 
     it_behaves_like 'propagates with sql comment', mode: 'service', span_op_name: span_op_name, error: error do
-      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service', append) }
+      let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new('service', append_comment) }
     end
   end
 
@@ -25,7 +25,7 @@ RSpec.shared_examples_for 'with sql comment propagation' do |span_op_name:, erro
       end
 
       it_behaves_like 'propagates with sql comment', mode: mode, span_op_name: span_op_name, error: error do
-        let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
+        let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append_comment) }
       end
     end
   end
@@ -36,7 +36,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
 
   it "propagates with mode: #{mode}" do
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment::Mode)
-      .to receive(:new).with(mode, append).and_return(propagation_mode)
+      .to receive(:new).with(mode, append_comment).and_return(propagation_mode)
 
     if error
       expect { subject }.to raise_error(error)
@@ -76,7 +76,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
 
   context 'in append mode' do
     let(:append_comment) { true }
-    let(:configuration_options) { super().merge(append: append) }
+    let(:configuration_options) { super().merge(append_comment: append_comment) }
 
     it 'appends sql comment to the sql statement' do
       allow(Datadog::Tracing::Contrib::Propagation::SqlComment).to receive(:prepend_comment).and_call_original
