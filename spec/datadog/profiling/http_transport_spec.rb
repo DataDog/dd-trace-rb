@@ -74,7 +74,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         },
         runtime: {
           engine: 'ruby'
-        }
+        },
       }
     )
   end
@@ -86,7 +86,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       },
       'runtime' => {
         'engine' => 'ruby'
-      }
+      },
     }
   end
 

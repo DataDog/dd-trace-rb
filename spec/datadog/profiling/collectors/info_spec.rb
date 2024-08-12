@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
           ),
           profiler: hash_including(
             version: Datadog::Core::Environment::Identity.gem_datadog_version,
-          )
+          ),
         }
       )
     end
@@ -157,7 +157,7 @@ class TestSettings
             f: [1, 2, 3],
             g: { 'a' => 'a', 'b' => 'b' },
             h: :a_symbol,
-            i: ComplexObject.new
+            i: ComplexObject.new,
           }
         )
       end

@@ -938,7 +938,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampling_time_ns_total: nil,
           allocation_sampling_time_ns_avg: nil,
           allocation_sampler_snapshot: nil,
-          allocations_during_sample: nil
+          allocations_during_sample: nil,
         }
       )
     end

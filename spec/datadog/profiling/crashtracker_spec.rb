@@ -23,7 +23,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     {
       exporter_configuration: exporter_configuration,
       tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-      upload_timeout_seconds: 123
+      upload_timeout_seconds: 123,
     }
   end
 

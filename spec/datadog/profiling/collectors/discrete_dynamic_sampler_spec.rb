@@ -54,7 +54,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       total_sampling_seconds: total_sampling_seconds,
       overhead: total_sampling_seconds / (@now - start),
       num_samples: num_samples,
-      num_events: num_events
+      num_events: num_events,
     }
   end
 
@@ -344,7 +344,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
             # be triggered given we have a consistent 2x overshooting of maximum sampling time. This
             # adjustment logic will essentially move our target overhead to be closer to 0.5% rather than
             # the real 1% so we'd expect approx. 120 / 2 = 60 (clamped) samples.
-            sampling_time_clamps: be_between(50, 70)
+            sampling_time_clamps: be_between(50, 70),
           }
         )
       end

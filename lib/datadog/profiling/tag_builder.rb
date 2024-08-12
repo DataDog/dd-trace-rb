@@ -42,7 +42,7 @@ module Datadog
           FORM_FIELD_TAG_RUNTIME_ENGINE => runtime_engine,
           FORM_FIELD_TAG_RUNTIME_ID => runtime_id,
           FORM_FIELD_TAG_RUNTIME_PLATFORM => runtime_platform,
-          FORM_FIELD_TAG_RUNTIME_VERSION => runtime_version
+          FORM_FIELD_TAG_RUNTIME_VERSION => runtime_version,
         }
         tags[FORM_FIELD_TAG_ENV] = env if env
         tags[FORM_FIELD_TAG_SERVICE] = service if service
