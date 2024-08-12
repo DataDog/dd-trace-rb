@@ -45,7 +45,7 @@ class TracingTraceBenchmark
       trace(x, 10)
       trace(x, 100)
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -73,7 +73,7 @@ class TracingTraceBenchmark
       trace(x, 10)
       trace(x, 100)
 
-      x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
@@ -87,7 +87,7 @@ class TracingTraceBenchmark
           trace.to_digest
         end
 
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -102,7 +102,7 @@ class TracingTraceBenchmark
           Datadog::Tracing.log_correlation
         end
 
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -118,7 +118,7 @@ class TracingTraceBenchmark
           Datadog::Tracing.continue_trace!(digest)
         end
 
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -147,7 +147,7 @@ class TracingTraceBenchmark
           raise unless extracted_trace_digest
         end
 
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
@@ -170,7 +170,7 @@ class TracingTraceBenchmark
           raise unless extracted_trace_digest
         end
 
-        x.save! "#{__FILE__}-results.json" unless VALIDATE_BENCHMARK_MODE
+        x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
         x.compare!
       end
     end
