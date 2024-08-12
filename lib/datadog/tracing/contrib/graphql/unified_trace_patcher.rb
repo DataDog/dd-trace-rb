@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+if Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
+  require_relative 'unified_trace'
+end
+
 module Datadog
   module Tracing
     module Contrib
@@ -9,7 +13,6 @@ module Datadog
           module_function
 
           def patch!(schemas, options)
-            require_relative 'unified_trace'
             if schemas.empty?
               ::GraphQL::Schema.trace_with(UnifiedTrace, **options)
             else

@@ -287,7 +287,7 @@ RSpec.describe 'GraphQL integration tests',
             it do
               post '/graphql', query: 'mutation { createUser(name: "$testattack") { user { name, id } } }'
               expect(JSON.parse(last_response.body)['errors'][0]['title']).to eq('Blocked')
-              expect(Users.users['$testattack']).to be_nil
+              expect(TestGraphQL::Users.users['$testattack']).to be_nil
             end
           end
         end
@@ -446,6 +446,119 @@ RSpec.describe 'GraphQL integration tests',
                 name: 'graphql.parse',
               )
             ).twice
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.execute_multiplex',
+              )
+            ).once
+            expect(spans).not_to include(
+              an_object_having_attributes(
+                name: 'graphql.execute',
+              )
+            )
+          end
+        end
+      end
+
+      describe 'a query with directives' do
+        subject(:response) { post '/graphql', _json: queries }
+
+        context 'with a non-triggering multiplex' do
+          let(:appsec_ruleset) { blocking_testattack }
+          let(:queries) do
+            [
+              {
+                'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
+                'variables' => { 'format' => 'upcase' }
+              }
+            ]
+          end
+
+          it do
+            expect(last_response.body).to eq(
+              [
+                { 'data' => { 'user' => { 'name' => 'BITS' } } },
+              ].to_json
+            )
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.parse',
+              ),
+              an_object_having_attributes(
+                name: 'graphql.execute_multiplex',
+              ),
+              an_object_having_attributes(
+                name: 'graphql.execute',
+              )
+            )
+          end
+
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace without AppSec events'
+        end
+
+        context 'with a multiplex containing a non-blocking query' do
+          let(:appsec_ruleset) { nonblocking_testattack }
+          let(:queries) do
+            [
+              {
+                'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
+                'variables' => { 'format' => '$testattack' }
+              }
+            ]
+          end
+
+          it do
+            expect(last_response.body).to eq(
+              [
+                { 'data' => { 'user' => { 'name' => 'Bits' } } }
+              ].to_json
+            )
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.parse',
+              )
+            ).once
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.execute_multiplex',
+              )
+            ).once
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.execute',
+              )
+            ).once
+          end
+
+          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a trace with AppSec tags'
+          it_behaves_like 'a trace with AppSec events'
+        end
+
+        context 'with a multiplex containing a blocking query' do
+          let(:appsec_ruleset) { blocking_testattack }
+          let(:queries) do
+            [
+              {
+                'query' => 'query Test($format: String!) { user(id: 1) { name @case(format: $format) } }',
+                'variables' => { 'format' => '$testattack' }
+              }
+            ]
+          end
+
+          it do
+            expect(last_response.body).to eq(
+              [
+                { 'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }] }
+              ].to_json
+            )
+            expect(spans).to include(
+              an_object_having_attributes(
+                name: 'graphql.parse',
+              )
+            ).once
             expect(spans).to include(
               an_object_having_attributes(
                 name: 'graphql.execute_multiplex',

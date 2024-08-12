@@ -53,7 +53,7 @@ void http_transport_init(VALUE profiling_module) {
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
 
-  library_version_string = ddtrace_version();
+  library_version_string = datadog_gem_version();
   rb_global_variable(&library_version_string);
 }
 

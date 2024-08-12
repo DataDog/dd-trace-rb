@@ -13,6 +13,14 @@ module Datadog
     #
     # Methods prefixed with _native_ are implemented in `crashtracker.c`
     class Crashtracker
+      LIBDATADOG_API_FAILURE =
+        begin
+          require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
+          nil
+        rescue LoadError => e
+          e.message
+        end
+
       private
 
       attr_reader \
