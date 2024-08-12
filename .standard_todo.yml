@@ -1,7 +1,15 @@
-# Auto generated files with errors to ignore.
-# Remove from this list as you refactor files.
+# This file is used to ignore specific rules for specific files or directories.
 ---
 ignore:
+
+# After quite some discussion on the team, we decided to make an exception to the
+# "standard-isn't-supposed-to-be-configured" thing to allow for trailing comma, see
+# https://github.com/standardrb/standard/issues/611 for a discussion
+- '**/**':
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInArrayLiteral
+  - Style/TrailingCommaInHashLiteral
+
 # This disables standardrb for the rest of dd-trace-rb (other than profiling)
 - .pryrc
 - .simplecov
@@ -36,30 +44,23 @@ ignore:
 # These profiling ignores are ALL going to be fixed in separate PRs
 - lib/datadog/profiling/collectors/code_provenance.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
 - lib/datadog/profiling/collectors/cpu_and_wall_time_worker.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Style/RedundantBegin
 - lib/datadog/profiling/collectors/idle_sampling_helper.rb:
   - Style/RedundantBegin
   - Style/StringLiterals
 - lib/datadog/profiling/collectors/info.rb:
   - Style/StringLiterals
-- lib/datadog/profiling/collectors/thread_context.rb:
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/component.rb:
   - Layout/SpaceInsideHashLiteralBraces
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/crashtracker.rb:
   - Style/StringLiterals
   - Style/RedundantBegin
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/exporter.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/ext.rb:
   - Style/StringLiterals
 - lib/datadog/profiling/ext/dir_monkey_patches.rb:
@@ -70,7 +71,6 @@ ignore:
   - Style/StringLiterals
 - lib/datadog/profiling/http_transport.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/load_native_extension.rb:
   - Style/StringLiterals
 - lib/datadog/profiling/preload.rb:
@@ -80,8 +80,6 @@ ignore:
 - lib/datadog/profiling/scheduler.rb:
   - Style/StringLiterals
   - Style/RedundantBegin
-- lib/datadog/profiling/stack_recorder.rb:
-  - Style/TrailingCommaInArguments
 - lib/datadog/profiling/tag_builder.rb:
   - Style/StringLiterals
 - lib/datadog/profiling/tasks/exec.rb:
@@ -94,11 +92,9 @@ ignore:
   - Style/RedundantBegin
 - spec/datadog/profiling/collectors/code_provenance_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
 - spec/datadog/profiling/collectors/cpu_and_wall_time_worker_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
   - Style/RedundantBegin
 - spec/datadog/profiling/collectors/discrete_dynamic_sampler_spec.rb:
@@ -109,31 +105,25 @@ ignore:
   - Style/StringLiterals
 - spec/datadog/profiling/collectors/info_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/collectors/stack_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
 - spec/datadog/profiling/collectors/thread_context_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
   - Style/RedundantBegin
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/component_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
 - spec/datadog/profiling/crashtracker_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
 - spec/datadog/profiling/exporter_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
 - spec/datadog/profiling/ext/dir_monkey_patches_spec.rb:
   - Style/StringLiterals
   - Style/RedundantBegin
@@ -142,10 +132,8 @@ ignore:
 - spec/datadog/profiling/flush_spec.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
 - spec/datadog/profiling/http_transport_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
   - Style/RedundantBegin
 - spec/datadog/profiling/load_native_extension_spec.rb:
@@ -162,21 +150,17 @@ ignore:
   - Style/StringLiterals
 - spec/datadog/profiling/scheduler_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/spec_helper.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Style/QuotedSymbols
 - spec/datadog/profiling/stack_recorder_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
   - Style/QuotedSymbols
   - Style/RedundantBegin
 - spec/datadog/profiling/tag_builder_spec.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
   - Layout/SpaceInsideHashLiteralBraces
 - spec/datadog/profiling/tasks/exec_spec.rb:
   - Style/StringLiterals
@@ -193,9 +177,7 @@ ignore:
   - Style/StringLiterals
 - ext/datadog_profiling_native_extension/extconf.rb:
   - Style/StringLiterals
-  - Style/TrailingCommaInArguments
 - ext/datadog_profiling_native_extension/native_extension_helpers.rb:
   - Style/StringLiterals
   - Layout/SpaceInsideHashLiteralBraces
-  - Style/TrailingCommaInArguments
   - Style/RedundantBegin
