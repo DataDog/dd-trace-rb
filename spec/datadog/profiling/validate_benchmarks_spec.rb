@@ -15,7 +15,7 @@ RSpec.describe 'Profiling benchmarks' do
     'profiler_sample_serialize',
     'profiler_memory_sample_serialize',
     'profiler_gc',
-    'profiler_hold_resume_interruptions'
+    'profiler_hold_resume_interruptions',
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|

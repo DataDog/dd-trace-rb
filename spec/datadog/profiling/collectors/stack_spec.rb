@@ -43,7 +43,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         [
           have_attributes(base_label: '_native_sample'),
           have_attributes(base_label: 'sample'),
-          have_attributes(base_label: 'sample_and_decode')
+          have_attributes(base_label: 'sample_and_decode'),
         ]
       )
       super()[3..-1]

@@ -1044,7 +1044,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         described_class::Testing._native_check_heap_hashes(
           [
             ['a name', 'a filename', 123],
-            ['another name', 'anoter filename', 456]
+            ['another name', 'anoter filename', 456],
           ]
         )
       end
@@ -1052,7 +1052,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'with empty names' do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['', 'a filename', 123]
+            ['', 'a filename', 123],
           ]
         )
       end
@@ -1060,7 +1060,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'with empty filenames' do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', '', 123]
+            ['a name', '', 123],
           ]
         )
       end

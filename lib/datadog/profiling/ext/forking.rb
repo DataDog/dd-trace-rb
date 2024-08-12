@@ -21,7 +21,7 @@ module Datadog
           [
             ::Process.singleton_class, # Process.fork
             ::Kernel.singleton_class,  # Kernel.fork
-            ::Object                   # fork without explicit receiver (it's defined as a method in ::Kernel)
+            ::Object,                  # fork without explicit receiver (it's defined as a method in ::Kernel)
             # Note: Modifying Object as we do here is irreversible. During tests, this
             # change will stick around even if we otherwise stub `Process` and `Kernel`
           ].each { |target| target.prepend(Kernel) }
