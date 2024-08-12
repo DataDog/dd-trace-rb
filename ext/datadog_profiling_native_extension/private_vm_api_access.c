@@ -490,6 +490,7 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
               continue;
             }
 
+            // dd-trace-rb NOTE:
             // Upstream Ruby has code here to retrieve the rb_callable_method_entry_t (cme) and in some cases to use it
             // instead of the iseq.
             // In practice, they are usually the same; the difference is that when you have e.g. block, one gets you a
@@ -498,6 +499,9 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
             // of just "foo". But we're currently using `rb_profile_frame_base_label` which I believe is always the same
             // between the rb_callable_method_entry_t and the iseq. Thus, to simplify a bit our logic and reduce a bit
             // the overhead, we always use the iseq here.
+            //
+            // @ivoanjo: I've left the upstream Ruby code commented out below for reference, so it's more obvious that
+            // we're diverging, and we can easily compare and experiment with the upstream version in the future.
             //
             // cme = rb_vm_frame_method_entry(cfp);
 
