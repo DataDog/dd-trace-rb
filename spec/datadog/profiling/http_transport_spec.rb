@@ -507,7 +507,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       end
 
       it 'logs a warning' do
-        expect(Datadog.logger).to receive(:warn).with(/Failed to add tag to profiling request/)
+        expect(Datadog.logger).to receive(:warn).with(/Failed to convert tag/)
 
         http_transport.export(flush)
       end

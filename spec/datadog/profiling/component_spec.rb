@@ -84,6 +84,8 @@ RSpec.describe Datadog::Profiling::Component do
             .and_return(:overhead_target_percentage_config)
           expect(described_class).to receive(:valid_overhead_target)
             .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
+          expect(settings.profiling.advanced)
+            .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -91,6 +93,7 @@ RSpec.describe Datadog::Profiling::Component do
             thread_context_collector: instance_of(Datadog::Profiling::Collectors::ThreadContext),
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_profiling_enabled: false,
+            allocation_counting_enabled: :allocation_counting_enabled_config,
           )
 
           build_profiler_component
@@ -544,8 +547,6 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context 'when crash tracking is enabled' do
-        before { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
-
         it 'initializes the crash tracker' do
           expect(Datadog::Profiling::Crashtracker).to receive(:new).with(
             exporter_configuration: array_including(:agent),
@@ -561,11 +562,30 @@ RSpec.describe Datadog::Profiling::Component do
 
           before do
             settings.profiling.exporter.transport = custom_transport
-            allow(Datadog.logger).to receive(:warn)
+            allow(Datadog.logger).to receive(:debug)
           end
 
-          it 'warns that crash tracking will not be enabled' do
-            expect(Datadog.logger).to receive(:warn).with(/Cannot enable profiling crash tracking/)
+          it 'debug logs that crash tracking will not be enabled' do
+            expect(Datadog.logger).to receive(:debug).with(/Cannot enable profiling crash tracking/)
+
+            build_profiler_component
+          end
+
+          it 'does not initialize the crash tracker' do
+            expect(Datadog::Profiling::Crashtracker).to_not receive(:new)
+
+            build_profiler_component
+          end
+        end
+
+        context 'when there was a libdatadog_api failure during load' do
+          before do
+            allow(Datadog.logger).to receive(:debug)
+            stub_const('Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE', 'simulated load failure')
+          end
+
+          it 'debug logs that crash tracking will not be enabled' do
+            expect(Datadog.logger).to receive(:debug).with(/Cannot enable crashtracking: simulated load failure/)
 
             build_profiler_component
           end

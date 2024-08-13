@@ -1,9 +1,13 @@
 require 'ext/datadog_profiling_native_extension/native_extension_helpers'
+require 'ext/libdatadog_extconf_helpers'
 require 'libdatadog'
 require 'datadog/profiling/spec_helper'
 
-RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
+# TODO: This should be extracted out once the test suite setup is updated to build libdatadog_api separate from profiling
+RSpec.describe Datadog::LibdatadogExtconfHelpers do
   describe '.libdatadog_folder_relative_to_native_lib_folder' do
+    let(:extension_folder) { "#{__dir__}/../../../ext/datadog_profiling_native_extension/." }
+
     context 'when libdatadog is available' do
       before do
         skip_if_profiling_not_supported(self)
@@ -13,7 +17,7 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
       end
 
       it 'returns a relative path to libdatadog folder from the gem lib folder' do
-        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder
+        relative_path = described_class.libdatadog_folder_relative_to_native_lib_folder(current_folder: extension_folder)
 
         libdatadog_extension = RbConfig::CONFIG['SOEXT'] || raise('Missing SOEXT for current platform')
 
@@ -28,7 +32,12 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
 
     context 'when libdatadog is unsupported' do
       it do
-        expect(described_class.libdatadog_folder_relative_to_native_lib_folder(libdatadog_pkgconfig_folder: nil)).to be nil
+        expect(
+          described_class.libdatadog_folder_relative_to_native_lib_folder(
+            current_folder: extension_folder,
+            libdatadog_pkgconfig_folder: nil
+          )
+        ).to be nil
       end
     end
   end
@@ -77,10 +86,52 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers do
   describe '::LIBDATADOG_VERSION' do
     it 'must match the version restriction set on the gemspec' do
       # This test is expected to break when the libdatadog version on the .gemspec is updated but we forget to update
-      # the version on the `native_extension_helpers.rb` file. Kindly keep them in sync! :)
+      # the version on the `libdatadog_extconf_helpers.rb` file. Kindly keep them in sync! :)
       expect(described_class::LIBDATADOG_VERSION).to eq(
         Gem.loaded_specs['datadog'].dependencies.find { |dependency| dependency.name == 'libdatadog' }.requirement.to_s
       )
+    end
+  end
+
+  describe '.pkg_config_missing?' do
+    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
+
+    before do
+      skip_if_profiling_not_supported(self)
+    end
+
+    context 'when command is not available' do
+      let(:command) { nil }
+
+      it { is_expected.to be true }
+    end
+
+    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
+    #
+    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
+    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
+    #
+    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
+    context 'when command is available' do
+      before do
+        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
+        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
+        without_partial_double_verification do
+          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
+        end
+      end
+
+      context 'and pkg-config can successfully be called' do
+        let(:command) { 'pkg-config' }
+
+        it { is_expected.to be false }
+      end
+
+      context 'and pkg-config cannot be called' do
+        let(:command) { 'does-not-exist' }
+
+        it { is_expected.to be true }
+      end
     end
   end
 end
@@ -168,8 +219,8 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
           shared_examples 'libdatadog available' do
             context 'when libdatadog fails to activate' do
               before do
-                expect(described_class)
-                  .to receive(:gem).with('libdatadog', Datadog::Profiling::NativeExtensionHelpers::LIBDATADOG_VERSION)
+                expect(Datadog::LibdatadogExtconfHelpers)
+                  .to receive(:gem).with('libdatadog', Datadog::LibdatadogExtconfHelpers::LIBDATADOG_VERSION)
                   .and_raise(LoadError.new('Simulated error activating gem'))
               end
 
@@ -248,48 +299,6 @@ RSpec.describe Datadog::Profiling::NativeExtensionHelpers::Supported do
             include_examples 'supported ruby validation'
           end
         end
-      end
-    end
-  end
-
-  describe '.pkg_config_missing?' do
-    subject(:pkg_config_missing) { described_class.pkg_config_missing?(command: command) }
-
-    before do
-      skip_if_profiling_not_supported(self)
-    end
-
-    context 'when command is not available' do
-      let(:command) { nil }
-
-      it { is_expected.to be true }
-    end
-
-    # This spec is semi-realistic, because it actually calls into the pkg-config external process.
-    #
-    # We know pkg-config must be available on the machine running the tests because otherwise profiling would not be
-    # supported (and thus `skip_if_profiling_not_supported` would've been triggered).
-    #
-    # We could also mock the entire interaction, but this seemed like a simple enough way to go.
-    context 'when command is available' do
-      before do
-        # This helper is designed to be called from extconf.rb, which requires mkmf, which defines xsystem.
-        # When executed in RSpec, mkmf is not required, so we replace it with the regular system call.
-        without_partial_double_verification do
-          expect(described_class).to receive(:xsystem) { |*args| system(*args) }
-        end
-      end
-
-      context 'and pkg-config can successfully be called' do
-        let(:command) { 'pkg-config' }
-
-        it { is_expected.to be false }
-      end
-
-      context 'and pkg-config cannot be called' do
-        let(:command) { 'does-not-exist' }
-
-        it { is_expected.to be true }
       end
     end
   end

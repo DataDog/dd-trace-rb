@@ -1,12 +1,21 @@
 #include <ruby.h>
-#include <datadog/common.h>
-#include <libdatadog_helpers.h>
+#include <datadog/profiling.h>
+
+#include "datadog_ruby_common.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
+static void crashtracker_init(VALUE profiling_module);
 
 // Used to report Ruby VM crashes.
 // Once initialized, segfaults will be reported automatically using libdatadog.
+
+void DDTRACE_EXPORT Init_libdatadog_api(void) {
+  VALUE datadog_module = rb_define_module("Datadog");
+  VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
+
+  crashtracker_init(profiling_module);
+}
 
 void crashtracker_init(VALUE profiling_module) {
   VALUE crashtracker_class = rb_define_class_under(profiling_module, "Crashtracker", rb_cObject);
@@ -38,7 +47,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
-  VALUE version = ddtrace_version();
+  VALUE version = datadog_gem_version();
   ddog_prof_Endpoint endpoint = endpoint_from(exporter_configuration);
 
   // Tags are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory

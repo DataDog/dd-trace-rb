@@ -22,7 +22,8 @@ module Datadog
 
       attr_reader \
         :exporter,
-        :transport
+        :transport,
+        :profiler_failed
 
       public
 
@@ -34,6 +35,7 @@ module Datadog
       )
         @exporter = exporter
         @transport = transport
+        @profiler_failed = false
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -80,8 +82,14 @@ module Datadog
         true
       end
 
+      # This is called by the Profiler class whenever an issue happened in the profiler. This makes sure that even
+      # if there is data to be flushed, we don't try to flush it.
+      def mark_profiler_failed
+        @profiler_failed = true
+      end
+
       def work_pending?
-        exporter.can_flush?
+        !profiler_failed && exporter.can_flush?
       end
 
       def reset_after_fork

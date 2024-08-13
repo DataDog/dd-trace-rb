@@ -3,10 +3,7 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'datadog'
-require 'pry'
-require_relative 'dogstatsd_reporter'
+require_relative 'benchmarks_helper'
 
 # This benchmark measures the performance of GC profiling
 
@@ -34,7 +31,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc')
       )
 
       # The idea of this benchmark is to test the overall cost of the Ruby VM calling these methods on every GC.
@@ -45,7 +41,7 @@ class ProfilerGcBenchmark
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
       end
 
-      x.save! 'profiler-gc-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -53,7 +49,6 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_minute')
       )
 
       # We cap the number of minor GC samples to not happen more often than TIME_BETWEEN_GC_EVENTS_NS (10)
@@ -72,7 +67,7 @@ class ProfilerGcBenchmark
         @recorder.serialize
       end
 
-      x.save! 'profiler-gc-minute-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -80,12 +75,11 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
       )
 
       x.report('Major GC runs (profiling disabled)', 'GC.start')
 
-      x.save! 'profiler-gc-integration-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -100,12 +94,11 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration')
       )
 
       x.report('Major GC runs (profiling enabled)', 'GC.start')
 
-      x.save! 'profiler-gc-integration-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -115,12 +108,11 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
       )
 
       x.report('Allocations (profiling disabled)', 'Object.new')
 
-      x.save! 'profiler-gc-integration-allocations-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 
@@ -135,12 +127,11 @@ class ProfilerGcBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_gc_integration_allocations')
       )
 
       x.report('Allocations (profiling enabled)', 'Object.new')
 
-      x.save! 'profiler-gc-integration-allocations-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
 

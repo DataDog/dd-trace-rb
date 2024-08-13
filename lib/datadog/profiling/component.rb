@@ -61,6 +61,7 @@ module Datadog
           thread_context_collector: thread_context_collector,
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
+          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
         )
 
         internal_metadata = {
@@ -125,8 +126,15 @@ module Datadog
         # and thus can't really provide a valid configuration to talk to a Datadog agent. Thus, in this situation,
         # we can't use the crashtracker, even if enabled.
         unless transport.respond_to?(:exporter_configuration)
-          Datadog.logger.warn(
+          Datadog.logger.debug(
             'Cannot enable profiling crash tracking as a custom settings.profiling.exporter.transport is configured'
+          )
+          return
+        end
+
+        if Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE
+          Datadog.logger.debug(
+            "Cannot enable crashtracking: #{Datadog::Profiling::Crashtracker::LIBDATADOG_API_FAILURE}"
           )
           return
         end

@@ -2,6 +2,7 @@
 # rubocop:disable Style/GlobalVars
 
 require_relative 'native_extension_helpers'
+require_relative '../libdatadog_extconf_helpers'
 
 SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 # Not a problem if the file doesn't exist or we can't delete it
@@ -118,7 +119,7 @@ add_compiler_flag '-Wold-style-definition'
 add_compiler_flag '-Wall'
 add_compiler_flag '-Wextra'
 
-if ENV['DDTRACE_DEBUG']
+if ENV['DDTRACE_DEBUG'] == 'true'
   $defs << '-DDD_DEBUG'
   CONFIG['optflags'] = '-O0'
   CONFIG['debugflags'] = '-ggdb3'
@@ -133,6 +134,9 @@ if RUBY_PLATFORM.include?('linux')
   # but it's slower to build
   # so instead we just assume that we have the function we need on Linux, and nowhere else
   $defs << '-DHAVE_PTHREAD_GETCPUCLOCKID'
+
+  # Not available on macOS
+  $defs << '-DHAVE_CLOCK_MONOTONIC_COARSE'
 end
 
 have_func 'malloc_stats'
@@ -202,7 +206,7 @@ unless pkg_config('datadog_profiling_with_rpath')
   Logging.message("[datadog] Ruby detected the pkg-config command is #{$PKGCONFIG.inspect}\n")
 
   skip_building_extension!(
-    if Datadog::Profiling::NativeExtensionHelpers::Supported.pkg_config_missing?
+    if Datadog::LibdatadogExtconfHelpers.pkg_config_missing?
       Datadog::Profiling::NativeExtensionHelpers::Supported::PKG_CONFIG_IS_MISSING
     else
       # Less specific error message
@@ -219,8 +223,8 @@ end
 # The extremely excessive escaping around ORIGIN below seems to be correct and was determined after a lot of
 # experimentation. We need to get these special characters across a lot of tools untouched...
 extra_relative_rpaths = [
-  Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_native_lib_folder,
-  *Datadog::Profiling::NativeExtensionHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
+  Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_native_lib_folder(current_folder: __dir__),
+  *Datadog::LibdatadogExtconfHelpers.libdatadog_folder_relative_to_ruby_extensions_folders,
 ]
 extra_relative_rpaths.each { |folder| $LDFLAGS += " -Wl,-rpath,$$$\\\\{ORIGIN\\}/#{folder.to_str}" }
 Logging.message("[datadog] After pkg-config $LDFLAGS were set to: #{$LDFLAGS.inspect}\n")

@@ -81,10 +81,10 @@ RSpec.describe Datadog::AppSec::Processor::Actions do
     end
   end
 
-  describe '.fecth_configuration' do
+  describe '.fetch_configuration' do
     it 'returns the existing configuration' do
       described_class.merge(actions)
-      expect(described_class.fecth_configuration('block')).to eq(
+      expect(described_class.fetch_configuration('block')).to eq(
         {
           'id' => 'block',
           'parameters' => {
@@ -98,7 +98,7 @@ RSpec.describe Datadog::AppSec::Processor::Actions do
 
     it 'returns nil if no configuration matches' do
       described_class.merge(actions)
-      expect(described_class.fecth_configuration('fake')).to be_nil
+      expect(described_class.fetch_configuration('fake')).to be_nil
     end
   end
 end

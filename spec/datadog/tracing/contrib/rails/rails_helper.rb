@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'logger'
-require 'rails'
+require 'rails/all'
 
 require 'spec/datadog/tracing/contrib/rails/support/configuration'
 require 'spec/datadog/tracing/contrib/rails/support/database'

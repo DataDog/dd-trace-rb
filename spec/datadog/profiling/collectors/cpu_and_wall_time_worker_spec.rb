@@ -15,6 +15,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
+  let(:allocation_counting_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       thread_context_collector: build_thread_context_collector(recorder),
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
+      allocation_counting_enabled: allocation_counting_enabled,
       **options
     }
   end
@@ -507,6 +509,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       context 'with dynamic_sampling_rate_enabled' do
         let(:options) { { dynamic_sampling_rate_enabled: true } }
+
         it 'keeps statistics on how allocation sampling is doing' do
           stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
 
@@ -535,6 +538,42 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(sampling_time_ns_avg).to be >= sampling_time_ns_min
           one_second_in_ns = 1_000_000_000
           expect(sampling_time_ns_max).to be < one_second_in_ns, "A single sample should not take longer than 1s, #{stats}"
+        end
+
+        # When large numbers of objects are allocated, the dynamic sampling rate kicks in, and we don't sample every
+        # object.
+        # We then assign a weight to every sample to compensate for this; to avoid bias, we have a limit on this weight,
+        # and we clamp it if it goes over the limit.
+        # But the total amount of allocations recorded should match the number we observed, and thus we record the
+        # remainder above the clamped value as a separate "Skipped Samples" step.
+        context 'with a high allocation rate' do
+          let(:options) { { **super(), dynamic_sampling_rate_overhead_target_percentage: 0.1 } }
+          let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
+
+          after do
+            thread_that_allocates_as_fast_as_possible.kill
+            thread_that_allocates_as_fast_as_possible.join
+          end
+
+          it 'records skipped allocation samples when weights are clamped' do
+            start
+
+            # Trigger thread creation
+            thread_that_allocates_as_fast_as_possible
+
+            allocation_samples = try_wait_until do
+              samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
+              samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
+            end
+
+            # Stop thread earlier, since it will slow down the Ruby VM
+            thread_that_allocates_as_fast_as_possible.kill
+            thread_that_allocates_as_fast_as_possible.join
+
+            cpu_and_wall_time_worker.stop
+
+            expect(allocation_samples).to_not be_empty
+          end
         end
       end
 
@@ -629,6 +668,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:options) { { dynamic_sampling_rate_enabled: false } }
 
       before do
+        skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
@@ -961,8 +1001,9 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         cpu_and_wall_time_worker.stop
       end
 
-      context 'when allocation profiling is enabled' do
+      context 'when allocation profiling and allocation counting is enabled' do
         let(:allocation_profiling_enabled) { true }
+        let(:allocation_counting_enabled) { true }
 
         it 'always returns a >= 0 value' do
           expect(described_class._native_allocation_count).to be >= 0
@@ -1040,10 +1081,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(after_t1 - before_t1).to be 100
           expect(after_allocations - before_allocations).to be < 10
         end
+
+        context 'when allocation profiling is enabled but allocation counting is disabled' do
+          let(:allocation_counting_enabled) { false }
+
+          it 'always returns a nil value' do
+            100.times { Object.new }
+
+            expect(described_class._native_allocation_count).to be nil
+          end
+        end
       end
 
       context 'when allocation profiling is disabled' do
         let(:allocation_profiling_enabled) { false }
+
         it 'always returns a nil value' do
           100.times { Object.new }
 

@@ -301,6 +301,16 @@ module Datadog
               o.default true
             end
 
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # Requires allocation profiling to be enabled.
+            #
+            # @default false
+            option :allocation_counting_enabled do |o|
+              o.type :bool
+              o.default false
+            end
+
             # Can be used to enable/disable the collection of heap profiles.
             #
             # This feature is alpha and disabled by default
@@ -443,12 +453,15 @@ module Datadog
 
             # Enables reporting of information when the Ruby VM crashes.
             #
+            # This feature is no longer experimental, and we plan to deprecate this setting and replace it with a
+            # properly-named one soon.
+            #
             # @default `DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED` environment variable as a boolean,
-            # otherwise `false`
+            # otherwise `true`
             option :experimental_crash_tracking_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
-              o.default false
+              o.default true
             end
           end
 

@@ -1,6 +1,8 @@
-require 'rails/all'
 # Loaded by the `bin/rails` script in a real Rails application
 require 'rails/command'
+
+# We may not always want to require rails/all, especially when we don't have a database.
+# require is already done where Rails test application is used, manually or through rails_helper.
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -113,7 +115,7 @@ RSpec.shared_context 'Rails 6 test application' do
       append_controllers!
 
       # Force connection to initialize, and dump some spans
-      application_record.connection
+      application_record.connection unless (defined? no_db) && no_db
 
       # Skip default Rails exception page rendering.
       # This avoid polluting the trace under test
@@ -179,11 +181,13 @@ RSpec.shared_context 'Rails 6 test application' do
     # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
-    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+    if Module.const_defined?(:ActiveRecord)
+      reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
 
-    # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-    if Rails::VERSION::MINOR < 1
-      ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+      # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
+      if Rails::VERSION::MINOR < 1
+        ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+      end
     end
 
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)

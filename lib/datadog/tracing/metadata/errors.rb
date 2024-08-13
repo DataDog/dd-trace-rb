@@ -10,6 +10,14 @@ module Datadog
       # Adds error tagging behavior
       # @public_api
       module Errors
+        def set_error(e)
+          Datadog::Core.log_deprecation do
+            'Errors.set_error(..) is deprecated. ' \
+            'Use Errors.set_error_tags(..) instead.'
+          end
+          set_error_tags(e)
+        end
+
         # Mark the span with the given error.
         def set_error_tags(e)
           e = Core::Error.build_from(e)

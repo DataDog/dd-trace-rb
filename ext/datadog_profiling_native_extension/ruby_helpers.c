@@ -20,29 +20,6 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
 }
 
-void raise_unexpected_type(
-  VALUE value,
-  const char *value_name,
-  const char *type_name,
-  const char *file,
-  int line,
-  const char* function_name
-) {
-  rb_exc_raise(
-    rb_exc_new_str(
-      rb_eTypeError,
-      rb_sprintf("wrong argument %"PRIsVALUE" for '%s' (expected a %s) at %s:%d:in `%s'",
-        rb_inspect(value),
-        value_name,
-        type_name,
-        file,
-        line,
-        function_name
-      )
-    )
-  );
-}
-
 #define MAX_RAISE_MESSAGE_SIZE 256
 
 struct raise_arguments {
@@ -254,14 +231,4 @@ VALUE ruby_safe_inspect(VALUE obj) {
   } else {
     return rb_str_new_cstr("(Not inspectable)");
   }
-}
-
-VALUE ddtrace_version(void) {
-  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  ENFORCE_TYPE(ddtrace_module, T_MODULE);
-  VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
-  ENFORCE_TYPE(version_module, T_MODULE);
-  VALUE version_string = rb_const_get(version_module, rb_intern("STRING"));
-  ENFORCE_TYPE(version_string, T_STRING);
-  return version_string;
 }

@@ -36,7 +36,7 @@ module Datadog
             # I rather use break to stop the execution
             next if configured_response
 
-            action_configuration = AppSec::Processor::Actions.fecth_configuration(action)
+            action_configuration = AppSec::Processor::Actions.fetch_configuration(action)
             next unless action_configuration
 
             configured_response = case action_configuration['type']
@@ -48,6 +48,20 @@ module Datadog
           end
 
           configured_response || default_response(env)
+        end
+
+        def graphql_response(gateway_multiplex)
+          multiplex_return = []
+          gateway_multiplex.queries.each do |query|
+            # This method is only called in places where GraphQL-Ruby is already required
+            query_result = ::GraphQL::Query::Result.new(
+              query: query,
+              values: JSON.parse(content('application/json'))
+            )
+            multiplex_return << query_result
+          end
+
+          multiplex_return
         end
 
         private

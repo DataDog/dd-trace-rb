@@ -526,6 +526,21 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#allocation_counting_enabled' do
+        subject(:allocation_counting_enabled) { settings.profiling.advanced.allocation_counting_enabled }
+
+        it { is_expected.to be false }
+      end
+
+      describe '#allocation_counting_enabled=' do
+        it 'updates the #allocation_counting_enabled setting' do
+          expect { settings.profiling.advanced.allocation_counting_enabled = true }
+            .to change { settings.profiling.advanced.allocation_counting_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#experimental_heap_enabled' do
         subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
 
@@ -813,7 +828,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
 
           [true, false].each do |value|
@@ -828,10 +843,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       describe '#experimental_crash_tracking_enabled=' do
         it 'updates the #experimental_crash_tracking_enabled setting' do
-          expect { settings.profiling.advanced.experimental_crash_tracking_enabled = true }
+          expect { settings.profiling.advanced.experimental_crash_tracking_enabled = false }
             .to change { settings.profiling.advanced.experimental_crash_tracking_enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
 

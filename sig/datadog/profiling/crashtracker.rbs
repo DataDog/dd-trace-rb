@@ -3,6 +3,8 @@ module Datadog
     class Crashtracker
       type exporter_configuration_array = [:agentless | :agent, untyped]
 
+      LIBDATADOG_API_FAILURE: ::String?
+
       private
 
       attr_reader exporter_configuration: exporter_configuration_array
