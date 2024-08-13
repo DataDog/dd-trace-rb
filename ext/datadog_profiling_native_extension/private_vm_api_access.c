@@ -394,6 +394,7 @@ calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 // * Imported fix from https://github.com/ruby/ruby/pull/8415 to avoid potential crash when using YJIT.
 // * Add frame_flags.same_frame and logic to skip redoing work if the buffer already contains the same data we're collecting
 // * Skipped use of rb_callable_method_entry_t (cme) for Ruby frames as it doesn't impact us.
+// * Imported fix from https://github.com/ruby/ruby/pull/8280 to keep us closer to upstream
 //
 // What is rb_profile_frames?
 // `rb_profile_frames` is a Ruby VM debug API added for use by profilers for sampling the stack trace of a Ruby thread.
@@ -537,6 +538,11 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
         else {
             cme = rb_vm_frame_method_entry(cfp);
             if (cme && cme->def->type == VM_METHOD_TYPE_CFUNC) {
+                if (start > 0) {
+                    start--;
+                    continue;
+                }
+
                 stack_buffer[i].same_frame =
                   !stack_buffer[i].is_ruby_frame &&
                   stack_buffer[i].as.native_frame.caching_cme == (VALUE) cme;
