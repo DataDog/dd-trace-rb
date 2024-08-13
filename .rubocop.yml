@@ -34,14 +34,14 @@ Style:
     - 'lib/datadog/profiling/**/*'
     - 'spec/datadog/profiling*'
     - 'spec/datadog/profiling/**/*'
-    - 'ext/**/*'
+    - 'ext/datadog_profiling_*/**/*'
 Layout:
   Exclude:
     - 'lib/datadog/profiling/*'
     - 'lib/datadog/profiling/**/**'
     - 'spec/datadog/profiling/*'
     - 'spec/datadog/profiling/**/**'
-    - 'ext/**/**'
+    - 'ext/datadog_profiling_*/**/*'
 
 Layout/LineLength:
   Max: 124
