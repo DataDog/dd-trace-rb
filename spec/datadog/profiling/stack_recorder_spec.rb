@@ -231,10 +231,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'returns stats reporting no recorded samples' do
         expect(profile_stats).to match(
           hash_including(
-            :recorded_samples => 0,
-            :serialization_time_ns => be > 0,
-            :heap_iteration_prep_time_ns => be >= 0,
-            :heap_profile_build_time_ns => be >= 0,
+            recorded_samples: 0,
+            serialization_time_ns: be > 0,
+            heap_iteration_prep_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0,
           )
         )
       end
@@ -315,10 +315,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'returns stats reporting one recorded sample' do
         expect(profile_stats).to match(
           hash_including(
-            :recorded_samples => 1,
-            :serialization_time_ns => be > 0,
-            :heap_iteration_prep_time_ns => be >= 0,
-            :heap_profile_build_time_ns => be >= 0,
+            recorded_samples: 1,
+            serialization_time_ns: be > 0,
+            heap_iteration_prep_time_ns: be >= 0,
+            heap_profile_build_time_ns: be >= 0,
           )
         )
       end
@@ -374,18 +374,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         labels_without_state = proc { |labels| labels.reject { |key| key == :state } }
 
         # Other samples have not been changed
-        expect(samples.select { |it| labels_without_state.call(it[:labels]).empty? }).to have(2).items
+        expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it[:labels]) == { :'local root span id' => 456 }
+            labels_without_state.call(it.labels) == { 'local root span id': 456 }
           end
         ).to have(2).items
 
         # Matching samples taken before and after recording the endpoint have been changed
         expect(
           samples.select do |it|
-            labels_without_state.call(it[:labels]) ==
-              { :'local root span id' => 123, :'trace endpoint' => 'recorded-endpoint' }
+            labels_without_state.call(it.labels) ==
+              { 'local root span id': 123, 'trace endpoint': 'recorded-endpoint' }
           end
         ).to have(2).items
       end
@@ -420,14 +420,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-                       { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
+          { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
           if i.even?
-            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
           else # rubocop:disable Lint/DuplicateBranch
-            sample_allocation(obj) # rubocop:disable Style/IdenticalConditionalBranches
+            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
           end
           @num_allocations += 1
           GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # * Allocate some more stuff and clear again
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-                       { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+          { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
         allocations.clear
         GC.start
       end
@@ -493,7 +493,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(heap_samples.size).to eq(3)
 
           expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
-          expect(heap_samples.map(&:labels)).to all(match(hash_including(:'gc gen age' => be_a(Integer).and(be >= 0))))
+          expect(heap_samples.map(&:labels)).to all(match(hash_including('gc gen age': be_a(Integer).and(be >= 0))))
         end
 
         it 'include accurate object sizes' do
@@ -637,9 +637,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           expect(profile_stats).to match(
             hash_including(
-              :recorded_samples => expected_allocation_samples + expected_heap_samples,
-              :heap_iteration_prep_time_ns => be > 0,
-              :heap_profile_build_time_ns => be > 0,
+              recorded_samples: expected_allocation_samples + expected_heap_samples,
+              heap_iteration_prep_time_ns: be > 0,
+              heap_profile_build_time_ns: be > 0,
             )
           )
         end
@@ -961,15 +961,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       expect(stats).to match(
         hash_including(
-          :serialization_successes => num_serializations,
-          :serialization_failures => 0,
+          serialization_successes: num_serializations,
+          serialization_failures: 0,
 
-          :serialization_time_ns_min => be > 0,
-          :serialization_time_ns_max => be > 0,
-          :serialization_time_ns_avg => be > 0,
-          :serialization_time_ns_total => be > 0,
+          serialization_time_ns_min: be > 0,
+          serialization_time_ns_max: be > 0,
+          serialization_time_ns_avg: be > 0,
+          serialization_time_ns_total: be > 0,
 
-          :heap_recorder_snapshot => nil,
+          heap_recorder_snapshot: nil,
         )
       )
 
@@ -1054,19 +1054,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         expect(stack_recorder.stats).to match(
           hash_including(
-            :heap_recorder_snapshot => hash_including(
+            heap_recorder_snapshot: hash_including(
               # Records for dead objects should have gone away
-              :num_object_records => live_heap_samples + age0_heap_samples,
+              num_object_records: live_heap_samples + age0_heap_samples,
               # We allocate from 3 different locations in this test but only 2
               # of them are for objects which should be alive at serialization time
-              :num_heap_records => 2,
+              num_heap_records: 2,
 
               # The update done during serialization should reflect the
               # state of the tracked heap objects at that time
-              :last_update_objects_alive => live_heap_samples,
-              :last_update_objects_dead => dead_heap_samples,
-              :last_update_objects_skipped => age0_heap_samples,
-              :last_update_objects_frozen => live_heap_samples / 2,
+              last_update_objects_alive: live_heap_samples,
+              last_update_objects_dead: dead_heap_samples,
+              last_update_objects_skipped: age0_heap_samples,
+              last_update_objects_frozen: live_heap_samples / 2,
             )
           )
         )

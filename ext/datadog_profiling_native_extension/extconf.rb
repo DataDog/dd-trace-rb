@@ -6,7 +6,11 @@ require_relative '../libdatadog_extconf_helpers'
 
 SKIPPED_REASON_FILE = "#{__dir__}/skipped_reason.txt".freeze
 # Not a problem if the file doesn't exist or we can't delete it
-File.delete(SKIPPED_REASON_FILE) rescue nil
+begin
+  File.delete(SKIPPED_REASON_FILE)
+rescue
+  nil
+end
 
 def skip_building_extension!(reason)
   fail_install_if_missing_extension =
@@ -67,7 +71,7 @@ $stderr.puts(
 require 'mkmf'
 
 Logging.message("[datadog] Using compiler:\n")
-xsystem("#{CONFIG['CC']} -v")
+xsystem("#{CONFIG["CC"]} -v")
 Logging.message("[datadog] End of compiler information\n")
 
 # mkmf on modern Rubies actually has an append_cflags that does something similar
@@ -191,8 +195,8 @@ $defs << '-DNO_GVL_OWNER' if RUBY_VERSION < '2.6'
 $defs << '-DNO_THREAD_INVOKE_ARG' if RUBY_VERSION < '2.6'
 
 # If we got here, libdatadog is available and loaded
-ENV['PKG_CONFIG_PATH'] = "#{ENV['PKG_CONFIG_PATH']}:#{Libdatadog.pkgconfig_folder}"
-Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV['PKG_CONFIG_PATH'].inspect}\n")
+ENV['PKG_CONFIG_PATH'] = "#{ENV["PKG_CONFIG_PATH"]}:#{Libdatadog.pkgconfig_folder}"
+Logging.message("[datadog] PKG_CONFIG_PATH set to #{ENV["PKG_CONFIG_PATH"].inspect}\n")
 $stderr.puts("Using libdatadog #{Libdatadog::VERSION} from #{Libdatadog.pkgconfig_folder}")
 
 unless pkg_config('datadog_profiling_with_rpath')

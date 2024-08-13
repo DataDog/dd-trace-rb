@@ -232,7 +232,7 @@ module Datadog
             'platform variant.',
             "(Your platform: `#{Libdatadog.current_platform}`)",
             '(Available binaries:',
-            "`#{Libdatadog.available_binaries.join('`, `')}`)",
+            "`#{Libdatadog.available_binaries.join("`, `")}`)",
             suggested: CONTACT_SUPPORT,
           )
 

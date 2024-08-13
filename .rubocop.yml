@@ -27,6 +27,22 @@ AllCops:
   NewCops: disable # Don't allow new cops to be enabled implicitly.
   SuggestExtensions: false # Stop pushing suggestions constantly.
 
+# Profiling has migrated to standard and is not managed by rubocop:
+Style:
+  Exclude:
+    - 'lib/datadog/profiling*'
+    - 'lib/datadog/profiling/**/*'
+    - 'spec/datadog/profiling*'
+    - 'spec/datadog/profiling/**/*'
+    - 'ext/datadog_profiling_*/**/*'
+Layout:
+  Exclude:
+    - 'lib/datadog/profiling/*'
+    - 'lib/datadog/profiling/**/**'
+    - 'spec/datadog/profiling/*'
+    - 'spec/datadog/profiling/**/**'
+    - 'ext/datadog_profiling_*/**/*'
+
 Layout/LineLength:
   Max: 124
   Exclude:

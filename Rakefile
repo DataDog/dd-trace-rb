@@ -1,6 +1,7 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
+require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 require 'yard'
@@ -421,7 +422,7 @@ namespace :native_dev do
 end
 
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'typecheck', 'spec:main']
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']

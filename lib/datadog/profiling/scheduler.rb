@@ -132,7 +132,7 @@ module Datadog
 
         begin
           transport.export(flush)
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.error(
             "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )

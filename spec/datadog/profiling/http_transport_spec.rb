@@ -59,7 +59,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   end
   let(:start_timestamp) { '2022-02-07T15:59:53.987654321Z' }
   let(:end_timestamp) { '2023-11-11T16:00:00.123456789Z' }
-  let(:start)  { Time.iso8601(start_timestamp) }
+  let(:start) { Time.iso8601(start_timestamp) }
   let(:finish) { Time.iso8601(end_timestamp) }
   let(:pprof_file_name) { 'the_pprof_file_name.pprof' }
   let(:pprof_data) { 'the_pprof_data' }

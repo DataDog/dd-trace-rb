@@ -158,7 +158,7 @@ module Datadog
             (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION < '3.1.4') ||
             (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
           Datadog.logger.warn(
-            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling GC profiling would cause "\
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling GC profiling would cause " \
             'crashes (https://bugs.ruby-lang.org/issues/18464). GC profiling has been disabled.'
           )
           return false
@@ -192,8 +192,8 @@ module Datadog
         # fixed on Ruby versions 3.2.3 and 3.3.0.
         if RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3'
           Datadog.logger.warn(
-            'Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly '\
-            'disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). '\
+            'Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly ' \
+            'disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). ' \
             'Other Ruby versions do not suffer from this issue.'
           )
           return false
@@ -208,8 +208,8 @@ module Datadog
             (RUBY_VERSION.start_with?('3.1.') && RUBY_VERSION < '3.1.4') ||
             (RUBY_VERSION.start_with?('3.2.') && RUBY_VERSION < '3.2.3')
           Datadog.logger.warn(
-            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using "\
-            'Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). '\
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using " \
+            'Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). ' \
             'This does not happen if Ractors are not used.'
           )
         # ANNOYANCE - Only with Ractors
@@ -235,7 +235,7 @@ module Datadog
 
         if RUBY_VERSION.start_with?('2.') && RUBY_VERSION < '2.7'
           Datadog.logger.warn(
-            'Heap profiling currently relies on features introduced in Ruby 2.7 and will be forcibly disabled. '\
+            'Heap profiling currently relies on features introduced in Ruby 2.7 and will be forcibly disabled. ' \
             'Please upgrade to Ruby >= 2.7 in order to use this feature.'
           )
           return false
@@ -244,7 +244,7 @@ module Datadog
         if RUBY_VERSION < '3.1'
           Datadog.logger.debug(
             "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
-            'heap profiler is forced to work around to remain accurate. This workaround requires force-setting '\
+            'heap profiler is forced to work around to remain accurate. This workaround requires force-setting ' \
             "the SEEN_OBJ_ID flag on objects that should have it but don't. Full details can be found in " \
             'https://github.com/DataDog/dd-trace-rb/pull/3360. This workaround should be safe but can be ' \
             'bypassed by disabling the heap profiler or upgrading to Ruby >= 3.1 where forced object recycling ' \
@@ -392,7 +392,7 @@ module Datadog
             looks_like_mariadb?(info, libmysqlclient_version)
 
           Datadog.logger.debug(
-            "The `mysql2` gem is using #{compatible ? 'a compatible' : 'an incompatible'} version of " \
+            "The `mysql2` gem is using #{compatible ? "a compatible" : "an incompatible"} version of " \
             "the `libmysqlclient` library (#{libmysqlclient_version})"
           )
 
