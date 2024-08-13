@@ -67,7 +67,7 @@ append_cflags '-Wextra'
 
 if ENV['DDTRACE_DEBUG'] == 'true'
   $defs << '-DDD_DEBUG'
-  CONFIG['optflags'] = '-O0'
+  CONFIG['optflags'] = '-O1'
   CONFIG['debugflags'] = '-ggdb3'
 end
 
