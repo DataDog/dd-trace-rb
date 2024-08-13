@@ -21,7 +21,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   let(:start) { Time.now }
   let(:finish) { start + 60 }
   let(:pprof_data) { 'dummy pprof data' }
-  let(:profile_stats) { { stat1: 1, stat2: 'a string', stat3: true } }
+  let(:profile_stats) { {stat1: 1, stat2: 'a string', stat3: true} }
   let(:code_provenance_data) { 'dummy code provenance data' }
   let(:pprof_recorder_serialize) { [start, finish, pprof_data, profile_stats] }
   let(:pprof_recorder) do
@@ -37,8 +37,8 @@ RSpec.describe Datadog::Profiling::Exporter do
     allow(collector).to receive(:refresh).and_return(collector)
     collector
   end
-  let(:internal_metadata) { { no_signals_workaround_enabled: no_signals_workaround_enabled } }
-  let(:info) { { profiler: { running_under_test: true } } }
+  let(:internal_metadata) { {no_signals_workaround_enabled: no_signals_workaround_enabled} }
+  let(:info) { {profiler: {running_under_test: true}} }
   let(:info_collector) { instance_double(Datadog::Profiling::Collectors::Info, info: info) }
   let(:no_signals_workaround_enabled) { false }
   let(:logger) { Datadog.logger }
@@ -134,7 +134,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   describe '#reset_after_fork' do
     let(:dummy_current_time) { Time.new(2022) }
     let(:time_provider) { class_double(Time, now: dummy_current_time) }
-    let(:options) { { **super(), time_provider: class_double(Time, now: dummy_current_time) } }
+    let(:options) { {**super(), time_provider: class_double(Time, now: dummy_current_time)} }
 
     subject(:reset_after_fork) { exporter.reset_after_fork }
 
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Profiling::Exporter do
   describe '#can_flush?' do
     let(:time_provider) { class_double(Time) }
     let(:created_at) { start - 60 }
-    let(:options) { { **super(), time_provider: time_provider } }
+    let(:options) { {**super(), time_provider: time_provider} }
 
     subject(:can_flush?) { exporter.can_flush? }
 

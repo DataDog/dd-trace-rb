@@ -45,14 +45,14 @@ RSpec.describe Datadog::Profiling::TagBuilder do
     end
 
     it 'includes the provided user tags' do
-      settings.tags = { 'foo' => 'bar' }
+      settings.tags = {'foo' => 'bar'}
 
       expect(call).to include('foo' => 'bar')
     end
 
     context 'when there is a conflict between user and metadata tags' do
       it 'overrides the user-provided tags' do
-        settings.tags = { 'foo' => 'bar', 'language' => 'python' }
+        settings.tags = {'foo' => 'bar', 'language' => 'python'}
 
         expect(call).to include('foo' => 'bar', 'language' => 'ruby')
       end
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
 
     context 'when user tag keys and values are not strings' do
       it 'encodes them as strings' do
-        settings.tags = { :symbol_key => :symbol_value, nil => 'nil key', 'nil value' => nil, 12 => 34 }
+        settings.tags = {:symbol_key => :symbol_value, nil => 'nil key', 'nil value' => nil, 12 => 34}
 
         expect(call).to include('symbol_key' => 'symbol_value', '' => 'nil key', 'nil value' => '', '12' => '34')
       end
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::TagBuilder do
 
     context 'when tagging key or value is not utf-8' do
       it 'converts them to utf-8' do
-        settings.tags = { 'ascii-key'.encode(Encoding::ASCII) => 'ascii-value'.encode(Encoding::ASCII) }
+        settings.tags = {'ascii-key'.encode(Encoding::ASCII) => 'ascii-value'.encode(Encoding::ASCII)}
 
         result = call
 

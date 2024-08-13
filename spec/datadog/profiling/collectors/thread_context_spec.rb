@@ -1111,25 +1111,25 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     [
-      { expected_type: :T_OBJECT, object: Object.new, klass: 'Object' },
-      { expected_type: :T_CLASS, object: Object, klass: 'Class' },
-      { expected_type: :T_MODULE, object: Kernel, klass: 'Module' },
-      { expected_type: :T_FLOAT, object: 1.0, klass: 'Float' },
-      { expected_type: :T_STRING, object: 'Hello!', klass: 'String' },
-      { expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp' },
-      { expected_type: :T_ARRAY, object: [], klass: 'Array' },
-      { expected_type: :T_HASH, object: {}, klass: 'Hash' },
-      { expected_type: :T_BIGNUM, object: 2**256, klass: 'Integer' },
+      {expected_type: :T_OBJECT, object: Object.new, klass: 'Object'},
+      {expected_type: :T_CLASS, object: Object, klass: 'Class'},
+      {expected_type: :T_MODULE, object: Kernel, klass: 'Module'},
+      {expected_type: :T_FLOAT, object: 1.0, klass: 'Float'},
+      {expected_type: :T_STRING, object: 'Hello!', klass: 'String'},
+      {expected_type: :T_REGEXP, object: /Hello/, klass: 'Regexp'},
+      {expected_type: :T_ARRAY, object: [], klass: 'Array'},
+      {expected_type: :T_HASH, object: {}, klass: 'Hash'},
+      {expected_type: :T_BIGNUM, object: 2**256, klass: 'Integer'},
       # ThreadContext is a T_DATA; we create here a dummy instance just as an example
-      { expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext' },
-      { expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData' },
-      { expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex' },
-      { expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational' },
-      { expected_type: :T_NIL, object: nil, klass: 'NilClass' },
-      { expected_type: :T_TRUE, object: true, klass: 'TrueClass' },
-      { expected_type: :T_FALSE, object: false, klass: 'FalseClass' },
-      { expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol' },
-      { expected_type: :T_FIXNUM, object: 1, klass: 'Integer' },
+      {expected_type: :T_DATA, object: described_class.allocate, klass: 'Datadog::Profiling::Collectors::ThreadContext'},
+      {expected_type: :T_MATCH, object: 'a'.match(Regexp.new('a')), klass: 'MatchData'},
+      {expected_type: :T_COMPLEX, object: Complex(1), klass: 'Complex'},
+      {expected_type: :T_RATIONAL, object: 1/2r, klass: 'Rational'},
+      {expected_type: :T_NIL, object: nil, klass: 'NilClass'},
+      {expected_type: :T_TRUE, object: true, klass: 'TrueClass'},
+      {expected_type: :T_FALSE, object: false, klass: 'FalseClass'},
+      {expected_type: :T_SYMBOL, object: :hello, klass: 'Symbol'},
+      {expected_type: :T_FIXNUM, object: 1, klass: 'Integer'},
     ].each do |type|
       expected_type = type.fetch(:expected_type)
       object = type.fetch(:object)

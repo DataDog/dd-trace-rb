@@ -119,7 +119,7 @@ module Datadog
           end
 
           def to_json(arg = nil)
-            { kind: @kind, name: @name, version: @version, paths: @paths }.to_json(arg)
+            {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg)
           end
 
           def path

@@ -53,7 +53,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
-      internal_metadata: { no_signals_workaround_enabled: true },
+      internal_metadata: {no_signals_workaround_enabled: true},
       info_json: info_json,
     )
   end
@@ -358,7 +358,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => true },
+          'internal' => {'no_signals_workaround_enabled' => true},
           'info' => info_string_keys,
         )
       end
@@ -407,7 +407,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           'family' => 'ruby',
           'version' => '4',
           'endpoint_counts' => nil,
-          'internal' => { 'no_signals_workaround_enabled' => true },
+          'internal' => {'no_signals_workaround_enabled' => true},
           'info' => info_string_keys,
         )
 

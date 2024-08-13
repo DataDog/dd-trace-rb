@@ -256,7 +256,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           'timeline' => 1111,
         }
       end
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -326,7 +326,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when sample is invalid' do
       context 'because the local root span id is being defined using a string instead of as a number' do
-        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+        let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
 
         it do
           # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               Thread.current,
               stack_recorder,
               metric_values,
-              { 'local root span id' => 'incorrect', 'state' => 'unknown' }.to_a,
+              {'local root span id' => 'incorrect', 'state' => 'unknown'}.to_a,
               [],
               400,
               false,
@@ -346,16 +346,16 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     describe 'trace endpoint behavior' do
-      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789 } }
+      let(:metric_values) { {'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789} }
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
-        local_root_span_id_with_endpoint = { 'local root span id' => 123 }
-        local_root_span_id_without_endpoint = { 'local root span id' => 456 }
+        local_root_span_id_with_endpoint = {'local root span id' => 123}
+        local_root_span_id_without_endpoint = {'local root span id' => 456}
 
         sample = proc do |numeric_labels = {}|
           Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-            Thread.current, stack_recorder, metric_values, { 'state' => 'unknown' }.to_a, numeric_labels.to_a, 400, false
+            Thread.current, stack_recorder, metric_values, {'state' => 'unknown'}.to_a, numeric_labels.to_a, 400, false
           )
         end
 
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it.labels) == { 'local root span id': 456 }
+            labels_without_state.call(it.labels) == {'local root span id': 456}
           end
         ).to have(2).items
 
@@ -385,7 +385,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(
           samples.select do |it|
             labels_without_state.call(it.labels) ==
-              { 'local root span id': 123, 'trace endpoint': 'recorded-endpoint' }
+              {'local root span id': 123, 'trace endpoint': 'recorded-endpoint'}
           end
         ).to have(2).items
       end
@@ -403,11 +403,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           'heap_sample' => true,
         }
       end
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       let(:a_string) { 'a beautiful string' }
       let(:an_array) { (1..100).to_a.compact }
-      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new } }
+      let(:a_hash) { {'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new} }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -420,7 +420,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-          { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
+          {'z' => -1, 'y' => '-2', 'x' => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # * Allocate some more stuff and clear again
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-          { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+          {'a' => 1, 'b' => '2', 'c' => true}, Object.new]
         allocations.clear
         GC.start
       end
@@ -545,7 +545,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { 'heap-live-samples': 0, 'heap-live-size': 0, 'alloc-samples-unscaled': 0 }
+          expected_summed_values = {'heap-live-samples': 0, 'heap-live-size': 0, 'alloc-samples-unscaled': 0}
           metric_values.each_pair do |k, v|
             next if k == 'heap_sample' # This is not a metric, ignore it
 
@@ -915,8 +915,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     context 'when profile has a sample' do
-      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       it 'makes the next calls to serialize return no data' do
         # Add some data
@@ -1007,7 +1007,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, { 'alloc-samples' => 1, 'heap_sample' => true }, [], [], 400, false
+          Thread.current, stack_recorder, {'alloc-samples' => 1, 'heap_sample' => true}, [], [], 400, false
         )
       end
 

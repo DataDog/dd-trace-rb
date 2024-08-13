@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context 'sampling of active threads' do
       # This option makes sure our samples are taken via thread interruptions (and not via idle sampling).
       # See native bits for more details.
-      let(:options) { { **super(), skip_idle_samples_for_testing: true } }
+      let(:options) { {**super(), skip_idle_samples_for_testing: true} }
 
       it 'triggers sampling and records the results' do
         start
@@ -372,7 +372,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
 
@@ -389,7 +389,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
-        debug_failures = { thread_list: Thread.list, all_samples: all_samples }
+        debug_failures = {thread_list: Thread.list, all_samples: all_samples}
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
@@ -482,7 +482,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:test_num_allocated_object) { 123 }
       # Explicitly disable dynamic sampling in these tests so we can deterministically verify
       # sample counts.
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before do
         allow(Datadog.logger).to receive(:warn)
@@ -508,7 +508,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       context 'with dynamic_sampling_rate_enabled' do
-        let(:options) { { dynamic_sampling_rate_enabled: true } }
+        let(:options) { {dynamic_sampling_rate_enabled: true} }
 
         it 'keeps statistics on how allocation sampling is doing' do
           stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
@@ -547,7 +547,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
         # remainder above the clamped value as a separate "Skipped Samples" step.
         context 'with a high allocation rate' do
-          let(:options) { { **super(), dynamic_sampling_rate_overhead_target_percentage: 0.1 } }
+          let(:options) { {**super(), dynamic_sampling_rate_overhead_target_percentage: 0.1} }
           let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
 
           after do
@@ -665,7 +665,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:test_num_allocated_object) { 123 }
       # Explicitly disable dynamic sampling in these tests so we can deterministically verify
       # sample counts.
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before do
         skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
@@ -917,7 +917,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         timeline_enabled: timeline_enabled,
       )
     end
-    let(:options) { { thread_context_collector: thread_context_collector } }
+    let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,

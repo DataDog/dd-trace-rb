@@ -20,7 +20,7 @@ module Datadog
       # system may not be supported.
       module Supported
         private_class_method def self.explain_issue(*reason, suggested:)
-          { reason: reason, suggested: suggested }
+          {reason: reason, suggested: suggested}
         end
 
         def self.supported?

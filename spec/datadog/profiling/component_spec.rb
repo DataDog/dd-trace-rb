@@ -24,12 +24,12 @@ RSpec.describe Datadog::Profiling::Component do
     context 'when profiling is not supported' do
       before { allow(Datadog::Profiling).to receive(:supported?).and_return(false) }
 
-      it { is_expected.to eq [nil, { profiling_enabled: false }] }
+      it { is_expected.to eq [nil, {profiling_enabled: false}] }
     end
 
     context 'by default' do
       it 'does not build a profiler' do
-        is_expected.to eq [nil, { profiling_enabled: false }]
+        is_expected.to eq [nil, {profiling_enabled: false}]
       end
     end
 
@@ -39,7 +39,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it 'does not build a profiler' do
-        is_expected.to eq [nil, { profiling_enabled: false }]
+        is_expected.to eq [nil, {profiling_enabled: false}]
       end
     end
 
@@ -52,7 +52,7 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       it 'builds a profiler instance' do
-        expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), { profiling_enabled: true }])
+        expect(build_profiler_component).to match([instance_of(Datadog::Profiling::Profiler), {profiling_enabled: true}])
       end
 
       context 'when using the new CPU Profiling 2.0 profiler' do
@@ -807,7 +807,7 @@ RSpec.describe Datadog::Profiling::Component do
               before do
                 fake_client = double('Fake Mysql2::Client')
                 stub_const('Mysql2::Client', fake_client)
-                expect(fake_client).to receive(:info).and_return({ version: '4.9.99', header_version: '10.0.0' })
+                expect(fake_client).to receive(:info).and_return({version: '4.9.99', header_version: '10.0.0'})
               end
 
               it { is_expected.to be false }
@@ -823,7 +823,7 @@ RSpec.describe Datadog::Profiling::Component do
               before do
                 fake_client = double('Fake Mysql2::Client')
                 stub_const('Mysql2::Client', fake_client)
-                expect(fake_client).to receive(:info).and_return({ version: '7.9.9' })
+                expect(fake_client).to receive(:info).and_return({version: '7.9.9'})
               end
 
               it { is_expected.to be true }
@@ -839,7 +839,7 @@ RSpec.describe Datadog::Profiling::Component do
               before do
                 fake_client = double('Fake Mysql2::Client')
                 stub_const('Mysql2::Client', fake_client)
-                expect(fake_client).to receive(:info).and_return({ version: '8.0.0' })
+                expect(fake_client).to receive(:info).and_return({version: '8.0.0'})
               end
 
               it { is_expected.to be false }
@@ -855,7 +855,7 @@ RSpec.describe Datadog::Profiling::Component do
               before do
                 fake_original_client = double('Fake original Mysql2::Client')
                 stub_const('Mysql2::Aurora::ORIGINAL_CLIENT_CLASS', fake_original_client)
-                expect(fake_original_client).to receive(:info).and_return({ version: '7.9.9' })
+                expect(fake_original_client).to receive(:info).and_return({version: '7.9.9'})
 
                 client_replaced_by_aurora = double('Fake Aurora Mysql2::Client')
                 stub_const('Mysql2::Client', client_replaced_by_aurora)
@@ -868,7 +868,7 @@ RSpec.describe Datadog::Profiling::Component do
               before do
                 fake_original_client = double('Fake original Mysql2::Client')
                 stub_const('Mysql2::Aurora::ORIGINAL_CLIENT_CLASS', fake_original_client)
-                expect(fake_original_client).to receive(:info).and_return({ version: '8.0.0' })
+                expect(fake_original_client).to receive(:info).and_return({version: '8.0.0'})
 
                 client_replaced_by_aurora = double('Fake Aurora Mysql2::Client')
                 stub_const('Mysql2::Client', client_replaced_by_aurora)

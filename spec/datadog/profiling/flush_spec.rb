@@ -9,7 +9,7 @@ RSpec.describe Datadog::Profiling::Flush do
     let(:code_provenance_file_name) { 'the_code_provenance_file_name.json' }
     let(:code_provenance_data) { 'the_code_provenance_data' }
     let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
-    let(:internal_metadata) { { no_signals_workaround_enabled: false } }
+    let(:internal_metadata) { {no_signals_workaround_enabled: false} }
     let(:info_json) do
       JSON.fast_generate(
         {

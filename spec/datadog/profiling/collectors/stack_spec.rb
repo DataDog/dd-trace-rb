@@ -10,8 +10,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   subject(:collectors_stack) { described_class.new }
 
-  let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
-  let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+  let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
+  let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
   let(:raw_reference_stack) { stacks.fetch(:reference) }
   let(:reference_stack) { convert_reference_stack(raw_reference_stack) }
@@ -27,7 +27,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   # gets excluded from the reference Ruby API.
   context 'when sampling the main thread' do
     let(:in_gc) { false }
-    let(:stacks) { { reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current, in_gc: in_gc) } }
+    let(:stacks) { {reference: Thread.current.backtrace_locations, gathered: sample_and_decode(Thread.current, in_gc: in_gc)} }
 
     let(:reference_stack) do
       # To make the stacks comparable we slice off the actual Ruby `Thread#backtrace_locations` frame since that part
@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
 
   context 'in a background thread' do
     let(:ready_queue) { Queue.new }
-    let(:stacks) { { reference: background_thread.backtrace_locations, gathered: sample_and_decode(background_thread) } }
+    let(:stacks) { {reference: background_thread.backtrace_locations, gathered: sample_and_decode(background_thread)} }
     let(:background_thread) { Thread.new(ready_queue, &do_in_background_thread) }
     let(:expected_eval_path) do
       # Starting in Ruby 3.3, the path on evals went from being "(eval)" to being "(eval at some_file.rb:line)"
@@ -230,7 +230,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         let(:labels) { [] }
 
         context 'when taking a cpu/wall-time sample and the state label is missing' do
-          let(:metric_values) { { 'cpu-samples' => 1 } }
+          let(:metric_values) { {'cpu-samples' => 1} }
 
           it 'raises an exception' do
             expect { gathered_stack }.to raise_error(RuntimeError, /BUG: Unexpected missing state_label/)
@@ -238,7 +238,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         end
 
         context 'when taking a non-cpu/wall-time sample and the state label is missing' do
-          let(:metric_values) { { 'cpu-samples' => 0 } }
+          let(:metric_values) { {'cpu-samples' => 0} }
 
           it 'does not raise an exception' do
             expect(gathered_stack).to be_truthy
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             sleep
           end
         end
-        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+        let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'had cpu')
@@ -269,7 +269,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             sleep
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'sleeping')
@@ -286,7 +286,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             IO.select([server_socket])
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         after do
           background_thread.kill
@@ -309,7 +309,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             another_thread.join
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         after do
           another_thread.kill
@@ -336,7 +336,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             locked_mutex.synchronize {}
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
@@ -353,7 +353,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             locked_mutex.lock
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             locked_monitor.synchronize {}
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'blocked')
@@ -394,7 +394,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             server_socket.wait_readable
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         after do
           background_thread.kill
@@ -415,7 +415,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             Queue.new.pop
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'waiting')
@@ -430,7 +430,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
             Thread.stop
           end
         end
-        let(:metric_values) { { 'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1 } }
+        let(:metric_values) { {'cpu-time' => 0, 'cpu-samples' => 1, 'wall-time' => 1} }
 
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: 'unknown')
@@ -519,7 +519,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:thread_with_deep_stack) { DeepStackSimulator.thread_with_stack_depth(target_stack_depth) }
 
     let(:in_gc) { false }
-    let(:stacks) { { reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames, in_gc: in_gc) } }
+    let(:stacks) { {reference: thread_with_deep_stack.backtrace_locations, gathered: sample_and_decode(thread_with_deep_stack, max_frames: max_frames, in_gc: in_gc)} }
 
     after do
       thread_with_deep_stack.kill
@@ -565,7 +565,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     let(:dead_thread) { Thread.new {}.tap(&:join) }
 
     let(:in_gc) { false }
-    let(:stacks) { { reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread, in_gc: in_gc) } }
+    let(:stacks) { {reference: dead_thread.backtrace_locations, gathered: sample_and_decode(dead_thread, in_gc: in_gc)} }
 
     it 'gathers an empty stack' do
       expect(gathered_stack).to be_empty
@@ -586,7 +586,7 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
   context 'when sampling a thread with empty locations' do
     let(:ready_pipe) { IO.pipe }
     let(:in_gc) { false }
-    let(:stacks) { { reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations, in_gc: in_gc) } }
+    let(:stacks) { {reference: thread_with_empty_locations.backtrace_locations, gathered: sample_and_decode(thread_with_empty_locations, in_gc: in_gc)} }
     let(:finish_pipe) { IO.pipe }
 
     let(:thread_with_empty_locations) do
