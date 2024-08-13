@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
         'host' => Datadog::Core::Environment::Socket.hostname,
         'language' => 'ruby',
         'process_id' => Process.pid.to_s,
-        'profiler_version' => start_with('2.'),
+        'library_version' => start_with('2.'),
         'runtime' => 'ruby',
         'runtime_engine' => RUBY_ENGINE,
         'runtime-id' => Datadog::Core::Environment::Identity.id,
