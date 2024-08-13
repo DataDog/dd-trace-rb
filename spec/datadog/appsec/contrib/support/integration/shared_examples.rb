@@ -165,3 +165,25 @@ RSpec.shared_examples 'a trace with AppSec events' do |params = { blocking: fals
     it_behaves_like 'a trace without AppSec events'
   end
 end
+
+RSpec.shared_examples 'a trace with ASM Standalone tags' do
+  context 'with appsec enabled' do
+    let(:appsec_enabled) { true }
+    it do
+      expect(service_span.send(:metrics)['_dd.apm.enabled']).to eq(0)
+      expect(service_span.send(:metrics)['_dd.appsec.enabled']).to eq(1.0)
+      expect(service_span.send(:meta)['_dd.runtime_family']).to eq('ruby')
+      expect(service_span.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/)
+    end
+  end
+
+  context 'with appsec disabled' do
+    let(:appsec_enabled) { false }
+    it do
+      expect(service_span.send(:metrics)['_dd.apm.enabled']).to be_nil
+      expect(service_span.send(:metrics)['_dd.appsec.enabled']).to be_nil
+      expect(service_span.send(:meta)['_dd.runtime_family']).to be_nil
+      expect(service_span.send(:meta)['_dd.appsec.waf.version']).to be_nil
+    end
+  end
+end

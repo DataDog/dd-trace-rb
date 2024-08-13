@@ -29,6 +29,7 @@ RSpec.describe 'Rails integration tests' do
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
   let(:appsec_enabled) { true }
+  let(:appsec_standalone_enabled) { false }
   let(:tracing_enabled) { true }
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
@@ -90,6 +91,7 @@ RSpec.describe 'Rails integration tests' do
       c.tracing.instrument :rails
 
       c.appsec.enabled = appsec_enabled
+      c.appsec.standalone.enabled = appsec_standalone_enabled
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.instrument :rails
       c.appsec.ip_denylist = appsec_ip_denylist
@@ -305,6 +307,13 @@ RSpec.describe 'Rails integration tests' do
             it_behaves_like 'a trace with AppSec events'
             it_behaves_like 'a trace with AppSec api security tags'
           end
+        end
+
+        context 'with APM disabled' do
+          let(:appsec_standalone_enabled) { true }
+
+          it_behaves_like 'normal with tracing disable'
+          it_behaves_like 'a trace with ASM Standalone tags'
         end
       end
 
