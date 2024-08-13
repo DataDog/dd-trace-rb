@@ -23,6 +23,8 @@ ignore:
 - gemfiles/**/**
 - integration/**/**
 - lib-injection/**/**
+- ext/libdatadog_extconf_helpers.rb
+- ext/libdatadog_api/**/**
 - lib/*
 - lib/datadog/*
 - lib/datadog/appsec/**/**
