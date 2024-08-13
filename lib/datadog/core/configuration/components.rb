@@ -82,6 +82,7 @@ module Datadog
           :runtime_metrics,
           :telemetry,
           :tracer,
+          :crashtracker,
           :appsec
 
         def initialize(settings)
@@ -95,7 +96,7 @@ module Datadog
 
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
-          self.class.build_crashtracker(settings, agent_settings, logger: @logger)
+          @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,

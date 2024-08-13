@@ -94,34 +94,19 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
     end
 
     context 'instance methods' do
-      before do
-        # No crash tracker process should still be running at the start of each testcase
+      # No crash tracker process should still be running at the start of each testcase
+      around do |example|
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+        example.run
         wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
       end
-
-      after do
-        # No crash tracker process should still be running at the end of each testcase
-        wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-      end
-
-      let(:logger) { Logger.new($stdout) }
-      let(:agent_base_url) { 'http://localhost:6006' }
-
-      let(:crashtracker_options) do
-        {
-          agent_base_url: agent_base_url,
-          tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
-          path_to_crashtracking_receiver_binary: ::Libdatadog.path_to_crashtracking_receiver_binary,
-          ld_library_path: ::Libdatadog.ld_library_path,
-          logger: logger,
-        }
-      end
-
-      subject(:crashtracker) { described_class.new(**crashtracker_options) }
 
       describe '#start' do
         context 'when _native_start_or_update_on_fork raises an exception' do
           it 'logs the exception' do
+            logger = Logger.new($stdout)
+            crashtracker = build_crashtracker(logger: logger)
+
             expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
             expect(logger).to receive(:error).with(/Failed to start crash tracking: Test failure/)
 
@@ -130,34 +115,38 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
         end
 
         it 'starts the crash tracker' do
+          crashtracker = build_crashtracker
+
           crashtracker.start
 
           wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to_not be_empty
 
-          crashtracker.stop
+          tear_down!
         end
 
         context 'when calling start multiple times in a row' do
           it 'only starts the crash tracker once' do
+            crashtracker = build_crashtracker
+
             3.times { crashtracker.start }
 
             wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
 
-            crashtracker.stop
+            tear_down!
           end
         end
 
-        context 'when called in a fork' do
+        context 'when forked' do
           it 'starts a second crash tracker for the fork' do
+            crashtracker = build_crashtracker
+
             crashtracker.start
 
             expect_in_fork do
               wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 2
-
-              crashtracker.stop
             end
 
-            crashtracker.stop
+            tear_down!
           end
         end
       end
@@ -165,6 +154,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
       describe '#stop' do
         context 'when _native_stop_crashtracker raises an exception' do
           it 'logs the exception' do
+            logger = Logger.new($stdout)
+            crashtracker = build_crashtracker(logger: logger)
+
             expect(described_class).to receive(:_native_stop) { raise 'Test failure' }
             expect(logger).to receive(:error).with(/Failed to stop crash tracking: Test failure/)
 
@@ -173,11 +165,64 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
         end
 
         it 'stops the crash tracker' do
+          crashtracker = build_crashtracker
+
           crashtracker.start
+
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to eq 1
 
           crashtracker.stop
 
           wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+        end
+      end
+
+      describe '#update_on_fork' do
+        context 'when _native_stop_crashtracker raises an exception' do
+          it 'logs the exception' do
+            logger = Logger.new($stdout)
+            crashtracker = build_crashtracker(logger: logger)
+
+            expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
+            expect(logger).to receive(:error).with(/Failed to update_on_fork crash tracking: Test failure/)
+
+            crashtracker.update_on_fork
+          end
+        end
+
+        it 'update_on_fork the crash tracker' do
+          expect(described_class).to receive(:_native_start_or_update_on_fork).with(
+            hash_including(action: :update_on_fork)
+          )
+
+          crashtracker = build_crashtracker
+
+          crashtracker.update_on_fork
+        end
+
+        it 'updates existing crash tracking process after started' do
+          crashtracker = build_crashtracker
+
+          crashtracker.start
+          crashtracker.update_on_fork
+
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+          tear_down!
+        end
+
+        context 'when multiple instances' do
+          it 'updates existing crash tracking process after started' do
+            crashtracker = build_crashtracker
+            crashtracker.start
+
+            another_crashtracker = build_crashtracker
+            another_crashtracker.update_on_fork
+
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+            tear_down!
+          end
         end
       end
 
@@ -237,7 +282,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
             end
 
             expect_in_fork(fork_expectations: fork_expectations) do
-              crashtracker.start
+              crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
+              crash_tracker.start
 
               if trigger == :fiddle
                 Fiddle.free(42)
@@ -264,39 +310,42 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
           end
         end
 
-        context do
-          it do
+        context 'when forked' do
+          it 'ensures the latest configuration applied' do
             allow(described_class).to receive(:_native_start_or_update_on_fork)
 
-            crashtracker = build_crashtracker(agent_base_url: 'http://localhost:6001').tap(&:start)
+            Datadog.configure do |c|
+              c.agent.host = 'example.com'
+            end
 
-            fork_expectations = proc do
+            Datadog.configure do |c|
+              c.agent.host = 'google.com'
+            end
+
+            expect_in_fork do
               expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
                 hash_including(
-                  action: :start,
-                  exporter_configuration: [:agent, 'http://localhost:6001']
+                  action: :update_on_fork,
+                  exporter_configuration: [:agent, 'http://google.com:9126/'],
                 )
               )
             end
-
-            expect_in_fork(fork_expectations: fork_expectations) do
-              allow(described_class).to receive(:_native_start_or_update_on_fork)
-              build_crashtracker(agent_base_url: 'http://localhost:6002').tap(&:start)
-            end
-
-            crashtracker.stop
-          end
-
-          def build_crashtracker(options)
-            described_class.new(
-              agent_base_url: options[:agent_base_url],
-              tags: {},
-              path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
-              ld_library_path: Libdatadog.ld_library_path,
-              logger: Logger.new($stdout),
-            )
           end
         end
       end
+    end
+
+    def build_crashtracker(options = {})
+      described_class.new(
+        agent_base_url: options[:agent_base_url] || 'http://localhost:6006',
+        tags: options[:tags] || { 'tag1' => 'value1', 'tag2' => 'value2' },
+        path_to_crashtracking_receiver_binary: Libdatadog.path_to_crashtracking_receiver_binary,
+        ld_library_path: Libdatadog.ld_library_path,
+        logger: options[:logger] || Logger.new($stdout),
+      )
+    end
+
+    def tear_down!
+      described_class._native_stop
     end
   end

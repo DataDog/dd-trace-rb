@@ -68,9 +68,14 @@ module Datadog
           start_or_update_on_fork(action: :start)
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
-              start_or_update_on_fork(action: :update_on_fork)
+              # Must NOT reference `self` here, as it become stale after fork
+              Datadog.send(:components).crashtracker&.update_on_fork
             end
           end
+        end
+
+        def update_on_fork
+          start_or_update_on_fork(action: :update_on_fork)
         end
 
         def stop
