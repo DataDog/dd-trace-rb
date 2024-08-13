@@ -721,10 +721,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               #       than expand heap pages and when that happens we'd stop iterating.
               1000.times { objs << Object.new }
               recycled_obj_ids.each do |obj_id|
-                begin
-                  return ObjectSpace._id2ref(obj_id)
-                rescue RangeError # rubocop:disable Lint/SuppressedException
-                end
+                return ObjectSpace._id2ref(obj_id)
+              rescue RangeError # rubocop:disable Lint/SuppressedException
               end
             end
             raise 'could not allocate an object in a recycled slot'

@@ -433,11 +433,9 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:uds_path) { socket_path }
 
       after do
-        begin
-          FileUtils.remove_entry(temporary_directory)
-        rescue Errno::ENOENT => _e
-          # Do nothing, it's ok
-        end
+        FileUtils.remove_entry(temporary_directory)
+      rescue Errno::ENOENT => _e
+        # Do nothing, it's ok
       end
 
       include_examples 'correctly reports profiling data'

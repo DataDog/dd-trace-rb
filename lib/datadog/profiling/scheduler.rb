@@ -52,25 +52,23 @@ module Datadog
       end
 
       def perform(on_failure_proc)
-        begin
-          # A profiling flush may be called while the VM is shutting down, to report the last profile. When we do so,
-          # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
-          # successfully finish in the strict timeout.
-          # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
-          interrupted = true
+        # A profiling flush may be called while the VM is shutting down, to report the last profile. When we do so,
+        # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
+        # successfully finish in the strict timeout.
+        # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
+        interrupted = true
 
-          flush_and_wait
-          interrupted = false
-        rescue Exception => e # rubocop:disable Lint/RescueException
-          Datadog.logger.warn(
-            'Profiling::Scheduler thread error. ' \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-          )
-          on_failure_proc&.call
-          raise
-        ensure
-          Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
-        end
+        flush_and_wait
+        interrupted = false
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        Datadog.logger.warn(
+          'Profiling::Scheduler thread error. ' \
+          "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+        )
+        on_failure_proc&.call
+        raise
+      ensure
+        Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts

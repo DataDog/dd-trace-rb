@@ -533,12 +533,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           def self.otel_sdk_available?
-            begin
-              require 'opentelemetry/sdk'
-              true
-            rescue LoadError
-              false
-            end
+            require 'opentelemetry/sdk'
+            true
+          rescue LoadError
+            false
           end
 
           context 'when trace comes from otel sdk', if: otel_sdk_available? do

@@ -63,20 +63,18 @@ module Datadog
             @idle_sampling_helper.start
 
             @worker_thread = Thread.new do
-              begin
-                Thread.current.name = self.class.name
+              Thread.current.name = self.class.name
 
-                self.class._native_sampling_loop(self)
+              self.class._native_sampling_loop(self)
 
-                Datadog.logger.debug('CpuAndWallTimeWorker thread stopping cleanly')
-              rescue Exception => e # rubocop:disable Lint/RescueException
-                @failure_exception = e
-                Datadog.logger.warn(
-                  'CpuAndWallTimeWorker thread error. ' \
-                  "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-                )
-                on_failure_proc&.call
-              end
+              Datadog.logger.debug('CpuAndWallTimeWorker thread stopping cleanly')
+            rescue Exception => e # rubocop:disable Lint/RescueException
+              @failure_exception = e
+              Datadog.logger.warn(
+                'CpuAndWallTimeWorker thread error. ' \
+                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+              )
+              on_failure_proc&.call
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)

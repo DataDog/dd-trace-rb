@@ -1027,25 +1027,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # there's a small chance that a GC gets triggered in between the two
           # `_native_allocation_count` calls and contributes with unexpected Array allocations to
           # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
-          begin
-            GC.disable
-            # To get the exact expected number of allocations, we run through the ropes once so
-            # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
-            # executions that could affect our expectations
-            described_class._native_allocation_count
-            new_object = proc { Object.new }
-            1.times(&new_object)
-            described_class._native_allocation_count
 
-            # Here we do the actual work we care about
-            before_allocations = described_class._native_allocation_count
-            100.times(&new_object)
-            after_allocations = described_class._native_allocation_count
+          GC.disable
+          # To get the exact expected number of allocations, we run through the ropes once so
+          # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
+          # executions that could affect our expectations
+          described_class._native_allocation_count
+          new_object = proc { Object.new }
+          1.times(&new_object)
+          described_class._native_allocation_count
 
-            expect(after_allocations - before_allocations).to be 100
-          ensure
-            GC.enable
-          end
+          # Here we do the actual work we care about
+          before_allocations = described_class._native_allocation_count
+          100.times(&new_object)
+          after_allocations = described_class._native_allocation_count
+
+          expect(after_allocations - before_allocations).to be 100
+        ensure
+          GC.enable
         end
 
         it 'returns different numbers of allocations for different threads' do

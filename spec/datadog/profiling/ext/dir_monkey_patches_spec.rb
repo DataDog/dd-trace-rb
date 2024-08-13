@@ -22,11 +22,9 @@ RSpec.describe Datadog::Profiling::Ext::DirMonkeyPatches do
   let(:expected_hold_resume_calls_count) { 1 }
 
   after do
-    begin
-      FileUtils.remove_dir(temporary_directory)
-    rescue Errno::ENOENT => _e
-      # Do nothing, it's ok
-    end
+    FileUtils.remove_dir(temporary_directory)
+  rescue Errno::ENOENT => _e
+    # Do nothing, it's ok
   end
 
   describe 'DirClassMonkeyPatches' do
