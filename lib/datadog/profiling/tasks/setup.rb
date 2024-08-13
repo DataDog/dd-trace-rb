@@ -31,7 +31,7 @@ module Datadog
             begin
               # Restart profiler, if enabled
               Profiling.start_if_enabled
-            rescue StandardError => e
+            rescue => e
               Datadog.logger.warn do
                 "Error during post-fork hooks. Cause: #{e.class.name} #{e.message} " \
                 "Location: #{Array(e.backtrace).first}"
