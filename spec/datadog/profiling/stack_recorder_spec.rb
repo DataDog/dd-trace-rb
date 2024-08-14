@@ -256,7 +256,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           'timeline' => 1111,
         }
       end
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -269,11 +269,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it 'encodes the sample with the metrics provided' do
         expect(samples.first.values)
           .to eq(
-            'cpu-time': 123,
-            'cpu-samples': 456,
-            'wall-time': 789,
-            'alloc-samples': 4242,
-            'alloc-samples-unscaled': 2222,
+            "cpu-time": 123,
+            "cpu-samples": 456,
+            "wall-time": 789,
+            "alloc-samples": 4242,
+            "alloc-samples-unscaled": 2222,
             timeline: 1111,
           )
       end
@@ -283,7 +283,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
           expect(samples.first.values).to eq(
-            'cpu-samples': 456, 'wall-time': 789, 'alloc-samples': 4242, 'alloc-samples-unscaled': 2222, timeline: 1111
+            "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222, timeline: 1111
           )
         end
       end
@@ -326,7 +326,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     context 'when sample is invalid' do
       context 'because the local root span id is being defined using a string instead of as a number' do
-        let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
+        let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
 
         it do
           # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               Thread.current,
               stack_recorder,
               metric_values,
-              { 'local root span id' => 'incorrect', 'state' => 'unknown' }.to_a,
+              {'local root span id' => 'incorrect', 'state' => 'unknown'}.to_a,
               [],
               400,
               false,
@@ -346,16 +346,16 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     describe 'trace endpoint behavior' do
-      let(:metric_values) { { 'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789 } }
+      let(:metric_values) { {'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789} }
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
       it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
-        local_root_span_id_with_endpoint = { 'local root span id' => 123 }
-        local_root_span_id_without_endpoint = { 'local root span id' => 456 }
+        local_root_span_id_with_endpoint = {'local root span id' => 123}
+        local_root_span_id_without_endpoint = {'local root span id' => 456}
 
         sample = proc do |numeric_labels = {}|
           Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-            Thread.current, stack_recorder, metric_values, { 'state' => 'unknown' }.to_a, numeric_labels.to_a, 400, false
+            Thread.current, stack_recorder, metric_values, {'state' => 'unknown'}.to_a, numeric_labels.to_a, 400, false
           )
         end
 
@@ -377,7 +377,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(samples.select { |it| labels_without_state.call(it.labels).empty? }).to have(2).items
         expect(
           samples.select do |it|
-            labels_without_state.call(it.labels) == { 'local root span id': 456 }
+            labels_without_state.call(it.labels) == {"local root span id": 456}
           end
         ).to have(2).items
 
@@ -385,7 +385,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(
           samples.select do |it|
             labels_without_state.call(it.labels) ==
-              { 'local root span id': 123, 'trace endpoint': 'recorded-endpoint' }
+              {"local root span id": 123, "trace endpoint": 'recorded-endpoint'}
           end
         ).to have(2).items
       end
@@ -403,11 +403,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           'heap_sample' => true,
         }
       end
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       let(:a_string) { 'a beautiful string' }
       let(:an_array) { (1..100).to_a.compact }
-      let(:a_hash) { { 'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new } }
+      let(:a_hash) { {'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new} }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -420,7 +420,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-          { 'z' => -1, 'y' => '-2', 'x' => false }, Object.new]
+          {'z' => -1, 'y' => '-2', 'x' => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # * Allocate some more stuff and clear again
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-          { 'a' => 1, 'b' => '2', 'c' => true }, Object.new]
+          {'a' => 1, 'b' => '2', 'c' => true}, Object.new]
         allocations.clear
         GC.start
       end
@@ -477,11 +477,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:heap_size_enabled) { true }
 
         let(:heap_samples) do
-          samples.select { |s| s.value?(:'heap-live-samples') }
+          samples.select { |s| s.value?(:"heap-live-samples") }
         end
 
         let(:non_heap_samples) do
-          samples.reject { |s| s.value?(:'heap-live-samples') }
+          samples.reject { |s| s.value?(:"heap-live-samples") }
         end
 
         before do
@@ -492,30 +492,30 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
-          expect(heap_samples.map { |s| s.labels[:'allocation class'] }).to include('String', 'Array', 'Hash')
-          expect(heap_samples.map(&:labels)).to all(match(hash_including('gc gen age': be_a(Integer).and(be >= 0))))
+          expect(heap_samples.map { |s| s.labels[:"allocation class"] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map(&:labels)).to all(match(hash_including("gc gen age": be_a(Integer).and(be >= 0))))
         end
 
         it 'include accurate object sizes' do
-          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
-          expect(string_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
+          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'String' }
+          expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
-          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
-          expect(array_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
+          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Array' }
+          expect(array_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
 
-          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
-          expect(hash_sample.values[:'heap-live-size']).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
+          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Hash' }
+          expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
         it 'include accurate object ages' do
-          string_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'String' }
-          string_age = string_sample.labels[:'gc gen age']
+          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'String' }
+          string_age = string_sample.labels[:"gc gen age"]
 
-          array_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Array' }
-          array_age = array_sample.labels[:'gc gen age']
+          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Array' }
+          array_age = array_sample.labels[:"gc gen age"]
 
-          hash_sample = heap_samples.find { |s| s.labels[:'allocation class'] == 'Hash' }
-          hash_age = hash_sample.labels[:'gc gen age']
+          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Hash' }
+          hash_age = hash_sample.labels[:"gc gen age"]
 
           unique_sorted_ages = [string_age, array_age, hash_age].uniq.sort
           # Expect all ages to be different and to be in the reverse order of allocation
@@ -545,7 +545,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # We use the same metric_values in all sample calls in before. So we'd expect
           # the summed values to match `@num_allocations * metric_values[profile-type]`
           # for each profile-type there in.
-          expected_summed_values = { 'heap-live-samples': 0, 'heap-live-size': 0, 'alloc-samples-unscaled': 0 }
+          expected_summed_values = {"heap-live-samples": 0, "heap-live-size": 0, "alloc-samples-unscaled": 0}
           metric_values.each_pair do |k, v|
             next if k == 'heap_sample' # This is not a metric, ignore it
 
@@ -585,7 +585,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             # Grab all exported heap samples and sum their values
             sum_exported_heap_samples = heap_samples
               .select { |s| s.has_location?(path: __FILE__, line: sample_line) }
-              .map { |s| s.values[:'heap-live-samples'] }
+              .map { |s| s.values[:"heap-live-samples"] }
               .reduce(:+)
 
             # Multiply expectation by sample_rate to be able to compare with weighted samples
@@ -616,7 +616,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
           relevant_sample = heap_samples.find { |s| s.has_location?(path: __FILE__, line: sample_line) }
           expect(relevant_sample).not_to be nil
-          expect(relevant_sample.values[:'heap-live-samples']).to eq test_num_allocated_object * sample_rate
+          expect(relevant_sample.values[:"heap-live-samples"]).to eq test_num_allocated_object * sample_rate
         end
 
         it 'contribute to recorded samples stats' do
@@ -653,8 +653,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(heap_samples.size).to eq(1)
 
             heap_sample = heap_samples.first
-            expect(heap_sample.labels[:'allocation class']).to eq('Array')
-            expect(heap_sample.values[:'heap-live-samples']).to eq(sample_rate * heap_sample_every)
+            expect(heap_sample.labels[:"allocation class"]).to eq('Array')
+            expect(heap_sample.values[:"heap-live-samples"]).to eq(sample_rate * heap_sample_every)
           end
         end
 
@@ -721,10 +721,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               #       than expand heap pages and when that happens we'd stop iterating.
               1000.times { objs << Object.new }
               recycled_obj_ids.each do |obj_id|
-                begin
-                  return ObjectSpace._id2ref(obj_id)
-                rescue RangeError # rubocop:disable Lint/SuppressedException
-                end
+                return ObjectSpace._id2ref(obj_id)
+              rescue RangeError # rubocop:disable Lint/SuppressedException
               end
             end
             raise 'could not allocate an object in a recycled slot'
@@ -915,8 +913,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
 
     context 'when profile has a sample' do
-      let(:metric_values) { { 'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789 } }
-      let(:labels) { { 'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown' }.to_a }
+      let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
+      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
 
       it 'makes the next calls to serialize return no data' do
         # Add some data
@@ -1007,7 +1005,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, { 'alloc-samples' => 1, 'heap_sample' => true }, [], [], 400, false
+          Thread.current, stack_recorder, {'alloc-samples' => 1, 'heap_sample' => true}, [], [], 400, false
         )
       end
 

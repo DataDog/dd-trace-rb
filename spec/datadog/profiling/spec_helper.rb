@@ -81,7 +81,7 @@ module ProfileHelpers
 
   def samples_for_thread(samples, thread)
     samples.select do |sample|
-      thread_id = sample.labels[:'thread id']
+      thread_id = sample.labels[:"thread id"]
       thread_id && object_id_from(thread_id) == thread.object_id
     end
   end
@@ -103,7 +103,7 @@ module ProfileHelpers
   end
 
   def self.maybe_fix_label_range(key, value)
-    if [:'local root span id', :'span id'].include?(key) && value < 0
+    if [:"local root span id", :"span id"].include?(key) && value < 0
       # pprof labels are defined to be decoded as signed values BUT the backend explicitly interprets these as unsigned
       # 64-bit numbers so we can still use them for these ids without having to fall back to strings
       value + 2**64

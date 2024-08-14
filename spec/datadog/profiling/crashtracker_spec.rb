@@ -22,7 +22,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
   let(:crashtracker_options) do
     {
       exporter_configuration: exporter_configuration,
-      tags: { 'tag1' => 'value1', 'tag2' => 'value2' },
+      tags: {'tag1' => 'value1', 'tag2' => 'value2'},
       upload_timeout_seconds: 123,
     }
   end
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
 
     context 'when upload_timeout_seconds is not an Integer' do
-      let(:crashtracker_options) { { **super(), upload_timeout_seconds: 12.34 } }
+      let(:crashtracker_options) { {**super(), upload_timeout_seconds: 12.34} }
 
       it 'converts it to an Integer before calling _native_start_or_update_on_fork' do
         expect(described_class)
@@ -213,7 +213,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
           family: 'ruby',
           tags: ['tag1:value1', 'tag2:value2'],
         )
-        expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+        expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
         expect(crash_report_message[:os_info]).to_not be_empty
       end
     end

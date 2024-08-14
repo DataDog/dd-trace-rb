@@ -55,12 +55,10 @@ module Datadog
       end
 
       def stop
-        begin
-          self.class._native_stop
-          Datadog.logger.debug('Crash tracking stopped successfully')
-        rescue => e
-          Datadog.logger.error("Failed to stop crash tracking: #{e.message}")
-        end
+        self.class._native_stop
+        Datadog.logger.debug('Crash tracking stopped successfully')
+      rescue => e
+        Datadog.logger.error("Failed to stop crash tracking: #{e.message}")
       end
 
       private

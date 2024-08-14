@@ -68,7 +68,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
             float_opt: 123.456,
             nil_opt: nil,
             advanced: {
-              list_opt: [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol,
+              list_opt: [false, 1, 2.0, '3', nil, [1, 2, 3], {'a' => 'a', 'b' => 'b'}, :a_symbol,
                 a_string_including('#<ComplexObject:')],
               hash_opt: {
                 a: false,
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
                 d: '3',
                 e: nil,
                 f: [1, 2, 3],
-                g: { 'a' => 'a', 'b' => 'b' },
+                g: {'a' => 'a', 'b' => 'b'},
                 h: :a_symbol,
                 i: a_string_including('#<ComplexObject:')
               },
@@ -142,7 +142,7 @@ class TestSettings
     settings :advanced do
       option :list_opt do |o|
         o.type :array
-        o.default [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol, ComplexObject.new]
+        o.default [false, 1, 2.0, '3', nil, [1, 2, 3], {'a' => 'a', 'b' => 'b'}, :a_symbol, ComplexObject.new]
       end
 
       option :hash_opt do |o|
@@ -155,7 +155,7 @@ class TestSettings
             d: '3',
             e: nil,
             f: [1, 2, 3],
-            g: { 'a' => 'a', 'b' => 'b' },
+            g: {'a' => 'a', 'b' => 'b'},
             h: :a_symbol,
             i: ComplexObject.new,
           }

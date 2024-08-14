@@ -166,7 +166,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     context 'sampling of active threads' do
       # This option makes sure our samples are taken via thread interruptions (and not via idle sampling).
       # See native bits for more details.
-      let(:options) { { **super(), skip_idle_samples_for_testing: true } }
+      let(:options) { {**super(), skip_idle_samples_for_testing: true} }
 
       it 'triggers sampling and records the results' do
         start
@@ -194,7 +194,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         sample_count =
           samples_for_thread(all_samples, Thread.current)
-            .map { |it| it.values.fetch(:'cpu-samples') }
+            .map { |it| it.values.fetch(:"cpu-samples") }
             .reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
@@ -270,16 +270,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
       all_samples = samples_from_pprof(recorder.serialize!)
 
-      gc_sample = all_samples.find { |sample| sample.labels[:'gc cause'] == 'GC.start()' }
+      gc_sample = all_samples.find { |sample| sample.labels[:"gc cause"] == 'GC.start()' }
 
       expect(gc_sample.labels).to match a_hash_including(
         state: 'had cpu',
-        'thread id': 'GC',
-        'thread name': 'Garbage Collection',
+        "thread id": 'GC',
+        "thread name": 'Garbage Collection',
         event: 'gc',
-        'gc reason': an_instance_of(String),
-        'gc cause': 'GC.start()',
-        'gc type': 'major',
+        "gc reason": an_instance_of(String),
+        "gc cause": 'GC.start()',
+        "gc type": 'major',
       )
       expect(gc_sample.locations.first.path).to eq 'Garbage Collection'
     end
@@ -350,7 +350,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         background_thread.kill
 
         result = samples_for_thread(samples_from_pprof_without_gc_and_overhead(recorder.serialize!), Thread.current)
-        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
+        sample_count = result.map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
 
@@ -372,7 +372,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context 'when all threads are sleeping (no thread holds the Global VM Lock)' do
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before { expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/) }
 
@@ -386,10 +386,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         all_samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
         result = samples_for_thread(all_samples, Thread.current)
-        sample_count = result.map { |it| it.values.fetch(:'cpu-samples') }.reduce(:+)
+        sample_count = result.map { |it| it.values.fetch(:"cpu-samples") }.reduce(:+)
 
         stats = cpu_and_wall_time_worker.stats
-        debug_failures = { thread_list: Thread.list, all_samples: all_samples }
+        debug_failures = {thread_list: Thread.list, all_samples: all_samples}
 
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         sample_count =
           samples_for_thread(all_samples, Thread.current)
-            .map { |it| it.values.fetch(:'cpu-samples') }
+            .map { |it| it.values.fetch(:"cpu-samples") }
             .reduce(:+)
 
         # Since we're reading the stats AFTER the worker is stopped, we expect a consistent view, as otherwise we
@@ -482,7 +482,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:test_num_allocated_object) { 123 }
       # Explicitly disable dynamic sampling in these tests so we can deterministically verify
       # sample counts.
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before do
         allow(Datadog.logger).to receive(:warn)
@@ -501,14 +501,14 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         allocation_sample =
           samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-            .find { |s| s.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' }
+            .find { |s| s.labels[:"allocation class"] == 'CpuAndWallTimeWorkerSpec::TestStruct' }
 
-        expect(allocation_sample.values).to include('alloc-samples': test_num_allocated_object)
+        expect(allocation_sample.values).to include("alloc-samples": test_num_allocated_object)
         expect(allocation_sample.locations.first.lineno).to eq allocation_line
       end
 
       context 'with dynamic_sampling_rate_enabled' do
-        let(:options) { { dynamic_sampling_rate_enabled: true } }
+        let(:options) { {dynamic_sampling_rate_enabled: true} }
 
         it 'keeps statistics on how allocation sampling is doing' do
           stub_const('CpuAndWallTimeWorkerSpec::TestStruct', Struct.new(:foo))
@@ -547,7 +547,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
         # remainder above the clamped value as a separate "Skipped Samples" step.
         context 'with a high allocation rate' do
-          let(:options) { { **super(), dynamic_sampling_rate_overhead_target_percentage: 0.1 } }
+          let(:options) { {**super(), dynamic_sampling_rate_overhead_target_percentage: 0.1} }
           let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
 
           after do
@@ -562,8 +562,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             thread_that_allocates_as_fast_as_possible
 
             allocation_samples = try_wait_until do
-              samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:'alloc-samples'] > 0 }
-              samples if samples.any? { |it| it.labels[:'thread name'] == 'Skipped Samples' }
+              samples = samples_from_pprof(recorder.serialize!).select { |it| it.values[:"alloc-samples"] > 0 }
+              samples if samples.any? { |it| it.labels[:"thread name"] == 'Skipped Samples' }
             end
 
             # Stop thread earlier, since it will slow down the Ruby VM
@@ -609,7 +609,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             imemo_samples =
               samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:'allocation class', '') == '(VM Internal, T_IMEMO)' }
+                .select { |s| s.labels.fetch(:"allocation class", '') == '(VM Internal, T_IMEMO)' }
 
             expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
           end
@@ -627,13 +627,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             imemo_samples =
               samples_for_thread(samples_from_pprof(recorder.serialize!), Thread.current)
-                .select { |s| s.labels.fetch(:'allocation class', '').start_with?('(VM Internal, T_IMEMO') }
+                .select { |s| s.labels.fetch(:"allocation class", '').start_with?('(VM Internal, T_IMEMO') }
 
             expect(imemo_samples.size).to be >= 1 # We should always get some T_IMEMO objects
 
             # To avoid coupling too much on VM internals we check that at each of the found allocation classes are
             # a known member of the imemo_type enum (even if we don't exactly match on which one)
-            expect(imemo_samples.map { |s| s.labels.fetch(:'allocation class') }).to all(
+            expect(imemo_samples.map { |s| s.labels.fetch(:"allocation class") }).to all(
               match(
                 /(env|cref|svar|throw_data|ifunc|memo|ment|iseq|tmpbuf|ast|parser_strterm|callinfo|callcache|constcache)/
               )
@@ -655,7 +655,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include('alloc-samples': 0))
+        expect(samples_from_pprof(recorder.serialize!).map(&:values)).to all(include("alloc-samples": 0))
       end
     end
 
@@ -665,7 +665,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       let(:test_num_allocated_object) { 123 }
       # Explicitly disable dynamic sampling in these tests so we can deterministically verify
       # sample counts.
-      let(:options) { { dynamic_sampling_rate_enabled: false } }
+      let(:options) { {dynamic_sampling_rate_enabled: false} }
 
       before do
         skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
@@ -694,8 +694,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           first_frame.lineno == allocation_line &&
             first_frame.path == __FILE__ &&
             first_frame.base_label == 'new' &&
-            sample.labels[:'allocation class'] == 'CpuAndWallTimeWorkerSpec::TestStruct' &&
-            (sample.values[:'heap-live-samples'] || 0) > 0
+            sample.labels[:"allocation class"] == 'CpuAndWallTimeWorkerSpec::TestStruct' &&
+            (sample.values[:"heap-live-samples"] || 0) > 0
         }
 
         # We can't just use find here because samples might have different gc age labels
@@ -704,8 +704,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         relevant_samples = samples_from_pprof(recorder.serialize!)
           .select(&test_struct_heap_sample)
 
-        total_samples = relevant_samples.map { |sample| sample.values[:'heap-live-samples'] || 0 }.reduce(:+)
-        total_size = relevant_samples.map { |sample| sample.values[:'heap-live-size'] || 0 }.reduce(:+)
+        total_samples = relevant_samples.map { |sample| sample.values[:"heap-live-samples"] || 0 }.reduce(:+)
+        total_size = relevant_samples.map { |sample| sample.values[:"heap-live-size"] || 0 }.reduce(:+)
 
         expect(total_samples).to eq test_num_allocated_object
         # 40 is the size of a basic object and we have test_num_allocated_object of them
@@ -725,7 +725,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
-        expect(samples_from_pprof(recorder.serialize!).select { |s| s.values.key?(:'heap-live-samples') }).to be_empty
+        expect(samples_from_pprof(recorder.serialize!).select { |s| s.values.key?(:"heap-live-samples") }).to be_empty
       end
     end
 
@@ -795,7 +795,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         samples_from_ractor =
           samples_from_pprof(recorder.serialize!)
-            .select { |it| it.labels[:'thread name'] == 'background ractor' }
+            .select { |it| it.labels[:"thread name"] == 'background ractor' }
 
         expect(samples_from_ractor).to be_empty
       end
@@ -917,7 +917,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         timeline_enabled: timeline_enabled,
       )
     end
-    let(:options) { { thread_context_collector: thread_context_collector } }
+    let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
@@ -1027,25 +1027,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # there's a small chance that a GC gets triggered in between the two
           # `_native_allocation_count` calls and contributes with unexpected Array allocations to
           # the allocation count. To prevent this, we'll explicitly disable GC around these checks.
-          begin
-            GC.disable
-            # To get the exact expected number of allocations, we run through the ropes once so
-            # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
-            # executions that could affect our expectations
-            described_class._native_allocation_count
-            new_object = proc { Object.new }
-            1.times(&new_object)
-            described_class._native_allocation_count
 
-            # Here we do the actual work we care about
-            before_allocations = described_class._native_allocation_count
-            100.times(&new_object)
-            after_allocations = described_class._native_allocation_count
+          GC.disable
+          # To get the exact expected number of allocations, we run through the ropes once so
+          # Ruby can create and cache all it needs to and hopefully flush any pending finalizer
+          # executions that could affect our expectations
+          described_class._native_allocation_count
+          new_object = proc { Object.new }
+          1.times(&new_object)
+          described_class._native_allocation_count
 
-            expect(after_allocations - before_allocations).to be 100
-          ensure
-            GC.enable
-          end
+          # Here we do the actual work we care about
+          before_allocations = described_class._native_allocation_count
+          100.times(&new_object)
+          after_allocations = described_class._native_allocation_count
+
+          expect(after_allocations - before_allocations).to be 100
+        ensure
+          GC.enable
         end
 
         it 'returns different numbers of allocations for different threads' do
@@ -1118,7 +1117,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # prematurely stop waiting as soon as we get an allocation sample
         # which would result in us reaching our expectation with cpu_sampled = 0
         samples = samples_from_pprof_without_gc_and_overhead(recorder.serialize!)
-          .reject { |sample| sample.values[:'alloc-samples'] > 0 }
+          .reject { |sample| sample.values[:"alloc-samples"] > 0 }
         samples if samples.any?
       end
 
@@ -1253,7 +1252,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   def samples_from_pprof_without_gc_and_overhead(pprof_data)
     samples_from_pprof(pprof_data)
       .reject { |it| it.locations.first.path == 'Garbage Collection' }
-      .reject { |it| it.labels.include?(:'profiler overhead') }
+      .reject { |it| it.labels.include?(:"profiler overhead") }
   end
 
   def build_another_instance
