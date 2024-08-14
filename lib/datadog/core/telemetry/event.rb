@@ -103,6 +103,11 @@ module Datadog
                 config.tracing.contrib.global_default_service_name.enabled,
                 seq_id
               ),
+              conf_value(
+                'DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED',
+                config.tracing.contrib.peer_service_defaults,
+                seq_id
+              ),
             ]
 
             peer_service_mapping_str = ''

@@ -52,6 +52,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           ['DD_AGENT_TRANSPORT', 'TCP'],
           ['DD_TRACE_SAMPLE_RATE', '0.5'],
           ['DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED', true],
+          ['DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED', false],
           ['DD_TRACE_PEER_SERVICE_MAPPING', 'foo:bar'],
           ['logger.level', 0],
           ['profiling.advanced.code_provenance_enabled', true],

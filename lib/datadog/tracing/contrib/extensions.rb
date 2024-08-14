@@ -123,6 +123,17 @@ module Datadog
                     o.default({})
                   end
 
+                  # Enables population the `peer.service` tag.
+                  # When disabled, other peer service related configurations have no effect.
+                  #
+                  # @default `DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED` environment variable, otherwise `false`
+                  # @return [Boolean]
+                  option :peer_service_defaults do |o|
+                    o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_DEFAULTS_ENABLED
+                    o.type :bool
+                    o.default false
+                  end
+
                   # Global service name behavior
                   settings :global_default_service_name do
                     # Overrides default service name to global service name

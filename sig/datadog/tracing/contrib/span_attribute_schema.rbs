@@ -2,20 +2,18 @@ module Datadog
   module Tracing
     module Contrib
       module SpanAttributeSchema
-        PEER_SERVICE_SOURCE_DB: Array[string]
-        PEER_SERVICE_SOURCE_DEFAULT: Array[string]
-        PEER_SERVICE_SOURCE_MSG: Array[string]
-        PEER_SERVICE_SOURCE_RPC: Array[string]
+        NO_SOURCE: Array[string]
+        REFLEXIVE_SOURCES: Array[string]
 
         def self?.fetch_service_name: (string env, string default) -> bool
 
-        def not_empty_tag?: (string) -> bool
+        def self.filter_peer_service_sources: (SpanOperation span, Array[string] sources) -> Array[string]
 
-        def set_peer_service: -> bool
+        def self.not_empty_tag?: (string tag) -> bool
 
-        def set_peer_service?: -> bool
+        def self.set_peer_service!: (SpanOperation span, Array[string] sources) -> bool
 
-        def set_peer_service_from_source: -> bool
+        def self.set_peer_service_from_source: (SpanOperation span, Array[string] sources) -> [string, string]
       end
     end
   end
