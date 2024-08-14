@@ -4,20 +4,20 @@ module Datadog
       module AtForkMonkeyPatch
         AT_FORK_CHILD_BLOCKS: ::Array[untyped]
 
-        def self.supported?: () -> untyped
+        def self.supported?: () -> (false | true)
 
         def self.apply!: () -> (false | true)
 
-        def self.run_at_fork_blocks: (untyped stage) -> untyped
+        def self.run_at_fork_blocks: (Symbol stage) -> void
 
-        def self.at_fork: (untyped stage) ?{ () -> untyped } -> true
+        def self.at_fork: (Symbol stage) { () -> untyped } -> true
 
         module KernelMonkeyPatch
           def fork: () ?{ () -> untyped } -> untyped
         end
 
         module ProcessMonkeyPatch
-          def _fork: () -> untyped
+          def _fork: () -> Integer
 
           def daemon: (*untyped args) -> untyped
         end
