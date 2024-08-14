@@ -73,10 +73,7 @@ module Datadog
         exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
         transport = build_profiler_transport(settings, agent_settings)
         scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
-        profiler = Profiling::Profiler.new(
-          worker: worker,
-          scheduler: scheduler
-        )
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler)
 
         if dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
           Datadog::Profiling::Ext::DirMonkeyPatches.apply!

@@ -10,10 +10,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
     it 'returns a hash with the tags to be attached to a profile' do
       expect(call).to include(
         'host' => Datadog::Core::Environment::Socket.hostname,
-        'language' => 'ruby',
         'process_id' => Process.pid.to_s,
-        'library_version' => start_with('2.'),
-        'runtime' => 'ruby',
         'runtime_engine' => RUBY_ENGINE,
         'runtime-id' => Datadog::Core::Environment::Identity.id,
         'runtime_platform' => RUBY_PLATFORM,
@@ -53,9 +50,10 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
 
     context 'when there is a conflict between user and metadata tags' do
       it 'overrides the user-provided tags' do
-        settings.tags = { 'foo' => 'bar', 'language' => 'python' }
+        settings.tags = { 'foo' => 'bar', 'version' => '1.0.0' }
+        settings.version = '2.0.0'
 
-        expect(call).to include('foo' => 'bar', 'language' => 'ruby')
+        expect(call).to include('foo' => 'bar', 'version' => '2.0.0')
       end
     end
 

@@ -68,7 +68,9 @@ module Datadog
           start_or_update_on_fork(action: :start)
           ONLY_ONCE.run do
             Utils::AtForkMonkeyPatch.at_fork(:child) do
-              # Must NOT reference `self` here, as it become stale after fork
+              # Must NOT reference `self` here, as only the first instance will
+              # be captured by the ONLY_ONCE and we want to pick the latest active one
+              # (which may have different tags or agent config)
               Datadog.send(:components).crashtracker&.update_on_fork
             end
           end

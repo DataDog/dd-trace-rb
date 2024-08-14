@@ -13,10 +13,7 @@ module Datadog
         def self.call(settings)
           hash = {
             'host' => Environment::Socket.hostname,
-            'language' => Environment::Identity.lang,
             'process_id' => Process.pid.to_s,
-            'library_version' => Environment::Identity.gem_datadog_version,
-            'runtime' => Environment::Identity.lang, # This is known to be repeated from language, above
             'runtime_engine' => Environment::Identity.lang_engine,
             'runtime-id' => Environment::Identity.id,
             'runtime_platform' => Environment::Identity.lang_platform,
