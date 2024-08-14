@@ -92,7 +92,6 @@ module Datadog
         attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
 
         def start_or_update_on_fork(action:)
-          logger.debug("Crash tracking #{action}...")
           self.class._native_start_or_update_on_fork(
             action: action,
             exporter_configuration: [:agent, agent_base_url],
@@ -101,7 +100,7 @@ module Datadog
             tags_as_array: tags.to_a,
             upload_timeout_seconds: 1
           )
-          logger.debug("Crash tracking #{action} successful")
+          logger.debug("Crash tracking #{action} successfully")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
         end

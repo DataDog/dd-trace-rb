@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
       let(:settings) { Datadog::Core::Configuration::Settings.new }
       let(:agent_settings) { double('agent_settings') }
       let(:logger) { Logger.new($stdout) }
-      let(:tags) { {} }
+      let(:tags) { { 'tag1' => 'value1' } }
       let(:agent_base_url) { 'agent_base_url' }
       let(:ld_library_path) { 'ld_library_path' }
       let(:path_to_crashtracking_receiver_binary) { 'path_to_crashtracking_receiver_binary' }
@@ -25,8 +25,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
             .and_return(ld_library_path)
           expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
             .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to_not receive(:warn)
 
-          component = double('component')
+          component = double(instance_double(described_class))
           expect(described_class).to receive(:new).with(
             tags: tags,
             agent_base_url: agent_base_url,
@@ -53,6 +54,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
             .and_return(ld_library_path)
           expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
             .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
           expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
         end
@@ -70,6 +72,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
             .and_return(ld_library_path)
           expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
             .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
           expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
         end
@@ -87,6 +90,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
             .and_return(ld_library_path)
           expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
             .and_return(path_to_crashtracking_receiver_binary)
+          expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
           expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
         end
