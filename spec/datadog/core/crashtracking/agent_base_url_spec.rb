@@ -8,8 +8,8 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
     context 'when using HTTP adapter' do
       context 'when SSL is enabled' do
         let(:agent_settings) do
-          double(
-            'agent_settings',
+          instance_double(
+            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: true,
             hostname: 'example.com',
@@ -24,8 +24,8 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
       context 'when SSL is disabled' do
         let(:agent_settings) do
-          double(
-            'agent_settings',
+          instance_double(
+            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: false,
             hostname: 'example.com',
@@ -41,8 +41,8 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
     context 'when using UnixSocket adapter' do
       let(:agent_settings) do
-        double(
-          'agent_settings',
+        instance_double(
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
           adapter: Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
           uds_path: '/var/run/datadog.sock'
         )
@@ -54,7 +54,9 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
     end
 
     context 'when using unknownm adapter' do
-      let(:agent_settings) { double('agent_settings', adapter: 'unknown') }
+      let(:agent_settings) do
+        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: 'unknown')
+      end
 
       it 'returns nil' do
         expect(described_class.resolve(agent_settings)).to be_nil
