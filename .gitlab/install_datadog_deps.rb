@@ -77,7 +77,7 @@ env = {
   'libdatadog', # libdatadog MUST be installed before datadog
   'datadog',
 ].each do |gem|
-  version = gem_version_mapping.fetch(gem)
+  version = gem_version_mapping.delete(gem)
 
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\
@@ -105,6 +105,8 @@ env = {
     exit 1
   end
 end
+
+raise "#{gem_version_mapping.keys.join(',')} are not installed." if gem_version_mapping.any?
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries
