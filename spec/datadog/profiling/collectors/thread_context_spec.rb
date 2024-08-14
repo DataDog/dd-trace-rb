@@ -117,7 +117,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       expect(Thread.list).to eq(all_threads), 'Threads finished during this spec, causing flakiness!'
 
-      seen_threads = samples.map(&:labels).map { |it| it.fetch(:'thread id') }.uniq
+      seen_threads = samples.map(&:labels).map { |it| it.fetch(:"thread id") }.uniq
 
       expect(seen_threads.size).to be all_threads.size
     end
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it 'tags the samples with the object ids of the Threads they belong to' do
       sample
 
-      expect(samples.map { |it| object_id_from(it.labels.fetch(:'thread id')) })
+      expect(samples.map { |it| object_id_from(it.labels.fetch(:"thread id")) })
         .to include(*[Thread.main, t1, t2, t3].map(&:object_id))
     end
 
@@ -138,8 +138,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       t1_sample = samples_for_thread(samples, t1).first
       t2_sample = samples_for_thread(samples, t2).first
 
-      expect(t1_sample.labels).to include('thread name': 'thread t1')
-      expect(t2_sample.labels).to include('thread name': 'thread t2')
+      expect(t1_sample.labels).to include("thread name": 'thread t1')
+      expect(t2_sample.labels).to include("thread name": 'thread t2')
     end
 
     context 'when no thread names are available' do
@@ -151,8 +151,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample
         t1_sample = samples_for_thread(samples, t1).first
 
-        expect(t1_sample.labels).to include('thread name': per_thread_context.fetch(t1).fetch(:thread_invoke_location))
-        expect(t1_sample.labels).to include('thread name': match(/.+\.rb:\d+/))
+        expect(t1_sample.labels).to include("thread name": per_thread_context.fetch(t1).fetch(:thread_invoke_location))
+        expect(t1_sample.labels).to include("thread name": match(/.+\.rb:\d+/))
       end
     end
 
@@ -163,7 +163,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       sample
 
-      expect(samples_for_thread(samples, Thread.main).first.labels).to include('thread name': 'main')
+      expect(samples_for_thread(samples, Thread.main).first.labels).to include("thread name": 'main')
 
       Thread.main.name = 'Thread.main'
     end
@@ -179,7 +179,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:'wall-time') }.reduce(:+)
+      wall_time = t1_samples.map(&:values).map { |it| it.fetch(:"wall-time") }.reduce(:+)
       expect(wall_time).to be(wall_time_at_second_sample - wall_time_at_first_sample)
     end
 
@@ -188,7 +188,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       t1_samples = samples_for_thread(samples, t1)
 
-      expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 5
+      expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 5
     end
 
     context 'when a thread is marked as being in garbage collection by on_gc_start' do
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it 'sets the cpu-time on every sample to zero' do
           5.times { sample }
 
-          expect(samples).to all have_attributes(values: include('cpu-time': 0))
+          expect(samples).to all have_attributes(values: include("cpu-time": 0))
         end
       end
 
@@ -241,7 +241,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           # some data for it
           total_cpu_for_rspec_thread =
             samples_for_thread(samples, Thread.current)
-              .map { |it| it.values.fetch(:'cpu-time') }
+              .map { |it| it.values.fetch(:"cpu-time") }
               .reduce(:+)
 
           # The **wall-clock time** spent by the rspec thread is going to be an upper bound for the cpu time spent,
@@ -257,7 +257,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             on_gc_start
 
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
+            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
             # Even though we keep calling sample, the result only includes the time until we called on_gc_start
             5.times { another_way_of_calling_sample }
@@ -265,7 +265,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             total_cpu_for_rspec_thread =
               samples_for_thread(samples, Thread.current)
                 .select { |it| it.locations.find { |frame| frame.base_label == 'another_way_of_calling_sample' } }
-                .map { |it| it.values.fetch(:'cpu-time') }
+                .map { |it| it.values.fetch(:"cpu-time") }
                 .reduce(:+)
 
             expect(total_cpu_for_rspec_thread).to be(cpu_time_at_gc_start - cpu_time_at_first_sample)
@@ -278,7 +278,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             on_gc_start
 
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
+            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
             5.times { sample }
 
@@ -295,7 +295,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             on_gc_start
 
-            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.cpu_time_at_start_ns')
+            cpu_time_at_gc_start = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.cpu_time_at_start_ns")
 
             on_gc_finish
 
@@ -325,10 +325,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           found_labels = t1_sample.labels.keys
 
-          expect(found_labels).to_not include(:'local root span id')
-          expect(found_labels).to_not include(:'span id')
+          expect(found_labels).to_not include(:"local root span id")
+          expect(found_labels).to_not include(:"span id")
 
-          expect(found_labels).to include(:'thread id') # Sanity check
+          expect(found_labels).to include(:"thread id") # Sanity check
         end
       end
 
@@ -391,22 +391,22 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             sample
 
             expect(t1_sample.labels).to include(
-              'local root span id': @t1_local_root_span_id.to_i,
-              'span id': @t1_span_id.to_i,
+              "local root span id": @t1_local_root_span_id.to_i,
+              "span id": @t1_span_id.to_i,
             )
           end
 
           it 'does not include the "trace endpoint" label' do
             sample
 
-            expect(t1_sample.labels).to_not include('trace endpoint': anything)
+            expect(t1_sample.labels).to_not include("trace endpoint": anything)
           end
 
           shared_examples_for 'samples with code hotspots information' do
             it 'includes the "trace endpoint" label in the samples' do
               sample
 
-              expect(t1_sample.labels).to include('trace endpoint': 'profiler.test')
+              expect(t1_sample.labels).to include("trace endpoint": 'profiler.test')
             end
 
             context 'when endpoint_collection_enabled is false' do
@@ -416,15 +416,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 sample
 
                 expect(t1_sample.labels).to include(
-                  'local root span id': @t1_local_root_span_id.to_i,
-                  'span id': @t1_span_id.to_i,
+                  "local root span id": @t1_local_root_span_id.to_i,
+                  "span id": @t1_span_id.to_i,
                 )
               end
 
               it 'does not include the "trace endpoint" label' do
                 sample
 
-                expect(t1_sample.labels).to_not include('trace endpoint': anything)
+                expect(t1_sample.labels).to_not include("trace endpoint": anything)
               end
             end
 
@@ -452,7 +452,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 it 'includes the "trace endpoint" label in the samples with the root span resource' do
                   sample
 
-                  expect(t1_sample.labels).to include('trace endpoint': 'root_span_resource')
+                  expect(t1_sample.labels).to include("trace endpoint": 'root_span_resource')
                 end
               end
 
@@ -463,7 +463,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 it 'includes the "trace endpoint" label in the samples with the trace resource' do
                   sample
 
-                  expect(t1_sample.labels).to include('trace endpoint': 'trace_resource')
+                  expect(t1_sample.labels).to include("trace endpoint": 'trace_resource')
                 end
               end
 
@@ -474,7 +474,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 it 'does not include the "trace endpoint" label' do
                   sample
 
-                  expect(t1_sample.labels.keys).to_not include(:'trace endpoint')
+                  expect(t1_sample.labels.keys).to_not include(:"trace endpoint")
                 end
               end
             end
@@ -491,8 +491,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 t1_samples = samples_for_thread(samples, t1)
 
                 expect(t1_samples)
-                  .to all have_attributes(labels: include('trace endpoint': 'changed_after_first_sample'))
-                expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 2
+                  .to all have_attributes(labels: include("trace endpoint": 'changed_after_first_sample'))
+                expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 2
               end
 
               context 'when the resource is changed multiple times' do
@@ -506,8 +506,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                   t1_samples = samples_for_thread(samples, t1)
 
                   expect(t1_samples)
-                    .to all have_attributes(labels: include('trace endpoint': 'changed_after_second_sample'))
-                  expect(t1_samples.map(&:values).map { |it| it.fetch(:'cpu-samples') }.reduce(:+)).to eq 3
+                    .to all have_attributes(labels: include("trace endpoint": 'changed_after_second_sample'))
+                  expect(t1_samples.map(&:values).map { |it| it.fetch(:"cpu-samples") }.reduce(:+)).to eq 3
                 end
               end
             end
@@ -562,15 +562,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample
 
               expect(t1_sample.labels).to include(
-                'local root span id': @t1_local_root_span_id.to_i,
-                'span id': @t1_span_id.to_i,
+                "local root span id": @t1_local_root_span_id.to_i,
+                "span id": @t1_span_id.to_i,
               )
             end
 
             it 'does not include the "trace endpoint" label' do
               sample
 
-              expect(t1_sample.labels).to_not include('trace endpoint': anything)
+              expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
             context 'when there are multiple otel spans nested' do
@@ -595,8 +595,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 sample
 
                 expect(t1_sample.labels).to include(
-                  'local root span id': @t1_local_root_span_id.to_i,
-                  'span id': @t1_span_id.to_i,
+                  "local root span id": @t1_local_root_span_id.to_i,
+                  "span id": @t1_span_id.to_i,
                 )
               end
             end
@@ -628,15 +628,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                   sample
 
                   expect(t1_sample.labels).to include(
-                    'local root span id': @t1_local_root_span_id.to_i,
-                    'span id': @t1_span_id.to_i,
+                    "local root span id": @t1_local_root_span_id.to_i,
+                    "span id": @t1_span_id.to_i,
                   )
                 end
 
                 it 'includes the "trace endpoint" label in the samples with the trace resource' do
                   sample
 
-                  expect(t1_sample.labels).to include('trace endpoint': 'example_resource')
+                  expect(t1_sample.labels).to include("trace endpoint": 'example_resource')
                 end
               end
 
@@ -664,8 +664,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                   sample
 
                   expect(t1_sample.labels).to include(
-                    'local root span id': @t1_local_root_span_id.to_i,
-                    'span id': @t1_span_id.to_i,
+                    "local root span id": @t1_local_root_span_id.to_i,
+                    "span id": @t1_span_id.to_i,
                   )
                 end
               end
@@ -716,11 +716,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       expect(profiler_overhead_stack.size).to be 1
 
       expect(
-        second_sample_stack.first.values.fetch(:'wall-time') + profiler_overhead_stack.first.values.fetch(:'wall-time')
+        second_sample_stack.first.values.fetch(:"wall-time") + profiler_overhead_stack.first.values.fetch(:"wall-time")
       ).to be wall_time_at_second_sample - wall_time_at_first_sample
 
-      expect(second_sample_stack.first.labels).to_not include('profiler overhead': anything)
-      expect(profiler_overhead_stack.first.labels).to include('profiler overhead': 1)
+      expect(second_sample_stack.first.labels).to_not include("profiler overhead": anything)
+      expect(profiler_overhead_stack.first.labels).to include("profiler overhead": 1)
     end
 
     describe 'timeline support' do
@@ -770,7 +770,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         wall_time_after_on_gc_start_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
         expect(per_thread_context.fetch(Thread.current)).to include(
-          'gc_tracking.wall_time_at_start_ns': be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
+          "gc_tracking.wall_time_at_start_ns": be_between(wall_time_before_on_gc_start_ns, wall_time_after_on_gc_start_ns)
         )
       end
 
@@ -783,7 +783,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           it "records the cpu-time when garbage collection started in the caller thread's context as zero" do
             on_gc_start
 
-            expect(per_thread_context.fetch(Thread.current)).to include('gc_tracking.cpu_time_at_start_ns': 0)
+            expect(per_thread_context.fetch(Thread.current)).to include("gc_tracking.cpu_time_at_start_ns": 0)
           end
         end
 
@@ -798,7 +798,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             cpu_time_at_previous_sample_ns = per_thread_context.fetch(Thread.current).fetch(:cpu_time_at_previous_sample_ns)
 
             expect(per_thread_context.fetch(Thread.current))
-              .to include('gc_tracking.cpu_time_at_start_ns': (be > cpu_time_at_previous_sample_ns))
+              .to include("gc_tracking.cpu_time_at_start_ns": (be > cpu_time_at_previous_sample_ns))
           end
         end
       end
@@ -843,13 +843,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           on_gc_finish
 
           expect(per_thread_context.fetch(Thread.current)).to include(
-            'gc_tracking.cpu_time_at_start_ns': invalid_time,
-            'gc_tracking.wall_time_at_start_ns': invalid_time,
+            "gc_tracking.cpu_time_at_start_ns": invalid_time,
+            "gc_tracking.wall_time_at_start_ns": invalid_time,
           )
         end
 
         it 'records the wall-time time spent between calls to on_gc_start and on_gc_finish' do
-          wall_time_at_start_ns = per_thread_context.fetch(Thread.current).fetch(:'gc_tracking.wall_time_at_start_ns')
+          wall_time_at_start_ns = per_thread_context.fetch(Thread.current).fetch(:"gc_tracking.wall_time_at_start_ns")
 
           wall_time_before_on_gc_finish_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
           on_gc_finish
@@ -939,7 +939,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
 
     context 'when there is gc information to record' do
-      let(:gc_sample) { samples.find { |it| it.labels.fetch(:'thread name') == 'Garbage Collection' } }
+      let(:gc_sample) { samples.find { |it| it.labels.fetch(:"thread name") == 'Garbage Collection' } }
 
       before do
         on_gc_start
@@ -977,14 +977,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       it 'creates a Garbage Collection sample' do
         sample_after_gc
 
-        expect(gc_sample.values.fetch(:'cpu-samples')).to be 1
+        expect(gc_sample.values.fetch(:"cpu-samples")).to be 1
         expect(gc_sample.labels).to match a_hash_including(
           state: 'had cpu',
-          'thread id': 'GC',
-          'thread name': 'Garbage Collection',
+          "thread id": 'GC',
+          "thread name": 'Garbage Collection',
           event: 'gc',
-          'gc cause': an_instance_of(String),
-          'gc type': an_instance_of(String),
+          "gc cause": an_instance_of(String),
+          "gc type": an_instance_of(String),
         )
         expect(gc_sample.locations.first.path).to eq 'Garbage Collection'
       end
@@ -996,8 +996,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample_after_gc
 
         expect(gc_sample.values).to match a_hash_including(
-          'cpu-time': accumulated_cpu_time_ns,
-          'wall-time': accumulated_wall_time_ns,
+          "cpu-time": accumulated_cpu_time_ns,
+          "wall-time": accumulated_wall_time_ns,
         )
       end
 
@@ -1036,19 +1036,19 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it 'samples the caller thread' do
       sample_allocation(weight: 123)
 
-      expect(object_id_from(single_sample.labels.fetch(:'thread id'))).to be Thread.current.object_id
+      expect(object_id_from(single_sample.labels.fetch(:"thread id"))).to be Thread.current.object_id
     end
 
     it 'tags the sample with the provided weight' do
       sample_allocation(weight: 123)
 
-      expect(single_sample.values).to include('alloc-samples': 123)
+      expect(single_sample.values).to include("alloc-samples": 123)
     end
 
     it 'tags the sample with the unscaled weight' do
       sample_allocation(weight: 123)
 
-      expect(single_sample.values).to include('alloc-samples-unscaled': 1)
+      expect(single_sample.values).to include("alloc-samples-unscaled": 1)
     end
 
     it 'includes the thread names, if available' do
@@ -1059,7 +1059,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       sample_with_name = samples_for_thread(samples, thread_with_name).first
 
-      expect(sample_with_name.labels).to include('thread name': 'thread_with_name')
+      expect(sample_with_name.labels).to include("thread name": 'thread_with_name')
     end
 
     describe 'code hotspots' do
@@ -1090,9 +1090,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         it 'gathers the "local root span id", "span id" and "trace endpoint"' do
           expect(single_sample.labels).to include(
-            'local root span id': @t1_local_root_span_id.to_i,
-            'span id': @t1_span_id.to_i,
-            'trace endpoint': 'trace_resource',
+            "local root span id": @t1_local_root_span_id.to_i,
+            "span id": @t1_span_id.to_i,
+            "trace endpoint": 'trace_resource',
           )
         end
       end
@@ -1137,13 +1137,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it 'includes the correct ruby vm type for the passed object' do
           sample_allocation(weight: 123, new_object: object)
 
-          expect(single_sample.labels.fetch(:'ruby vm type')).to eq expected_type.to_s
+          expect(single_sample.labels.fetch(:"ruby vm type")).to eq expected_type.to_s
         end
 
         it 'includes the correct class for the passed object' do
           sample_allocation(weight: 123, new_object: object)
 
-          expect(single_sample.labels.fetch(:'allocation class')).to eq klass
+          expect(single_sample.labels.fetch(:"allocation class")).to eq klass
         end
 
         context 'when allocation_type_enabled is false' do
@@ -1152,7 +1152,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           it 'does not record the correct class for the passed object' do
             sample_allocation(weight: 123, new_object: object)
 
-            expect(single_sample.labels).to_not include('allocation class': anything)
+            expect(single_sample.labels).to_not include("allocation class": anything)
           end
         end
       end
@@ -1164,7 +1164,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_allocation(weight: 123, new_object: file)
         end
 
-        expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_FILE'
+        expect(single_sample.labels.fetch(:"ruby vm type")).to eq 'T_FILE'
       end
 
       it 'includes the correct class for the passed object' do
@@ -1172,7 +1172,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           sample_allocation(weight: 123, new_object: file)
         end
 
-        expect(single_sample.labels.fetch(:'allocation class')).to eq 'File'
+        expect(single_sample.labels.fetch(:"allocation class")).to eq 'File'
       end
 
       context 'when allocation_type_enabled is false' do
@@ -1183,7 +1183,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             sample_allocation(weight: 123, new_object: file)
           end
 
-          expect(single_sample.labels).to_not include('allocation class': anything)
+          expect(single_sample.labels).to_not include("allocation class": anything)
         end
       end
     end
@@ -1196,13 +1196,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       it 'includes the correct ruby vm type for the passed object' do
         sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
 
-        expect(single_sample.labels.fetch(:'ruby vm type')).to eq 'T_STRUCT'
+        expect(single_sample.labels.fetch(:"ruby vm type")).to eq 'T_STRUCT'
       end
 
       it 'includes the correct class for the passed object' do
         sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
 
-        expect(single_sample.labels.fetch(:'allocation class')).to eq 'ThreadContextSpec::TestStruct'
+        expect(single_sample.labels.fetch(:"allocation class")).to eq 'ThreadContextSpec::TestStruct'
       end
 
       context 'when allocation_type_enabled is false' do
@@ -1211,7 +1211,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it 'does not record the correct class for the passed object' do
           sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
 
-          expect(single_sample.labels).to_not include('allocation class': anything)
+          expect(single_sample.labels).to_not include("allocation class": anything)
         end
       end
     end
@@ -1225,15 +1225,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     before { sample_skipped_allocation_samples(123) }
 
     it 'records the number of skipped allocations' do
-      expect(single_sample.values).to include('alloc-samples': 123)
+      expect(single_sample.values).to include("alloc-samples": 123)
     end
 
     it 'attributes the skipped samples to a "Skipped Samples" thread' do
-      expect(single_sample.labels).to include('thread id': 'SS', 'thread name': 'Skipped Samples')
+      expect(single_sample.labels).to include("thread id": 'SS', "thread name": 'Skipped Samples')
     end
 
     it 'attributes the skipped samples to a "(Skipped Samples)" allocation class' do
-      expect(single_sample.labels).to include('allocation class': '(Skipped Samples)')
+      expect(single_sample.labels).to include("allocation class": '(Skipped Samples)')
     end
 
     it 'includes a placeholder stack attributed to "Skipped Samples"' do

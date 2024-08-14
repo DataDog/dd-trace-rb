@@ -213,7 +213,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
           family: 'ruby',
           tags: ['tag1:value1', 'tag2:value2'],
         )
-        expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+        expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
         expect(crash_report_message[:os_info]).to_not be_empty
       end
     end
