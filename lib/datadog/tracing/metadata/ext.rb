@@ -87,6 +87,7 @@ module Datadog
           TAG_STATUS_CODE = 'http.status_code'
           TAG_USER_AGENT = 'http.useragent'
           TAG_URL = 'http.url'
+          TAG_ROUTE = 'http.route'
           TYPE_INBOUND = AppTypes::TYPE_WEB.freeze
           TYPE_OUTBOUND = 'http'
           TYPE_PROXY = 'proxy'
