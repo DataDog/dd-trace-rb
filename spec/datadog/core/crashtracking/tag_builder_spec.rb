@@ -7,7 +7,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
 
     subject(:call) { described_class.call(settings) }
 
-    it 'returns a hash with the tags to be attached to a profile' do
+    it 'returns a hash with the tags to be attached to a crash report' do
       expect(call).to include(
         'host' => Datadog::Core::Environment::Socket.hostname,
         'process_id' => Process.pid.to_s,

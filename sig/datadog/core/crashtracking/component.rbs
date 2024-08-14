@@ -21,7 +21,7 @@ module Datadog
 
         def start: -> void
 
-        def reset_after_fork: -> void
+        def update_on_fork: -> void
 
         def stop: -> void
 
