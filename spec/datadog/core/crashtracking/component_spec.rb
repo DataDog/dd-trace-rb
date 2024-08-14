@@ -5,7 +5,7 @@ require 'webrick'
 require 'fiddle'
 
 RSpec.describe Datadog::Core::Crashtracking::Component,
-  skip: Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE do
+  skip: !CrashtrackingHelpers.supported? do
     describe '.build' do
       let(:settings) { Datadog::Core::Configuration::Settings.new }
       let(:agent_settings) { double('agent_settings') }
