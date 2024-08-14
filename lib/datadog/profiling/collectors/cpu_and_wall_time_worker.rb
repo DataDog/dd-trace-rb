@@ -30,7 +30,7 @@ module Datadog
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
-              'Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!'
+              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
             )
           end
 
@@ -67,11 +67,11 @@ module Datadog
 
               self.class._native_sampling_loop(self)
 
-              Datadog.logger.debug('CpuAndWallTimeWorker thread stopping cleanly')
+              Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
             rescue Exception => e # rubocop:disable Lint/RescueException
               @failure_exception = e
               Datadog.logger.warn(
-                'CpuAndWallTimeWorker thread error. ' \
+                "CpuAndWallTimeWorker thread error. " \
                 "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
               )
               on_failure_proc&.call
@@ -85,7 +85,7 @@ module Datadog
 
         def stop
           @start_stop_mutex.synchronize do
-            Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
+            Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
             @idle_sampling_helper.stop
 

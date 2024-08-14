@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../../core/utils/only_once'
-require_relative '../../core/utils/at_fork_monkey_patch'
+require_relative "../../core/utils/only_once"
+require_relative "../../core/utils/at_fork_monkey_patch"
 
 module Datadog
   module Profiling

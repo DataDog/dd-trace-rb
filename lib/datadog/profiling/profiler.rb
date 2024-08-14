@@ -31,7 +31,7 @@ module Datadog
       end
 
       def shutdown!
-        Datadog.logger.debug('Shutting down profiler')
+        Datadog.logger.debug("Shutting down profiler")
 
         stop_worker
         stop_scheduler
@@ -52,7 +52,7 @@ module Datadog
       def component_failed(failed_component)
         Datadog.logger.warn(
           "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
-          'See previous log messages for details.'
+          "See previous log messages for details."
         )
 
         # We explicitly not stop the crash tracker in this situation, under the assumption that, if a component failed,

@@ -1,5 +1,5 @@
-require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/stack_recorder'
+require "datadog/profiling/spec_helper"
+require "datadog/profiling/stack_recorder"
 
 RSpec.describe Datadog::Profiling::StackRecorder do
   before { skip_if_profiling_not_supported(self) }
@@ -40,23 +40,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_slot_two_mutex_locked?(stack_recorder)
   end
 
-  describe '#initialize' do
-    describe 'locking behavior' do
-      it 'sets slot one as the active slot' do
+  describe "#initialize" do
+    describe "locking behavior" do
+      it "sets slot one as the active slot" do
         expect(active_slot).to be 1
       end
 
-      it 'keeps the slot one mutex unlocked' do
+      it "keeps the slot one mutex unlocked" do
         expect(slot_one_mutex_locked?).to be false
       end
 
-      it 'keeps the slot two mutex locked' do
+      it "keeps the slot two mutex locked" do
         expect(slot_two_mutex_locked?).to be true
       end
     end
   end
 
-  describe '#serialize' do
+  describe "#serialize" do
     subject(:serialize) { stack_recorder.serialize }
 
     let(:start) { serialize[0] }
@@ -66,7 +66,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
     let(:decoded_profile) { decode_profile(encoded_pprof) }
 
-    it 'debug logs profile information' do
+    it "debug logs profile information" do
       message = nil
 
       expect(Datadog.logger).to receive(:debug) do |&message_block|
@@ -79,43 +79,43 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       expect(message).to include finish.iso8601
     end
 
-    describe 'locking behavior' do
-      context 'when slot one was the active slot' do
-        it 'sets slot two as the active slot' do
+    describe "locking behavior" do
+      context "when slot one was the active slot" do
+        it "sets slot two as the active slot" do
           expect { serialize }.to change { active_slot }.from(1).to(2)
         end
 
-        it 'locks the slot one mutex' do
+        it "locks the slot one mutex" do
           expect { serialize }.to change { slot_one_mutex_locked? }.from(false).to(true)
         end
 
-        it 'unlocks the slot two mutex' do
+        it "unlocks the slot two mutex" do
           expect { serialize }.to change { slot_two_mutex_locked? }.from(true).to(false)
         end
       end
 
-      context 'when slot two was the active slot' do
+      context "when slot two was the active slot" do
         before do
           # Trigger serialization once, so that active slots get flipped
           stack_recorder.serialize
         end
 
-        it 'sets slot one as the active slot' do
+        it "sets slot one as the active slot" do
           expect { serialize }.to change { active_slot }.from(2).to(1)
         end
 
-        it 'unlocks the slot one mutex' do
+        it "unlocks the slot one mutex" do
           expect { serialize }.to change { slot_one_mutex_locked? }.from(true).to(false)
         end
 
-        it 'locks the slot two mutex' do
+        it "locks the slot two mutex" do
           expect { serialize }.to change { slot_two_mutex_locked? }.from(false).to(true)
         end
       end
     end
 
-    context 'when the profile is empty' do
-      it 'uses the current time as the start and finish time' do
+    context "when the profile is empty" do
+      it "uses the current time as the start and finish time" do
         before_serialize = Time.now.utc
         serialize
         after_serialize = Time.now.utc
@@ -125,7 +125,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(start).to be <= finish
       end
 
-      describe 'profile types configuration' do
+      describe "profile types configuration" do
         let(:cpu_time_enabled) { true }
         let(:alloc_samples_enabled) { true }
         let(:heap_samples_enabled) { true }
@@ -133,87 +133,87 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         let(:timeline_enabled) { true }
         let(:all_profile_types) do
           {
-            'cpu-time' => 'nanoseconds',
-            'cpu-samples' => 'count',
-            'wall-time' => 'nanoseconds',
-            'alloc-samples' => 'count',
-            'alloc-samples-unscaled' => 'count',
-            'heap-live-samples' => 'count',
-            'heap-live-size' => 'bytes',
-            'timeline' => 'nanoseconds',
+            "cpu-time" => "nanoseconds",
+            "cpu-samples" => "count",
+            "wall-time" => "nanoseconds",
+            "alloc-samples" => "count",
+            "alloc-samples-unscaled" => "count",
+            "heap-live-samples" => "count",
+            "heap-live-size" => "bytes",
+            "timeline" => "nanoseconds",
           }
         end
 
         def profile_types_without(*types)
           result = all_profile_types.dup
-          types.each { |type| result.delete(type) { raise 'Missing key' } }
+          types.each { |type| result.delete(type) { raise "Missing key" } }
           result
         end
 
-        context 'when all profile types are enabled' do
-          it 'returns a pprof with the configured sample types' do
+        context "when all profile types are enabled" do
+          it "returns a pprof with the configured sample types" do
             expect(sample_types_from(decoded_profile)).to eq(all_profile_types)
           end
         end
 
-        context 'when cpu-time is disabled' do
+        context "when cpu-time is disabled" do
           let(:cpu_time_enabled) { false }
 
-          it 'returns a pprof without the cpu-type type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('cpu-time'))
+          it "returns a pprof without the cpu-type type" do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("cpu-time"))
           end
         end
 
-        context 'when alloc-samples is disabled' do
+        context "when alloc-samples is disabled" do
           let(:alloc_samples_enabled) { false }
 
-          it 'returns a pprof without the alloc-samples type' do
+          it "returns a pprof without the alloc-samples type" do
             expect(sample_types_from(decoded_profile))
-              .to eq(profile_types_without('alloc-samples', 'alloc-samples-unscaled'))
+              .to eq(profile_types_without("alloc-samples", "alloc-samples-unscaled"))
           end
         end
 
-        context 'when heap-live-samples is disabled' do
+        context "when heap-live-samples is disabled" do
           let(:heap_samples_enabled) { false }
 
-          it 'returns a pprof without the heap-live-samples type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-samples'))
+          it "returns a pprof without the heap-live-samples type" do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("heap-live-samples"))
           end
         end
 
-        context 'when heap-live-size is disabled' do
+        context "when heap-live-size is disabled" do
           let(:heap_size_enabled) { false }
 
-          it 'returns a pprof without the heap-live-size type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('heap-live-size'))
+          it "returns a pprof without the heap-live-size type" do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("heap-live-size"))
           end
         end
 
-        context 'when timeline is disabled' do
+        context "when timeline is disabled" do
           let(:timeline_enabled) { false }
 
-          it 'returns a pprof without the timeline type' do
-            expect(sample_types_from(decoded_profile)).to eq(profile_types_without('timeline'))
+          it "returns a pprof without the timeline type" do
+            expect(sample_types_from(decoded_profile)).to eq(profile_types_without("timeline"))
           end
         end
 
-        context 'when all optional types are disabled' do
+        context "when all optional types are disabled" do
           let(:cpu_time_enabled) { false }
           let(:alloc_samples_enabled) { false }
           let(:heap_samples_enabled) { false }
           let(:heap_size_enabled) { false }
           let(:timeline_enabled) { false }
 
-          it 'returns a pprof without the optional types' do
+          it "returns a pprof without the optional types" do
             expect(sample_types_from(decoded_profile)).to eq(
-              'cpu-samples' => 'count',
-              'wall-time' => 'nanoseconds',
+              "cpu-samples" => "count",
+              "wall-time" => "nanoseconds",
             )
           end
         end
       end
 
-      it 'returns an empty pprof' do
+      it "returns an empty pprof" do
         expect(decoded_profile).to have_attributes(
           sample: [],
           mapping: [],
@@ -228,7 +228,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'returns stats reporting no recorded samples' do
+      it "returns stats reporting no recorded samples" do
         expect(profile_stats).to match(
           hash_including(
             recorded_samples: 0,
@@ -245,18 +245,18 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    context 'when profile has a sample' do
+    context "when profile has a sample" do
       let(:metric_values) do
         {
-          'cpu-time' => 123,
-          'cpu-samples' => 456,
-          'wall-time' => 789,
-          'alloc-samples' => 4242,
-          'alloc-samples-unscaled' => 2222,
-          'timeline' => 1111,
+          "cpu-time" => 123,
+          "cpu-samples" => 456,
+          "wall-time" => 789,
+          "alloc-samples" => 4242,
+          "alloc-samples-unscaled" => 2222,
+          "timeline" => 1111,
         }
       end
-      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
+      let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -266,7 +266,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(samples.size).to be 1
       end
 
-      it 'encodes the sample with the metrics provided' do
+      it "encodes the sample with the metrics provided" do
         expect(samples.first.values)
           .to eq(
             "cpu-time": 123,
@@ -278,24 +278,24 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           )
       end
 
-      context 'when disabling an optional profile sample type' do
+      context "when disabling an optional profile sample type" do
         let(:cpu_time_enabled) { false }
 
-        it 'encodes the sample with the metrics provided, ignoring the disabled ones' do
+        it "encodes the sample with the metrics provided, ignoring the disabled ones" do
           expect(samples.first.values).to eq(
             "cpu-samples": 456, "wall-time": 789, "alloc-samples": 4242, "alloc-samples-unscaled": 2222, timeline: 1111
           )
         end
       end
 
-      it 'encodes the sample with the labels provided' do
+      it "encodes the sample with the labels provided" do
         labels = samples.first.labels
         labels.delete(:state) # We test this separately!
 
-        expect(labels).to eq(label_a: 'value_a', label_b: 'value_b')
+        expect(labels).to eq(label_a: "value_a", label_b: "value_b")
       end
 
-      it 'encodes a single empty mapping' do
+      it "encodes a single empty mapping" do
         expect(decoded_profile.mapping.size).to be 1
 
         expect(decoded_profile.mapping.first).to have_attributes(
@@ -312,7 +312,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
-      it 'returns stats reporting one recorded sample' do
+      it "returns stats reporting one recorded sample" do
         expect(profile_stats).to match(
           hash_including(
             recorded_samples: 1,
@@ -324,9 +324,9 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    context 'when sample is invalid' do
-      context 'because the local root span id is being defined using a string instead of as a number' do
-        let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
+    context "when sample is invalid" do
+      context "because the local root span id is being defined using a string instead of as a number" do
+        let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
 
         it do
           # We're using `_native_sample` here to test the behavior of `record_sample` in `stack_recorder.c`
@@ -335,7 +335,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               Thread.current,
               stack_recorder,
               metric_values,
-              {'local root span id' => 'incorrect', 'state' => 'unknown'}.to_a,
+              {"local root span id" => "incorrect", "state" => "unknown"}.to_a,
               [],
               400,
               false,
@@ -345,17 +345,17 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    describe 'trace endpoint behavior' do
-      let(:metric_values) { {'cpu-time' => 101, 'cpu-samples' => 1, 'wall-time' => 789} }
+    describe "trace endpoint behavior" do
+      let(:metric_values) { {"cpu-time" => 101, "cpu-samples" => 1, "wall-time" => 789} }
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
-      it 'includes the endpoint for all matching samples taken before and after recording the endpoint' do
-        local_root_span_id_with_endpoint = {'local root span id' => 123}
-        local_root_span_id_without_endpoint = {'local root span id' => 456}
+      it "includes the endpoint for all matching samples taken before and after recording the endpoint" do
+        local_root_span_id_with_endpoint = {"local root span id" => 123}
+        local_root_span_id_without_endpoint = {"local root span id" => 456}
 
         sample = proc do |numeric_labels = {}|
           Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-            Thread.current, stack_recorder, metric_values, {'state' => 'unknown'}.to_a, numeric_labels.to_a, 400, false
+            Thread.current, stack_recorder, metric_values, {"state" => "unknown"}.to_a, numeric_labels.to_a, 400, false
           )
         end
 
@@ -363,7 +363,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         sample.call(local_root_span_id_without_endpoint)
         sample.call(local_root_span_id_with_endpoint)
 
-        described_class::Testing._native_record_endpoint(stack_recorder, 123, 'recorded-endpoint')
+        described_class::Testing._native_record_endpoint(stack_recorder, 123, "recorded-endpoint")
 
         sample.call
         sample.call(local_root_span_id_without_endpoint)
@@ -385,29 +385,29 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(
           samples.select do |it|
             labels_without_state.call(it.labels) ==
-              {"local root span id": 123, "trace endpoint": 'recorded-endpoint'}
+              {"local root span id": 123, "trace endpoint": "recorded-endpoint"}
           end
         ).to have(2).items
       end
     end
 
-    describe 'heap samples and sizes' do
+    describe "heap samples and sizes" do
       let(:sample_rate) { 50 }
       let(:metric_values) do
         {
-          'cpu-time' => 101,
-          'cpu-samples' => 1,
-          'wall-time' => 789,
-          'alloc-samples' => sample_rate,
-          'timeline' => 42,
-          'heap_sample' => true,
+          "cpu-time" => 101,
+          "cpu-samples" => 1,
+          "wall-time" => 789,
+          "alloc-samples" => sample_rate,
+          "timeline" => 42,
+          "heap_sample" => true,
         }
       end
-      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
+      let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
 
-      let(:a_string) { 'a beautiful string' }
+      let(:a_string) { "a beautiful string" }
       let(:an_array) { (1..100).to_a.compact }
-      let(:a_hash) { {'a' => 1, 'b' => '2', 'c' => true, 'd' => Object.new} }
+      let(:a_hash) { {"a" => 1, "b" => "2", "c" => true, "d" => Object.new} }
 
       let(:samples) { samples_from_pprof(encoded_pprof) }
 
@@ -420,7 +420,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
-          {'z' => -1, 'y' => '-2', 'x' => false}, Object.new]
+          {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
           # Sample allocations with 2 distinct stacktraces
@@ -446,7 +446,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # * Allocate some more stuff and clear again
         # * Do another GC
         allocations = ["another fearsome interpolated string: #{sample_rate}", (-20..-10).to_a,
-          {'a' => 1, 'b' => '2', 'c' => true}, Object.new]
+          {"a" => 1, "b" => "2", "c" => true}, Object.new]
         allocations.clear
         GC.start
       end
@@ -455,24 +455,24 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # This is here to facilitate troubleshooting when this test fails. Otherwise
         # it's very hard to understand what may be happening.
         if example.exception
-          puts('Heap recorder debugging info:')
+          puts("Heap recorder debugging info:")
           puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
         end
       end
 
-      context 'when disabled' do
+      context "when disabled" do
         let(:heap_samples_enabled) { false }
         let(:heap_size_enabled) { false }
 
-        it 'are ommitted from the profile' do
+        it "are ommitted from the profile" do
           # We sample from 2 distinct locations
           expect(samples.size).to eq(2)
-          expect(samples.select { |s| s.values.key?('heap-live-samples') }).to be_empty
-          expect(samples.select { |s| s.values.key?('heap-live-size') }).to be_empty
+          expect(samples.select { |s| s.values.key?("heap-live-samples") }).to be_empty
+          expect(samples.select { |s| s.values.key?("heap-live-size") }).to be_empty
         end
       end
 
-      context 'when enabled' do
+      context "when enabled" do
         let(:heap_samples_enabled) { true }
         let(:heap_size_enabled) { true }
 
@@ -485,36 +485,36 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         before do
-          skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
+          skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
         end
 
-        it 'include the stack and sample counts for the objects still left alive' do
+        it "include the stack and sample counts for the objects still left alive" do
           # There should be 3 different allocation class labels so we expect 3 different heap samples
           expect(heap_samples.size).to eq(3)
 
-          expect(heap_samples.map { |s| s.labels[:"allocation class"] }).to include('String', 'Array', 'Hash')
+          expect(heap_samples.map { |s| s.labels[:"allocation class"] }).to include("String", "Array", "Hash")
           expect(heap_samples.map(&:labels)).to all(match(hash_including("gc gen age": be_a(Integer).and(be >= 0))))
         end
 
-        it 'include accurate object sizes' do
-          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'String' }
+        it "include accurate object sizes" do
+          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           expect(string_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_string) * sample_rate)
 
-          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Array' }
+          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Array" }
           expect(array_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(an_array) * sample_rate)
 
-          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Hash' }
+          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Hash" }
           expect(hash_sample.values[:"heap-live-size"]).to eq(ObjectSpace.memsize_of(a_hash) * sample_rate)
         end
 
-        it 'include accurate object ages' do
-          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'String' }
+        it "include accurate object ages" do
+          string_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "String" }
           string_age = string_sample.labels[:"gc gen age"]
 
-          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Array' }
+          array_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Array" }
           array_age = array_sample.labels[:"gc gen age"]
 
-          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == 'Hash' }
+          hash_sample = heap_samples.find { |s| s.labels[:"allocation class"] == "Hash" }
           hash_age = hash_sample.labels[:"gc gen age"]
 
           unique_sorted_ages = [string_age, array_age, hash_age].uniq.sort
@@ -532,7 +532,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(hash_age).to be_between(4, 5)
         end
 
-        it 'keeps on reporting accurate samples for other profile types' do
+        it "keeps on reporting accurate samples for other profile types" do
           expect(non_heap_samples.size).to eq(2)
 
           summed_values = {}
@@ -547,7 +547,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           # for each profile-type there in.
           expected_summed_values = {"heap-live-samples": 0, "heap-live-size": 0, "alloc-samples-unscaled": 0}
           metric_values.each_pair do |k, v|
-            next if k == 'heap_sample' # This is not a metric, ignore it
+            next if k == "heap_sample" # This is not a metric, ignore it
 
             expected_summed_values[k.to_sym] = v * @num_allocations
           end
@@ -555,7 +555,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(summed_values).to eq(expected_summed_values)
         end
 
-        it 'does not include samples with age = 0' do
+        it "does not include samples with age = 0" do
           test_num_allocated_objects = 123
           test_num_age_bigger_0 = 57
           live_objects = Array.new(test_num_allocated_objects)
@@ -619,7 +619,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           expect(relevant_sample.values[:"heap-live-samples"]).to eq test_num_allocated_object * sample_rate
         end
 
-        it 'contribute to recorded samples stats' do
+        it "contribute to recorded samples stats" do
           test_num_allocated_object = 123
           live_objects = Array.new(test_num_allocated_object)
 
@@ -644,23 +644,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           )
         end
 
-        context 'with custom heap sample rate configuration' do
+        context "with custom heap sample rate configuration" do
           let(:heap_sample_every) { 2 }
 
-          it 'only keeps track of some allocations' do
+          it "only keeps track of some allocations" do
             # By only sampling every 2nd allocation we only track the odd objects which means our array
             # should be the only heap sample captured (string is index 0, array is index 1, hash is 4)
             expect(heap_samples.size).to eq(1)
 
             heap_sample = heap_samples.first
-            expect(heap_sample.labels[:"allocation class"]).to eq('Array')
+            expect(heap_sample.labels[:"allocation class"]).to eq("Array")
             expect(heap_sample.values[:"heap-live-samples"]).to eq(sample_rate * heap_sample_every)
           end
         end
 
-        context 'on Rubies supporting rb_gc_force_recycle' do
+        context "on Rubies supporting rb_gc_force_recycle" do
           before do
-            skip 'rb_gc_force_recycle is a no-op in current Ruby version' if RUBY_VERSION >= '3.1'
+            skip "rb_gc_force_recycle is a no-op in current Ruby version" if RUBY_VERSION >= "3.1"
             @recycled_sample_allocation_line = 0
           end
 
@@ -725,10 +725,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               rescue RangeError # rubocop:disable Lint/SuppressedException
               end
             end
-            raise 'could not allocate an object in a recycled slot'
+            raise "could not allocate an object in a recycled slot"
           end
 
-          it 'enforces seen id flag on objects on recycled slots that get sampled' do
+          it "enforces seen id flag on objects on recycled slots that get sampled" do
             recycled_obj = create_obj_in_recycled_slot
 
             expect(has_seen_id_flag(recycled_obj)).to be false
@@ -738,7 +738,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(has_seen_id_flag(recycled_obj)).to be true
           end
 
-          it 'enforces seen id flag on untracked objects that replace tracked recycled objects' do
+          it "enforces seen id flag on untracked objects that replace tracked recycled objects" do
             recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
 
             expect(has_seen_id_flag(recycled_obj)).to be false
@@ -748,7 +748,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(has_seen_id_flag(recycled_obj)).to be true
           end
 
-          it 'correctly handles lifecycle of objects on recycled slots that get sampled' do
+          it "correctly handles lifecycle of objects on recycled slots that get sampled" do
             recycled_obj = create_obj_in_recycled_slot
 
             sample_allocation(recycled_obj)
@@ -760,13 +760,13 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(recycled_sample).not_to be nil
           end
 
-          it 'supports allocation samples with duplicate ids due to force recycling' do
+          it "supports allocation samples with duplicate ids due to force recycling" do
             recycled_obj = create_obj_in_recycled_slot(should_sample_original: true)
 
             expect { sample_allocation(recycled_obj) }.not_to raise_error
           end
 
-          it 'raises on allocation samples with duplicate ids that are not due to force recycling' do
+          it "raises on allocation samples with duplicate ids that are not due to force recycling" do
             obj = Object.new
 
             sample_allocation(obj)
@@ -774,7 +774,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect { sample_allocation(obj) }.to raise_error(/supposed to be unique/)
           end
 
-          it 'can detect implicit frees due to slot recycling' do
+          it "can detect implicit frees due to slot recycling" do
             live_objects = []
             live_objects << create_obj_in_recycled_slot(should_sample_original: true)
 
@@ -790,15 +790,15 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         # NOTE: This is a regression test that exceptions in end_heap_allocation_recording_with_rb_protect are safely
         # handled by the stack_recorder.
-        context 'when the heap sampler raises an exception during _native_sample' do
-          it 'propagates the exception' do
+        context "when the heap sampler raises an exception during _native_sample" do
+          it "propagates the exception" do
             expect do
               Datadog::Profiling::Collectors::Stack::Testing
                 ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
             end.to raise_error(RuntimeError, /Ended a heap recording/)
           end
 
-          it 'does not keep the active slot mutex locked' do
+          it "does not keep the active slot mutex locked" do
             expect(active_slot).to be 1
             expect(slot_one_mutex_locked?).to be false
             expect(slot_two_mutex_locked?).to be true
@@ -817,25 +817,25 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    context 'when there is a failure during serialization' do
+    context "when there is a failure during serialization" do
       before do
         allow(Datadog.logger).to receive(:error)
 
         # Real failures in serialization are hard to trigger, so we're using a mock failure instead
-        expect(described_class).to receive(:_native_serialize).and_return([:error, 'test error message'])
+        expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"])
       end
 
       it { is_expected.to be nil }
 
-      it 'logs an error message' do
+      it "logs an error message" do
         expect(Datadog.logger).to receive(:error).with(/test error message/)
 
         serialize
       end
     end
 
-    context 'when serializing multiple times in a row' do
-      it 'sets the start time of a profile to be >= the finish time of the previous profile' do
+    context "when serializing multiple times in a row" do
+      it "sets the start time of a profile to be >= the finish time of the previous profile" do
         start1, finish1, = stack_recorder.serialize
         start2, finish2, = stack_recorder.serialize
         start3, finish3, = stack_recorder.serialize
@@ -848,7 +848,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         expect(start4).to be <= finish4
       end
 
-      it 'sets the start time of the next profile to be >= the previous serialization call' do
+      it "sets the start time of the next profile to be >= the previous serialization call" do
         stack_recorder
 
         before_serialize = Time.now.utc
@@ -861,62 +861,62 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe '#serialize!' do
+  describe "#serialize!" do
     subject(:serialize!) { stack_recorder.serialize! }
 
-    context 'when serialization succeeds' do
+    context "when serialization succeeds" do
       before do
         expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
       end
 
-      it { is_expected.to eq('serialized-data') }
+      it { is_expected.to eq("serialized-data") }
     end
 
-    context 'when serialization fails' do
-      before { expect(described_class).to receive(:_native_serialize).and_return([:error, 'test error message']) }
+    context "when serialization fails" do
+      before { expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"]) }
 
       it { expect { serialize! }.to raise_error(RuntimeError, /test error message/) }
     end
   end
 
-  describe '#reset_after_fork' do
+  describe "#reset_after_fork" do
     subject(:reset_after_fork) { stack_recorder.reset_after_fork }
 
-    context 'when slot one was the active slot' do
-      it 'keeps slot one as the active slot' do
+    context "when slot one was the active slot" do
+      it "keeps slot one as the active slot" do
         expect(active_slot).to be 1
       end
 
-      it 'keeps the slot one mutex unlocked' do
+      it "keeps the slot one mutex unlocked" do
         expect(slot_one_mutex_locked?).to be false
       end
 
-      it 'keeps the slot two mutex locked' do
+      it "keeps the slot two mutex locked" do
         expect(slot_two_mutex_locked?).to be true
       end
     end
 
-    context 'when slot two was the active slot' do
+    context "when slot two was the active slot" do
       before { stack_recorder.serialize }
 
-      it 'sets slot one as the active slot' do
+      it "sets slot one as the active slot" do
         expect { reset_after_fork }.to change { active_slot }.from(2).to(1)
       end
 
-      it 'unlocks the slot one mutex' do
+      it "unlocks the slot one mutex" do
         expect { reset_after_fork }.to change { slot_one_mutex_locked? }.from(true).to(false)
       end
 
-      it 'locks the slot two mutex' do
+      it "locks the slot two mutex" do
         expect { reset_after_fork }.to change { slot_two_mutex_locked? }.from(false).to(true)
       end
     end
 
-    context 'when profile has a sample' do
-      let(:metric_values) { {'cpu-time' => 123, 'cpu-samples' => 456, 'wall-time' => 789} }
-      let(:labels) { {'label_a' => 'value_a', 'label_b' => 'value_b', 'state' => 'unknown'}.to_a }
+    context "when profile has a sample" do
+      let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
+      let(:labels) { {"label_a" => "value_a", "label_b" => "value_b", "state" => "unknown"}.to_a }
 
-      it 'makes the next calls to serialize return no data' do
+      it "makes the next calls to serialize return no data" do
         # Add some data
         Datadog::Profiling::Collectors::Stack::Testing
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
@@ -937,7 +937,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
 
-    it 'sets the start_time of the active profile to the time of the reset_after_fork' do
+    it "sets the start_time of the active profile to the time of the reset_after_fork" do
       stack_recorder # Initialize instance
 
       now = Time.now
@@ -947,8 +947,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe '#stats' do
-    it 'returns basic lifetime stats of stack recorder' do
+  describe "#stats" do
+    it "returns basic lifetime stats of stack recorder" do
       num_serializations = 5
 
       num_serializations.times do
@@ -984,19 +984,19 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       expect(serialization_time_total).to be_within(1e-4).of(serialization_time_avg * num_serializations)
     end
 
-    context 'with heap profiling enabled' do
+    context "with heap profiling enabled" do
       let(:heap_samples_enabled) { true }
       let(:heap_size_enabled) { true }
 
       before do
-        skip 'Heap profiling is only supported on Ruby >= 2.7' if RUBY_VERSION < '2.7'
+        skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
       end
 
       after do |example|
         # This is here to facilitate troubleshooting when this test fails. Otherwise
         # it's very hard to understand what may be happening.
         if example.exception
-          puts('Heap recorder debugging info:')
+          puts("Heap recorder debugging info:")
           puts(described_class::Testing._native_debug_heap_recorder(stack_recorder))
         end
       end
@@ -1005,11 +1005,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, {'alloc-samples' => 1, 'heap_sample' => true}, [], [], 400, false
+          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [], 400, false
         )
       end
 
-      it 'includes heap recorder snapshot' do
+      it "includes heap recorder snapshot" do
         live_objects = []
         live_heap_samples = 6
         live_heap_samples.times do |i|
@@ -1072,65 +1072,65 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     end
   end
 
-  describe 'Heap_recorder' do
-    context 'produces the same hash code for stack-based and location-based keys' do
-      it 'with empty stacks' do
+  describe "Heap_recorder" do
+    context "produces the same hash code for stack-based and location-based keys" do
+      it "with empty stacks" do
         described_class::Testing._native_check_heap_hashes([])
       end
 
-      it 'with single-frame stacks' do
+      it "with single-frame stacks" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', 'a filename', 123]
+            ["a name", "a filename", 123]
           ]
         )
       end
 
-      it 'with multi-frame stacks' do
+      it "with multi-frame stacks" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', 'a filename', 123],
-            ['another name', 'anoter filename', 456],
+            ["a name", "a filename", 123],
+            ["another name", "anoter filename", 456],
           ]
         )
       end
 
-      it 'with empty names' do
+      it "with empty names" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['', 'a filename', 123],
+            ["", "a filename", 123],
           ]
         )
       end
 
-      it 'with empty filenames' do
+      it "with empty filenames" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', '', 123],
+            ["a name", "", 123],
           ]
         )
       end
 
-      it 'with zero lines' do
+      it "with zero lines" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', 'a filename', 0]
+            ["a name", "a filename", 0]
           ]
         )
       end
 
-      it 'with negative lines' do
+      it "with negative lines" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', 'a filename', -123]
+            ["a name", "a filename", -123]
           ]
         )
       end
 
-      it 'with biiiiiiig lines' do
+      it "with biiiiiiig lines" do
         described_class::Testing._native_check_heap_hashes(
           [
-            ['a name', 'a filename', 4_000_000]
+            ["a name", "a filename", 4_000_000]
           ]
         )
       end
