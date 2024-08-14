@@ -557,6 +557,7 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.resource).to eq(resource)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq(url)
       expect(span.get_tag('http.response.headers.content-type')).to eq('text/html;charset=utf-8')
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
@@ -590,6 +591,7 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.resource).to eq(resource)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(opts[:app_name])
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq(url)
       expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
       expect(span.parent_id).to be(opts[:parent].id) if opts[:parent]
