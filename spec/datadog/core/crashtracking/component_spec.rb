@@ -136,6 +136,20 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
           end
         end
 
+        context 'when multiple instances' do
+          it 'only starts the crash tracker once' do
+            crashtracker = build_crashtracker
+            crashtracker.start
+
+            another_crashtracker = build_crashtracker
+            another_crashtracker.start
+
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+            tear_down!
+          end
+        end
+
         context 'when forked' do
           it 'starts a second crash tracker for the fork' do
             crashtracker = build_crashtracker
@@ -209,20 +223,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
           wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
 
           tear_down!
-        end
-
-        context 'when multiple instances' do
-          it 'updates existing crash tracking process after started' do
-            crashtracker = build_crashtracker
-            crashtracker.start
-
-            another_crashtracker = build_crashtracker
-            another_crashtracker.update_on_fork
-
-            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
-
-            tear_down!
-          end
         end
       end
 
@@ -311,9 +311,15 @@ RSpec.describe Datadog::Core::Crashtracking::Component,
         end
 
         context 'when forked' do
+          # This integration test coverages the case that
+          # the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
+          # does not contain a stale instance of the crashtracker component.
           it 'ensures the latest configuration applied' do
             allow(described_class).to receive(:_native_start_or_update_on_fork)
 
+            # `Datadog.configure` to trigger crashtracking component reinstantiation,
+            #  a callback is first registered with `Utils::AtForkMonkeyPatch.at_fork`,
+            #  but not with the second `Datadog.configure` invokation.
             Datadog.configure do |c|
               c.agent.host = 'example.com'
             end
