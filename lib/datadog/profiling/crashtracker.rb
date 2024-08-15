@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'libdatadog'
+require "libdatadog"
 
 module Datadog
   module Profiling
@@ -56,7 +56,7 @@ module Datadog
 
       def stop
         self.class._native_stop
-        Datadog.logger.debug('Crash tracking stopped successfully')
+        Datadog.logger.debug("Crash tracking stopped successfully")
       rescue => e
         Datadog.logger.error("Failed to stop crash tracking: #{e.message}")
       end

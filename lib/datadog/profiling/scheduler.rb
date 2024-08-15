@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
+require_relative "../core/utils/time"
 
-require_relative '../core/worker'
-require_relative '../core/workers/polling'
+require_relative "../core/worker"
+require_relative "../core/workers/polling"
 
 module Datadog
   module Profiling
@@ -62,13 +62,13 @@ module Datadog
         interrupted = false
       rescue Exception => e # rubocop:disable Lint/RescueException
         Datadog.logger.warn(
-          'Profiling::Scheduler thread error. ' \
+          "Profiling::Scheduler thread error. " \
           "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
         )
         on_failure_proc&.call
         raise
       ensure
-        Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
+        Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts

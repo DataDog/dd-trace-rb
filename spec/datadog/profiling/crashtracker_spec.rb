@@ -1,8 +1,8 @@
-require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/crashtracker'
+require "datadog/profiling/spec_helper"
+require "datadog/profiling/crashtracker"
 
-require 'webrick'
-require 'fiddle'
+require "webrick"
+require "fiddle"
 
 RSpec.describe Datadog::Profiling::Crashtracker do
   before do
@@ -17,51 +17,51 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
   end
 
-  let(:exporter_configuration) { [:agent, 'http://localhost:6006'] }
+  let(:exporter_configuration) { [:agent, "http://localhost:6006"] }
 
   let(:crashtracker_options) do
     {
       exporter_configuration: exporter_configuration,
-      tags: {'tag1' => 'value1', 'tag2' => 'value2'},
+      tags: {"tag1" => "value1", "tag2" => "value2"},
       upload_timeout_seconds: 123,
     }
   end
 
   subject(:crashtracker) { described_class.new(**crashtracker_options) }
 
-  describe '#start' do
+  describe "#start" do
     subject(:start) { crashtracker.start }
 
-    context 'when _native_start_or_update_on_fork raises an exception' do
-      it 'logs the exception' do
-        expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
+    context "when _native_start_or_update_on_fork raises an exception" do
+      it "logs the exception" do
+        expect(described_class).to receive(:_native_start_or_update_on_fork) { raise "Test failure" }
         expect(Datadog.logger).to receive(:error).with(/Failed to start crash tracking: Test failure/)
 
         start
       end
     end
 
-    context 'when path_to_crashtracking_receiver_binary is nil' do
+    context "when path_to_crashtracking_receiver_binary is nil" do
       subject(:crashtracker) { described_class.new(**crashtracker_options, path_to_crashtracking_receiver_binary: nil) }
 
-      it 'logs a warning' do
+      it "logs a warning" do
         expect(Datadog.logger).to receive(:warn).with(/no path_to_crashtracking_receiver_binary was found/)
 
         start
       end
     end
 
-    context 'when ld_library_path is nil' do
+    context "when ld_library_path is nil" do
       subject(:crashtracker) { described_class.new(**crashtracker_options, ld_library_path: nil) }
 
-      it 'logs a warning' do
+      it "logs a warning" do
         expect(Datadog.logger).to receive(:warn).with(/no ld_library_path was found/)
 
         start
       end
     end
 
-    it 'starts the crash tracker' do
+    it "starts the crash tracker" do
       start
 
       wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to_not be_empty
@@ -69,8 +69,8 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       crashtracker.stop
     end
 
-    context 'when calling start multiple times in a row' do
-      it 'only starts the crash tracker once' do
+    context "when calling start multiple times in a row" do
+      it "only starts the crash tracker once" do
         3.times { crashtracker.start }
 
         wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
@@ -79,10 +79,10 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       end
     end
 
-    context 'when upload_timeout_seconds is not an Integer' do
+    context "when upload_timeout_seconds is not an Integer" do
       let(:crashtracker_options) { {**super(), upload_timeout_seconds: 12.34} }
 
-      it 'converts it to an Integer before calling _native_start_or_update_on_fork' do
+      it "converts it to an Integer before calling _native_start_or_update_on_fork" do
         expect(described_class)
           .to receive(:_native_start_or_update_on_fork).with(hash_including(upload_timeout_seconds: 12))
 
@@ -91,14 +91,14 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
   end
 
-  describe '#reset_after_fork' do
+  describe "#reset_after_fork" do
     subject(:reset_after_fork) { crashtracker.reset_after_fork }
 
-    context 'when called in a fork' do
+    context "when called in a fork" do
       before { crashtracker.start }
       after { crashtracker.stop }
 
-      it 'starts a second crash tracker for the fork' do
+      it "starts a second crash tracker for the fork" do
         expect_in_fork do
           wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
 
@@ -114,19 +114,19 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
   end
 
-  describe '#stop' do
+  describe "#stop" do
     subject(:stop) { crashtracker.stop }
 
-    context 'when _native_stop_crashtracker raises an exception' do
-      it 'logs the exception' do
-        expect(described_class).to receive(:_native_stop) { raise 'Test failure' }
+    context "when _native_stop_crashtracker raises an exception" do
+      it "logs the exception" do
+        expect(described_class).to receive(:_native_stop) { raise "Test failure" }
         expect(Datadog.logger).to receive(:error).with(/Failed to stop crash tracking: Test failure/)
 
         stop
       end
     end
 
-    it 'stops the crash tracker' do
+    it "stops the crash tracker" do
       crashtracker.start
 
       stop
@@ -135,8 +135,8 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     end
   end
 
-  context 'integration testing' do
-    shared_context 'HTTP server' do
+  context "integration testing" do
+    shared_context "HTTP server" do
       let(:server) do
         WEBrick::HTTPServer.new(
           Port: 0,
@@ -145,14 +145,14 @@ RSpec.describe Datadog::Profiling::Crashtracker do
           StartCallback: -> { init_signal.push(1) }
         )
       end
-      let(:hostname) { '127.0.0.1' }
+      let(:hostname) { "127.0.0.1" }
       let(:log) { WEBrick::Log.new(StringIO.new, WEBrick::Log::WARN) }
       let(:access_log_buffer) { StringIO.new }
       let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
       let(:server_proc) do
         proc do |req, res|
           messages << req.tap { req.body } # Read body, store message before socket closes.
-          res.body = '{}'
+          res.body = "{}"
         end
       end
       let(:init_signal) { Queue.new }
@@ -160,7 +160,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       let(:messages) { [] }
 
       before do
-        server.mount_proc('/', &server_proc)
+        server.mount_proc("/", &server_proc)
         @server_thread = Thread.new { server.start }
         init_signal.pop
       end
@@ -176,7 +176,7 @@ RSpec.describe Datadog::Profiling::Crashtracker do
       end
     end
 
-    include_context 'HTTP server'
+    include_context "HTTP server"
 
     let(:request) { messages.first }
     let(:port) { server[:Port] }
@@ -186,8 +186,8 @@ RSpec.describe Datadog::Profiling::Crashtracker do
     [:fiddle, :signal].each do |trigger|
       it "reports crashes via http when app crashes with #{trigger}" do
         fork_expectations = proc do |status:, stdout:, stderr:|
-          expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
-          expect(stderr).to include('[BUG] Segmentation fault')
+          expect(Signal.signame(status.termsig)).to eq("SEGV").or eq("ABRT")
+          expect(stderr).to include("[BUG] Segmentation fault")
         end
 
         expect_in_fork(fork_expectations: fork_expectations) do
@@ -196,22 +196,22 @@ RSpec.describe Datadog::Profiling::Crashtracker do
           if trigger == :fiddle
             Fiddle.free(42)
           else
-            Process.kill('SEGV', Process.pid)
+            Process.kill("SEGV", Process.pid)
           end
         end
 
         crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
 
         expect(crash_report[:stack_trace]).to_not be_empty
-        expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+        expect(crash_report[:tags]).to include("signum:11", "signame:SIGSEGV")
 
         crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
         expect(crash_report_message[:metadata]).to include(
-          profiling_library_name: 'dd-trace-rb',
+          profiling_library_name: "dd-trace-rb",
           profiling_library_version: Datadog::VERSION::STRING,
-          family: 'ruby',
-          tags: ['tag1:value1', 'tag2:value2'],
+          family: "ruby",
+          tags: ["tag1:value1", "tag2:value2"],
         )
         expect(crash_report_message[:files][:"/proc/self/maps"]).to_not be_empty
         expect(crash_report_message[:os_info]).to_not be_empty

@@ -15,7 +15,7 @@ begin
   require "datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}"
 rescue LoadError => e
   raise LoadError,
-    'Failed to load the profiling loader extension. To fix this, please remove and then reinstall datadog ' \
+    "Failed to load the profiling loader extension. To fix this, please remove and then reinstall datadog " \
     "(Details: #{e.message})"
 end
 
@@ -24,7 +24,7 @@ file_name = "#{extension_name}.#{RbConfig::CONFIG["DLEXT"]}"
 full_file_path = "#{__dir__}/../../#{file_name}"
 
 unless File.exist?(full_file_path)
-  extension_dir = Gem.loaded_specs['datadog'].extension_dir
+  extension_dir = Gem.loaded_specs["datadog"].extension_dir
   candidate_path = "#{extension_dir}/#{file_name}"
   if File.exist?(candidate_path)
     full_file_path = candidate_path
