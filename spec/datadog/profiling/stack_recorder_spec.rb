@@ -1011,6 +1011,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       it "includes heap recorder snapshot" do
         live_objects = []
+
+        # NOTE: We've seen some flakiness in this spec on Ruby 3.3 when the `dead_heap_samples` were allocated after
+        # the `live_heap_samples`. Our working theory is that this is something like
+        # https://bugs.ruby-lang.org/issues/19460 biting us again (e.g. search for this URL on this file and you'll see
+        # a similar comment). Specifically, it looks like in some situations Ruby still keeps a reference to the last
+        # allocated object _somewhere_, which makes the GC not collect that object, even though there are no actual
+        # references to it. Because the GC doesn't clean the object, the heap recorder still keeps its record alive,
+        # and so the test causes flakiness.
+        # See also the discussion on commit 2fc03d5ae5860d4e9a75ce3825fba95ed288a1 for an earlier attempt at fixing this.
+        dead_heap_samples = 10
+        dead_heap_samples.times do |_i|
+          obj = {}
+          sample_allocation(obj)
+        end
+
         live_heap_samples = 6
         live_heap_samples.times do |i|
           obj = Object.new
@@ -1018,23 +1033,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           sample_allocation(obj)
           live_objects << obj
         end
-        dead_heap_samples = 10
-        dead_heap_samples.times do |_i|
-          obj = Object.new
-          sample_allocation(obj)
-        end
         GC.start # All dead objects above will be GCed, all living strings will have age = 0
-
-        # @ivoanjo: For some weird reason, the last object sampled in the "dead_heap_samples" does not always
-        # get collected the first time, leading to a flaky spec.
-        # I was able to reproduce it with `rspec spec/datadog/profiling --seed 48141 --fail-fast` and it's
-        # kinda bizarre since e.g. if you add one more `Object.new` it also stops flaking, so is it perhaps
-        # related to Ruby's conservative GC?
-        # I've bisected this and undoing 3d4b7fcf30b529b191ca737ae13629eb27b8ab63 also makes the flakiness
-        # go away, but again, that change doesn't seem to have anything to do with GC.
-        # As the weird behavior is transitory, e.g. it provably goes away on the next GC, I'll go with this
-        # workaround for now.
-        GC.start
 
         begin
           # Allocate some extra objects in a block with GC disabled and ask for a serialization
