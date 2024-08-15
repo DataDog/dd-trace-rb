@@ -7,12 +7,11 @@ RSpec.describe Datadog::Profiling::Profiler do
   before { skip_if_profiling_not_supported(self) }
 
   subject(:profiler) do
-    described_class.new(worker: worker, scheduler: scheduler, optional_crashtracker: optional_crashtracker)
+    described_class.new(worker: worker, scheduler: scheduler)
   end
 
   let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker) }
   let(:scheduler) { instance_double(Datadog::Profiling::Scheduler) }
-  let(:optional_crashtracker) { nil }
 
   describe "#start" do
     subject(:start) { profiler.start }
@@ -22,19 +21,6 @@ RSpec.describe Datadog::Profiling::Profiler do
       expect(scheduler).to receive(:start).with(on_failure_proc: an_instance_of(Proc))
 
       start
-    end
-
-    context "when a crash tracker instance is provided" do
-      let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
-
-      it "signals the crash tracker to start before other components" do
-        expect(optional_crashtracker).to receive(:start).ordered
-
-        expect(worker).to receive(:start).ordered
-        expect(scheduler).to receive(:start).ordered
-
-        start
-      end
     end
 
     context "when called after a fork" do
@@ -53,26 +39,6 @@ RSpec.describe Datadog::Profiling::Profiler do
           start
         end
       end
-
-      context "when a crash tracker instance is provided" do
-        let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
-
-        it "resets the crash tracker before other coponents, as well as restarts it before other components" do
-          profiler # make sure instance is created in parent, so it detects the forking
-
-          expect_in_fork do
-            expect(optional_crashtracker).to receive(:reset_after_fork).ordered
-            expect(worker).to receive(:reset_after_fork).ordered
-            expect(scheduler).to receive(:reset_after_fork).ordered
-
-            expect(optional_crashtracker).to receive(:start).ordered
-            expect(worker).to receive(:start).ordered
-            expect(scheduler).to receive(:start).ordered
-
-            start
-          end
-        end
-      end
     end
   end
 
@@ -87,26 +53,11 @@ RSpec.describe Datadog::Profiling::Profiler do
 
       shutdown!
     end
-
-    context "when a crash tracker instance is provided" do
-      let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker) }
-
-      it "signals the crash tracker to stop, after other components have stopped" do
-        expect(worker).to receive(:stop).ordered
-        allow(scheduler).to receive(:enabled=)
-        expect(scheduler).to receive(:stop).ordered
-
-        expect(optional_crashtracker).to receive(:stop).ordered
-
-        shutdown!
-      end
-    end
   end
 
   describe "Component failure handling" do
     let(:worker) { instance_double(Datadog::Profiling::Collectors::CpuAndWallTimeWorker, start: nil) }
     let(:scheduler) { instance_double(Datadog::Profiling::Scheduler, start: nil) }
-    let(:optional_crashtracker) { instance_double(Datadog::Profiling::Crashtracker, start: nil) }
 
     before { allow(Datadog.logger).to receive(:warn) }
 
@@ -144,12 +95,6 @@ RSpec.describe Datadog::Profiling::Profiler do
 
         worker_on_failure
       end
-
-      it "does not stop the crashtracker" do
-        expect(optional_crashtracker).to_not receive(:stop)
-
-        worker_on_failure
-      end
     end
 
     context "when the scheduler failed" do
@@ -174,12 +119,6 @@ RSpec.describe Datadog::Profiling::Profiler do
 
       it "stops the worker" do
         expect(worker).to receive(:stop)
-
-        scheduler_on_failure
-      end
-
-      it "does not stop the crashtracker" do
-        expect(optional_crashtracker).to_not receive(:stop)
 
         scheduler_on_failure
       end

@@ -13,6 +13,7 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../crashtracking/component'
 
 module Datadog
   module Core
@@ -58,6 +59,17 @@ module Datadog
           def build_telemetry(settings, agent_settings, logger)
             Telemetry::Component.build(settings, agent_settings, logger)
           end
+
+          def build_crashtracker(settings, agent_settings, logger:)
+            return unless settings.crashtracking.enabled
+
+            if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
+              logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+              return
+            end
+
+            Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
+          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -70,6 +82,7 @@ module Datadog
           :runtime_metrics,
           :telemetry,
           :tracer,
+          :crashtracker,
           :appsec
 
         def initialize(settings)
@@ -83,11 +96,12 @@ module Datadog
 
           @remote = Remote::Component.build(settings, agent_settings)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: @tracer,
+            optional_tracer: @tracer
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
