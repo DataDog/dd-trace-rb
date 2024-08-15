@@ -1,88 +1,88 @@
-require 'datadog/profiling/spec_helper'
-require 'datadog/profiling/native_extension'
+require "datadog/profiling/spec_helper"
+require "datadog/profiling/native_extension"
 
 RSpec.describe Datadog::Profiling::NativeExtension do
   before { skip_if_profiling_not_supported(self) }
 
-  describe '.working?' do
+  describe ".working?" do
     subject(:working?) { described_class.send(:working?) }
 
     it { is_expected.to be true }
   end
 
-  describe 'grab_gvl_and_raise' do
-    it 'raises the requested exception with the passed in message' do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'this is a test', nil, true) }
-        .to raise_exception(ZeroDivisionError, 'this is a test')
+  describe "grab_gvl_and_raise" do
+    it "raises the requested exception with the passed in message" do
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, true) }
+        .to raise_exception(ZeroDivisionError, "this is a test")
     end
 
-    it 'accepts printf-style string formatting' do
-      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'divided zero by ', 42, true) }
-        .to raise_exception(ZeroDivisionError, 'divided zero by 42')
+    it "accepts printf-style string formatting" do
+      expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "divided zero by ", 42, true) }
+        .to raise_exception(ZeroDivisionError, "divided zero by 42")
     end
 
-    it 'limits the exception message to 255 characters' do
-      big_message = 'a' * 500
+    it "limits the exception message to 255 characters" do
+      big_message = "a" * 500
 
       expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, big_message, nil, true) }
         .to raise_exception(ZeroDivisionError, /a{255}\z/)
     end
 
-    context 'when called without releasing the gvl' do
-      it 'raises a RuntimeError' do
-        expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, 'this is a test', nil, false) }
+    context "when called without releasing the gvl" do
+      it "raises a RuntimeError" do
+        expect { described_class::Testing._native_grab_gvl_and_raise(ZeroDivisionError, "this is a test", nil, false) }
           .to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
       end
     end
   end
 
-  describe 'grab_gvl_and_raise_syserr' do
-    it 'raises an exception with the passed in message and errno' do
+  describe "grab_gvl_and_raise_syserr" do
+    it "raises an exception with the passed in message and errno" do
       expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'this is a test', nil, true)
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, true)
       end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - this is a test")
     end
 
-    it 'accepts printf-style string formatting' do
+    it "accepts printf-style string formatting" do
       expect do
-        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'divided zero by ', 42, true)
+        described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "divided zero by ", 42, true)
       end.to raise_exception(Errno::EINTR, "#{Errno::EINTR.exception.message} - divided zero by 42")
     end
 
-    it 'limits the caller-provided exception message to 255 characters' do
-      big_message = 'a' * 500
+    it "limits the caller-provided exception message to 255 characters" do
+      big_message = "a" * 500
 
       expect do
         described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, big_message, nil, true)
       end.to raise_exception(Errno::EINTR, /.+a{255}\z/)
     end
 
-    context 'when called without releasing the gvl' do
-      it 'raises a RuntimeError' do
+    context "when called without releasing the gvl" do
+      it "raises a RuntimeError" do
         expect do
-          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, 'this is a test', nil, false)
+          described_class::Testing._native_grab_gvl_and_raise_syserr(Errno::EINTR::Errno, "this is a test", nil, false)
         end.to raise_exception(RuntimeError, /called by thread holding the global VM lock/)
       end
     end
   end
 
-  describe 'ddtrace_rb_ractor_main_p' do
+  describe "ddtrace_rb_ractor_main_p" do
     subject(:ddtrace_rb_ractor_main_p) { described_class::Testing._native_ddtrace_rb_ractor_main_p }
 
-    context 'when Ruby has no support for Ractors' do
-      before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION >= '3' }
+    context "when Ruby has no support for Ractors" do
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3" }
 
       it { is_expected.to be true }
     end
 
-    context 'when Ruby has support for Ractors' do
-      before { skip 'Behavior does not apply to current Ruby version' if RUBY_VERSION < '3' }
+    context "when Ruby has support for Ractors" do
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3" }
 
-      context 'on the main Ractor' do
+      context "on the main Ractor" do
         it { is_expected.to be true }
       end
 
-      context 'on a background Ractor', ractors: true do
+      context "on a background Ractor", ractors: true do
         # @ivoanjo: When we initially added this test, our test suite kept deadlocking in CI in a later test (not on
         # this one).
         #
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
         # I was able to see this even on both Linux with 3.0.3 and macOS with 3.0.4. Thus, I decided to skip this
         # spec on Ruby 3.0. We can always run it manually if we change something around this helper; and we have
         # coverage on 3.1+ anyway.
-        before { skip 'Ruby 3.0 Ractors are too buggy to run this spec' if RUBY_VERSION.start_with?('3.0.') }
+        before { skip "Ruby 3.0 Ractors are too buggy to run this spec" if RUBY_VERSION.start_with?("3.0.") }
 
         subject(:ddtrace_rb_ractor_main_p) do
           Ractor.new { Datadog::Profiling::NativeExtension::Testing._native_ddtrace_rb_ractor_main_p }.take
@@ -103,16 +103,16 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
-  describe 'is_current_thread_holding_the_gvl' do
+  describe "is_current_thread_holding_the_gvl" do
     subject(:is_current_thread_holding_the_gvl) do
       Datadog::Profiling::NativeExtension::Testing._native_is_current_thread_holding_the_gvl
     end
 
-    context 'when current thread is holding the global VM lock' do
+    context "when current thread is holding the global VM lock" do
       it { is_expected.to be true }
     end
 
-    context 'when current thread is not holding the global VM lock' do
+    context "when current thread is not holding the global VM lock" do
       subject(:is_current_thread_holding_the_gvl) do
         Datadog::Profiling::NativeExtension::Testing._native_release_gvl_and_call_is_current_thread_holding_the_gvl
       end
@@ -120,7 +120,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it { is_expected.to be false }
     end
 
-    describe 'correctness' do
+    describe "correctness" do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -148,7 +148,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       #   the background thread, we are guaranteed that the background thread does not have the GVL.
       #
       # @ivoanjo: It's a bit weird but I wanted test coverage for this. Improvements welcome ;)
-      it 'returns accurate results when compared to ruby_thread_has_gvl_p' do
+      it "returns accurate results when compared to ruby_thread_has_gvl_p" do
         background_thread
         ready_queue.pop
 
@@ -159,24 +159,24 @@ RSpec.describe Datadog::Profiling::NativeExtension do
     end
   end
 
-  describe 'enforce_success' do
-    context 'when there is no error' do
-      it 'does nothing' do
+  describe "enforce_success" do
+    context "when there is no error" do
+      it "does nothing" do
         expect { described_class::Testing._native_enforce_success(0, true) }.to_not raise_error
       end
     end
 
-    context 'when there is an error' do
+    context "when there is an error" do
       let(:have_gvl) { true }
 
-      it 'raises an exception with the passed in errno' do
+      it "raises an exception with the passed in errno" do
         expect { described_class::Testing._native_enforce_success(Errno::EINTR::Errno, have_gvl) }
           .to raise_exception(Errno::EINTR, /#{Errno::EINTR.exception.message}.+profiling\.c/)
       end
 
-      context 'when called without the gvl' do
+      context "when called without the gvl" do
         let(:have_gvl) { false }
-        it 'raises an exception with the passed in errno' do
+        it "raises an exception with the passed in errno" do
           expect { described_class::Testing._native_enforce_success(Errno::EINTR::Errno, have_gvl) }
             .to raise_exception(Errno::EINTR, /#{Errno::EINTR.exception.message}.+profiling\.c/)
         end

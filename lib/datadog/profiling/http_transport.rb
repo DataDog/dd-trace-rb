@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../core/transport/ext'
+require_relative "../core/transport/ext"
 
 module Datadog
   module Profiling
@@ -53,7 +53,7 @@ module Datadog
 
         if status == :ok
           if (200..299).cover?(result)
-            Datadog.logger.debug('Successfully reported profiling data')
+            Datadog.logger.debug("Successfully reported profiling data")
             true
           else
             Datadog.logger.error(
@@ -89,7 +89,7 @@ module Datadog
         unless supported_adapters.include?(agent_settings.adapter)
           raise ArgumentError,
             "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
-                        ' is not supported'
+                        " is not supported"
         end
       end
 

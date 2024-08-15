@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'set'
-require 'time'
+require "set"
+require "time"
 
 module Datadog
   module Profiling
@@ -61,7 +61,7 @@ module Datadog
 
         def collect_profiler_info(settings)
           unless @profiler_info
-            lib_datadog_gem = ::Gem.loaded_specs['libdatadog']
+            lib_datadog_gem = ::Gem.loaded_specs["libdatadog"]
             @profiler_info = {
               # TODO: If profiling is extracted and its version diverges from the datadog gem, this is inaccurate.
               #       Update if this ever occurs.

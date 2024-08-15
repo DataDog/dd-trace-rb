@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'set'
-require 'json'
+require "set"
+require "json"
 
 module Datadog
   module Profiling
@@ -14,7 +14,7 @@ module Datadog
       #
       # This class acts both as a collector (collecting data) as well as a recorder (records/serializes it)
       class CodeProvenance
-        def initialize(standard_library_path: RbConfig::CONFIG.fetch('rubylibdir'))
+        def initialize(standard_library_path: RbConfig::CONFIG.fetch("rubylibdir"))
           @libraries_by_name = {}
           @libraries_by_path = {}
           @seen_files = Set.new
@@ -22,8 +22,8 @@ module Datadog
 
           record_library(
             Library.new(
-              kind: 'standard library',
-              name: 'stdlib',
+              kind: "standard library",
+              name: "stdlib",
               version: RUBY_VERSION,
               path: standard_library_path,
             )
@@ -79,7 +79,7 @@ module Datadog
           loaded_specs.each do |spec|
             next if libraries_by_name.key?(spec.name)
 
-            record_library(Library.new(kind: 'library', name: spec.name, version: spec.version, path: spec.gem_dir))
+            record_library(Library.new(kind: "library", name: spec.name, version: spec.version, path: spec.gem_dir))
             recorded_library = true
           end
 
@@ -119,7 +119,7 @@ module Datadog
           end
 
           def to_json(arg = nil)
-            { kind: @kind, name: @name, version: @version, paths: @paths }.to_json(arg)
+            {kind: @kind, name: @name, version: @version, paths: @paths}.to_json(arg)
           end
 
           def path
