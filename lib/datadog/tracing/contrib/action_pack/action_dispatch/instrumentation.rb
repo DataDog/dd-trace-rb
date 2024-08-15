@@ -14,6 +14,7 @@ module Datadog
             def add_http_route_tag(http_route)
               return unless Tracing.enabled?
 
+              # TODO: check how it behaves with rails engine
               active_span = Tracing.active_span
               return if active_span.nil?
 
@@ -33,7 +34,10 @@ module Datadog
                 def find_routes(req)
                   result = super(req)
 
-                  Instrumentation.add_http_route_tag(result.last.last.path.spec.to_s)
+                  # Journey::Router#find_routes retuns an array for each matching route.
+                  # This array is [match_data, path_parameters, route].
+                  # We need the route object, since it has a path with route specification.
+                  Instrumentation.add_http_route_tag(result.last&.last&.path&.spec.to_s)
 
                   result
                 end
