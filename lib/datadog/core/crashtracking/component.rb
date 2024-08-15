@@ -12,8 +12,9 @@ module Datadog
     module Crashtracking
       # Used to report Ruby VM crashes.
       #
-      # NOTE: The crashtracker native state is a singleton; so even if you create multiple instances of `Crashtracker`
-      # and start them, it only works as "last writer wins". Same for stop -- there's only one state, so calling stop
+      # NOTE: The crashtracker native state is a singleton;
+      # so even if you create multiple instances of `Crashtracking::Component` and start them,
+      # it only works as "last writer wins". Same for stop -- there's only one state, so calling stop
       # on it will stop the crash tracker, regardless of which instance started it.
       #
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
