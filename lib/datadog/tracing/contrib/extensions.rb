@@ -123,8 +123,11 @@ module Datadog
                     o.default({})
                   end
 
-                  # Enables population the `peer.service` tag.
-                  # When disabled, other peer service related configurations have no effect.
+                  # Enables population of default in the `peer.service` span tag.
+                  # Explicitly setting the `peer.service` for an integration will
+                  # still be honored with this option disabled.
+                  #
+                  # Also when disabled, other peer service related configurations have no effect.
                   #
                   # @default `DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED` environment variable, otherwise `false`
                   # @return [Boolean]
