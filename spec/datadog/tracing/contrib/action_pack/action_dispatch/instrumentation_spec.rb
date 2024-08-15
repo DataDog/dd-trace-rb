@@ -4,25 +4,21 @@ require 'datadog'
 require 'datadog/tracing/contrib/action_pack/action_dispatch/instrumentation'
 
 RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Instrumentation do
-  describe '::add_http_route_tag' do
-    let(:active_span) { active_trace.active_span }
-    let(:http_route) { '/api/users/:id(.:format)' }
+  describe '::set_http_route_tag' do
+    it 'sets http_route tag without (.:format) part' do
+      Datadog::Tracing.trace('web.request') do |_span_op, trace_op|
+        described_class.set_http_route_tag('/api/users/:id(.:format)')
 
-    it 'sets http_route tag' do
-      Datadog::Tracing.trace('web.request') do |_span_op, _trace_op|
-        described_class.add_http_route_tag(http_route)
+        expect(trace_op.tags.fetch('http.route')).to eq('/api/users/:id')
       end
-
-      expect(spans).to have(1).item
-      expect(spans.first.tags).to have_key('http.route')
     end
 
-    it 'removes (.:format) route part' do
-      Datadog::Tracing.trace('web.request') do |_span_op, _trace_op|
-        described_class.add_http_route_tag(http_route)
-      end
+    it 'does not set http_route tag when the route is nil' do
+      Datadog::Tracing.trace('web.request') do |_span_op, trace_op|
+        described_class.set_http_route_tag(nil)
 
-      expect(spans.first.tags.fetch('http.route')).to eq('/api/users/:id')
+        expect(trace_op.tags).not_to have_key('http.route')
+      end
     end
   end
 end
