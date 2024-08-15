@@ -74,7 +74,7 @@ env = {
   'ffi',
   'libddwaf',
   'msgpack',
-  'libdatadog', # libdatadog MUST be installed before datadog
+  'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
   'datadog',
 ].each do |gem|
   version = gem_version_mapping.delete(gem)
@@ -107,6 +107,12 @@ env = {
 end
 
 raise "#{gem_version_mapping.keys.join(',')} are not installed." if gem_version_mapping.any?
+
+datadog_gem_path = versioned_path.join("gems/datadog-#{ENV.fetch('RUBY_PACKAGE_VERSION')}")
+libdatadog_so_file = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}.so"
+unless File.exist?("#{datadog_gem_path}/lib/#{libdatadog_so_file}")
+  raise "Missing #{libdatadog_so_file} in #{datadog_gem_path}."
+end
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries
