@@ -16,7 +16,6 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
         'runtime_platform' => RUBY_PLATFORM,
         'runtime_version' => RUBY_VERSION,
         'is_crash' => 'true',
-        'severity' => 'crash',
         'language' => 'ruby',
         'profiler_version' => Datadog::Core::Environment::Identity.gem_datadog_version,
       )

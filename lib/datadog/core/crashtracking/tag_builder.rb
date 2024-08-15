@@ -24,7 +24,6 @@ module Datadog
             'git.repository_url' => Environment::Git.git_repository_url,
             'git.commit.sha' => Environment::Git.git_commit_sha,
             'is_crash' => 'true',
-            'severity' => 'crash',
             'language' => 'ruby',
             'profiler_version' => Core::Environment::Identity.gem_datadog_version,
           }.compact
