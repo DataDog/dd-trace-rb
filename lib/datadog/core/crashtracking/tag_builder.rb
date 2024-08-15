@@ -23,6 +23,7 @@ module Datadog
             'version' => settings.version,
             'git.repository_url' => Environment::Git.git_repository_url,
             'git.commit.sha' => Environment::Git.git_commit_sha,
+            'is_crash' => true
           }.compact
 
           # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
