@@ -25,7 +25,7 @@ module Datadog
             'git.commit.sha' => Environment::Git.git_commit_sha,
             'is_crash' => 'true',
             'language' => 'ruby',
-            'profiler_version' => Core::Environment::Identity.gem_datadog_version,
+            'library_version' => Core::Environment::Identity.gem_datadog_version,
           }.compact
 
           # Make sure everything is an utf-8 string, to avoid encoding issues in downstream
