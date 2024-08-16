@@ -173,7 +173,7 @@ RSpec.shared_context 'Rails 7 test application' do
     controllers
   end
 
-  # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
+  # Rails leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
     # Reset autoloaded constants
