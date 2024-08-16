@@ -285,7 +285,6 @@ else
       proc do
         headers_available =
           have_header("vm_core.h") &&
-          have_header("iseq.h") &&
           (RUBY_VERSION < "3.3" || have_header("ractor_core.h"))
 
         if headers_available

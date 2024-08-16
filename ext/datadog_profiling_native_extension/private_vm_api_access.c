@@ -25,12 +25,11 @@
     #include <vm_core.h>
   #pragma GCC diagnostic pop
 
-  #pragma GCC diagnostic push
-  #pragma GCC diagnostic ignored "-Wunused-parameter"
-    #include <iseq.h>
-  #pragma GCC diagnostic pop
-
   #include <ruby.h>
+
+  unsigned int rb_iseq_line_no(const rb_iseq_t *iseq, size_t pos);
+  const rb_iseq_t *rb_proc_get_iseq(VALUE proc, int *is_proc);
+  VALUE rb_iseq_first_lineno(const rb_iseq_t *iseq);
 
   #ifndef NO_RACTOR_HEADER_INCLUDE
     #pragma GCC diagnostic push
