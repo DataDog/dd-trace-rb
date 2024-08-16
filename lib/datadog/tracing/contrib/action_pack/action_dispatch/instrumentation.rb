@@ -14,9 +14,10 @@ module Datadog
             def set_http_route_tag(http_route)
               return if http_route.nil?
 
-              trace = Tracing.active_trace || TraceOperation.new
+              active_span = Tracing.active_span
+              return unless active_span
 
-              trace.set_tag(
+              active_span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
                 http_route.gsub(/\(.:format\)$/, '')
               )
@@ -36,13 +37,14 @@ module Datadog
                     # Journey::Router#find_routes retuns an array for each matching route.
                     # This array is [match_data, path_parameters, route].
                     # We need the route object, since it has a path with route specification.
-                    current_route = result.last&.last&.path&.spec.to_s
+                    current_route = result.last&.last&.path&.spec
+                    return unless current_route
 
                     # When Rails is serving requests to Rails Engine routes, this function is called
                     # twice: first time for the route on which the engine is mounted, and second
                     # time for the internal engine route.
                     last_route = Tracing.active_trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-                    Instrumentation.set_http_route_tag(last_route.to_s + current_route)
+                    Instrumentation.set_http_route_tag(last_route.to_s + current_route.to_s)
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
                   end
