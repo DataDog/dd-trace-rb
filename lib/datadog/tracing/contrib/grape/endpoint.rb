@@ -60,6 +60,7 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+              span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path) if path
 
               Thread.current[KEY_RUN] = true
             rescue StandardError => e
