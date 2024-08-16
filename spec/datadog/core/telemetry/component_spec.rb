@@ -219,6 +219,55 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
+  describe '#log!' do
+    after do
+      telemetry.stop!
+    end
+
+    describe 'when enabled' do
+      let(:enabled) { true }
+      it do
+        event = double('event')
+        telemetry.log!(event)
+
+        expect(worker).to have_received(:enqueue).with(event)
+      end
+
+      context 'when in fork', skip: !Process.respond_to?(:fork) do
+        it do
+          expect_in_fork do
+            event = double('event')
+            telemetry.log!(event)
+
+            expect(worker).to have_received(:enqueue).with(event)
+          end
+        end
+      end
+    end
+
+    describe 'when disabled' do
+      let(:enabled) { false }
+
+      it do
+        event = double('event')
+        telemetry.log!(event)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+
+      context 'when in fork', skip: !Process.respond_to?(:fork) do
+        it do
+          expect_in_fork do
+            event = double('event')
+            telemetry.log!(event)
+
+            expect(worker).not_to have_received(:enqueue)
+          end
+        end
+      end
+    end
+  end
+
   context 'metrics support' do
     let(:metrics_manager) { spy(:metrics_manager) }
     let(:namespace) { double('namespace') }

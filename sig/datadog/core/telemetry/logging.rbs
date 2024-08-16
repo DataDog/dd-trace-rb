@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Logging
+        def report: (Exception exception, level: Symbol) -> void
+      end
+    end
+  end
+end

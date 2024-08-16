@@ -67,6 +67,17 @@ module Datadog
           def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
         end
 
+        class Log < Base
+          LEVELS: Hash[Symbol, String]
+
+          @message: String
+          @level: "ERROR" | "DEBUG" | "WARN"
+
+          def initialize: (message: String, level: Symbol) -> void
+
+          def payload: () -> { message: String, level: String }
+        end
+
         class Distributions < GenerateMetrics
         end
 
