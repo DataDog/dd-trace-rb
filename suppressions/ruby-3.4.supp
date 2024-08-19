@@ -1,0 +1,17 @@
+# This is a valgrind suppression configuration file.
+#
+# We use it together with the ruby_memcheck gem to find issues in the dd-trace-rb native extensions; in some cases
+# we need to ignore potential issues as they're not something we can fix (e.g. outside our code.)
+#
+# See https://valgrind.org/docs/manual/manual-core.html#manual-core.suppress for details.
+
+{
+  ruby-weak-map
+  Memcheck:Addr8
+  fun:wmap_cmp
+  fun:find_table_bin_ind
+  fun:st_general_foreach
+  fun:rb_st_foreach
+  ...
+}
+

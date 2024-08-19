@@ -83,6 +83,7 @@ group :check do
     gem 'steep', '~> 1.6.0', require: false
   end
   gem 'standard', require: false
+  gem 'ruby_memcheck', '>= 3' if RUBY_VERSION >= '3.4.0' && RUBY_PLATFORM != 'java'
 end
 
 group :dev do

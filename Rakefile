@@ -6,6 +6,18 @@ require 'rspec/core/rake_task'
 require 'rake/extensiontask'
 require 'yard'
 require 'os'
+if Gem.loaded_specs.key? 'ruby_memcheck'
+  require 'ruby_memcheck'
+  require 'ruby_memcheck/rspec/rake_task'
+
+  RubyMemcheck.config(
+    # If there's an error, print the suppression for that error, to allow us to easily skip such an error if it's
+    # a false-positive / something in the VM we can't fix.
+    valgrind_generate_suppressions: true,
+    # This feature provides better quality data -- I couldn't get good output out of ruby_memcheck without it.
+    use_only_ruby_free_at_exit: true,
+  )
+end
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
@@ -312,6 +324,25 @@ namespace :spec do
     RSpec::Core::RakeTask.new(:ractors) do |t, args|
       t.pattern = 'spec/datadog/profiling/**/*_spec.rb'
       t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
+    end
+
+    desc 'Run spec:profiling:main tests with memory leak checking'
+    if Gem.loaded_specs.key?('ruby_memcheck')
+      RubyMemcheck::RSpec::RakeTask.new(:memcheck) do |t, args|
+        t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+        # Some of our specs use multi-threading + busy looping, or multiple processes, or are just really really slow.
+        # We skip running these when running under valgrind.
+        # (As a reminder, by default valgrind simulates a sequential/single-threaded execution).
+        #
+        # @ivoanjo: I previously tried https://github.com/Shopify/ruby_memcheck/issues/51 but in some cases valgrind
+        # would give incomplete output, causing a "FATAL: Premature end of data in tag valgrindoutput line 3" error in
+        # ruby_memcheck. I did not figure out why exactly.
+        t.rspec_opts = [*args.to_a, '-t ~ractors -t ~memcheck_valgrind_skip'].join(' ')
+      end
+    else
+      task :memcheck do
+        raise 'Memcheck requires the ruby_memcheck gem to be installed'
+      end
     end
 
     # Make sure each profiling test suite has a dependency on compiled native extensions
