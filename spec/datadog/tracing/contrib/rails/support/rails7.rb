@@ -154,6 +154,7 @@ RSpec.shared_context 'Rails 7 test application' do
 
     rails_test_application.instance.routes.append do
       test_routes.each do |k, v|
+        # no-dd-sa
         if k.is_a?(Array)
           send(k.first, k.last => v)
         else
