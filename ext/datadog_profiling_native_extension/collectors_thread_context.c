@@ -1223,6 +1223,9 @@ static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
+  // Release all context memory before clearing the existing context
+  st_foreach(state->hash_map_per_thread_context, hash_map_per_thread_context_free_values, 0 /* unused */);
+
   st_clear(state->hash_map_per_thread_context);
 
   state->stats = (struct stats) {}; // Resets all stats back to zero
