@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/action_pack/action_dispatch/instrumentation'
 
 require 'action_pack'
 require 'action_controller/railtie'
-require 'active_job/railtie'
+require 'action_view/railtie'
 require 'rails/test_unit/railtie'
 
 require 'spec/datadog/tracing/contrib/rails/support/configuration'

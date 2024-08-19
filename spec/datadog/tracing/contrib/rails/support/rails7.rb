@@ -40,14 +40,16 @@ RSpec.shared_context 'Rails 7 test application' do
 
       instance_eval(&during_init)
 
-      config.active_job.queue_adapter = :inline
-      if ENV['USE_SIDEKIQ']
-        config.active_job.queue_adapter = :sidekiq
-        # add Sidekiq middleware
-        Sidekiq::Testing.server_middleware do |chain|
-          chain.add(
-            Datadog::Tracing::Contrib::Sidekiq::ServerTracer
-          )
+      if defined?(ActiveJob)
+        config.active_job.queue_adapter = :inline
+        if ENV['USE_SIDEKIQ']
+          config.active_job.queue_adapter = :sidekiq
+          # add Sidekiq middleware
+          Sidekiq::Testing.server_middleware do |chain|
+            chain.add(
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+            )
+          end
         end
       end
     end
@@ -68,11 +70,9 @@ RSpec.shared_context 'Rails 7 test application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                            :sidekiq
-                                                          else
-                                                            :inline
-                                                          end
+      if defined?(ActiveJob)
+        Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :inline
+      end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         # When running in full application mode, Rails tries to monitor
