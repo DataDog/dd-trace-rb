@@ -38,7 +38,7 @@ module Datadog
                     # This array is [match_data, path_parameters, route].
                     # We need the route object, since it has a path with route specification.
                     current_route = result.last&.last&.path&.spec
-                    return unless current_route
+                    return result unless current_route
 
                     # When Rails is serving requests to Rails Engine routes, this function is called
                     # twice: first time for the route on which the engine is mounted, and second

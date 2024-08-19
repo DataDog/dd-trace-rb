@@ -40,7 +40,7 @@ RSpec.shared_context 'Rails 7 test application' do
 
       instance_eval(&during_init)
 
-      if defined?(ActiveJob)
+      if config.respond_to?(:active_job)
         config.active_job.queue_adapter = :inline
         if ENV['USE_SIDEKIQ']
           config.active_job.queue_adapter = :sidekiq
@@ -70,7 +70,7 @@ RSpec.shared_context 'Rails 7 test application' do
         end
       end
 
-      if defined?(ActiveJob)
+      if Rails.application.config.respond_to?(:active_job)
         Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :inline
       end
 
@@ -182,14 +182,7 @@ RSpec.shared_context 'Rails 7 test application' do
     # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
-    if Module.const_defined?(:ActiveRecord)
-      reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
-
-      # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-      if Rails::VERSION::MINOR < 1
-        ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
-      end
-    end
+    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options) if Module.const_defined?(:ActiveRecord)
 
     ActiveSupport::Dependencies.autoload_paths = []
     ActiveSupport::Dependencies.autoload_once_paths = []
