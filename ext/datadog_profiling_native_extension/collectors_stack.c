@@ -117,8 +117,7 @@ static VALUE _native_sample(
     };
   }
 
-  int max_frames_requested = NUM2INT(max_frames);
-  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
+  int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
   ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
