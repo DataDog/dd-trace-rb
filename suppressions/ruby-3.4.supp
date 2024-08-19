@@ -15,3 +15,10 @@
   ...
 }
 
+{
+  pkg-config-memory
+  Memcheck:Leak
+  ...
+  obj:/usr/bin/pkg-config
+  ...
+}
