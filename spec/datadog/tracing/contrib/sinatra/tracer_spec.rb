@@ -124,6 +124,8 @@ RSpec.describe 'Sinatra instrumentation' do
           it do
             is_expected.to be_ok
 
+            expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/')
+
             expect(span.resource).to eq('GET /')
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/')
           end
@@ -135,6 +137,8 @@ RSpec.describe 'Sinatra instrumentation' do
           context 'with matching app' do
             it do
               expect(response).to be_ok
+
+              expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/wildcard/*')
 
               expect(span.resource).to eq('GET /wildcard/*')
               expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/wildcard/1/2/3')
@@ -154,6 +158,10 @@ RSpec.describe 'Sinatra instrumentation' do
 
           before do
             expect(response).to be_ok
+          end
+
+          it 'sets http.route on the rack span' do
+            expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/erb')
           end
 
           describe 'the sinatra.request span' do
@@ -208,6 +216,10 @@ RSpec.describe 'Sinatra instrumentation' do
           before do
             expect(response).to be_ok
             expect(spans).to have(5).items
+          end
+
+          it 'sets http.route on the rack span' do
+            expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/erb_literal')
           end
 
           describe 'the sinatra.request span' do
@@ -271,6 +283,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span).to_not have_error_type
             expect(span).to_not have_error_message
             expect(span.status).to eq(1)
+
+            expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/server_error')
           end
         end
 
@@ -283,6 +297,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(span).to have_error_type('RuntimeError')
             expect(span).to have_error_message('test error')
             expect(span.status).to eq(1)
+
+            expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/error')
           end
         end
 
@@ -295,6 +311,8 @@ RSpec.describe 'Sinatra instrumentation' do
             expect(spans).to have(2).items
 
             expect(trace.resource).to eq('GET')
+
+            expect(rack_span.tags).not_to have_key(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
 
             expect(span.service).to eq(tracer.default_service)
             expect(span.resource).to eq('GET')
@@ -557,7 +575,6 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.resource).to eq(resource)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq(http_method)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq(url)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq(url)
       expect(span.get_tag('http.response.headers.content-type')).to eq('text/html;charset=utf-8')
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_SCRIPT_NAME)).to be_nil
@@ -591,7 +608,6 @@ RSpec.describe 'Sinatra instrumentation' do
       expect(span.resource).to eq(resource)
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_APP_NAME)).to eq(opts[:app_name])
       expect(span.get_tag(Datadog::Tracing::Contrib::Sinatra::Ext::TAG_ROUTE_PATH)).to eq(url)
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq(url)
       expect(span.type).to eq(Datadog::Tracing::Metadata::Ext::HTTP::TYPE_INBOUND)
       expect(span).to_not have_error
       expect(span.parent_id).to be(opts[:parent].id) if opts[:parent]

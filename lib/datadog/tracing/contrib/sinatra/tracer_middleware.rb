@@ -19,6 +19,7 @@ module Datadog
           end
 
           # rubocop:disable Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize
           def call(env)
             # Find out if this is Sinatra within Sinatra
             return @app.call(env) if Sinatra::Env.datadog_span(env)
@@ -49,10 +50,7 @@ module Datadog
 
                 datadog_route = Sinatra::Env.route_path(env)
 
-                if datadog_route
-                  span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route)
-                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, datadog_route)
-                end
+                span.set_tag(Ext::TAG_ROUTE_PATH, datadog_route) if datadog_route
 
                 if request.script_name && !request.script_name.empty?
                   span.set_tag(Ext::TAG_SCRIPT_NAME, request.script_name)
@@ -68,6 +66,7 @@ module Datadog
                 # since the latter is unaware of what the resource might be
                 # and would fallback to a generic resource name when unset
                 rack_request_span.resource ||= span.resource if rack_request_span
+                rack_request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, datadog_route) if datadog_route
 
                 if response
                   if (status = response[0])
@@ -91,6 +90,7 @@ module Datadog
             end
           end
           # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize
 
           private
 
