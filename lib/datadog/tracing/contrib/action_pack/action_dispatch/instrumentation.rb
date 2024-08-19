@@ -43,7 +43,7 @@ module Datadog
                     # When Rails is serving requests to Rails Engine routes, this function is called
                     # twice: first time for the route on which the engine is mounted, and second
                     # time for the internal engine route.
-                    last_route = Tracing.active_trace&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+                    last_route = Tracing.active_span&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
                     Instrumentation.set_http_route_tag(last_route.to_s + current_route.to_s)
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
