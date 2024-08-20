@@ -349,7 +349,7 @@ module Datadog
           def initialize(message:, level:)
             super()
             @message = message
-            @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}"}
+            @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
           end
 
           def payload

@@ -45,7 +45,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         expect(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
         expect(Datadog).to receive(:logger).and_return(logger)
         expect(logger).to receive(:debug).with(no_args) do |&block|
-          expect(block.call).to match /Attempting to send telemetry log when telemetry component is not ready/
+          expect(block.call).to match(/Attempting to send telemetry log when telemetry component is not ready/)
         end
 
         begin
