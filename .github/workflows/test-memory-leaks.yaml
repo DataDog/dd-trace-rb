@@ -11,4 +11,5 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
+      - run: sudo apt install -y valgrind && valgrind --version
       - run: bundle exec rake compile spec:profiling:memcheck
