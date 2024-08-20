@@ -16,15 +16,6 @@
   ...
 }
 
-# We don't care about the pkg-config external tool
-{
-  pkg-config-memory
-  Memcheck:Leak
-  ...
-  obj:/usr/bin/pkg-config
-  ...
-}
-
 # When a Ruby process forks, it looks like Ruby doesn't clean up the memory of old threads?
 {
   ruby-native-thread-memory
@@ -51,5 +42,23 @@
   fun:native_thread_create_dedicated
   fun:native_thread_create
   fun:thread_create_core
+  ...
+}
+
+# We don't care about the pkg-config external tool
+{
+  pkg-config-memory
+  Memcheck:Leak
+  ...
+  obj:/usr/bin/pkg-config
+  ...
+}
+
+# We don't care about the tr external tool
+{
+  pkg-config-memory
+  Memcheck:Leak
+  ...
+  obj:/usr/bin/tr
   ...
 }
