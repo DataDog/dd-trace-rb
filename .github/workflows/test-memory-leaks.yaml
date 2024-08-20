@@ -1,0 +1,14 @@
+name: Test for memory leaks
+on: [push]
+jobs:
+  test-memcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4.0-preview1 # TODO: Use stable version once 3.4 is out
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          bundler: latest
+          cache-version: v1 # bump this to invalidate cache
+      - run: bundle exec rake compile spec:profiling:memcheck
