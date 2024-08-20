@@ -38,3 +38,18 @@
   fun:thread_create_core
   ...
 }
+
+# When a Ruby process forks, it looks like Ruby doesn't clean up the memory of old threads?
+{
+  ruby-native-thread-memory-2
+  Memcheck:Leak
+  fun:calloc
+  fun:calloc1
+  fun:objspace_xcalloc
+  fun:ruby_xcalloc_body
+  fun:native_thread_alloc
+  fun:native_thread_create_dedicated
+  fun:native_thread_create
+  fun:thread_create_core
+  ...
+}
