@@ -5,6 +5,7 @@
 #
 # See https://valgrind.org/docs/manual/manual-core.html#manual-core.suppress for details.
 
+# Ruby weak maps seem to be able to cause invalid reads?
 {
   ruby-weak-map
   Memcheck:Addr8
@@ -15,10 +16,25 @@
   ...
 }
 
+# We don't care about the pkg-config external tool
 {
   pkg-config-memory
   Memcheck:Leak
   ...
   obj:/usr/bin/pkg-config
+  ...
+}
+
+# When a Ruby process forks, it looks like Ruby doesn't clean up the memory of old threads?
+{
+  ruby-native-thread-memory
+  Memcheck:Leak
+  fun:calloc
+  fun:calloc1
+  fun:rb_gc_impl_calloc
+  fun:native_thread_alloc
+  fun:native_thread_create_dedicated
+  fun:native_thread_create
+  fun:thread_create_core
   ...
 }
