@@ -227,7 +227,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     describe 'when enabled' do
       let(:enabled) { true }
       it do
-        event = double('event')
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
         telemetry.log!(event)
 
         expect(worker).to have_received(:enqueue).with(event)
@@ -236,7 +236,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       context 'when in fork', skip: !Process.respond_to?(:fork) do
         it do
           expect_in_fork do
-            event = double('event')
+            event = instance_double(Datadog::Core::Telemetry::Event::Log)
             telemetry.log!(event)
 
             expect(worker).to have_received(:enqueue).with(event)
@@ -249,7 +249,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       let(:enabled) { false }
 
       it do
-        event = double('event')
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
         telemetry.log!(event)
 
         expect(worker).not_to have_received(:enqueue)
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       context 'when in fork', skip: !Process.respond_to?(:fork) do
         it do
           expect_in_fork do
-            event = double('event')
+            event = instance_double(Datadog::Core::Telemetry::Event::Log)
             telemetry.log!(event)
 
             expect(worker).not_to have_received(:enqueue)

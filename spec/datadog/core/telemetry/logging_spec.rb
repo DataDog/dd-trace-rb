@@ -1,12 +1,13 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/logging'
+require 'datadog/core/telemetry/component'
 
 RSpec.describe Datadog::Core::Telemetry::Logging do
   describe '.report' do
     context 'with named exception' do
       it 'sends a log event to via telemetry' do
-        telemetry = double('telemetry')
+        telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(message: 'RuntimeError', level: 'ERROR')
@@ -22,7 +23,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
 
     context 'with anonymous exception' do
       it 'sends a log event to via telemetry' do
-        telemetry = double('telemetry')
+        telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(message: /#<Class:/, level: 'ERROR')
