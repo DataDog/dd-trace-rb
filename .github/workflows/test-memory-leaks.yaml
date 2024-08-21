@@ -23,4 +23,4 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
-      - run: env CC=clang-18 bundle exec rake compile && env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1 ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:all
+      - run: env CC=clang-18 CONFIGURE_ARGS="--with-cflags='-DENABLE_PATH_CHECK=0 -DRUBY_DEBUG=1 -DVM_CHECK_MODE=1 -DUSE_MN_THREADS=0 -fsanitize=address -fno-omit-frame-pointer'" bundle exec rake compile && env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1 ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:all
