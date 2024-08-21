@@ -19,6 +19,22 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           described_class.report(e, level: :error)
         end
       end
+
+      context 'with description' do
+        it 'sends a log event to via telemetry' do
+          telemetry = instance_double(Datadog::Core::Telemetry::Component)
+          allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
+          expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+            expect(event.payload).to include(logs: [{ message: 'RuntimeError:Must not contain PII', level: 'ERROR' }])
+          end
+
+          begin
+            raise 'Invalid token: p@ssw0rd'
+          rescue StandardError => e
+            described_class.report(e, level: :error, description: 'Must not contain PII')
+          end
+        end
+      end
     end
 
     context 'with anonymous exception' do
@@ -53,6 +69,33 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         rescue StandardError => e
           described_class.report(e, level: :error)
         end
+      end
+    end
+  end
+
+  describe '.error' do
+    context 'with description' do
+      it 'sends a log event to via telemetry' do
+        telemetry = instance_double(Datadog::Core::Telemetry::Component)
+        allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
+        expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
+          expect(event.payload).to include(logs: [{ message: 'Must not contain PII', level: 'ERROR' }])
+        end
+
+        described_class.error('Must not contain PII')
+      end
+    end
+
+    context 'when telemetry component is not available' do
+      it 'does not sends a log event to via telemetry' do
+        logger = Logger.new($stdout)
+        expect(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
+        expect(Datadog).to receive(:logger).and_return(logger)
+        expect(logger).to receive(:debug).with(no_args) do |&block|
+          expect(block.call).to match(/Attempting to send telemetry log when telemetry component is not ready/)
+        end
+
+        described_class.error('Must not contain PII')
       end
     end
   end
