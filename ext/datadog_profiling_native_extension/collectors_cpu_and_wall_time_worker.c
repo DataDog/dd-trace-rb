@@ -1211,7 +1211,8 @@ static VALUE rescued_sample_allocation(DDTRACE_UNUSED VALUE unused) {
   thread_context_collector_sample_allocation(state->thread_context_collector_instance, weight, new_object);
   // ...but we still represent the skipped samples in the profile, thus the data will account for all allocations.
   if (weight < allocations_since_last_sample) {
-    thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, allocations_since_last_sample - weight);
+    uint32_t skipped_samples = (uint32_t) uint64_min_of(allocations_since_last_sample - weight, UINT32_MAX);
+    thread_context_collector_sample_skipped_allocation_samples(state->thread_context_collector_instance, skipped_samples);
   }
 
   // Return a dummy VALUE because we're called from rb_rescue2 which requires it
