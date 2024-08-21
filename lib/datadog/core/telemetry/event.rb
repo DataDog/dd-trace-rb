@@ -354,9 +354,11 @@ module Datadog
 
           def payload
             {
-              message: @message,
-              level: @level,
-              # More optional fields to be added here...
+              logs: [{
+                message: @message,
+                level: @level,
+                # More optional fields to be added here...
+              }]
             }
           end
         end

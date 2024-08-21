@@ -218,8 +218,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
-        message: 'Hi',
-        level: 'ERROR'
+        {
+          logs: [
+            message: 'Hi',
+            level: 'ERROR'
+          ]
+        }
       )
     end
 
@@ -227,8 +231,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :debug)
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
-        message: 'Hi',
-        level: 'DEBUG'
+        {
+          logs: [
+            message: 'Hi',
+            level: 'DEBUG'
+          ]
+        }
       )
     end
 
@@ -236,8 +244,12 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :warn)
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
-        message: 'Hi',
-        level: 'WARN'
+        {
+          logs: [
+            message: 'Hi',
+            level: 'WARN'
+          ]
+        }
       )
     end
 

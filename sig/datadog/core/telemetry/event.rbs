@@ -75,7 +75,7 @@ module Datadog
 
           def initialize: (message: String, level: Symbol) -> void
 
-          def payload: () -> { message: String, level: String }
+          def payload: () -> { logs: [{ message: String, level: String }] }
         end
 
         class Distributions < GenerateMetrics

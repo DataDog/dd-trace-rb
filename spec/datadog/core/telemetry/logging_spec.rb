@@ -10,7 +10,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(message: 'RuntimeError', level: 'ERROR')
+          expect(event.payload).to include(logs: [{ message: 'RuntimeError', level: 'ERROR' }])
         end
 
         begin
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(message: /#<Class:/, level: 'ERROR')
+          expect(event.payload).to include(logs: [{ message: /#<Class:/, level: 'ERROR' }])
         end
 
         customer_exception = Class.new(StandardError)
