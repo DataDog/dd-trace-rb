@@ -292,10 +292,8 @@ void sample_thread(
     }
 
     buffer->locations[i] = (ddog_prof_Location) {
-      .function = (ddog_prof_Function) {
-        .name = name_slice,
-        .filename = filename_slice,
-      },
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+      .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
@@ -371,6 +369,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
   buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
     .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
@@ -417,6 +416,7 @@ void record_placeholder_stack(
   ddog_CharSlice placeholder_stack
 ) {
   ddog_prof_Location placeholder_location = {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
     .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
     .line = 0,
   };
