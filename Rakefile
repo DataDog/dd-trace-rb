@@ -186,14 +186,21 @@ namespace :spec do
       'configurable',
       'configuration/*',
       'configuration/resolvers/*',
+      'component',
       'extensions',
+      'grpc',
+      'http',
+      'http_route',
       'integration',
       'patchable',
       'patcher',
       'registerable',
       'registry',
       'registry/*',
-      'propagation/**/*'
+      'propagation/**/*',
+      'span_attribute_schema',
+      'status_range_env_parser',
+      'status_range_matcher'
     ].join(',')
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
