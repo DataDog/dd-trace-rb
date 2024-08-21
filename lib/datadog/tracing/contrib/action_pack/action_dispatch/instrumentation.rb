@@ -19,7 +19,7 @@ module Datadog
 
               active_span.set_tag(
                 Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                http_route.gsub(/\(.:format\)$/, '')
+                http_route.gsub(/\(.:format\)\z/, '')
               )
             end
 
@@ -29,9 +29,9 @@ module Datadog
               # for Rails versions older than 7.1
               module Router
                 def find_routes(req)
-                  result = super(req)
+                  result = super
 
-                  return response unless Tracing.enabled?
+                  return result unless Tracing.enabled?
 
                   begin
                     # Journey::Router#find_routes retuns an array for each matching route.
