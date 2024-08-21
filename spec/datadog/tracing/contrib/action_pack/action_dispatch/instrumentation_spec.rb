@@ -13,9 +13,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Instrument
       end
     end
 
-    it 'does not set http_route tag when the route is nil' do
+    it 'does not set http_route tag when the route is empty' do
       Datadog::Tracing.trace('web.request') do |span_op, _trace_op|
-        described_class.set_http_route_tag(nil)
+        described_class.set_http_route_tag('')
 
         expect(span_op.tags).not_to have_key('http.route')
       end

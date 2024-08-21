@@ -12,7 +12,7 @@ module Datadog
             module_function
 
             def set_http_route_tag(http_route)
-              return if http_route.nil?
+              return if http_route.empty?
 
               active_span = Tracing.active_span
               return unless active_span

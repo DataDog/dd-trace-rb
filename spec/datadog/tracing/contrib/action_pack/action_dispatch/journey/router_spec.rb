@@ -33,7 +33,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
     let(:controller) do
       stub_const(
-        'UsersController',
+        'Api::UsersController',
         Class.new(ActionController::Base) do
           def show
             head :ok
