@@ -15,8 +15,6 @@ jobs:
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
     runs-on: ubuntu-24.04
-    env:
-      CC: 'clang-17'
     steps:
       - uses: actions/checkout@v4
       - uses: datadog/setup-ruby@0c7206d6db81faf999795ceebfac00d164298bd5
@@ -25,4 +23,4 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
-      - run: bundle exec rake compile spec:profiling:all
+      - run: env CC=clang-18 bundle exec rake compile && env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1 ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:all
