@@ -13,3 +13,14 @@ jobs:
           cache-version: v1 # bump this to invalidate cache
       - run: sudo apt install -y valgrind && valgrind --version
       - run: bundle exec rake compile spec:profiling:memcheck
+  test-asan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: datadog/setup-ruby@0c7206d6db81faf999795ceebfac00d164298bd5
+        with:
+          ruby-version: asan
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          bundler: latest
+          cache-version: v1 # bump this to invalidate cache
+      - run: bundle exec rake compile spec:profiling:all
