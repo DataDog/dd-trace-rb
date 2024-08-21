@@ -92,7 +92,7 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
   return sampler->sampling_probability * 100.;
 }
 
-size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
+unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
   return sampler->events_since_last_sample;
 }
 
