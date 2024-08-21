@@ -1,4 +1,3 @@
-version: '3.2'
 services:
   tracer-2.5:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
