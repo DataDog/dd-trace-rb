@@ -331,7 +331,7 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
 
-  int pos = name_slice->len - 1;
+  uintptr_t pos = name_slice->len - 1;
 
   // Let's match on something__number_number:
   // Find start of id suffix from the end...
