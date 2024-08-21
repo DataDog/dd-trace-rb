@@ -11,16 +11,8 @@ module Datadog
           module Instrumentation
             module_function
 
-            def set_http_route_tag(http_route)
-              return if http_route.empty?
-
-              active_span = Tracing.active_span
-              return unless active_span
-
-              active_span.set_tag(
-                Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                http_route.gsub(/\(.:format\)\z/, '')
-              )
+            def format_http_route(http_route)
+              http_route.gsub(/\(.:format\)\z/, '')
             end
 
             # Instrumentation for ActionDispatch::Journey components
@@ -33,6 +25,9 @@ module Datadog
 
                   return result unless Tracing.enabled?
 
+                  active_span = Tracing.active_span
+                  return result unless active_span
+
                   begin
                     # Journey::Router#find_routes retuns an array for each matching route.
                     # This array is [match_data, path_parameters, route].
@@ -43,8 +38,12 @@ module Datadog
                     # When Rails is serving requests to Rails Engine routes, this function is called
                     # twice: first time for the route on which the engine is mounted, and second
                     # time for the internal engine route.
-                    last_route = Tracing.active_span&.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-                    Instrumentation.set_http_route_tag(last_route.to_s + current_route.to_s)
+                    last_route = active_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+
+                    active_span.set_tag(
+                      Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
+                      Instrumentation.format_http_route(last_route.to_s + current_route.to_s)
+                    )
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
                   end
@@ -62,6 +61,9 @@ module Datadog
 
                   return response unless Tracing.enabled?
 
+                  active_span = Tracing.active_span
+                  return response unless active_span
+
                   begin
                     return response if req.route_uri_pattern.nil?
 
@@ -71,7 +73,10 @@ module Datadog
                     # and `#script_name` is the route prefix at which the engine is mounted.
                     http_route = req.script_name.to_s + req.route_uri_pattern
 
-                    Instrumentation.set_http_route_tag(http_route)
+                    active_span.set_tag(
+                      Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
+                      Instrumentation.format_http_route(http_route)
+                    )
                   rescue StandardError => e
                     Datadog.logger.error(e.message)
                   end
