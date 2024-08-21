@@ -887,9 +887,9 @@ static struct per_thread_context *get_context_for(VALUE thread, struct thread_co
 // to either run Ruby code during sampling (not great), or otherwise use some of the VM private APIs to detect this.
 //
 static bool is_logging_gem_monkey_patch(VALUE invoke_file_location) {
-  int logging_gem_path_len = strlen(LOGGING_GEM_PATH);
+  unsigned long logging_gem_path_len = strlen(LOGGING_GEM_PATH);
   char *invoke_file = StringValueCStr(invoke_file_location);
-  int invoke_file_len = strlen(invoke_file);
+  unsigned long invoke_file_len = strlen(invoke_file);
 
   if (invoke_file_len < logging_gem_path_len) return false;
 
@@ -1200,7 +1200,7 @@ static bool should_collect_resource(VALUE root_span) {
   if (root_span_type == Qnil) return false;
   ENFORCE_TYPE(root_span_type, T_STRING);
 
-  int root_span_type_length = RSTRING_LEN(root_span_type);
+  long root_span_type_length = RSTRING_LEN(root_span_type);
   const char *root_span_type_value = StringValuePtr(root_span_type);
 
   bool is_web_request =
