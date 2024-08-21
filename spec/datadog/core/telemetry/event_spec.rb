@@ -219,10 +219,10 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
         {
-          logs: [
+          logs: [{
             message: 'Hi',
             level: 'ERROR'
-          ]
+          }]
         }
       )
     end
@@ -232,10 +232,10 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
         {
-          logs: [
+          logs: [{
             message: 'Hi',
             level: 'DEBUG'
-          ]
+          }]
         }
       )
     end
@@ -245,10 +245,10 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       expect(event.type).to eq('logs')
       expect(event.payload).to eq(
         {
-          logs: [
+          logs: [{
             message: 'Hi',
             level: 'WARN'
-          ]
+          }]
         }
       )
     end
