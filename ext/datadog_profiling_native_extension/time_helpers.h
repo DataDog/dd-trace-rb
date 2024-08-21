@@ -21,7 +21,7 @@ typedef struct {
 
 #define MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER {.system_epoch_ns_reference = INVALID_TIME, .delta_to_epoch_ns = INVALID_TIME}
 
-inline long retrieve_clock_as_ns(clockid_t clock_id, raise_on_failure_setting raise_on_failure) {
+static inline long retrieve_clock_as_ns(clockid_t clock_id, raise_on_failure_setting raise_on_failure) {
   struct timespec clock_value;
 
   if (clock_gettime(clock_id, &clock_value) != 0) {
@@ -32,8 +32,8 @@ inline long retrieve_clock_as_ns(clockid_t clock_id, raise_on_failure_setting ra
   return clock_value.tv_nsec + SECONDS_AS_NS(clock_value.tv_sec);
 }
 
-inline long monotonic_wall_time_now_ns(raise_on_failure_setting raise_on_failure) { return retrieve_clock_as_ns(CLOCK_MONOTONIC, raise_on_failure); }
-inline long system_epoch_time_now_ns(raise_on_failure_setting raise_on_failure)   { return retrieve_clock_as_ns(CLOCK_REALTIME,  raise_on_failure); }
+static inline long monotonic_wall_time_now_ns(raise_on_failure_setting raise_on_failure) { return retrieve_clock_as_ns(CLOCK_MONOTONIC, raise_on_failure); }
+static inline long system_epoch_time_now_ns(raise_on_failure_setting raise_on_failure)   { return retrieve_clock_as_ns(CLOCK_REALTIME,  raise_on_failure); }
 
 // Coarse instants use CLOCK_MONOTONIC_COARSE on Linux which is expected to provide resolution in the millisecond range:
 // https://docs.redhat.com/en/documentation/red_hat_enterprise_linux_for_real_time/7/html/reference_guide/sect-posix_clocks#Using_clock_getres_to_compare_clock_resolution
@@ -43,9 +43,9 @@ typedef struct coarse_instant {
   long timestamp_ns;
 } coarse_instant;
 
-inline coarse_instant to_coarse_instant(long timestamp_ns) { return (coarse_instant) {.timestamp_ns = timestamp_ns}; }
+static inline coarse_instant to_coarse_instant(long timestamp_ns) { return (coarse_instant) {.timestamp_ns = timestamp_ns}; }
 
-inline coarse_instant monotonic_coarse_wall_time_now_ns(void) {
+static inline coarse_instant monotonic_coarse_wall_time_now_ns(void) {
  #ifdef HAVE_CLOCK_MONOTONIC_COARSE // Linux
     return to_coarse_instant(retrieve_clock_as_ns(CLOCK_MONOTONIC_COARSE, DO_NOT_RAISE_ON_FAILURE));
   #else // macOS

@@ -311,7 +311,7 @@ VALUE thread_name_for(VALUE thread) {
 // with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-inline static int
+static inline int
 calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 {
     VM_ASSERT(iseq);
@@ -364,7 +364,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
-inline static int
+static inline int
 calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 {
     int lineno;

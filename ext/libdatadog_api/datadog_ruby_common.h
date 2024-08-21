@@ -33,7 +33,7 @@ NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const c
 // Helper to retrieve Datadog::VERSION::STRING
 VALUE datadog_gem_version(void);
 
-inline static ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
+static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
   ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
@@ -45,12 +45,12 @@ ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration);
 __attribute__((warn_unused_result))
 ddog_Vec_Tag convert_tags(VALUE tags_as_array);
 
-inline static VALUE ruby_string_from_error(const ddog_Error *error) {
+static inline VALUE ruby_string_from_error(const ddog_Error *error) {
   ddog_CharSlice char_slice = ddog_Error_message(error);
   return rb_str_new(char_slice.ptr, char_slice.len);
 }
 
-inline static VALUE get_error_details_and_drop(ddog_Error *error) {
+static inline VALUE get_error_details_and_drop(ddog_Error *error) {
   VALUE result = ruby_string_from_error(error);
   ddog_Error_drop(error);
   return result;
