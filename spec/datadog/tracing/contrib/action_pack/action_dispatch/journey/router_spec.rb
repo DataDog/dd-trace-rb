@@ -84,7 +84,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         clear_traces!
       end
 
-      it 'sets http.route when requesting a known route' do
+      it 'does not set http.route' do
         get '/api/users/1'
 
         expect(spans).to be_empty
