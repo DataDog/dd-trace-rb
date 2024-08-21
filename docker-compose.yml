@@ -1,9 +1,8 @@
-version: '3.2'
 services:
   tracer-2.5:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
     command: /bin/bash
-    depends_on:
+    depends_on: &common-depends-on
       - ddagent
       - elasticsearch
       - memcached
@@ -28,7 +27,6 @@ services:
       TEST_OPENSEARCH_PORT: 9200
       TEST_POSTGRES_HOST: postgres
       TEST_PRESTO_HOST: presto
-      TEST_PRESTO_PORT: 8080
       TEST_REDIS_HOST: redis
       DATADOG_GEM_CI: 'true'
     stdin_open: true
@@ -41,17 +39,7 @@ services:
   tracer-2.6:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -66,17 +54,7 @@ services:
   tracer-2.7:
     image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -91,32 +69,11 @@ services:
   tracer-3.0:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
-    environment: &common-environment-3x
+    environment:
+      <<: *common-environment
       BUNDLE_GEMFILE: /app/Gemfile-3.0
-      DD_AGENT_HOST: testagent
-      DD_TRACE_AGENT_PORT: 9126
-      TEST_DATADOG_INTEGRATION: 1
-      TEST_ELASTICSEARCH_HOST: elasticsearch
-      TEST_MEMCACHED_HOST: memcached
-      TEST_MONGODB_HOST: mongodb
-      TEST_MYSQL_HOST: mysql
-      TEST_OPENSEARCH_HOST: opensearch
-      TEST_OPENSEARCH_PORT: 9200
-      TEST_POSTGRES_HOST: postgres
-      TEST_REDIS_HOST: redis
-      DATADOG_GEM_CI: 'true'
     stdin_open: true
     tty: true
     volumes:
@@ -127,20 +84,10 @@ services:
   tracer-3.1:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
-      <<: *common-environment-3x
+      <<: *common-environment
       BUNDLE_GEMFILE: /app/Gemfile-3.1
     stdin_open: true
     tty: true
@@ -152,20 +99,10 @@ services:
   tracer-3.2:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
-      <<: *common-environment-3x
+      <<: *common-environment
       BUNDLE_GEMFILE: /app/Gemfile-3.2
     stdin_open: true
     tty: true
@@ -177,20 +114,10 @@ services:
   tracer-3.3:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
-      <<: *common-environment-3x
+      <<: *common-environment
       BUNDLE_GEMFILE: /app/Gemfile-3.3
     stdin_open: true
     tty: true
@@ -202,20 +129,10 @@ services:
   tracer-3.4:
     image: ghcr.io/datadog/dd-trace-rb/ruby:3.4.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
-      <<: *common-environment-3x
+      <<: *common-environment
       BUNDLE_GEMFILE: /app/Gemfile-3.4
     stdin_open: true
     tty: true
@@ -228,17 +145,7 @@ services:
   tracer-jruby-9.2:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -252,17 +159,7 @@ services:
   tracer-jruby-9.3:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
       <<: *common-environment
@@ -276,17 +173,7 @@ services:
   tracer-jruby-9.4:
     image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.7.0-dd
     command: /bin/bash
-    depends_on:
-      - ddagent
-      - elasticsearch
-      - memcached
-      - mongodb
-      - mysql
-      - opensearch
-      - postgres
-      - presto
-      - redis
-      - testagent
+    depends_on: *common-depends-on
     env_file: ./.env
     environment:
       <<: *common-environment
