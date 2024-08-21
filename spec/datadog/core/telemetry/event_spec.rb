@@ -213,6 +213,53 @@ RSpec.describe Datadog::Core::Telemetry::Event do
     end
   end
 
+  context 'Logs' do
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'ERROR'
+          }]
+        }
+      )
+    end
+
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :debug)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'DEBUG'
+          }]
+        }
+      )
+    end
+
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :warn)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'WARN'
+          }]
+        }
+      )
+    end
+
+    it do
+      expect do
+        Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :unknown)
+      end.to raise_error(ArgumentError, /Invalid log level/)
+    end
+  end
+
   context 'GenerateMetrics' do
     let(:event) { described_class::GenerateMetrics.new(namespace, metrics) }
 

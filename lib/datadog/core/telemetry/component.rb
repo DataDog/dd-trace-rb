@@ -111,6 +111,12 @@ module Datadog
           @worker.enqueue(Event::AppIntegrationsChange.new)
         end
 
+        def log!(event)
+          return unless @enabled || forked?
+
+          @worker.enqueue(event)
+        end
+
         # Report configuration changes caused by Remote Configuration.
         def client_configuration_change!(changes)
           return if !@enabled || forked?

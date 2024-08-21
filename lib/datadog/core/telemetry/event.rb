@@ -334,6 +334,35 @@ module Datadog
           end
         end
 
+        # Telemetry class for the 'logs' event
+        class Log < Base
+          LEVELS = {
+            error: 'ERROR',
+            debug: 'DEBUG',
+            warn: 'WARN',
+          }.freeze
+
+          def type
+            'logs'
+          end
+
+          def initialize(message:, level:)
+            super()
+            @message = message
+            @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
+          end
+
+          def payload
+            {
+              logs: [{
+                message: @message,
+                level: @level,
+                # More optional fields to be added here...
+              }]
+            }
+          end
+        end
+
         # Telemetry class for the 'distributions' event
         class Distributions < GenerateMetrics
           def type
