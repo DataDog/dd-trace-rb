@@ -21,7 +21,7 @@ struct call_exporter_without_gvl_arguments {
   bool send_ran;
 };
 
-inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
+static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result);
@@ -57,7 +57,7 @@ void http_transport_init(VALUE profiling_module) {
   rb_global_variable(&library_version_string);
 }
 
-inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
+static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
   ddog_ByteSlice byte_slice = {.ptr = (uint8_t *) StringValuePtr(string), .len = RSTRING_LEN(string)};
   return byte_slice;
