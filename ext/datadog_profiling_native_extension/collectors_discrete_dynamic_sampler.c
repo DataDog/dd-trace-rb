@@ -21,7 +21,7 @@
 #define EMA_SMOOTHING_FACTOR 0.6
 
 static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns);
-inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now);
+static inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now);
 
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns) {
   sampler->debug_name = debug_name;
@@ -119,7 +119,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns) {
   if (should_readjust(sampler, to_coarse_instant(now_ns))) discrete_dynamic_sampler_readjust(sampler, now_ns);
 }
 
-inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now) {
+static inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now) {
   long this_window_time_ns =
     sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now.timestamp_ns - sampler->last_readjust_time_ns;
 
