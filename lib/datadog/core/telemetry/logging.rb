@@ -12,6 +12,26 @@ module Datadog
       module Logging
         extend self
 
+        # Extract datadog stack trace from the exception
+        module DatadogStackTrace
+          REGEX = %r{datadog-.*?/lib/datadog/}.freeze
+
+          def self.from(exception)
+            return unless exception.backtrace
+
+            stack_trace = +''
+            (exception.backtrace || []).each do |line|
+              stack_trace << if line.match?(REGEX)
+                               line.sub(/^.*?(#{REGEX})/o, '\1') << ','
+                             else
+                               'REDACTED,'
+                             end
+            end
+
+            stack_trace.chomp(',')
+          end
+        end
+
         def report(exception, level:, description: nil)
           # Annoymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +''
@@ -20,7 +40,8 @@ module Datadog
 
           event = Event::Log.new(
             message: message,
-            level: level
+            level: level,
+            stack_trace: DatadogStackTrace.from(exception)
           )
 
           dispatch(event)

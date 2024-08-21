@@ -2,6 +2,11 @@ module Datadog
   module Core
     module Telemetry
       module Logging
+        module DatadogStackTrace
+          REGEX: Regexp
+          def self.from: (Exception exception) -> String?
+        end
+
         extend Datadog::Core::Telemetry::Logging
 
         def report: (Exception exception, level: Symbol, ?description: String?) -> void

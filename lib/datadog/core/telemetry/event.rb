@@ -346,19 +346,23 @@ module Datadog
             'logs'
           end
 
-          def initialize(message:, level:)
+          def initialize(message:, level:, stack_trace: nil)
             super()
             @message = message
+            @stack_trace = stack_trace
             @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
           end
 
           def payload
             {
-              logs: [{
-                message: @message,
-                level: @level,
-                # More optional fields to be added here...
-              }]
+              logs: [
+                {
+                  message: @message,
+                  level: @level,
+                  # More optional fields to be added here...
+                  stack_trace: @stack_trace,
+                }.compact
+              ]
             }
           end
         end

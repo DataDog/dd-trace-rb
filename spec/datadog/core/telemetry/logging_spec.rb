@@ -10,7 +10,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(logs: [{ message: 'RuntimeError', level: 'ERROR' }])
+          expect(event.payload).to include(
+            logs: [{ message: 'RuntimeError', level: 'ERROR',
+                     stack_trace: a_string_including('REDACTED') }]
+          )
         end
 
         begin
@@ -25,7 +28,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           telemetry = instance_double(Datadog::Core::Telemetry::Component)
           allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
           expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-            expect(event.payload).to include(logs: [{ message: 'RuntimeError:Must not contain PII', level: 'ERROR' }])
+            expect(event.payload).to include(
+              logs: [{ message: 'RuntimeError:Must not contain PII', level: 'ERROR',
+                       stack_trace: a_string_including('REDACTED') }]
+            )
           end
 
           begin
@@ -42,7 +48,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(logs: [{ message: /#<Class:/, level: 'ERROR' }])
+          expect(event.payload).to include(
+            logs: [{ message: /#<Class:/, level: 'ERROR',
+                     stack_trace: a_string_including('REDACTED') }]
+          )
         end
 
         customer_exception = Class.new(StandardError)
@@ -97,6 +106,50 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
 
         described_class.error('Must not contain PII')
       end
+    end
+  end
+end
+
+RSpec.describe Datadog::Core::Telemetry::Logging::DatadogStackTrace do
+  describe '.from' do
+    it do
+      exception = StandardError.new('Yo!')
+
+      result = described_class.from(exception)
+
+      expect(result).to be_nil
+    end
+
+    it do
+      exception = StandardError.new('Yo!')
+      exception.set_backtrace([])
+
+      result = described_class.from(exception)
+
+      expect(result).to be_nil
+    end
+
+    it 'returns redacted stack trace' do
+      exception = StandardError.new('Yo!')
+      exception.set_backtrace(
+        [
+          '/usr/local/bundle/gems/datadog-2.3.0.beta1/lib/datadog/core/telemetry/logging.rb:1 in `report`',
+          '/foo/bar/baz.rb:1 in `baz`',
+          '/foo/bar.rb:1 in `bar`',
+          '/foo.rb:1 in `foo`',
+        ]
+      )
+
+      result = described_class.from(exception)
+
+      expect(result).to eq(
+        [
+          'datadog-2.3.0.beta1/lib/datadog/core/telemetry/logging.rb:1 in `report`',
+          'REDACTED',
+          'REDACTED',
+          'REDACTED'
+        ].join(',')
+      )
     end
   end
 end
