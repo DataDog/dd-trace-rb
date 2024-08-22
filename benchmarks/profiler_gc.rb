@@ -38,7 +38,7 @@ class ProfilerGcBenchmark
       x.report('profiler gc') do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
       end
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -61,7 +61,7 @@ class ProfilerGcBenchmark
         estimated_gc_per_minute.times do
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
         end
 
         @recorder.serialize
