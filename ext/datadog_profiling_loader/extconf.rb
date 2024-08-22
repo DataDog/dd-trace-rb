@@ -1,5 +1,4 @@
 # rubocop:disable Style/StderrPuts
-# rubocop:disable Style/GlobalVars
 
 if RUBY_ENGINE != "ruby" || Gem.win_platform?
   $stderr.puts(
@@ -58,5 +57,4 @@ EXTENSION_NAME = "datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}".fre
 
 create_makefile(EXTENSION_NAME)
 
-# rubocop:enable Style/GlobalVars
 # rubocop:enable Style/StderrPuts
