@@ -225,10 +225,6 @@ appraise 'activesupport' do
   gem 'ruby-kafka', '>= 0.7.10'
 end
 
-appraise 'actionpack-5.0' do
-  gem 'rails', '~> 5.0'
-end
-
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'

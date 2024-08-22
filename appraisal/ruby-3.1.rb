@@ -50,6 +50,14 @@ appraise 'rails61-trilogy' do
   gem 'net-smtp'
 end
 
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -110,15 +118,6 @@ appraise 'activesupport' do
   gem 'lograge'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
-end
-
-[
-  '7.0',
-  '7.1',
-].each do |v|
-  appraise "actionpack-#{v}" do
-    gem 'rails', "~> #{v}.0"
-  end
 end
 
 appraise 'contrib' do
