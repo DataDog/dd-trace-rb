@@ -39,6 +39,7 @@ module Datadog
               @client.sync
               @healthy ||= true
             rescue Client::SyncError => e
+              # Not sure
               Datadog.logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
@@ -48,6 +49,7 @@ module Datadog
               # negotiation object stores error logging state that should be reset.
               negotiation = Negotiation.new(settings, agent_settings)
 
+              # Not sure
               Datadog.logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
                 'reseting client state'

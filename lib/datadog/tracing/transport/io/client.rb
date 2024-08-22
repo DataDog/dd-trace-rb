@@ -49,6 +49,7 @@ module Datadog
             if stats.consecutive_errors > 0
               Datadog.logger.debug(message)
             else
+              # Not to report Telemetry logs
               Datadog.logger.error(message)
             end
 

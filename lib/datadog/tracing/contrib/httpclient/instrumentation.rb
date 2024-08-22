@@ -4,7 +4,6 @@ require_relative '../../metadata/ext'
 require_relative '../http'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
-require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -37,8 +36,8 @@ module Datadog
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue StandardError => e
-                  Datadog.logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
-                  Datadog::Core::Telemetry::Logger.report(e)
+                  # TODO: Report Telemetry logs
+                  logger.error("error preparing span for httpclient request: #{e}, Source: #{e.backtrace}")
                 ensure
                   res = super
                 end
@@ -114,6 +113,10 @@ module Datadog
 
             def analytics_enabled?(request_options)
               Contrib::Analytics.enabled?(request_options[:analytics_enabled])
+            end
+
+            def logger
+              Datadog.logger
             end
 
             def should_skip_distributed_tracing?(client_config)

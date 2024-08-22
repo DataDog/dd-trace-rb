@@ -64,6 +64,7 @@ module Datadog
 
               Thread.current[KEY_RUN] = true
             rescue StandardError => e
+              # TODO: Report Telelemetry log
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -108,6 +109,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue StandardError => e
+              # TODO: Report Telelemetry log
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -152,6 +154,7 @@ module Datadog
 
               Thread.current[KEY_RENDER] = true
             rescue StandardError => e
+              # TODO: Report Telelemetry log
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -177,6 +180,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue StandardError => e
+              # TODO: Report Telelemetry log
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end
@@ -216,6 +220,7 @@ module Datadog
                 span.finish(finish)
               end
             rescue StandardError => e
+              # TODO: Report Telelemetry log
               Datadog.logger.error(e.message)
               Datadog::Core::Telemetry::Logger.report(e)
             end

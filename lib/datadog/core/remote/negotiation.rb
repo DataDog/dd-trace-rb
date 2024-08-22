@@ -20,6 +20,7 @@ module Datadog
 
           if res.internal_error? && network_error?(res.error)
             unless @logged[:agent_unreachable]
+              # TODO: change to warning
               Datadog.logger.error { "agent unreachable: cannot negotiate #{path}" }
               @logged[:agent_unreachable] = true
             end
@@ -29,6 +30,7 @@ module Datadog
 
           if res.not_found?
             unless @logged[:no_info_endpoint]
+              # TODO: change to warning
               Datadog.logger.error { "agent reachable but has no /info endpoint: cannot negotiate #{path}" }
               @logged[:no_info_endpoint] = true
             end
@@ -38,6 +40,8 @@ module Datadog
 
           unless res.ok?
             unless @logged[:unexpected_response]
+              # TODO: Report telemetry logs
+              # TODO: change to warning
               Datadog.logger.error { "agent reachable but unexpected response: cannot negotiate #{path}" }
               @logged[:unexpected_response] = true
             end
@@ -47,6 +51,8 @@ module Datadog
 
           unless res.endpoints.include?(path)
             unless @logged[:no_config_endpoint]
+              # TODO: Report telemetry logs
+              # TODO: change to warning
               Datadog.logger.error { "agent reachable but does not report #{path}" }
               @logged[:no_config_endpoint] = true
             end

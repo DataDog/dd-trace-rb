@@ -35,6 +35,7 @@ module Datadog
                   # Add additional request specific tags to the span.
                   annotate_span_with_request!(span, req, request_options)
                 rescue StandardError => e
+                  # TODO: Report Telemetry logs
                   logger.error("error preparing span for http.rb request: #{e}, Source: #{e.backtrace}")
                   Datadog::Core::Telemetry::Logger.report(e)
                 ensure

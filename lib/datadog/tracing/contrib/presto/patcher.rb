@@ -13,10 +13,23 @@ module Datadog
         module Patcher
           include Contrib::Patcher
 
+          PATCH_ONLY_ONCE = Core::Utils::OnlyOnce.new
+
           module_function
 
+          def patched?
+            PATCH_ONLY_ONCE.ran?
+          end
+
           def patch
-            ::Presto::Client::Client.include(Instrumentation::Client)
+            # TODO: Refactor to remove redundancy
+            PATCH_ONLY_ONCE.run do
+              begin
+                ::Presto::Client::Client.include(Instrumentation::Client)
+              rescue StandardError => e
+                Datadog.logger.error("Unable to apply Presto integration: #{e}")
+              end
+            end
           end
         end
       end

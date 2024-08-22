@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../core/utils/only_once'
-require_relative '../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -50,8 +49,9 @@ module Datadog
           # Processes patching errors. This default implementation logs the error and reports relevant metrics.
           # @param e [Exception]
           def on_patch_error(e)
+            # Log the error
+            # TODO: Report Telemetry logs
             Datadog.logger.error("Failed to apply #{patch_name} patch. Cause: #{e} Location: #{Array(e.backtrace).first}")
-            Datadog::Core::Telemetry::Logger.report(e, description: "Failed to apply #{patch_name} patch")
 
             @patch_error_result = {
               type: e.class.name,

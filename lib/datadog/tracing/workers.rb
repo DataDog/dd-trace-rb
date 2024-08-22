@@ -56,6 +56,8 @@ module Datadog
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
             # a fatal exception
+            #
+            # TODO: Change to warning.
             Datadog.logger.error(
               "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )

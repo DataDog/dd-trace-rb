@@ -32,6 +32,7 @@ module Datadog
         def match?(trace)
           @matcher.match?(trace)
         rescue => e
+          # TODO: Report Telemetry logs
           Datadog.logger.error(
             "Matcher failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
