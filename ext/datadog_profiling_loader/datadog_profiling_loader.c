@@ -65,7 +65,15 @@ static VALUE _native_load(DDTRACE_UNUSED VALUE self, VALUE ruby_path, VALUE ruby
   char *path = StringValueCStr(ruby_path);
   char *init_name = StringValueCStr(ruby_init_name);
 
-  void *handle = dlopen(path, RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND);
+  int dlopen_flags = RTLD_LAZY | RTLD_LOCAL | RTLD_DEEPBIND;
+
+  #if defined(__has_feature)
+    #if __has_feature(address_sanitizer)
+      dlopen_flags &= ~RTLD_DEEPBIND; // Not supported by ASAN
+    #endif
+  #endif
+
+  void *handle = dlopen(path, dlopen_flags);
 
   VALUE failure_details = Qnil;
 

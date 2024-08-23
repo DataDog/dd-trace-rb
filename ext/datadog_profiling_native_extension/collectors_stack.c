@@ -292,10 +292,8 @@ void sample_thread(
     }
 
     buffer->locations[i] = (ddog_prof_Location) {
-      .function = (ddog_prof_Function) {
-        .name = name_slice,
-        .filename = filename_slice,
-      },
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+      .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
@@ -333,7 +331,9 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
 
-  int pos = name_slice->len - 1;
+  if (name_slice->len > 1024) return;
+
+  int pos = ((int) name_slice->len) - 1;
 
   // Let's match on something__number_number:
   // Find start of id suffix from the end...
@@ -371,6 +371,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
   buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
     .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
@@ -417,6 +418,7 @@ void record_placeholder_stack(
   ddog_CharSlice placeholder_stack
 ) {
   ddog_prof_Location placeholder_location = {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
     .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
     .line = 0,
   };

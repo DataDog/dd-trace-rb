@@ -632,12 +632,14 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   ddog_prof_Location *locations = recorder->reusable_locations;
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const heap_frame *frame = &stack->frames[i];
-    ddog_prof_Location *location = &locations[i];
-    location->function.name.ptr = frame->name;
-    location->function.name.len = strlen(frame->name);
-    location->function.filename.ptr = frame->filename;
-    location->function.filename.len = strlen(frame->filename);
-    location->line = frame->line;
+    locations[i] = (ddog_prof_Location) {
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+      .function = {
+        .name = {.ptr = frame->name, .len = strlen(frame->name)},
+        .filename = {.ptr = frame->filename, .len = strlen(frame->filename)},
+      },
+      .line = frame->line,
+    };
   }
 
   heap_recorder_iteration_data iteration_data;

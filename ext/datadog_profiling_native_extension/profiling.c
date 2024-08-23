@@ -253,7 +253,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 
 static void *trigger_enforce_success(void *trigger_args) {
   intptr_t syserr_errno = (intptr_t) trigger_args;
-  ENFORCE_SUCCESS_NO_GVL(syserr_errno);
+  ENFORCE_SUCCESS_NO_GVL((int) syserr_errno);
   return NULL;
 }
 
