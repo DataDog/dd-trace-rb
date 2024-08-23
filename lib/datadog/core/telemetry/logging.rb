@@ -5,10 +5,19 @@ require_relative 'event'
 module Datadog
   module Core
     module Telemetry
-      # Logging interface for sending telemetry logs.
+      # === INTRENAL USAGE ONLY ===
       #
-      # Reporting internal error so that we can fix them.
-      # IMPORTANT: Make sure to not log any sensitive information.
+      # Logging interface for sending telemetry logs... so we can fix them.
+      #
+      # For developer using this module:
+      # - MUST NOT provide any sensitive information (PII)
+      # - SHOULD reduce the data cardinality for batching/aggregation
+      #
+      # Before using it, ask yourself:
+      # - Do we need to know about this (ie. internal error or client error)?
+      # - How severe/critical is this error? (ie. error, warning, fatal)
+      # - What information needed to make it actionable?
+      #
       module Logging
         extend self
 

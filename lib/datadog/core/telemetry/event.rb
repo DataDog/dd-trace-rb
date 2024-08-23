@@ -338,7 +338,6 @@ module Datadog
         class Log < Base
           LEVELS = {
             error: 'ERROR',
-            debug: 'DEBUG',
             warn: 'WARN',
           }.freeze
 
@@ -357,6 +356,7 @@ module Datadog
             {
               logs: [
                 {
+                  # Required fields
                   message: @message,
                   level: @level,
                   # More optional fields to be added here...
