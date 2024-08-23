@@ -14,14 +14,20 @@ module Datadog
 
         # Extract datadog stack trace from the exception
         module DatadogStackTrace
-          REGEX = %r{datadog-.*?/lib/datadog/}.freeze
+          # Typically, `lib` is under `#{gem_name}-#{version}/`
+          # but not the case when providing a bundler custom path in `Gemfile`
+          REGEX = %r{/lib/datadog/}.freeze
 
           def self.from(exception)
-            return unless exception.backtrace
+            backtrace = exception.backtrace
+
+            return unless backtrace
+            return if backtrace.empty?
 
             stack_trace = +''
-            (exception.backtrace || []).each do |line|
+            backtrace.each do |line|
               stack_trace << if line.match?(REGEX)
+                               # Removing host related information
                                line.sub(/^.*?(#{REGEX})/o, '\1') << ','
                              else
                                'REDACTED,'

@@ -144,7 +144,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging::DatadogStackTrace do
 
       expect(result).to eq(
         [
-          'datadog-2.3.0.beta1/lib/datadog/core/telemetry/logging.rb:1 in `report`',
+          '/lib/datadog/core/telemetry/logging.rb:1 in `report`',
           'REDACTED',
           'REDACTED',
           'REDACTED'
