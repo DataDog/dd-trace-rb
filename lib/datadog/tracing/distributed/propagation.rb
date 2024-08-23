@@ -62,6 +62,12 @@ module Datadog
           end
 
           result = false
+          # Probably sample here
+          # Do we need to update tags on the parent span here first?
+          # That should probably be done in the tracer, not here.
+          # Can we sample off of digest or do we need to grab the parent span?
+          # Looking at how we do span sampling would be helpful to answer some of this.
+          components.sampler.sample!(digest)
 
           # Inject all configured propagation styles
           @propagation_style_inject.each do |propagator|
