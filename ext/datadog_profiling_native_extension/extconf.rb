@@ -259,6 +259,27 @@ else
   require "debase/ruby_core_source"
   dir_config("ruby") # allow user to pass in non-standard core include directory
 
+  # This is a workaround for a weird issue...
+  #
+  # The mkmf tool defines a `with_cppflags` helper that debase-ruby_core_source uses. This helper temporarily
+  # replaces `$CPPFLAGS` (aka the C pre-processor [not c++!] flags) with a different set when doing something.
+  #
+  # The debase-ruby_core_source gem uses `with_cppflags` during makefile generation to inject extra headers into the
+  # path. But because `with_cppflags` replaces `$CPPFLAGS`, well, the default `$CPPFLAGS` are not included in the
+  # makefile.
+  #
+  # This is a problem because the default `$CPPFLAGS` carries configuration that was set when Ruby was being built.
+  # Thus, if we ignore it, we don't compile the profiler with the exact same configuration as Ruby.
+  # In practice, this can generate crashes and weird bugs if the Ruby configuration is tweaked in a manner that
+  # changes some of the internal structures that the profiler relies on. Concretely, setting for instance
+  # `VM_CHECK_MODE=1` when building Ruby will trigger this issue (because somethings in structures the profiler reads
+  # are ifdef'd out using this setting).
+  #
+  # To workaround this issue, we override `with_cppflags` for debase-ruby_core_source to still include `$CPPFLAGS`.
+  Debase::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
+    super("#{newflags} #{$CPPFLAGS}", &block)
+  end
+
   Debase::RubyCoreSource
     .create_makefile_with_core(
       proc do
