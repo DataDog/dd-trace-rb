@@ -13,3 +13,21 @@ jobs:
           cache-version: v1 # bump this to invalidate cache
       - run: sudo apt install -y valgrind && valgrind --version
       - run: bundle exec rake compile spec:profiling:memcheck
+  test-asan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      # We're using a fork of ruby/setup-ruby because the "asan" tool is built into the clang compiler toolchain, and
+      # needs Ruby to be built with a special configuration.
+      #
+      # The special configuration is not yet available in the upstream `ruby/setup-ruby` github action, so I needed to
+      # fork it and push a small tweak to make it available.
+      #
+      # (The Ruby builds were added in https://github.com/ruby/ruby-dev-builder/pull/10 ).
+      - uses: datadog/setup-ruby@0c7206d6db81faf999795ceebfac00d164298bd5
+        with:
+          ruby-version: asan
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          bundler: latest
+          cache-version: v1 # bump this to invalidate cache
+      - run: env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:main
