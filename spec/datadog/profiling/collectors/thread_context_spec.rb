@@ -71,8 +71,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
   end
 
-  def sample_after_gc
-    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector)
+  def sample_after_gc(reset_monotonic_to_system_state: false)
+    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, reset_monotonic_to_system_state)
   end
 
   def sample_allocation(weight:, new_object: Object.new)
@@ -1019,7 +1019,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         it "creates a Garbage Collection sample using the timestamp set by on_gc_finish, converted to epoch ns" do
-          sample_after_gc
+          sample_after_gc(reset_monotonic_to_system_state: true)
 
           expect(gc_sample.labels.fetch(:end_timestamp_ns)).to be_between(@time_before, @time_after)
         end

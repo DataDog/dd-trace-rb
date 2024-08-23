@@ -182,7 +182,7 @@ uint64_t native_thread_id_for(VALUE thread) {
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
-      if (native_thread == NULL) rb_raise(rb_eRuntimeError, "BUG: rb_native_thread* is null. Is this Ruby running with RUBY_MN_THREADS=1?");
+      if (native_thread == NULL) return 0;
       return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;

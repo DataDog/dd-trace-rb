@@ -168,7 +168,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       # See native bits for more details.
       let(:options) { {**super(), skip_idle_samples_for_testing: true} }
 
-      it "triggers sampling and records the results" do
+      it "triggers sampling and records the results", :memcheck_valgrind_skip do
         start
 
         all_samples = loop_until do
@@ -182,6 +182,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       it(
         "keeps statistics on how many samples were triggered by the background thread, " \
         "as well as how many samples were requested from the VM",
+        :memcheck_valgrind_skip,
       ) do
         start
 
@@ -337,7 +338,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         background_thread.join
       end
 
-      it "is able to sample even when the main thread is sleeping" do
+      it "is able to sample even when the main thread is sleeping", :memcheck_valgrind_skip do
         background_thread
         ready_queue.pop
 
@@ -546,7 +547,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # and we clamp it if it goes over the limit.
         # But the total amount of allocations recorded should match the number we observed, and thus we record the
         # remainder above the clamped value as a separate "Skipped Samples" step.
-        context "with a high allocation rate" do
+        context "with a high allocation rate", :memcheck_valgrind_skip do
           let(:options) { {**super(), dynamic_sampling_rate_overhead_target_percentage: 0.1} }
           let(:thread_that_allocates_as_fast_as_possible) { Thread.new { loop { BasicObject.new } } }
 

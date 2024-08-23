@@ -30,6 +30,8 @@ static VALUE _native_sample(
   VALUE max_frames,
   VALUE in_gc
 );
+static VALUE native_sample_do(VALUE args);
+static VALUE native_sample_ensure(VALUE args);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
@@ -50,6 +52,16 @@ void collectors_stack_init(VALUE profiling_module) {
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
 }
+
+struct native_sample_args {
+  VALUE in_gc;
+  VALUE recorder_instance;
+  sample_values values;
+  sample_labels labels;
+  VALUE thread;
+  ddog_prof_Location *locations;
+  sampling_buffer *buffer;
+};
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
@@ -105,33 +117,54 @@ static VALUE _native_sample(
     };
   }
 
-  int max_frames_requested = NUM2INT(max_frames);
-  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
+  int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
   ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
   sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
-  if (in_gc == Qtrue) {
+  struct native_sample_args args_struct = {
+    .in_gc = in_gc,
+    .recorder_instance = recorder_instance,
+    .values = values,
+    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label},
+    .thread = thread,
+    .locations = locations,
+    .buffer = buffer,
+  };
+
+  return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
+}
+
+static VALUE native_sample_do(VALUE args) {
+  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+
+  if (args_struct->in_gc == Qtrue) {
     record_placeholder_stack(
-      recorder_instance,
-      values,
-      (sample_labels) {.labels = slice_labels, .state_label = state_label},
+      args_struct->recorder_instance,
+      args_struct->values,
+      args_struct->labels,
       DDOG_CHARSLICE_C("Garbage Collection")
     );
   } else {
     sample_thread(
-      thread,
-      buffer,
-      recorder_instance,
-      values,
-      (sample_labels) {.labels = slice_labels, .state_label = state_label}
+      args_struct->thread,
+      args_struct->buffer,
+      args_struct->recorder_instance,
+      args_struct->values,
+      args_struct->labels
     );
   }
 
-  ruby_xfree(locations);
-  sampling_buffer_free(buffer);
+  return Qtrue;
+}
+
+static VALUE native_sample_ensure(VALUE args) {
+  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+
+  ruby_xfree(args_struct->locations);
+  sampling_buffer_free(args_struct->buffer);
 
   return Qtrue;
 }

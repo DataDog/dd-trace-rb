@@ -120,7 +120,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       it { is_expected.to be false }
     end
 
-    describe "correctness" do
+    describe "correctness", :memcheck_valgrind_skip do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
