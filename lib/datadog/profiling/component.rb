@@ -252,6 +252,7 @@ module Datadog
         legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?("2.5.")
 
         unless [true, false, :auto].include?(setting_value)
+          # TODO: Replace with a warning instead.
           Datadog.logger.error(
             "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}. " \
             "Valid options are `true`, `false` or (default) `:auto`."
@@ -394,6 +395,7 @@ module Datadog
         if overhead_target_percentage > 0 && overhead_target_percentage <= 20
           overhead_target_percentage
         else
+          # TODO: Replace with a warning instead.
           Datadog.logger.error(
             "Ignoring invalid value for profiling overhead_target_percentage setting: " \
             "#{overhead_target_percentage.inspect}. Falling back to default value."
