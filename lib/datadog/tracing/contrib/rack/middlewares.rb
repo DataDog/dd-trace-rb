@@ -195,6 +195,10 @@ module Datadog
               request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_USER_AGENT, user_agent)
             end
 
+            if request_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE).nil? && status != 404
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, env['PATH_INFO'])
+            end
+
             HeaderTagging.tag_request_headers(request_span, request_header_collection, configuration)
             HeaderTagging.tag_response_headers(request_span, headers, configuration) if headers
 
