@@ -194,18 +194,11 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
-      'analytics',
-      'configurable',
+      '*',
       'configuration/*',
       'configuration/resolvers/*',
-      'extensions',
-      'integration',
-      'patchable',
-      'patcher',
-      'registerable',
-      'registry',
       'registry/*',
-      'propagation/**/*'
+      'propagation/**/*',
     ].join(',')
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
