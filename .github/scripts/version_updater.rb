@@ -2,7 +2,16 @@ require 'rubygems'
 require 'bundler'
 require 'bundler/cli'
 
-def parse_lockfiles()
+
+def run_bundler_command(gemfile, command_args)
+    Bundler.reset!
+    ENV['BUNDLE_GEMFILE'] = gemfile
+    Bundler::CLI.start(command_args)
+rescue StandardError => e
+    puts "Error: #{e.message}"
+end
+
+def parse_lockfiles
     # for each directory in /contrib/ read the hash of the loaded Gems
     # https://www.rubydoc.info/github/rubygems/rubygems/Gem.loaded_specs
     # taken from: https://github.com/DataDog/apm-shared-github-actions/blob/2b49e71feba54bdfaabdeeb026ec3032d819371f/.github/scripts/get-tested-integration-versions.rb#L36
@@ -60,10 +69,9 @@ def parse_lockfiles()
         dependencies = definition.dependencies
 
         dependencies.each do |dep|
-            if gem_to_update != dep.name # only update the gem we chose at random
-                # puts "Skipping #{dep.name} as it is not #{gem_to_update}"
-                next
-            end
+            next if gem_to_update != dep.name # only update the gem we chose at random
+            # puts "Skipping #{dep.name} as it is not #{gem_to_update}"
+            
             gem_name = dep.name
             gem_version = dep.requirements_list
             gem_requirements = Gem::Requirement.create(*gem_version)
@@ -78,10 +86,11 @@ def parse_lockfiles()
     
             if gem_requirements.satisfied_by?(latest)
                 puts "The latest (#{latest}) of #{gem_name} is satisfied by #{gem_requirements}"
-                Bundler.reset! # clear out any cached settings in Bundler
-                ENV['BUNDLE_GEMFILE'] = gemfile
                 bundler_args = ['lock', '--update', gem_name]
+
                 # do we have any platforms specified? If so, add them each with --add-platform
+                bundler_args.concat(dep.platforms.map { |platform| ['--add-platform', platform.to_s] }) if dep.platforms.any?
+
                 # NOTE: I'm seeing some platforms being removed
                 # For example gemfiles/ruby_2.5_contrib.gemfile.lock has "grpc (1.48.0-x86_64-linux)"
                 # But this platform isn't specified in the gemfile
@@ -95,7 +104,7 @@ def parse_lockfiles()
                 end
 
                 puts "Updating #{gem_name} with: #{bundler_args}"
-                Bundler::CLI.start(bundler_args)    
+                run_bundler_command(gemfile, bundler_args)
             else
                 puts "The latest (#{latest}) of #{gem_name} is NOT satisfied by #{gem_requirements}"
                 # TODO - should we attempt to do a --conservative update here?
@@ -105,4 +114,4 @@ def parse_lockfiles()
 end
 
 
-parse_lockfiles()
+parse_lockfiles
