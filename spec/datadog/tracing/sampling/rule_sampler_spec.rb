@@ -2,14 +2,13 @@ require 'spec_helper'
 
 require 'datadog/tracing'
 require 'datadog/tracing/sampling/rate_by_service_sampler'
-require 'datadog/tracing/sampling/rate_limiter'
 require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sampling/rule'
 
 RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   let(:rule_sampler) { described_class.new(rules, rate_limiter: rate_limiter, default_sampler: default_sampler) }
   let(:rules) { [] }
-  let(:rate_limiter) { instance_double(Datadog::Tracing::Sampling::RateLimiter) }
+  let(:rate_limiter) { instance_double(Datadog::Core::RateLimiter) }
   let(:default_sampler) { instance_double(Datadog::Tracing::Sampling::RateByServiceSampler) }
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
@@ -32,7 +31,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   describe '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
-    it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+    it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
     it { expect(rule_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler) }
 
     context 'with rate_limit ENV' do
@@ -41,7 +40,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           .and_return(20.0)
       end
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
     end
 
     context 'with default_sample_rate ENV' do
@@ -58,13 +57,13 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     context 'with rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
     end
 
     context 'with nil rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: nil) }
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::UnlimitedLimiter) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::UnlimitedLimiter) }
     end
 
     context 'with default_sample_rate' do

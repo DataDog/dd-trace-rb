@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/sampling/rate_limiter'
+require 'datadog/core/rate_limiter'
 
-RSpec.describe Datadog::Tracing::Sampling::TokenBucket do
+RSpec.describe Datadog::Core::TokenBucket do
   subject(:bucket) { described_class.new(rate, max_tokens) }
 
   let(:rate) { 1 }

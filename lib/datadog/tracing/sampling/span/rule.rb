@@ -30,7 +30,7 @@ module Datadog
             @rate_limit = rate_limit
 
             @sampler = Sampling::RateSampler.new(sample_rate)
-            @rate_limiter = Sampling::TokenBucket.new(rate_limit)
+            @rate_limiter = Core::TokenBucket.new(rate_limit)
           end
 
           # This method should only be invoked for spans that are part
