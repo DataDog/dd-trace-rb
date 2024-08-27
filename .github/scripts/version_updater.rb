@@ -51,7 +51,7 @@ def parse_lockfiles()
     puts "Randomly chose #{gem_to_update} to update"
 
     # HACK - setting this to grpc while testing out the script
-    gem_to_update = 'grpc'
+    # gem_to_update = 'grpc'
     gems_in[gem_to_update].each do |gemfile, version|
         puts "Checking to see if #{gem_to_update} needs to be updated in #{gemfile}"
         # need the lockfile too
