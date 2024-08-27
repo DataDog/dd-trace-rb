@@ -96,12 +96,6 @@ def parse_lockfiles
                 # But this platform isn't specified in the gemfile
                 # Run the command here removes this "grpc (1.48.0-x86_64-linux)" instance entirely
                 # TODO check with Marco/Tony/David for how this came to be as the PR they were added in was a while back and was just an update
-                if !gem_platforms.empty?
-                    gem_platforms.each do |platform|
-                        bundler_args << '--add-platform'
-                        bundler_args << platform.to_s
-                    end
-                end
 
                 puts "Updating #{gem_name} with: #{bundler_args}"
                 run_bundler_command(gemfile, bundler_args)
