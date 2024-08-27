@@ -24,7 +24,7 @@ class TracingTraceBenchmark
   #   benchmarking platform to calculate helpful aggregate stats. Because benchmark-ips tries to run one iteration
   #   per 100ms, this means we'll have around 120 samples (give or take a small margin of error).
   # @param [Integer] warmup in seconds. The default is 2 seconds.
-  def benchmark_time(time: 12, warmup: 2)
+  def benchmark_time(time: 30, warmup: 2)
     VALIDATE_BENCHMARK_MODE ? { time: 0.001, warmup: 0 } : { time: time, warmup: warmup }
   end
 
