@@ -80,7 +80,7 @@ def parse_paths(paths, versions, gems_in)
     end
 end
 
-def run_update
+def main
     # for each directory in /contrib/ read the hash of the loaded Gems
     # https://www.rubydoc.info/github/rubygems/rubygems/Gem.loaded_specs
     # taken from: https://github.com/DataDog/apm-shared-github-actions/blob/2b49e71feba54bdfaabdeeb026ec3032d819371f/.github/scripts/get-tested-integration-versions.rb#L36
@@ -115,5 +115,4 @@ def run_update
     update_gem(gem_to_update, gems_in)
 end
 
-
-run_update
+main
