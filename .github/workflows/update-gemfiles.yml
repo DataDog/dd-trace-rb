@@ -39,15 +39,8 @@ jobs:
         with:
           filters: |
             gemfile:
-              - Gemfile
-              - Appraisals
-              - datadog.gemspec
-              - # Files that control gemfile generation
-              - tasks/appraisal.rake
-              - .github/workflows/update-gemfiles.yml
-              # The gem version present in all lock files
-              - lib/datadog/version.rb
-              # If generated files were updated manually
+              - 'Gemfile'
+              - 'Gemfile.lock'
               - 'appraisal/**'
               - 'gemfiles/**'
 
