@@ -93,7 +93,7 @@ class GemUpdater
         # for each directory in /contrib/ read the hash of the loaded Gems
         # https://www.rubydoc.info/github/rubygems/rubygems/Gem.loaded_specs
         # taken from: https://github.com/DataDog/apm-shared-github-actions/blob/2b49e71feba54bdfaabdeeb026ec3032d819371f/.github/scripts/get-tested-integration-versions.rb#L36
-        ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' ../lib/datadog/tracing/contrib/`
+        ddtrace_specs = `grep -Rho 'Gem.loaded_specs.*' lib/datadog/tracing/contrib/`
         integrated_gems = ddtrace_specs.split.map { |m| m.match(/Gem.loaded_specs\[.([^\]]+).\]/)&.[](1) }.uniq.compact
 
         # populate each found integration with a dummy version of "0.0.0"
@@ -105,7 +105,7 @@ class GemUpdater
             puts "#{name}: #{version}"
         end
 
-        paths = Dir['../gemfiles/jruby_*.lock', '../gemfiles/ruby_*.lock']
+        paths = Dir['gemfiles/jruby_*.lock', 'gemfiles/ruby_*.lock']
         
         # TODO - a lock file can contain the same gem multiple times
         # for example: grpc (1.66.0), grpc (1.66.0-aarch64-linux), and grpc (1.66.0-x86_64-linux)
