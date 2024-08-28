@@ -39,8 +39,12 @@ jobs:
         with:
           filters: |
             gemfile:
-              - 'Gemfile'
-              - 'Gemfile.lock'
+              - Gemfile
+              - Appraisals
+              - datadog.gemspec
+              - tasks/appraisal.rake
+              - .github/workflows/update-gemfiles.yml
+              - lib/datadog/version.rb
               - 'appraisal/**'
               - 'gemfiles/**'
 
