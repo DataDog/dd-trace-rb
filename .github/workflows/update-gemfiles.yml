@@ -60,3 +60,4 @@ jobs:
         with:
           commit_message: Update gemfiles/*
           branch: update-latest-version
+          create_branch: true
