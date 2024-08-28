@@ -3,22 +3,15 @@ name: Update Gemfiles
 # This action cannot be skipped altogether because it is a mandatory status check.
 # Instead we conditionally skip it at job level, instead of workflow level.
 on:
-  # Execute on `push` and not `pull_request` because `pull_request`
-  # always compares if the `paths` have changed compared to the PR base.
-  # This is an issue because it means that all commits to the branch
-  # will trigger the gemfile update process, which is unnecessary and expensive.
-  #
-  # By executing on `push`, GitHub compares `paths` with the parent commit,
-  # meaning the gemfile update process will only execute on the exact commit
-  # that changes any of the `paths`.
-  #
-  # Because this process is slow and expensive, and we commit the gemfile changes back
-  # to the branch, we have an additional filter to only execute this action on branches
-  # attached to a PR.
-  #
-  # We could do the inverse: execute this action on `pull_request`, and additionally check
-  # if `paths` was changed compared to the parent commit, but this proved more complicated.
-  push
+  pull_request:
+    paths:
+      - '.github/scripts/version_updater.rb'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'appraisal/**'
+      - 'gemfiles/**'
+  workflow_dispatch:
+    
 
 # Ensure obsolete job is cancelled if another commit is pushed to the same branch.
 concurrency:
@@ -26,55 +19,45 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  check:
+  update-gemfiles:
     name: Update Gemfiles
     runs-on: ubuntu-22.04
+
     steps:
       # Only execute if there's a PR attached to this branch.
       # Because we execute on `push`, we have to double check here if this is part of a PR.
-      - name: Check if this branch is attached to a Pull Request
-        uses: 8bitjonny/gh-get-current-pr@2215326c76d51bfa3f2af0a470f32677f6c0cae9 # v2.2.0
-        id: pr
-        with:
-          filterOutClosed: true # Don't trigger on commits with closed PRs, including merges into `master`.
-      - if: steps.pr.outputs.pr_found == 'true'
+      - name: Checkout code
         uses: actions/checkout@v4
-      # And also, only execute if files that can affect gemfiles are modified.
-      - if: steps.pr.outputs.pr_found == 'true'
-        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
-        id: filter
-        with:
-          base: ${{ github.ref_name }}
-          filters: |
-            gemfile:
-              # Files that declare the dependency tree
-              - Gemfile
-              - Appraisals
-              - datadog.gemspec
-              # Files that control gemfile generation
-              - tasks/appraisal.rake
-              - .github/workflows/update-gemfiles.yml
-              # The gem version is present in all lock files
-              - lib/datadog/version.rb
-              # In case the generated files were updated manually or in a merge commit
-              - appraisal/**
-              - gemfiles/**
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
+
+      - name: Setup Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.2'
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Ensure gemfiles/*.gemfile.lock match gem definition
-        run: bundle exec rake appraisal:lock
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Add all supported platforms to gemfiles/*.gemfile.lock
-        run: bundle exec rake appraisal:platform
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Remove obsolete gemfiles/*
-        run: bundle exec rake appraisal:clean
-      - if: steps.pr.outputs.pr_found == 'true' && steps.filter.outputs.gemfile == 'true'
-        name: Commit gemfiles changes, if any, back to the branch
+
+      - name: Check for changes in Gemfiles and related files
+        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: filter
+        with:
+          filters: |
+            gemfile:
+              - Gemfile
+              - Appraisals
+              - datadog.gemspec
+              - tasks/appraisal.rake
+              - .github/workflows/update-gemfiles.yml
+              - lib/datadog/version.rb
+              - 'appraisal/**'
+              - 'gemfiles/**'
+
+      - name: Run update gemfiles if files changed
+        if: steps.filter.outputs.gemfile == 'true'
+        run: ruby .github/scripts/version_updater.rb
+
+      - name: Commit gemfile changes
+        if: steps.filter.outputs.gemfile == 'true'
         uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
         with:
           commit_message: Update gemfiles/*
+          branch: update-latest-version
+          create_branch: true
