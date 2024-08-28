@@ -38,6 +38,12 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 
+extern void ddtrace_print_offsets(void);
+static VALUE _native_print_offsets(DDTRACE_UNUSED VALUE _self) {
+  ddtrace_print_offsets();
+  return Qtrue;
+}
+
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
@@ -72,6 +78,8 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_trigger_holding_the_gvl_signal_handler_on", _native_trigger_holding_the_gvl_signal_handler_on, 1);
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
+
+  rb_define_singleton_method(testing_module, "_native_print_offsets", _native_print_offsets, 0);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {

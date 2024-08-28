@@ -51,7 +51,7 @@
 // if the argument passed in is not actually a `Thread` instance.
 static inline rb_thread_t *thread_struct_from_object(VALUE thread) {
   static const rb_data_type_t *thread_data_type = NULL;
-  if (UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
+  if (RB_UNLIKELY(thread_data_type == NULL)) thread_data_type = RTYPEDDATA_TYPE(rb_thread_current());
 
   return (rb_thread_t *) rb_check_typeddata(thread, thread_data_type);
 }
@@ -339,7 +339,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
         VM_ASSERT(n >= 0);
         ASSUME(n >= 0);
         size_t pos = n; /* no overflow */
-        if (LIKELY(pos)) {
+        if (RB_LIKELY(pos)) {
             /* use pos-1 because PC points next instruction at the beginning of instruction */
             pos--;
         }
