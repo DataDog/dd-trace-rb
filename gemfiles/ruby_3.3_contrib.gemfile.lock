@@ -39,7 +39,7 @@ GEM
       sorted_set (~> 1, >= 1.0.2)
     climate_control (0.2.0)
     coderay (1.1.3)
-    concurrent-ruby (1.2.2)
+    concurrent-ruby (1.3.4)
     connection_pool (2.4.0)
     crack (0.4.5)
       rexml
@@ -51,10 +51,14 @@ GEM
     dogstatsd-ruby (5.5.0)
     extlz4 (0.3.3)
     ffi (1.16.3)
-    google-protobuf (3.23.1)
+    google-protobuf (3.23.1-aarch64-linux)
+    google-protobuf (3.23.1-x86_64-linux)
     googleapis-common-protos-types (1.6.0)
       google-protobuf (~> 3.14)
     grpc (1.54.2)
+      google-protobuf (~> 3.21)
+      googleapis-common-protos-types (~> 1.0)
+    grpc (1.54.2-x86_64-linux)
       google-protobuf (~> 3.21)
       googleapis-common-protos-types (~> 1.0)
     hashdiff (1.0.1)
@@ -157,7 +161,7 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    semantic_logger (4.13.0)
+    semantic_logger (4.16.0)
       concurrent-ruby (~> 1.0)
     serverengine (2.1.1)
       sigdump (~> 0.2.2)
@@ -253,4 +257,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.26
+   2.4.19
