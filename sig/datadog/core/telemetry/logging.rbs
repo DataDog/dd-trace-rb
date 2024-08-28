@@ -3,7 +3,8 @@ module Datadog
     module Telemetry
       module Logging
         module DatadogStackTrace
-          REGEX: Regexp
+          GEM_ROOT: String
+
           def self.from: (Exception exception) -> String?
         end
 

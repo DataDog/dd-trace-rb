@@ -2,6 +2,8 @@
 
 require_relative 'event'
 
+require 'pathname'
+
 module Datadog
   module Core
     module Telemetry
@@ -23,9 +25,7 @@ module Datadog
 
         # Extract datadog stack trace from the exception
         module DatadogStackTrace
-          # Typically, `lib` is under `#{gem_name}-#{version}/`
-          # but not the case when providing a bundler custom path in `Gemfile`
-          REGEX = %r{/lib/datadog/}.freeze
+          GEM_ROOT = Pathname.new("#{__dir__}/../../../..").cleanpath.to_s
 
           def self.from(exception)
             backtrace = exception.backtrace
@@ -35,12 +35,12 @@ module Datadog
 
             stack_trace = +''
             backtrace.each do |line|
-              stack_trace << if line.match?(REGEX)
-                               # Removing host related information
-                               line.sub(/^.*?(#{REGEX})/o, '\1') << ','
+              stack_trace << if line.start_with?(GEM_ROOT)
+                               line[GEM_ROOT.length..-1] || ''
                              else
-                               'REDACTED,'
+                               'REDACTED'
                              end
+              stack_trace << ','
             end
 
             stack_trace.chomp(',')

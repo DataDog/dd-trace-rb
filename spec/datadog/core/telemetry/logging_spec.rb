@@ -130,10 +130,12 @@ RSpec.describe Datadog::Core::Telemetry::Logging::DatadogStackTrace do
     end
 
     it 'returns redacted stack trace' do
+      gem_root = Datadog::Core::Telemetry::Logging::DatadogStackTrace::GEM_ROOT
+
       exception = StandardError.new('Yo!')
       exception.set_backtrace(
         [
-          '/usr/local/bundle/gems/datadog-2.3.0.beta1/lib/datadog/core/telemetry/logging.rb:1 in `report`',
+          "#{gem_root}/lib/datadog/core/telemetry/logging.rb:1 in `report`",
           '/foo/bar/baz.rb:1 in `baz`',
           '/foo/bar.rb:1 in `bar`',
           '/foo.rb:1 in `foo`',
