@@ -689,7 +689,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     it 'merges default processors' do
       result = described_class.merge(rules: rules)
       expect(result).to include('rules' => rules[0]['rules'])
-      expect(result).to include('processors' => described_class::DEFAULT_WAF_PROCESSORS)
+      expect(result).to include('processors' => described_class.default_waf_processors)
     end
 
     it 'merges the provided processors' do
@@ -699,17 +699,63 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
     end
   end
 
+  describe '.default_waf_processors' do
+    around do |example|
+      described_class.instance_variable_set(:@default_waf_processors, nil)
+      example.run
+      described_class.instance_variable_set(:@default_waf_processors, nil)
+    end
+
+    it 'returns default waf processors' do
+      expect(described_class.default_waf_processors).not_to be_empty
+    end
+
+    it 'returns []' do
+      allow(Datadog::AppSec::Assets).to receive(:waf_processors).and_raise
+      expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf processors/)
+      expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+        a_kind_of(StandardError),
+        level: :error,
+        description: 'libddwaf rulemerger failed to parse default waf processors'
+      )
+      expect(described_class.default_waf_processors).to be_empty
+    end
+  end
+
   context 'scanners' do
     it 'merges default scanners' do
       result = described_class.merge(rules: rules)
       expect(result).to include('rules' => rules[0]['rules'])
-      expect(result).to include('scanners' => described_class::DEFAULT_WAF_SCANNERS)
+      expect(result).to include('scanners' => described_class.default_waf_scanners)
     end
 
     it 'merges the provided processors' do
       result = described_class.merge(rules: rules, scanners: 'hello')
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('scanners' => 'hello')
+    end
+  end
+
+  describe '.default_waf_scanners' do
+    around do |example|
+      described_class.instance_variable_set(:@default_waf_scanners, nil)
+      example.run
+      described_class.instance_variable_set(:@default_waf_scanners, nil)
+    end
+
+    it 'returns default waf scanners' do
+      expect(described_class.default_waf_scanners).not_to be_empty
+    end
+
+    it 'returns []' do
+      allow(Datadog::AppSec::Assets).to receive(:waf_scanners).and_raise
+      expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf scanners/)
+      expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+        a_kind_of(StandardError),
+        level: :error,
+        description: 'libddwaf rulemerger failed to parse default waf scanners'
+      )
+      expect(described_class.default_waf_scanners).to be_empty
     end
   end
 end
