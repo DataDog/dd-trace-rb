@@ -11,77 +11,51 @@ module Datadog
           module Instrumentation
             module_function
 
-            def format_http_route(http_route)
-              http_route.gsub(/\(.:format\)\z/, '')
+            def set_http_route_tags(route_spec, script_name)
+              return unless Tracing.enabled?
+
+              return unless route_spec
+
+              request_trace = Tracing.active_trace
+              return unless request_trace
+
+              request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route_spec.to_s.gsub(/\(.:format\)\z/, ''))
+              request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, script_name) if script_name
+            rescue StandardError => e
+              Datadog.logger.error(e.message)
             end
 
             # Instrumentation for ActionDispatch::Journey components
             module Journey
-              # Instrumentation for ActionDispatch::Journey::Router
-              # for Rails versions older than 7.1
+              # Instrumentation for ActionDispatch::Journey::Router for Rails versions older than 7.1
               module Router
                 def find_routes(req)
                   result = super
 
-                  return result unless Tracing.enabled?
+                  # result is an array of [match, parameters, route] tuples
+                  routes = result.map(&:last)
 
-                  active_span = Tracing.active_span
-                  return result unless active_span
-
-                  begin
-                    # Journey::Router#find_routes retuns an array for each matching route.
-                    # This array is [match_data, path_parameters, route].
-                    # We need the route object, since it has a path with route specification.
-                    current_route = result.last&.last&.path&.spec
-                    return result unless current_route
-
-                    # When Rails is serving requests to Rails Engine routes, this function is called
-                    # twice: first time for the route on which the engine is mounted, and second
-                    # time for the internal engine route.
-                    last_route = active_span.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
-
-                    active_span.set_tag(
-                      Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                      Instrumentation.format_http_route(last_route.to_s + current_route.to_s)
-                    )
-                  rescue StandardError => e
-                    Datadog.logger.error(e.message)
+                  routes.each do |route|
+                    # non-dispatcher routes are not end routes,
+                    # this could be a route prefix for a rails engine for example
+                    Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME']) if route&.dispatcher?
                   end
 
                   result
                 end
               end
 
-              # Since Rails 7.1 `Router#serve` adds `#route_uri_pattern` attribute to the request,
-              # and the `Router#find_routes` now takes a block as an argument to make the route computation lazy
+              # Since Rails 7.1 `Router#find_routes` makes the route computation lazy
               # https://github.com/rails/rails/commit/35b280fcc2d5d474f9f2be3aca3ae7aa6bba66eb
               module LazyRouter
-                def serve(req)
-                  response = super
+                def find_routes(req)
+                  super do |match, parameters, route|
+                    # non-dispatcher routes are not end routes,
+                    # this could be a route prefix for a rails engine for example
+                    Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME']) if route&.dispatcher?
 
-                  return response unless Tracing.enabled?
-
-                  active_span = Tracing.active_span
-                  return response unless active_span
-
-                  begin
-                    return response if req.route_uri_pattern.nil?
-
-                    # For normal Rails routes `#route_uri_pattern` is the full route and `#script_name` is nil.
-                    #
-                    # For Rails Engine routes `#route_uri_pattern` is the route as defined in the engine,
-                    # and `#script_name` is the route prefix at which the engine is mounted.
-                    http_route = req.script_name.to_s + req.route_uri_pattern
-
-                    active_span.set_tag(
-                      Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                      Instrumentation.format_http_route(http_route)
-                    )
-                  rescue StandardError => e
-                    Datadog.logger.error(e.message)
+                    yield [match, parameters, route]
                   end
-
-                  response
                 end
               end
             end

@@ -20,7 +20,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
     Datadog.registry[:rack].reset_configuration!
   end
 
-  describe '#serve' do
+  describe '#find_routes' do
     before do
       rails_test_application.instance.routes.append do
         namespace :api, defaults: { format: :json } do
@@ -55,23 +55,21 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
       it 'sets http.route when requesting a known route' do
         get '/api/users/1'
 
-        rack_span = spans.first
+        rack_trace = traces.first
 
-        expect(rack_span).to be_root_span
-        expect(rack_span.name).to eq('rack.request')
-
-        expect(rack_span.get_tag('http.route')).to eq('/api/users/:id')
+        expect(rack_trace.name).to eq('rack.request')
+        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/api/users/:id')
+        expect(rack_trace.send(:meta).fetch('http.route.path')).to be_empty
       end
 
       it 'sets no http.route when requesting an unknown route' do
         get '/nope'
 
-        rack_span = spans.first
+        rack_trace = traces.first
 
-        expect(rack_span).to be_root_span
-        expect(rack_span.name).to eq('rack.request')
-
-        expect(rack_span.tags).not_to have_key('http.route')
+        expect(rack_trace.name).to eq('rack.request')
+        expect(rack_trace.send(:meta)).not_to have_key('http.route')
+        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
       end
     end
 
@@ -87,7 +85,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
       it 'does not set http.route' do
         get '/api/users/1'
 
-        expect(spans).to be_empty
+        expect(traces).to be_empty
       end
     end
   end
