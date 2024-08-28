@@ -90,7 +90,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
           @result
         end
 
-        alias_method :__validate, :validate
+        alias_method :__validate_datadog_authenticatable, :validate
 
         prepend Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch
         prepend Datadog::AppSec::Contrib::Devise::Patcher::RememberablePatch

@@ -32,7 +32,7 @@ module Datadog
           end
 
           def patch_authenticatable_strategy
-            ::Devise::Strategies::Authenticatable.alias_method(:__validate, :validate)
+            ::Devise::Strategies::Authenticatable.alias_method(:__validate_datadog_authenticatable, :validate)
             ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
           end
 
