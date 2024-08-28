@@ -54,10 +54,17 @@ jobs:
         if: steps.filter.outputs.gemfile == 'true'
         run: ruby .github/scripts/version_updater.rb
 
-      - name: Commit gemfile changes
+      - name: Create PR for gemfile changes
+        id: pr
         if: steps.filter.outputs.gemfile == 'true'
-        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a # v4.16.0
+        uses: peter-evans/create-pull-request@v6
         with:
-          commit_message: Update gemfiles/*
-          branch: update-latest-version
-          create_branch: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: "update-latest-version"
+          commit-message: "Update the latest gemfiles"
+          delete-branch: true
+          base: master
+          title: "Test: update latest gemfiles"
+          body : |
+            Updates the latest gemfiles
+          
