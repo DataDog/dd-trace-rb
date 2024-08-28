@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../assets'
+require_relative '../../core/telemetry/logging'
 
 module Datadog
   module AppSec
@@ -34,6 +35,8 @@ module Datadog
               Datadog.logger.error do
                 "libddwaf ruleset failed to load, ruleset: #{ruleset.inspect} error: #{e.inspect}"
               end
+
+              Core::Telemetry::Logging.report(e, level: :error, description: 'libddwaf ruleset failed to load')
 
               nil
             end
