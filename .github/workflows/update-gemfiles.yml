@@ -10,6 +10,8 @@ on:
       - 'Gemfile.lock'
       - 'appraisal/**'
       - 'gemfiles/**'
+  workflow_dispatch:
+    
 
 # Ensure obsolete job is cancelled if another commit is pushed to the same branch.
 concurrency:
