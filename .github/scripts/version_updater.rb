@@ -32,6 +32,7 @@ class GemUpdater
             definition = Bundler::Definition.build(gemfile, gemfile_lock, nil)
             dependencies = definition.dependencies
 
+            latest = Gem.latest_version_for(gem_to_update)
             dependencies.each do |dep|
                 next if gem_to_update != dep.name # only update the gem we chose at random
                 # puts "Skipping #{dep.name} as it is not #{gem_to_update}"
@@ -45,9 +46,7 @@ class GemUpdater
                 puts "Gem Version: #{gem_version}"
                 puts "Gem Requirments: #{gem_requirements}"
                 puts "Gem Platforms: #{gem_platforms}"
-        
-                latest = Gem.latest_version_for(gem_name)
-        
+                
                 if gem_requirements.satisfied_by?(latest)
                     puts "The latest (#{latest}) of #{gem_name} is satisfied by #{gem_requirements}"
                     bundler_args = ['lock', '--update', gem_name]
