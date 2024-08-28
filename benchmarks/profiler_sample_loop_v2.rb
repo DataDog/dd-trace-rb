@@ -40,7 +40,7 @@ class ProfilerSampleLoopBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 30, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 60, warmup: 2 }
       x.config(
         **benchmark_time,
       )
