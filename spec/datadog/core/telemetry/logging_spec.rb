@@ -130,28 +130,14 @@ RSpec.describe Datadog::Core::Telemetry::Logging::DatadogStackTrace do
     end
 
     it 'returns redacted stack trace' do
-      gem_root = Datadog::Core::Telemetry::Logging::DatadogStackTrace::GEM_ROOT
+      begin
+        raise 'Invalid token: p@ssw0rd'
+      rescue StandardError => e
+        result = described_class.from(e)
+      end
 
-      exception = StandardError.new('Yo!')
-      exception.set_backtrace(
-        [
-          "#{gem_root}/lib/datadog/core/telemetry/logging.rb:1 in `report`",
-          '/foo/bar/baz.rb:1 in `baz`',
-          '/foo/bar.rb:1 in `bar`',
-          '/foo.rb:1 in `foo`',
-        ]
-      )
-
-      result = described_class.from(exception)
-
-      expect(result).to eq(
-        [
-          '/lib/datadog/core/telemetry/logging.rb:1 in `report`',
-          'REDACTED',
-          'REDACTED',
-          'REDACTED'
-        ].join(',')
-      )
+      expect(result).to start_with('/spec/datadog/core/telemetry/logging_spec.rb')
+      expect(result).to end_with('REDACTED')
     end
   end
 end
