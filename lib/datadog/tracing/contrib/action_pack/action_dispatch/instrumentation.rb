@@ -20,7 +20,10 @@ module Datadog
               return unless request_trace
 
               request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, route_spec.to_s.gsub(/\(.:format\)\z/, ''))
-              request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, script_name) if script_name
+
+              if script_name && !script_name.empty?
+                request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, script_name)
+              end
             rescue StandardError => e
               Datadog.logger.error(e.message)
             end
@@ -36,9 +39,12 @@ module Datadog
                   routes = result.map(&:last)
 
                   routes.each do |route|
-                    # non-dispatcher routes are not end routes,
-                    # this could be a route prefix for a rails engine for example
-                    Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME']) if route&.dispatcher?
+                    # we only want to set route tags for dispatcher routes,
+                    # since they instantiate controller that processes the request
+                    if route&.dispatcher?
+                      Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME'])
+                      break
+                    end
                   end
 
                   result
@@ -50,8 +56,8 @@ module Datadog
               module LazyRouter
                 def find_routes(req)
                   super do |match, parameters, route|
-                    # non-dispatcher routes are not end routes,
-                    # this could be a route prefix for a rails engine for example
+                    # we only want to set route tags for dispatcher routes,
+                    # since they instantiate controller that processes the request
                     Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME']) if route&.dispatcher?
 
                     yield [match, parameters, route]
