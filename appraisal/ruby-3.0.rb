@@ -101,7 +101,7 @@ appraise 'relational_db' do
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'trilogy'
 end
 

@@ -37,7 +37,7 @@ gem "delayed_job_active_record"
 gem "makara"
 gem "mysql2", "< 1", platform: :ruby
 gem "pg", ">= 0.18.4", platform: :ruby
-gem "sequel", "~> 5.54.0"
+gem "sequel"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
 
 group :check do

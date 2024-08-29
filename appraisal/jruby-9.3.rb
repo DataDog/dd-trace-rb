@@ -187,7 +187,7 @@ appraise 'relational_db' do
   gem 'makara'
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
 end
 

@@ -150,7 +150,8 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-debug-base (0.11.0-java)
     ruby-progressbar (1.13.0)
-    sequel (5.54.0)
+    sequel (5.83.1)
+      bigdecimal
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -209,7 +210,7 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  sequel (~> 5.54.0)
+  sequel
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)

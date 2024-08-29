@@ -234,7 +234,7 @@ appraise 'relational_db' do
   gem 'makara'
   gem 'mysql2', '< 1', platform: :ruby
   gem 'pg', '>= 0.18.4', platform: :ruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'sqlite3', '~> 1.4.1', platform: :ruby
 end
 
