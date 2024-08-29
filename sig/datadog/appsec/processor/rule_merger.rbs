@@ -14,12 +14,17 @@ module Datadog
         type processors = ::Array[::Hash[::String, untyped]]
         type scanners = ::Array[::Hash[::String, untyped]]
 
-        DEFAULT_WAF_PROCESSORS: processors
-        DEFAULT_WAF_SCANNERS: processors
-
-        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: overrides, ?exclusions: exclusions, ?custom_rules: custom_rules, ?processors: processors, ?scanners: scanners) -> rules
+        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: overrides, ?exclusions: exclusions, ?custom_rules: custom_rules, ?processors: processors?, ?scanners: scanners?) -> rules
 
         private
+
+        self.@default_waf_processors: processors
+
+        self.@default_waf_scanners: scanners
+
+        def self.default_waf_processors: -> processors
+
+        def self.default_waf_scanners: -> scanners
 
         def self.combine_rules: (::Array[rules] rules) -> rules
 

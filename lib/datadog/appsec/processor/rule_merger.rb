@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../assets'
+require_relative '../../core/telemetry/logging'
 
 module Datadog
   module AppSec
@@ -18,25 +19,13 @@ module Datadog
           end
         end
 
-        DEFAULT_WAF_PROCESSORS = begin
-          JSON.parse(Datadog::AppSec::Assets.waf_processors)
-        rescue StandardError => e
-          Datadog.logger.error { "libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}" }
-          []
-        end
-
-        DEFAULT_WAF_SCANNERS = begin
-          JSON.parse(Datadog::AppSec::Assets.waf_scanners)
-        rescue StandardError => e
-          Datadog.logger.error { "libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}" }
-          []
-        end
-
         class << self
           def merge(
             rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
-            processors: DEFAULT_WAF_PROCESSORS, scanners: DEFAULT_WAF_SCANNERS
+            processors: nil, scanners: nil
           )
+            processors ||= default_waf_processors
+            scanners   ||= default_waf_scanners
             combined_rules = combine_rules(rules)
 
             combined_data = combine_data(data) if data.any?
@@ -51,6 +40,30 @@ module Datadog
             combined_rules['processors'] = processors
             combined_rules['scanners'] = scanners
             combined_rules
+          end
+
+          def default_waf_processors
+            @default_waf_processors ||= JSON.parse(Datadog::AppSec::Assets.waf_processors)
+          rescue StandardError => e
+            Datadog.logger.error("libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}")
+            Datadog::Core::Telemetry::Logging.report(
+              e,
+              level: :error,
+              description: 'libddwaf rulemerger failed to parse default waf processors'
+            )
+            []
+          end
+
+          def default_waf_scanners
+            @default_waf_scanners ||= JSON.parse(Datadog::AppSec::Assets.waf_scanners)
+          rescue StandardError => e
+            Datadog.logger.error("libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}")
+            Datadog::Core::Telemetry::Logging.report(
+              e,
+              level: :error,
+              description: 'libddwaf rulemerger failed to parse default waf scanners'
+            )
+            []
           end
 
           private
