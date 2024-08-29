@@ -356,10 +356,8 @@ module Datadog
             {
               logs: [
                 {
-                  # Required fields
                   message: @message,
                   level: @level,
-                  # More optional fields to be added here...
                   stack_trace: @stack_trace,
                 }.compact
               ]
