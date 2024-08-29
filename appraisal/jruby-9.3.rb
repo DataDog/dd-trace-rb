@@ -159,8 +159,13 @@ appraise 'http' do
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe', '~> 8.0'
   gem 'typhoeus'
+end
+
+(7..12).each do |n|
+  appraise "stripe-#{n}" do
+    gem 'stripe', "~> #{n}"
+  end
 end
 
 [2, 3].each do |n|
