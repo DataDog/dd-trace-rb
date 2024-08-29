@@ -23,16 +23,19 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
   describe '#find_routes' do
     before do
       engine.routes.append do
-        post '/sign-in/(:expires_in)' => 'tokens#create'
+        get '/sign-in/(:expires_in)' => 'tokens#create'
       end
 
       auth_engine = engine
+      rack_status_app = rack_app.new
 
       rails_test_application.instance.routes.append do
         namespace :api, defaults: { format: :json } do
           resources :users, only: %i[show]
 
           mount auth_engine => '/auth'
+
+          match '/status', to: rack_status_app, via: :get
         end
 
         get '/items/:id', to: 'items#by_id', id: /\d+/
@@ -40,6 +43,17 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         get 'books/*section/:title', to: 'books#show'
       end
+    end
+
+    let(:rack_app) do
+      stub_const(
+        'RackStatusApp',
+        Class.new do
+          def call(_env)
+            [200, { 'Content-Type' => 'text/plain' }, ['OK']]
+          end
+        end
+      )
     end
 
     let(:controllers) { [users_controller, items_controller, books_controller] }
@@ -96,6 +110,15 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
       stub_const('AuthEngine', Module.new)
 
       stub_const(
+        'AuthEngine::TokensController',
+        Class.new(ActionController::Base) do
+          def create
+            head :ok
+          end
+        end
+      )
+
+      stub_const(
         'AuthEngine::Engine',
         Class.new(::Rails::Engine) do
           isolate_namespace AuthEngine
@@ -118,6 +141,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         rack_trace = traces.first
 
+        expect(last_response).to be_ok
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta).fetch('http.route')).to eq('/api/users/:id')
         expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
@@ -128,6 +152,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         rack_trace = traces.first
 
+        expect(last_response).to be_ok
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta).fetch('http.route')).to eq('/items/:id')
         expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
@@ -138,6 +163,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         rack_trace = traces.first
 
+        expect(last_response).to be_ok
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta).fetch('http.route')).to eq('/items/:slug')
         expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
@@ -148,19 +174,32 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         rack_trace = traces.first
 
+        expect(last_response).to be_ok
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta).fetch('http.route')).to eq('/books/*section/:title')
         expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
       end
 
       it 'sets http.route and http.route.path for rails engine routes' do
-        post '/api/auth/sign-in'
+        get '/api/auth/sign-in'
 
         rack_trace = traces.first
 
+        expect(last_response).to be_ok
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta).fetch('http.route')).to eq('/sign-in(/:expires_in)')
         expect(rack_trace.send(:meta).fetch('http.route.path')).to eq('/api/auth')
+      end
+
+      it 'sets http.route for a route to a rack app' do
+        get '/api/status'
+
+        rack_trace = traces.first
+
+        expect(last_response).to be_ok
+        expect(rack_trace.name).to eq('rack.request')
+        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/api/status')
+        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
       end
 
       it 'does not set http.route when requesting an unknown route' do
@@ -168,6 +207,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         rack_trace = traces.first
 
+        expect(last_response).to be_not_found
         expect(rack_trace.name).to eq('rack.request')
         expect(rack_trace.send(:meta)).not_to have_key('http.route')
         expect(rack_trace.send(:meta)).not_to have_key('http.route.path')

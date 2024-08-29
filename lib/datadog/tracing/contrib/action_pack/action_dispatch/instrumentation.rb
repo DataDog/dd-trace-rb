@@ -28,6 +28,15 @@ module Datadog
               Datadog.logger.error(e.message)
             end
 
+            def dispatcher_route?(route)
+              return true if route.dispatcher?
+
+              # in Rails 4 there is no #rack_app method on the app
+              return true if route.app.respond_to?(:rack_app) && !route.app.rack_app.nil?
+
+              false
+            end
+
             # Instrumentation for ActionDispatch::Journey components
             module Journey
               # Instrumentation for ActionDispatch::Journey::Router for Rails versions older than 7.1
@@ -39,9 +48,7 @@ module Datadog
                   routes = result.map(&:last)
 
                   routes.each do |route|
-                    # we only want to set route tags for dispatcher routes,
-                    # since they instantiate controller that processes the request
-                    if route&.dispatcher?
+                    if Instrumentation.dispatcher_route?(route)
                       Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME'])
                       break
                     end
@@ -56,9 +63,9 @@ module Datadog
               module LazyRouter
                 def find_routes(req)
                   super do |match, parameters, route|
-                    # we only want to set route tags for dispatcher routes,
-                    # since they instantiate controller that processes the request
-                    Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME']) if route&.dispatcher?
+                    if Instrumentation.dispatcher_route?(route)
+                      Instrumentation.set_http_route_tags(route.path.spec, req.env['SCRIPT_NAME'])
+                    end
 
                     yield [match, parameters, route]
                   end
