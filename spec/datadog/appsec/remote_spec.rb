@@ -160,8 +160,8 @@ RSpec.describe Datadog::AppSec::Remote do
               'transformers' => [],
               'on_match' => ['block']
             }],
-            'processors' => Datadog::AppSec::Processor::RuleMerger::DEFAULT_WAF_PROCESSORS,
-            'scanners' => Datadog::AppSec::Processor::RuleMerger::DEFAULT_WAF_SCANNERS,
+            'processors' => Datadog::AppSec::Processor::RuleMerger.default_waf_processors,
+            'scanners' => Datadog::AppSec::Processor::RuleMerger.default_waf_scanners,
           }
 
           expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset, actions: [])

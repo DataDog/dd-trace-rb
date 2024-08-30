@@ -8,6 +8,13 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
+GIT
+  remote: https://github.com/ruby/webrick.git
+  revision: 0c600e169bd4ae267cb5eeb6197277c848323bbe
+  ref: 0c600e169bd4ae267cb5eeb6197277c848323bbe
+  specs:
+    webrick (1.8.1)
+
 PATH
   remote: ..
   specs:
@@ -61,11 +68,15 @@ GEM
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
+    mini_portile2 (2.8.7)
     mono_logger (1.1.2)
     msgpack (1.7.2)
     multi_json (1.15.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
+    nokogiri (1.16.7)
+      mini_portile2 (~> 2.8.2)
+      racc (~> 1.4)
     os (1.1.4)
     parallel (1.25.1)
     parser (3.3.3.0)
@@ -144,6 +155,8 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
+    ruby_memcheck (3.0.0)
+      nokogiri
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -164,7 +177,6 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.8.1)
     yard (0.9.36)
 
 PLATFORMS
@@ -202,11 +214,12 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
+  ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick (>= 1.7.0)
+  webrick!
   yard (~> 0.9)
 
 BUNDLED WITH

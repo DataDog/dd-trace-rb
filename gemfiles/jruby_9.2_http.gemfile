@@ -34,7 +34,6 @@ gem "faraday"
 gem "http", "~> 4"
 gem "httpclient"
 gem "rest-client"
-gem "stripe", "~> 7.0"
 gem "typhoeus"
 
 group :check do

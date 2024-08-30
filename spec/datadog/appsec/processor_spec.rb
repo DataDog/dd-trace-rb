@@ -63,6 +63,15 @@ RSpec.describe Datadog::AppSec::Processor do
       end
 
       it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be false }
+
+      it do
+        expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+          an_instance_of(LoadError),
+          level: :error,
+          description: 'libddwaf failed to load'
+        )
+        expect { described_class.new(ruleset: ruleset) }.to_not raise_error
+      end
     end
 
     context 'when loaded but missing mandatory const' do
@@ -122,6 +131,49 @@ RSpec.describe Datadog::AppSec::Processor do
       end
 
       it { is_expected.to_not be_ready }
+    end
+
+    context 'when reporting errors' do
+      it do
+        stub_const('Datadog::AppSec::WAF::Handle', double)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF::Error', Class.new(StandardError))
+
+        expect(described_class).to receive(:require_libddwaf).and_return(true)
+        expect(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
+
+        expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(StandardError)
+        expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+          an_instance_of(StandardError),
+          level: :error,
+          description: 'libddwaf failed to initialize'
+        )
+
+        expect(processor).to_not be_ready
+      end
+
+      it do
+        stub_const('Datadog::AppSec::WAF::Handle', double)
+        stub_const(
+          'Datadog::AppSec::WAF::LibDDWAF::Error',
+          Class.new(StandardError) do
+            def diagnostics
+              nil
+            end
+          end
+        )
+
+        expect(described_class).to receive(:require_libddwaf).and_return(true)
+        expect(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
+
+        expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(Datadog::AppSec::WAF::LibDDWAF::Error)
+        expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+          an_instance_of(Datadog::AppSec::WAF::LibDDWAF::Error),
+          level: :error,
+          description: 'libddwaf failed to initialize'
+        )
+
+        expect(processor).to_not be_ready
+      end
     end
   end
 end
