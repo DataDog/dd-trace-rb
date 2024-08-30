@@ -138,6 +138,29 @@ module Datadog
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)
 
+            if status != 404 && (last_route = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              last_script_name = trace.get_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH).to_s
+
+              # If the last_script_name is empty but the env['SCRIPT_NAME'] is NOT empty
+              # then the current rack request was not routed and must be accounted for
+              # which only happens in pure nested rack requests i.e /rack/rack/hello/world
+              #
+              # To account for the unaccounted nested rack requests of /rack/hello/world,
+              # we use 'PATH_INFO knowing that rack cannot have named parameters
+              if last_script_name == '' && env['SCRIPT_NAME'] != ''
+                last_script_name = last_route
+                last_route = env['PATH_INFO']
+              end
+
+              # Clear the route and route path tags from the request trace to avoid possibility of misplacement
+              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE)
+              trace.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+
+              # Ensure tags are placed in rack.request span as desired
+              request_span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, last_script_name + last_route)
+              request_span.clear_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH)
+            end
+
             # Set analytics sample rate
             if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
               Contrib::Analytics.set_sample_rate(request_span, configuration[:analytics_sample_rate])

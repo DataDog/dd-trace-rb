@@ -139,78 +139,78 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
       it 'sets http.route when requesting a known route' do
         get '/api/users/1'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/api/users/:id')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/api/users/:id')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'sets http.route correctly for ambiguous route with constraints' do
         get '/items/1'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/items/:id')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/items/:id')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'sets http.route correctly for ambiguous route with constraints, case two' do
         get '/items/something'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/items/:slug')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/items/:slug')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'sets http.route correctly for routes with globbing' do
         get 'books/some/section/title'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/books/*section/:title')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/books/*section/:title')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'sets http.route and http.route.path for rails engine routes' do
         get '/api/auth/sign-in'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/sign-in(/:expires_in)')
-        expect(rack_trace.send(:meta).fetch('http.route.path')).to eq('/api/auth')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/api/auth/sign-in(/:expires_in)')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'sets http.route for a route to a rack app' do
         get '/api/status'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_ok
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta).fetch('http.route')).to eq('/api/status')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/api/status')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
 
       it 'does not set http.route when requesting an unknown route' do
         get '/nope'
 
-        rack_trace = traces.first
+        request_span = spans.first
 
         expect(last_response).to be_not_found
-        expect(rack_trace.name).to eq('rack.request')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route')
-        expect(rack_trace.send(:meta)).not_to have_key('http.route.path')
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags).not_to have_key('http.route')
+        expect(request_span.tags).not_to have_key('http.route.path')
       end
     end
 

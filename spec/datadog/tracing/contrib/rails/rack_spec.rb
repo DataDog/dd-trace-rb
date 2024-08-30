@@ -138,7 +138,6 @@ RSpec.describe 'Rails Rack' do
       request_span, controller_span, cache_span, render_span = spans
 
       expect(trace.resource).to eq('TestController#full')
-      expect(trace.send(:meta).fetch('http.route')).to eq('/full')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')
@@ -152,6 +151,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/full')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.type).to eq('web')
@@ -375,7 +376,6 @@ RSpec.describe 'Rails Rack' do
       request_span, controller_span = spans
 
       expect(trace.resource).to eq('TestController#error')
-      expect(trace.send(:meta).fetch('http.route')).to eq('/error')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')
@@ -389,6 +389,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -411,7 +413,6 @@ RSpec.describe 'Rails Rack' do
       request_span, controller_span = spans
 
       expect(trace.resource).to eq('TestController#soft_error')
-      expect(trace.send(:meta).fetch('http.route')).to eq('/soft_error')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')
@@ -425,6 +426,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/soft_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -447,7 +450,6 @@ RSpec.describe 'Rails Rack' do
       request_span, controller_span = spans
 
       expect(trace.resource).to eq('TestController#sub_error')
-      expect(trace.send(:meta).fetch('http.route')).to eq('/sub_error')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')
@@ -464,6 +466,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/sub_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
