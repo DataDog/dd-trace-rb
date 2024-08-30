@@ -45,21 +45,24 @@ RSpec.describe 'Rack testing for http.route' do
     response = get('/hello/world')
 
     expect(response).to be_ok
-    expect(request_span.get_tag('http.route')).to eq('/hello/world')
+    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+      .to eq('/hello/world')
   end
 
   it 'sets http.route tag on request to nested app route' do
     response = get('/rack/hello/world')
 
     expect(response).to be_ok
-    expect(request_span.get_tag('http.route')).to eq('/rack/hello/world')
+    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+      .to eq('/rack/hello/world')
   end
 
   it 'sets no http.route tag when response status is 404' do
     response = get('/no_route')
 
     expect(response).to be_not_found
-    expect(request_span.get_tag('http.route')).to be_nil
+    expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+      .to be_nil
   end
 
   def request_span
