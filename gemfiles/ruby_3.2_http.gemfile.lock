@@ -161,7 +161,6 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    stripe (9.2.0)
     strscan (3.1.0)
     thor (1.2.2)
     typhoeus (1.4.0)
@@ -219,7 +218,6 @@ DEPENDENCIES
   rubocop-rspec (~> 2.20, < 2.21)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
-  stripe
   typhoeus
   warning (~> 1)
   webmock (>= 3.10.0)

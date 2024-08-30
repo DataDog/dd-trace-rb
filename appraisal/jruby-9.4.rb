@@ -63,8 +63,13 @@ appraise 'http' do
   gem 'http', '~> 4' # TODO: Completely broken with this JRuby version, this has not be validate on CI
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe'
   gem 'typhoeus'
+end
+
+(7..12).each do |n|
+  appraise "stripe-#{n}" do
+    gem 'stripe', "~> #{n}"
+  end
 end
 
 [2, 3].each do |n|

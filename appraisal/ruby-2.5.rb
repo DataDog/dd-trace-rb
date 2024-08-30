@@ -206,8 +206,13 @@ appraise 'http' do
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe', '~> 7.0'
   gem 'typhoeus'
+end
+
+(7..12).each do |n|
+  appraise "stripe-#{n}" do
+    gem 'stripe', "~> #{n}"
+  end
 end
 
 [2, 3].each do |n|
