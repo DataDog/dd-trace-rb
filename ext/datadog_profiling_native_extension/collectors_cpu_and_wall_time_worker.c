@@ -1278,22 +1278,16 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 }
 
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
-
-  if (state == NULL) {
-    // This should not be possible; the state is only cleared AFTER we stop any active event hooks,
-    // and there's a lock inside the VM that prevents concurrent in clearing and executing hooks
-    // (so there can't be a hook that started executing while another thread was stopping and cleaning up)
-    fprintf(stderr, "[ddtrace] Unexpected missing state in on_gvl_event (%d)\n", event_id);
-    return;
-  }
+  // Be very careful about touching the `state` here or doing anything at all:
+  // This function gets called even without the GVL, and even from background Ractors!
 
   VALUE current_thread = event_data->thread;
 
   if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
     thread_context_collector_on_gvl_waiting(current_thread);
   } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-    thread_context_collector_on_gvl_running(state->thread_context_collector_instance, current_thread);
+    bool should_sample = thread_context_collector_on_gvl_running(current_thread);
+    if (should_sample) rb_postponed_job_trigger(FIXME);
   } else {
     // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
     fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);

@@ -77,6 +77,11 @@
 #define MISSING_TRACER_CONTEXT_KEY 0
 #define TIME_BETWEEN_GC_EVENTS_NS MILLIS_AS_NS(10)
 
+// This is used as a placeholder to mark threads that are allowed to be profiled (enabled)
+// (e.g. to avoid trying to gvl profile threads that are not from the main Ractor)
+// and for which there's no data yet
+#define GVL_WAITING_ENABLED_EMPTY UINTPTR_MAX
+
 static ID at_active_span_id;  // id of :@active_span in Ruby
 static ID at_active_trace_id; // id of :@active_trace in Ruby
 static ID at_id_id;           // id of :@id in Ruby
@@ -438,7 +443,7 @@ static VALUE _native_on_gc_start(DDTRACE_UNUSED VALUE self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  thread_context_collector_on_gc_finish(collector_instance);
+  (void) thread_context_collector_on_gc_finish(collector_instance);
   return Qtrue;
 }
 
@@ -597,6 +602,7 @@ void thread_context_collector_on_gc_start(VALUE self_instance) {
 //
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 // Assumption 2: This function is called from the main Ractor (if Ruby has support for Ractors).
+__attribute__((warn_unused_result))
 bool thread_context_collector_on_gc_finish(VALUE self_instance) {
   struct thread_context_collector_state *state;
   if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return false;
@@ -955,13 +961,14 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   // We use this special location to store data that can be accessed without any
   // kind of synchronization (e.g. by threads without the GVL).
   //
-  // We clear it here to make sure there's no stale data from a previous execution
-  // of the profiler.
+  // We set this marker here for two purposes:
+  // * To make sure there's no stale data from a previous execution of the profiler.
+  // * To mark threads that are actually being profiled
   //
-  // (Clearing this is potentially a race, but what we want is to avoid _stale_ data, so
-  // if this gets set concurrently with context initialization, then such setting belongs
+  // (Setting this is potentially a race, but what we want is to avoid _stale_ data, so
+  // if this gets set concurrently with context initialization, then such a value will belong
   // to the current profiler instance, so that's OK)
-  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, NULL);
+  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
 }
 
 static void free_context(struct per_thread_context* thread_context) {
@@ -1491,25 +1498,35 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   return Qtrue;
 }
 
-// This function gets called from a thread that is NOT holding the GVL
+// This function can get called from outside the GVL and even on non-main Ractors
 void thread_context_collector_on_gvl_waiting(VALUE thread) {
   // Because this function gets called from a thread that is NOT holding the GVL, we avoid touching the
   // per-thread context directly.
   //
   // Instead, we ask Ruby to hold the data we need in Ruby's own special per-thread context area
-  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  //
+  // Also, this function can get called on the non-main Ractor. We deal with this by checking if the value in the context
+  // is non-zero, since only `initialize_context` ever sets the value from 0 to non-zero for threads it sees.
+  uintptr_t thread_being_profiled = (uintptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+  if (!thread_being_profiled) return;
 
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   if (current_monotonic_wall_time_ns <= 0 && ((unsigned long) current_monotonic_wall_time_ns) > UINTPTR_MAX) return;
 
-  uintptr_t gvl_waiting_at = current_monotonic_wall_time_ns;
-
-  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) gvl_waiting_at);
+  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) current_monotonic_wall_time_ns);
 }
 
-void thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread) {
-  struct thread_context_collector_state *state;
-  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
-  // This should never fail the the above check passes
-  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+#define WAITING_FOR_GVL_THRESHOLD_NS MILLIS_AS_NS(10)
 
+// This function can get called from outside the GVL and even on non-main Ractors
+__attribute__((warn_unused_result))
+bool thread_context_collector_on_gvl_running(VALUE thread) {
+  uintptr_t gvl_waiting_at = (uintptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+
+  // Thread was not being profiled / not waiting on gvl
+  if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
+
+  long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - wall_time_at_start_ns;
+
+  return waiting_for_gvl_duration_ns >= WAITING_FOR_GVL_THRESHOLD_NS;
 }
