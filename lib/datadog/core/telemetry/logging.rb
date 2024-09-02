@@ -21,7 +21,6 @@ module Datadog
       # - What information needed to make it actionable?
       #
       module Logging
-        extend self
 
         # Extract datadog stack trace from the exception
         module DatadogStackTrace
@@ -59,23 +58,13 @@ module Datadog
             stack_trace: DatadogStackTrace.from(exception)
           )
 
-          dispatch(event)
+          log!(event)
         end
 
         def error(description)
           event = Event::Log.new(message: description, level: :error)
 
-          dispatch(event)
-        end
-
-        private
-
-        def dispatch(event)
-          if (telemetry = Datadog.send(:components).telemetry)
-            telemetry.log!(event)
-          else
-            Datadog.logger.debug { 'Attempting to send telemetry log when telemetry component is not ready' }
-          end
+          log!(event)
         end
       end
     end

@@ -21,8 +21,8 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
     end
     let(:recommended) { JSON.parse(Datadog::AppSec::Assets.waf_rules(:recommended)) }
     let(:strict) { JSON.parse(Datadog::AppSec::Assets.waf_rules(:strict)) }
-
-    subject(:rules) { described_class.load_rules(ruleset: ruleset) }
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+    subject(:rules) { described_class.load_rules(ruleset: ruleset, telemetry: telemetry) }
 
     context 'when ruleset is :recommended' do
       let(:ruleset) { :recommended }
@@ -61,7 +61,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
       let(:ruleset) { '/does/not/exist' }
 
       it 'returns `nil`' do
-        expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+        expect(telemetry).to receive(:report).with(
           an_instance_of(Errno::ENOENT),
           level: :error,
           description: 'libddwaf ruleset failed to load'
@@ -93,7 +93,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
       let(:ruleset) { StringIO.new('this is not json') }
 
       it 'returns `nil`' do
-        expect(Datadog::Core::Telemetry::Logging).to receive(:report).with(
+        expect(telemetry).to receive(:report).with(
           an_instance_of(JSON::ParserError),
           level: :error,
           description: 'libddwaf ruleset failed to load'

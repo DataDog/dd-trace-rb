@@ -16,7 +16,7 @@ module Datadog
 
         private
 
-        def dispatch: (Datadog::Core::Telemetry::Event::Log event) -> void
+        def telemetry_component: () -> Datadog::Core::Telemetry::Component
       end
     end
   end

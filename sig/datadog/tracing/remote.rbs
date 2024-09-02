@@ -13,7 +13,7 @@ module Datadog
 
       def self.process_config: (Hash[String, untyped] config, Core::Remote::Configuration::Content content) -> void
 
-      def self.receivers: () -> ::Array[Core::Remote::Dispatcher::Receiver]
+      def self.receivers: (Datadog::Core::Telemetry::Component OpenTelemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository repository, Array[Core::Remote::Configuration::Repository::change] changes) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
 
