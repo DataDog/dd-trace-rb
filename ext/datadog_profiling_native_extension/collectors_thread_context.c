@@ -1,4 +1,5 @@
 #include <ruby.h>
+#include <ruby/thread.h>
 
 #include "collectors_thread_context.h"
 #include "clock_id.h"
@@ -85,6 +86,8 @@ static ID at_type_id;         // id of :@type in Ruby
 static ID at_otel_values_id;  // id of :@otel_values in Ruby
 static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
 static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
+
+static rb_internal_thread_specific_key_t per_thread_gvl_waiting_timestamp_key;
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -278,6 +281,8 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_otel_values_id = rb_intern_const("@otel_values");
   at_parent_span_id_id = rb_intern_const("@parent_span_id");
   at_datadog_trace_id = rb_intern_const("@datadog_trace");
+
+  per_thread_gvl_waiting_timestamp_key = rb_internal_thread_specific_key_create();
 
   gc_profiling_init();
 }
@@ -946,6 +951,17 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
   // These will only be used during a GC operation
   thread_context->gc_tracking.cpu_time_at_start_ns = INVALID_TIME;
   thread_context->gc_tracking.wall_time_at_start_ns = INVALID_TIME;
+
+  // We use this special location to store data that can be accessed without any
+  // kind of synchronization (e.g. by threads without the GVL).
+  //
+  // We clear it here to make sure there's no stale data from a previous execution
+  // of the profiler.
+  //
+  // (Clearing this is potentially a race, but what we want is to avoid _stale_ data, so
+  // if this gets set concurrently with context initialization, then such setting belongs
+  // to the current profiler instance, so that's OK)
+  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, NULL);
 }
 
 static void free_context(struct per_thread_context* thread_context) {
@@ -1473,4 +1489,27 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples) {
   thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(skipped_samples));
   return Qtrue;
+}
+
+// This function gets called from a thread that is NOT holding the GVL
+void thread_context_collector_on_gvl_waiting(VALUE thread) {
+  // Because this function gets called from a thread that is NOT holding the GVL, we avoid touching the
+  // per-thread context directly.
+  //
+  // Instead, we ask Ruby to hold the data we need in Ruby's own special per-thread context area
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
+  if (current_monotonic_wall_time_ns <= 0 && ((unsigned long) current_monotonic_wall_time_ns) > UINTPTR_MAX) return;
+
+  uintptr_t gvl_waiting_at = current_monotonic_wall_time_ns;
+
+  rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) gvl_waiting_at);
+}
+
+void thread_context_collector_on_gvl_running(VALUE self_instance, VALUE thread) {
+  struct thread_context_collector_state *state;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
 }
