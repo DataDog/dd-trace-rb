@@ -99,6 +99,7 @@ struct cpu_and_wall_time_worker_state {
   bool dynamic_sampling_rate_enabled;
   bool allocation_profiling_enabled;
   bool allocation_counting_enabled;
+  bool gvl_profiling_enabled;
   bool skip_idle_samples_for_testing;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
@@ -122,6 +123,8 @@ struct cpu_and_wall_time_worker_state {
   // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample.
   bool during_sample;
+  // Only exists when sampling is active (gets created at started and cleaned on stop)
+  rb_internal_thread_event_hook_t *gvl_profiling_hook;
 
   struct stats {
     // # Generic stats
@@ -184,6 +187,7 @@ static VALUE _native_initialize(
   VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_profiling_enabled,
   VALUE allocation_counting_enabled,
+  VALUE gvl_profiling_enabled,
   VALUE skip_idle_samples_for_testing
 );
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
@@ -227,6 +231,7 @@ static void delayed_error(struct cpu_and_wall_time_worker_state *state, const ch
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
+static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -295,7 +300,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 10);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 11);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -345,6 +350,7 @@ static VALUE _native_new(VALUE klass) {
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_profiling_enabled = false;
   state->allocation_counting_enabled = false;
+  state->gvl_profiling_enabled = false;
   state->skip_idle_samples_for_testing = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
@@ -357,6 +363,7 @@ static VALUE _native_new(VALUE klass) {
   state->stop_thread = Qnil;
 
   state->during_sample = false;
+  state->gvl_profiling_hook = NULL;
 
   reset_stats_not_thread_safe(state);
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
@@ -379,6 +386,7 @@ static VALUE _native_initialize(
   VALUE dynamic_sampling_rate_overhead_target_percentage,
   VALUE allocation_profiling_enabled,
   VALUE allocation_counting_enabled,
+  VALUE gvl_profiling_enabled,
   VALUE skip_idle_samples_for_testing
 ) {
   ENFORCE_BOOLEAN(gc_profiling_enabled);
@@ -387,6 +395,7 @@ static VALUE _native_initialize(
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
+  ENFORCE_BOOLEAN(gvl_profiling_enabled);
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
 
   struct cpu_and_wall_time_worker_state *state;
@@ -397,6 +406,7 @@ static VALUE _native_initialize(
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
+  state->gvl_profiling_enabled = (gvl_profiling_enabled == Qtrue);
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
@@ -779,6 +789,18 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
       state->self_instance,
       RUBY_EVENT_HOOK_FLAG_SAFE | RUBY_EVENT_HOOK_FLAG_RAW_ARG)
     ;
+  }
+  if (state->gvl_profiling_enabled) {
+    state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
+      on_gvl_event,
+      (
+        // For now we're only asking for these events, even though there's more
+        // (e.g. check docs or gvl-tracing gem)
+        RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
+        RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+      ),
+      NULL
+    );
   }
 
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
@@ -1173,7 +1195,13 @@ static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   if (state->gc_tracepoint != Qnil) {
     rb_tracepoint_disable(state->gc_tracepoint);
   }
+
   rb_remove_event_hook_with_data(on_newobj_event_as_hook, state->self_instance);
+
+  if (state->gvl_profiling_hook) {
+    rb_internal_thread_remove_event_hook(state->gvl_profiling_hook);
+    state->gvl_profiling_hook = NULL;
+  }
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -1247,4 +1275,9 @@ static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self) {
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   unblock_sigprof_signal_handler_from_running_in_current_thread();
   return Qtrue;
+}
+
+static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
+  // TODO
+  fprintf(stderr, "on_gvl_event %d\n", event_id);
 }

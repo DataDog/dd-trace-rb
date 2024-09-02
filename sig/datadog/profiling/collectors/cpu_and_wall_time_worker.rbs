@@ -29,6 +29,7 @@ module Datadog
           Float dynamic_sampling_rate_overhead_target_percentage,
           bool allocation_profiling_enabled,
           bool allocation_counting_enabled,
+          bool gvl_profiling_enabled,
           bool skip_idle_samples_for_testing,
         ) -> true
 

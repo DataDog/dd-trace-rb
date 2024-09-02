@@ -34,6 +34,8 @@ module Datadog
             )
           end
 
+          gvl_profiling_enabled = true # TODO
+
           self.class._native_initialize(
             self,
             thread_context_collector,
@@ -44,6 +46,7 @@ module Datadog
             dynamic_sampling_rate_overhead_target_percentage,
             allocation_profiling_enabled,
             allocation_counting_enabled,
+            gvl_profiling_enabled,
             skip_idle_samples_for_testing,
           )
           @worker_thread = nil
