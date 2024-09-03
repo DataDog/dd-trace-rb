@@ -88,6 +88,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   // `collectors_cpu_and_wall_time_worker_init` below and always get reused after that.
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -232,6 +233,7 @@ static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VA
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
+static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -277,8 +279,13 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     int unused_flags = 0;
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
+    after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
 
-    if (sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID || after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID) {
+    if (
+      sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
+      after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
+      after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+    ) {
       rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
   #else
@@ -1287,9 +1294,13 @@ static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_even
     thread_context_collector_on_gvl_waiting(current_thread);
   } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
     bool should_sample = thread_context_collector_on_gvl_running(current_thread);
-    if (should_sample) rb_postponed_job_trigger(FIXME);
+    if (should_sample) rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
   } else {
     // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
     fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
   }
+}
+
+static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+  fprintf(stderr, "After gvl running!\n");
 }

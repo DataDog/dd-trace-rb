@@ -443,7 +443,7 @@ static VALUE _native_on_gc_start(DDTRACE_UNUSED VALUE self, VALUE collector_inst
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
-  (void) thread_context_collector_on_gc_finish(collector_instance);
+  (void) !thread_context_collector_on_gc_finish(collector_instance);
   return Qtrue;
 }
 
@@ -1526,7 +1526,7 @@ bool thread_context_collector_on_gvl_running(VALUE thread) {
   // Thread was not being profiled / not waiting on gvl
   if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
 
-  long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - wall_time_at_start_ns;
+  long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
   return waiting_for_gvl_duration_ns >= WAITING_FOR_GVL_THRESHOLD_NS;
 }
