@@ -19,7 +19,7 @@ module Datadog
             end
 
             def arguments
-              @arguments ||= create_arguments_hash
+              @arguments ||= build_arguments_hash
             end
 
             def queries
@@ -28,41 +28,73 @@ module Datadog
 
             private
 
-            def create_arguments_hash
-              args = {}
-              @multiplex.queries.each_with_index do |query, index|
-                resolver_args = {}
-                resolver_dirs = {}
-                selections = (query.selected_operation.selections.dup if query.selected_operation) || []
-                # Iterative tree traversal
-                while selections.any?
-                  selection = selections.shift
-                  set_hash_with_variables(resolver_args, selection.arguments, query.provided_variables)
-                  selection.directives.each do |dir|
-                    resolver_dirs[dir.name] ||= {}
-                    set_hash_with_variables(resolver_dirs[dir.name], dir.arguments, query.provided_variables)
-                  end
-                  selections.concat(selection.selections)
-                end
-                next if resolver_args.empty? && resolver_dirs.empty?
+            # This method builds an array of argument hashes for each field with arguments in the query.
+            #
+            # For example, given the following query:
+            # query ($postSlug: ID = "my-first-post", $withComments: Boolean!) {
+            #   firstPost: post(slug: $postSlug) {
+            #     title
+            #     comments @include(if: $withComments) {
+            #       author { name }
+            #       content
+            #     }
+            #   }
+            # }
+            #
+            # The result would be:
+            # {"post"=>[{"slug"=>"my-first-post"}], "comments"=>[{"include"=>{"if"=>true}}]}
+            #
+            # Note that the `comments` "include" directive is included in the arguments list
+            def build_arguments_hash
+              queries.each_with_object({}) do |query, args_hash|
+                next unless query.selected_operation
 
-                args_resolver = (args[query.operation_name || "query#{index + 1}"] ||= [])
-                # We don't want to add empty hashes so we check again if the arguments and directives are empty
-                args_resolver << resolver_args unless resolver_args.empty?
-                args_resolver << resolver_dirs unless resolver_dirs.empty?
+                arguments_from_selections(query.selected_operation.selections, query.variables, args_hash)
               end
-              args
             end
 
-            # Set the resolver hash (resolver_args and resolver_dirs) with the arguments and provided variables
-            def set_hash_with_variables(resolver_hash, arguments, provided_variables)
-              arguments.each do |arg|
-                resolver_hash[arg.name] =
-                  if arg.value.is_a?(::GraphQL::Language::Nodes::VariableIdentifier)
-                    provided_variables[arg.value.name]
+            def arguments_from_selections(selections, query_variables, args_hash)
+              selections.each do |selection|
+                next unless selection.is_a?(::GraphQL::Language::Nodes::Field)
+
+                selection_name = selection.alias || selection.name
+
+                if selection.arguments.any? || selection.directives.any?
+                  args_hash[selection_name] ||= []
+                  args_hash[selection_name] << {
+                    **arguments_hash(selection.arguments, query_variables),
+                    **arguments_from_directives(selection.directives, query_variables)
+                  }
+                end
+
+                arguments_from_selections(selection.selections, query_variables, args_hash)
+              end
+            end
+
+            def arguments_from_directives(directives, query_variables)
+              directives.to_h do |directive|
+                next unless directive.is_a?(::GraphQL::Language::Nodes::Directive)
+
+                [directive.name, arguments_hash(directive.arguments, query_variables)]
+              end
+            end
+
+            def arguments_hash(arguments, query_variables)
+              arguments.to_h do |argument|
+                [
+                  argument.name,
+                  case argument.value
+                  when ::GraphQL::Language::Nodes::VariableIdentifier
+                    # we need to pass query.variables here instead of query.provided_variables,
+                    # since #provided_variables don't know anything about variable default value
+                    var_name = argument.value.name
+                    query_variables.fetch(var_name) if query_variables.key?(var_name)
+                  when ::GraphQL::Language::Nodes::InputObject
+                    arguments_hash(argument.value.arguments, query_variables)
                   else
-                    arg.value
+                    argument.value
                   end
+                ]
               end
             end
           end

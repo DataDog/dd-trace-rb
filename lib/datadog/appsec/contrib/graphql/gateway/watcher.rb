@@ -25,6 +25,7 @@ module Datadog
                   block = false
                   event = nil
                   scope = AppSec::Scope.active_scope
+                  # TODO: this stuff breaks without the active scope
 
                   AppSec::Reactive::Operation.new('graphql.multiplex') do |op|
                     GraphQL::Reactive::Multiplex.subscribe(op, scope.processor_context) do |result|
