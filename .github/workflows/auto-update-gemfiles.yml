@@ -1,0 +1,64 @@
+name: Auto-update Gemfiles
+
+# This action cannot be skipped altogether because it is a mandatory status check.
+# Instead we conditionally skip it at job level, instead of workflow level.
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/version_updater.rb'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'appraisal/**'
+      - 'gemfiles/**'
+  workflow_dispatch:
+    
+
+# Ensure obsolete job is cancelled if another commit is pushed to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-gemfiles:
+    name: Auto-update Gemfiles
+    runs-on: ubuntu-22.04
+
+    steps:
+      # Only execute if there's a PR attached to this branch.
+      # Because we execute on `push`, we have to double check here if this is part of a PR.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+
+      - name: Check for changes in Gemfiles and related files
+        uses: dorny/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        id: filter
+        with:
+          filters: |
+            gemfile:
+              - Gemfile
+              - Appraisals
+              - datadog.gemspec
+              - tasks/appraisal.rake
+              - .github/workflows/update-gemfiles.yml
+              - lib/datadog/version.rb
+              - 'appraisal/**'
+              - 'gemfiles/**'
+
+      - name: Run update gemfiles if files changed
+        if: steps.filter.outputs.gemfile == 'true'
+        run: ruby .github/scripts/version_updater.rb
+
+      - name: Commit gemfiles changes, if any, back to the branch
+        uses: stefanzweifel/git-auto-commit-action@3ea6ae190baf489ba007f7c92608f33ce20ef04a
+        with:
+          commit_message: Update gemfiles/*
+          branch: update-latests-version
+          create_branch: true
+
+          
