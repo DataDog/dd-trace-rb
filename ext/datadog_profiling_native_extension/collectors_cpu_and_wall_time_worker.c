@@ -921,7 +921,6 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   state->during_sample = true;
 
-  // Trigger sampling using the Collectors::ThreadState; rescue against any exceptions that happen during sampling
   safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
 
   state->during_sample = false;
@@ -1294,7 +1293,11 @@ static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_even
     thread_context_collector_on_gvl_waiting(current_thread);
   } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
     bool should_sample = thread_context_collector_on_gvl_running(current_thread);
-    if (should_sample) rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+
+    if (should_sample) {
+      // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
+      rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+    }
   } else {
     // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
     fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
@@ -1302,5 +1305,14 @@ static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_even
 }
 
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  fprintf(stderr, "After gvl running!\n");
+  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+  if (state == NULL) return;
+
+  state->during_sample = true;
+
+  safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+
+  state->during_sample = false;
 }

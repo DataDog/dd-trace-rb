@@ -80,7 +80,7 @@
 // This is used as a placeholder to mark threads that are allowed to be profiled (enabled)
 // (e.g. to avoid trying to gvl profile threads that are not from the main Ractor)
 // and for which there's no data yet
-#define GVL_WAITING_ENABLED_EMPTY UINTPTR_MAX
+#define GVL_WAITING_ENABLED_EMPTY INTPTR_MAX
 
 static ID at_active_span_id;  // id of :@active_span in Ruby
 static ID at_active_trace_id; // id of :@active_trace in Ruby
@@ -536,6 +536,13 @@ void update_metrics_and_sample(
     thread_context->gc_tracking.cpu_time_at_start_ns,
     IS_NOT_WALL_TIME
   );
+
+  // TODO: This feels like a hack here -- is there a better place to do this?
+  intptr_t gvl_waiting_at = (intptr_t) rb_thread_local_variable_get(thread_being_sampled, per_thread_gvl_waiting_timestamp_key);
+  if (gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY) {
+    // TODO: Was here
+  }
+
   long wall_time_elapsed_ns = update_time_since_previous_sample(
     &thread_context->wall_time_at_previous_sample_ns,
     current_monotonic_wall_time_ns,
@@ -1507,11 +1514,11 @@ void thread_context_collector_on_gvl_waiting(VALUE thread) {
   //
   // Also, this function can get called on the non-main Ractor. We deal with this by checking if the value in the context
   // is non-zero, since only `initialize_context` ever sets the value from 0 to non-zero for threads it sees.
-  uintptr_t thread_being_profiled = (uintptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+  intptr_t thread_being_profiled = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
   if (!thread_being_profiled) return;
 
   long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (current_monotonic_wall_time_ns <= 0 && ((unsigned long) current_monotonic_wall_time_ns) > UINTPTR_MAX) return;
+  if (current_monotonic_wall_time_ns <= 0 || current_monotonic_wall_time_ns > GVL_WAITING_ENABLED_EMPTY) return;
 
   rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) current_monotonic_wall_time_ns);
 }
@@ -1521,12 +1528,62 @@ void thread_context_collector_on_gvl_waiting(VALUE thread) {
 // This function can get called from outside the GVL and even on non-main Ractors
 __attribute__((warn_unused_result))
 bool thread_context_collector_on_gvl_running(VALUE thread) {
-  uintptr_t gvl_waiting_at = (uintptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+  intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
 
   // Thread was not being profiled / not waiting on gvl
   if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
 
+  // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but didn't
+  if (gvl_waiting_at < 0) return true;
+
   long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-  return waiting_for_gvl_duration_ns >= WAITING_FOR_GVL_THRESHOLD_NS;
+  bool should_sample = waiting_for_gvl_duration_ns >= WAITING_FOR_GVL_THRESHOLD_NS;
+
+  if (should_sample) {
+    // We flip the gvl_waiting_at to negative to mark that the thread is now running
+    intptr_t gvl_waiting_at_is_now_running = -gvl_waiting_at;
+
+    rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) gvl_waiting_at_is_now_running);
+  } else {
+    // We decided not to sample. Let's mark the thread back to being profiled, but having no data yet.
+    rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
+  }
+
+  return should_sample;
+}
+
+VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
+  struct thread_context_collector_state *state;
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "gvl profiling requires timeline to be enabled");
+
+  VALUE current_thread = rb_thread_current();
+  struct per_thread_context *thread_context = get_or_create_context_for(thread, state);
+
+  intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(current_thread, per_thread_gvl_waiting_timestamp_key);
+
+  if (gvl_waiting_at >= 0) {
+    // @ivoanjo: I'm not sure if this can ever happen. This means that we're not on the same thread
+    // that ran `thread_context_collector_on_gvl_running` and made the decision to sample.
+    // We do nothing in this case.
+    return Qnil;
+  }
+
+  // The timestamp is encoded as a negative value in thread_context_collector_on_gvl_running
+  long gvl_waiting_wall_time_ns = -gvl_waiting_at;
+
+  // Wrong
+  update_metrics_and_sample(
+    state,
+    /* thread_being_sampled: */ thread,
+    /* stack_from_thread: */ thread,
+    thread_context,
+    thread_context->sampling_buffer,
+    FIXME,
+    FIXME
+  );
+
+  return Qnil; // To allow this to be called from rb_rescue2
 }
