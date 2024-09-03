@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
-require_relative 'rate_limiter'
+require_relative '../../core/rate_limiter'
 require_relative 'rule'
 
 module Datadog
@@ -32,9 +32,9 @@ module Datadog
           @rate_limiter = if rate_limiter
                             rate_limiter
                           elsif rate_limit
-                            TokenBucket.new(rate_limit)
+                            Core::TokenBucket.new(rate_limit)
                           else
-                            UnlimitedLimiter.new
+                            Core::UnlimitedLimiter.new
                           end
 
           @default_sampler = if default_sampler

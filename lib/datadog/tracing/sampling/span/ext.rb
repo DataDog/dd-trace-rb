@@ -9,7 +9,7 @@ module Datadog
           # Accept all spans (100% retention).
           DEFAULT_SAMPLE_RATE = 1.0
           # Unlimited.
-          # @see Datadog::Tracing::Sampling::TokenBucket
+          # @see Datadog::Core::TokenBucket
           DEFAULT_MAX_PER_SECOND = -1
 
           # Sampling decision method used to come to the sampling decision for this span

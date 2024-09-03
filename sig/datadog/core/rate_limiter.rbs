@@ -1,0 +1,35 @@
+module Datadog
+  module Core
+    class RateLimiter
+      def allow?: (untyped size) -> nil
+      def effective_rate: () -> nil
+    end
+    class TokenBucket < RateLimiter
+      attr_reader rate: untyped
+
+      attr_reader max_tokens: untyped
+      def initialize: (untyped rate, ?untyped max_tokens) -> void
+      def allow?: (untyped size) -> untyped
+      def effective_rate: () -> (::Float | untyped)
+      def current_window_rate: () -> (::Float | untyped)
+      def available_tokens: () -> untyped
+
+      private
+
+      def refill_since_last_message: () -> untyped
+
+      def refill_tokens: (untyped size) -> untyped
+
+      def increment_total_count: () -> untyped
+
+      def increment_conforming_count: () -> untyped
+
+      def should_allow?: (untyped size) -> (false | true)
+      def update_rate_counts: (untyped allowed) -> untyped
+    end
+    class UnlimitedLimiter < RateLimiter
+      def allow?: (untyped _) -> true
+      def effective_rate: () -> ::Float
+    end
+  end
+end
