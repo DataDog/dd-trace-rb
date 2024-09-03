@@ -17,7 +17,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
 
   before do
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
-    allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
+    allow(rate_limiter).to receive(:allow?).and_return(allow?)
   end
 
   shared_examples 'a simple rule that matches all span operations' do |options = { sample_rate: 1.0 }|
