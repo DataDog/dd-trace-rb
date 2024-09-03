@@ -195,6 +195,10 @@ end
   end
 end
 
+appraise 'stripe-latest' do
+  gem 'stripe'
+end
+
 [2, 3].each do |n|
   appraise "opensearch-#{n}" do
     gem 'opensearch-ruby', "~> #{n}"
