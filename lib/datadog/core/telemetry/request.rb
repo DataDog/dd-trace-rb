@@ -33,8 +33,8 @@ module Datadog
             config = Datadog.configuration
 
             tracer_version = Core::Environment::Identity.gem_datadog_version_semver2
-            if config.respond_to?(:ci) && config.ci.enabled && defined?(::Datadog::CI::VERSION)
-              tracer_version = "#{tracer_version}+ci-#{::Datadog::CI::VERSION}"
+            if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled
+              tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
             end
 
             {
