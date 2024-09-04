@@ -29,7 +29,7 @@ VALUE datadog_gem_version(void) {
 }
 
 __attribute__((warn_unused_result))
-ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
+ddog_Endpoint* endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
 
   VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
@@ -47,11 +47,20 @@ ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
     VALUE site = rb_ary_entry(exporter_configuration, 1);
     VALUE api_key = rb_ary_entry(exporter_configuration, 2);
 
-    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+    ddog_Endpoint *endpoint = NULL;
+    ddog_Error *error = ddog_endpoint_from_api_key_and_site(
+        char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key),
+        &endpoint);
+    if (error != NULL) {
+      rb_raise(rb_eRuntimeError,
+               "Failed to initialize agentless endpoint: %" PRIsVALUE,
+               get_error_details_and_drop(error));
+    }
+    return endpoint;
   } else { // agent_id
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
 
-    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+    return ddog_endpoint_from_url(char_slice_from_ruby_string(base_url));
   }
 }
 
