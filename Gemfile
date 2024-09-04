@@ -62,6 +62,8 @@ if RUBY_VERSION >= '2.6.0'
   gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 end
 
+gem 'ostruct' if RUBY_VERSION >= '3.3'
+
 # Optional extensions
 # TODO: Move this to Appraisals?
 # dogstatsd v5, but lower than 5.2, has possible memory leak with datadog.
