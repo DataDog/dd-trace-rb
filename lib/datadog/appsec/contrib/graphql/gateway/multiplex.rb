@@ -61,10 +61,10 @@ module Datadog
 
                 if selection.arguments.any? || selection.directives.any?
                   args_hash[selection_name] ||= []
-                  args_hash[selection_name] << {
-                    **arguments_hash(selection.arguments, query_variables),
-                    **arguments_from_directives(selection.directives, query_variables)
-                  }
+                  args_hash[selection_name] <<
+                    arguments_hash(selection.arguments, query_variables).merge(
+                      arguments_from_directives(selection.directives, query_variables)
+                    )
                 end
 
                 arguments_from_selections(selection.selections, query_variables, args_hash)
