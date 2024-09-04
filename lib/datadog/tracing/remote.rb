@@ -13,7 +13,10 @@ module Datadog
         PRODUCT = 'APM_TRACING'
 
         CAPABILITIES = [
-          1 << 29 # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
+          1 << 12, # APM_TRACING_SAMPLE_RATE: Dynamic trace sampling rate configuration
+          1 << 13, # APM_TRACING_LOGS_INJECTION: Dynamic trace logs injection configuration
+          1 << 14, # APM_TRACING_HTTP_HEADER_TAGS: Dynamic trace HTTP header tags configuration
+          1 << 29, # APM_TRACING_SAMPLE_RULES: Dynamic trace sampling rules configuration
         ].freeze
 
         def products
