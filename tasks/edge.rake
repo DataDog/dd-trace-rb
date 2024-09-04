@@ -47,15 +47,16 @@ namespace :edge do
   desc 'Update edge build for current ruby runtime'
   task :update do |_t, args|
     ruby_version = RUBY_VERSION[0..2]
-    whitelist = [
-      'stripe',
-      'elasticsearch',
+    whitelist = {
+      'stripe' => 'stripe',
+      'elasticsearch' => 'elasticsearch',
+      'opensearch' => 'opensearch-ruby',
       # Add more integrations here, when they are extracted to its own isolated group
-    ]
+    }
 
-    whitelist &= args.extras if args.extras.any?
+    whitelist = whitelist.slice(*args.extras) if args.extras.any?
 
-    whitelist.each do |integration|
+    whitelist.each do |integration, gem|
       candidates = TEST_METADATA.fetch(integration).select do |_, rubies|
         if RUBY_PLATFORM == 'java'
           rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
@@ -71,7 +72,7 @@ namespace :edge do
       gemfiles.each do |gemfile|
         Bundler.with_unbundled_env do
           puts "======== Updating #{integration} in #{gemfile} ========\n"
-          output, = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile.to_s }, "bundle lock --update=#{integration}")
+          output, = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile.to_s }, "bundle lock --update=#{gem}")
 
           puts output
         end
