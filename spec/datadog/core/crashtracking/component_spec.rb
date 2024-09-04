@@ -303,8 +303,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
           expect(crash_report_message[:metadata]).to include(
-            profiling_library_name: 'dd-trace-rb',
-            profiling_library_version: Datadog::VERSION::STRING,
+            library_name: 'dd-trace-rb',
+            library_version: Datadog::VERSION::STRING,
             family: 'ruby',
             tags: ['tag1:value1', 'tag2:value2'],
           )
