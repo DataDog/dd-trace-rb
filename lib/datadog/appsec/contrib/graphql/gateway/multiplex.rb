@@ -72,29 +72,30 @@ module Datadog
             end
 
             def arguments_from_directives(directives, query_variables)
-              directives.to_h do |directive|
+              directives.map do |directive|
                 next unless directive.is_a?(::GraphQL::Language::Nodes::Directive)
 
                 [directive.name, arguments_hash(directive.arguments, query_variables)]
-              end
+              end.to_h
             end
 
             def arguments_hash(arguments, query_variables)
-              arguments.to_h do |argument|
-                [
-                  argument.name,
-                  case argument.value
-                  when ::GraphQL::Language::Nodes::VariableIdentifier
-                    # we need to pass query.variables here instead of query.provided_variables,
-                    # since #provided_variables don't know anything about variable default value
-                    var_name = argument.value.name
-                    query_variables.fetch(var_name) if query_variables.key?(var_name)
-                  when ::GraphQL::Language::Nodes::InputObject
-                    arguments_hash(argument.value.arguments, query_variables)
-                  else
-                    argument.value
-                  end
-                ]
+              arguments.map do |argument|
+                [argument.name, argument_value(argument, query_variables)]
+              end.to_h
+            end
+
+            def argument_value(argument, query_variables)
+              case argument.value
+              when ::GraphQL::Language::Nodes::VariableIdentifier
+                # we need to pass query.variables here instead of query.provided_variables,
+                # since #provided_variables don't know anything about variable default value
+                var_name = argument.value.name
+                query_variables.fetch(var_name) if query_variables.key?(var_name)
+              when ::GraphQL::Language::Nodes::InputObject
+                arguments_hash(argument.value.arguments, query_variables)
+              else
+                argument.value
               end
             end
           end
