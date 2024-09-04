@@ -24,6 +24,7 @@ jobs:
     needs: matrix
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix:
         spec: ${{ fromJSON(needs.matrix.outputs.matrix) }}
     uses: ./.github/workflows/unit-test-spec.yml
