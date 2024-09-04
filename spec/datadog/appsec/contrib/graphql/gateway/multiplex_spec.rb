@@ -18,7 +18,7 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
     ::GraphQL::Execution::Multiplex.new(
       schema: schema,
       queries: queries,
-      context: { :dataloader => GraphQL::Dataloader.new(nonblocking: nil) },
+      context: { dataloader: GraphQL::Dataloader.new(nonblocking: nil) },
       max_complexity: nil
     )
   end
