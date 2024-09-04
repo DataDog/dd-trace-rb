@@ -33,6 +33,12 @@ module Datadog
             config = Datadog.configuration
 
             tracer_version = Core::Environment::Identity.gem_datadog_version_semver2
+
+            # We need some to distinguish datadog-ci gem versions
+            # when examining telemetry metrics emitted from the datadog-ci gem.
+            #
+            # This code checks that Datadog::CI is loaded and ci mode is enabled and adds
+            # "-ci-X.Y.Z" suffix to the tracer version.
             if defined?(::Datadog::CI::VERSION) && config.respond_to?(:ci) && config.ci.enabled
               tracer_version = "#{tracer_version}-ci-#{::Datadog::CI::VERSION::STRING}"
             end
