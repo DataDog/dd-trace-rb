@@ -105,3 +105,5 @@ end
 #
 # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
 gem 'ffi', '~> 1.16.3', require: false
+
+# ignore this
