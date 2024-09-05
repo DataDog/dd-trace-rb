@@ -59,10 +59,10 @@ module Datadog
 
                 selection_name = selection.alias || selection.name
 
-                if selection.arguments.any? || selection.directives.any?
+                if !selection.arguments.empty? || !selection.directives.empty?
                   args_hash[selection_name] ||= []
                   args_hash[selection_name] <<
-                    arguments_hash(selection.arguments, query_variables).merge(
+                    arguments_hash(selection.arguments, query_variables).merge!(
                       arguments_from_directives(selection.directives, query_variables)
                     )
                 end
@@ -72,17 +72,17 @@ module Datadog
             end
 
             def arguments_from_directives(directives, query_variables)
-              directives.map do |directive|
+              directives.each_with_object({}) do |directive, args_hash|
                 next unless directive.is_a?(::GraphQL::Language::Nodes::Directive)
 
-                [directive.name, arguments_hash(directive.arguments, query_variables)]
-              end.to_h
+                args_hash[directive.name] = arguments_hash(directive.arguments, query_variables)
+              end
             end
 
             def arguments_hash(arguments, query_variables)
-              arguments.map do |argument|
-                [argument.name, argument_value(argument, query_variables)]
-              end.to_h
+              arguments.each_with_object({}) do |argument, args_hash|
+                args_hash[argument.name] = argument_value(argument, query_variables)
+              end
             end
 
             def argument_value(argument, query_variables)
