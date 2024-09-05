@@ -335,7 +335,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
             expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
               hash_including(
                 action: :update_on_fork,
-                exporter_configuration: [:agent, 'http://google.com:9126/'],
+                agent_base_url: 'http://google.com:9126/',
               )
             )
           end

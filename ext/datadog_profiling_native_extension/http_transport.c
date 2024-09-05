@@ -103,7 +103,6 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   }
 }
 
-
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
