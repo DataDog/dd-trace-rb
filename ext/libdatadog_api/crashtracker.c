@@ -29,7 +29,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE options;
   rb_scan_args(argc, argv, "0:", &options);
 
-  VALUE exporter_configuration = rb_hash_fetch(options, ID2SYM(rb_intern("exporter_configuration")));
+  VALUE agent_base_url = rb_hash_fetch(options, ID2SYM(rb_intern("agent_base_url")));
   VALUE path_to_crashtracking_receiver_binary = rb_hash_fetch(options, ID2SYM(rb_intern("path_to_crashtracking_receiver_binary")));
   VALUE ld_library_path = rb_hash_fetch(options, ID2SYM(rb_intern("ld_library_path")));
   VALUE tags_as_array = rb_hash_fetch(options, ID2SYM(rb_intern("tags_as_array")));
@@ -39,7 +39,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE start_action = ID2SYM(rb_intern("start"));
   VALUE update_on_fork_action = ID2SYM(rb_intern("update_on_fork"));
 
-  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
+  ENFORCE_TYPE(agent_base_url, T_STRING);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(path_to_crashtracking_receiver_binary, T_STRING);
   ENFORCE_TYPE(ld_library_path, T_STRING);
@@ -52,7 +52,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   // Tags and endpoint are heap-allocated, so after here we can't raise exceptions otherwise we'll leak this memory
   // Start of exception-free zone to prevent leaks {{
-  ddog_Endpoint *endpoint = endpoint_from(exporter_configuration);
+  ddog_Endpoint *endpoint = ddog_endpoint_from_url(char_slice_from_ruby_string(agent_base_url));
   ddog_Vec_Tag tags = convert_tags(tags_as_array);
 
   ddog_crasht_Config config = {

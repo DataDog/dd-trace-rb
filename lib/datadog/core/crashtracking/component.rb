@@ -95,7 +95,7 @@ module Datadog
         def start_or_update_on_fork(action:)
           self.class._native_start_or_update_on_fork(
             action: action,
-            exporter_configuration: [:agent, agent_base_url],
+            agent_base_url: agent_base_url,
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
             ld_library_path: ld_library_path,
             tags_as_array: tags.to_a,
