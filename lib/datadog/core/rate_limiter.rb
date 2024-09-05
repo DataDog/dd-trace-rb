@@ -13,7 +13,7 @@ module Datadog
       # to be side-effect free.
       #
       # @return [Boolean] whether a resource conforms with the current limit
-      def allow?(size); end
+      def allow?(size = 1); end
 
       # The effective rate limiting ratio based on
       # recent calls to `allow?`.
@@ -61,7 +61,7 @@ module Datadog
       # the tokens from the bucket.
       #
       # @return [Boolean] +true+ if message conforms with current bucket limit
-      def allow?(size)
+      def allow?(size = 1)
         allowed = should_allow?(size)
         update_rate_counts(allowed)
         allowed
@@ -125,7 +125,7 @@ module Datadog
         @conforming_messages += 1
       end
 
-      def should_allow?(size)
+      def should_allow?(size = 1)
         # rate limit of 0 blocks everything
         return false if @rate.zero?
 
@@ -170,7 +170,7 @@ module Datadog
     # with no limits.
     class UnlimitedLimiter < RateLimiter
       # @return [Boolean] always +true+
-      def allow?(_)
+      def allow?(_ = 1)
         true
       end
 
