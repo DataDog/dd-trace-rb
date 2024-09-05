@@ -62,7 +62,10 @@ if RUBY_VERSION >= '2.6.0'
   gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 end
 
-gem 'ostruct' if RUBY_VERSION >= '3.3'
+if RUBY_VERSION >= '3.3'
+  gem 'fiddle'
+  gem 'ostruct'
+end
 
 # Optional extensions
 # TODO: Move this to Appraisals?
