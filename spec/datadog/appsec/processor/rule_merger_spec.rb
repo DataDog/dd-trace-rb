@@ -719,7 +719,6 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf processors/)
         expect(telemetry).to receive(:report).with(
           a_kind_of(StandardError),
-          level: :error,
           description: 'libddwaf rulemerger failed to parse default waf processors'
         )
 
@@ -749,7 +748,6 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf scanners/)
         expect(telemetry).to receive(:report).with(
           a_kind_of(StandardError),
-          level: :error,
           description: 'libddwaf rulemerger failed to parse default waf scanners'
         )
 

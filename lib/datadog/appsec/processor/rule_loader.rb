@@ -35,7 +35,7 @@ module Datadog
                 "libddwaf ruleset failed to load, ruleset: #{ruleset.inspect} error: #{e.inspect}"
               end
 
-              telemetry.report(e, level: :error, description: 'libddwaf ruleset failed to load')
+              telemetry.report(e, description: 'libddwaf ruleset failed to load')
 
               nil
             end

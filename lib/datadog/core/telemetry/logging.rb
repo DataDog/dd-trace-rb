@@ -45,7 +45,7 @@ module Datadog
           end
         end
 
-        def report(exception, level:, description: nil)
+        def report(exception, level: :error, description: nil)
           # Annoymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +''
           message << (exception.class.name || exception.class.inspect)

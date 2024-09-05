@@ -31,7 +31,6 @@ module Datadog
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf processors. Error: #{e.inspect}")
               telemetry.report(
                 e,
-                level: :error,
                 description: 'libddwaf rulemerger failed to parse default waf processors'
               )
               []
@@ -43,7 +42,6 @@ module Datadog
               Datadog.logger.error("libddwaf rulemerger failed to parse default waf scanners. Error: #{e.inspect}")
               telemetry.report(
                 e,
-                level: :error,
                 description: 'libddwaf rulemerger failed to parse default waf scanners'
               )
               []

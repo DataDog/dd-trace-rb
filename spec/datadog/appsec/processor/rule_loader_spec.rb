@@ -63,7 +63,6 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
       it 'returns `nil`' do
         expect(telemetry).to receive(:report).with(
           an_instance_of(Errno::ENOENT),
-          level: :error,
           description: 'libddwaf ruleset failed to load'
         )
 
@@ -95,7 +94,6 @@ RSpec.describe Datadog::AppSec::Processor::RuleLoader do
       it 'returns `nil`' do
         expect(telemetry).to receive(:report).with(
           an_instance_of(JSON::ParserError),
-          level: :error,
           description: 'libddwaf ruleset failed to load'
         )
 

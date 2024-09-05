@@ -188,7 +188,7 @@ RSpec.describe Datadog::Profiling::Scheduler do
       it "gracefully handles the exception, logging it" do
         expect(Datadog.logger).to receive(:error).with(/Kaboom/)
         expect(Datadog::Core::Telemetry::Logger).to receive(:report)
-          .with(an_instance_of(RuntimeError), level: :error, description: "Unable to report profile")
+          .with(an_instance_of(RuntimeError), description: "Unable to report profile")
 
         flush_events
       end

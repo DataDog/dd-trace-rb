@@ -12,7 +12,7 @@ module Datadog
           def self.from: (Exception exception) -> String?
         end
 
-        def report: (Exception exception, level: Symbol, ?description: String?) -> void
+        def report: (Exception exception, ?level: Symbol, ?description: String?) -> void
 
         def error: (String description) -> void
       end

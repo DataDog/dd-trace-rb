@@ -112,7 +112,7 @@ module Datadog
           'libddwaf failed to load,' \
             "installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms} error: #{e.inspect}"
         end
-        @telemetry.report(e, level: :error, description: 'libddwaf failed to load')
+        @telemetry.report(e, description: 'libddwaf failed to load')
 
         false
       end
@@ -140,7 +140,7 @@ module Datadog
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
-        @telemetry.report(e, level: :error, description: 'libddwaf failed to initialize')
+        @telemetry.report(e, description: 'libddwaf failed to initialize')
 
         @diagnostics = e.diagnostics if e.diagnostics
 
@@ -149,7 +149,7 @@ module Datadog
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
-        @telemetry.report(e, level: :error, description: 'libddwaf failed to initialize')
+        @telemetry.report(e, description: 'libddwaf failed to initialize')
 
         false
       end

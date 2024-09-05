@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Telemetry
       module Logger
-        def self.report: (Exception exception, level: Symbol, ?description: String?) -> void
+        def self.report: (Exception exception, ?level: Symbol, ?description: String?) -> void
 
         def self.error: (String description) -> void
 

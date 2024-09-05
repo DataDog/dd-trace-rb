@@ -47,7 +47,6 @@ RSpec.describe Datadog::AppSec::Processor do
         allow_any_instance_of(described_class).to receive(:require).with('libddwaf').and_raise(LoadError)
         expect(telemetry).to receive(:report).with(
           an_instance_of(LoadError),
-          level: :error,
           description: 'libddwaf failed to load'
         ).at_least(:once)
 
@@ -152,7 +151,6 @@ RSpec.describe Datadog::AppSec::Processor do
         )
         expect(telemetry).to receive(:report).with(
           a_kind_of(Datadog::AppSec::WAF::LibDDWAF::Error),
-          level: :error,
           description: 'libddwaf failed to initialize'
         )
 
@@ -190,7 +188,6 @@ RSpec.describe Datadog::AppSec::Processor do
         )
         expect(telemetry).to receive(:report).with(
           a_kind_of(StandardError),
-          level: :error,
           description: 'libddwaf failed to initialize'
         )
 
@@ -239,7 +236,6 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog.logger).to receive(:warn)
         expect(telemetry).to receive(:report).with(
           a_kind_of(StandardError),
-          level: :error,
           description: 'libddwaf failed to initialize'
         )
 
@@ -258,7 +254,6 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(StandardError)
         expect(telemetry).to receive(:report).with(
           an_instance_of(StandardError),
-          level: :error,
           description: 'libddwaf failed to initialize'
         )
 
@@ -282,7 +277,6 @@ RSpec.describe Datadog::AppSec::Processor do
         expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(Datadog::AppSec::WAF::LibDDWAF::Error)
         expect(telemetry).to receive(:report).with(
           an_instance_of(Datadog::AppSec::WAF::LibDDWAF::Error),
-          level: :error,
           description: 'libddwaf failed to initialize'
         )
 

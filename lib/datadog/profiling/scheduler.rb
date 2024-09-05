@@ -135,7 +135,7 @@ module Datadog
           Datadog.logger.error(
             "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
-          Datadog::Core::Telemetry::Logger.report(e, level: :error, description: "Unable to report profile")
+          Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end
 
         true
