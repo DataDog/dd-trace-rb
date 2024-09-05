@@ -260,6 +260,12 @@ RSpec.describe Datadog::Core::Environment::Execution do
             gemfile(true, quiet: true) do
               source 'https://rubygems.org'
               gem 'webmock'
+
+              if RUBY_VERSION >= '3.3'
+                # ostruct and fiddle will be removed from standard library in Ruby 3.5
+                gem 'ostruct'
+                gem 'fiddle'
+              end
             end
 
             require 'webmock'
