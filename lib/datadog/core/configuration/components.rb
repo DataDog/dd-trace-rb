@@ -6,7 +6,6 @@ require_relative '../diagnostics/environment_logger'
 require_relative '../diagnostics/health'
 require_relative '../logger'
 require_relative '../runtime/metrics'
-require_relative '../telemetry'
 require_relative '../telemetry/component'
 require_relative '../workers/runtime_metrics'
 

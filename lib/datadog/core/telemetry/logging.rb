@@ -21,7 +21,6 @@ module Datadog
       # - What information needed to make it actionable?
       #
       module Logging
-
         # Extract datadog stack trace from the exception
         module DatadogStackTrace
           GEM_ROOT = Pathname.new("#{__dir__}/../../../..").cleanpath.to_s

@@ -834,7 +834,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
 
       it "sends a telemetry log" do
-        expect(Datadog::Core::Telemetry::Logging).to receive(:error).with("Failed to serialize profiling data")
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to serialize profiling data")
 
         serialize
       end

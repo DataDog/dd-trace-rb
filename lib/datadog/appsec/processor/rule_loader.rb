@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../assets'
-require_relative '../../core/telemetry/logging'
 
 module Datadog
   module AppSec

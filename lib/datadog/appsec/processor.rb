@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../core/telemetry/logging'
-
 module Datadog
   module AppSec
     # Processor integrates libddwaf into datadog/appsec

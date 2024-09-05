@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../core/transport/ext"
-require_relative "../core/telemetry/logging"
+require_relative "../core/telemetry/logger"
 
 module Datadog
   module Profiling
@@ -61,14 +61,14 @@ module Datadog
               "Failed to report profiling data (#{config_without_api_key}): " \
               "server returned unexpected HTTP #{result} status code"
             )
-            Datadog::Core::Telemetry::Logging.error(
+            Datadog::Core::Telemetry::Logger.error(
               "Failed to report profiling data: unexpected HTTP #{result} status code"
             )
             false
           end
         else
           Datadog.logger.error("Failed to report profiling data (#{config_without_api_key}): #{result}")
-          Datadog::Core::Telemetry::Logging.error("Failed to report profiling data")
+          Datadog::Core::Telemetry::Logger.error("Failed to report profiling data")
           false
         end
       end
