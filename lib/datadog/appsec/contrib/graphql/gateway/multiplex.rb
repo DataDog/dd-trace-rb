@@ -90,8 +90,7 @@ module Datadog
               when ::GraphQL::Language::Nodes::VariableIdentifier
                 # we need to pass query.variables here instead of query.provided_variables,
                 # since #provided_variables don't know anything about variable default value
-                var_name = argument.value.name
-                query_variables.fetch(var_name) if query_variables.key?(var_name)
+                query_variables[argument.value.name]
               when ::GraphQL::Language::Nodes::InputObject
                 arguments_hash(argument.value.arguments, query_variables)
               else
