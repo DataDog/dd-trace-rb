@@ -48,10 +48,19 @@ namespace :edge do
   task :update do |_t, args|
     ruby_version = RUBY_VERSION[0..2]
     whitelist = {
-      'stripe' => 'stripe',
+      'aws' => 'aws-sdk',
       'elasticsearch' => 'elasticsearch',
+      'graphql' => 'graphql',
+      'hanami' => 'hanami',
       'opensearch' => 'opensearch-ruby',
-      # Add more integrations here, when they are extracted to its own isolated group
+      'opentelemetry-sdk' => 'opentelemetry',
+      'rack' => 'rack',
+      'rails' => 'rails',
+      'redis' => 'redis',
+      'resque' => 'resque',
+      'sinatra' => 'sinatra',
+      'stripe' => 'stripe',
+      # TODO: Add more integrations here, when they are extracted to its own isolated group
     }
 
     whitelist = whitelist.slice(*args.extras) if args.extras.any?
