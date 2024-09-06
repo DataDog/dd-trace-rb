@@ -5,10 +5,11 @@ require 'datadog/core/remote/client/capabilities'
 require 'datadog/appsec/configuration'
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
-  subject(:capabilities) { described_class.new(settings) }
+  subject(:capabilities) { described_class.new(settings, telemetry) }
   let(:settings) do
     double(Datadog::Core::Configuration)
   end
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   before do
     capabilities

@@ -234,7 +234,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
 
         it "sends a telemetry log" do
-          expect(Datadog::Core::Telemetry::Logging).to receive(:error).with(
+          expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
             "Failed to report profiling data: unexpected HTTP 500 status code"
           )
 
@@ -258,7 +258,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
 
         it "sends a telemetry log" do
-          expect(Datadog::Core::Telemetry::Logging).to receive(:error).with(
+          expect(Datadog::Core::Telemetry::Logger).to receive(:error).with(
             "Failed to report profiling data"
           )
 

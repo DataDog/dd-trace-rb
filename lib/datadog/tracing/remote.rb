@@ -45,7 +45,7 @@ module Datadog
           content.errored("#{e.class.name} #{e.message}: #{Array(e.backtrace).join("\n")}")
         end
 
-        def receivers
+        def receivers(_telemetry)
           receiver do |repository, _changes|
             # DEV: Filter our by product. Given it will be very common
             # DEV: we can filter this out before we receive the data in this method.

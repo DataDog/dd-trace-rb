@@ -13,7 +13,9 @@ RSpec.describe Datadog::Tracing::Remote do
   end
 
   it 'declares matches that match APM_TRACING' do
-    expect(remote.receivers).to all(
+    telemetry = instance_double(Datadog::Core::Telemetry::Component)
+
+    expect(remote.receivers(telemetry)).to all(
       match(
         lambda do |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse(path)

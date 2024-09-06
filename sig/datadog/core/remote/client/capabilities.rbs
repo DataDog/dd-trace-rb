@@ -11,8 +11,12 @@ module Datadog
 
           attr_reader base64_capabilities: String
 
-          def initialize: (Datadog::Core::Configuration::Settings settings) -> void
+          @telemetry: Datadog::Core::Telemetry::Component
 
+          def initialize: (
+            Datadog::Core::Configuration::Settings settings,
+            Datadog::Core::Telemetry::Component telemetry
+          ) -> void
 
           private
 

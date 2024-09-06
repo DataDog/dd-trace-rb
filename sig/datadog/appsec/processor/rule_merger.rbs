@@ -14,7 +14,16 @@ module Datadog
         type processors = ::Array[::Hash[::String, untyped]]
         type scanners = ::Array[::Hash[::String, untyped]]
 
-        def self.merge: (rules: ::Array[rules], ?data: ::Array[data], ?overrides: overrides, ?exclusions: exclusions, ?custom_rules: custom_rules, ?processors: processors?, ?scanners: scanners?) -> rules
+        def self.merge: (
+          telemetry: Datadog::Core::Telemetry::Component,
+          rules: ::Array[rules],
+          ?data: ::Array[data],
+          ?overrides: overrides,
+          ?exclusions: exclusions,
+          ?custom_rules: custom_rules,
+          ?processors: processors?,
+          ?scanners: scanners?
+        ) -> rules
 
         private
 
