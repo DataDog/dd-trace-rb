@@ -75,7 +75,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
       )
     end
 
-    context "when Datadog::CI is loaded and ci mode is enabled" do
+    context 'when Datadog::CI is loaded and ci mode is enabled' do
       before do
         stub_const('Datadog::CI::VERSION::STRING', '1.2.3')
         expect(Datadog).to receive(:configuration).and_return(
