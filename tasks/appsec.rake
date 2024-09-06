@@ -5,10 +5,12 @@ namespace :appsec do
       require 'net/http'
 
       version = args.to_a[0]
+      raise ArgumentError, 'You must provide a version' if version.nil?
 
       # You need to generate a token with the `repo` scope
       # and configure SSO for DataDog's GitHub organization
       token = ENV['GITHUB_TOKEN']
+      raise ArgumentError, 'You must set GITHUB_TOKEN env variable' if token.nil?
 
       ['recommended', 'strict'].each do |ruleset|
         uri = URI("https://api.github.com/repos/DataDog/appsec-event-rules/contents/build/#{ruleset}.json?ref=#{version}")
