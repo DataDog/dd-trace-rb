@@ -251,13 +251,17 @@ void sample_thread(
 
     bool top_of_the_stack = i == 0;
 
-    // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
-    //
-    // We try to categorize what it was doing based on what we observe at the top of the stack. This is a very rough
-    // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-    // GVL instrumentation API.)
     if (top_of_the_stack && only_wall_time) {
-      if (!buffer->stack_buffer[i].is_ruby_frame) {
+      // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
+      //
+      // Did the caller already provide the state?
+      if (labels.is_gvl_waiting_state) {
+        state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+
+      // If not, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+      // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+      // GVL instrumentation API.)
+      } else if (!buffer->stack_buffer[i].is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,
