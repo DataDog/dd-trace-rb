@@ -124,7 +124,7 @@ struct cpu_and_wall_time_worker_state {
   // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample.
   bool during_sample;
-  // Only exists when sampling is active (gets created at started and cleaned on stop)
+  // Only exists when sampling is active (gets created at start and cleaned on stop)
   rb_internal_thread_event_hook_t *gvl_profiling_hook;
 
   struct stats {
@@ -1286,13 +1286,15 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
   // Be very careful about touching the `state` here or doing anything at all:
   // This function gets called even without the GVL, and even from background Ractors!
-
-  VALUE current_thread = event_data->thread;
+  //
+  // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
+  // are not directly tied to the `target_thread` object and the like)
+  VALUE target_thread = event_data->thread;
 
   if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
-    thread_context_collector_on_gvl_waiting(current_thread);
+    thread_context_collector_on_gvl_waiting(target_thread);
   } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-    bool should_sample = thread_context_collector_on_gvl_running(current_thread);
+    bool should_sample = thread_context_collector_on_gvl_running(target_thread);
 
     if (should_sample) {
       // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
