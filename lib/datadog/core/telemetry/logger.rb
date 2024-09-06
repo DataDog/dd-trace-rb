@@ -3,7 +3,15 @@
 module Datadog
   module Core
     module Telemetry
-      # Module for sending telemetry logs to the global telemetry instance
+      # === INTRENAL USAGE ONLY ===
+      #
+      # Report telemetry logs via delegating to the telemetry component instance via mutex.
+      #
+      # IMPORTANT: Invoking this method during the lifecycle of component initialization will
+      # cause a non-recoverable deadlock
+      #
+      # For developer using this module:
+      #   read: lib/datadog/core/telemetry/logging.rb
       module Logger
         class << self
           def report(exception, level: :error, description: nil)
