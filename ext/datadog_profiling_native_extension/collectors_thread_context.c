@@ -713,6 +713,9 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
 
   state->stats.gc_samples++;
 
+  // Let recorder do any cleanup/updates it requires after a GC step.
+  recorder_after_gc_step(state->recorder_instance);
+
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
 }

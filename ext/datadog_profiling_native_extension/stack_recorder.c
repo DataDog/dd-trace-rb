@@ -8,6 +8,7 @@
 #include "ruby_helpers.h"
 #include "time_helpers.h"
 #include "heap_recorder.h"
+#include "collectors_gc_profiling_helper.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -171,6 +172,10 @@ static const uint8_t all_value_types_positions[] =
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
+// Wait at least 10 seconds before asking heap recorder to explicitly update itself outside
+// of a profile flush.
+#define TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS SECONDS_AS_NS(10)
+
 // Struct for storing stats related to a profile in a particular slot.
 // These stats will share the same lifetime as the data in that profile slot.
 typedef struct slot_stats {
@@ -187,6 +192,15 @@ typedef struct profile_slot {
 struct stack_recorder_state {
   // Heap recorder instance
   heap_recorder *heap_recorder;
+  // Last time we asked heap recorder to update
+  long last_heap_recorder_update_ns;
+  // Did we see a major GC since then?
+  bool last_heap_recorder_update_major_gc_since;
+  // Keep track of the last GC generation we got a notification for. This allows us to detect failures for
+  // the GC notification system by comparing with current rb_gc_count. This is an important safety system
+  // for components like heap_recorder that do cleanup aligned with GC activity and which would become
+  // memory leaks if no fallback cleanup system existed.
+  size_t last_notified_gc_gen;
 
   pthread_mutex_t mutex_slot_one;
   profile_slot profile_slot_one;
@@ -525,8 +539,12 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  // Prepare the iteration on heap recorder we'll be doing outside the GVL. The preparation needs to
-  // happen while holding on to the GVL.
+  if (state->last_notified_gc_gen != rb_gc_count()) {
+    // Updating typically happens after GC notifications. If these fail for some reason and
+    // we stop updating last_seen_gc_gen, then fallback to the old system of doing updates
+    // right before flushing to prevent memory leaks from stale heap recorder data.
+    heap_recorder_update(state->heap_recorder, true);
+  }
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
 
@@ -672,6 +690,21 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 
   if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
     rb_raise(rb_eArgError, "Failed to record endpoint: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+}
+
+void recorder_after_gc_step(VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  state->last_notified_gc_gen = rb_gc_count();
+  state->last_heap_recorder_update_major_gc_since = gc_profiling_has_major_gc_finished();
+
+  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+  if ((now_ns > 0 && (now_ns - state->last_heap_recorder_update_ns) >= TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS)) {
+    heap_recorder_update(state->heap_recorder, state->last_heap_recorder_update_major_gc_since);
+    state->last_heap_recorder_update_ns = now_ns;
+    state->last_heap_recorder_update_major_gc_since = false;
   }
 }
 
@@ -968,6 +1001,7 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
+  heap_recorder_update(state->heap_recorder, true);
   heap_recorder_prepare_iteration(state->heap_recorder);
 
   return Qnil;
