@@ -57,10 +57,10 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
       context 'when in an IRB session' do
         it 'returns true' do
-          _, err = Bundler.with_clean_env do # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
-            Open3.capture3('irb', '--noprompt', '--noverbose', stdin_data: repl_script)
+          _, err, = Bundler.with_clean_env do # Ruby 2.6 does not have irb by default in a bundle, but has it outside of it.
+            Open3.capture3('irb', '--noprompt', '--noverbose', '--noecho', stdin_data: repl_script)
           end
-          expect(err).to end_with('true')
+          expect(err).to end_with('ACTUAL:true')
         end
       end
 
@@ -70,8 +70,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
             f.write(repl_script)
             f.close
 
-            out, = Open3.capture2e('pry', '-f', '--noprompt', f.path)
-            expect(out).to include('ACTUAL:true')
+            _, err, = Open3.capture3('pry', '-f', '--noprompt', f.path)
+            expect(err).to end_with('ACTUAL:true')
           end
         end
       end
@@ -128,7 +128,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         it 'returns true' do
           _, err, = Open3.capture3('ruby', stdin_data: script)
-          expect(err).to end_with('true')
+          expect(err).to end_with('ACTUAL:true')
         end
       end
 
@@ -186,9 +186,10 @@ RSpec.describe Datadog::Core::Environment::Execution do
               # Add our script to `env.rb`, which is always run before any feature is executed.
               File.write('features/support/env.rb', repl_script)
 
-              _, err = Bundler.with_clean_env do
+              _, err, = Bundler.with_clean_env do
                 Open3.capture3('ruby', stdin_data: script)
               end
+
               expect(err).to include('ACTUAL:true')
             end
           end
@@ -252,7 +253,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
     context 'when given WebMock', skip: Gem::Version.new(Bundler::VERSION) < Gem::Version.new('2') do
       it do
-        out, err = Bundler.with_clean_env do
+        out, = Bundler.with_clean_env do
           Open3.capture3('ruby', stdin_data: <<-RUBY
             require 'bundler/inline'
 
@@ -268,13 +269,12 @@ RSpec.describe Datadog::Core::Environment::Execution do
             $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
             require 'datadog/core/environment/execution'
 
-            STDOUT.print Datadog::Core::Environment::Execution.webmock_enabled?
+            STDOUT.print "ACTUAL:\#{Datadog::Core::Environment::Execution.webmock_enabled?}"
           RUBY
           )
         end
 
-        expect(err).to be_empty
-        expect(out).to eq('true')
+        expect(out).to end_with('ACTUAL:true')
       end
     end
   end
