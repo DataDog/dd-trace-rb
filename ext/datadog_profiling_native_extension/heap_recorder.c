@@ -16,6 +16,10 @@
 // relevant for heap profiles as the great majority should be trivially reclaimed
 // during the next GC.
 #define ITERATION_MIN_AGE 1
+// Copied from https://github.com/ruby/ruby/blob/15135030e5808d527325feaaaf04caeb1b44f8b5/gc/default.c#L725C1-L725C27
+// to align with Ruby's GC definition of what constitutes an old object which are only
+// supposed to be reclaimed in major GCs.
+#define OLD_AGE 3
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
@@ -144,11 +148,14 @@ struct heap_recorder {
   // mutation of the data so iteration can occur without acquiring a lock.
   // NOTE: Contrary to object_records, this table has no ownership of its data.
   st_table *object_records_snapshot;
-  // The GC gen/epoch/count in which we prepared the current iteration.
+  // The GC gen/epoch/count in which we are updating (or last updated if not currently updating).
   //
   // This enables us to calculate the age of iterated objects in the above snapshot by
   // comparing it against an object's alloc_gen.
-  size_t iteration_gen;
+  size_t update_gen;
+  // Whether the current update (or last update if not currently updating) is including old
+  // objects or not.
+  bool update_include_old;
 
   // Data for a heap recording that was started but not yet ended
   recording active_recording;
@@ -394,22 +401,41 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   return Qnil;
 }
 
-void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
+void heap_recorder_update(heap_recorder *heap_recorder, bool include_old) {
   if (heap_recorder == NULL) {
     return;
   }
 
-  heap_recorder->iteration_gen = rb_gc_count();
+  size_t current_gc_gen = rb_gc_count();
 
-  if (heap_recorder->object_records_snapshot != NULL) {
-    // we could trivially handle this but we raise to highlight and catch unexpected usages.
-    rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
+  if (current_gc_gen == heap_recorder->update_gen && (heap_recorder->update_include_old || !include_old)) {
+    // Are we still in the same GC gen as last update? If so, skip updating, things should
+    // not have changed (significantly).
+    // NOTE: This is mostly a performance decision. Objects may be cleaned up in intermediate
+    // GC steps and sizes may change. But because we have to iterate through all our tracked
+    // object records to do an update, lets wait until all steps for a particular GC generation
+    // have finished.
+    return;
   }
+
+  heap_recorder->update_gen = current_gc_gen;
+  heap_recorder->update_include_old = include_old;
 
   // Reset last update stats, we'll be building them from scratch during the st_foreach call below
   heap_recorder->stats_last_update = (struct stats_last_update) {};
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
+}
+
+void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    return;
+  }
+
+  if (heap_recorder->object_records_snapshot != NULL) {
+    // we could trivially handle this but we raise to highlight and catch unexpected usages.
+    rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
+  }
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
@@ -526,13 +552,6 @@ static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t v
   return ST_DELETE;
 }
 
-// Check to see if an object should not be included in a heap recorder iteration.
-// This centralizes the checking logic to ensure it's equally applied between
-// preparation and iteration codepaths.
-static inline bool should_exclude_from_iteration(object_record *obj_record) {
-  return obj_record->object_data.gen_age < ITERATION_MIN_AGE;
-}
-
 static int st_object_record_update(st_data_t key, st_data_t value, st_data_t extra_arg) {
   long obj_id = (long) key;
   object_record *record = (object_record*) value;
@@ -540,16 +559,13 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   VALUE ref;
 
-  size_t iteration_gen = recorder->iteration_gen;
+  size_t update_gen = recorder->update_gen;
   size_t alloc_gen = record->object_data.alloc_gen;
   // Guard against potential overflows given unsigned types here.
-  record->object_data.gen_age = alloc_gen < iteration_gen ? iteration_gen - alloc_gen : 0;
+  record->object_data.gen_age = alloc_gen < update_gen ? update_gen - alloc_gen : 0;
 
-  if (should_exclude_from_iteration(record)) {
-    // If an object won't be included in the current iteration, there's
-    // no point checking for liveness or updating its size, so exit early.
-    // NOTE: This means that there should be an equivalent check during actual
-    //       iteration otherwise we'd iterate/expose stale object data.
+  if (!recorder->update_include_old && record->object_data.gen_age >= OLD_AGE) {
+    // The current update is not including old objects but this record is for an old object, skip its update.
     recorder->stats_last_update.objects_skipped++;
     return ST_CONTINUE;
   }
@@ -622,10 +638,9 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
 
   const heap_recorder *recorder = context->heap_recorder;
 
-  if (should_exclude_from_iteration(record)) {
+
+  if (record->object_data.gen_age < ITERATION_MIN_AGE) {
     // Skip objects that should not be included in iteration
-    // NOTE: This matches the short-circuiting condition in st_object_record_update
-    //       and prevents iteration over stale objects.
     return ST_CONTINUE;
   }
 
