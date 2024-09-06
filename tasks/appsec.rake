@@ -25,7 +25,10 @@ namespace :appsec do
         http.request(req) do |res|
           case res
           when Net::HTTPSuccess
-            File.open("lib/datadog/appsec/assets/waf_rules/#{ruleset}.json", 'wb') do |f|
+            filename = "lib/datadog/appsec/assets/waf_rules/#{ruleset}.json"
+            raise "File '#{filename}' was moved or deleted, please review the rake task" unless File.exist?(filename)
+
+            File.open(filename, 'wb') do |f|
               res.read_body do |chunk|
                 f << chunk
               end
