@@ -27,6 +27,10 @@ module Datadog
             end
 
             multiplex_return
+          rescue StandardError => e
+            Datadog.logger.error(e.message)
+
+            multiplex_return || super
           end
         end
       end
