@@ -39,6 +39,7 @@ GEM
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
+    bigdecimal (3.1.8)
     binding_of_caller (1.0.0)
       debug_inspector (>= 0.0.1)
     builder (3.2.4)
@@ -143,7 +144,8 @@ GEM
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
-    sequel (5.54.0)
+    sequel (5.83.1)
+      bigdecimal
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -204,7 +206,7 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  sequel (~> 5.54.0)
+  sequel
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (>= 1.4.2)

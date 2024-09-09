@@ -40,6 +40,7 @@ GEM
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
+    bigdecimal (3.1.8)
     binding_of_caller (0.8.0)
       debug_inspector (>= 0.0.1)
     builder (3.2.4)
@@ -115,7 +116,8 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
-    sequel (5.54.0)
+    sequel (5.83.1)
+      bigdecimal
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -170,7 +172,7 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  sequel (~> 5.54.0)
+  sequel
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (~> 1.4.1)
