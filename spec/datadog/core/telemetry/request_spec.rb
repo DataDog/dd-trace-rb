@@ -74,5 +74,34 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         tracer_time: tracer_time,
       )
     end
+
+    context 'when Datadog::CI is loaded and ci mode is enabled' do
+      before do
+        stub_const('Datadog::CI::VERSION::STRING', '1.2.3')
+        expect(Datadog).to receive(:configuration).and_return(
+          double(
+            'configuration',
+            ci: double('ci', enabled: true),
+            env: env,
+            service: service_name,
+            version: service_version
+          )
+        )
+      end
+
+      it do
+        is_expected.to eq(
+          api_version: api_version,
+          application: application.merge(tracer_version: "#{tracer_version}-ci-1.2.3"),
+          debug: debug,
+          host: host,
+          payload: payload,
+          request_type: request_type,
+          runtime_id: runtime_id,
+          seq_id: seq_id,
+          tracer_time: tracer_time,
+        )
+      end
+    end
   end
 end

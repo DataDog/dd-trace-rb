@@ -569,6 +569,7 @@ target :datadog do
   library 'passenger'
   library 'webmock'
   library 'graphql'
+  library 'datadog-ci'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'
