@@ -5,6 +5,7 @@ require_relative 'event'
 require_relative 'http/transport'
 require_relative 'metrics_manager'
 require_relative 'worker'
+require_relative 'logging'
 
 require_relative '../configuration/ext'
 require_relative '../utils/forking'
@@ -17,6 +18,7 @@ module Datadog
         attr_reader :enabled
 
         include Core::Utils::Forking
+        include Telemetry::Logging
 
         def self.build(settings, agent_settings, logger)
           enabled = settings.telemetry.enabled

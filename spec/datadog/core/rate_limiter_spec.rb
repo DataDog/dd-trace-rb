@@ -102,6 +102,28 @@ RSpec.describe Datadog::Core::TokenBucket do
       end
     end
 
+    context 'when size is not given' do
+      subject(:allow?) { bucket.allow? }
+
+      context 'when tokens are available' do
+        it 'returns true' do
+          is_expected.to be true
+        end
+      end
+
+      context 'when tokens are not available' do
+        let(:max_tokens) { 1 }
+
+        before do
+          bucket.allow?
+        end
+
+        it 'returns false' do
+          is_expected.to be false
+        end
+      end
+    end
+
     context 'with negative rate' do
       let(:rate) { -1 }
 

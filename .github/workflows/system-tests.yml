@@ -312,6 +312,8 @@ jobs:
           - graphql23
     runs-on: ubuntu-latest
     needs:
+      - build-harness
+      - build-apps
       - test
     if: ${{ always() }}
     name: Aggregate (${{ matrix.app }})
