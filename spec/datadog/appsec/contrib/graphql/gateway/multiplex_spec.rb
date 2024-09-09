@@ -4,9 +4,7 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/graphql/gateway/multiplex'
 
 RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
-  subject(:dd_multiplex) do
-    described_class.new(multiplex)
-  end
+  subject(:dd_multiplex) { described_class.new(multiplex) }
 
   let(:schema) do
     # we are only testing how arguments are extracted from the queries,
