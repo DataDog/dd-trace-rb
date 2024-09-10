@@ -9,6 +9,8 @@ module Datadog
 
         attr_reader enabled: bool
 
+        include Core::Telemetry::Logging
+        include Core::Telemetry::_Logging
         include Core::Utils::Forking
 
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
@@ -24,8 +26,6 @@ module Datadog
         def stop!: () -> void
 
         def integrations_change!: () -> void
-
-        def log!: (Datadog::Core::Telemetry::Event::Log) -> void
 
         def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
 

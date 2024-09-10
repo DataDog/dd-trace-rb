@@ -121,7 +121,7 @@ module Datadog
 
           return false unless sampled
 
-          rate_limiter.allow?(1).tap do |allowed|
+          rate_limiter.allow?.tap do |allowed|
             set_priority(trace, allowed)
             set_limiter_metrics(trace, rate_limiter.effective_rate)
 

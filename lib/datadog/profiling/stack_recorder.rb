@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative "../core/telemetry/logging"
+require_relative "../core/telemetry/logger"
 
 module Datadog
   module Profiling
@@ -44,7 +44,7 @@ module Datadog
           error_message = result
 
           Datadog.logger.error("Failed to serialize profiling data: #{error_message}")
-          Datadog::Core::Telemetry::Logging.error("Failed to serialize profiling data")
+          Datadog::Core::Telemetry::Logger.error("Failed to serialize profiling data")
 
           nil
         end
