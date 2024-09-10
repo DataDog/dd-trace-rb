@@ -88,6 +88,8 @@ module Datadog
 
             # Instrumentation for ActionController::Metal
             module Metal
+              # TODO: Refactor this method to avoid using async API that splits the logic
+              # into two different methods (`start_processing` and `finish_processing`)
               def process_action(*args)
                 # mutable payload with a tracing context that is used in two different
                 # signals; it propagates the request span so that it can be finished
