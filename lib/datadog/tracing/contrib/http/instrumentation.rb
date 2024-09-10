@@ -31,23 +31,18 @@ module Datadog
               return super(req, body, &block) if Contrib::HTTP.should_skip_tracing?(req)
 
               Tracing.trace(Ext::SPAN_REQUEST, on_error: method(:annotate_span_with_error!)) do |span, trace|
-                begin
-                  span.service = service_name(host, request_options, client_config)
-                  span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
-                  span.resource = req.method
+                span.service = service_name(host, request_options, client_config)
+                span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+                span.resource = req.method
 
-                  if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
-                    Contrib::HTTP.inject(trace, req)
-                  end
-
-                  # Add additional request specific tags to the span.
-                  annotate_span_with_request!(span, req, request_options)
-                rescue StandardError => e
-                  Datadog.logger.error("error preparing span for http request: #{e}")
-                  Datadog::Core::Telemetry::Logger.report(e)
-                ensure
-                  response = super(req, body, &block)
+                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
+                  Contrib::HTTP.inject(trace, req)
                 end
+
+                # Add additional request specific tags to the span.
+                annotate_span_with_request!(span, req, request_options)
+
+                response = super(req, body, &block)
 
                 # Add additional response specific tags to the span.
                 annotate_span_with_response!(span, response, request_options)
@@ -93,6 +88,9 @@ module Datadog
               )
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+            rescue StandardError => e
+              Datadog.logger.error("error preparing span from http request: #{e}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def annotate_span_with_response!(span, response, request_options)
@@ -105,6 +103,9 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response)
               )
+            rescue StandardError => e
+              Datadog.logger.error("error preparing span from http response: #{e}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def annotate_span_with_error!(span, error)
