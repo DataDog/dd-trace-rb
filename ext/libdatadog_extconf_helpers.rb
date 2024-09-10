@@ -8,7 +8,7 @@ module Datadog
   module LibdatadogExtconfHelpers
     # Used to make sure the correct gem version gets loaded, as extconf.rb does not get run with "bundle exec" and thus
     # may see multiple libdatadog versions. See https://github.com/DataDog/dd-trace-rb/pull/2531 for the horror story.
-    LIBDATADOG_VERSION = '~> 11.0.0.1.0'
+    LIBDATADOG_VERSION = '~> 12.0.0.1.0'
 
     # Used as an workaround for a limitation with how dynamic linking works in environments where the datadog gem and
     # libdatadog are moved after the extension gets compiled.

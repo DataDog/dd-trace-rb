@@ -37,7 +37,7 @@ module Datadog
 
         def self._native_start_or_update_on_fork: (
           action: :start | :update_on_fork,
-          exporter_configuration: Array[:agent | ::String],
+          agent_base_url: ::String,
           path_to_crashtracking_receiver_binary: ::String,
           ld_library_path: ::String,
           tags_as_array: ::Array[[::String, ::String]],
