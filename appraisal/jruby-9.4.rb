@@ -91,7 +91,7 @@ appraise 'relational_db' do
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
   gem 'activerecord-jdbcmysql-adapter', '~> 61.0', platform: :jruby
   gem 'activerecord-jdbcpostgresql-adapter', '~> 61.0', platform: :jruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
 end
 

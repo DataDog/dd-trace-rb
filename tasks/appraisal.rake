@@ -202,6 +202,7 @@ TRACER_VERSIONS = [
   '3.2',
   '3.3',
   '3.4',
+  # ADD NEW RUBIES HERE
   'jruby-9.2',
   'jruby-9.3',
   'jruby-9.4',

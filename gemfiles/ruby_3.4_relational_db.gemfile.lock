@@ -169,7 +169,8 @@ GEM
     ruby-progressbar (1.13.0)
     ruby_memcheck (3.0.0)
       nokogiri
-    sequel (5.54.0)
+    sequel (5.83.1)
+      bigdecimal
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -231,7 +232,7 @@ DEPENDENCIES
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
   ruby_memcheck (>= 3)
-  sequel (~> 5.54.0)
+  sequel
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (>= 1.4.2)
