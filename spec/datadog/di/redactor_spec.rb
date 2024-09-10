@@ -69,19 +69,19 @@ RSpec.describe Datadog::DI::Redactor do
 
     define_cases(cases)
 
-    context 'when user-defined redacted identifiers exist' do
+    context "when user-defined redacted identifiers exist" do
       before do
-        expect(di_settings).to receive(:redacted_identifiers).and_return(%w(foo пароль Ключ))
+        expect(di_settings).to receive(:redacted_identifiers).and_return(%w[foo пароль Ключ])
       end
 
       cases = [
-        ['exact user-defined identifier', 'foo', true],
-        ['prefix of user-defined identifier', 'f', false],
-        ['suffix of user-defined identifier', 'oo', false],
-        ['user-defined identifier with extra punctuation', 'f-o-o', true],
-        ['user-defined identifier is not ascii', 'ПАРОЛь', true],
-        ['user-defined identifier is not ascii and uses mixed case in definition', 'ключ', true],
-        ['user-defined identifier is not ascii and uses mixed case in definition and is not exact match', 'ключ1', false],
+        ["exact user-defined identifier", "foo", true],
+        ["prefix of user-defined identifier", "f", false],
+        ["suffix of user-defined identifier", "oo", false],
+        ["user-defined identifier with extra punctuation", "f-o-o", true],
+        ["user-defined identifier is not ascii", "ПАРОЛь", true],
+        ["user-defined identifier is not ascii and uses mixed case in definition", "ключ", true],
+        ["user-defined identifier is not ascii and uses mixed case in definition and is not exact match", "ключ1", false],
       ]
 
       define_cases(cases)
