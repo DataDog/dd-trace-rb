@@ -7,6 +7,7 @@ require_relative '../ext'
 require_relative '../utils'
 require_relative '../../rack/middlewares'
 require_relative '../../analytics'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -43,6 +44,7 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CONTROLLER)
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def finish_processing(payload)
@@ -81,6 +83,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             # Instrumentation for ActionController::Metal

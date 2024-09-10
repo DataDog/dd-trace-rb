@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core'
+require_relative '../../../core/telemetry/logger'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../rack/ext'
@@ -64,6 +65,7 @@ module Datadog
               Thread.current[KEY_RUN] = true
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_run(name, start, finish, id, payload)
@@ -107,6 +109,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             # Status code resolution is tied to the exception handling
@@ -150,6 +153,7 @@ module Datadog
               Thread.current[KEY_RENDER] = true
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_render(name, start, finish, id, payload)
@@ -174,6 +178,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_run_filters(name, start, finish, id, payload)
@@ -212,6 +217,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             private

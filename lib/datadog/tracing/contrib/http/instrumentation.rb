@@ -6,6 +6,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
 require_relative '../utils/quantization/http'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -43,6 +44,7 @@ module Datadog
                   annotate_span_with_request!(span, req, request_options)
                 rescue StandardError => e
                   Datadog.logger.error("error preparing span for http request: #{e}")
+                  Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   response = super(req, body, &block)
                 end

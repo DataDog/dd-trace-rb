@@ -93,7 +93,9 @@ module Datadog
                   span.resource = "#{method} #{quantized_url}"
                   Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 rescue StandardError => e
+                  # TODO: Refactor the code to avoid calling `super` in the `ensure` block
                   Datadog.logger.error(e.message)
+                  Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   # the call is still executed
                   response = super
