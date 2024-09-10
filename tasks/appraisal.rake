@@ -4,6 +4,7 @@ require 'pry'
 
 namespace :appraisal do # rubocop:disable Metrics/BlockLength
   def ruby_versions(versions)
+    versions = versions.map { |v| v.start_with?('ruby-') ? v.sub(/^ruby-/, '') : v }
     return TRACER_VERSIONS if versions.empty?
 
     TRACER_VERSIONS & versions
@@ -32,7 +33,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
   end
 
   def docker(ruby_version, cmd)
-    [
+    ENV['APPRAISAL_DOCKER'] == 'false' ? ['bash', '-c', "'#{cmd.join(' ')}'"] : [ # rubocop:disable Style/MultilineTernaryOperator
       'docker compose', 'run',
       '--no-deps',                                   # don't start services
       '-e', 'APPRAISAL_GROUP',                       # pass appraisal group if defined

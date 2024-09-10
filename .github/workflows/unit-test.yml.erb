@@ -1,0 +1,58 @@
+name: Unit Test
+
+on:
+  push:
+
+jobs:
+  test:
+    name: "engine:${{ matrix.engine.name }}-${{ matrix.engine.version }}"
+    needs: matrix
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        engine:
+% matrix.engines.each do |engine|
+          - name: "<%= engine[:name] %>"
+            version: "<%= engine[:version] %>"
+% end
+    steps:
+%# install all appraisals
+% matrix.to_a.each_with_object({}) { |e, h| (h[e[:spec][:appraisal]] ||= Set.new) << e[:engine] }.each do |appraisal, engines|
+      - name: Bundle install appraisal '<%= appraisal %>'
+        if: ${{ contains([matrix.engine.name, matrix.engine.version], fromJSON(<%= engines.map { |e| [e[:name], e[:version]] }.to_json %>)) }}
+        run: |
+          if [ -n "<%= appraisal %>" ]; then
+          BUNDLE_GEMFILE="gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_$(echo "<%= appraisal %>" | tr '-' '_').gemfile"
+          elif [ "${{ matrix.engine.name }}" = "ruby" ]; then
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.version }}"
+          else
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.name }}-${{ matrix.engine.version }}"
+          fi
+          echo "BUNDLE_GEMFILE=${BUNDLE_GEMFILE}" >> $GITHUB_OUTPUT
+          env BUNDLE_GEMFILE="${BUNDLE_GEMFILE}" bundle install
+% end
+%# run tests
+% matrix.to_a.each do |e|
+      - name: Run spec '<%= e[:spec][:name] %>' in '<%= e[:spec][:appraisal] %>'
+        if: ${{ [matrix.engine.name, matrix.engine.version] == fromJSON(<%= [e[:name], e[:version]].to_json %>) }}
+        run: |
+          if [ -n "<%= e[:spec][:appraisal] %>" ]; then
+          BUNDLE_GEMFILE="gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_$(echo "<%= e[:spec][:appraisal] %>" | tr '-' '_').gemfile"
+          elif [ "${{ matrix.engine.name }}" = "ruby" ]; then
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.version }}"
+          else
+            BUNDLE_GEMFILE="Gemfile-${{ matrix.engine.name }}-${{ matrix.engine.version }}"
+          fi
+          echo "BUNDLE_GEMFILE=${BUNDLE_GEMFILE}" >> $GITHUB_OUTPUT
+          env BUNDLE_GEMFILE="${BUNDLE_GEMFILE}" bundle exec rake spec:<%= e[:spec][:name] %>
+% end
+
+  aggregate:
+    name: spec:aggregate
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: NOOP
+        run: |
+          true

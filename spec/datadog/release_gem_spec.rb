@@ -6,6 +6,8 @@ RSpec.describe 'gem release process' do
       # It's easy to forget to ship new files, especially when a new paradigm is
       # introduced (e.g. introducing native files requires the inclusion `ext/`)
       it 'includes all important files' do
+        skip 'broken git output' if RUBY_VERSION < '3.3.'
+
         single_files_excluded = %r{
           ^
           (
@@ -31,6 +33,7 @@ RSpec.describe 'gem release process' do
            |Gemfile-.*
            |Rakefile
            |Matrixfile
+           |matrix.rb
            |Steepfile
            |datadog\.gemspec
            |docker-compose\.yml
@@ -65,7 +68,7 @@ RSpec.describe 'gem release process' do
 
         expect(gemspec.files)
           .to match_array(
-            `git ls-files -z`
+            `git -c safe.directory='*' ls-files -z`
               .split("\x0")
               .reject { |f| f.match(directories_excluded) }
               .reject { |f| f.match(single_files_excluded) }
