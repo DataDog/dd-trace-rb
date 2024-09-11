@@ -93,10 +93,8 @@ module Datadog
           value = value.to_s
           max = settings.dynamic_instrumentation.max_capture_string_length
           if value.length > max
-            serialized.update(notCapturedReason: "length", size: value.length)
-            # steep misunderstands string slice types.
-            # https://github.com/soutaro/steep/issues/1219
-            value = (value[0...max] || "") + "..."
+            serialized.update(truncated: true, size: value.length)
+            value = value[0...max]
           end
           serialized.update(value: value)
         when Array

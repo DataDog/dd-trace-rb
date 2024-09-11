@@ -210,9 +210,9 @@ RSpec.describe Datadog::DI::Serializer do
 
       cases = [
         {name: "string too long", input: {a: "abcde"},
-         expected: {a: {type: "String", value: "abc...", size: 5, notCapturedReason: "length"}}},
+         expected: {a: {type: "String", value: "abc", size: 5, truncated: true}}},
         {name: "symbol too long", input: {a: :abcde},
-         expected: {a: {type: "Symbol", value: "abc...", size: 5, notCapturedReason: "length"}}},
+         expected: {a: {type: "Symbol", value: "abc", size: 5, truncated: true}}},
       ]
 
       define_cases(cases)
