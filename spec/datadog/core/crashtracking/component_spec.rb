@@ -329,13 +329,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
           Datadog.configure do |c|
             c.agent.host = 'google.com'
+            c.agent.port = '12345'
           end
 
           expect_in_fork do
             expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
               hash_including(
                 action: :update_on_fork,
-                agent_base_url: 'http://google.com:9126/',
+                agent_base_url: 'http://google.com:12345/',
               )
             )
           end
