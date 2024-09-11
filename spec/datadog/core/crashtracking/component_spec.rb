@@ -313,6 +313,54 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         end
       end
 
+      context 'via unix domain socket' do
+        let(:temporary_directory) { Dir.mktmpdir }
+        let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
+        let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
+        let(:server) do
+          server = WEBrick::HTTPServer.new(
+            DoNotListen: true,
+            Logger: log,
+            AccessLog: access_log,
+            StartCallback: -> { init_signal.push(1) }
+          )
+          server.listeners << unix_domain_socket
+          server
+        end
+        let(:agent_base_url) { "unix://#{socket_path}" }
+
+        after do
+          FileUtils.remove_entry(temporary_directory)
+        rescue Errno::ENOENT => _e
+          # Do nothing, it's ok
+        end
+
+        it 'reports crashes via uds when app crashes with fiddle' do
+          fork_expectations = proc do |status:, stdout:, stderr:|
+            expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
+            expect(stderr).to include('[BUG] Segmentation fault')
+          end
+
+          expect_in_fork(fork_expectations: fork_expectations) do
+            crash_tracker = build_crashtracker(agent_base_url: agent_base_url)
+            crash_tracker.start
+
+            Fiddle.free(42)
+          end
+
+          crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
+
+          expect(crash_report[:stack_trace]).to_not be_empty
+          expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+
+          crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
+
+          expect(crash_report_message[:metadata]).to_not be_empty
+          expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
+          expect(crash_report_message[:os_info]).to_not be_empty
+        end
+      end
+
       context 'when forked' do
         # This integration test coverages the case that
         # the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
@@ -329,13 +377,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
           Datadog.configure do |c|
             c.agent.host = 'google.com'
+            c.agent.port = 12345
           end
 
           expect_in_fork do
             expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
               hash_including(
                 action: :update_on_fork,
-                agent_base_url: 'http://google.com:9126/',
+                agent_base_url: 'http://google.com:12345/',
               )
             )
           end
