@@ -1026,7 +1026,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # See also the discussion on commit 2fc03d5ae5860d4e9a75ce3825fba95ed288a1 for an earlier attempt at fixing this.
         dead_heap_samples = 10
         dead_heap_samples.times do |_i|
-          obj = {}
+          obj = []
           sample_allocation(obj)
         end
 
