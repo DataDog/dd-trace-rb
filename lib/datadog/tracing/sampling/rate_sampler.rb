@@ -20,8 +20,7 @@ module Datadog
           super()
 
           unless sample_rate >= 0.0 && sample_rate <= 1.0
-            # TODO: Change to warning
-            Datadog.logger.error('sample rate is not between 0 and 1, falling back to 1')
+            Datadog.logger.warn('sample rate is not between 0 and 1, falling back to 1')
             sample_rate = 1.0
           end
 

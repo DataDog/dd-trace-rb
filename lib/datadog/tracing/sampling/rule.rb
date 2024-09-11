@@ -2,6 +2,7 @@
 
 require_relative 'matcher'
 require_relative 'rate_sampler'
+require_relative '../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -32,10 +33,10 @@ module Datadog
         def match?(trace)
           @matcher.match?(trace)
         rescue => e
-          # TODO: Report Telemetry logs
           Datadog.logger.error(
             "Matcher failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Datadog::Core::Telemetry::Logger.report(e, description: 'Matcher failed')
           nil
         end
 

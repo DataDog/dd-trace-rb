@@ -33,7 +33,6 @@ module Datadog
                 end
               end
             rescue StandardError => e
-              # TODO: add telemetry logs
               Datadog.logger.error(
                 "Error while parsing cgroup. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
               )

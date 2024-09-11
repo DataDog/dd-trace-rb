@@ -2,6 +2,7 @@
 
 require_relative '../utils/time'
 require_relative '../utils/only_once'
+require_relative '../telemetry/logger'
 require_relative '../configuration/ext'
 
 require_relative 'ext'
@@ -97,10 +98,10 @@ module Datadog
 
           statsd.count(stat, value, metric_options(options))
         rescue StandardError => e
-          # TODO: add telemetry logs
           Datadog.logger.error(
             "Failed to send count stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send count stat')
         end
 
         def distribution(stat, value = nil, options = nil, &block)
@@ -111,10 +112,10 @@ module Datadog
 
           statsd.distribution(stat, value, metric_options(options))
         rescue StandardError => e
-          # TODO: add telemetry logs
           Datadog.logger.error(
             "Failed to send distribution stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send distribution stat')
         end
 
         def increment(stat, options = nil)
@@ -124,10 +125,10 @@ module Datadog
 
           statsd.increment(stat, metric_options(options))
         rescue StandardError => e
-          # TODO: add telemetry logs
           Datadog.logger.error(
             "Failed to send increment stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send increment stat')
         end
 
         def gauge(stat, value = nil, options = nil, &block)
@@ -138,10 +139,10 @@ module Datadog
 
           statsd.gauge(stat, value, metric_options(options))
         rescue StandardError => e
-          # TODO: add telemetry logs
           Datadog.logger.error(
             "Failed to send gauge stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Telemetry::Logger.report(e, description: 'Failed to send gauge stat')
         end
 
         def time(stat, options = nil)
@@ -157,10 +158,11 @@ module Datadog
               distribution(stat, ((finished - start) * 1000), options)
             end
           rescue StandardError => e
-            # TODO: add telemetry logs
+            # TODO: Likely to be redundant, since `distribution` handles its own errors.
             Datadog.logger.error(
               "Failed to send time stat. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
             )
+            Telemetry::Logger.report(e, description: 'Failed to send time stat')
           end
         end
 

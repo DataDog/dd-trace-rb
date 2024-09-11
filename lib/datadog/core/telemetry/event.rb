@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../utils/forking'
+require_relative '../utils/sequence'
+
 module Datadog
   module Core
     module Telemetry
