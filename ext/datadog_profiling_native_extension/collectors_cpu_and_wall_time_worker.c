@@ -124,8 +124,11 @@ struct cpu_and_wall_time_worker_state {
   // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample.
   bool during_sample;
-  // Only exists when sampling is active (gets created at start and cleaned on stop)
+
+  #ifndef NO_GVL_INSTRUMENTATION
+  // Only set when sampling is active (gets created at start and cleaned on stop)
   rb_internal_thread_event_hook_t *gvl_profiling_hook;
+  #endif
 
   struct stats {
     // # Generic stats
@@ -232,7 +235,9 @@ static void delayed_error(struct cpu_and_wall_time_worker_state *state, const ch
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
+#ifndef NO_GVL_INSTRUMENTATION
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
+#endif
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -370,7 +375,10 @@ static VALUE _native_new(VALUE klass) {
   state->stop_thread = Qnil;
 
   state->during_sample = false;
-  state->gvl_profiling_hook = NULL;
+
+  #ifndef NO_GVL_INSTRUMENTATION
+    state->gvl_profiling_hook = NULL;
+  #endif
 
   reset_stats_not_thread_safe(state);
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
@@ -797,18 +805,21 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
       RUBY_EVENT_HOOK_FLAG_SAFE | RUBY_EVENT_HOOK_FLAG_RAW_ARG)
     ;
   }
-  if (state->gvl_profiling_enabled) {
-    state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
-      on_gvl_event,
-      (
-        // For now we're only asking for these events, even though there's more
-        // (e.g. check docs or gvl-tracing gem)
-        RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
-        RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
-      ),
-      NULL
-    );
-  }
+
+  #ifndef NO_GVL_INSTRUMENTATION
+    if (state->gvl_profiling_enabled) {
+      state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
+        on_gvl_event,
+        (
+          // For now we're only asking for these events, even though there's more
+          // (e.g. check docs or gvl-tracing gem)
+          RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
+          RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+        ),
+        NULL
+      );
+    }
+  #endif
 
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
   rb_funcall(instance, rb_intern("signal_running"), 0);
@@ -1204,10 +1215,12 @@ static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
 
   rb_remove_event_hook_with_data(on_newobj_event_as_hook, state->self_instance);
 
-  if (state->gvl_profiling_hook) {
-    rb_internal_thread_remove_event_hook(state->gvl_profiling_hook);
-    state->gvl_profiling_hook = NULL;
-  }
+  #ifndef NO_GVL_INSTRUMENTATION
+    if (state->gvl_profiling_hook) {
+      rb_internal_thread_remove_event_hook(state->gvl_profiling_hook);
+      state->gvl_profiling_hook = NULL;
+    }
+  #endif
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -1283,38 +1296,40 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   return Qtrue;
 }
 
-static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
-  // Be very careful about touching the `state` here or doing anything at all:
-  // This function gets called even without the GVL, and even from background Ractors!
-  //
-  // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
-  // are not directly tied to the `target_thread` object and the like)
-  VALUE target_thread = event_data->thread;
+#ifndef NO_GVL_INSTRUMENTATION
+  static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
+    // Be very careful about touching the `state` here or doing anything at all:
+    // This function gets called even without the GVL, and even from background Ractors!
+    //
+    // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
+    // are not directly tied to the `target_thread` object and the like)
+    VALUE target_thread = event_data->thread;
 
-  if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
-    thread_context_collector_on_gvl_waiting(target_thread);
-  } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
-    bool should_sample = thread_context_collector_on_gvl_running(target_thread);
+    if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
+      thread_context_collector_on_gvl_waiting(target_thread);
+    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
+      bool should_sample = thread_context_collector_on_gvl_running(target_thread);
 
-    if (should_sample) {
-      // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
-      rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+      if (should_sample) {
+        // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
+        rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+      }
+    } else {
+      // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
+      fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
     }
-  } else {
-    // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
-    fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
   }
-}
 
-static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
-  struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+    struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
-  // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
-  if (state == NULL) return;
+    // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+    if (state == NULL) return;
 
-  state->during_sample = true;
+    state->during_sample = true;
 
-  safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+    safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
 
-  state->during_sample = false;
-}
+    state->during_sample = false;
+  }
+#endif
