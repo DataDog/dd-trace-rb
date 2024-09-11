@@ -214,6 +214,37 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
       end
     end
 
+    context "when sampling a thread in gvl waiting state" do
+      let(:do_in_background_thread) do
+        proc do |ready_queue|
+          ready_queue << true
+          sleep
+        end
+      end
+
+      context "when the thread has cpu time" do
+        let(:metric_values) { {"cpu-time" => 123, "cpu-samples" => 456, "wall-time" => 789} }
+
+        it do
+          expect {
+            sample_and_decode(background_thread, :labels, is_gvl_waiting_state: true)
+          }.to raise_error(RuntimeError, /BUG: .* is_gvl_waiting/)
+        end
+      end
+
+      context "when the thread has wall time but no cpu time" do
+        let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 456, "wall-time" => 789} }
+
+        it do
+          expect(sample_and_decode(background_thread, :labels, is_gvl_waiting_state: true)).to include(state: "waiting for gvl")
+        end
+
+        it "takes precedence over approximate state categorization" do
+          expect(sample_and_decode(background_thread, :labels, is_gvl_waiting_state: false)).to include(state: "sleeping")
+        end
+      end
+    end
+
     describe "approximate thread state categorization based on current stack" do
       before do
         wait_for { background_thread.backtrace_locations.first.base_label }.to eq(expected_method_name)
@@ -672,8 +703,8 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
     end
   end
 
-  def sample_and_decode(thread, data = :locations, max_frames: 400, recorder: build_stack_recorder, in_gc: false)
-    sample(thread, recorder, metric_values, labels, max_frames: max_frames, in_gc: in_gc)
+  def sample_and_decode(thread, data = :locations, recorder: build_stack_recorder, **options)
+    sample(thread, recorder, metric_values, labels, **options)
 
     samples = samples_from_pprof(recorder.serialize!)
 

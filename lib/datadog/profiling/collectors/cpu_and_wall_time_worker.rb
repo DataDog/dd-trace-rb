@@ -34,7 +34,7 @@ module Datadog
             )
           end
 
-          gvl_profiling_enabled = ENV['TESTING_GVL_PROFILING'] == 'true'
+          gvl_profiling_enabled = ENV["TESTING_GVL_PROFILING"] == "true"
 
           self.class._native_initialize(
             self,

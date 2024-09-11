@@ -72,6 +72,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   // Optional keyword args
   VALUE max_frames = rb_hash_lookup2(options, ID2SYM(rb_intern("max_frames")), INT2NUM(400));
   VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
+  VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
 
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
@@ -126,7 +127,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
     .in_gc = in_gc,
     .recorder_instance = recorder_instance,
     .values = values,
-    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label},
+    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
     .locations = locations,
     .buffer = buffer,
@@ -220,7 +221,10 @@ void sample_thread(
 
   if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
 
-  if (has_cpu_time) state_label->str = DDOG_CHARSLICE_C("had cpu");
+  if (has_cpu_time) {
+    state_label->str = DDOG_CHARSLICE_C("had cpu");
+    if (labels.is_gvl_waiting_state) rb_raise(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
+  }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
@@ -249,14 +253,13 @@ void sample_thread(
 
     bool top_of_the_stack = i == 0;
 
+    // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
     if (top_of_the_stack && only_wall_time) {
-      // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
-      //
       // Did the caller already provide the state?
       if (labels.is_gvl_waiting_state) {
         state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
 
-      // If not, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+      // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
       // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
       // GVL instrumentation API.)
       } else if (!buffer->stack_buffer[i].is_ruby_frame) {
