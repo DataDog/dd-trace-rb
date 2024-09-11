@@ -59,9 +59,9 @@ module Datadog
       # These are normally local variables that exist on a particular line
       # of executed code.
       def serialize_vars(vars)
-        vars.map do |k, v|
-          [k, serialize_value(k, v)]
-        end.to_h
+        vars.each_with_object({}) do |(k, v), agg|
+          agg[k] = serialize_value(k, v)
+        end
       end
 
       private
