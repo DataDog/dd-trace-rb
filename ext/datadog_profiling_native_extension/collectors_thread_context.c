@@ -1724,11 +1724,15 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   }
 
   static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
+    ENFORCE_THREAD(thread);
+
     thread_context_collector_on_gvl_waiting(thread);
     return Qnil;
   }
 
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
+    ENFORCE_THREAD(thread);
+
     intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
     return INT2NUM(gvl_waiting_at);
   }
