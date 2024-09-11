@@ -258,6 +258,7 @@ static bool handle_gvl_waiting(
 );
 static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -292,6 +293,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
+    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
   #endif
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -1561,7 +1563,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
   // This function can get called from outside the GVL and even on non-main Ractors
   __attribute__((warn_unused_result))
-  bool thread_context_collector_on_gvl_running(VALUE thread) {
+  bool thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
     intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
 
     // Thread was not being profiled / not waiting on gvl
@@ -1572,7 +1574,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
-    bool should_sample = waiting_for_gvl_duration_ns >= WAITING_FOR_GVL_THRESHOLD_NS;
+    bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
       // We flip the gvl_waiting_at to negative to mark that the thread is now running
@@ -1585,6 +1587,11 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     }
 
     return should_sample;
+  }
+
+  __attribute__((warn_unused_result))
+  bool thread_context_collector_on_gvl_running(VALUE thread) {
+    return thread_context_collector_on_gvl_running_with_threshold(thread, WAITING_FOR_GVL_THRESHOLD_NS);
   }
 
   VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
@@ -1734,7 +1741,13 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     ENFORCE_THREAD(thread);
 
     intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
-    return INT2NUM(gvl_waiting_at);
+    return LONG2NUM(gvl_waiting_at);
+  }
+
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns) {
+    ENFORCE_THREAD(thread);
+
+    return thread_context_collector_on_gvl_running_with_threshold(thread, NUM2UINT(waiting_for_gvl_threshold_ns)) ? Qtrue : Qfalse;
   }
 #else
   static bool handle_gvl_waiting(

@@ -40,6 +40,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
+  # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
+  # want to support more platforms
+  let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -89,6 +92,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
   def gvl_waiting_at_for(thread)
     described_class::Testing._native_gvl_waiting_at_for(thread)
+  end
+
+  def on_gvl_running(thread, waiting_for_gvl_threshold_ns)
+    described_class::Testing._native_on_gvl_running(thread, waiting_for_gvl_threshold_ns)
   end
 
   def thread_list
@@ -1253,7 +1260,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   describe "#on_gvl_waiting" do
     before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
 
-    context "if a thread has not been sampled before" do
+    context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
         on_gvl_waiting(t1)
 
@@ -1272,6 +1279,86 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         expect(per_thread_context.fetch(t1)).to include(
           gvl_waiting_at: be_between(wall_time_before_on_gvl_waiting_ns, wall_time_after_on_gvl_waiting_ns)
         )
+      end
+    end
+  end
+
+  describe "#on_gvl_running" do
+    before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+
+    context "if thread has not been sampled before" do
+      it "does not record anything in the internal_thread_specific value" do
+        on_gvl_running(t1, 0)
+
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+    end
+
+    context "when the internal_thread_specific value is GVL_WAITING_ENABLED_EMPTY" do
+      before do
+        sample
+        expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+      end
+
+      it do
+        expect { on_gvl_running(t1, 0) }.to_not change { gvl_waiting_at_for(t1) }
+      end
+
+      it "does not flag that a sample is needed" do
+        expect(on_gvl_running(t1, 0)).to be false
+      end
+    end
+
+    context "when the thread was Waiting on GVL" do
+      before do
+        sample
+        on_gvl_waiting(t1)
+        @gvl_waiting_at = gvl_waiting_at_for(t1)
+        expect(@gvl_waiting_at).to be > 0
+      end
+
+      context "when Waiting for GVL duration >= the threshold" do
+        let(:threshold) { 0 }
+
+        it "flips the value of gvl_waiting_at to negative" do
+          expect { on_gvl_running(t1, threshold) }
+            .to change { gvl_waiting_at_for(t1) }
+            .from(@gvl_waiting_at)
+            .to(-@gvl_waiting_at)
+        end
+
+        it "flags that a sample is needed" do
+          expect(on_gvl_running(t1, threshold)).to be true
+        end
+
+        context "when called several times in a row" do
+          before { on_gvl_running(t1, threshold) }
+
+          it "flags that a sample is needed" do
+            expect(on_gvl_running(t1, threshold)).to be true
+          end
+
+          it "keeps the value of gvl_waiting_at as negative" do
+            on_gvl_running(t1, threshold)
+
+            expect(gvl_waiting_at_for(t1)).to be(-@gvl_waiting_at)
+          end
+        end
+      end
+
+      context "when Waiting for GVL duration < the threshold" do
+        let(:threshold) { 1_000_000_000 }
+
+        it "resets the value of gvl_waiting_at back to GVL_WAITING_ENABLED_EMPTY" do
+          expect { on_gvl_running(t1, threshold) }
+            .to change { gvl_waiting_at_for(t1) }
+            .from(@gvl_waiting_at)
+            .to(gvl_waiting_enabled_empty_magic_value)
+        end
+
+        it "flags that a sample is not needed" do
+          expect(on_gvl_running(t1, threshold)).to be false
+        end
       end
     end
   end
@@ -1455,7 +1542,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
             expect(per_thread_context.values).to all(
-              include(gvl_waiting_at: 2**63 - 1) # This may need adjusting if we ever support more platforms
+              include(gvl_waiting_at: gvl_waiting_enabled_empty_magic_value)
             )
           end
         end
