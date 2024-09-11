@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
+          expect(capabilities.base64_capabilities).to eq('IABwAA==')
         end
       end
     end
@@ -53,7 +53,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
+          expect(capabilities.base64_capabilities).to eq('IABwAA==')
         end
       end
     end
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
-      expect(capabilities.capabilities).to eq([1 << 29])
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
       expect(capabilities.products).to include('APM_TRACING')
       expect(capabilities.receivers).to include(
         lambda { |r|
