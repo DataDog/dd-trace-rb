@@ -248,6 +248,14 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE otel_values
 );
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples);
+static bool handle_gvl_waiting(
+  struct thread_context_collector_state *state,
+  VALUE thread_being_sampled,
+  VALUE stack_from_thread,
+  struct per_thread_context *thread_context,
+  sampling_buffer* sampling_buffer,
+  long current_cpu_time_ns
+);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -536,95 +544,10 @@ static void update_metrics_and_sample(
   long current_cpu_time_ns,
   long current_monotonic_wall_time_ns
 ) {
-  #ifndef NO_GVL_INSTRUMENTATION
-    // TODO: This feels like a hack here -- is there a better place to do this?
-    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread_being_sampled, per_thread_gvl_waiting_timestamp_key);
+  bool is_gvl_waiting_state =
+    handle_gvl_waiting(state, thread_being_sampled, stack_from_thread, thread_context, sampling_buffer, current_cpu_time_ns);
 
-    // We can be in one of 2 situations here:
-    //
-    // 1. The current sample is the first one after we entered the Waiting for GVL state
-    //    (wall_time_at_previous_sample_ns < abs(gvl_waiting_at))
-    //
-    //                             time ─────►
-    //  ...──────────────┬───────────────────...
-    //       Other state │ Waiting for GVL
-    //  ...──────────────┴───────────────────...
-    //     ▲                              ▲
-    //     └─ Previous sample              └─ This sample
-    //
-    //   In this case, we'll push two samples: a) one for the current time, b ) an extra sample
-    //   to represent the remaining cpu/wall time before the Waiting for GVL started:
-    //
-    //                             time ─────►
-    //  ...──────────────┬───────────────────...
-    //       Other state │ Waiting for GVL
-    //  ...──────────────┴───────────────────...
-    //     ▲            ▲                ▲
-    //     └─ Prev...    └─ Extra sample   └─ This sample
-    //
-    // 2. The current sample is the n-th one after we entered the Waiting for GVL state
-    //    (wall_time_at_previous_sample_ns > abs(gvl_waiting_at))
-    //
-    //                             time ─────►
-    //  ...──────────────┬───────────────────────────────────────────────...
-    //       Other state │ Waiting for GVL
-    //  ...──────────────┴───────────────────────────────────────────────...
-    //     ▲                              ▲                          ▲
-    //     └─ Previous sample              └─ Previous sample         └─ This sample
-    //
-    // ---
-    //
-    // Overall, gvl_waiting_at will be > 0 if still in the Waiting for GVL state and < 0 if we actually reached the end of
-    // the wait.
-    //
-    // It doesn't really matter if the thread is still waiting or just reached the end of the wait: each sample represents
-    // a snapshot at time ending now, so if the state finished, it just means the next sample will be a regular one.
-
-    bool is_gvl_waiting_state = gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY;
-
-    if (is_gvl_waiting_state) {
-      if (gvl_waiting_at < 0) {
-        // Negative means the waiting for GVL just ended, so we clear the state, so next samples no longer represent waiting
-        rb_internal_thread_specific_set(thread_being_sampled, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
-      }
-
-      long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
-
-      if (thread_context->wall_time_at_previous_sample_ns < gvl_waiting_started_wall_time_ns) { // 1 above
-        long cpu_time_elapsed_ns = update_time_since_previous_sample(
-          &thread_context->cpu_time_at_previous_sample_ns,
-          current_cpu_time_ns,
-          thread_context->gc_tracking.cpu_time_at_start_ns,
-          IS_NOT_WALL_TIME
-        );
-
-        long duration_until_start_of_gvl_waiting_ns = update_time_since_previous_sample(
-          &thread_context->wall_time_at_previous_sample_ns,
-          gvl_waiting_started_wall_time_ns,
-          INVALID_TIME,
-          IS_WALL_TIME
-        );
-
-        // Push extra sample
-        trigger_sample_for_thread(
-          state,
-          thread_being_sampled,
-          stack_from_thread,
-          thread_context,
-          sampling_buffer,
-          (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
-          gvl_waiting_started_wall_time_ns,
-          NULL,
-          NULL,
-          false // This is the extra sample before the wait begun; only the next sample will be in the gvl waiting state
-        );
-      }
-    }
-  #else
-    bool is_gvl_waiting_state = false;
-  #endif
-
-  // Don't assign/update cpu during Waiting for GVL
+  // Don't assign/update cpu during "Waiting for GVL"
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_time_since_previous_sample(
     &thread_context->cpu_time_at_previous_sample_ns,
     current_cpu_time_ns,
@@ -1690,4 +1613,112 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     return Qnil; // To allow this to be called from rb_rescue2
   }
-#endif
+
+  // This method is intended to be called from update_metrics_and_sample. It exists to handle extra sampling steps we
+  // need to take when sampling cpu/wall-time for a thread that's in the "Waiting for GVL" state.
+  __attribute__((warn_unused_result))
+  static bool handle_gvl_waiting(
+    struct thread_context_collector_state *state,
+    VALUE thread_being_sampled,
+    VALUE stack_from_thread,
+    struct per_thread_context *thread_context,
+    sampling_buffer* sampling_buffer,
+    long current_cpu_time_ns
+  ) {
+    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread_being_sampled, per_thread_gvl_waiting_timestamp_key);
+
+    bool is_gvl_waiting_state = gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY;
+
+    if (!is_gvl_waiting_state) return false;
+
+    // We can be in one of 2 situations here:
+    //
+    // 1. The current sample is the first one after we entered the "Waiting for GVL" state
+    //    (wall_time_at_previous_sample_ns < abs(gvl_waiting_at))
+    //
+    //                             time ─────►
+    //  ...──────────────┬───────────────────...
+    //       Other state │ Waiting for GVL
+    //  ...──────────────┴───────────────────...
+    //     ▲                              ▲
+    //     └─ Previous sample              └─ Regular sample (caller)
+    //
+    //   In this case, we'll want to push two samples: a) one for the current time (handled by the caller), b) an extra sample
+    //   to represent the remaining cpu/wall time before the "Waiting for GVL" started:
+    //
+    //                             time ─────►
+    //  ...──────────────┬───────────────────...
+    //       Other state │ Waiting for GVL
+    //  ...──────────────┴───────────────────...
+    //     ▲            ▲                ▲
+    //     └─ Prev...    └─ Extra sample   └─ Regular sample (caller)
+    //
+    // 2. The current sample is the n-th one after we entered the "Waiting for GVL" state
+    //    (wall_time_at_previous_sample_ns > abs(gvl_waiting_at))
+    //
+    //                             time ─────►
+    //  ...──────────────┬───────────────────────────────────────────────...
+    //       Other state │ Waiting for GVL
+    //  ...──────────────┴───────────────────────────────────────────────...
+    //     ▲                              ▲                          ▲
+    //     └─ Previous sample              └─ Previous sample         └─ Regular sample (caller)
+    //
+    //   In this case, we just report back to the caller that the thread is in the "Waiting for GVL" state.
+    //
+    // ---
+    //
+    // Overall, gvl_waiting_at will be > 0 if still in the "Waiting for GVL" state and < 0 if we actually reached the end of
+    // the wait.
+    //
+    // It doesn't really matter if the thread is still waiting or just reached the end of the wait: each sample represents
+    // a snapshot at time ending now, so if the state finished, it just means the next sample will be a regular one.
+
+    if (gvl_waiting_at < 0) {
+      // Negative means the waiting for GVL just ended, so we clear the state, so next samples no longer represent waiting
+      rb_internal_thread_specific_set(thread_being_sampled, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
+    }
+
+    long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
+
+    if (thread_context->wall_time_at_previous_sample_ns < gvl_waiting_started_wall_time_ns) { // situation 1 above
+      long cpu_time_elapsed_ns = update_time_since_previous_sample(
+        &thread_context->cpu_time_at_previous_sample_ns,
+        current_cpu_time_ns,
+        thread_context->gc_tracking.cpu_time_at_start_ns,
+        IS_NOT_WALL_TIME
+      );
+
+      long duration_until_start_of_gvl_waiting_ns = update_time_since_previous_sample(
+        &thread_context->wall_time_at_previous_sample_ns,
+        gvl_waiting_started_wall_time_ns,
+        INVALID_TIME,
+        IS_WALL_TIME
+      );
+
+      // Push extra sample
+      trigger_sample_for_thread(
+        state,
+        thread_being_sampled,
+        stack_from_thread,
+        thread_context,
+        sampling_buffer,
+        (sample_values) {.cpu_time_ns = cpu_time_elapsed_ns, .cpu_or_wall_samples = 1, .wall_time_ns = duration_until_start_of_gvl_waiting_ns},
+        gvl_waiting_started_wall_time_ns,
+        NULL,
+        NULL,
+        false // This is the extra sample before the wait begun; only the next sample will be in the gvl waiting state
+      );
+    }
+
+    return true;
+  }
+#else
+  static bool handle_gvl_waiting(
+    DDTRACE_UNUSED struct thread_context_collector_state *state,
+    DDTRACE_UNUSED VALUE thread_being_sampled,
+    DDTRACE_UNUSED VALUE stack_from_thread,
+    DDTRACE_UNUSED struct per_thread_context *thread_context,
+    DDTRACE_UNUSED sampling_buffer* sampling_buffer,
+    DDTRACE_UNUSED long current_cpu_time_ns,
+  ) { return false; }
+#endif // NO_GVL_INSTRUMENTATION
