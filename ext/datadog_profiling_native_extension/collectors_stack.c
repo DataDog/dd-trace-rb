@@ -20,16 +20,7 @@ struct sampling_buffer {
   frame_info *stack_buffer;
 }; // Note: typedef'd in the header to sampling_buffer
 
-static VALUE _native_sample(
-  VALUE self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-);
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
@@ -47,7 +38,7 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 7);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
@@ -65,16 +56,23 @@ struct native_sample_args {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-) {
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  // Positional args
+  VALUE thread;
+  VALUE recorder_instance;
+  VALUE metric_values_hash;
+  VALUE labels_array;
+  VALUE numeric_labels_array;
+  VALUE options;
+
+  rb_scan_args(argc, argv, "5:", &thread, &recorder_instance, &metric_values_hash, &labels_array, &numeric_labels_array, &options);
+
+  if (options == Qnil) options = rb_hash_new();
+
+  // Optional keyword args
+  VALUE max_frames = rb_hash_lookup2(options, ID2SYM(rb_intern("max_frames")), INT2NUM(400));
+  VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
+
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);

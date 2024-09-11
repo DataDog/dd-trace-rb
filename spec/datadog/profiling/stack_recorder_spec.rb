@@ -262,7 +262,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
       before do
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
         expect(samples.size).to be 1
       end
 
@@ -337,8 +337,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               metric_values,
               {"local root span id" => "incorrect", "state" => "unknown"}.to_a,
               [],
-              400,
-              false,
             )
           end.to raise_error(ArgumentError)
         end
@@ -355,7 +353,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         sample = proc do |numeric_labels = {}|
           Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-            Thread.current, stack_recorder, metric_values, {"state" => "unknown"}.to_a, numeric_labels.to_a, 400, false
+            Thread.current, stack_recorder, metric_values, {"state" => "unknown"}.to_a, numeric_labels.to_a
           )
         end
 
@@ -415,7 +413,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, sample_rate, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
       end
 
       before do
@@ -794,7 +792,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           it "propagates the exception" do
             expect do
               Datadog::Profiling::Collectors::Stack::Testing
-                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
             end.to raise_error(RuntimeError, /Ended a heap recording/)
           end
 
@@ -805,7 +803,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
             begin
               Datadog::Profiling::Collectors::Stack::Testing
-                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+                ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
             rescue # rubocop:disable Lint/SuppressedException
             end
 
@@ -925,7 +923,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       it "makes the next calls to serialize return no data" do
         # Add some data
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
 
         # Sanity check: validate that data is there, to avoid the test passing because of other issues
         sanity_check_samples = samples_from_pprof(stack_recorder.serialize[2])
@@ -933,7 +931,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
         # Add some data, again
         Datadog::Profiling::Collectors::Stack::Testing
-          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels, 400, false)
+          ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
 
         reset_after_fork
 
@@ -1011,7 +1009,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         # Heap sampling currently requires this 2-step process to first pass data about the allocated object...
         described_class::Testing._native_track_object(stack_recorder, obj, 1, obj.class.name)
         Datadog::Profiling::Collectors::Stack::Testing._native_sample(
-          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [], 400, false
+          Thread.current, stack_recorder, {"alloc-samples" => 1, "heap_sample" => true}, [], [],
         )
       end
 
