@@ -256,6 +256,8 @@ static bool handle_gvl_waiting(
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns
 );
+static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
+static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -287,6 +289,10 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
+  #ifndef NO_GVL_INSTRUMENTATION
+    rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
+    rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
+  #endif
 
   at_active_span_id = rb_intern_const("@active_span");
   at_active_trace_id = rb_intern_const("@active_trace");
@@ -1715,6 +1721,16 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     }
 
     return true;
+  }
+
+  static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
+    thread_context_collector_on_gvl_waiting(thread);
+    return Qnil;
+  }
+
+  static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
+    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+    return INT2NUM(gvl_waiting_at);
   }
 #else
   static bool handle_gvl_waiting(

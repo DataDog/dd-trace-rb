@@ -83,6 +83,14 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
   end
 
+  def on_gvl_waiting(thread)
+    described_class::Testing._native_on_gvl_waiting(thread)
+  end
+
+  def gvl_waiting_at_for(thread)
+    described_class::Testing._native_gvl_waiting_at_for(thread)
+  end
+
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -1239,6 +1247,32 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     it 'includes a placeholder stack attributed to "Skipped Samples"' do
       expect(single_sample.locations.size).to be 1
       expect(single_sample.locations.first.path).to eq "Skipped Samples"
+    end
+  end
+
+  describe "#on_gvl_waiting" do
+    before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+
+    context "if a thread has not been sampled before" do
+      it "does not record anything in the internal_thread_specific value" do
+        on_gvl_waiting(t1)
+
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+    end
+
+    context "after the first sample" do
+      before { sample }
+
+      it "records the wall-time when gvl waiting started in the thread's internal_thread_specific value" do
+        wall_time_before_on_gvl_waiting_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+        on_gvl_waiting(t1)
+        wall_time_after_on_gvl_waiting_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+        expect(per_thread_context.fetch(t1)).to include(
+          gvl_waiting_at: be_between(wall_time_before_on_gvl_waiting_ns, wall_time_after_on_gvl_waiting_ns)
+        )
+      end
     end
   end
 
