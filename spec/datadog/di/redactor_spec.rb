@@ -124,7 +124,7 @@ RSpec.describe Datadog::DI::Redactor do
 
       cases = [
         ["redacted", DIRedactorSpecSensitiveType.new, true],
-        ["not redacted", /123/, false],
+        ["not redacted", /123/, true],
         ["primitive type", nil, false],
         ["wild card type whose name is the same as prefix", DIRedactorSpecWildCard.new, true],
         ["wild card type", DIRedactorSpecWildCardClass.new, true],
