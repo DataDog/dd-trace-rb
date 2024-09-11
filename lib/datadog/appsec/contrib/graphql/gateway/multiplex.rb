@@ -56,7 +56,7 @@ module Datadog
             def arguments_from_selections(selections, query_variables, args_hash)
               selections.each do |selection|
                 # rubocop:disable Style/ClassEqualityComparison
-                next unless selection.class.to_s == Integration::AST_NODE_CLASS_NAMES[:field]
+                next unless selection.class.name == Integration::AST_NODE_CLASS_NAMES[:field]
                 # rubocop:enable Style/ClassEqualityComparison
 
                 selection_name = selection.alias || selection.name
@@ -76,7 +76,7 @@ module Datadog
             def arguments_from_directives(directives, query_variables)
               directives.each_with_object({}) do |directive, args_hash|
                 # rubocop:disable Style/ClassEqualityComparison
-                next unless directive.class.to_s == Integration::AST_NODE_CLASS_NAMES[:directive]
+                next unless directive.class.name == Integration::AST_NODE_CLASS_NAMES[:directive]
                 # rubocop:enable Style/ClassEqualityComparison
 
                 args_hash[directive.name] = arguments_hash(directive.arguments, query_variables)
@@ -90,7 +90,7 @@ module Datadog
             end
 
             def argument_value(argument, query_variables)
-              case argument.value.class.to_s
+              case argument.value.class.name
               when Integration::AST_NODE_CLASS_NAMES[:variable_identifier]
                 # we need to pass query.variables here instead of query.provided_variables,
                 # since #provided_variables don't know anything about variable default value
