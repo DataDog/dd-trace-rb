@@ -377,7 +377,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
           Datadog.configure do |c|
             c.agent.host = 'google.com'
-            c.agent.port = '12345'
+            c.agent.port = 12345
           end
 
           expect_in_fork do
