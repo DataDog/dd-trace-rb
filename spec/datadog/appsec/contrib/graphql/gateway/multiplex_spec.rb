@@ -12,16 +12,16 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
     stub_const('TestSchema', Class.new(::GraphQL::Schema))
   end
 
-  let(:multiplex) do
-    ::GraphQL::Execution::Multiplex.new(
-      schema: schema,
-      queries: queries,
-      context: { dataloader: GraphQL::Dataloader.new(nonblocking: nil) },
-      max_complexity: nil
-    )
-  end
-
   describe '#arguments' do
+    let(:multiplex) do
+      ::GraphQL::Execution::Multiplex.new(
+        schema: schema,
+        queries: queries,
+        context: { dataloader: GraphQL::Dataloader.new(nonblocking: nil) },
+        max_complexity: nil
+      )
+    end
+
     context 'query with argument values provided inline in the query' do
       let(:queries) do
         [
@@ -360,6 +360,15 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
   end
 
   describe '#queries' do
+    let(:multiplex) do
+      ::GraphQL::Execution::Multiplex.new(
+        schema: schema,
+        queries: [query],
+        context: { dataloader: GraphQL::Dataloader.new(nonblocking: nil) },
+        max_complexity: nil
+      )
+    end
+
     let(:query) do
       ::GraphQL::Query.new(
         schema,
@@ -371,10 +380,8 @@ RSpec.describe Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex do
       )
     end
 
-    let(:queries) { [query] }
-
     it 'returns queries' do
-      expect(dd_multiplex.queries).to eq(queries)
+      expect(dd_multiplex.queries).to eq([query])
     end
   end
 end
