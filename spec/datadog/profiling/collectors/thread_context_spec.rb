@@ -1414,6 +1414,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           # rubocop:enable Style/GlobalVars
         end
       end
+
+      describe ":gvl_waiting_at" do
+        context "on Ruby >= 3.3" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+
+          it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
+            expect(per_thread_context.values).to all(
+              include(gvl_waiting_at: 2**63 - 1) # This may need adjusting if we ever support more platforms
+            )
+          end
+        end
+
+        context "on Ruby < 3.3" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+
+          it "is not set" do
+            per_thread_context.each do |_thread, context|
+              expect(context.key?(:gvl_waiting_at)).to be false
+            end
+          end
+        end
+      end
     end
 
     context "after sampling multiple times" do
