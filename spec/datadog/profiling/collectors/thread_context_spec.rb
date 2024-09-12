@@ -40,6 +40,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
+  let(:minimum_ruby_for_gvl_profiling) { "3.3." }
   # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
   # want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
@@ -1258,7 +1259,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gvl_waiting" do
-    before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+    before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
 
     context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
@@ -1284,7 +1285,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gvl_running" do
-    before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+    before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
 
     context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
@@ -1538,7 +1539,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       describe ":gvl_waiting_at" do
         context "on Ruby >= 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+          before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
 
           it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
             expect(per_thread_context.values).to all(
@@ -1548,7 +1549,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on Ruby < 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+          before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling <= RUBY_VERSION }
 
           it "is not set" do
             per_thread_context.each do |_thread, context|
