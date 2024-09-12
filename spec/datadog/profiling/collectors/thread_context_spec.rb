@@ -1569,7 +1569,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     let(:timeline_enabled) { true }
 
-    context "when thread does not have the end of Waiting for GVL to be recorded" do
+    context "when thread is not at the end of a Waiting for GVL period" do
       before do
         expect(gvl_waiting_at_for(t1)).to be 0
       end
@@ -1592,7 +1592,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # for why we need a separate `sample_after_gvl_running`.
     #
     # Thus, I chose to not repeat the extensive Waiting for GVL asserts we already have in #sample, and do a smaller pass.
-    context "when thread has the end of Waiting for GVL to be recorded (and a start was not yet recorded)" do
+    context "when thread is at the end of a Waiting for GVL period" do
       before do
         sample # trigger context creation
         on_gvl_waiting(t1)
