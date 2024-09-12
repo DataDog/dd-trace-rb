@@ -27,9 +27,7 @@ class ProfilerSampleSerializeBenchmark
       heap_sample_every: 1,
       timeline_enabled: timeline_enabled,
     )
-    @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: timeline_enabled
-    )
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: timeline_enabled)
   end
 
   def run_benchmark

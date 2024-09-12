@@ -909,15 +909,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe "#reset_after_fork" do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
-    let(:thread_context_collector) do
-      Datadog::Profiling::Collectors::ThreadContext.new(
-        recorder: recorder,
-        max_frames: 400,
-        tracer: nil,
-        endpoint_collection_enabled: endpoint_collection_enabled,
-        timeline_enabled: timeline_enabled,
-      )
-    end
+    let(:thread_context_collector) { build_thread_context_collector(recorder) }
     let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
@@ -1261,10 +1253,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   end
 
   def build_thread_context_collector(recorder)
-    Datadog::Profiling::Collectors::ThreadContext.new(
+    Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
-      max_frames: 400,
-      tracer: nil,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
     )

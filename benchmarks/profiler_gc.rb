@@ -17,9 +17,7 @@ class ProfilerGcBenchmark
       heap_sample_every: 1,
       timeline_enabled: true,
     )
-    @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: true
-    )
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: true)
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)

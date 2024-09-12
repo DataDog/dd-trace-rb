@@ -34,6 +34,24 @@ module Datadog
           )
         end
 
+        def self.for_testing(
+          recorder:,
+          max_frames: 400,
+          tracer: nil,
+          endpoint_collection_enabled: false,
+          timeline_enabled: false,
+          **options
+        )
+          new(
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer: tracer,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
+            **options,
+          )
+        end
+
         def inspect
           # Compose Ruby's default inspect with our custom inspect for the native parts
           result = super()
