@@ -40,7 +40,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
-  let(:minimum_ruby_for_gvl_profiling) { "3.3." }
+  let(:min_ruby_for_gvl_profiling) { "3.3." }
   # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
   # want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
@@ -120,7 +120,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
-    described_class::Testing._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+    described_class::Testing
+      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
   end
 
   # This method exists only so we can look for its name in the stack trace in a few tests
@@ -804,7 +805,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             second_sample = samples_for_thread(samples, t1, expected_size: 2).last
 
-            expect(second_sample.values.fetch(:"wall-time")).to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
+            expect(second_sample.values.fetch(:"wall-time"))
+              .to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
             expect(second_sample.labels).to include(
               state: "waiting for gvl",
               end_timestamp_ns: be_between(time_before_sample, time_after_sample),
@@ -851,7 +853,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
 
-            expect(latest_sample.values.fetch(:"wall-time")).to be(monotonic_time_after_sample - monotonic_time_before_sample)
+            expect(latest_sample.values.fetch(:"wall-time"))
+              .to be(monotonic_time_after_sample - monotonic_time_before_sample)
             expect(latest_sample.labels).to include(
               state: expected_state,
               end_timestamp_ns: be_between(time_before_sample, time_after_sample),
@@ -904,7 +907,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               it "resets the gvl_waiting_at to GVL_WAITING_ENABLED_EMPTY" do
                 expect(gvl_waiting_at_for(t1)).to be < 0
 
-                expect { sample }.to change { gvl_waiting_at_for(t1) }.from(gvl_waiting_at_for(t1)).to(gvl_waiting_enabled_empty_magic_value)
+                expect { sample }.to change { gvl_waiting_at_for(t1) }
+                  .from(gvl_waiting_at_for(t1))
+                  .to(gvl_waiting_enabled_empty_magic_value)
               end
 
               it "does not record a new Waiting for GVL sample afterwards" do
@@ -1450,7 +1455,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gvl_waiting" do
-    before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
+    before { skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION }
 
     context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
@@ -1476,7 +1481,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#on_gvl_running" do
-    before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
+    before { skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION }
 
     context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
@@ -1493,7 +1498,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it do
-        expect { on_gvl_running(t1, 0) }.to_not change { gvl_waiting_at_for(t1) }
+        expect { on_gvl_running(t1, 0) }.to_not(change { gvl_waiting_at_for(t1) })
       end
 
       it "does not flag that a sample is needed" do
@@ -1804,7 +1809,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
       describe ":gvl_waiting_at" do
         context "on supported Rubies" do
-          before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
+          before { skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION }
 
           it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
             expect(per_thread_context.values).to all(
@@ -1814,7 +1819,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on legacy Rubies" do
-          before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling <= RUBY_VERSION }
+          before { skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling <= RUBY_VERSION }
 
           it "is not set" do
             per_thread_context.each do |_thread, context|
