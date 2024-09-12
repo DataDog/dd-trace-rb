@@ -760,6 +760,136 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
         end
+
+        context "when thread starts Waiting for GVL" do
+          before do
+            sample # trigger context creation
+            samples_from_pprof(recorder.serialize!) # flush sample
+
+            @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+            @time_before_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            on_gvl_waiting(t1)
+            @time_after_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+
+            @gvl_waiting_at = gvl_waiting_at_for(t1)
+
+            expect(@gvl_waiting_at).to be >= @previous_sample_timestamp_ns
+          end
+
+          it "records a first sample to represent the time between the previous sample and the start of Waiting for GVL" do
+            sample
+
+            first_sample = samples_for_thread(samples, t1, expected_size: 2).first
+
+            expect(first_sample.values.fetch(:"wall-time")).to be(@gvl_waiting_at - @previous_sample_timestamp_ns)
+            expect(first_sample.labels).to include(
+              state: "sleeping",
+              end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting),
+            )
+          end
+
+          it "records a second sample to represent the time spent Waiting for GVL" do
+            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            sample
+            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+
+            second_sample = samples_for_thread(samples, t1, expected_size: 2).last
+
+            expect(second_sample.values.fetch(:"wall-time")).to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
+            expect(second_sample.labels).to include(
+              state: "waiting for gvl",
+              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            )
+          end
+        end
+
+        context "when thread is Waiting for GVL" do
+          before do
+            sample # trigger context creation
+            on_gvl_waiting(t1)
+            sample # trigger creation of sample representing the period before Waiting for GVL
+            samples_from_pprof(recorder.serialize!) # flush previous samples
+          end
+
+          def sample_and_check(expected_state:)
+            monotonic_time_before_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+            sample
+
+            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+            expect(monotonic_time_after_sample).to be >= monotonic_time_sanity_check
+
+            latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+
+            expect(latest_sample.values.fetch(:"wall-time")).to be(monotonic_time_after_sample - monotonic_time_before_sample)
+            expect(latest_sample.labels).to include(
+              state: expected_state,
+              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            )
+          end
+
+          it "records a new Waiting for GVL sample on every subsequent sample" do
+            3.times { sample_and_check(expected_state: "waiting for gvl") }
+          end
+
+          it "does not change the gvl_waiting_at" do
+            value_before = gvl_waiting_at_for(t1)
+
+            sample
+
+            expect(gvl_waiting_at_for(t1)).to be value_before
+            expect(gvl_waiting_at_for(t1)).to be > 0
+          end
+
+          context "when thread is ready to run again" do
+            before do
+              on_gvl_running(t1, threshold)
+            end
+
+            context "when Waiting for GVL duration >= the threshold" do
+              let(:threshold) { 0 }
+
+              it "records a last Waiting for GVL sample" do
+                sample_and_check(expected_state: "waiting for gvl")
+              end
+
+              it "resets the gvl_waiting_at to GVL_WAITING_ENABLED_EMPTY" do
+                expect(gvl_waiting_at_for(t1)).to be < 0
+
+                expect { sample }.to change { gvl_waiting_at_for(t1) }.from(gvl_waiting_at_for(t1)).to(gvl_waiting_enabled_empty_magic_value)
+              end
+
+              it "does not record a new Waiting for GVL sample afterwards" do
+                sample # last Waiting for GVL sample
+                samples_from_pprof(recorder.serialize!) # flush previous samples
+
+                3.times { sample_and_check(expected_state: "sleeping") }
+              end
+            end
+
+            context "when Waiting for GVL duration < the threshold" do
+              let(:threshold) { 1_000_000_000 }
+
+              it "records a regular sample" do
+                expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+
+                # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
+                # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
+                # clears the Waiting for GVL state, and the next sample is immediately back to being a regular sample.
+                #
+                # Because the state has been cleared immediately, the next sample is a regular one. We effectively ignore
+                # a small time period that was still Waiting for GVL as a means to reduce overhead.
+
+                sample_and_check(expected_state: "sleeping")
+              end
+            end
+          end
+        end
       end
     end
   end
@@ -1538,7 +1668,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       describe ":gvl_waiting_at" do
-        context "on Ruby >= 3.3" do
+        context "on supported Rubies" do
           before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling > RUBY_VERSION }
 
           it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
@@ -1548,7 +1678,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
         end
 
-        context "on Ruby < 3.3" do
+        context "on legacy Rubies" do
           before { skip "Behavior does not apply to current Ruby version" if minimum_ruby_for_gvl_profiling <= RUBY_VERSION }
 
           it "is not set" do

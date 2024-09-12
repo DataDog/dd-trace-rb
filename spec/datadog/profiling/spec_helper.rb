@@ -79,11 +79,21 @@ module ProfileHelpers
     end
   end
 
-  def samples_for_thread(samples, thread)
-    samples.select do |sample|
+  def samples_for_thread(samples, thread, expected_size: nil)
+    result = samples.select do |sample|
       thread_id = sample.labels[:"thread id"]
       thread_id && object_id_from(thread_id) == thread.object_id
     end
+
+    if expected_size
+      expect(result.size).to(be(expected_size), "Found unexpected sample count in result: #{result}")
+    end
+
+    result
+  end
+
+  def sample_for_thread(samples, thread)
+    samples_for_thread(samples, thread, expected_size: 1).first
   end
 
   # We disable heap_sample collection by default in tests since it requires some extra mocking/
