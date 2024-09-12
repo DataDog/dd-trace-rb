@@ -99,6 +99,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gvl_running(thread, waiting_for_gvl_threshold_ns)
   end
 
+  def sample_after_gvl_running(thread)
+    described_class::Testing._native_sample_after_gvl_running(cpu_and_wall_time_collector, thread)
+  end
+
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -1489,6 +1493,80 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         it "flags that a sample is not needed" do
           expect(on_gvl_running(t1, threshold)).to be false
+        end
+      end
+    end
+  end
+
+  describe "#sample_after_gvl_running" do
+    let(:timeline_enabled) { true }
+
+    context "when thread does not have the end of Waiting for GVL to be recorded" do
+      before do
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+
+      it do
+        expect(sample_after_gvl_running(t1)).to be false
+      end
+
+      it "does not sample the thread" do
+        sample_after_gvl_running(t1)
+
+        expect(samples).to be_empty
+      end
+    end
+
+    # @ivoanjo: The behavior here is expected to be (in terms of wall-time accounting and timestamps) exactly the same
+    # as for #sample. That's because both call the same underlying `update_metrics_and_sample` method to do the work.
+    #
+    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
+    # for why we need a separate `sample_after_gvl_running`.
+    #
+    # Thus, I chose to not repeat the extensive Waiting for GVL asserts we already have in #sample, and do a smaller pass.
+    context "when thread has the end of Waiting for GVL to be recorded (and a start was not yet recorded)" do
+      before do
+        sample # trigger context creation
+        on_gvl_waiting(t1)
+
+        sample if record_start
+
+        on_gvl_running(t1, 0)
+        samples_from_pprof(recorder.serialize!) # flush samples
+
+        expect(gvl_waiting_at_for(t1)).to be < 0
+      end
+
+      context "when a start was not yet recorded" do
+        let(:record_start) { false }
+
+        it do
+          expect(sample_after_gvl_running(t1)).to be true
+        end
+
+        it "records a sample to represent the time prior to Waiting for GVL, and another to represent the waiting" do
+          sample_after_gvl_running(t1)
+
+          expect(samples.size).to be 2
+
+          expect(samples.first.labels).to include(state: "sleeping")
+          expect(samples.last.labels).to include(state: "waiting for gvl")
+        end
+      end
+
+      context "when a start was already recorded" do
+        let(:record_start) { true }
+
+        it do
+          expect(sample_after_gvl_running(t1)).to be true
+        end
+
+        it "records a sample to represent the Waiting for GVL" do
+          sample_after_gvl_running(t1)
+
+          expect(samples.size).to be 1
+
+          expect(samples.first.labels).to include(state: "waiting for gvl")
         end
       end
     end

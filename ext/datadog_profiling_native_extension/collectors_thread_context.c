@@ -259,6 +259,7 @@ static bool handle_gvl_waiting(
 static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
+static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -294,6 +295,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
+    rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
   #endif
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -1594,13 +1596,38 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     return thread_context_collector_on_gvl_running_with_threshold(thread, WAITING_FOR_GVL_THRESHOLD_NS);
   }
 
-  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
+  // Why does this method need to exist?
+  //
+  // You may be surprised to see that if you never call this method, Waiting for GVL samples will still show up.
+  // This is because regular cpu/wall-time samples also use `update_metrics_and_sample` which will push those samples
+  // as needed.
+  //
+  // The reason this method needs to exist and be called very shortly after thread_context_collector_on_gvl_running
+  // returning true is the accuracy of the timing and stack for the Waiting for GVL to end.
+  //
+  // Timing:
+  // Because we currently only record when the Waiting for GVL started and not when the Waiting for GVL ended,
+  // we rely on pushing a sample as soon as possible when the Waiting for GVL ends so that the timestamp of the sample
+  // is close to the timestamp of finish the Waiting for GVL.
+  //
+  // Stack:
+  // If the thread starts working without the end of the Waiting for GVL sample, then by the time that sample happens
+  // (via the regular cpu/wall-time samples mechanism), the stack can be be inaccurate.
+  //
+  // Arguably, the last sample after Waiting for GVL ended (when gvl_waiting_at < 0) should always come from this method
+  // and not a regular cpu/wall-time sample BUT since all of these things are happening in parallel I suspect
+  // it's possible for a regular sample to kick in just before this one.
+  //
+  // ---
+  //
+  // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); using a different thread is only
+  // to make testing easier.
+  VALUE thread_context_collector_sample_after_gvl_running_with_thread(VALUE self_instance, VALUE current_thread) {
     struct thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
     if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "gvl profiling requires timeline to be enabled");
 
-    VALUE current_thread = rb_thread_current();
     struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
     intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(current_thread, per_thread_gvl_waiting_timestamp_key);
@@ -1610,7 +1637,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       // that ran `thread_context_collector_on_gvl_running` and made the decision to sample OR a regular sample was
       // triggered ahead of us.
       // We do nothing in this case.
-      return Qnil;
+      return Qfalse;
     }
 
     // We don't actually account for cpu-time during Waiting for GVL. BUT, we may chose to push an
@@ -1628,7 +1655,11 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
     );
 
-    return Qnil; // To allow this to be called from rb_rescue2
+    return Qtrue; // To allow this to be called from rb_rescue2
+  }
+
+  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
+    return thread_context_collector_sample_after_gvl_running_with_thread(self_instance, rb_thread_current());
   }
 
   // This method is intended to be called from update_metrics_and_sample. It exists to handle extra sampling steps we
@@ -1748,6 +1779,12 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     ENFORCE_THREAD(thread);
 
     return thread_context_collector_on_gvl_running_with_threshold(thread, NUM2UINT(waiting_for_gvl_threshold_ns)) ? Qtrue : Qfalse;
+  }
+
+  static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
+    ENFORCE_THREAD(thread);
+
+    return thread_context_collector_sample_after_gvl_running_with_thread(collector_instance, thread);
   }
 #else
   static bool handle_gvl_waiting(
