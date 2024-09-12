@@ -137,7 +137,30 @@ module Datadog
             fields = {}
             max = settings.dynamic_instrumentation.max_capture_attribute_count
             cur = 0
-            value.instance_variables.each do |ivar|
+
+            # MRI and JRuby 9.4.5+ preserve instance variable definition
+            # order when calling #instance_variables. Previous JRuby versions
+            # did not preserve order and returned the variables in arbitrary
+            # order.
+            #
+            # The arbitrary order is problematic because 1) when there are
+            # fewer instance variables than capture limit, the order in which
+            # the variables are shown in UI will change from one capture to
+            # the next and generally will be arbitrary to the user, and
+            # 2) when there are more instance variables than capture limit,
+            # *which* variables are captured will also change meaning user
+            # looking at the UI may have "new" instance variables appear and
+            # existing ones disappear as they are looking at multiple captures.
+            #
+            # For consistency, we should have some kind of stable order of
+            # instance variables on all supported Ruby runtimes, so that the UI
+            # stays consistent. Given that initial implementation of Ruby DI
+            # does not support JRuby, we don't handle JRuby's lack of ordering
+            # of #instance_variables here, but if JRuby is supported in the
+            # future this may need to be addressed.
+            ivars = value.instance_variables
+
+            ivars.each do |ivar|
               if cur >= max
                 serialized.update(notCapturedReason: "fieldCount", fields: fields)
                 break
