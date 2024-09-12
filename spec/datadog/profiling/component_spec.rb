@@ -543,13 +543,27 @@ RSpec.describe Datadog::Profiling::Component do
         let(:no_signals_workaround_enabled) { false }
 
         before do
-          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
+          allow(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
         end
 
-        it "is enabled by default" do
-          expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+        context "on Ruby >= 3.4" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.4." }
 
-          build_profiler_component
+          it "is never applied" do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+
+        context "on Ruby < 3.4" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.4." }
+
+          it "is applied by default" do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+
+            build_profiler_component
+          end
         end
 
         context "when the no signals workaround is enabled" do

@@ -435,10 +435,7 @@ module Datadog
       end
 
       private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
-        return false if no_signals_workaround_enabled
-
-        # NOTE: In the future this method will evolve to check for Ruby versions affected and not apply the workaround
-        # when it's not needed but currently all known Ruby versions are affected.
+        return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
 
         settings.profiling.advanced.dir_interruption_workaround_enabled
       end
