@@ -772,6 +772,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         context "when thread starts Waiting for GVL" do
           before do
+            skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION
+
             sample # trigger context creation
             samples_from_pprof(recorder.serialize!) # flush sample
 
@@ -833,6 +835,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         context "when thread is Waiting for GVL" do
           before do
+            skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION
+
             sample # trigger context creation
             on_gvl_waiting(t1)
             sample # trigger creation of sample representing the period before Waiting for GVL
@@ -1561,6 +1565,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   describe "#sample_after_gvl_running" do
+    before { skip "Behavior does not apply to current Ruby version" if min_ruby_for_gvl_profiling > RUBY_VERSION }
+
     let(:timeline_enabled) { true }
 
     context "when thread does not have the end of Waiting for GVL to be recorded" do

@@ -1810,6 +1810,6 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     DDTRACE_UNUSED VALUE stack_from_thread,
     DDTRACE_UNUSED struct per_thread_context *thread_context,
     DDTRACE_UNUSED sampling_buffer* sampling_buffer,
-    DDTRACE_UNUSED long current_cpu_time_ns,
+    DDTRACE_UNUSED long current_cpu_time_ns
   ) { return false; }
 #endif // NO_GVL_INSTRUMENTATION
