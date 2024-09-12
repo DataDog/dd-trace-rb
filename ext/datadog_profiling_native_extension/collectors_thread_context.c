@@ -260,6 +260,7 @@ static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
 static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
+static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -296,6 +297,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
     rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
+    rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 3);
   #endif
 
   at_active_span_id = rb_intern_const("@active_span");
@@ -1786,6 +1788,21 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     return thread_context_collector_sample_after_gvl_running_with_thread(collector_instance, thread);
   }
+
+  static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns) {
+    ENFORCE_THREAD(thread);
+
+    struct thread_context_collector_state *state;
+    TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+    struct per_thread_context *thread_context = get_context_for(thread, state);
+    if (thread_context == NULL) rb_raise(rb_eArgError, "Unexpected: This method cannot be used unless the per-thread context for the thread already exists");
+
+    thread_context->cpu_time_at_previous_sample_ns += NUM2LONG(delta_ns);
+
+    return Qtrue;
+  }
+
 #else
   static bool handle_gvl_waiting(
     DDTRACE_UNUSED struct thread_context_collector_state *state,

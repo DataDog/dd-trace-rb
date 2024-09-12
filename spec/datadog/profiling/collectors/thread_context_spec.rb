@@ -119,6 +119,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_gc_tracking(cpu_and_wall_time_collector)
   end
 
+  def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
+    described_class::Testing._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+  end
+
   # This method exists only so we can look for its name in the stack trace in a few tests
   def inside_t1
     yield
@@ -806,6 +810,23 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               end_timestamp_ns: be_between(time_before_sample, time_after_sample),
             )
           end
+
+          context "cpu-time behavior on Linux" do
+            before do
+              skip "Test only runs on Linux" unless PlatformHelpers.linux?
+
+              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+            end
+
+            it "assigns all the cpu-time to the sample before Waiting for GVL started" do
+              sample
+
+              first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
+
+              expect(first_sample.values.fetch(:"cpu-time")).to be 12345
+              expect(second_sample.values.fetch(:"cpu-time")).to be 0
+            end
+          end
         end
 
         context "when thread is Waiting for GVL" do
@@ -835,6 +856,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               state: expected_state,
               end_timestamp_ns: be_between(time_before_sample, time_after_sample),
             )
+
+            latest_sample
           end
 
           it "records a new Waiting for GVL sample on every subsequent sample" do
@@ -848,6 +871,22 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
             expect(gvl_waiting_at_for(t1)).to be value_before
             expect(gvl_waiting_at_for(t1)).to be > 0
+          end
+
+          context "cpu-time behavior on Linux" do
+            before do
+              skip "Test only runs on Linux" unless PlatformHelpers.linux?
+
+              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+            end
+
+            it "does not assign any cpu-time to the Waiting for GVL samples" do
+              3.times do
+                latest_sample = sample_and_check(expected_state: "waiting for gvl")
+
+                expect(latest_sample.values.fetch(:"cpu-time")).to be 0
+              end
+            end
           end
 
           context "when thread is ready to run again" do
@@ -873,6 +912,24 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 samples_from_pprof(recorder.serialize!) # flush previous samples
 
                 3.times { sample_and_check(expected_state: "sleeping") }
+              end
+
+              context "cpu-time behavior on Linux" do
+                before do
+                  skip "Test only runs on Linux" unless PlatformHelpers.linux?
+                end
+
+                it "assigns all the cpu-time to samples only after Waiting for GVL ends" do
+                  apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+
+                  sample # last Waiting for GVL sample
+
+                  latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+                  expect(latest_sample.values.fetch(:"cpu-time")).to be 0
+
+                  latest_sample = sample_and_check(expected_state: "had cpu")
+                  expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
+                end
               end
             end
 
