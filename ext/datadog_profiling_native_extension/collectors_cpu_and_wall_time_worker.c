@@ -180,20 +180,7 @@ struct cpu_and_wall_time_worker_state {
 };
 
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE self_instance,
-  VALUE thread_context_collector_instance,
-  VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance,
-  VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled,
-  VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled,
-  VALUE allocation_counting_enabled,
-  VALUE gvl_profiling_enabled,
-  VALUE skip_idle_samples_for_testing
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
@@ -312,7 +299,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 11);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -390,20 +377,23 @@ static VALUE _native_new(VALUE klass) {
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
 
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE self_instance,
-  VALUE thread_context_collector_instance,
-  VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance,
-  VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled,
-  VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled,
-  VALUE allocation_counting_enabled,
-  VALUE gvl_profiling_enabled,
-  VALUE skip_idle_samples_for_testing
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE self_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE thread_context_collector_instance = rb_hash_fetch(options, ID2SYM(rb_intern("thread_context_collector")));
+  VALUE gc_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gc_profiling_enabled")));
+  VALUE idle_sampling_helper_instance = rb_hash_fetch(options, ID2SYM(rb_intern("idle_sampling_helper")));
+  VALUE no_signals_workaround_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("no_signals_workaround_enabled")));
+  VALUE dynamic_sampling_rate_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("dynamic_sampling_rate_enabled")));
+  VALUE dynamic_sampling_rate_overhead_target_percentage = rb_hash_fetch(options, ID2SYM(rb_intern("dynamic_sampling_rate_overhead_target_percentage")));
+  VALUE allocation_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_profiling_enabled")));
+  VALUE allocation_counting_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_counting_enabled")));
+  VALUE gvl_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gvl_profiling_enabled")));
+  VALUE skip_idle_samples_for_testing = rb_hash_fetch(options, ID2SYM(rb_intern("skip_idle_samples_for_testing")));
+
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);

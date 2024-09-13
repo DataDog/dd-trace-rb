@@ -37,17 +37,17 @@ module Datadog
           gvl_profiling_enabled = ENV["TESTING_GVL_PROFILING"] == "true"
 
           self.class._native_initialize(
-            self,
-            thread_context_collector,
-            gc_profiling_enabled,
-            idle_sampling_helper,
-            no_signals_workaround_enabled,
-            dynamic_sampling_rate_enabled,
-            dynamic_sampling_rate_overhead_target_percentage,
-            allocation_profiling_enabled,
-            allocation_counting_enabled,
-            gvl_profiling_enabled,
-            skip_idle_samples_for_testing,
+            self_instance: self,
+            thread_context_collector: thread_context_collector,
+            gc_profiling_enabled: gc_profiling_enabled,
+            idle_sampling_helper: idle_sampling_helper,
+            no_signals_workaround_enabled: no_signals_workaround_enabled,
+            dynamic_sampling_rate_enabled: dynamic_sampling_rate_enabled,
+            dynamic_sampling_rate_overhead_target_percentage: dynamic_sampling_rate_overhead_target_percentage,
+            allocation_profiling_enabled: allocation_profiling_enabled,
+            allocation_counting_enabled: allocation_counting_enabled,
+            gvl_profiling_enabled: gvl_profiling_enabled,
+            skip_idle_samples_for_testing: skip_idle_samples_for_testing,
           )
           @worker_thread = nil
           @failure_exception = nil
