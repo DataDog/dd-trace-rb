@@ -134,11 +134,11 @@ RSpec.shared_context 'Rails 7 test application' do
     end
   end
 
-  before do
+  around do |example|
     reset_rails_configuration!
-  end
 
-  after do
+    example.run
+  ensure
     reset_rails_configuration!
 
     # Push this to base when Rails 3 removed
