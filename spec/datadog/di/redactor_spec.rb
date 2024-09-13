@@ -1,3 +1,4 @@
+require "datadog/di/spec_helper"
 require "datadog/di/redactor"
 
 class DIRedactorSpecSensitiveType; end
@@ -27,6 +28,8 @@ module DIRedactorSpec
 end
 
 RSpec.describe Datadog::DI::Redactor do
+  di_test
+
   let(:settings) do
     double("settings").tap do |settings|
       allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
