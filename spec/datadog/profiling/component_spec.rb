@@ -99,6 +99,7 @@ RSpec.describe Datadog::Profiling::Component do
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_profiling_enabled: false,
             allocation_counting_enabled: :allocation_counting_enabled_config,
+            gvl_profiling_enabled: false, # TODO: Make this configurable, from the settings
           )
 
           build_profiler_component

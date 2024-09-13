@@ -62,6 +62,7 @@ module Datadog
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
+          gvl_profiling_enabled: false, # TODO: Make this configurable, from the settings
         )
 
         internal_metadata = {

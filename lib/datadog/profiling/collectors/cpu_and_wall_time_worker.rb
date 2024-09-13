@@ -22,6 +22,7 @@ module Datadog
           dynamic_sampling_rate_overhead_target_percentage:,
           allocation_profiling_enabled:,
           allocation_counting_enabled:,
+          gvl_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -33,8 +34,6 @@ module Datadog
               "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
             )
           end
-
-          gvl_profiling_enabled = ENV["TESTING_GVL_PROFILING"] == "true"
 
           self.class._native_initialize(
             self_instance: self,

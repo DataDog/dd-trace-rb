@@ -16,6 +16,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:timeline_enabled) { false }
   let(:options) { {} }
   let(:allocation_counting_enabled) { false }
+  let(:gvl_profiling_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -24,6 +25,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
+      gvl_profiling_enabled: gvl_profiling_enabled,
       **options
     }
   end
