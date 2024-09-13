@@ -3,7 +3,7 @@
 module Datadog
   module Core
     module Telemetry
-      # === INTRENAL USAGE ONLY ===
+      # === INTERNAL USAGE ONLY ===
       #
       # Report telemetry logs via delegating to the telemetry component instance via mutex.
       #

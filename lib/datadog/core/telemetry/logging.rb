@@ -7,7 +7,7 @@ require 'pathname'
 module Datadog
   module Core
     module Telemetry
-      # === INTRENAL USAGE ONLY ===
+      # === INTERNAL USAGE ONLY ===
       #
       # Logging interface for sending telemetry logs... so we can fix them.
       #
