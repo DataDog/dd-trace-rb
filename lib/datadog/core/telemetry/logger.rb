@@ -8,7 +8,7 @@ module Datadog
       # Report telemetry logs via delegating to the telemetry component instance via mutex.
       #
       # IMPORTANT: Invoking this method during the lifecycle of component initialization will
-      # cause a non-recoverable deadlock
+      # be no-op instead.
       #
       # For developer using this module:
       #   read: lib/datadog/core/telemetry/logging.rb
@@ -25,7 +25,17 @@ module Datadog
           private
 
           def instance
-            Datadog.send(:components).telemetry
+            # `allow_initialization: false` to prevent deadlock from components lifecycle
+            components = Datadog.send(:components, allow_initialization: false)
+
+            if components && components.telemetry
+              components.telemetry
+            else
+              Datadog.logger.error(
+                'Fail to send telemetry log before components initialization or within components lifecycle'
+              )
+              nil
+            end
           end
         end
       end
