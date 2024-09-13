@@ -4,7 +4,11 @@ source "https://rubygems.org"
 
 gem 'puma'
 gem 'unicorn'
-gem 'passenger'
+if RUBY_VERSION < '2.6.0'
+  gem 'passenger', '< 6.0.23'
+else
+  gem 'passenger'
+end
 gem 'rack'
 gem 'rackup' if RUBY_VERSION >= '2.4'  # The `rackup` is its own gem since Rack 3.0
 
