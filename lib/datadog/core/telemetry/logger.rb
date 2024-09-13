@@ -25,8 +25,14 @@ module Datadog
           private
 
           def instance
-            # `allow_initialization: false` would avoid referencing the components via `safely_synchronize` (mutex)
-            # which could cause deadlock during components initialization.
+            # Component initialization uses a mutex to avoid having concurrent initialization.
+            # Trying to access the telemetry component during initialization (specifically:
+            # from the thread that's actually doing the initialization) would cause a deadlock,
+            # since accessing the components would try to recursively lock the mutex.
+            #
+            # To work around this, we use allow_initialization: false to avoid triggering this issue.
+            #
+            # The downside is: this leaves us unable to report telemetry during component initialization.
             components = Datadog.send(:components, allow_initialization: false)
 
             if components && components.telemetry
