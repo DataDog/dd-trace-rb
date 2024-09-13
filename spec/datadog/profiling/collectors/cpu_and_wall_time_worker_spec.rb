@@ -136,6 +136,28 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    context "when gvl_profiling_enabled is true" do
+      before { skip_if_gvl_profiling_not_supported(self) }
+
+      let(:gvl_profiling_enabled) { true }
+
+      it "enables the gvl profiling hook" do
+        start
+
+        expect(described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker)).to be true
+      end
+    end
+
+    context "when gvl_profiling_enabled is false" do
+      let(:gvl_profiling_enabled) { false }
+
+      it "does not enable the gvl profiling hook" do
+        start
+
+        expect(described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker)).to be false
+      end
+    end
+
     context "when a previous signal handler existed" do
       before do
         described_class::Testing._native_install_testing_signal_handler
@@ -374,11 +396,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       context "when GVL profiling is enabled" do
-        before do
-          if min_ruby_for_gvl_profiling > RUBY_VERSION
-            skip "GVL profiling is is only supported on Ruby >= #{min_ruby_for_gvl_profiling}"
-          end
-        end
+        before { skip_if_gvl_profiling_not_supported(self) }
 
         let(:gvl_profiling_enabled) { true }
 
@@ -947,6 +965,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
         Process.kill("SIGPROF", Process.pid)
       end
+
+      context "when GVL profiling is enabled" do
+        before { skip_if_gvl_profiling_not_supported(self) }
+
+        let(:gvl_profiling_enabled) { true }
+
+        it "disables the GVL profiling hook" do
+          expect { stop }
+            .to change { described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker) }
+            .from(true).to(false)
+        end
+      end
     end
 
     it "unblocks SIGPROF signal handling from the worker thread" do
@@ -991,6 +1021,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect { reset_after_fork }
         .to change { described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker).enabled? }
         .from(true).to(false)
+    end
+
+    context "when gvl_profiling_enabled is true" do
+      before { skip_if_gvl_profiling_not_supported(self) }
+
+      let(:gvl_profiling_enabled) { true }
+
+      it "disables the gvl profiling hook" do
+        expect { reset_after_fork }
+          .to change { described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker) }
+          .from(true).to(false)
+      end
     end
 
     it "resets the CpuAndWallTime collector only after disabling the tracepoint" do

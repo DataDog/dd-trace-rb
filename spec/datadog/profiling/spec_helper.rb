@@ -122,8 +122,8 @@ module ProfileHelpers
     end
   end
 
-  def min_ruby_for_gvl_profiling
-    "3.3."
+  def skip_if_gvl_profiling_not_supported(testcase)
+    testcase.skip "GVL profiling is only supported on Ruby >= 3.3" if RUBY_VERSION < "3.3."
   end
 end
 

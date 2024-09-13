@@ -230,6 +230,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
 #endif
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -325,6 +326,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
   rb_define_singleton_method(testing_module, "_native_delayed_error", _native_delayed_error, 2);
+  rb_define_singleton_method(testing_module, "_native_gvl_profiling_hook_active", _native_gvl_profiling_hook_active, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -1338,3 +1340,14 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     state->during_sample = false;
   }
 #endif
+
+static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
+  #ifndef NO_GVL_INSTRUMENTATION
+    struct cpu_and_wall_time_worker_state *state;
+    TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+    return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
+  #else
+    return Qfalse;
+  #endif
+}
