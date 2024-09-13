@@ -10,6 +10,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:report).with(exception, level: :error, description: 'Oops...')
+        expect(Datadog.logger).not_to receive(:warn)
 
         expect do
           described_class.report(exception, level: :error, description: 'Oops...')
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
           telemetry = instance_double(Datadog::Core::Telemetry::Component)
           allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
           expect(telemetry).to receive(:report).with(exception, level: :error, description: nil)
+          expect(Datadog.logger).not_to receive(:warn)
 
           expect do
             described_class.report(exception)
@@ -34,6 +36,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
       it do
         exception = StandardError.new
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
+        expect(Datadog.logger).to receive(:warn).with(/Fail to send telemetry log/)
 
         expect do
           described_class.report(exception, level: :error, description: 'Oops...')
@@ -48,6 +51,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
         telemetry = instance_double(Datadog::Core::Telemetry::Component)
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(telemetry)
         expect(telemetry).to receive(:error).with('description')
+        expect(Datadog.logger).not_to receive(:warn)
 
         expect { described_class.error('description') }.not_to raise_error
       end
@@ -56,6 +60,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
     context 'when there is no telemetry component configured' do
       it do
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
+        expect(Datadog.logger).to receive(:warn).with(/Fail to send telemetry log/)
 
         expect { described_class.error('description') }.not_to raise_error
       end
