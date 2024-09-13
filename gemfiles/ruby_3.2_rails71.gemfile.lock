@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.2.0)
+    datadog (2.3.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 11.0.0.1.0)
+      libdatadog (~> 12.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -130,6 +130,7 @@ GEM
     globalid (1.2.1)
       activesupport (>= 6.1)
     google-protobuf (3.25.4-aarch64-linux)
+    google-protobuf (3.25.4-x86_64-linux)
     hashdiff (1.1.1)
     i18n (1.14.5)
       concurrent-ruby (~> 1.0)
@@ -140,8 +141,11 @@ GEM
     json (2.7.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (11.0.0.1.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     loofah (2.22.0)
       crass (~> 1.0.2)
@@ -169,6 +173,8 @@ GEM
       net-protocol
     nio4r (2.7.3)
     nokogiri (1.16.7-aarch64-linux)
+      racc (~> 1.4)
+    nokogiri (1.16.7-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
     parallel (1.26.3)
@@ -302,6 +308,7 @@ GEM
 
 PLATFORMS
   aarch64-linux
+  x86_64-linux
 
 DEPENDENCIES
   appraisal (~> 2.4.0)
@@ -341,4 +348,4 @@ DEPENDENCIES
   yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26
