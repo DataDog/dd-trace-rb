@@ -25,7 +25,8 @@ module Datadog
           private
 
           def instance
-            # `allow_initialization: false` to prevent deadlock from components lifecycle
+            # `allow_initialization: false` would avoid referencing the components via `safely_synchronize` (mutex)
+            # which could cause deadlock during components initialization.
             components = Datadog.send(:components, allow_initialization: false)
 
             if components && components.telemetry
