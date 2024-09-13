@@ -176,6 +176,10 @@ struct cpu_and_wall_time_worker_state {
     uint64_t allocation_sampling_time_ns_total;
     // How many times we saw allocations being done inside a sample
     unsigned int allocations_during_sample;
+
+    // # GVL profiling stats
+    // How many times we triggered the after_gvl_running sampling
+    unsigned int after_gvl_running;
   } stats;
 };
 
@@ -1028,6 +1032,9 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.allocation_sampling_time_ns_total, state->stats.allocation_sampled),
     ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
+
+    // GVL profiling stats
+    ID2SYM(rb_intern("after_gvl_running")), /* => */ UINT2NUM(state->stats.after_gvl_running),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1325,6 +1332,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     state->during_sample = true;
 
     safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+
+    state->stats.after_gvl_running++;
 
     state->during_sample = false;
   }

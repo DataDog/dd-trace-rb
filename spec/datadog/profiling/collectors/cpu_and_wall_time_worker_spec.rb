@@ -325,7 +325,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    context "when main thread is sleeping but a background thread is working" do
+    context "when main thread is sleeping but a background thread is working", :memcheck_valgrind_skip do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -340,7 +340,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         background_thread.join
       end
 
-      it "is able to sample even when the main thread is sleeping", :memcheck_valgrind_skip do
+      it "is able to sample even when the main thread is sleeping" do
         background_thread
         ready_queue.pop
 
@@ -371,6 +371,66 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # the test below.
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
+      end
+
+      context "when GVL profiling is enabled" do
+        before do
+          if min_ruby_for_gvl_profiling > RUBY_VERSION
+            skip "GVL profiling is is only supported on Ruby >= #{min_ruby_for_gvl_profiling}"
+          end
+        end
+
+        let(:gvl_profiling_enabled) { true }
+
+        let(:timeline_enabled) { true }
+        let(:ready_queue_2) { Queue.new }
+        let(:background_thread_affected_by_gvl_contention) do
+          Thread.new do
+            ready_queue_2 << true
+            loop { Thread.pass }
+          end
+        end
+
+        after do
+          background_thread_affected_by_gvl_contention.kill
+          background_thread_affected_by_gvl_contention.join
+        end
+
+        it "records Waiting for GVL samples" do
+          background_thread_affected_by_gvl_contention
+          ready_queue_2.pop
+
+          start
+          wait_until_running
+
+          background_thread
+          ready_queue.pop
+
+          sleep 0.2
+
+          cpu_and_wall_time_worker.stop
+
+          background_thread.kill
+          background_thread_affected_by_gvl_contention.kill
+
+          samples = samples_for_thread(
+            samples_from_pprof_without_gc_and_overhead(recorder.serialize!),
+            background_thread_affected_by_gvl_contention
+          )
+
+          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
+          total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") }
+          waiting_for_gvl_time = waiting_for_gvl_samples.sum { |sample| sample.values.fetch(:"wall-time") }
+
+          expect(waiting_for_gvl_samples.size).to be > 0
+
+          # The background thread should spend almost all of its time waiting to run (since when it gets to run
+          # it just passes and starts waiting)
+          expect(waiting_for_gvl_time).to be < total_time
+          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time)
+
+          expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
+        end
       end
     end
 
@@ -974,6 +1034,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampling_time_ns_avg: nil,
           allocation_sampler_snapshot: nil,
           allocations_during_sample: nil,
+          after_gvl_running: 0,
         }
       )
     end

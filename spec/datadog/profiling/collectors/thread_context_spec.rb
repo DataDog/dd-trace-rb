@@ -40,7 +40,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
-  let(:min_ruby_for_gvl_profiling) { "3.3." }
   # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
   # want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
