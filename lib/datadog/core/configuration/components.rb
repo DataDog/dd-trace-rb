@@ -94,7 +94,9 @@ module Datadog
           # the Core resolver from within your product/component's namespace.
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings)
+          @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
+
+          @remote = Remote::Component.build(settings, agent_settings, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
@@ -107,8 +109,7 @@ module Datadog
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
-          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
 
           self.class.configure_tracing(settings)
         end

@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/sampling/rate_limiter'
+require 'datadog/core/rate_limiter'
 
-RSpec.describe Datadog::Tracing::Sampling::TokenBucket do
+RSpec.describe Datadog::Core::TokenBucket do
   subject(:bucket) { described_class.new(rate, max_tokens) }
 
   let(:rate) { 1 }
@@ -98,6 +98,28 @@ RSpec.describe Datadog::Tracing::Sampling::TokenBucket do
         it 'catches up the lost time' do
           allow?
           expect(bucket.available_tokens).to eq(rate * 10)
+        end
+      end
+    end
+
+    context 'when size is not given' do
+      subject(:allow?) { bucket.allow? }
+
+      context 'when tokens are available' do
+        it 'returns true' do
+          is_expected.to be true
+        end
+      end
+
+      context 'when tokens are not available' do
+        let(:max_tokens) { 1 }
+
+        before do
+          bucket.allow?
+        end
+
+        it 'returns false' do
+          is_expected.to be false
         end
       end
     end

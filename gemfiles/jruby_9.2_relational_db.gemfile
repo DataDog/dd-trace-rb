@@ -34,7 +34,7 @@ gem "delayed_job_active_record"
 gem "makara"
 gem "activerecord-jdbcmysql-adapter", ">= 52", platform: :jruby
 gem "activerecord-jdbcpostgresql-adapter", ">= 52", platform: :jruby
-gem "sequel", "~> 5.54.0"
+gem "sequel"
 gem "activerecord-jdbcsqlite3-adapter", ">= 52", platform: :jruby
 
 group :check do

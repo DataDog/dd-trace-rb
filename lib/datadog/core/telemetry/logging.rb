@@ -7,7 +7,7 @@ require 'pathname'
 module Datadog
   module Core
     module Telemetry
-      # === INTRENAL USAGE ONLY ===
+      # === INTERNAL USAGE ONLY ===
       #
       # Logging interface for sending telemetry logs... so we can fix them.
       #
@@ -21,8 +21,6 @@ module Datadog
       # - What information needed to make it actionable?
       #
       module Logging
-        extend self
-
         # Extract datadog stack trace from the exception
         module DatadogStackTrace
           GEM_ROOT = Pathname.new("#{__dir__}/../../../..").cleanpath.to_s
@@ -47,7 +45,7 @@ module Datadog
           end
         end
 
-        def report(exception, level:, description: nil)
+        def report(exception, level: :error, description: nil)
           # Annoymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +''
           message << (exception.class.name || exception.class.inspect)
@@ -59,23 +57,13 @@ module Datadog
             stack_trace: DatadogStackTrace.from(exception)
           )
 
-          dispatch(event)
+          log!(event)
         end
 
         def error(description)
           event = Event::Log.new(message: description, level: :error)
 
-          dispatch(event)
-        end
-
-        private
-
-        def dispatch(event)
-          if (telemetry = Datadog.send(:components).telemetry)
-            telemetry.log!(event)
-          else
-            Datadog.logger.debug { 'Attempting to send telemetry log when telemetry component is not ready' }
-          end
+          log!(event)
         end
       end
     end

@@ -725,6 +725,7 @@ RSpec.describe 'Grape instrumentation' do
       before do
         Datadog.configure { |c| c.tracing.enabled = false }
         expect(Datadog.logger).to_not receive(:error)
+        expect(Datadog::Core::Telemetry::Logger).to_not receive(:report)
       end
 
       it 'runs the endpoint request without tracing' do

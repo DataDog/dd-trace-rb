@@ -68,6 +68,7 @@ target :datadog do
   ignore 'lib/datadog/core/metrics/metric.rb'
   ignore 'lib/datadog/core/metrics/options.rb'
   ignore 'lib/datadog/core/pin.rb'
+  ignore 'lib/datadog/core/rate_limiter.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/ext.rb'
@@ -495,7 +496,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/sampling/priority_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rate_by_key_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rate_by_service_sampler.rb'
-  ignore 'lib/datadog/tracing/sampling/rate_limiter.rb'
   ignore 'lib/datadog/tracing/sampling/rate_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rule.rb'
   ignore 'lib/datadog/tracing/sampling/rule_sampler.rb'
@@ -569,6 +569,7 @@ target :datadog do
   library 'passenger'
   library 'webmock'
   library 'graphql'
+  library 'datadog-ci'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

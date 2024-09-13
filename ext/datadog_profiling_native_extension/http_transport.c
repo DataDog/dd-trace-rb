@@ -77,6 +77,32 @@ static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporte
   return rb_ary_new_from_args(2, ok_symbol, Qnil);
 }
 
+static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
+
+  VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
+  ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
+  ID working_mode = SYM2ID(exporter_working_mode);
+
+  ID agentless_id = rb_intern("agentless");
+  ID agent_id = rb_intern("agent");
+
+  if (working_mode != agentless_id && working_mode != agent_id) {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
+  }
+
+  if (working_mode == agentless_id) {
+    VALUE site = rb_ary_entry(exporter_configuration, 1);
+    VALUE api_key = rb_ary_entry(exporter_configuration, 2);
+
+    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+  } else { // agent_id
+    VALUE base_url = rb_ary_entry(exporter_configuration, 1);
+
+    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+  }
+}
+
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
@@ -115,8 +141,7 @@ static VALUE perform_export(
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
   ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
-  ddog_CharSlice info,
-  uint64_t timeout_milliseconds
+  ddog_CharSlice info
 ) {
   ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
   ddog_prof_Exporter_Request_BuildResult build_result = ddog_prof_Exporter_Request_build(
@@ -128,8 +153,7 @@ static VALUE perform_export(
     additional_tags,
     endpoints_stats,
     &internal_metadata,
-    &info,
-    timeout_milliseconds
+    &info
   );
 
   if (build_result.tag == DDOG_PROF_EXPORTER_REQUEST_BUILD_RESULT_ERR) {
@@ -254,6 +278,15 @@ static VALUE _native_do_export(
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
+  ddog_prof_MaybeError timeout_result = ddog_prof_Exporter_set_timeout(exporter_result.ok, timeout_milliseconds);
+  if (timeout_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    // NOTE: Seems a bit harsh to fail the upload if we can't set a timeout. OTOH, this is only expected to fail
+    // if the exporter is not well built. Because such a situation should already be caught above I think it's
+    // preferable to leave this here as a virtually unreachable exception rather than ignoring it.
+    ddog_prof_Exporter_drop(exporter_result.ok);
+    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&timeout_result.some));
+  }
+
   return perform_export(
     exporter_result.ok,
     start,
@@ -262,8 +295,7 @@ static VALUE _native_do_export(
     files_to_export_unmodified,
     null_additional_tags,
     internal_metadata,
-    info,
-    timeout_milliseconds
+    info
   );
 }
 

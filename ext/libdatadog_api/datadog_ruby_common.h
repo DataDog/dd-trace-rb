@@ -40,9 +40,6 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
 }
 
 __attribute__((warn_unused_result))
-ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration);
-
-__attribute__((warn_unused_result))
 ddog_Vec_Tag convert_tags(VALUE tags_as_array);
 
 static inline VALUE ruby_string_from_error(const ddog_Error *error) {
