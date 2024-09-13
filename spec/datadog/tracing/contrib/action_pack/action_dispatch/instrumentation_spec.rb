@@ -56,13 +56,5 @@ RSpec.describe Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Instrument
 
       expect(traces).to be_empty
     end
-
-    it 'rescues exceptions' do
-      expect(Datadog::Tracing).to receive(:active_trace).and_raise('boom')
-
-      expect(Datadog.logger).to receive(:error).with('boom')
-
-      described_class.set_http_route_tags('/users/:id', '/auth')
-    end
   end
 end

@@ -23,7 +23,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
   describe '#find_routes' do
     before do
       engine.routes.append do
-        get '/sign-in/(:expires_in)' => 'tokens#create'
+        get '/sign-in' => 'tokens#create'
       end
 
       auth_engine = engine
@@ -41,6 +41,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         get '/items/:id', to: 'items#by_id', id: /\d+/
         get '/items/:slug', to: 'items#by_slug', id: /(\w-)+/
 
+        get 'books(/:category)', to: 'books#index'
         get 'books/*section/:title', to: 'books#show'
       end
     end
@@ -88,6 +89,10 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
       stub_const(
         'BooksController',
         Class.new(ActionController::Base) do
+          def index
+            head :ok
+          end
+
           def show
             head :ok
           end
@@ -180,6 +185,17 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
         expect(request_span.tags).not_to have_key('http.route.path')
       end
 
+      it 'sets http.route correctly for routes with optional parameter' do
+        get 'books/some-category'
+
+        request_span = spans.first
+
+        expect(last_response).to be_ok
+        expect(request_span.name).to eq('rack.request')
+        expect(request_span.tags.fetch('http.route')).to eq('/books(/:category)')
+        expect(request_span.tags).not_to have_key('http.route.path')
+      end
+
       it 'sets http.route and http.route.path for rails engine routes' do
         get '/api/auth/sign-in'
 
@@ -187,7 +203,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::ActionPack::ActionDispatch::Journey::
 
         expect(last_response).to be_ok
         expect(request_span.name).to eq('rack.request')
-        expect(request_span.tags.fetch('http.route')).to eq('/api/auth/sign-in(/:expires_in)')
+        expect(request_span.tags.fetch('http.route')).to eq('/api/auth/sign-in')
         expect(request_span.tags).not_to have_key('http.route.path')
       end
 

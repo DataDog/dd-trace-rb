@@ -66,7 +66,7 @@ module Datadog
               if (grape_route = env['grape.routing_args'] && env['grape.routing_args'][:route_info])
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                  grape_route.path&.gsub(/\(\.{1}:?\w+\)\z/, '')
+                  grape_route.path&.gsub(/\(\.:?\w+\)\z/, '')
                 )
 
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])

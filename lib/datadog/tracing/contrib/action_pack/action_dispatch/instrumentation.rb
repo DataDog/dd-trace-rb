@@ -24,8 +24,6 @@ module Datadog
               if script_name && !script_name.empty?
                 request_trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, script_name)
               end
-            rescue StandardError => e
-              Datadog.logger.error(e.message)
             end
 
             def dispatcher_route?(route)
