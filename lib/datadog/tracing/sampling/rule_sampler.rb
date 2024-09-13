@@ -30,15 +30,20 @@ module Datadog
           default_sampler: nil
         )
           @rules = rules
-          @rate_limiter = if rate_limiter
+          @rate_limiter = if Datadog.configuration.appsec.standalone.enabled
+                            # 0.0167 ~ 1 trace per minute
+                            Core::TokenBucket.new(0.0167, 1.0)
+                          elsif rate_limiter
                             rate_limiter
                           elsif rate_limit
                             Core::TokenBucket.new(rate_limit)
                           else
                             Core::UnlimitedLimiter.new
                           end
-
-          @default_sampler = if default_sampler
+          @default_sampler = if Datadog.configuration.appsec.standalone.enabled
+                               @rules = [SimpleRule.new(sample_rate: 1.0)]
+                               nil
+                             elsif default_sampler
                                default_sampler
                              elsif default_sample_rate
                                # Add to the end of the rule list a rule always matches any trace
