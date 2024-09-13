@@ -564,6 +564,13 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
   // Guard against potential overflows given unsigned types here.
   record->object_data.gen_age = alloc_gen < update_gen ? update_gen - alloc_gen : 0;
 
+  if (record->object_data.gen_age == 0) {
+    // Objects that belong to the current GC gen have not had a chance to be cleaned up yet
+    // and won't show up in the iteration anyway so no point in checking their liveness/sizes.
+    recorder->stats_last_update.objects_skipped++;
+    return ST_CONTINUE;
+  }
+
   if (!recorder->update_include_old && record->object_data.gen_age >= OLD_AGE) {
     // The current update is not including old objects but this record is for an old object, skip its update.
     recorder->stats_last_update.objects_skipped++;
