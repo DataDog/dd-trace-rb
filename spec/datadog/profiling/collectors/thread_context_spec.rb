@@ -44,6 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
   # want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
+  let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -52,6 +53,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       allocation_type_enabled: allocation_type_enabled,
     )
   end
@@ -95,8 +97,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_gvl_waiting_at_for(thread)
   end
 
-  def on_gvl_running(thread, waiting_for_gvl_threshold_ns)
-    described_class::Testing._native_on_gvl_running(thread, waiting_for_gvl_threshold_ns)
+  def on_gvl_running(thread)
+    described_class::Testing._native_on_gvl_running(thread)
   end
 
   def sample_after_gvl_running(thread)
@@ -132,6 +134,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # This method exists only so we can look for its name in the stack trace in a few tests
   def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
     sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
+  end
+
+  describe ".new" do
+    it "sets the waiting_for_gvl_threshold_ns to the provided value" do
+      # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
+      expect(cpu_and_wall_time_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+    end
   end
 
   describe "#sample" do
@@ -897,12 +906,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           context "when thread is ready to run again" do
-            before do
-              on_gvl_running(t1, threshold)
-            end
+            before { on_gvl_running(t1) }
 
             context "when Waiting for GVL duration >= the threshold" do
-              let(:threshold) { 0 }
+              let(:waiting_for_gvl_threshold_ns) { 0 }
 
               it "records a last Waiting for GVL sample" do
                 sample_and_check(expected_state: "waiting for gvl")
@@ -943,7 +950,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
 
             context "when Waiting for GVL duration < the threshold" do
-              let(:threshold) { 1_000_000_000 }
+              let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
               it "records a regular sample" do
                 expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
@@ -1489,7 +1496,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "if thread has not been sampled before" do
       it "does not record anything in the internal_thread_specific value" do
-        on_gvl_running(t1, 0)
+        on_gvl_running(t1)
 
         expect(gvl_waiting_at_for(t1)).to be 0
       end
@@ -1502,11 +1509,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       it do
-        expect { on_gvl_running(t1, 0) }.to_not(change { gvl_waiting_at_for(t1) })
+        expect { on_gvl_running(t1) }.to_not(change { gvl_waiting_at_for(t1) })
       end
 
       it "does not flag that a sample is needed" do
-        expect(on_gvl_running(t1, 0)).to be false
+        expect(on_gvl_running(t1)).to be false
       end
     end
 
@@ -1519,28 +1526,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       context "when Waiting for GVL duration >= the threshold" do
-        let(:threshold) { 0 }
+        let(:waiting_for_gvl_threshold_ns) { 0 }
 
         it "flips the value of gvl_waiting_at to negative" do
-          expect { on_gvl_running(t1, threshold) }
+          expect { on_gvl_running(t1) }
             .to change { gvl_waiting_at_for(t1) }
             .from(@gvl_waiting_at)
             .to(-@gvl_waiting_at)
         end
 
         it "flags that a sample is needed" do
-          expect(on_gvl_running(t1, threshold)).to be true
+          expect(on_gvl_running(t1)).to be true
         end
 
         context "when called several times in a row" do
-          before { on_gvl_running(t1, threshold) }
+          before { on_gvl_running(t1) }
 
           it "flags that a sample is needed" do
-            expect(on_gvl_running(t1, threshold)).to be true
+            expect(on_gvl_running(t1)).to be true
           end
 
           it "keeps the value of gvl_waiting_at as negative" do
-            on_gvl_running(t1, threshold)
+            on_gvl_running(t1)
 
             expect(gvl_waiting_at_for(t1)).to be(-@gvl_waiting_at)
           end
@@ -1548,17 +1555,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       end
 
       context "when Waiting for GVL duration < the threshold" do
-        let(:threshold) { 1_000_000_000 }
+        let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
 
         it "resets the value of gvl_waiting_at back to GVL_WAITING_ENABLED_EMPTY" do
-          expect { on_gvl_running(t1, threshold) }
+          expect { on_gvl_running(t1) }
             .to change { gvl_waiting_at_for(t1) }
             .from(@gvl_waiting_at)
             .to(gvl_waiting_enabled_empty_magic_value)
         end
 
         it "flags that a sample is not needed" do
-          expect(on_gvl_running(t1, threshold)).to be false
+          expect(on_gvl_running(t1)).to be false
         end
       end
     end
@@ -1593,13 +1600,15 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     #
     # Thus, I chose to not repeat the extensive Waiting for GVL asserts we already have in #sample, and do a smaller pass.
     context "when thread is at the end of a Waiting for GVL period" do
+      let(:waiting_for_gvl_threshold_ns) { 0 }
+
       before do
         sample # trigger context creation
         on_gvl_waiting(t1)
 
         sample if record_start
 
-        on_gvl_running(t1, 0)
+        on_gvl_running(t1)
         samples_from_pprof(recorder.serialize!) # flush samples
 
         expect(gvl_waiting_at_for(t1)).to be < 0

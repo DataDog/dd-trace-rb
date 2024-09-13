@@ -20,6 +20,7 @@ module Datadog
           tracer:,
           endpoint_collection_enabled:,
           timeline_enabled:,
+          waiting_for_gvl_threshold_ns:,
           allocation_type_enabled: true
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
@@ -30,6 +31,7 @@ module Datadog
             tracer_context_key,
             endpoint_collection_enabled,
             timeline_enabled,
+            waiting_for_gvl_threshold_ns,
             allocation_type_enabled,
           )
         end
@@ -40,6 +42,7 @@ module Datadog
           tracer: nil,
           endpoint_collection_enabled: false,
           timeline_enabled: false,
+          waiting_for_gvl_threshold_ns: 10_000_000,
           **options
         )
           new(
@@ -48,6 +51,7 @@ module Datadog
             tracer: tracer,
             endpoint_collection_enabled: endpoint_collection_enabled,
             timeline_enabled: timeline_enabled,
+            waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             **options,
           )
         end

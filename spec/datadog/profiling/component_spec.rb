@@ -77,6 +77,7 @@ RSpec.describe Datadog::Profiling::Component do
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             timeline_enabled: :timeline_enabled_config,
+            waiting_for_gvl_threshold_ns: 10_000_000, # TODO: Make this configurable, from the settings
           )
 
           build_profiler_component

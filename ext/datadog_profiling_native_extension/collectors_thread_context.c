@@ -96,6 +96,13 @@ static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
 static rb_internal_thread_specific_key_t per_thread_gvl_waiting_timestamp_key;
 #endif
 
+// This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
+// it's safe to access the state of the thread context collector, we store this setting as a global value. This does
+// mean this setting is shared among all thread context collectors, and it's "last writer wins".
+// In production this these should not be a problem: there should only be one profiler, which is the last one created,
+// and that can be running.
+static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
+
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
@@ -187,6 +194,7 @@ static VALUE _native_initialize(
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
   VALUE timeline_enabled,
+  VALUE waiting_for_gvl_threshold_ns,
   VALUE allocation_type_enabled
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
@@ -258,7 +266,7 @@ static bool handle_gvl_waiting(
 );
 static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
-static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns);
+static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
 
@@ -278,7 +286,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 7);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 8);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -295,7 +303,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
-    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 2);
+    rb_define_singleton_method(testing_module, "_native_on_gvl_running", _native_on_gvl_running, 1);
     rb_define_singleton_method(testing_module, "_native_sample_after_gvl_running", _native_sample_after_gvl_running, 2);
     rb_define_singleton_method(testing_module, "_native_apply_delta_to_cpu_time_at_previous_sample_ns", _native_apply_delta_to_cpu_time_at_previous_sample_ns, 3);
   #endif
@@ -421,10 +429,12 @@ static VALUE _native_initialize(
   VALUE tracer_context_key,
   VALUE endpoint_collection_enabled,
   VALUE timeline_enabled,
+  VALUE waiting_for_gvl_threshold_ns,
   VALUE allocation_type_enabled
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
+  ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
@@ -438,6 +448,8 @@ static VALUE _native_initialize(
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
   state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
+
+  global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
   if (RTEST(tracer_context_key)) {
     ENFORCE_TYPE(tracer_context_key, T_SYMBOL);
@@ -1041,6 +1053,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" main_thread=%"PRIsVALUE, state->main_thread));
   rb_str_concat(result, rb_sprintf(" gc_tracking=%"PRIsVALUE, gc_tracking_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" otel_current_span_key=%"PRIsVALUE, state->otel_current_span_key));
+  rb_str_concat(result, rb_sprintf(" global_waiting_for_gvl_threshold_ns=%u", global_waiting_for_gvl_threshold_ns));
 
   return result;
 }
@@ -1563,8 +1576,6 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) current_monotonic_wall_time_ns);
   }
 
-  #define WAITING_FOR_GVL_THRESHOLD_NS MILLIS_AS_NS(10)
-
   // This function can get called from outside the GVL and even on non-main Ractors
   __attribute__((warn_unused_result))
   bool thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
@@ -1595,7 +1606,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
   __attribute__((warn_unused_result))
   bool thread_context_collector_on_gvl_running(VALUE thread) {
-    return thread_context_collector_on_gvl_running_with_threshold(thread, WAITING_FOR_GVL_THRESHOLD_NS);
+    return thread_context_collector_on_gvl_running_with_threshold(thread, global_waiting_for_gvl_threshold_ns);
   }
 
   // Why does this method need to exist?
@@ -1608,7 +1619,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   // returning true is the accuracy of the timing and stack for the Waiting for GVL to end.
   //
   // Timing:
-  // Because we currently only record when the Waiting for GVL started and not when the Waiting for GVL ended,
+  // Because we currently only record the timestamp when the Waiting for GVL started and not when the Waiting for GVL ended,
   // we rely on pushing a sample as soon as possible when the Waiting for GVL ends so that the timestamp of the sample
   // is close to the timestamp of finish the Waiting for GVL.
   //
@@ -1777,10 +1788,10 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     return LONG2NUM(gvl_waiting_at);
   }
 
-  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread, VALUE waiting_for_gvl_threshold_ns) {
+  static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_on_gvl_running_with_threshold(thread, NUM2UINT(waiting_for_gvl_threshold_ns)) ? Qtrue : Qfalse;
+    return thread_context_collector_on_gvl_running(thread) ? Qtrue : Qfalse;
   }
 
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {

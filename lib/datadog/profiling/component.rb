@@ -89,6 +89,7 @@ module Datadog
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
+          waiting_for_gvl_threshold_ns: 10_000_000, # TODO: Make this configurable, from the settings
         )
       end
 

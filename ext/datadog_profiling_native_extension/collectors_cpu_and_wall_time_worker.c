@@ -1308,6 +1308,12 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(target_thread);
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
+      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
+      // (And... I think target_thread will be == rb_thread_current()?)
+      // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
+      // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
+      // Ractor. Thus, if we really really wanted to access the state, we could do it after making sure we're on the correct Ractor.
+
       bool should_sample = thread_context_collector_on_gvl_running(target_thread);
 
       if (should_sample) {
