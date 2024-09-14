@@ -8,7 +8,7 @@ require 'datadog/tracing/contrib/rack/middlewares'
 RSpec.describe 'Rack testing for http.route' do
   include Rack::Test::Methods
 
-  around do |example|
+  around(:suite) do |example|
     Datadog.configure do |c|
       c.tracing.instrument :rack
     end
