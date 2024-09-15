@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.23.4] - 2024-09-12
+
+### Fixed
+
+* Core: Add limits to #log_deprecation ([#3780][])
+* Tracing: Return empty log correlation when tracing is disabled ([#3788][])
+
 ## [1.23.3] - 2024-07-01
 
 ### Added
@@ -2837,7 +2844,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.3...1.x-stable
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.4...1.x-stable
+[1.23.4]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.3...v1.23.4
 [1.23.3]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.2...v1.23.3
 [1.23.2]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.1...v1.23.2
 [1.23.1]: https://github.com/DataDog/dd-trace-rb/compare/v1.23.0...v1.23.1
@@ -4154,7 +4162,11 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3623]: https://github.com/DataDog/dd-trace-rb/issues/3623
 [#3650]: https://github.com/DataDog/dd-trace-rb/issues/3650
 [#3683]: https://github.com/DataDog/dd-trace-rb/issues/3683
+[#3723]: https://github.com/DataDog/dd-trace-rb/issues/3723
+[#3740]: https://github.com/DataDog/dd-trace-rb/issues/3740
 [#3745]: https://github.com/DataDog/dd-trace-rb/issues/3745
+[#3780]: https://github.com/DataDog/dd-trace-rb/issues/3780
+[#3788]: https://github.com/DataDog/dd-trace-rb/issues/3788
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
