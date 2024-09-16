@@ -401,21 +401,30 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   return Qnil;
 }
 
-void heap_recorder_update(heap_recorder *heap_recorder, bool include_old) {
+bool heap_recorder_update(heap_recorder *heap_recorder, bool include_old) {
   if (heap_recorder == NULL) {
-    return;
+    return false;
+  }
+
+  if (heap_recorder->object_records_snapshot != NULL) {
+    // If we're currently iterating, fail the update. Although we iterate on a snapshot of object_records,
+    // these records point to other data that has not been snapshotted for efficiency reasons (e.g. heap_records).
+    // Since there's a chance that updating may invalidate some of that non-snapshotted data, lets refrain from
+    // doing updates during iteration. This also enforces the semantic that iteration will operate as a point-in-time
+    // snapshot.
+    return false;
   }
 
   size_t current_gc_gen = rb_gc_count();
 
   if (current_gc_gen == heap_recorder->update_gen && (heap_recorder->update_include_old || !include_old)) {
-    // Are we still in the same GC gen as last update? If so, skip updating, things should
-    // not have changed (significantly).
-    // NOTE: This is mostly a performance decision. Objects may be cleaned up in intermediate
+    // Are we still in the same GC gen as last update? If so, skip updating (without signalling failure)
+    // since things should not have changed significantly since last time.
+    // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
     // GC steps and sizes may change. But because we have to iterate through all our tracked
     // object records to do an update, lets wait until all steps for a particular GC generation
-    // have finished.
-    return;
+    // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
+    return true;
   }
 
   heap_recorder->update_gen = current_gc_gen;
@@ -425,6 +434,7 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool include_old) {
   heap_recorder->stats_last_update = (struct stats_last_update) {};
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
+  return true;
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
