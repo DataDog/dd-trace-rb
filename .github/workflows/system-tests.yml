@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  ST_REF: conti/fix-php-errors # delete later
+  ST_REF: main
   FORCE_TESTS: -F tests/appsec/waf/test_addresses.py::Test_GraphQL -F tests/appsec/test_blocking_addresses.py::Test_BlockingGraphqlResolvers
   FORCE_TESTS_SCENARIO: GRAPHQL_APPSEC
 
