@@ -172,9 +172,10 @@ static const uint8_t all_value_types_positions[] =
 
 #define ALL_VALUE_TYPES_COUNT (sizeof(all_value_types) / sizeof(ddog_prof_ValueType))
 
-// Wait at least 10 seconds before asking heap recorder to explicitly update itself outside
-// of a profile flush.
-#define TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS SECONDS_AS_NS(10)
+// How many GC generations/epochs to give as margin between current GC and last notified GC before
+// assuming there's a failure in the GC notification mechanism. 0 risks being too strict and leading
+// to false positive failures due to interleaving between notifications and serializations.
+#define GC_GEN_TOLERANCE 1
 
 // Struct for storing stats related to a profile in a particular slot.
 // These stats will share the same lifetime as the data in that profile slot.
@@ -196,6 +197,8 @@ struct stack_recorder_state {
   long last_heap_recorder_update_ns;
   // Did we see a major GC since then?
   bool last_heap_recorder_update_major_gc_since;
+  // Was the least heap recorder update successful?
+  bool last_heap_recorder_update_success;
   // Keep track of the last GC generation we got a notification for. This allows us to detect failures for
   // the GC notification system by comparing with current rb_gc_count. This is an important safety system
   // for components like heap_recorder that do cleanup aligned with GC activity and which would become
@@ -222,6 +225,10 @@ struct stack_recorder_state {
     long serialization_time_ns_min;
     long serialization_time_ns_max;
     uint64_t serialization_time_ns_total;
+    // Stats on heap recorder updates
+    uint64_t heap_recorder_update_successes;
+    uint64_t heap_recorder_update_failures;
+    uint64_t heap_recorder_update_forced;
   } stats_lifetime;
 };
 
@@ -284,6 +291,7 @@ static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
+static void _heap_recorder_update(struct stack_recorder_state *state, bool force_full_update);
 
 
 void stack_recorder_init(VALUE profiling_module) {
@@ -539,11 +547,16 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   serializer_set_start_timestamp_for_next_profile(state, finish_timestamp);
 
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if (state->last_notified_gc_gen != rb_gc_count()) {
-    // Updating typically happens after GC notifications. If these fail for some reason and
-    // we stop updating last_seen_gc_gen, then fallback to the old system of doing updates
-    // right before flushing to prevent memory leaks from stale heap recorder data.
-    heap_recorder_update(state->heap_recorder, true);
+  bool apparent_gc_notification_failure = rb_gc_count() > state->last_notified_gc_gen + GC_GEN_TOLERANCE;
+  if (apparent_gc_notification_failure || !state->last_heap_recorder_update_success) {
+    // We'll trigger heap recorder updates before flushing if either:
+    // * GC notification system is apparently broken and the view of GC activity in stack_recorder does not
+    //   match that of the runtime. In this case, we'll force full updates.
+    // * The last heap recorder update failed (e.g. it raced with the previous iteration). In this case,
+    //   we'll only do a full/major update if the previous update was supposed to be a full/major one.
+    //
+    // This serves as a last resort to catch situations where heap recorder's data may be stale.
+    _heap_recorder_update(state, apparent_gc_notification_failure);
   }
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
@@ -693,6 +706,23 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
   }
 }
 
+static void _heap_recorder_update(struct stack_recorder_state *state, bool force_full_update) {
+    bool success = heap_recorder_update(state->heap_recorder, force_full_update || state->last_heap_recorder_update_major_gc_since);
+
+    if (success) {
+      state->stats_lifetime.heap_recorder_update_successes++;
+    } else {
+      state->stats_lifetime.heap_recorder_update_failures++;
+    }
+
+    if (force_full_update) {
+      state->stats_lifetime.heap_recorder_update_forced++;
+    }
+
+    state->last_heap_recorder_update_success = success;
+    state->last_heap_recorder_update_major_gc_since = false;
+}
+
 void recorder_after_gc_step(VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
@@ -700,12 +730,7 @@ void recorder_after_gc_step(VALUE recorder_instance) {
   state->last_notified_gc_gen = rb_gc_count();
   state->last_heap_recorder_update_major_gc_since = gc_profiling_has_major_gc_finished();
 
-  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
-  if ((now_ns > 0 && (now_ns - state->last_heap_recorder_update_ns) >= TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS)) {
-    heap_recorder_update(state->heap_recorder, state->last_heap_recorder_update_major_gc_since);
-    state->last_heap_recorder_update_ns = now_ns;
-    state->last_heap_recorder_update_major_gc_since = false;
-  }
+  _heap_recorder_update(state, false);
 }
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256
@@ -1001,7 +1026,8 @@ static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _se
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_update(state->heap_recorder, true);
+  // Force update to look at all objects to facilitate test setup.
+  _heap_recorder_update(state, true);
   heap_recorder_prepare_iteration(state->heap_recorder);
 
   return Qnil;
@@ -1075,6 +1101,12 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {
     ID2SYM(rb_intern("serialization_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats_lifetime.serialization_time_ns_total, total_serializations),
 
     ID2SYM(rb_intern("heap_recorder_snapshot")), /* => */ heap_recorder_snapshot,
+    ID2SYM(rb_intern("last_notified_gc_gen")),   /* => */ LONG2NUM(state->last_notified_gc_gen),
+    ID2SYM(rb_intern("last_heap_recorder_update_major_gc_since")),   /* => */ (state->last_notified_gc_gen ? Qtrue : Qfalse),
+    ID2SYM(rb_intern("last_heap_recorder_update_ns")),   /* => */ LONG2NUM(state->last_heap_recorder_update_ns),
+    ID2SYM(rb_intern("heap_recorder_update_successes")), /* => */ ULL2NUM(state->stats_lifetime.heap_recorder_update_successes),
+    ID2SYM(rb_intern("heap_recorder_update_failures")), /* => */ ULL2NUM(state->stats_lifetime.heap_recorder_update_failures),
+    ID2SYM(rb_intern("heap_recorder_update_forced")), /* => */ ULL2NUM(state->stats_lifetime.heap_recorder_update_forced),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
