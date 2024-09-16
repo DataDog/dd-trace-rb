@@ -1,17 +1,27 @@
 require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::Probe do
+  shared_context 'method probe' do
+    let(:probe) do
+      described_class.new(id: "42", type: "foo", type_name: "Foo", method_name: "bar")
+    end
+  end
+
+  shared_context 'line probe' do
+    let(:probe) do
+      described_class.new(id: "42", type: "foo", file: "foo.rb", line_no: 4)
+    end
+  end
+
   describe ".new" do
     context "method probe" do
-      let(:probe) do
-        described_class.new(id: "42", type: "foo", type_name: "foo", method_name: "bar")
-      end
+      include_context 'method probe'
 
       it "creates an instance" do
         expect(probe).to be_a(described_class)
         expect(probe.id).to eq "42"
         expect(probe.type).to eq "foo"
-        expect(probe.type_name).to eq "foo"
+        expect(probe.type_name).to eq "Foo"
         expect(probe.method_name).to eq "bar"
         expect(probe.file).to be nil
         expect(probe.line_no).to be nil
@@ -19,9 +29,7 @@ RSpec.describe Datadog::DI::Probe do
     end
 
     context "line probe" do
-      let(:probe) do
-        described_class.new(id: "42", type: "foo", file: "foo", line_no: 4)
-      end
+      include_context 'line probe'
 
       it "creates an instance" do
         expect(probe).to be_a(described_class)
@@ -29,7 +37,7 @@ RSpec.describe Datadog::DI::Probe do
         expect(probe.type).to eq "foo"
         expect(probe.type_name).to be nil
         expect(probe.method_name).to be nil
-        expect(probe.file).to eq "foo"
+        expect(probe.file).to eq "foo.rb"
         expect(probe.line_no).to eq 4
       end
     end
@@ -158,6 +166,24 @@ RSpec.describe Datadog::DI::Probe do
         expect do
           probe.line_no!
         end.to raise_error(Datadog::DI::Error::MissingLineNumber, /does not have a line number/)
+      end
+    end
+  end
+
+  describe '#location' do
+    context 'method probe' do
+      include_context 'method probe'
+
+      it 'returns method location' do
+        expect(probe.location).to eq 'Foo.bar'
+      end
+    end
+
+    context 'line probe' do
+      include_context 'line probe'
+
+      it 'returns line location' do
+        expect(probe.location).to eq 'foo.rb:4'
       end
     end
   end
