@@ -1,0 +1,7 @@
+module Datadog
+  module DI
+    module ProbeBuilder
+      def self?.build_from_remote_config: (Hash[untyped,untyped] config) -> Probe
+    end
+  end
+end
