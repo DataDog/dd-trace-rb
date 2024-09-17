@@ -63,10 +63,10 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
 
-              if (grape_route = env['grape.routing_args'] && env['grape.routing_args'][:route_info])
+              if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
-                  grape_route.path&.gsub(/\(\.:?\w+\)\z/, '')
+                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
                 )
 
                 trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
