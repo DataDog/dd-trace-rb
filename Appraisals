@@ -65,6 +65,9 @@ def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
   end
 
   appraise "#{integration}-latest" do
+    # The latest group declares dependencies without version constraints,
+    # still requires being updated to pick up the next major version and
+    # committing the changes to lockfiles.
     gem gem
     meta.each { |k, v| gem k, v }
   end
