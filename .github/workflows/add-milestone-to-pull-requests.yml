@@ -2,9 +2,6 @@ name: Add milestone to merged pull requests
 on:
   pull_request:
     types: [closed]
-  push:
-    branches:
-      - tonycthsu/fix-milestone-action
 
 jobs:
   add_milestone:
@@ -13,12 +10,13 @@ jobs:
       issues: write
       pull-requests: write
     runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.milestone == null
     steps:
       - name: Checkout code
         # Checks out the branch that the pull request is merged into
         uses: actions/checkout@v3
-        # with:
-        #   ref: ${{ github.event.pull_request.base.ref }}
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
 
       - name: Get major version from gemspec
         # Parse the gemspec and return the major version
@@ -53,7 +51,7 @@ jobs:
               await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: 3920,
+                issue_number: ${{ github.event.pull_request.number }},
                 milestone: milestone.number
               })
             }
