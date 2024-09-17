@@ -173,7 +173,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rule) { { sample_rate: 'oops' } }
 
       it 'does not accept rule with a non-float sample_rate' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
     end
@@ -182,7 +182,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rule) { { name: 'test' } }
 
       it 'does not accept rule missing the mandatory sample_rate' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
 
@@ -190,7 +190,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         let(:rules) { [{ sample_rate: 0.1 }, { name: 'test' }] }
 
         it 'rejects all rules if one is missing the mandatory sample_rate' do
-          expect(Datadog.logger).to receive(:error)
+          expect(Datadog.logger).to receive(:warn)
           is_expected.to be_nil
         end
       end
@@ -200,7 +200,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rules) { 'not a json array' }
 
       it 'returns nil in case of parsing error' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
     end
