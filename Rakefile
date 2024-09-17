@@ -84,6 +84,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main, :benchmark,
+             :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
              :profiling, :crashtracking]
@@ -98,6 +99,27 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/**/*_spec.rb'
+    t.exclude_pattern = 'spec/datadog/tracing/contrib/graphql/{unified_trace,trace,tracing}_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_unified_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/unified_trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_tracing_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/tracing_patcher_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -223,7 +245,6 @@ namespace :spec do
     :excon,
     :faraday,
     :grape,
-    :graphql,
     :grpc,
     :http,
     :httpclient,
