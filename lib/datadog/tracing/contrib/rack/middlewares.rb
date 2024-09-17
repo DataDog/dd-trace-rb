@@ -147,7 +147,7 @@ module Datadog
               #
               # To account for the unaccounted nested rack requests of /rack/hello/world,
               # we use 'PATH_INFO knowing that rack cannot have named parameters
-              if last_script_name == '' && env['SCRIPT_NAME'] != ''
+              if last_script_name == '' && env['SCRIPT_NAME'] && env['SCRIPT_NAME'] != ''
                 last_script_name = last_route
                 last_route = env['PATH_INFO']
               end
