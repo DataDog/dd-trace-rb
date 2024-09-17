@@ -1,13 +1,13 @@
 require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::Probe do
-  shared_context 'method probe' do
+  shared_context "method probe" do
     let(:probe) do
       described_class.new(id: "42", type: "foo", type_name: "Foo", method_name: "bar")
     end
   end
 
-  shared_context 'line probe' do
+  shared_context "line probe" do
     let(:probe) do
       described_class.new(id: "42", type: "foo", file: "foo.rb", line_no: 4)
     end
@@ -15,7 +15,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe ".new" do
     context "method probe" do
-      include_context 'method probe'
+      include_context "method probe"
 
       it "creates an instance" do
         expect(probe).to be_a(described_class)
@@ -29,7 +29,7 @@ RSpec.describe Datadog::DI::Probe do
     end
 
     context "line probe" do
-      include_context 'line probe'
+      include_context "line probe"
 
       it "creates an instance" do
         expect(probe).to be_a(described_class)
@@ -170,20 +170,20 @@ RSpec.describe Datadog::DI::Probe do
     end
   end
 
-  describe '#location' do
-    context 'method probe' do
-      include_context 'method probe'
+  describe "#location" do
+    context "method probe" do
+      include_context "method probe"
 
-      it 'returns method location' do
-        expect(probe.location).to eq 'Foo.bar'
+      it "returns method location" do
+        expect(probe.location).to eq "Foo.bar"
       end
     end
 
-    context 'line probe' do
-      include_context 'line probe'
+    context "line probe" do
+      include_context "line probe"
 
-      it 'returns line location' do
-        expect(probe.location).to eq 'foo.rb:4'
+      it "returns line location" do
+        expect(probe.location).to eq "foo.rb:4"
       end
     end
   end
