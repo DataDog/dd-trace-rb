@@ -48,16 +48,16 @@ namespace :edge do
   desc 'Update all the groups from the matrix'
   task :update do |_t, args|
     ruby_version = RUBY_VERSION[0..2]
-    whitelist = {
+    allowlist = {
       'stripe' => 'stripe',
       'elasticsearch' => 'elasticsearch',
       'opensearch' => 'opensearch-ruby',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 
-    whitelist = whitelist.slice(*args.extras) if args.extras.any?
+    allowlist = allowlist.slice(*args.extras) if args.extras.any?
 
-    whitelist.each do |integration, gem|
+    allowlist.each do |integration, gem|
       candidates = TEST_METADATA.fetch(integration).select do |_, rubies|
         if RUBY_PLATFORM == 'java'
           rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
@@ -82,16 +82,16 @@ namespace :edge do
   desc 'Update the `latest` group from the matrix'
   task :latest do |_t, args|
     ruby_version = RUBY_VERSION[0..2]
-    whitelist = {
+    allowlist = {
       'stripe' => 'stripe',
       'elasticsearch' => 'elasticsearch',
       'opensearch' => 'opensearch-ruby',
       # Add more integrations here, when hey are extracted to its own isolated group
     }
 
-    whitelist = whitelist.slice(*args.extras) if args.extras.any?
+    allowlist = allowlist.slice(*args.extras) if args.extras.any?
 
-    whitelist.each do |integration, gem|
+    allowlist.each do |integration, gem|
       candidates = TEST_METADATA.fetch(integration).select do |_, rubies|
         if RUBY_PLATFORM == 'java'
           rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
