@@ -64,8 +64,14 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
 
               if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
+                puts '=' * 80
+                puts grape_route[:route_info].path
+                puts '=' * 80
                 trace.set_tag(
                   Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
+                  # here we are removing the format from the path:
+                  # e.g. /path/to/resource(.json) => /path/to/resource
+                  # e.g. /path/to/resource(.:format) => /path/to/resource
                   grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
                 )
 
