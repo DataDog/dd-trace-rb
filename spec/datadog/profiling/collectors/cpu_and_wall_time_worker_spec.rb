@@ -967,7 +967,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       context "when GVL profiling is enabled" do
-        before { skip_if_gvl_profiling_not_supported(self) }
+        before { skip_if_gvl_profiling_not_supported(self) { stop } }
 
         let(:gvl_profiling_enabled) { true }
 
