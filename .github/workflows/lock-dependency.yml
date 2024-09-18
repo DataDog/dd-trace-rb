@@ -1,0 +1,93 @@
+name: Lock Dependency
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to be lock dependency'
+        required: true
+  # Testing purpose, to be removed before merge.
+  push:
+    branches:
+      - tonycthsu/automate-update-gemfiles
+
+# Ensure obsolete job is cancelled if another commit is pushed to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # TODO: In order to fully automate this workflow for each PR,
+  # have a reliable way to precheck job to understand whether it need to be updated
+  lock:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        engine:
+          # ADD NEW RUBIES HERE
+          - name: ruby
+            version: '3.4'
+          - name: ruby
+            version: '3.3'
+          - name: ruby
+            version: '3.2'
+          - name: ruby
+            version: '3.1'
+          - name: ruby
+            version: '3.0'
+          - name: ruby
+            version: '2.7'
+          - name: ruby
+            version: '2.6'
+          - name: ruby
+            version: '2.5'
+          - name: jruby
+            version: '9.4'
+          - name: jruby
+            version: '9.3'
+          - name: jruby
+            version: '9.2'
+    container:
+      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
+      env:
+        BUNDLE_WITHOUT: check
+    steps:
+      - uses: actions/checkout@v4
+      - run: ls -al
+      - run: |
+          ruby -v
+          gem -v
+          bundler -v
+
+      - run: bundle install
+
+      # TODO: Migrate away from `appraisal`
+      - run: bundle exec appraisal generate
+      - run: bundle exec rake dependency:lock
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
+          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
+
+  commit:
+    needs: lock
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: gemfiles
+          pattern: lock-dependency-${{ github.run_id }}-*
+          merge-multiple: true
+
+      - run: git diff --color
+
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          file_pattern: 'gemfiles/*'
+          commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
