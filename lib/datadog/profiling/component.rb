@@ -62,7 +62,7 @@ module Datadog
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-          gvl_profiling_enabled: false, # TODO: Make this configurable, from the settings
+          gvl_profiling_enabled: enable_gvl_profiling?(settings),
         )
 
         internal_metadata = {
@@ -90,7 +90,7 @@ module Datadog
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
-          waiting_for_gvl_threshold_ns: 10_000_000, # TODO: Make this configurable, from the settings
+          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
         )
       end
 
@@ -440,6 +440,20 @@ module Datadog
         return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
 
         settings.profiling.advanced.dir_interruption_workaround_enabled
+      end
+
+      private_class_method def self.enable_gvl_profiling?(settings)
+        if RUBY_VERSION < "3.3"
+          if settings.profiling.advanced.preview_gvl_enabled
+            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.3 and will not be enabled.")
+          end
+
+          return false
+        end
+
+        # GVL profiling only makes sense in the context of timeline. We could emit a warning here, but not sure how
+        # useful it is -- if a customer disables timeline, there's nowhere to look for GVL profiling anyway!
+        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.preview_gvl_enabled
       end
     end
   end

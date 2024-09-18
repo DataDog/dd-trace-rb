@@ -883,6 +883,56 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#preview_gvl_enabled' do
+        subject(:preview_gvl_enabled) { settings.profiling.advanced.preview_gvl_enabled }
+
+        context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#preview_gvl_enabled=' do
+        it 'updates the #preview_gvl_enabled setting' do
+          expect { settings.profiling.advanced.preview_gvl_enabled = true }
+            .to change { settings.profiling.advanced.preview_gvl_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
+      describe '#waiting_for_gvl_threshold_ns' do
+        subject(:waiting_for_gvl_threshold_ns) { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
+
+        it { is_expected.to be 10_000_000 }
+      end
+
+      describe '#waiting_for_gvl_threshold_ns=' do
+        it 'updates the #waiting_for_gvl_threshold_ns setting' do
+          expect { settings.profiling.advanced.waiting_for_gvl_threshold_ns = 123_000_000 }
+            .to change { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
+            .from(10_000_000)
+            .to(123_000_000)
+        end
+      end
     end
 
     describe '#upload' do
