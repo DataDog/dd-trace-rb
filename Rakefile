@@ -4,7 +4,6 @@ require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
-require 'yard'
 require 'os'
 if Gem.loaded_specs.key? 'ruby_memcheck'
   require 'ruby_memcheck'
@@ -84,6 +83,7 @@ desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
   task all: [:main, :benchmark,
+             :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
              :profiling, :crashtracking]
@@ -98,6 +98,27 @@ namespace :spec do
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/**/*_spec.rb'
+    t.exclude_pattern = 'spec/datadog/tracing/contrib/graphql/{unified_trace,trace,tracing}_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_unified_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/unified_trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_tracing_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/tracing_patcher_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -223,7 +244,6 @@ namespace :spec do
     :excon,
     :faraday,
     :grape,
-    :graphql,
     :grpc,
     :http,
     :httpclient,
@@ -348,17 +368,6 @@ end
 if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |_t|
   end
-end
-
-YARD::Rake::YardocTask.new(:docs) do |t|
-  # Options defined in `.yardopts` are read first, then merged with
-  # options defined here.
-  #
-  # It's recommended to define options in `.yardopts` instead of here,
-  # as `.yardopts` can be read by external YARD tools, like the
-  # hot-reload YARD server `yard server --reload`.
-
-  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
 end
 
 # Jobs are parallelized if running in CI.

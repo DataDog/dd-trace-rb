@@ -117,7 +117,7 @@ After introducing a new group definition or changing existing one, run `bundle e
 
 To install dependencies, run `bundle exec appraisal install`.
 
-In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment vairable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
+In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment variable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
 
 ```
 # This would only install dependencies for `aws` group definition

@@ -41,4 +41,5 @@ ignore:
 - spec/datadog/tracing/**/**
 - spec/support/**/**
 - tasks/**/**
+- tools/**/**
 - yard/**/**

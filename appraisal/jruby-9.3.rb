@@ -162,23 +162,9 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-(7..12).each do |n|
-  appraise "stripe-#{n}" do
-    gem 'stripe', "~> #{n}"
-  end
-end
-
-[2, 3].each do |n|
-  appraise "opensearch-#{n}" do
-    gem 'opensearch-ruby', "~> #{n}"
-  end
-end
-
-[7, 8].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
-end
+build_coverage_matrix('stripe', 7..12)
+build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', 7..8)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'

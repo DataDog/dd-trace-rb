@@ -14,6 +14,9 @@ jobs:
       - run: sudo apt update && sudo apt install -y valgrind && valgrind --version
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
+    # Temporarily disabled on 2024-09-17 until ruby-asan builds are available again on
+    # https://github.com/ruby/ruby-dev-builder/releases
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4

@@ -2,38 +2,42 @@ require 'graphql'
 
 require_relative 'test_helpers'
 
-class TestUserType < ::GraphQL::Schema::Object
-  field :id, ::GraphQL::Types::ID, null: false
-  field :name, ::GraphQL::Types::String, null: true
-  field :created_at, ::GraphQL::Types::String, null: false
-  field :updated_at, ::GraphQL::Types::String, null: false
+def load_test_schema(prefix: '')
+  # rubocop:disable Security/Eval
+  # rubocop:disable Style/DocumentDynamicEvalDefinition
+  eval <<-RUBY, binding, __FILE__, __LINE__ + 1
+    class #{prefix}TestUserType < ::GraphQL::Schema::Object
+      field :id, ::GraphQL::Types::ID, null: false
+      field :name, ::GraphQL::Types::String, null: true
+      field :created_at, ::GraphQL::Types::String, null: false
+      field :updated_at, ::GraphQL::Types::String, null: false
+    end
+
+    class #{prefix}TestGraphQLQuery < ::GraphQL::Schema::Object
+      field :user, #{prefix}TestUserType, null: false, description: 'Find user' do
+        argument :id, ::GraphQL::Types::ID, required: true
+      end
+
+      def user(id:)
+        OpenStruct.new(id: id, name: 'Bits')
+      end
+    end
+
+    class #{prefix}TestGraphQLSchema < ::GraphQL::Schema
+      query(#{prefix}TestGraphQLQuery)
+    end
+  RUBY
+  # rubocop:enable Style/DocumentDynamicEvalDefinition
+  # rubocop:enable Security/Eval
 end
 
-class TestGraphQLQuery < ::GraphQL::Schema::Object
-  field :user, TestUserType, null: false, description: 'Find an user by ID' do
-    argument :id, ::GraphQL::Types::ID, required: true
-  end
-
-  def user(id:)
-    OpenStruct.new(id: id, name: 'Bits')
-  end
-end
-
-class TestGraphQLSchema < ::GraphQL::Schema
-  query(TestGraphQLQuery)
+def unload_test_schema(prefix: '')
+  Object.send(:remove_const, :"#{prefix}TestUserType")
+  Object.send(:remove_const, :"#{prefix}TestGraphQLQuery")
+  Object.send(:remove_const, :"#{prefix}TestGraphQLSchema")
 end
 
 RSpec.shared_examples 'graphql default instrumentation' do
-  around do |example|
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
-
-    example.run
-
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
-  end
-
   describe 'query trace' do
     subject(:result) { TestGraphQLSchema.execute('{ user(id: 1) { name } }') }
 
@@ -70,27 +74,17 @@ RSpec.shared_examples 'graphql default instrumentation' do
   end
 end
 
-RSpec.shared_examples 'graphql instrumentation with unified naming convention trace' do
-  around do |example|
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
-
-    example.run
-
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(::GraphQL::Schema)
-    Datadog::GraphQLTestHelpers.reset_schema_cache!(TestGraphQLSchema)
-  end
-
+RSpec.shared_examples 'graphql instrumentation with unified naming convention trace' do |prefix: ''|
   describe 'query trace' do
-    subject(:result) do
-      TestGraphQLSchema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 })
-    end
+    subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 }) }
+    let(:schema) { Object.const_get("#{prefix}TestGraphQLSchema") }
+    let(:service) { defined?(super) ? super() : tracer.default_service }
 
     matrix = [
       ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
       ['graphql.analyze_multiplex', 'Users'],
-      ['graphql.authorized', 'TestGraphQLQuery.authorized'],
-      ['graphql.authorized', 'TestUser.authorized'],
+      ['graphql.authorized', "#{prefix}TestGraphQLQuery.authorized"],
+      ['graphql.authorized', "#{prefix}TestUser.authorized"],
       ['graphql.execute', 'Users'],
       ['graphql.execute_lazy', 'Users'],
       ['graphql.execute_multiplex', 'Users'],
@@ -98,8 +92,8 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         ['graphql.lex', 'query Users($var: ID!){ user(id: $var) { name } }']
       end,
       ['graphql.parse', 'query Users($var: ID!){ user(id: $var) { name } }'],
-      ['graphql.resolve', 'TestGraphQLQuery.user'],
-      ['graphql.resolve', 'TestUser.name'],
+      ['graphql.resolve', "#{prefix}TestGraphQLQuery.user"],
+      ['graphql.resolve', "#{prefix}TestUser.name"],
       # New Ruby-based parser doesn't emit a "lex" event. (graphql/c_parser still does.)
       ['graphql.validate', 'Users']
     ].compact
@@ -117,7 +111,7 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
 
         expect(span.name).to eq(name)
         expect(span.resource).to eq(resource)
-        expect(span.service).to eq(tracer.default_service)
+        expect(span.service).to eq(service)
         expect(span.type).to eq('graphql')
 
         if spans_with_source.include?(name)
