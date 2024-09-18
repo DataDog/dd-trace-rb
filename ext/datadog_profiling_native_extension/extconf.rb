@@ -132,7 +132,7 @@ end
 have_func "malloc_stats"
 
 # On older Rubies, there was no GVL instrumentation API and APIs created to support it
-# TODO: We can probably support Ruby 3.2 as well here, but not for the first version
+# TODO: We can probably support Ruby 3.2 as well here, but we haven't done that work yet
 $defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.3"
 
 # On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist

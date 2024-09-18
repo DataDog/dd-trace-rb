@@ -98,9 +98,9 @@ static rb_internal_thread_specific_key_t per_thread_gvl_waiting_timestamp_key;
 
 // This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
 // it's safe to access the state of the thread context collector, we store this setting as a global value. This does
-// mean this setting is shared among all thread context collectors, and it's "last writer wins".
-// In production this these should not be a problem: there should only be one profiler, which is the last one created,
-// and that can be running.
+// mean this setting is shared among all thread context collectors, and thus it's "last writer wins".
+// In production this should not be a problem: there should only be one profiler, which is the last one created,
+// and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
 
 // Contains state for a single ThreadContext instance
@@ -1584,7 +1584,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     // Thread was not being profiled / not waiting on gvl
     if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
 
-    // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but didn't
+    // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but haven't gotten the chance yet?
     if (gvl_waiting_at < 0) return true;
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
@@ -1592,12 +1592,12 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     bool should_sample = waiting_for_gvl_duration_ns >= waiting_for_gvl_threshold_ns;
 
     if (should_sample) {
-      // We flip the gvl_waiting_at to negative to mark that the thread is now running
+      // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
       intptr_t gvl_waiting_at_is_now_running = -gvl_waiting_at;
 
       rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) gvl_waiting_at_is_now_running);
     } else {
-      // We decided not to sample. Let's mark the thread back to the initial enabled but empty state
+      // We decided not to sample. Let's mark the thread back to the initial "enabled but empty" state
       rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
     }
 
@@ -1611,35 +1611,37 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
   // Why does this method need to exist?
   //
-  // You may be surprised to see that if you never call this method, Waiting for GVL samples will still show up.
-  // This is because regular cpu/wall-time samples also use `update_metrics_and_sample` which will push those samples
-  // as needed.
+  // You may be surprised to see that if we never call this function (from cpu_and_wall_time_worker), Waiting for GVL
+  // samples will still show up.
+  // This is because regular cpu/wall-time samples also use `update_metrics_and_sample` which will do the right thing
+  // and push "Waiting for GVL" samples as needed.
   //
   // The reason this method needs to exist and be called very shortly after thread_context_collector_on_gvl_running
-  // returning true is the accuracy of the timing and stack for the Waiting for GVL to end.
+  // returning true is to ensure accuracy of both the timing and stack for the Waiting for GVL sample.
   //
   // Timing:
   // Because we currently only record the timestamp when the Waiting for GVL started and not when the Waiting for GVL ended,
   // we rely on pushing a sample as soon as possible when the Waiting for GVL ends so that the timestamp of the sample
-  // is close to the timestamp of finish the Waiting for GVL.
+  // actually matches when we stopped waiting.
   //
   // Stack:
-  // If the thread starts working without the end of the Waiting for GVL sample, then by the time that sample happens
-  // (via the regular cpu/wall-time samples mechanism), the stack can be be inaccurate.
+  // If the thread starts working without the end of the Waiting for GVL sample, then by the time the thread is sampled
+  // via the regular cpu/wall-time samples mechanism, the stack can be be inaccurate (e.g. does not correctly pinpoint
+  // where the waiting happened).
   //
   // Arguably, the last sample after Waiting for GVL ended (when gvl_waiting_at < 0) should always come from this method
-  // and not a regular cpu/wall-time sample BUT since all of these things are happening in parallel I suspect
+  // and not a regular cpu/wall-time sample BUT since all of these things are happening in parallel/concurrently I suspect
   // it's possible for a regular sample to kick in just before this one.
   //
   // ---
   //
-  // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); using a different thread is only
-  // to make testing easier.
+  // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); the `current_thread` parameter only
+  // exists to enable testing.
   VALUE thread_context_collector_sample_after_gvl_running_with_thread(VALUE self_instance, VALUE current_thread) {
     struct thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-    if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "gvl profiling requires timeline to be enabled");
+    if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "GVL profiling requires timeline to be enabled");
 
     struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 

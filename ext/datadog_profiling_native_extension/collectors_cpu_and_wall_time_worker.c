@@ -228,8 +228,8 @@ static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 #ifndef NO_GVL_INSTRUMENTATION
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
-#endif
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+#endif
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -1298,7 +1298,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 #ifndef NO_GVL_INSTRUMENTATION
   static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
     // Be very careful about touching the `state` here or doing anything at all:
-    // This function gets called even without the GVL, and even from background Ractors!
+    // This function gets called without the GVL, and potentially from background Ractors!
     //
     // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
     // are not directly tied to the `target_thread` object and the like)

@@ -848,7 +848,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             sample # trigger context creation
             on_gvl_waiting(t1)
             sample # trigger creation of sample representing the period before Waiting for GVL
-            samples_from_pprof(recorder.serialize!) # flush previous samples
+            recorder.serialize! # flush previous samples
           end
 
           def sample_and_check(expected_state:)
@@ -924,7 +924,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
               it "does not record a new Waiting for GVL sample afterwards" do
                 sample # last Waiting for GVL sample
-                samples_from_pprof(recorder.serialize!) # flush previous samples
+                recorder.serialize! # flush previous samples
 
                 3.times { sample_and_check(expected_state: "sleeping") }
               end
@@ -1597,7 +1597,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
     # for why we need a separate `sample_after_gvl_running`.
     #
-    # Thus, I chose to not repeat the extensive Waiting for GVL asserts we already have in #sample, and do a smaller pass.
+    # Thus, I chose to not repeat the extensive Waiting for GVL specs we already have in #sample, and do a smaller pass.
     context "when thread is at the end of a Waiting for GVL period" do
       let(:waiting_for_gvl_threshold_ns) { 0 }
 
@@ -1608,7 +1608,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample if record_start
 
         on_gvl_running(t1)
-        samples_from_pprof(recorder.serialize!) # flush samples
+        recorder.serialize! # flush samples
 
         expect(gvl_waiting_at_for(t1)).to be < 0
       end
