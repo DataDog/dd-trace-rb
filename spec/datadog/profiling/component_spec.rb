@@ -628,7 +628,7 @@ RSpec.describe Datadog::Profiling::Component do
           context "when timeline is disabled" do
             before { settings.profiling.advanced.timeline_enabled = false }
 
-          it "does not enable GVL profiling" do
+            it "does not enable GVL profiling" do
               expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
                 .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
 
