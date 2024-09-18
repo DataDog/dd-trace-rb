@@ -1,0 +1,4 @@
+module Datadog
+  module DI
+  end
+end
