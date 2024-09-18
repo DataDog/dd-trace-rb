@@ -4,7 +4,6 @@ require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
 require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
-require 'yard'
 require 'os'
 if Gem.loaded_specs.key? 'ruby_memcheck'
   require 'ruby_memcheck'
@@ -369,17 +368,6 @@ end
 if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |_t|
   end
-end
-
-YARD::Rake::YardocTask.new(:docs) do |t|
-  # Options defined in `.yardopts` are read first, then merged with
-  # options defined here.
-  #
-  # It's recommended to define options in `.yardopts` instead of here,
-  # as `.yardopts` can be read by external YARD tools, like the
-  # hot-reload YARD server `yard server --reload`.
-
-  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
 end
 
 # Jobs are parallelized if running in CI.

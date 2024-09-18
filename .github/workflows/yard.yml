@@ -25,15 +25,18 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+      env:
+        BUNDLE_GEMFILE: tools/yard.gemfile
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true
+      - run: ls -al
+      - name: Bundle
+        run: bundle install
       - name: Generate YARD documentation
-        run: bundle exec rake docs
+        run: bundle exec rake docs --rakefile=tasks/yard.rake
       - name: Setup Pages
         uses: actions/configure-pages@v3
       - name: Upload artifact
