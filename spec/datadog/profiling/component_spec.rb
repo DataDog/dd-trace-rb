@@ -592,7 +592,11 @@ RSpec.describe Datadog::Profiling::Component do
       end
 
       context "when GVL profiling is requested" do
-        before { settings.profiling.advanced.preview_gvl_enabled = true }
+        before do
+          settings.profiling.advanced.preview_gvl_enabled = true
+          # This triggers a warning in some Rubies so it's easier for testing to disable it
+          settings.profiling.advanced.gc_enabled = false
+        end
 
         context "on Ruby < 3.3" do
           before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
