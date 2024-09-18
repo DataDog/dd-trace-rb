@@ -1339,15 +1339,15 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     state->during_sample = false;
   }
-#endif
 
-static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
-  #ifndef NO_GVL_INSTRUMENTATION
+  static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
     struct cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
     return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
-  #else
+  }
+#else
+  static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
     return Qfalse;
-  #endif
-}
+  }
+#endif
