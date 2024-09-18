@@ -845,8 +845,14 @@ To activate your integration, use the `Datadog.configure` method:
 
 ```ruby
 # Inside Rails initializer or equivalent
+# For graphql >= v2.2
 Datadog.configure do |c|
-  c.tracing.instrument :graphql, schemas: [YourSchema], **options
+  c.tracing.instrument :graphql, with_unified_tracer: true, **options
+end
+
+# For graphql < v2.2
+Datadog.configure do |c|
+   c.tracing.instrument :graphql, **options
 end
 
 # Then run a GraphQL query
@@ -859,23 +865,22 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    |                            | `Bool`   | Enable to instrument with `UnifiedTrace` tracer, enabling support for API Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` (Added in v2.2)  | `false`          |
-| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                               | `false`          |
+| `with_unified_tracer`    |                            | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for API Catalog**. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
+| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
+
+Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
+This is especially important for [auto instrumented applications](#rails-or-hanami-applications) because an automatic initial instrumentation is always applied at startup, thus such applications will always instrument GraphQL with the default strategy (`GraphQL::Tracing::DataDogTrace`).
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer, you can individually configure the tracer settings per schema (e.g. you have multiple schemas with distinct instrumentation options).
 
-With `GraphQL::Tracing::DataDogTrace`
+Do _NOT_ `c.tracing.instrument :graphql` in `Datadog.configure` if you choose to configure schema settings manually, as to avoid double tracing. These two means of configuring GraphQL tracing are mutually exclusive.
 
-```ruby
-class YourSchema < GraphQL::Schema
-  trace_with GraphQL::Tracing::DataDogTrace
-end
-```
+To instrument each schema individually, you add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
 
-With `UnifiedTracer` (Added in v2.2)
+For `graphql` >= v2.2:
 
 ```ruby
 class YourSchema < GraphQL::Schema
@@ -883,7 +888,15 @@ class YourSchema < GraphQL::Schema
 end
 ```
 
-or with `GraphQL::Tracing::DataDogTracing` (deprecated)
+For `graphql` < v2.2:
+
+```ruby
+class YourSchema < GraphQL::Schema
+  trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+
+Using the deprecated tracer GraphQL (`GraphQL::Tracing::DataDogTracing`):
 
 ```ruby
 class YourSchema < GraphQL::Schema
@@ -892,8 +905,6 @@ end
 ```
 
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
-
-Do _NOT_ `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 **Adding custom tags to Datadog spans**
 

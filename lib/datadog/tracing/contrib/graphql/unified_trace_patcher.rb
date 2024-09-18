@@ -12,12 +12,15 @@ module Datadog
         module UnifiedTracePatcher
           module_function
 
-          def patch!(schemas, options)
+          # TODO: `GraphQL::Schema.trace_with` and `YOUR_SCHEMA.trace_with` don't mix.
+          # TODO: They create duplicate spans when combined.
+          # TODO: We should measure how frequently users use `YOUR_SCHEMA.trace_with`, and hopefully we can remove it.
+          def patch!(schemas)
             if schemas.empty?
-              ::GraphQL::Schema.trace_with(UnifiedTrace, **options)
+              ::GraphQL::Schema.trace_with(UnifiedTrace)
             else
               schemas.each do |schema|
-                schema.trace_with(UnifiedTrace, **options)
+                schema.trace_with(UnifiedTrace)
               end
             end
           end
