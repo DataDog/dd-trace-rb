@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
       it do
         exception = StandardError.new
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
-        expect(Datadog.logger).to receive(:warn).with(/Fail to send telemetry log/)
+        expect(Datadog.logger).to receive(:warn).with(/Failed to send telemetry/)
 
         expect do
           described_class.report(exception, level: :error, description: 'Oops...')
@@ -60,7 +60,7 @@ RSpec.describe Datadog::Core::Telemetry::Logger do
     context 'when there is no telemetry component configured' do
       it do
         allow(Datadog.send(:components)).to receive(:telemetry).and_return(nil)
-        expect(Datadog.logger).to receive(:warn).with(/Fail to send telemetry log/)
+        expect(Datadog.logger).to receive(:warn).with(/Failed to send telemetry/)
 
         expect { described_class.error('description') }.not_to raise_error
       end
