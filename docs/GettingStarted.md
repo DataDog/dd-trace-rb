@@ -548,7 +548,7 @@ require 'aws-sdk'
 require 'datadog'
 
 Datadog.configure do |c|
-  c.tracing.instrument :aws, **options
+  c.tracing.instrument :aws, propagation: true,  **options
 end
 
 # Perform traced call
@@ -562,6 +562,8 @@ Aws::S3::Client.new.list_buckets
 | `enabled` | `DD_TRACE_AWS_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 | `service_name` | `DD_TRACE_AWS_SERVICE_NAME` | `String` | Name of application running the `aws` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `aws`   |
 | `peer_service` | `DD_TRACE_AWS_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                    | `nil`   |
+| `propagation` | `DD_TRACE_AWS_PROPAGATION_ENABLED` | `Bool` | Enables distributed trace propagation for SNS and SQS messages. | `false` |
+| `parentage_style` | `DD_TRACE_AWS_TRACE_PARENTAGE_STYLE` | `String` | Controls whether the local trace is parented to the SQS message consumed. Possible values are: `local`, `distributed`. This option is always disable (the equivalent to `local`) if `propagation` is disabled. | `propagation` |
 
 ### Concurrent Ruby
 

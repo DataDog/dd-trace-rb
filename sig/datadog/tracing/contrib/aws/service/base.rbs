@@ -4,6 +4,8 @@ module Datadog
       module Aws
         module Service
           class Base
+            MESSAGE_ATTRIBUTES_LIMIT: int
+
             def add_tags: (untyped span, untyped params) -> nil
           end
         end

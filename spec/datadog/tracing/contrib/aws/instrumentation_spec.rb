@@ -255,6 +255,7 @@ RSpec.describe 'AWS instrumentation' do
     end
 
     describe '#send_message_batch' do
+      # TODO: SHOULD TAG ALL MESSAGES
       subject!(:send_message_batch) do
         client.send_message_batch(
           {
@@ -379,6 +380,44 @@ RSpec.describe 'AWS instrumentation' do
           .to eq('sqs.us-stubbed-1.amazonaws.com')
       end
     end
+
+    describe '#receive_message' do
+      subject!(:receive_message) do
+        client.receive_message(
+          {
+            queue_url: 'https://sqs.us-stubbed-1.amazonaws.com/123456789012/MyQueueName',
+            attribute_names: ['All'],
+            max_number_of_messages: 1,
+            visibility_timeout: 1,
+            wait_time_seconds: 1,
+            receive_request_attempt_id: 'my_receive_request_attempt_1',
+          }
+        )
+      end
+
+      let(:responses) do
+        { receive_message: {
+          messages: [
+            message_attributes: {
+              '_datadog' => {
+                string_value: 'String',
+                data_type: 'String'
+              }
+            }
+          ]
+        } }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.type).to eq('http')
+        expect(span.resource).to eq('sqs.receive_message')
+
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('receive_message')
+      end
+    end
   end
 
   context 'with an SNS client' do
@@ -389,7 +428,14 @@ RSpec.describe 'AWS instrumentation' do
         client.publish(
           {
             topic_arn: 'arn:aws:sns:us-west-2:123456789012:my-topic-name',
-            message: 'Hello, world!'
+            message: 'Hello, world!',
+            message_attributes: {
+              'String' => {
+                data_type: 'String', # required
+                string_value: 'String',
+                binary_value: 'data',
+              },
+            },
           }
         )
       end
@@ -417,6 +463,62 @@ RSpec.describe 'AWS instrumentation' do
 
         expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
         expect(span.get_tag('aws.operation')).to eq('publish')
+        expect(span.get_tag('region')).to eq('us-stubbed-1')
+        expect(span.get_tag('aws_service')).to eq('sns')
+        expect(span.get_tag('aws_account')).to eq('123456789012')
+        expect(span.get_tag('topicname')).to eq('my-topic-name')
+        expect(span.get_tag('path')).to eq('')
+        expect(span.get_tag('host')).to eq('sns.us-stubbed-1.amazonaws.com')
+        expect(span.get_tag('http.method')).to eq('POST')
+        expect(span.get_tag('http.status_code')).to eq('200')
+        expect(span.get_tag('span.kind')).to eq('client')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('aws')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('command')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME))
+          .to eq('sns.us-stubbed-1.amazonaws.com')
+      end
+    end
+
+    describe '#publish_batch' do
+      subject!(:publish_batch) do
+        client.publish_batch(
+          topic_arn: 'arn:aws:sns:us-west-2:123456789012:my-topic-name',
+          publish_batch_request_entries: [
+            { id: 'id1', message: 'body1' },
+            { id: 'id2', message: 'body2' },
+          ]
+        )
+      end
+
+      let(:configuration_options) { super().merge(propagation: true) }
+
+      let(:responses) do
+        {
+          publish_batch: {
+            successful: [{ id: 'id1' }],
+            failed: [{ id: 'id2', code: 'error_code', sender_fault: true }]
+          }
+        }
+      end
+
+      it_behaves_like 'schema version span'
+      it_behaves_like 'environment service name', 'DD_TRACE_AWS_SERVICE_NAME'
+      it_behaves_like 'configured peer service span', 'DD_TRACE_AWS_PEER_SERVICE'
+      it_behaves_like 'a peer service span' do
+        let(:peer_service_val) { 'my-topic-name' }
+        let(:peer_service_source) { 'topicname' }
+      end
+
+      it 'generates a span' do
+        expect(span.name).to eq('aws.command')
+        expect(span.service).to eq('aws')
+        expect(span.type).to eq('http')
+        expect(span.resource).to eq('sns.publish_batch')
+
+        expect(span.get_tag('aws.agent')).to eq('aws-sdk-ruby')
+        expect(span.get_tag('aws.operation')).to eq('publish_batch')
         expect(span.get_tag('region')).to eq('us-stubbed-1')
         expect(span.get_tag('aws_service')).to eq('sns')
         expect(span.get_tag('aws_account')).to eq('123456789012')

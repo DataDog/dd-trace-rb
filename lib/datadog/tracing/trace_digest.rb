@@ -180,6 +180,60 @@ module Datadog
           }.merge!(field_value_pairs)
         )
       end
+
+      # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity
+      def ==(other)
+        self.class == other.class &&
+          span_id == other.span_id &&
+          span_name == other.span_name &&
+          span_resource == other.span_resource &&
+          span_service == other.span_service &&
+          span_type == other.span_type &&
+          trace_distributed_tags == other.trace_distributed_tags &&
+          trace_hostname == other.trace_hostname &&
+          trace_id == other.trace_id &&
+          trace_name == other.trace_name &&
+          trace_origin == other.trace_origin &&
+          trace_process_id == other.trace_process_id &&
+          trace_resource == other.trace_resource &&
+          trace_runtime_id == other.trace_runtime_id &&
+          trace_sampling_priority == other.trace_sampling_priority &&
+          trace_service == other.trace_service &&
+          trace_distributed_id == other.trace_distributed_id &&
+          trace_flags == other.trace_flags &&
+          trace_state == other.trace_state &&
+          trace_state_unknown_fields == other.trace_state_unknown_fields &&
+          span_remote == other.span_remote
+      end
+      # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity
+
+      alias eql? ==
+
+      def hash
+        [
+          self.class,
+          span_id,
+          span_name,
+          span_resource,
+          span_service,
+          span_type,
+          trace_distributed_tags,
+          trace_hostname,
+          trace_id,
+          trace_name,
+          trace_origin,
+          trace_process_id,
+          trace_resource,
+          trace_runtime_id,
+          trace_sampling_priority,
+          trace_service,
+          trace_distributed_id,
+          trace_flags,
+          trace_state,
+          trace_state_unknown_fields,
+          span_remote
+        ].hash
+      end
     end
   end
 end

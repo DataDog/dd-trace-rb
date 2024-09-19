@@ -45,6 +45,29 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            # Enables distributed trace propagation for SNS and SQS messages.
+            # @default `DD_TRACE_AWS_PROPAGATION_ENABLED` environment variable, otherwise `false`
+            # @return [Boolean]
+            option :propagation do |o|
+              o.type :bool
+              o.env Ext::ENV_PROPAGATION_ENABLED
+              o.default false
+            end
+
+            # Controls whether the local trace is parented to the SQS message consumed.
+            # Possible values are:
+            # `local`: The local active trace is used; SNS has no effect on trace parentage.
+            # `distributed`: The local active trace becomes a child of the propagation context from the SQS message.
+            #
+            # This option is always disable (the equivalent to`local`) if `propagation` is disabled.
+            # @default `DD_TRACE_AWS_TRACE_PARENTAGE_STYLE` environment variable, otherwise `local`
+            # @return [String]
+            option :parentage_style do |o|
+              o.type :string
+              o.env Ext::ENV_TRACE_PARENTAGE_STYLE
+              o.default 'distributed'
+            end
           end
         end
       end

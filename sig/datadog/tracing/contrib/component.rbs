@@ -3,6 +3,13 @@ module Datadog
     module Contrib
       module Component
         @registry: Hash[String, Proc]
+
+        def self.register: (string name) { (untyped) -> void } -> void
+        def self.configure: (Core::Configuration::Settings config) -> void
+
+        private
+
+        def self.unregister: (string name) -> void
       end
     end
   end

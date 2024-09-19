@@ -6,6 +6,7 @@ module Datadog
           ENV_ENABLED: "DD_TRACE_AWS_ENABLED"
 
           ENV_PEER_SERVICE: "DD_TRACE_AWS_PEER_SERVICE"
+          ENV_PROPAGATION_ENABLED: string
           ENV_SERVICE_NAME: "DD_TRACE_AWS_SERVICE_NAME"
 
           ENV_ANALYTICS_ENABLED: "DD_TRACE_AWS_ANALYTICS_ENABLED"
@@ -14,6 +15,7 @@ module Datadog
 
           DEFAULT_PEER_SERVICE_NAME: "aws"
 
+          ENV_TRACE_PARENTAGE_STYLE: string
           PEER_SERVICE_SOURCES: Array[String]
 
           SPAN_COMMAND: "aws.command"
