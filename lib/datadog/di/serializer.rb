@@ -60,21 +60,23 @@ module Datadog
       # of executed code.
       def serialize_vars(vars)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(k, v)
+          agg[k] = serialize_value(v, name: k)
         end
       end
 
-      private
-
       # Serializes a single named value.
       #
-      # The name is necessary to perform sensitive data redaction.
+      # The name is needed to perform sensitive data redaction.
+      #
+      # In some cases, the value being serialized does not have a name
+      # (for example, it is the return value of a method).
+      # In this case +name+ can be nil.
       #
       # Returns a data structure comprised of only values of basic types
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
-      def serialize_value(name, value, depth: settings.dynamic_instrumentation.max_capture_depth)
+      def serialize_value(value, name: nil, depth: settings.dynamic_instrumentation.max_capture_depth)
         if redactor.redact_type?(value)
           return {type: class_name(value.class), notCapturedReason: "redactedType"}
         end
@@ -109,7 +111,7 @@ module Datadog
               value = value[0...max] || []
             end
             entries = value.map do |elt|
-              serialize_value(nil, elt, depth: depth - 1)
+              serialize_value(elt, depth: depth - 1)
             end
             serialized.update(elements: entries)
           end
@@ -126,7 +128,7 @@ module Datadog
                 break
               end
               cur += 1
-              entries << [serialize_value(nil, k, depth: depth - 1), serialize_value(k, v, depth: depth - 1)]
+              entries << [serialize_value(k, depth: depth - 1), serialize_value(v, name: k, depth: depth - 1)]
             end
             serialized.update(entries: entries)
           end
@@ -166,13 +168,15 @@ module Datadog
                 break
               end
               cur += 1
-              fields[ivar] = serialize_value(ivar, value.instance_variable_get(ivar), depth: depth - 1)
+              fields[ivar] = serialize_value(value.instance_variable_get(ivar), name: ivar, depth: depth - 1)
             end
             serialized.update(fields: fields)
           end
         end
         serialized
       end
+
+      private
 
       # Returns the name for the specified class object.
       #
