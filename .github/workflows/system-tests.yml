@@ -376,7 +376,7 @@ jobs:
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-      - uses: actions/delete-package-versions@v4
+      - uses: actions/delete-package-versions@v5
         with:
           package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
           package-name: 'system-tests/${{ matrix.image }}'
