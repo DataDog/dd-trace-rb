@@ -72,10 +72,13 @@ module Datadog
             if name.start_with?("::")
               # :: prefix is redundant, all names are expected to be
               # fully-qualified.
-              name = name[2...name.length]
+              #
+              # Defaulting to empty string is for steep.
+              name = name[2...name.length] || ""
             end
             if name.end_with?("*")
-              name = name[0..-2]
+              # Defaulting to empty string is for steep.
+              name = name[0..-2] || ""
               suffix = ".*"
             else
               suffix = ""

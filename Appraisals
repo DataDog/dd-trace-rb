@@ -52,7 +52,7 @@ def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
 
   if min
     appraise "#{integration}-min" do
-      gem gem, "= #{n}"
+      gem gem, "= #{min}"
       meta.each { |k, v| gem k, v }
     end
   end

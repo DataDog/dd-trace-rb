@@ -62,6 +62,49 @@ RSpec.describe Datadog::DI::Serializer do
     described_class.new(settings, redactor)
   end
 
+  describe "#serialize_value" do
+    let(:serialized) do
+      serializer.serialize_value(value, **options)
+    end
+
+    def self.define_cases(cases)
+      cases.each do |c|
+        value = c.fetch(:input)
+        expected = c.fetch(:expected)
+        var_name = c[:var_name]
+
+        context c.fetch(:name) do
+          let(:value) { value }
+
+          let(:options) do
+            {name: var_name}
+          end
+
+          it "serializes as expected" do
+            expect(serialized).to eq(expected)
+          end
+        end
+      end
+    end
+
+    cases = [
+      {name: "nil value", input: nil, expected: {type: "NilClass", isNull: true}},
+      {name: "true value", input: true, expected: {type: "TrueClass", value: "true"}},
+      {name: "false value", input: false, expected: {type: "FalseClass", value: "false"}},
+      {name: "int value", input: 42, expected: {type: "Integer", value: "42"}},
+      {name: "bigint value", input: 420000000000000000000042, expected: {type: "Integer", value: "420000000000000000000042"}},
+      {name: "float value", input: 42.02, expected: {type: "Float", value: "42.02"}},
+      {name: "string value", input: "x", expected: {type: "String", value: "x"}},
+      {name: "symbol value", input: :x, expected: {type: "Symbol", value: "x"}},
+      {name: "redacted identifier in predefined list", input: "123", var_name: "password",
+       expected: {type: "String", notCapturedReason: "redactedIdent"}},
+      {name: "variable name given and is not a redacted identifier", input: "123", var_name: "normal",
+       expected: {type: "String", value: "123"}},
+    ]
+
+    define_cases(cases)
+  end
+
   describe "#serialize_vars" do
     let(:serialized) do
       serializer.serialize_vars(vars)
@@ -83,14 +126,6 @@ RSpec.describe Datadog::DI::Serializer do
     end
 
     cases = [
-      {name: "nil value", input: {a: nil}, expected: {a: {type: "NilClass", isNull: true}}},
-      {name: "true value", input: {a: true}, expected: {a: {type: "TrueClass", value: "true"}}},
-      {name: "false value", input: {a: false}, expected: {a: {type: "FalseClass", value: "false"}}},
-      {name: "int value", input: {a: 42}, expected: {a: {type: "Integer", value: "42"}}},
-      {name: "bigint value", input: {a: 420000000000000000000042}, expected: {a: {type: "Integer", value: "420000000000000000000042"}}},
-      {name: "float value", input: {a: 42.02}, expected: {a: {type: "Float", value: "42.02"}}},
-      {name: "string value", input: {a: "x"}, expected: {a: {type: "String", value: "x"}}},
-      {name: "symbol value", input: {a: :x}, expected: {a: {type: "Symbol", value: "x"}}},
       {name: "redacted value in predefined list", input: {password: "123"},
        expected: {password: {type: "String", notCapturedReason: "redactedIdent"}}},
       {name: "redacted type", input: {value: DISerializerSpecSensitiveType.new},

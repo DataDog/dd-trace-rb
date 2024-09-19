@@ -162,7 +162,7 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-build_coverage_matrix('stripe', 7..12)
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 
@@ -187,6 +187,10 @@ appraise 'activesupport' do
   gem 'lograge', '~> 0.11'
   gem 'racecar', '>= 0.3.5'
   gem 'ruby-kafka', '>= 0.7.10'
+end
+
+appraise 'actionpack-5.0' do
+  gem 'rails', '~> 5.0'
 end
 
 appraise 'contrib' do
