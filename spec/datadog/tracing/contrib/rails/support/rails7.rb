@@ -9,7 +9,7 @@ if ENV['USE_SIDEKIQ']
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 end
 
-RSpec.shared_context 'Rails 6 test application' do
+RSpec.shared_context 'Rails 7 test application' do
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
       def config.database_configuration
@@ -29,13 +29,14 @@ RSpec.shared_context 'Rails 6 test application' do
         end
       file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
-      config.load_defaults '6.0'
+      config.load_defaults '7.0'
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
       config.active_record.cache_versioning = false if Gem.loaded_specs['redis-activesupport']
       config.cache_store = ENV['REDIS_URL'] ? redis_cache : file_cache
       config.eager_load = false
       config.consider_all_requests_local = true
       config.hosts.clear # Allow requests for any hostname during tests
+      config.active_support.remove_deprecated_time_with_zone_name = false
 
       instance_eval(&during_init)
 
@@ -70,11 +71,7 @@ RSpec.shared_context 'Rails 6 test application' do
       end
 
       if Rails.application.config.respond_to?(:active_job)
-        Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                              :sidekiq
-                                                            else
-                                                              :inline
-                                                            end
+        Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :inline
       end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
@@ -137,11 +134,11 @@ RSpec.shared_context 'Rails 6 test application' do
     end
   end
 
-  before do
+  around do |example|
     reset_rails_configuration!
-  end
 
-  after do
+    example.run
+  ensure
     reset_rails_configuration!
 
     # Push this to base when Rails 3 removed
@@ -157,6 +154,7 @@ RSpec.shared_context 'Rails 6 test application' do
 
     rails_test_application.instance.routes.append do
       test_routes.each do |k, v|
+        # no-dd-sa
         if k.is_a?(Array)
           send(k.first, k.last => v)
         else
@@ -176,7 +174,7 @@ RSpec.shared_context 'Rails 6 test application' do
     controllers
   end
 
-  # Rails 5 leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
+  # Rails leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
     # Reset autoloaded constants
@@ -187,14 +185,10 @@ RSpec.shared_context 'Rails 6 test application' do
 
     reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options) if Module.const_defined?(:ActiveRecord)
 
-    # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-    if Rails::VERSION::MINOR < 1
-      ActionView::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
-    end
-
-    reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)
-    reset_class_variable(ActiveSupport::Dependencies, :@@autoload_once_paths)
-    reset_class_variable(ActiveSupport::Dependencies, :@@_eager_load_paths)
+    ActiveSupport::Dependencies.autoload_paths = []
+    ActiveSupport::Dependencies.autoload_once_paths = []
+    ActiveSupport::Dependencies._eager_load_paths = Set.new
+    ActiveSupport::Dependencies._autoloaded_tracked_classes = Set.new
 
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)

@@ -50,6 +50,14 @@ appraise 'rails61-trilogy' do
   gem 'net-smtp'
 end
 
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'

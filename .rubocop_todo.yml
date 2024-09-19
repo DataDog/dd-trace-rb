@@ -131,3 +131,4 @@ Style/ClassVars:
     - 'spec/datadog/tracing/contrib/rails/support/rails4.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails5.rb'
     - 'spec/datadog/tracing/contrib/rails/support/rails6.rb'
+    - 'spec/datadog/tracing/contrib/rails/support/rails7.rb'
