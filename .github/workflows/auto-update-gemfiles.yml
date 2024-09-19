@@ -83,9 +83,7 @@ jobs:
           path: gemfiles
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
-      
-      - run: ls -R gemfiles
-            
+                  
       - run: git diff
 
       - name: Create Pull Request
