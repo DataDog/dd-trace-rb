@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class AllSampler < Sampler
+        def sample?: (untyped _trace) -> true
+
+        def sample!: (untyped trace) -> untyped
+
+        def sample_rate: (*untyped _) -> ::Float
+      end
+    end
+  end
+end

@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Metrics
+      module Options
+        DEFAULT: { tags: untyped }
+
+        def metric_options: (?untyped? options) -> untyped
+
+        def default_metric_options: () -> untyped
+      end
+    end
+  end
+end

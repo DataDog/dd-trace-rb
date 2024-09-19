@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Resque
+        module Job
+          def perform: () -> untyped
+        end
+        module ResqueJob
+          def around_perform0_datadog: (*untyped args) { () -> untyped } -> untyped
+
+          def after_perform_shutdown_tracer: (*untyped _) -> untyped
+
+          def on_failure_shutdown_tracer: (*untyped _) -> untyped
+
+          def shutdown_tracer_when_forked!: () -> (untyped | nil)
+
+          private
+
+          def forked?: () -> untyped
+
+          def span_options: () -> { service: untyped, on_error: untyped }
+
+          def datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

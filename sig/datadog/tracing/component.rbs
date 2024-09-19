@@ -1,0 +1,32 @@
+module Datadog
+  module Tracing
+    module Component
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE: Core::Utils::OnlyOnce
+
+      def build_tracer: (untyped settings, untyped agent_settings) -> untyped
+
+      def build_trace_flush: (untyped settings) -> untyped
+      def build_sampler: (untyped settings) -> untyped
+
+      def ensure_priority_sampling: (untyped sampler, untyped settings) -> untyped
+      def build_writer: (untyped settings, untyped agent_settings, ?Hash[Symbol, untyped] options) -> untyped
+
+      def subscribe_to_writer_events!: (untyped writer, untyped sampler, untyped test_mode) -> (nil | untyped)
+
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK: untyped
+      def writer_update_priority_sampler_rates_callback: (untyped sampler) -> untyped
+
+      def build_span_sampler: (untyped settings) -> untyped
+
+      private
+
+      def build_tracer_tags: (untyped settings) -> untyped
+
+      def build_test_mode_trace_flush: (untyped settings) -> untyped
+
+      def build_test_mode_sampler: () -> untyped
+
+      def build_test_mode_writer: (untyped settings, untyped agent_settings) -> untyped
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module Reactive
+          module Multiplex
+            ADDRESSES: ::Array[String]
+
+            def self.publish: (Datadog::AppSec::Reactive::Operation op, Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex gateway_multiplex) -> boolish
+
+            def self.subscribe: (Datadog::AppSec::Reactive::Operation op, Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex waf_context) -> void
+          end
+        end
+      end
+    end
+  end
+end

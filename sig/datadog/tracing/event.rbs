@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Events
+      def self.included: (untyped base) -> untyped
+
+      module ClassMethods
+        def build: (**untyped event_handlers) -> untyped
+      end
+
+      module InstanceMethods
+        def subscribe: (**untyped event_handlers) -> (nil | untyped)
+      end
+    end
+
+    class Event
+      attr_reader name: untyped
+      attr_reader subscriptions: untyped
+
+      def initialize: (untyped name) -> void
+      def subscribe: () ?{ () -> untyped } -> untyped
+      def unsubscribe_all!: () -> true
+      def publish: (*untyped args) -> true
+    end
+  end
+end

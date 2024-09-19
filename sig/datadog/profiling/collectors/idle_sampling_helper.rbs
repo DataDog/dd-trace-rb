@@ -1,0 +1,28 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class IdleSamplingHelper
+        @worker_thread: untyped
+        @start_stop_mutex: ::Thread::Mutex
+
+        private
+
+        attr_accessor failure_exception: ::Exception?
+
+        public
+
+        def initialize: () -> void
+
+        def start: () -> (nil | true)
+
+        def stop: () -> void
+
+        def self._native_stop: (Datadog::Profiling::Collectors::IdleSamplingHelper self_instance) -> true
+
+        def self._native_reset: (Datadog::Profiling::Collectors::IdleSamplingHelper self_instance) -> true
+
+        def self._native_idle_sampling_loop: (Datadog::Profiling::Collectors::IdleSamplingHelper self_instance) -> true
+      end
+    end
+  end
+end

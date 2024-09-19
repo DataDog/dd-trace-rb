@@ -1,0 +1,92 @@
+require 'datadog/demo_env'
+
+source "https://rubygems.org"
+
+  # gem 'rails', '5.2.2'
+
+rails_version = ['~> 5.2', '>= 5.2.6']
+
+gem 'actioncable', *rails_version
+gem 'actionmailer', *rails_version
+gem 'actionpack', *rails_version
+gem 'actionview', *rails_version
+gem 'activejob', *rails_version
+gem 'activemodel', *rails_version
+gem 'activerecord', *rails_version
+gem 'railties', *rails_version
+
+gem 'mysql2'
+gem 'puma'
+gem 'unicorn'
+
+# Lock loofah's version as there were issues between specific loofah and nokogiri (a loofah dependency)
+# around loofah 2.20. We can't upgrade both loofah and nokogiri to their latest version because
+# they are not supported by Ruby < 2.5.
+gem 'loofah', '2.19.1'
+
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+
+gem 'dogstatsd-ruby'
+gem 'ffi'
+
+# Fixes conflict with profiling (patch overwrite in Thread)
+# Upgrade this to latest when this patch is merged & released.
+# https://github.com/rollbar/rollbar-gem/pull/1018
+gem 'rollbar', git: 'https://github.com/rollbar/rollbar-gem.git', ref: '310a9d1743bb44031480b49e8e0cef79ddc870c3'
+
+# Gems which give aide to higher performance
+gem 'hiredis', '~> 0.6', platform: :ruby
+gem 'multi_json'
+gem 'oj', '3.3', platform: :ruby
+
+gem 'active_model_serializers', '0.9.3'
+gem 'activerecord-import' # Speeds up mass imports
+gem 'aws-sdk', '< 2.0'
+gem 'bcrypt-ruby', platform: :ruby
+gem 'connection_pool'
+gem 'devise'
+gem 'faker', require: false # Make up fake data to put in models for load testing
+gem 'geoip'
+gem 'hawk-auth'
+gem 'httparty'
+gem 'ipaddress'
+gem 'rabl', platform: :ruby
+gem 'rack-cors'
+gem 'rake'
+# Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
+gem 'redis', '< 5'
+gem 'resque'
+# gem 'resque-pool' # Incompatible with Redis 4.0+
+gem 'resque-scheduler'
+gem 'tzinfo-data', platforms: [:mingw, :mswin, :jruby]
+gem 'validates_timeliness', '~> 3.0.8' # Date comparisons
+gem 'versionist'
+gem 'warden'
+
+group :development do
+  gem 'annotate'
+  gem 'awesome_print'
+  gem 'bullet'
+end
+
+group :test do
+  gem 'ci_reporter_rspec'
+  gem 'database_cleaner'
+  gem 'factory_girl_rails', '4.5.0'
+  gem 'rspec'
+  gem 'rspec-collection_matchers'
+  gem 'rspec-rails'
+  gem 'shoulda-matchers', '4.0.1'
+  gem 'simplecov', require: false # Will install simplecov-html as a dependency
+  gem 'timecop'
+  gem 'webmock'
+end
+
+group :test, :development do
+  gem 'byebug', platform: :ruby
+  gem 'mock_redis', '0.19.0'
+  gem 'parallel_tests'
+
+  gem 'listen'
+end

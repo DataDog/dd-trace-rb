@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Presto
+        module Patcher
+          include Contrib::Patcher
+
+          PATCH_ONLY_ONCE: untyped
+
+          def self?.patched?: () -> untyped
+
+          def self?.patch: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,37 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Cache
+          module Instrumentation
+            def self?.start_trace_cache: (untyped payload) -> untyped
+
+            def self?.finish_trace_cache: (untyped payload) -> untyped
+
+            def self?.finish_trace_cache_multi: (untyped payload) -> untyped
+
+            def self?.enabled?: () -> untyped
+            module Read
+              def read: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+            module ReadMulti
+              def read_multi: (*untyped keys) ?{ () -> untyped } -> untyped
+            end
+            module Fetch
+              def fetch: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+            module FetchMulti
+              def fetch_multi: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+            module Write
+              def write: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+            module Delete
+              def delete: (*untyped args) ?{ () -> untyped } -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

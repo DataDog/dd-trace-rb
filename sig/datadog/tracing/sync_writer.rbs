@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    class SyncWriter
+      attr_reader events: untyped
+
+      attr_reader transport: untyped
+      def initialize: (?transport: untyped?, ?transport_options: ::Hash[untyped, untyped], ?agent_settings: untyped?) -> void
+      def write: (untyped trace) -> untyped
+      def stop: () -> true
+
+      private
+
+      def flush_trace: (untyped trace) -> (nil | untyped)
+    end
+  end
+end

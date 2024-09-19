@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module Dynamic
+        class Option
+          attr_reader name: String
+
+          attr_reader env_var: String
+          def initialize: (String name, String env_var) -> void
+          def call: (Object value) -> void
+        end
+        class SimpleOption < Option
+          @setting_key: Symbol
+
+          def initialize: (String name, String env_var, Symbol setting_key) -> void
+          def call: (Object value) -> void
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
+        end
+      end
+    end
+  end
+end

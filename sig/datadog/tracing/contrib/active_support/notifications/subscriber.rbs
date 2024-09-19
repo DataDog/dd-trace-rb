@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Notifications
+          module Subscriber
+            def self.included: (untyped base) -> untyped
+            module ClassMethods
+              def subscriptions: () -> untyped
+              def subscribed?: () -> untyped
+              def on_subscribe: () ?{ () -> untyped } -> untyped
+              def subscribe!: () -> untyped
+              def subscribe: (untyped pattern, untyped span_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+              def subscription: (untyped span_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+
+              private
+
+              attr_reader subscribed: untyped
+
+              attr_reader on_subscribe_block: untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

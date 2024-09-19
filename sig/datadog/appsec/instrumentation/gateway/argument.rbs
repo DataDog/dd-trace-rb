@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Instrumentation
+      class Gateway
+        class Argument
+          def initialize: (*untyped) -> void
+        end
+
+        class User < Argument
+          attr_reader id: String
+
+          def initialize: (String id) -> void
+        end
+      end
+    end
+  end
+end

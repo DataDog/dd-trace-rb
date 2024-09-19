@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module TraceMiddleware
+          def call: (untyped commands, untyped redis_config) -> untyped
+
+          def call_pipelined: (untyped commands, untyped redis_config) -> untyped
+
+          private
+
+          def get_command: (untyped commands, untyped boolean) -> untyped
+
+          def get_pipeline_commands: (untyped commands, untyped boolean) -> untyped
+
+          def resolve: (untyped redis_config) -> untyped
+        end
+      end
+    end
+  end
+end

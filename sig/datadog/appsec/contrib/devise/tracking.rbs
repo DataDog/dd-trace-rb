@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Tracking
+          LOGIN_SUCCESS_EVENT: String
+
+          LOGIN_FAILURE_EVENT: String
+
+          SIGNUP_EVENT: String
+
+          def self.track_login_success: (untyped trace, untyped span, user_id: untyped, **untyped others) -> untyped
+
+          def self.track_login_failure: (untyped trace, untyped span, user_id: untyped, user_exists: untyped, **untyped others) -> untyped
+
+          def self.track_signup: (untyped trace, untyped span, user_id: untyped, **untyped others) -> untyped
+
+          def self.track: (untyped event, untyped trace, untyped span, **untyped others) -> untyped
+        end
+      end
+    end
+  end
+end

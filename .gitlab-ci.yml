@@ -1,0 +1,156 @@
+stages:
+  - manual-images
+  - package
+  - shared-pipeline
+  - vaccine
+  - macrobenchmarks
+  - microbenchmarks
+  - benchmarks
+
+include:
+  - remote: https://gitlab-templates.ddbuild.io/libdatadog/include/one-pipeline.yml
+  - local: ".gitlab/benchmarks.yml"
+
+variables:
+  RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby
+  REPO_LANG: ruby # ruby is used rather that "rb"
+  BUILD_JOB_NAME: save_versions
+
+default:
+  tags: ["runner:main", "size:large"]
+
+.build-image-base:
+  stage: manual-images
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - .gitlab/Dockerfile-*
+      when: manual
+      allow_failure: true
+  image: $DOCKER_REGISTRY/docker:20.10.13
+  parallel:
+    matrix:
+      # ADD NEW RUBIES HERE
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+  script:
+    - >
+      docker build
+      --tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
+      --file .gitlab/Dockerfile-$RUBY_VERSION
+      .
+    - docker push --all-tags $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE
+
+build-image-amd64:
+  extends: .build-image-base
+  tags: ["runner:docker"]
+  variables:
+    ARCHITECTURE: amd64
+
+build-image-arm64:
+  extends: .build-image-base
+  tags: ["runner:docker-arm", "platform:arm64"]
+  variables:
+    ARCHITECTURE: arm64
+
+promote-image:
+  stage: manual-images
+  when: manual
+  tags: ["runner:docker"]
+  image: $DOCKER_REGISTRY/docker:20.10.13
+  parallel:
+    matrix:
+      # ADD NEW RUBIES HERE
+      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+        ARCHITECTURE: ["amd64", "arm64"]
+  script:
+    - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
+    - docker tag $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
+    - docker push $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:current
+
+build-gem:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  stage: package
+  script:
+    - |
+      if [ -z "$CI_COMMIT_TAG" ]; then
+        echo CI_JOB_ID=$CI_JOB_ID
+        echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
+        echo CI_COMMIT_SHA=$CI_COMMIT_SHA
+
+        .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
+      fi
+    - bundle install && chmod go-w -R . && bundle exec rake build
+    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
+  artifacts:
+    paths:
+      - pkg
+      - tmp
+      - lib/datadog/version.rb
+
+install-dependencies:
+  image: $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCH:current
+  tags: [ "arch:$ARCH" ]
+  parallel:
+    matrix:
+      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
+        ARCH: [ "amd64", "arm64" ]
+  stage: package
+  needs:
+    - build-gem
+  script:
+    - export RUBY_PACKAGE_VERSION=$(cat tmp/version)
+    - export DATADOG_GEM_LOCATION=$(readlink -f pkg/datadog-*.gem)
+    - ruby -v
+    - gem -v
+    - bundler -v
+    - ruby .gitlab/install_datadog_deps.rb
+  artifacts:
+    paths:
+      - pkg
+      - tmp/$ARCH
+      - lib/datadog/version.rb
+
+package-oci:
+  needs:
+    - build-gem
+    - install-dependencies
+
+onboarding_tests_installer:
+  parallel:
+    matrix:
+      - ONBOARDING_FILTER_WEBLOG: [test-app-ruby, test-app-ruby-container]
+
+onboarding_tests_k8s_injection:
+  parallel:
+    matrix:
+      - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+
+save_versions:
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
+  stage: package
+  needs: []
+  script:
+    - git fetch --all
+    - echo COMMIT_SHA_1X=$(git rev-parse origin/1.x-stable) >> upstream.env
+    - echo COMMIT_SHA_2X=$(git rev-parse origin/master) >> upstream.env
+  artifacts:
+    paths:
+      - upstream.env
+
+deploy_to_reliability_env:
+  needs:
+    - save_versions
+
+vaccine:
+  image: $DOCKER_REGISTRY/docker:20.10.13
+  tags: [ "arch:amd64" ]
+  stage: vaccine
+  needs: [create-multiarch-lib-injection-image]
+  script: |
+    GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token)
+
+    curl -X POST \
+      -H "Accept: application/vnd.github.v3+json" \
+      -H "Authorization: token $GH_VACCINE_PAT" \
+      https://api.github.com/repos/TonyCTHsu/vaccine/actions/workflows/vaccine.yml/dispatches \
+      -d '{"ref":"master", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}'

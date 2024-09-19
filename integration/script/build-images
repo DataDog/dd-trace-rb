@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+INTEGRATION_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+INTEGRATION_DIR=${INTEGRATION_SCRIPT_DIR%/script}
+cd $INTEGRATION_DIR
+
+APP_RUBY_VERSION=
+
+# Parse options
+while getopts ":hv:" opt; do
+  case $opt in
+    h)
+      echo "Usage: ./script/build-images [-v RUBY_VERSION]"
+      echo
+      echo "If no Ruby version is specified, images are built for each of the"
+      echo "supported versions (currently 2.1 through 3.3)."
+      exit 0
+      ;;
+    v)
+      APP_RUBY_VERSION=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "== Building base images... =="
+# "wrk" not necessary for CI: will be auto-built by local apps via docker-compose.
+# docker build -t datadog/dd-apm-demo:wrk -f $INTEGRATION_DIR/images/wrk/Dockerfile $INTEGRATION_DIR/images
+docker build -t datadog/dd-apm-demo:agent -f $INTEGRATION_DIR/images/agent/Dockerfile $INTEGRATION_DIR/images/agent
+
+if test -n "$APP_RUBY_VERSION"; then
+  docker build -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -f $INTEGRATION_DIR/images/ruby/$APP_RUBY_VERSION/Dockerfile $INTEGRATION_DIR/images
+else
+  docker build -t datadog/dd-apm-demo:rb-2.1 -f $INTEGRATION_DIR/images/ruby/2.1/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.2 -f $INTEGRATION_DIR/images/ruby/2.2/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.3 -f $INTEGRATION_DIR/images/ruby/2.3/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.4 -f $INTEGRATION_DIR/images/ruby/2.4/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.5 -f $INTEGRATION_DIR/images/ruby/2.5/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.6 -f $INTEGRATION_DIR/images/ruby/2.6/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-2.7 -f $INTEGRATION_DIR/images/ruby/2.7/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.0 -f $INTEGRATION_DIR/images/ruby/3.0/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.1 -f $INTEGRATION_DIR/images/ruby/3.1/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.2 -f $INTEGRATION_DIR/images/ruby/3.2/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.3 -f $INTEGRATION_DIR/images/ruby/3.3/Dockerfile $INTEGRATION_DIR/images
+  # ADD NEW RUBIES HERE
+fi
+echo "== Done building base images. =="

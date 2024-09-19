@@ -1,0 +1,169 @@
+name: Auto-update Gemfiles
+
+# This action cannot be skipped altogether because it is a mandatory status check.
+# Instead we conditionally skip it at job level, instead of workflow level.
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  workflow_dispatch:
+
+# Ensure obsolete job is cancelled if another commit is pushed to the same branch.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+        actions: read # read secrets
+        contents: write
+    strategy:
+        fail-fast: false
+        matrix:
+            engine:
+              # ADD NEW RUBIES HERE
+              - name: ruby
+                version: '3.4'
+              - name: ruby
+                version: '3.3'
+              - name: ruby
+                version: '3.2'
+              - name: ruby
+                version: '3.1'
+              - name: ruby
+                version: '3.0'
+              - name: ruby
+                version: '2.7'
+              - name: ruby
+                version: '2.6'
+              - name: ruby
+                version: '2.5'
+              - name: jruby
+                version: '9.4'
+              - name: jruby
+                version: '9.3'
+              - name: jruby
+                version: '9.2'
+    container:
+      image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Output Ruby version
+        run: ruby -v
+
+      - name: Bundle
+        run: bundle install
+
+      - name: Update latest
+        run: bundle exec rake edge:latest
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}-gha${{ github.run_id }}'
+          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
+          retention-days: 3
+
+  aggregate:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read # read secrets
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts for Ruby 2.5
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-2.5-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 2.6
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-2.6-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 2.7
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-2.7-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 3.0
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-3.0-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 3.1
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-3.1-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 3.2
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-3.2-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 3.3
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-3.3-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for Ruby 3.4
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-ruby-3.4-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for JRuby 9.2
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-jruby-9.2-gha${{ github.run_id }}'
+          path: gemfiles
+      
+      - name: Download artifacts for JRuby 9.3
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-jruby-9.3-gha${{ github.run_id }}'
+          path: gemfiles
+
+      - name: Download artifacts for JRuby 9.4
+        uses: actions/download-artifact@v4
+        with:
+          name: 'datadog-gem-jruby-9.4-gha${{ github.run_id }}'
+          path: gemfiles
+      
+      # ADD NEW RUBIES HERE
+      
+      - run: git diff
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          branch: update-latest-gemfiles
+          commit-message: "update latest gemfiles"
+          delete-branch: true
+          base: master
+          title: 'Update Latest Gemfiles'
+          body: |
+            **What does this PR do?**
+
+            Update gemfiles for latest gem versions
+
+            **Motivation:**
+
+            **Additional Notes:**
+            
+            Auto-generated PR

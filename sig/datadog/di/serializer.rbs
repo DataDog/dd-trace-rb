@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    class Serializer
+      @settings: untyped
+
+      @redactor: untyped
+
+      def initialize: (untyped settings, untyped redactor) -> void
+
+      attr_reader settings: untyped
+
+      attr_reader redactor: untyped
+      def serialize_args: (untyped args, untyped kwargs) -> untyped
+      def serialize_vars: (untyped vars) -> untyped
+
+      private
+      def serialize_value: (untyped name, untyped value, ?depth: untyped) -> ({ type: untyped, notCapturedReason: "redactedType" } | { type: untyped, notCapturedReason: "redactedIdent" } | untyped)
+      def class_name: (untyped cls) -> untyped
+    end
+  end
+end

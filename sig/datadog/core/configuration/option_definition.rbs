@@ -1,0 +1,67 @@
+module Datadog
+  module Core
+    module Configuration
+      class OptionDefinition
+        IDENTITY: untyped
+
+        attr_reader default: untyped
+
+        attr_reader default_proc: untyped
+
+        attr_reader env: untyped
+
+        attr_reader deprecated_env: untyped
+
+        attr_reader env_parser: untyped
+
+        attr_reader depends_on: untyped
+
+        attr_reader name: untyped
+
+        attr_reader after_set: untyped
+
+        attr_reader resetter: untyped
+
+        attr_reader setter: untyped
+
+        def initialize: (untyped name, ?::Hash[untyped, untyped] meta) { () -> untyped } -> untyped
+
+        def build: (untyped context) -> untyped
+
+        class Builder
+          attr_reader helpers: untyped
+
+          def initialize: (untyped name, ?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+
+          def depends_on: (*untyped values) -> untyped
+
+          def default: (?untyped? value) ?{ () -> untyped } -> untyped
+
+          def default_proc: () { () -> untyped } -> untyped
+
+          def env: (untyped value) -> untyped
+
+          def deprecated_env: (untyped value) -> untyped
+
+          def env_parser: () { (String env_value) -> untyped } -> untyped
+
+          def type: (Symbol value, ?::Hash[untyped, untyped] type_options) -> untyped
+
+          def helper: (untyped name, *untyped _args) { () -> untyped } -> untyped
+
+          def after_set: () { (untyped value) -> untyped } -> untyped
+
+          def resetter: () { (untyped value) -> untyped } -> untyped
+
+          def setter: () { (untyped value) -> untyped } -> untyped
+
+          def apply_options!: (?::Hash[untyped, untyped] options) -> (nil | untyped)
+
+          def to_definition: () -> untyped
+
+          def meta: () -> { default: untyped, after_set: untyped, resetter: untyped, setter: untyped }
+        end
+      end
+    end
+  end
+end

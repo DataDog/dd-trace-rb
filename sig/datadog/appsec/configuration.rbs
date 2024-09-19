@@ -1,0 +1,6 @@
+module Datadog
+  module AppSec
+    module Configuration
+    end
+  end
+end

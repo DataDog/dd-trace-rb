@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Kafka
+        module ConsumerEvent
+          def process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+        end
+      end
+    end
+  end
+end

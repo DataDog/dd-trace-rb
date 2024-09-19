@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Faraday
+        class Middleware < ::Faraday::Middleware
+          include Contrib::HttpAnnotationHelper
+
+          def initialize: (untyped app, ?::Hash[untyped, untyped] options) -> void
+
+          def call: (untyped env) -> untyped
+
+          private
+
+          attr_reader app: untyped
+
+          def annotate!: (untyped span, untyped env, untyped options) -> untyped
+
+          def handle_response: (untyped span, untyped env, untyped options) -> untyped
+
+          def propagate!: (untyped trace, untyped span, untyped env) -> untyped
+
+          def resource_name: (untyped env) -> untyped
+
+          def build_request_options!: (untyped env) -> untyped
+
+          def datadog_configuration: (?::Symbol host) -> untyped
+        end
+      end
+    end
+  end
+end

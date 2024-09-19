@@ -1,0 +1,4 @@
+module Datadog
+  module Kit
+  end
+end

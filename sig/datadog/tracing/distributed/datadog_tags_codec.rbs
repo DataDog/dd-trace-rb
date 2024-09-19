@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Distributed
+      module DatadogTagsCodec
+        module RefineRegexp
+        end
+        VALID_KEY_CHARS: ::Regexp
+        VALID_VALUE_CHARS: ::Regexp
+        def self.encode: (untyped tags) -> untyped
+        def self.decode: (untyped string) -> untyped
+        class EncodingError < StandardError
+        end
+        class DecodingError < StandardError
+        end
+      end
+    end
+  end
+end

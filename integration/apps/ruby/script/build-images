@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+APP_DIR=${APP_SCRIPT_DIR%/script}
+cd $APP_DIR
+
+while getopts ":v:" opt; do
+  case $opt in
+    v)
+      APP_RUBY_VERSION=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "== Building Ruby app images... =="
+if [ -v APP_RUBY_VERSION ]; then
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-ruby .
+else
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.1 -t datadog/dd-apm-demo:rb-2.1-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.2 -t datadog/dd-apm-demo:rb-2.2-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.3 -t datadog/dd-apm-demo:rb-2.3-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.4 -t datadog/dd-apm-demo:rb-2.4-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.5 -t datadog/dd-apm-demo:rb-2.5-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.6 -t datadog/dd-apm-demo:rb-2.6-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.0 -t datadog/dd-apm-demo:rb-3.0-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.1 -t datadog/dd-apm-demo:rb-3.1-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.2 -t datadog/dd-apm-demo:rb-3.2-ruby .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-3.3 -t datadog/dd-apm-demo:rb-3.3-ruby .
+  # ADD NEW RUBIES HERE
+fi
+echo "== Done building Ruby app images. =="

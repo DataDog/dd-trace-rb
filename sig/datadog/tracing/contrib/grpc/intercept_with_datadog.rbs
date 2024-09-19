@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module InterceptWithDatadog
+          def intercept!: (untyped `type`, ?::Hash[untyped, untyped] args) -> untyped
+
+          private
+
+          def should_prepend?: () -> untyped
+
+          def trace_started?: () -> untyped
+
+          def already_prepended?: () -> untyped
+
+          def choose_datadog_interceptor: (untyped args) -> (untyped | untyped | nil)
+        end
+      end
+    end
+  end
+end

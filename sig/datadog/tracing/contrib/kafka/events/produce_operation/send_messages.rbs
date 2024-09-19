@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Kafka
+        module Events
+          module ProduceOperation
+            module SendMessages
+              include Kafka::Event
+
+              EVENT_NAME: "send_messages.producer.kafka"
+
+              def self.process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+
+              def self?.span_name: () -> untyped
+
+              def self?.span_options: () -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

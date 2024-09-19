@@ -1,0 +1,61 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Notifications
+          class Subscription
+            attr_accessor span_name: untyped
+
+            attr_accessor span_options: untyped
+
+            def initialize: (untyped span_name, untyped options) ?{ () -> untyped } -> void
+            def call: (untyped name, untyped start, untyped finish, untyped id, untyped payload) -> untyped
+            def start: (untyped name, untyped id, untyped payload) -> untyped
+            def finish: (untyped name, untyped id, untyped payload) -> untyped
+
+            def before_trace: () ?{ () -> untyped } -> (untyped | nil)
+
+            def after_trace: () ?{ () -> untyped } -> (untyped | nil)
+
+            def subscribe: (untyped pattern) -> (false | true)
+
+            def unsubscribe: (untyped pattern) -> (false | true)
+
+            def unsubscribe_all: () -> (false | true)
+
+            attr_reader handler: untyped
+
+            attr_reader callbacks: untyped
+
+            def start_span: (untyped name, untyped id, untyped payload, ?untyped? start) -> untyped
+
+            def finish_span: (untyped name, untyped id, untyped payload, ?untyped? finish) -> untyped
+            def subscribers: () -> untyped
+            class Handler
+              attr_reader block: untyped
+
+              def initialize: () ?{ () -> untyped } -> void
+
+              def run: (untyped span, untyped name, untyped id, untyped payload) -> untyped
+
+              def run!: (*untyped args) -> untyped
+            end
+            class Callbacks
+              attr_reader blocks: untyped
+
+              def initialize: () -> void
+
+              def add: (untyped key) ?{ () -> untyped } -> (untyped | nil)
+
+              def run: (untyped event, untyped key, *untyped args) -> untyped
+
+              private
+
+              def blocks_for: (untyped key) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

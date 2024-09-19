@@ -1,0 +1,9 @@
+module WebMock
+  module HttpLibAdapters
+    class NetHttpAdapter
+      def self.enable!: -> void
+
+      def self.disable!: -> void
+    end
+  end
+end

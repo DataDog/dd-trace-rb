@@ -1,0 +1,82 @@
+version: '3.4'
+services:
+  app:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: "datadog/dd-apm-demo:rb-${RUBY_VERSION}"
+    depends_on:
+      - ddagent
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - DD_METRIC_AGENT_PORT=8125
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_HEALTH_METRICS_ENABLED=true
+      - DD_SERVICE=acme-sinatra
+      - DD_PROFILING_ENABLED=true
+      # Use these to choose what is run
+      - DD_DEMO_ENV_PROCESS=puma
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
+      # Use this for a local version of datadog
+      - DD_DEMO_ENV_GEM_LOCAL_DATADOG=/vendor/dd-trace-rb
+      # Use these for a specific revision of datadog
+      # - DD_DEMO_ENV_GEM_GIT_DATADOG=https://github.com/DataDog/dd-trace-rb.git
+      # - DD_DEMO_ENV_GEM_REF_DATADOG=f233336994315bfa04dac581387a8152bab8b85a
+      # Enable building the profiling native extension
+      - DD_DEMO_ENV_BUILD_PROFILING_EXTENSION=true
+      # - DD_TRACE_DEBUG=true
+    expose:
+      - "80"
+    # ports:
+    #   - "127.0.0.1:80:80"
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - ./data/app:/data/app
+      - bundle:/usr/local/bundle
+      - ../../images/include:/vendor/dd-demo
+      - ../../..:/vendor/dd-trace-rb
+  ddagent:
+    image: datadog/dd-apm-demo:agent
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_PROCESS_AGENT_ENABLED=false
+      - DD_BIND_HOST=0.0.0.0
+      - DD_API_KEY
+      - "DD_HOSTNAME=${DD_HOSTNAME}"
+      - LOG_LEVEL=DEBUG
+      - DD_LOGS_STDOUT=yes
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+    expose:
+      - "8125/udp"
+      - "8126"
+    volumes:
+      - ../../images/agent/agent.yaml:/etc/datadog-agent/datadog.yaml
+      # For monitoring performance of containers (e.g. CPU, Memory, etc...)
+      # - type: bind
+      #   source: ../../images/agent/agent.yaml
+      #   target: /etc/datadog-agent/datadog.yaml
+      # - type: bind
+      #   source: /var/run/docker.sock
+      #   target: /var/run/docker.sock:ro
+      # - type: bind
+      #   source: /proc/
+      #   target: /host/proc/:ro
+      # - type: bind
+      #   source: /sys/fs/cgroup/
+      #   target: /host/sys/fs/cgroup:ro
+  load-tester:
+    image: datadog/dd-apm-demo:wrk
+    command: -t10 -c10 -d43200s -s /scripts/scenarios/basic/default.lua http://app/basic/fibonacci
+    depends_on:
+      - app
+    environment:
+      - HEALTH_CHECK_URL=http://app/health
+      - HEALTH_CHECK_INTERVAL=1
+      - HEALTH_CHECK_MAX_ATTEMPTS=60
+    volumes:
+      - ../../images/wrk/scripts:/scripts
+volumes:
+  bundle:

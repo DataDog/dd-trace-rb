@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    def self.enabled?: () -> bool
+
+    def self.processor: () -> Datadog::AppSec::Processor?
+
+    def self.reconfigure: (
+      ruleset: ::Hash[untyped, untyped],
+      actions: Array[Hash[String, untyped]],
+      telemetry: Datadog::Core::Telemetry::Component
+    ) -> void
+
+    def self.reconfigure_lock: () { () -> void } -> void
+
+    private
+
+    def self.components: () -> Datadog::Core::Configuration::Components
+  end
+end

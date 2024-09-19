@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Ext
+          APP: "rails"
+        end
+      end
+    end
+  end
+end

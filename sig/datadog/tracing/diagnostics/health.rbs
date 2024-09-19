@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Diagnostics
+      module Health
+        module Metrics
+          def self.extended: (untyped base) -> untyped
+        end
+      end
+    end
+  end
+end

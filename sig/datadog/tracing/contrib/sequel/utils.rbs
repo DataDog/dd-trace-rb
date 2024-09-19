@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module Utils
+          def self.adapter_name: (untyped database) -> untyped
+          def self.database_type: (untyped database) -> untyped
+
+          def self.parse_opts: (untyped sql, untyped opts, untyped db_opts, ?untyped? dataset) -> { name: untyped, query: untyped, prepared_name: untyped, database: untyped, host: untyped }
+
+          def self.set_common_tags: (untyped span, untyped db) -> untyped
+
+          private
+
+          def self.datadog_configuration: () -> untyped
+
+          def self.analytics_enabled?: () -> untyped
+
+          def self.analytics_sample_rate: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Dalli
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          DALLI_PROTOCOL_BINARY_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> untyped
+
+          def self.compatible?: () -> untyped
+
+          def self.dalli_class: () -> untyped
+
+          def new_configuration: () -> untyped
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

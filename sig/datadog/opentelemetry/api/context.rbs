@@ -1,0 +1,36 @@
+module Datadog
+  module OpenTelemetry
+    module API
+      module Context
+        CURRENT_SPAN_KEY: untyped
+
+        def initialize: (untyped entries, ?trace: untyped?) -> void
+        def ensure_trace: () -> (nil | untyped)
+        def value: (untyped key) -> (nil | untyped)
+
+        alias [] value
+        def set_value: (untyped key, untyped value) -> untyped
+        def set_values: (untyped values) -> untyped
+        def trace: () -> untyped
+        module SingletonClass
+          def current: () -> untyped
+          def attach: (untyped context) -> untyped
+          def detach: (untyped token) -> untyped
+          def clear: () -> untyped
+          def from_trace: (untyped trace) -> untyped
+
+          private
+
+          def continue_trace!: (untyped context) ?{ () -> untyped } -> untyped
+        end
+
+        def self.prepended: (untyped base) -> untyped
+      end
+      module TraceOperation
+        attr_accessor otel_context: untyped
+        def otel_value: (untyped key) -> untyped
+        def otel_values: () -> untyped
+      end
+    end
+  end
+end

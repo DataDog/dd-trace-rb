@@ -1,0 +1,41 @@
+module GraphQL
+  class Schema
+    class Field
+    end
+
+    class Object
+    end
+
+    class Union
+    end
+  end
+
+  module Tracing
+    class Trace
+    end
+  end
+
+  module Language
+    module Nodes
+      class Document
+      end
+
+      class Field
+      end
+
+      class Argument
+      end
+    end
+  end
+
+  class Query
+    class Result
+      def initialize: (query: ::GraphQL::Query, values: Hash[String, untyped]) -> void
+    end
+  end
+
+  module Execution
+    class Multiplex
+    end
+  end
+end

@@ -1,0 +1,35 @@
+module Datadog
+  module AppSec
+    class Scope
+      attr_reader trace: Datadog::Tracing::TraceOperation
+
+      attr_reader service_entry_span: Datadog::Tracing::SpanOperation
+
+      attr_reader processor_context: Datadog::AppSec::Processor::Context
+
+      def initialize: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation service_entry_span, Datadog::AppSec::Processor::Context processor_context) -> void
+
+      def finalize: () -> void
+
+      def self.activate_scope: (Datadog::Tracing::TraceOperation trace, Datadog::Tracing::SpanOperation service_entry_span, Datadog::AppSec::Processor processor) -> Scope
+
+      def self.deactivate_scope: () -> void
+
+      def self.active_scope: () -> Scope
+
+      private
+
+      def self.active_scope=: (Scope scope) -> Scope
+
+      def self.reset_active_scope: () -> void
+
+      public
+
+      class InactiveScopeError < StandardError
+      end
+
+      class ActiveScopeError < StandardError
+      end
+    end
+  end
+end

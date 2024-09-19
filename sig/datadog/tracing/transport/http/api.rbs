@@ -1,0 +1,13 @@
+module Datadog
+  module Transport
+    module HTTP
+      module API
+        V4: "v0.4"
+
+        V3: "v0.3"
+
+        def self?.defaults: () -> untyped
+      end
+    end
+  end
+end

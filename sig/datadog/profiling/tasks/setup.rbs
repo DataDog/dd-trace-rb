@@ -1,0 +1,9 @@
+module Datadog
+  module Profiling
+    module Tasks
+      class Setup
+        def run: () -> void
+      end
+    end
+  end
+end

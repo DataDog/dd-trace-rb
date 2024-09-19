@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Metadata
+      module Errors
+        def set_error_tags: (untyped e) -> untyped
+      end
+    end
+  end
+end

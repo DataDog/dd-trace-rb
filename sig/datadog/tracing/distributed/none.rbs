@@ -1,0 +1,10 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class None
+        def inject!: (untyped _digest, untyped _data) -> nil
+        def extract: (untyped _data) -> nil
+      end
+    end
+  end
+end

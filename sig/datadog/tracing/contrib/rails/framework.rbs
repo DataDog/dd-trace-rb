@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rails
+        module Framework
+          def self.setup: () -> untyped
+
+          def self.activate_rack!: (untyped datadog_config, untyped rails_config) -> untyped
+
+          def self.activate_active_support!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_action_cable!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_action_mailer!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_action_pack!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_action_view!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_active_job!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_active_record!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_lograge!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+
+          def self.activate_semantic_logger!: (untyped datadog_config, untyped rails_config) -> (nil | untyped)
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,52 @@
+module Datadog
+  module Core
+    module Workers
+      module IntervalLoop
+        BACK_OFF_RATIO: ::Float
+
+        BACK_OFF_MAX: 5
+
+        BASE_INTERVAL: 1
+        MUTEX_INIT: untyped
+
+        def self.included: (untyped base) -> untyped
+        module PrependedMethods
+          def perform: (*untyped args) -> untyped
+        end
+
+        def stop_loop: () -> (false | true)
+
+        def work_pending?: () -> untyped
+
+        def run_loop?: () -> (false | untyped)
+
+        def loop_base_interval: () -> untyped
+
+        def loop_back_off_ratio: () -> untyped
+
+        def loop_back_off_max: () -> untyped
+
+        def loop_wait_time: () -> untyped
+
+        def loop_wait_time=: (untyped value) -> untyped
+
+        def loop_back_off!: () -> untyped
+        def loop_wait_before_first_iteration?: () -> false
+
+        attr_writer loop_back_off_max: untyped
+
+        attr_writer loop_back_off_ratio: untyped
+
+        attr_writer loop_base_interval: untyped
+
+        def mutex: () -> untyped
+
+        private
+
+        def perform_loop: () { () -> untyped } -> (nil | untyped)
+
+        def shutdown: () -> untyped
+      end
+    end
+  end
+end

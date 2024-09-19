@@ -1,0 +1,54 @@
+module Datadog
+  module Tracing
+    module Workers
+      class TraceWriter < Core::Worker
+        attr_reader transport: untyped
+        def initialize: (?::Hash[untyped, untyped] options) -> void
+
+        def perform: (untyped traces) -> untyped
+
+        def write: (untyped trace) -> untyped
+
+        def write_traces: (untyped traces) -> untyped
+
+        def process_traces: (untyped traces) -> untyped
+
+        def flush_traces: (untyped traces) -> untyped
+        def flush_completed: () -> untyped
+        class FlushCompleted < Event
+          def initialize: () -> void
+        end
+      end
+      class AsyncTraceWriter < TraceWriter
+        include Core::Workers::Queue
+
+        include Core::Workers::Polling
+
+        DEFAULT_BUFFER_MAX_SIZE: 1000
+
+        FORK_POLICY_ASYNC: :async
+
+        FORK_POLICY_SYNC: :sync
+
+        attr_writer async: untyped
+
+        def initialize: (?::Hash[untyped, untyped] options) -> void
+        def perform: (untyped traces) -> nil
+
+        def stop: (*untyped args) -> untyped
+
+        def enqueue: (untyped trace) -> untyped
+
+        def dequeue: () -> ::Array[untyped]
+        def work_pending?: () -> untyped
+
+        def async?: () -> untyped
+
+        def fork_policy=: (untyped policy) -> untyped
+
+        def after_fork: () -> untyped
+        def write: (untyped trace) -> untyped
+      end
+    end
+  end
+end

@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        class ServerTracer
+          include Utils
+
+          QUANTIZE_SHOW_ALL: { args: { show: :all } }
+
+          def initialize: (?::Hash[untyped, untyped] options) -> void
+          def call: (untyped worker, untyped job, untyped queue) { () -> untyped } -> untyped
+
+          private
+
+          def propagation: () -> untyped
+
+          def quantize_args: (untyped quantize, untyped args) -> untyped
+
+          def configuration: () -> untyped
+          def worker_config: (untyped resource, untyped key) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,40 @@
+module Datadog
+  module Core
+    module Vendor
+      module Multipart
+        module Post
+          module Parts
+            module Part
+              def self.new: (untyped boundary, untyped name, untyped value, ?::Hash[untyped, untyped] headers) -> untyped
+
+              def self.file?: (untyped value) -> untyped
+
+              def length: () -> untyped
+
+              def to_io: () -> untyped
+            end
+            class ParamPart
+              include Part
+              def initialize: (untyped boundary, untyped name, untyped value, ?::Hash[untyped, untyped] headers) -> void
+
+              def length: () -> untyped
+              def build_part: (untyped boundary, untyped name, untyped value, ?::Hash[untyped, untyped] headers) -> untyped
+            end
+            class FilePart
+              include Part
+
+              attr_reader length: untyped
+              def initialize: (untyped boundary, untyped name, untyped io, ?::Hash[untyped, untyped] headers) -> void
+              def build_head: (untyped boundary, untyped name, untyped filename, untyped `type`, untyped content_len, ?::Hash[untyped, untyped] opts) -> untyped
+            end
+            class EpiloguePart
+              include Part
+
+              def initialize: (untyped boundary) -> void
+            end
+          end
+        end
+      end
+    end
+  end
+end

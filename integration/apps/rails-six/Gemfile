@@ -1,0 +1,98 @@
+require 'datadog/demo_env'
+
+source "https://rubygems.org"
+
+rails_version = ['~> 6.1']
+
+gem 'actioncable', *rails_version
+gem 'actionmailer', *rails_version
+gem 'actionpack', *rails_version
+gem 'actionview', *rails_version
+gem 'activejob', *rails_version
+gem 'activemodel', *rails_version
+gem 'activerecord', *rails_version
+gem 'railties', *rails_version
+
+gem 'mysql2'
+gem 'puma'
+gem 'unicorn'
+
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+
+gem 'dogstatsd-ruby'
+gem 'ffi'
+
+# Gems which give aide to higher performance
+gem 'hiredis', platform: :ruby
+gem 'multi_json'
+gem 'oj', platform: :ruby
+
+# Need to add these because ActionMailer is broken in 6.1.6
+# https://github.com/rails/rails/pull/44697
+if RUBY_VERSION < '2.6.0'
+  gem 'net-smtp', '0.3.0'
+  gem 'net-imap', '0.2.2'
+else
+  gem 'net-smtp'
+  gem 'net-imap'
+end
+gem 'net-pop'
+
+gem 'active_model_serializers'
+gem 'activerecord-import' # Speeds up mass imports
+gem 'aws-sdk'
+gem 'bcrypt-ruby', platform: :ruby
+gem 'connection_pool'
+gem 'devise'
+gem 'faker', require: false # Make up fake data to put in models for load testing
+gem 'geoip'
+gem 'hawk-auth'
+gem 'httparty'
+gem 'ipaddress'
+gem 'rabl', platform: :ruby
+gem 'rack-cors'
+gem 'rake'
+# Known compatibility issue: https://github.com/redis/redis-rb/issues/1142
+gem 'redis', '< 5'
+gem 'resque'
+# gem 'resque-pool' # Incompatible with Redis 4.0+
+gem 'resque-scheduler'
+gem 'tzinfo-data', platforms: [:mingw, :mswin, :jruby]
+gem 'validates_timeliness'
+gem 'versionist'
+gem 'warden'
+gem 'rollbar'
+
+group :development do
+  gem 'annotate'
+  gem 'awesome_print'
+  gem 'bullet'
+end
+
+group :test do
+  gem 'ci_reporter_rspec'
+  gem 'database_cleaner'
+  gem 'factory_girl_rails'
+  gem 'rspec'
+  gem 'rspec-collection_matchers'
+  gem 'rspec-rails'
+
+  if RUBY_VERSION < '2.6.0'
+    gem 'shoulda-matchers', '~> 4.5'
+  else
+    gem 'shoulda-matchers'
+  end
+
+  gem 'simplecov', require: false # Will install simplecov-html as a dependency
+  gem 'timecop'
+  gem 'webmock'
+end
+
+group :test, :development do
+  gem 'byebug', platform: :ruby
+  gem 'mock_redis'
+  gem 'parallel_tests'
+
+  gem 'listen'
+end

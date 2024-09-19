@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+APP_DIR=${APP_SCRIPT_DIR%/script}
+cd $APP_DIR
+
+while getopts ":v:" opt; do
+  case $opt in
+    v)
+      APP_RUBY_VERSION=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+echo "== Building Rails 5 images... =="
+if [ -v APP_RUBY_VERSION ]; then
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-$APP_RUBY_VERSION -t datadog/dd-apm-demo:rb-$APP_RUBY_VERSION-rails-five .
+else
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.3 -t datadog/dd-apm-demo:rb-2.3-rails-five .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.4 -t datadog/dd-apm-demo:rb-2.4-rails-five .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.5 -t datadog/dd-apm-demo:rb-2.5-rails-five .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.6 -t datadog/dd-apm-demo:rb-2.6-rails-five .
+  docker build --build-arg BASE_IMAGE=datadog/dd-apm-demo:rb-2.7 -t datadog/dd-apm-demo:rb-2.7-rails-five .
+  # Ruby 3 is not supported by Rails 5
+fi
+echo "== Done building Rails 5 images. =="

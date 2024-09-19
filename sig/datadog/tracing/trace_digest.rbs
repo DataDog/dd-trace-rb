@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    class TraceDigest
+      attr_reader span_id: untyped
+      attr_reader span_name: untyped
+      attr_reader span_resource: untyped
+      attr_reader span_service: untyped
+      attr_reader span_type: untyped
+      attr_reader trace_distributed_tags: untyped
+      attr_reader trace_hostname: untyped
+      attr_reader trace_id: untyped
+      attr_reader trace_name: untyped
+      attr_reader trace_origin: untyped
+      attr_reader trace_process_id: untyped
+      attr_reader trace_resource: untyped
+      attr_reader trace_runtime_id: untyped
+      attr_reader trace_sampling_priority: untyped
+      attr_reader trace_service: untyped
+      attr_reader trace_distributed_id: untyped
+      attr_reader trace_flags: untyped
+      attr_reader trace_state: untyped
+      attr_reader trace_state_unknown_fields: untyped
+      attr_reader span_remote: untyped
+
+      def initialize: (?span_id: untyped?, ?span_name: untyped?, ?span_resource: untyped?, ?span_service: untyped?, ?span_type: untyped?, ?trace_distributed_tags: untyped?, ?trace_hostname: untyped?, ?trace_id: untyped?, ?trace_name: untyped?, ?trace_origin: untyped?, ?trace_process_id: untyped?, ?trace_resource: untyped?, ?trace_runtime_id: untyped?, ?trace_sampling_priority: untyped?, ?trace_service: untyped?, ?trace_distributed_id: untyped?, ?trace_flags: untyped?, ?trace_state: untyped?, ?trace_state_unknown_fields: untyped?, ?span_remote: untyped?) -> void
+    end
+  end
+end

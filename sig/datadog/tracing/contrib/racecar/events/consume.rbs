@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Racecar
+        module Events
+          module Consume
+            include Racecar::Event
+
+            EVENT_NAME: "main_loop.racecar"
+
+            def self?.event_name: () -> untyped
+
+            def self?.span_name: () -> untyped
+
+            def self?.span_options: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

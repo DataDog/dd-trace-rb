@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sneakers
+        class Tracer
+          def initialize: (untyped app, *untyped args) -> void
+
+          def call: (untyped deserialized_msg, untyped delivery_info, untyped metadata, untyped handler) -> untyped
+
+          private
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

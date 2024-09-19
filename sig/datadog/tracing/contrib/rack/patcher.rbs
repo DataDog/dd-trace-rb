@@ -1,0 +1,43 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module MiddlewarePatcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+        end
+        module MiddlewareNamePatcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_middleware_names: () -> untyped
+
+          def self?.retain_middleware_name: (untyped middleware) -> (nil | untyped)
+
+          def self?.get_option: (untyped option) -> untyped
+        end
+        module Patcher
+          PATCHERS: ::Array[untyped]
+
+          def self?.patched?: () -> untyped
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.get_option: (untyped option) -> untyped
+
+          def self?.patch_successful: () -> untyped
+
+          def self?.patch_error_result: () -> untyped
+        end
+      end
+    end
+  end
+end

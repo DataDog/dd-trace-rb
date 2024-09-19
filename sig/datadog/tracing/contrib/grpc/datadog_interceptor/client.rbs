@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module DatadogInterceptor
+          class Client < Base
+            def trace: (untyped keywords) { () -> untyped } -> untyped
+
+            private
+
+            def annotate!: (untyped trace, untyped span, untyped metadata, untyped call) -> untyped
+
+            def format_resource: (untyped proto_method) -> untyped
+
+            def find_deadline: (untyped call) -> (nil | untyped)
+
+            def find_host_port: (untyped call) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

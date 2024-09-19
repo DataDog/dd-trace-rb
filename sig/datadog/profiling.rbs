@@ -1,0 +1,19 @@
+module Datadog
+  module Profiling
+    def self.supported?: () -> bool
+    def self.unsupported_reason: () -> ::String?
+    def self.start_if_enabled: () -> bool
+    def self.allocation_count: () -> ::Integer?
+    def self.enabled?: () -> bool
+    def self.wait_until_running: () -> true
+
+    private
+
+    def self.replace_noop_allocation_count: () -> void
+    def self.native_library_compilation_skipped?: () -> ::String?
+    def self.try_reading_skipped_reason_file: (?untyped file_api) -> ::String?
+    def self.native_library_failed_to_load?: () -> ::String?
+    def self.try_loading_native_library: () -> [bool, ::Exception?]
+    def self.load_profiling: () -> bool
+  end
+end

@@ -1,0 +1,37 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        class ParsedContext
+          def initialize: (untyped context) -> void
+
+          def safely: (untyped attr, ?untyped? fallback) -> untyped
+
+          def resource: () -> ::String
+
+          def operation: () -> untyped
+
+          def params: () -> untyped
+
+          def status_code: () -> untyped
+
+          def http_method: () -> untyped
+
+          def region: () -> untyped
+
+          def retry_attempts: () -> untyped
+
+          def path: () -> untyped
+
+          def host: () -> untyped
+
+          private
+
+          attr_reader context: untyped
+
+          def service: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,30 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class DigestList < Array[Digest]
+          def self.parse: (::Hash[::String, untyped] hash) -> DigestList
+
+          def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
+        end
+
+        class Digest
+          class InvalidHashTypeError < StandardError
+          end
+
+          DIGEST_CHUNK: 1024
+
+          attr_reader type: ::Symbol
+
+          attr_reader hexdigest: ::String
+
+          def self.hexdigest: (Symbol type, StringIO data) -> String
+
+          def initialize: (::String type, ::String hexdigest) -> void
+
+          def check: (Datadog::Core::Remote::Configuration::Content content) -> bool
+        end
+      end
+    end
+  end
+end

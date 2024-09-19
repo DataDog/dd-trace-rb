@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module MongoDB
+        module Instrumentation
+          module Client
+            def self.included: (untyped base) -> untyped
+            module InstanceMethods
+              def datadog_pin: () -> (nil | untyped)
+
+              def datadog_pin=: (untyped pin) -> (nil | untyped)
+            end
+          end
+        end
+      end
+    end
+  end
+end

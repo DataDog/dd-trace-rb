@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Cache
+          module Event
+            def self.included: (untyped base) -> untyped
+            module ClassMethods
+              def span_options: () -> ::Hash[untyped, untyped]
+
+              def configuration: () -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

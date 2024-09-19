@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module Reactive
+      class Engine
+        @data: ::Hash[::String, untyped]
+        @subscribers: AddressHash
+
+        def initialize: () -> void
+        def subscribe: (*::String addresses) { (*untyped values) -> void } -> void
+        def publish: (::String address, top data) -> void
+
+        private
+
+        attr_reader subscribers: AddressHash
+        attr_reader data: ::Hash[::String, untyped]
+      end
+    end
+  end
+end

@@ -1,0 +1,48 @@
+module Datadog
+  module Core
+    module Remote
+      class Client
+        class TransportError < StandardError
+        end
+
+        class SyncError < StandardError
+        end
+
+        attr_reader transport: Datadog::Core::Remote::Transport::Config::Transport
+
+        attr_reader repository: Configuration::Repository
+
+        attr_reader id: ::String
+
+        attr_reader dispatcher: Remote::Dispatcher
+
+        attr_reader capabilities: Capabilities
+
+        def initialize: (Datadog::Core::Remote::Transport::Config::Transport transport, Capabilities capabilities, ?repository: Configuration::Repository) -> void
+
+        def sync: () -> void
+
+        private
+
+        @gem_specs: ::Hash[::String, ::Gem::Specification | untyped]
+        @native_platform: ::String
+        @ruby_engine_version: ::String
+        @tracer_version: ::String
+
+        def payload: () ->  ::Hash[Symbol, untyped]
+        def service_name: () -> ::String
+        def gem_spec: (::String) -> (::Gem::Specification | untyped)
+        def tracer_version: () -> ::String
+        def native_platform: () -> ::String
+        def ruby_engine_version: () -> ::String
+
+        class GemSpecificationFallback
+          def initialize: (::String?, ::String?) -> void
+
+          attr_reader version: ::String?
+          attr_reader platform: ::String?
+        end
+      end
+    end
+  end
+end

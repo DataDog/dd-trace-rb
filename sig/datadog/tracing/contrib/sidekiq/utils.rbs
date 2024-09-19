@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module Utils
+          def job_resource: (untyped job) -> untyped
+
+          def delay_extension_class: (untyped job) -> ::String
+        end
+      end
+    end
+  end
+end

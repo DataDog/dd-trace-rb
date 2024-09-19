@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class Rule
+        attr_reader matcher: untyped
+
+        attr_reader sampler: untyped
+        def initialize: (untyped matcher, untyped sampler) -> void
+        def match?: (untyped trace) -> untyped
+        def sample?: (untyped trace) -> untyped
+        def sample_rate: (untyped trace) -> untyped
+      end
+      class SimpleRule < Rule
+        def initialize: (?name: untyped, ?service: untyped, ?sample_rate: ::Float) -> void
+      end
+    end
+  end
+end

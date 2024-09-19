@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+APP_SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+APP_DIR=${APP_SCRIPT_DIR%/script}
+cd $APP_DIR
+
+# Parse options
+while getopts "v:" opt; do
+  case $opt in
+    v)
+      APP_RUBY_VERSION=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
+
+# Validate options
+if [ -z ${APP_RUBY_VERSION+x} ]; then
+  echo "You must specify a Ruby version with -v. (e.g. 2.7)" >&2
+  exit 1
+fi
+
+# Set configuration
+APP_BASE_IMAGE=${APP_BASE_IMAGE:-datadog/dd-apm-demo:rb-$APP_RUBY_VERSION}
+APP_IMAGE=${APP_IMAGE:-$APP_BASE_IMAGE-rack}
+APP_COMPOSE_FILES="-f docker-compose.ci.yml"
+
+echo "== Running integration tests... =="
+echo " - App: rack"
+echo " - Ruby version: $APP_RUBY_VERSION"
+echo " - Base image: $APP_BASE_IMAGE"
+echo " - App image: $APP_IMAGE"
+echo ""
+
+# Pull/build any missing images
+APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES build
+
+# Run the test suite with the different web servers
+for DD_DEMO_ENV_PROCESS in puma unicorn webrick passenger
+do
+  echo -e "\n== Running with $DD_DEMO_ENV_PROCESS ================================================\n"
+
+  export DD_DEMO_ENV_PROCESS
+
+  APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES run integration-tester || \
+    (APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES logs && exit -1) # Print container logs on `run` failure
+
+  # Cleanup
+  APP_IMAGE=$APP_IMAGE docker-compose $APP_COMPOSE_FILES down -t 0 --remove-orphans
+done

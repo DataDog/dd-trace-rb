@@ -1,0 +1,85 @@
+module Datadog
+  module Tracing
+    class TraceOperation
+      include Metadata::Tagging
+
+      DEFAULT_MAX_LENGTH: ::Integer
+
+      attr_accessor agent_sample_rate: untyped
+      attr_accessor hostname: untyped
+      attr_accessor origin: untyped
+      attr_accessor rate_limiter_rate: untyped
+      attr_accessor rule_sample_rate: untyped
+      attr_accessor sample_rate: untyped
+      attr_accessor remote_parent: untyped
+      attr_accessor sampling_priority: untyped
+      attr_reader active_span_count: untyped
+      attr_reader active_span: untyped
+      attr_reader id: untyped
+      attr_reader max_length: untyped
+      attr_reader parent_span_id: untyped
+      attr_writer name: untyped
+      attr_writer resource: untyped
+      attr_writer sampled: untyped
+      attr_writer service: untyped
+
+      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
+      def full?: () -> untyped
+      def finished_span_count: () -> untyped
+      def finished?: () -> untyped
+      def sampled?: () -> bool
+      def priority_sampled?: () -> bool
+      def keep!: () -> untyped
+      def reject!: () -> untyped
+      def name: () -> untyped
+      def resource: () -> untyped
+      def resource_override?: () -> bool
+      def service: () -> untyped
+      def measure: (untyped op_name, ?events: untyped?, ?on_error: untyped?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped
+      def build_span: (untyped op_name, ?events: untyped?, ?on_error: untyped?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
+      def flush!: () { (untyped) -> untyped } -> untyped
+      def to_digest: () -> untyped
+      def fork_clone: () -> untyped
+
+      class Events
+        include Tracing::Events
+
+        attr_reader span_before_start: untyped
+        attr_reader span_finished: untyped
+        attr_reader trace_finished: untyped
+
+        def initialize: () -> void
+
+        class SpanBeforeStart < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class SpanFinished < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class TraceFinished < Tracing::Event
+          def initialize: () -> void
+
+          def deactivate_trace_subscribed?: () -> untyped
+          def subscribe_deactivate_trace: () ?{ () -> untyped } -> untyped
+        end
+      end
+
+      private
+
+      attr_reader events: untyped
+      attr_reader root_span: untyped
+
+      def activate_span!: (untyped span_op) -> untyped
+      def deactivate_span!: (untyped span_op) -> untyped
+      def start_span: (untyped span_op) -> untyped
+      def finish_span: (untyped span, untyped span_op, untyped parent) -> untyped
+
+      def set_root_span!: (untyped span) -> (nil | untyped)
+
+      def build_trace: (untyped spans, ?bool partial) -> untyped
+      def distributed_tags: () -> untyped
+    end
+  end
+end

@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Excon
+        module Ext
+          ENV_ENABLED: "DD_TRACE_EXCON_ENABLED"
+
+          ENV_PEER_SERVICE: "DD_TRACE_EXCON_PEER_SERVICE"
+          ENV_SERVICE_NAME: "DD_TRACE_EXCON_SERVICE_NAME"
+
+          ENV_ANALYTICS_ENABLED: "DD_TRACE_EXCON_ANALYTICS_ENABLED"
+
+          ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_EXCON_ANALYTICS_SAMPLE_RATE"
+
+          DEFAULT_PEER_SERVICE_NAME: "excon"
+
+          PEER_SERVICE_SOURCES: Array[String]
+          SPAN_REQUEST: "excon.request"
+
+          TAG_COMPONENT: "excon"
+
+          TAG_OPERATION_REQUEST: "request"
+        end
+      end
+    end
+  end
+end

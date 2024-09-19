@@ -1,0 +1,37 @@
+module Datadog
+  module AppSec
+    module Instrumentation
+      class Gateway
+        type middleware_result = untyped
+        type final_call_result = untyped
+        type final_call = ^() -> final_call_result
+        type stack = ::Proc
+
+        # TODO: this should be a struct
+        type stack_result = ::Array[nil | middleware_result | final_call_result]
+
+        class Middleware
+          attr_reader key: ::Symbol
+          attr_reader block: ::Proc
+
+          def initialize: (::Symbol key) { (stack next, Instrumentation::Gateway::Argument env) -> stack_result } -> void
+          def call: (stack next, Gateway::Argument? env) -> stack_result
+        end
+
+        @middlewares: ::Hash[::String, ::Array[Middleware]]
+
+        def initialize: () -> void
+        def push: (::String name, Gateway::Argument env) ?{ () -> final_call_result } -> stack_result
+        def watch: (::String name, ::Symbol key) { (stack next, Gateway::Argument env) -> stack_result } -> void
+
+        private
+
+        attr_reader middlewares: ::Hash[::String, ::Array[Middleware]]
+      end
+
+      self.@gateway: Gateway
+
+      def self.gateway: () -> Gateway
+    end
+  end
+end

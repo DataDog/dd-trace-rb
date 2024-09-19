@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Remote
+      class ReadError < StandardError
+      end
+
+      PRODUCT: "APM_TRACING"
+      CAPABILITIES: Array[Integer]
+
+      def self.products: () -> ::Array[String]
+
+      def self.capabilities: () -> ::Array[Integer]
+
+      def self.process_config: (Hash[String, untyped] config, Core::Remote::Configuration::Content content) -> void
+
+      def self.receivers: (Datadog::Core::Telemetry::Component) -> ::Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.receiver: (?::Array[String] products) { (Core::Remote::Configuration::Repository repository, Array[Core::Remote::Configuration::Repository::change] changes) -> void } -> ::Array[Core::Remote::Dispatcher::Receiver]
+
+      private
+
+      def self.parse_content: (Core::Remote::Configuration::Content content) -> Hash[String, untyped]
+    end
+  end
+end

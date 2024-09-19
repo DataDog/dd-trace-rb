@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Configuration
+        class Settings
+          include Core::Configuration::Base
+
+          def configure: (?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> untyped
+
+          def []: (untyped name) -> untyped
+
+          def []=: (untyped name, untyped value) -> untyped
+        end
+      end
+    end
+  end
+end

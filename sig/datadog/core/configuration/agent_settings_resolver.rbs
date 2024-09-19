@@ -1,0 +1,87 @@
+module Datadog
+  module Core
+    module Configuration
+      class AgentSettingsResolver
+        class AgentSettings < ::Struct[untyped]
+          def initialize: (adapter: untyped, ssl: untyped, hostname: untyped, port: untyped, uds_path: untyped, timeout_seconds: untyped) -> void
+          def merge: (**::Hash[untyped, untyped] member_values) -> AgentSettingsResolver
+
+          attr_reader adapter: untyped
+          attr_reader ssl: untyped
+          attr_reader hostname: untyped
+          attr_reader port: untyped
+          attr_reader uds_path: untyped
+          attr_reader timeout_seconds: untyped
+        end
+
+        def self.call: (untyped settings, ?logger: untyped) -> untyped
+
+        private
+
+        attr_reader logger: untyped
+
+        attr_reader settings: untyped
+
+        def initialize: (untyped settings, ?logger: untyped) -> void
+
+        def call: () -> untyped
+
+        def adapter: () -> untyped
+
+        def configured_hostname: () -> untyped
+
+        def configured_port: () -> untyped
+
+        def configured_ssl: () -> untyped
+
+        def configured_timeout_seconds: () -> untyped
+
+        def configured_uds_path: () -> untyped
+
+        def try_parsing_as_integer: (value: untyped, friendly_name: untyped) -> untyped
+
+        def try_parsing_as_boolean: (value: untyped, friendly_name: untyped) -> untyped
+
+        def ssl?: () -> bool
+
+        def hostname: () -> untyped
+
+        def port: () -> untyped
+
+        def uds_path: () -> untyped
+
+        def timeout_seconds: () -> untyped
+
+        def uds_fallback: () -> untyped
+
+        def should_use_uds_fallback?: () -> untyped
+
+        def should_use_uds?: () -> bool
+
+        def can_use_uds?: () -> bool
+
+        def parsed_url: () -> untyped
+
+        def parsed_url_ssl?: () -> untyped
+
+        def parsed_url_uds_path: () -> untyped
+
+        def pick_from: (*untyped configurations_in_priority_order) -> untyped
+
+        def warn_if_configuration_mismatch: (untyped detected_configurations_in_priority_order) -> (nil | untyped)
+
+        def log_warning: (untyped message) -> (untyped | nil)
+
+        class DetectedConfiguration
+          attr_reader friendly_name: untyped
+
+          attr_reader value: untyped
+
+          def initialize: (friendly_name: untyped, value: untyped) -> void
+
+          def value?: () -> untyped
+        end
+      end
+    end
+  end
+end

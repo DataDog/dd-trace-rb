@@ -1,0 +1,7 @@
+module Datadog
+  module Profiling
+    module TagBuilder
+      def self.call: (settings: untyped) -> untyped
+    end
+  end
+end

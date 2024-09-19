@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Pipeline
+      def self.before_flush: (*untyped processors) ?{ () -> untyped } -> untyped
+
+      def self.process!: (untyped traces) -> untyped
+
+      def self.processors=: (untyped value) -> untyped
+
+      def self.apply_processors!: (untyped trace) -> untyped
+    end
+  end
+end

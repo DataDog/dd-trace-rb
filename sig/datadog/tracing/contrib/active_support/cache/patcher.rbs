@@ -1,0 +1,33 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveSupport
+        module Cache
+          module Patcher
+            include Contrib::Patcher
+
+            def self?.target_version: () -> untyped
+
+            def self?.patch: () -> untyped
+
+            def self?.cache_store_class: (untyped meth) -> untyped
+
+            def self?.patch_cache_store_read: () -> untyped
+
+            def self?.patch_cache_store_read_multi: () -> untyped
+
+            def self?.patch_cache_store_fetch: () -> untyped
+
+            def self?.patch_cache_store_fetch_multi: () -> (nil | untyped)
+
+            def self?.patch_cache_store_write: () -> untyped
+
+            def self?.patch_cache_store_write_multi: () -> (nil | untyped)
+
+            def self?.patch_cache_store_delete: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

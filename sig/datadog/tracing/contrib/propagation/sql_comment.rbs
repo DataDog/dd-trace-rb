@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Propagation
+        module SqlComment
+          def self.annotate!: (SpanOperation span_op, Mode mode) -> void
+          def self.prepend_comment: (String sql, SpanOperation span_op, TraceOperation trace_op, Mode mode) -> String
+        end
+      end
+    end
+  end
+end

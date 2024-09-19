@@ -1,0 +1,8 @@
+module Datadog
+  module Profiling
+    module NativeExtension
+      def self.working?: () -> bool
+      def self.native_working?: () -> bool
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Reactive
+      class AddressHash < ::Hash[::Array[::String], ::Array[Subscriber]]
+        type key = ::Array[::String]
+
+        def self.new: (*untyped arguments) -> AddressHash
+
+        def []=: (key key, Subscriber value) -> Subscriber
+
+        def addresses: () -> ::Array[::String]
+
+        def with: (::String address) -> ::Array[key]
+      end
+    end
+  end
+end

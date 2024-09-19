@@ -1,0 +1,20 @@
+module Datadog
+  module Profiling
+    module Tasks
+      class Exec
+        attr_reader args: untyped
+
+        def initialize: (untyped args) -> void
+
+        def run: () -> untyped
+
+        def rubyopts: () -> ::Array["-rdatadog/profiling/preload"]
+
+        private
+
+        def set_rubyopt!: () -> untyped
+        def exec_with_error_handling: (untyped args) -> untyped
+      end
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module Core
+    module Telemetry
+      module Ext
+        ENV_DEPENDENCY_COLLECTION: ::String
+        ENV_ENABLED: ::String
+        ENV_METRICS_ENABLED: ::String
+        ENV_HEARTBEAT_INTERVAL: ::String
+        ENV_METRICS_AGGREGATION_INTERVAL: ::String
+        ENV_INSTALL_ID: ::String
+        ENV_INSTALL_TIME: ::String
+        ENV_INSTALL_TYPE: ::String
+        ENV_AGENTLESS_URL_OVERRIDE: ::String
+      end
+    end
+  end
+end

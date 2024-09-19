@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Metadata
+      module Tagging
+        NUMERIC_TAG_SIZE_RANGE: ::Range[untyped]
+        ENSURE_AGENT_TAGS: ::Hash[untyped, true]
+
+        def get_tag: (untyped key) -> untyped
+        def set_tag: (untyped key, ?untyped? value) -> untyped
+        def set_tags: (untyped tags) -> untyped
+        def has_tag?: (untyped tag) -> untyped
+        def clear_tag: (untyped key) -> untyped
+        alias []= set_tag
+        alias [] get_tag
+        def get_metric: (untyped key) -> untyped
+        def set_metric: (untyped key, untyped value) -> untyped
+        def clear_metric: (untyped key) -> untyped
+        def meta: () -> untyped
+        def metrics: () -> untyped
+      end
+    end
+  end
+end

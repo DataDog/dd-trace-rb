@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        module Gateway
+          class RouteParams < Instrumentation::Gateway::Argument
+            attr_reader params: untyped
+
+            def initialize: (untyped params) -> void
+          end
+        end
+      end
+    end
+  end
+end

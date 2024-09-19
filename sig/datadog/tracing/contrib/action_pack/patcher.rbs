@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionPack
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+        end
+      end
+    end
+  end
+end

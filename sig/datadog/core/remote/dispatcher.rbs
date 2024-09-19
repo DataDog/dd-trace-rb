@@ -1,0 +1,37 @@
+module Datadog
+  module Core
+    module Remote
+      class Dispatcher
+        attr_reader receivers: Array[Receiver]
+
+        def initialize: (::Array[Receiver]) -> void
+
+        def dispatch: (Remote::Configuration::Repository::ChangeSet changes, Remote::Configuration::Repository repository) -> untyped
+
+        class Receiver
+          attr_reader block: ^(Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void
+
+          attr_reader matcher: Matcher
+
+          def initialize: (Matcher matcher)  { (Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void } -> void
+
+          def match?: (Remote::Configuration::Path path) -> bool
+
+          def call: (Remote::Configuration::Repository repository, ::Array[::Datadog::Core::Remote::Configuration::Repository::change] changes) -> void
+        end
+
+        class Matcher
+          attr_reader block: ^(Remote::Configuration::Path path) -> bool
+
+          def initialize: () { (Remote::Configuration::Path path) -> bool } -> void
+
+          def match?: (Remote::Configuration::Path path) -> bool
+
+          class Product < Matcher
+            def initialize: (Array[String] products) -> void
+          end
+        end
+      end
+    end
+  end
+end

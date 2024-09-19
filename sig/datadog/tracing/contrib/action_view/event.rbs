@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionView
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def configuration: () -> untyped
+
+            def record_exception: (untyped span, untyped payload) -> (untyped | untyped | nil)
+          end
+        end
+      end
+    end
+  end
+end

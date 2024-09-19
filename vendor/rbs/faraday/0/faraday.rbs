@@ -1,0 +1,4 @@
+module Faraday
+  class Middleware
+  end
+end

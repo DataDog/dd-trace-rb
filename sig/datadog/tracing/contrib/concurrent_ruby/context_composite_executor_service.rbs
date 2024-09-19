@@ -1,0 +1,20 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        class ContextCompositeExecutorService
+          include Concurrent::ExecutorService
+
+          attr_accessor composited_executor: untyped
+
+          def initialize: (untyped composited_executor) -> void
+          def post: (*untyped args) { () -> untyped } -> untyped
+          def can_overflow?: () -> untyped
+          def serialized?: () -> untyped
+
+          def datadog_configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

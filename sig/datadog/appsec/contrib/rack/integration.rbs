@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        class Integration
+          include Datadog::AppSec::Contrib::Integration
+
+          extend Datadog::AppSec::Contrib::Integration::ClassMethods
+
+          MINIMUM_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def auto_instrument?: () -> bool
+
+          def default_configuration: () -> untyped
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

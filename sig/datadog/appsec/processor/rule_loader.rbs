@@ -1,0 +1,22 @@
+module Datadog
+  module AppSec
+    class Processor
+      module RuleLoader
+        type ruleset = Symbol | String | File | StringIO | Hash[String, untyped]
+
+        def self.load_rules: (
+          telemetry: Datadog::Core::Telemetry::Component,
+          ruleset: ruleset
+        ) -> ::Hash[untyped, untyped]?
+
+        def self.load_data: (?ip_denylist: Array[String], ?user_id_denylist: Array[String]) -> Array[Hash[String, untyped]]
+
+        private
+
+        def self.denylist_data: (String id, Array[String] denylist) -> ::Hash[::String, untyped]
+        def self.passlist_exclusions: (Array[String] | Hash[Symbol, Array[String]] passlist) -> ::Array[::Hash[::String, untyped]]
+      end
+    end
+  end
+end
+

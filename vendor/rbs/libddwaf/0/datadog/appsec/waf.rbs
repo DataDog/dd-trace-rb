@@ -1,0 +1,216 @@
+module Datadog
+  module AppSec
+    module WAF
+      module LibDDWAF
+        class Error < StandardError
+          attr_reader diagnostics: ::Datadog::AppSec::WAF::data
+
+          def initialize: (::String msg, ?diagnostics: ::Datadog::AppSec::WAF::data?) -> void
+        end
+
+        extend ::FFI::Library
+
+        def self.local_os: () -> ::String
+        def self.local_cpu: () -> ::String
+        def self.local_version: () -> (::String | nil)
+        def self.source_dir: () -> ::String
+        def self.vendor_dir: () -> ::String
+        def self.libddwaf_vendor_dir: () -> ::String
+        def self.shared_lib_triplet: (?version: ::String?) -> ::String
+        def self.libddwaf_dir: () -> ::String
+        def self.shared_lib_extname: () -> ::String
+        def self.shared_lib_path: () -> ::String
+
+        # version
+
+        def self.ddwaf_get_version: () -> ::String
+
+        # ddwaf::object data structure
+
+        DDWAF_OBJ_TYPE: ::FFI::Enum
+
+        class UInt32Ptr < ::FFI::Struct
+        end
+
+        class UInt64Ptr < ::FFI::Struct
+        end
+
+        class SizeTPtr < ::FFI::Struct
+        end
+
+        class ObjectValueUnion < ::FFI::Union
+        end
+
+        class Object < ::FFI::Struct
+        end
+
+        # setters
+
+        def self.ddwaf_object_invalid: (LibDDWAF::Object) -> ::FFI::Pointer
+        def self.ddwaf_object_string: (LibDDWAF::Object, ::String) -> ::FFI::Pointer
+        def self.ddwaf_object_stringl: (LibDDWAF::Object, ::String, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_stringl_nc: (LibDDWAF::Object, ::String, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_unsigned: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_signed: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_string_from_unsigned: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_string_from_signed: (LibDDWAF::Object, ::Integer) -> ::FFI::Pointer
+        def self.ddwaf_object_bool: (LibDDWAF::Object, bool) -> ::FFI::Pointer
+        def self.ddwaf_object_float: (LibDDWAF::Object, ::Float) -> ::FFI::Pointer
+        def self.ddwaf_object_null: (LibDDWAF::Object) -> ::FFI::Pointer
+
+        def self.ddwaf_object_array: (LibDDWAF::Object) -> ::FFI::Pointer
+        def self.ddwaf_object_array_add: (LibDDWAF::Object, LibDDWAF::Object) -> bool
+
+        def self.ddwaf_object_map: (LibDDWAF::Object) -> ::FFI::Pointer
+        def self.ddwaf_object_map_add: (LibDDWAF::Object, ::String, LibDDWAF::Object) -> bool
+        def self.ddwaf_object_map_addl: (LibDDWAF::Object, ::String, ::Integer, LibDDWAF::Object) -> bool
+        def self.ddwaf_object_map_addl_nc: (LibDDWAF::Object, ::String, ::Integer, LibDDWAF::Object) -> bool
+
+        # getters
+
+        def self.ddwaf_object_type: (LibDDWAF::Object) -> ::FFI::Enum
+        def self.ddwaf_object_size: (LibDDWAF::Object) -> ::Integer
+        def self.ddwaf_object_length: (LibDDWAF::Object) -> ::Integer
+        def self.ddwaf_object_get_key: (LibDDWAF::Object, SizeTPtr) -> ::String
+        def self.ddwaf_object_get_string: (LibDDWAF::Object, SizeTPtr) -> ::String
+        def self.ddwaf_object_get_unsigned: (LibDDWAF::Object, SizeTPtr) -> ::Integer
+        def self.ddwaf_object_get_signed: (LibDDWAF::Object, SizeTPtr) -> ::Integer
+        def self.ddwaf_object_get_index: (LibDDWAF::Object, ::Integer) -> LibDDWAF::Object
+        def self.ddwaf_object_get_bool: (LibDDWAF::Object) -> bool
+        def self.ddwaf_object_get_float: (LibDDWAF::Object) -> ::Float
+
+        # freeers
+
+        def self.ddwaf_object_free: (LibDDWAF::Object) -> void
+
+        ObjectFree: ::FFI::Function
+        ObjectNoFree: ::FFI::Pointer
+
+        # main handle
+
+        class Config < ::FFI::Struct
+          class Limits < ::FFI::Struct
+          end
+
+          class Obfuscator < ::FFI::Struct
+          end
+        end
+
+        def self.ddwaf_init: (top, Config, Object) -> ::FFI::Pointer
+        def self.ddwaf_update: (::FFI::Pointer, LibDDWAF::Object, LibDDWAF::Object) -> ::FFI::Pointer
+        def self.ddwaf_destroy: (::FFI::Pointer) -> void
+
+        def self.ddwaf_required_addresses: (::FFI::Pointer, UInt32Ptr) -> ::FFI::Pointer
+        def self.ddwaf_rule_data_ids: (::FFI::Pointer, UInt32Ptr) -> ::FFI::Pointer
+
+        # updating
+
+        DDWAF_RET_CODE: ::FFI::Enum
+
+        # running
+
+        def self.ddwaf_context_init: (::FFI::Pointer) -> ::FFI::Pointer
+        def self.ddwaf_context_destroy: (::FFI::Pointer) -> void
+
+        class Result < ::FFI::Struct
+        end
+
+        def self.ddwaf_run: (::FFI::Pointer, Object, Result, ::Integer) -> ::Symbol
+        def self.ddwaf_result_free: (Result) -> void
+
+        # logging
+
+        DDWAF_LOG_LEVEL: ::FFI::Enum
+
+        type ddwaf_log_level = ::Symbol
+
+        # TODO: signature is as below but steep 1.1 does not yet support method/proc/block mapping
+        # type ddwaf_log_cb = ^(ddwaf_log_level, ::String, ::String, ::Integer, ::FFI::Pointer, ::Integer) -> void
+        type ddwaf_log_cb = ::Method | ::Proc
+        def self.ddwaf_set_log_cb: (ddwaf_log_cb, ddwaf_log_level) -> bool
+
+        DEFAULT_MAX_CONTAINER_SIZE: ::Integer
+        DEFAULT_MAX_CONTAINER_DEPTH: ::Integer
+        DEFAULT_MAX_STRING_LENGTH: ::Integer
+
+        DDWAF_MAX_CONTAINER_SIZE: ::Integer
+        DDWAF_MAX_CONTAINER_DEPTH: ::Integer
+        DDWAF_MAX_STRING_LENGTH: ::Integer
+
+        DDWAF_RUN_TIMEOUT: ::Integer
+      end
+
+      def self.version: () -> ::String
+
+      type data = String | Symbol | Integer | Float | TrueClass | FalseClass | Array[data] | Hash[(String | Symbol | nil), data] | nil
+
+      def self.ruby_to_object: (top val, ?max_container_size: ::Integer?, ?max_container_depth: ::Integer?, ?max_string_length: ::Integer?, ?coerce: bool?) -> ::Datadog::AppSec::WAF::LibDDWAF::Object
+      def self.object_to_ruby: (::Datadog::AppSec::WAF::LibDDWAF::Object obj) -> data
+
+      self.@logger: ::Logger
+      self.@log_callback: LibDDWAF::ddwaf_log_cb
+
+      def self.log_callback: (LibDDWAF::ddwaf_log_level, ::String, ::String, ::Integer, ::FFI::Pointer, ::Integer) -> void
+      def self.logger: () -> ::Logger
+      def self.logger=: (::Logger logger) -> void
+
+      RESULT_CODE: ::Hash[::Symbol, ::Symbol]
+
+      class Handle
+        attr_reader handle_obj: ::FFI::Pointer
+        attr_reader diagnostics: data
+        attr_reader config: WAF::LibDDWAF::Config
+
+        def initialize: (data rule, ?limits: ::Hash[::Symbol, ::Integer], ?obfuscator: ::Hash[::Symbol, ::String]) -> void
+        def finalize: () -> untyped
+        def required_addresses: () -> ::Array[::String]
+        def merge: (untyped data) -> Handle?
+
+        private
+
+        @valid: bool
+
+        def new_from_handle: (::FFI::Pointer handle_object, data diagnostics, WAF::LibDDWAF::Config config) -> untyped
+        def validate!: () -> void
+        def invalidate!: () -> void
+        def valid?: () -> (nil | bool)
+        def valid!: () -> void
+      end
+
+      class Result
+        attr_reader status: ::Symbol
+        attr_reader events: data
+        attr_reader total_runtime: ::Float
+        attr_reader timeout: bool
+        attr_reader actions: data
+        attr_reader derivatives: data
+
+        def initialize: (::Symbol, data, ::Float, bool, data, data) -> void
+      end
+
+      class Context
+        attr_reader context_obj: ::FFI::Pointer
+
+        def initialize: (Handle handle) -> void
+        def finalize: () -> void
+
+        def run: (data input, ?::Integer timeout) -> [::Symbol, Result]
+
+        private
+
+        @valid: bool
+
+        def validate!: () -> void
+        def invalidate!: () -> void
+        def valid?: () -> (nil | bool)
+        def valid!: () -> void
+
+        @retained: Array[untyped]
+
+        def retained: () -> Array[untyped]
+        def retain: (top object) -> void
+        def release: (top object) -> void
+      end
+    end
+  end
+end

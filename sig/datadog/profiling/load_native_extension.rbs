@@ -1,0 +1,7 @@
+module Datadog
+  module Profiling
+    module Loader
+      def self._native_load: (String ruby_path, String ruby_init_name) -> [:ok | :error, ::String?]
+    end
+  end
+end

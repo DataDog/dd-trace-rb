@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module MongoDB
+        EXCLUDE_KEYS: ::Array[:_id]
+
+        SHOW_KEYS: ::Array[untyped]
+
+        DEFAULT_OPTIONS: { exclude: untyped, show: untyped }
+        PLACEHOLDER: "?"
+        def self?.query_builder: (untyped command_name, untyped database_name, untyped command) -> untyped
+
+        def self?.quantization_options: () -> untyped
+
+        def self?.configuration: () -> untyped
+      end
+    end
+  end
+end

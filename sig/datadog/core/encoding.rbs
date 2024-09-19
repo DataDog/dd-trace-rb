@@ -1,0 +1,44 @@
+module Datadog
+  module Core
+    # Encoding module that encodes data for the AgentTransport
+    module Encoding
+      # Encoder interface that provides the logic to encode traces and service
+      # @abstract
+      module Encoder
+        def content_type: () -> untyped
+
+        # Concatenates a list of elements previously encoded by +#encode+.
+        def join: (untyped encoded_elements) -> untyped
+
+        # Serializes a single trace into a String suitable for network transmission.
+        def encode: (untyped _) -> untyped
+      end
+
+      # Encoder for the JSON format
+      module JSONEncoder
+        extend Encoder
+
+        CONTENT_TYPE: "application/json"
+
+        def self?.content_type: () -> untyped
+
+        def self?.encode: (untyped obj) -> untyped
+
+        def self?.join: (untyped encoded_data) -> ::String
+      end
+
+      # Encoder for the Msgpack format
+      module MsgpackEncoder
+        extend Encoder
+
+        CONTENT_TYPE: "application/msgpack"
+
+        def self?.content_type: () -> untyped
+
+        def self?.encode: (untyped obj) -> untyped
+
+        def self?.join: (untyped encoded_data) -> untyped
+      end
+    end
+  end
+end

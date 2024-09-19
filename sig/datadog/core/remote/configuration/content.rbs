@@ -1,0 +1,59 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class Content
+          def self.parse: (::Hash[Symbol, untyped] hash) -> Content
+
+          attr_reader path: Configuration::Path
+
+          attr_reader data: StringIO
+
+          attr_reader hashes: Hash[Symbol, String]
+
+          attr_accessor version: Integer
+
+          attr_reader apply_state: Integer
+
+          attr_reader apply_error: String?
+
+          @length: Integer
+
+          def initialize: (path: Configuration::Path, data: StringIO) -> void
+
+          def applied: -> void
+
+          def errored: (String error_message) -> void
+
+          def hexdigest: (Symbol type) -> String
+
+          def length: () -> Integer
+
+          module ApplyState
+            ACKNOWLEDGED: Integer
+            ERROR: Integer
+            UNACKNOWLEDGED: Integer
+          end
+
+          private
+
+          def compute_and_store_hash: (Symbol type) -> String
+        end
+
+        class ContentList < Array[Content]
+          def self.parse: (::Array[::Hash[Symbol, untyped]] array) -> ContentList
+
+          def find_content: (Configuration::Path path, Configuration::Target target) -> Content?
+
+          def []: (Configuration::Path path) ->  Content?
+
+          def []=: (Configuration::Path path, Content content) -> ContentList
+
+          def delete: (Configuration::Path path) -> Content?
+
+          def paths: () -> ::Array[Path]
+        end
+      end
+    end
+  end
+end

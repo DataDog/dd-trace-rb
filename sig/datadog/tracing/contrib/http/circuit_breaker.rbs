@@ -1,0 +1,14 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HTTP
+        module CircuitBreaker
+          def should_skip_tracing?: (untyped request) -> (true | false)
+          def internal_request?: (untyped request) -> bool
+
+          def should_skip_distributed_tracing?: (untyped client_config) -> untyped
+        end
+      end
+    end
+  end
+end

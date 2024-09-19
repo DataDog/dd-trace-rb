@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module Tags
+          def self.set_common_tags: (untyped client, untyped span, untyped show_command_args) -> untyped
+
+          private
+
+          def self.datadog_configuration: () -> untyped
+
+          def self.analytics_enabled?: () -> untyped
+
+          def self.analytics_sample_rate: () -> untyped
+        end
+      end
+    end
+  end
+end

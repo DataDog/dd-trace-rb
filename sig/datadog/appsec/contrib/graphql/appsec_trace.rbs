@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module GraphQL
+        module AppSecTrace
+          def execute_multiplex: (multiplex: GraphQL::Execution::Multiplex) -> Array[GraphQL::Query::Result]
+        end
+      end
+    end
+  end
+end

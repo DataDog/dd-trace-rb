@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveRecord
+        module Utils
+          EMPTY_CONFIG: ::Hash[untyped, untyped]
+
+          def self.adapter_name: () -> untyped
+
+          def self.database_name: () -> untyped
+
+          def self.adapter_host: () -> untyped
+
+          def self.adapter_port: () -> untyped
+          def self.connection_config: (?untyped? connection, ?untyped? connection_id) -> untyped
+          def self.connection_from_id: (untyped connection_id) -> untyped
+          def self.default_connection_config: () -> untyped
+          def self.db_config: (untyped connection_pool) -> untyped
+        end
+      end
+    end
+  end
+end

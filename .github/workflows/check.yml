@@ -1,0 +1,25 @@
+name: Check
+on:
+  push:
+    branches: [ '**' ]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: [ '**' ]
+jobs:
+  check:
+    name: Check types
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Check for stale signature files
+        run: bundle exec rake rbs:stale
+      - name: Check for missing signature files
+        run: bundle exec rake rbs:missing
+      - name: Check types
+        run: bundle exec rake steep:check
+      - name: Record stats
+        run: bundle exec rake steep:stats[md] >> $GITHUB_STEP_SUMMARY

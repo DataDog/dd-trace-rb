@@ -1,0 +1,91 @@
+module Datadog
+  module Core
+    module Configuration
+      class Settings
+        include Base
+
+        interface _Remote
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def poll_interval_seconds: () -> ::Float
+
+          def poll_interval_seconds=: (::Float) -> void
+
+          def boot_timeout_seconds: () -> ::Float
+
+          def boot_timeout_seconds=: (::Float) -> void
+
+          def service: () -> ::String?
+
+          def service=: (::String) -> void
+        end
+
+        interface _AppSec
+          def enabled: () -> bool
+
+          def enabled=: (bool) -> void
+
+          def trace_rate_limit: () -> Integer
+
+          def trace_rate_limit=: (Integer) -> void
+
+          def obfuscator_key_regex: () -> String
+
+          def obfuscator_key_regex=: (String) -> void
+
+          def obfuscator_value_regex: () -> String
+
+          def obfuscator_value_regex=: (String) -> void
+
+          def waf_debug: () -> bool
+
+          def waf_debug=: (bool) -> void
+
+          def ruleset: () -> (String | Symbol |  File | StringIO | ::Hash[untyped, untyped])
+
+          def ruleset=: (String | Symbol |  File | StringIO | ::Hash[untyped, untyped]) -> void
+
+          def block: () -> _AppSecBlock
+        end
+
+        interface _AppSecBlock
+          def templates: () -> _TemplatesBlock
+        end
+
+        interface _TemplatesBlock
+          def html=: (::String) -> void
+
+          def html: () -> ::String
+
+          def json=: (::String) -> void
+
+          def json: () -> ::String
+
+          def text=: (::String) -> void
+
+          def text: () -> ::String
+        end
+
+        def initialize: (*untyped _) -> untyped
+
+        def env: -> String?
+
+        def service: -> String
+
+        def version: -> String?
+
+        def tags: -> ::Hash[::String, ::String]
+
+        def logger=: (untyped logger) -> untyped
+
+        def runtime_metrics: (?untyped? options) -> untyped
+
+        def appsec: (?untyped? options) -> Datadog::Core::Configuration::Settings::_AppSec
+
+        def remote: (?untyped? options) -> Datadog::Core::Configuration::Settings::_Remote
+      end
+    end
+  end
+end

@@ -1,0 +1,27 @@
+module Datadog
+  module Profiling
+    class Flush
+      attr_reader start: ::Time
+      attr_reader finish: ::Time
+      attr_reader pprof_file_name: ::String
+      attr_reader pprof_data: ::String
+      attr_reader code_provenance_file_name: ::String
+      attr_reader code_provenance_data: ::String?
+      attr_reader tags_as_array: Array[[::String, ::String]]
+      attr_reader internal_metadata_json: ::String
+      attr_reader info_json: ::String
+
+      def initialize: (
+        start: ::Time,
+        finish: ::Time,
+        pprof_file_name: ::String,
+        pprof_data: ::String,
+        code_provenance_file_name: ::String,
+        code_provenance_data: ::String?,
+        tags_as_array: Array[[::String, ::String]],
+        internal_metadata: ::Hash[::Symbol, ::String | bool | ::Numeric],
+        info_json: ::String,
+      ) -> void
+    end
+  end
+end

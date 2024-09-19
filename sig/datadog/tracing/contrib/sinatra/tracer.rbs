@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sinatra
+        module Tracer
+          def self.registered: (untyped app) -> untyped
+          module Base
+            def render: (untyped engine, untyped data) -> untyped
+            def route_eval: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

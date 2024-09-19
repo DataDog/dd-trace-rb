@@ -1,0 +1,4 @@
+# Ignore local variables
+.envrc
+.byebug_history
+data

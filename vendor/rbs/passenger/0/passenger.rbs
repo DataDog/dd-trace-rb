@@ -1,0 +1,3 @@
+module PhusionPassenger
+  VERSION_STRING: ::String
+end

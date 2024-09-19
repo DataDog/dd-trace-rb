@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rails
+        class ExceptionMiddleware
+          def initialize: (untyped app) -> void
+
+          def call: (untyped env) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Hanami
+        module RouterTracing
+          def call: (untyped env) -> untyped
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

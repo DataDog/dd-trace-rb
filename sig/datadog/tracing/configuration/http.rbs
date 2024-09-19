@@ -1,0 +1,24 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module HTTP
+        class HeaderTags
+          EMPTY: Array[untyped]
+
+          interface _CaseInsensitiveHash
+            def []: (String) -> String?
+          end
+
+          @header_tags: Array[String]
+          @request_headers: Hash[String, String]
+          @response_headers: Hash[String, String]
+
+          def initialize: (Array[String] header_tags) -> void
+          def request_tags: (_CaseInsensitiveHash headers) -> Array[Array[String]]
+          def response_tags: (_CaseInsensitiveHash headers) -> Array[Array[String]]
+          def to_s: () -> String
+        end
+      end
+    end
+  end
+end

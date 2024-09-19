@@ -1,0 +1,8 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+      end
+    end
+  end
+end

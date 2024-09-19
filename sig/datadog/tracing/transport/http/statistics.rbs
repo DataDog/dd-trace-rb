@@ -1,0 +1,19 @@
+module Datadog
+  module Transport
+    module HTTP
+      module Statistics
+        def self.included: (untyped base) -> untyped
+
+        module InstanceMethods
+          def metrics_for_response: (untyped response) -> untyped
+
+          private
+
+          STATUS_CODE_200: "status_code:200"
+
+          def metrics_tag_value: (untyped status_code) -> (untyped | ::String)
+        end
+      end
+    end
+  end
+end

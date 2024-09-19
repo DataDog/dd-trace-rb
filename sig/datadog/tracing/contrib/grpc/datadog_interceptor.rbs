@@ -1,0 +1,46 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module DatadogInterceptor
+          class Base < ::GRPC::Interceptor
+            def initialize: (?::Hash[untyped, untyped] options) { (untyped) -> untyped } -> void
+
+            def request_response: (**untyped keywords) ?{ () -> untyped } -> untyped
+
+            def client_streamer: (**untyped keywords) ?{ () -> untyped } -> untyped
+
+            def server_streamer: (**untyped keywords) ?{ () -> untyped } -> untyped
+
+            def bidi_streamer: (**untyped keywords) ?{ () -> untyped } -> untyped
+
+            private
+
+            def datadog_configuration: () -> untyped
+
+            def service_name: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def distributed_tracing?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+
+            def error_handler: () -> untyped
+            class PinAdapter
+              OPTIONS: untyped
+
+              attr_reader options: untyped
+
+              def initialize: () -> void
+
+              def self.add_setter!: (untyped option) -> untyped
+
+              def self.add_getter!: (untyped option) -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

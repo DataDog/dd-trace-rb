@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class Fetcher
+        def initialize: (untyped data) -> void
+
+        def []: (untyped key) -> untyped
+      end
+    end
+  end
+end

@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Aws
+        class Instrumentation < Seahorse::Client::Plugin
+          def add_handlers: (untyped handlers, untyped _) -> untyped
+        end
+        class Handler < Seahorse::Client::Handler
+          def call: (untyped context) -> untyped
+
+          private
+
+          def annotate!: (untyped span, untyped context) -> untyped
+
+          def configuration: () -> untyped
+        end
+        module S3Presigner
+          def sign_but_dont_send: (*untyped args) ?{ () -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

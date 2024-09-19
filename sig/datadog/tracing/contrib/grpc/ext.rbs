@@ -1,0 +1,35 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module Ext
+          ENV_ENABLED: "DD_TRACE_GRPC_ENABLED"
+
+          ENV_PEER_SERVICE: "DD_TRACE_GRPC_PEER_SERVICE"
+          ENV_SERVICE_NAME: "DD_TRACE_GRPC_SERVICE_NAME"
+
+          ENV_ANALYTICS_ENABLED: "DD_TRACE_GRPC_ANALYTICS_ENABLED"
+
+          ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_GRPC_ANALYTICS_SAMPLE_RATE"
+
+          DEFAULT_PEER_SERVICE_NAME: "grpc"
+
+          PEER_SERVICE_SOURCES: Array[String]
+          SPAN_CLIENT: "grpc.client"
+
+          SPAN_SERVICE: "grpc.service"
+
+          TAG_CLIENT_DEADLINE: "grpc.client.deadline"
+
+          TAG_COMPONENT: "grpc"
+
+          TAG_OPERATION_CLIENT: "client"
+
+          TAG_OPERATION_SERVICE: "service"
+
+          TAG_SYSTEM: "grpc"
+        end
+      end
+    end
+  end
+end

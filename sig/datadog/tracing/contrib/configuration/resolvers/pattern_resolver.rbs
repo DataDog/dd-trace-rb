@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Configuration
+        module Resolvers
+          class PatternResolver < Contrib::Configuration::Resolver
+            def resolve: (untyped value) -> (nil | untyped)
+
+            def parse_matcher: (untyped matcher) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

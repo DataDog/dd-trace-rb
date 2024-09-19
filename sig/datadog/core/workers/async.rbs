@@ -1,0 +1,69 @@
+module Datadog
+  module Core
+    module Workers
+      module Async
+        module Thread
+          FORK_POLICY_STOP: :stop
+
+          FORK_POLICY_RESTART: :restart
+
+          SHUTDOWN_TIMEOUT: 1
+          MUTEX_INIT: untyped
+
+          def self.included: (untyped base) -> untyped
+          module PrependedMethods
+            def perform: (*untyped args) -> (untyped | nil)
+          end
+
+          attr_reader error: untyped
+
+          attr_reader result: untyped
+
+          attr_writer fork_policy: untyped
+
+          def join: (?untyped? timeout) -> (true | untyped)
+
+          def terminate: () -> (false | true)
+
+          def run_async?: () -> (false | untyped)
+
+          def started?: () -> untyped
+
+          def running?: () -> untyped
+
+          def error?: () -> (false | untyped)
+
+          def completed?: () -> untyped
+
+          def failed?: () -> untyped
+
+          def forked?: () -> untyped
+
+          def fork_policy: () -> untyped
+
+          attr_writer result: untyped
+
+          def mutex: () -> untyped
+
+          def after_fork: () -> nil
+
+          private
+
+          attr_reader pid: untyped
+
+          def mutex_after_fork: () -> untyped
+
+          def worker: () -> untyped
+
+          def start_async: () ?{ () -> untyped } -> untyped
+
+          def start_worker: () { () -> untyped } -> nil
+
+          def stop_fork: () -> untyped
+
+          def restart_after_fork: () ?{ () -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

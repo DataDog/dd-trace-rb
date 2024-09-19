@@ -1,0 +1,8 @@
+module Datadog
+  module Core
+  end
+
+  extend Core::Deprecations
+  extend Core::Configuration
+  extend Tracing::Contrib::Extensions::Helpers
+end

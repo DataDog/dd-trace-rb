@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Que
+        class Tracer
+          def call: (untyped job) { () -> untyped } -> untyped
+
+          private
+
+          def set_sample_rate: (untyped request_span) -> (untyped | nil)
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

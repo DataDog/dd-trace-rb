@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    module Metrics
+      module Logging
+        class Adapter
+          attr_accessor logger: untyped
+
+          def initialize: (?untyped? logger) -> void
+
+          def count: (untyped stat, untyped value, ?untyped? options) -> untyped
+
+          def distribution: (untyped stat, untyped value, ?untyped? options) -> untyped
+
+          def increment: (untyped stat, ?untyped? options) -> untyped
+
+          def gauge: (untyped stat, untyped value, ?untyped? options) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Shoryuken
+        class Tracer
+          def initialize: (?::Hash[untyped, untyped] options) -> void
+
+          def call: (untyped worker_instance, untyped queue, untyped sqs_msg, untyped body) { () -> untyped } -> untyped
+
+          private
+
+          def resource: (untyped worker_instance, untyped body) -> untyped
+
+          def configuration: () -> untyped
+        end
+      end
+    end
+  end
+end

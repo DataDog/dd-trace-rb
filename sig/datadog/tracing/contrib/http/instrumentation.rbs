@@ -1,0 +1,33 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HTTP
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            include Contrib::HttpAnnotationHelper
+            def request: (untyped req, ?untyped? body) ?{ () -> untyped } -> untyped
+
+            def annotate_span_with_request!: (untyped span, untyped request, untyped request_options) -> untyped
+
+            def annotate_span_with_response!: (untyped span, untyped response, untyped request_options) -> (nil | untyped)
+
+            def annotate_span_with_error!: (untyped span, untyped error) -> untyped
+
+            def set_analytics_sample_rate: (untyped span, untyped request_options) -> (nil | untyped)
+
+            private
+
+            def host_and_port: (untyped request) -> ::Array[untyped]
+
+            def datadog_configuration: (?::Symbol host) -> untyped
+
+            def analytics_enabled?: (untyped request_options) -> untyped
+
+            def analytics_sample_rate: (untyped request_options) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

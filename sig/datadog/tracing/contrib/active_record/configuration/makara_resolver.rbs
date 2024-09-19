@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveRecord
+        module Configuration
+          module MakaraResolver
+            def normalize_for_config: (untyped active_record_config) -> untyped
+
+            def normalize_for_resolve: (untyped active_record_config) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

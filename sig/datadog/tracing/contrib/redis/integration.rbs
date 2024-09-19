@@ -1,0 +1,37 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        class Integration
+          include Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+          REDISCLIENT_MINIMUM_VERSION: untyped
+          def self.version: () -> untyped
+
+          def self.redis_version: () -> untyped
+
+          def self.redis_client_version: () -> untyped
+
+          def self.loaded?: () -> untyped
+
+          def self.redis_loaded?: () -> untyped
+
+          def self.redis_client_loaded?: () -> untyped
+
+          def self.compatible?: () -> untyped
+
+          def self.redis_compatible?: () -> untyped
+
+          def self.redis_client_compatible?: () -> untyped
+
+          def new_configuration: () -> untyped
+
+          def patcher: () -> untyped
+
+          def resolver: () -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,32 @@
+module Datadog
+  module Core
+    module Remote
+      class Configuration
+        class TargetMap < Hash[Configuration::Path, Configuration::Target]
+          def self.parse: (::Hash[::String, untyped] hash) -> TargetMap
+
+          attr_reader opaque_backend_state: ::String?
+
+          attr_reader version: ::Integer?
+
+          def initialize: () -> void
+        end
+
+
+        class Target
+          attr_reader length: ::Integer
+
+          attr_reader digests: DigestList
+
+          attr_reader version: Integer
+
+          def self.parse: (::Hash[::String, untyped] hash) -> Target
+
+          def initialize: (digests: DigestList, length: ::Integer, version: Integer) -> void
+
+          def check: (untyped content) -> bool
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Configuration
+      def tracer: () -> Datadog::Tracing::Tracer
+
+      def logger: () -> Datadog::Core::Logger
+
+      def configuration: () -> untyped # The DSL methods have to be explicitly declared for this to be typed
+    end
+  end
+end

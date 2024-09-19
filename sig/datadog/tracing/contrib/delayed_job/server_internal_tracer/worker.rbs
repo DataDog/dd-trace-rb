@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module DelayedJob
+        module ServerInternalTracer
+          module Worker
+            def reserve_job: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

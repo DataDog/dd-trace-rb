@@ -1,0 +1,55 @@
+module Datadog
+  module Core
+    module Metrics
+      class Client
+        include Options
+
+        extend Options
+
+        extend Helpers
+
+        attr_reader statsd: untyped
+
+        def initialize: (?statsd: untyped?, ?enabled: bool, **untyped _) -> void
+
+        def supported?: () -> untyped
+
+        def enabled?: () -> untyped
+
+        def enabled=: (untyped enabled) -> untyped
+
+        def default_hostname: () -> untyped
+
+        def default_port: () -> untyped
+
+        def default_statsd_client: () -> untyped
+
+        def configure: (?::Hash[untyped, untyped] options) -> untyped
+
+        def send_stats?: () -> untyped
+
+        def count: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+
+        def distribution: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+
+        def increment: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
+
+        def gauge: (untyped stat, ?untyped? value, ?untyped? options) { () -> untyped } -> untyped
+
+        def time: (untyped stat, ?untyped? options) { () -> untyped } -> untyped
+
+        def send_metrics: (untyped metrics) -> untyped
+
+        def close: () -> (untyped | nil)
+
+        private
+
+        def dogstatsd_version: () -> untyped
+
+        IGNORED_STATSD_ONLY_ONCE: untyped
+
+        def ignored_statsd_warning: () -> untyped
+      end
+    end
+  end
+end

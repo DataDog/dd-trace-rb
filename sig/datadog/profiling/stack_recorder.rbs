@@ -1,0 +1,48 @@
+module Datadog
+  module Profiling
+    class StackRecorder
+      @no_concurrent_synchronize_mutex: ::Thread::Mutex
+
+      def initialize: (
+        cpu_time_enabled: bool,
+        alloc_samples_enabled: bool,
+        heap_samples_enabled: bool,
+        heap_size_enabled: bool,
+        heap_sample_every: Integer,
+        timeline_enabled: bool,
+      ) -> void
+
+      def self._native_initialize: (
+        Datadog::Profiling::StackRecorder recorder_instance,
+        bool cpu_time_enabled,
+        bool alloc_samples_enabled,
+        bool heap_samples_enabled,
+        bool heap_size_enabled,
+        Integer heap_sample_every,
+        bool timeline_enabled,
+      ) -> true
+
+      type serialized_profile_data = [
+        ::Time, # Start
+        ::Time, # Finish
+        String, # Serialized PProf
+        ::Hash[::Symbol, untyped], # Hash
+      ]
+
+      def serialize: () -> (serialized_profile_data | nil)
+
+      def self._native_serialize: (Datadog::Profiling::StackRecorder recorder_instance) -> ([:ok, serialized_profile_data] | [:error, ::String])
+
+      def serialize!: () -> String
+
+      def clear: () -> ::Time?
+
+      def reset_after_fork: () -> true
+
+      def self._native_reset_after_fork: (Datadog::Profiling::StackRecorder recorder_instance) -> true
+
+      def stats: () -> ::Hash[::Symbol, untyped]
+      def self._native_stats: (Datadog::Profiling::StackRecorder recorder_instance) -> ::Hash[::Symbol, untyped]
+    end
+  end
+end

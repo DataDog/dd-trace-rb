@@ -1,0 +1,57 @@
+# Configuration for GitHub Action `.github/workflows/pull-request-labeler.yml`.
+# See https://github.com/marketplace/actions/labeler for more information.
+
+core:
+  - any: [ 'lib/datadog/core/**' ]
+
+# Only documentation changes
+docs:
+  - all: [ '**/*.md' ]
+
+# Only test changes
+dev/testing:
+  - all: [ '{spec/**,integration/**,benchmarks/**}' ]
+
+# Changes to Profiling
+profiling:
+  - any: [ '{lib/datadog/profiling/**,ext/datadog_profiling_loader/**,ext/datadog_profiling_native_extension/**}' ]
+
+# Changes to CI-App
+ci-app:
+  - any: [ 'lib/datadog/ci/**' ]
+
+# Changes to ASM
+appsec:
+  - any: [ 'lib/datadog/appsec/**' ]
+
+# Changes to Tracing
+tracing:
+  - any: [ 'lib/datadog/tracing/**' ]
+
+# Changes to Tracing integrations
+integrations:
+  - any: [ '{lib/datadog/tracing/contrib/**,lib/datadog/appsec/contrib/**}' ]
+
+# Only repository GitHub changes
+dev/github:
+  - all: [ '.github/**' ]
+
+# Only repository CI changes
+dev/ci:
+  - all: [ '{.circleci/**,.gitlab-ci.yml}' ]
+
+# Version bump pull request
+release:
+  - all: [ '{CHANGELOG.md,lib/datadog/version.rb}' ]
+
+# Changes to OpenTelemetry
+otel:
+  - any: [ 'lib/datadog/opentelemetry/**' ]
+
+# Changes to Single Step Instrumentation
+single-step:
+  - any: [ 'lib-injection/**' ]
+
+# Changes to Debugging
+debugging:
+  - any: [ 'lib/datadog/debugging/**' ]

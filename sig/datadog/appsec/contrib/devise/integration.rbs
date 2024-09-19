@@ -1,0 +1,25 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class Integration
+          include Datadog::AppSec::Contrib::Integration
+
+          MINIMUM_VERSION: untyped
+
+          def self.version: () -> untyped
+
+          def self.loaded?: () -> untyped
+
+          def self.compatible?: () -> untyped
+
+          def self.auto_instrument?: () -> true
+
+          def default_configuration: () -> untyped
+
+          def patcher: () -> untyped
+        end
+      end
+    end
+  end
+end

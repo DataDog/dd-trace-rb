@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class RateByServiceSampler < RateByKeySampler
+        DEFAULT_KEY: "service:,env:"
+
+        def initialize: (?::Float default_rate, ?env: untyped?, ?decision: untyped) -> void
+
+        def update: (untyped rate_by_service, ?decision: untyped?) -> untyped
+
+        private
+        def key_for: (untyped trace) -> ::String
+      end
+    end
+  end
+end

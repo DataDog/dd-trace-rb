@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Pg
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_pg_connection: () -> untyped
+        end
+      end
+    end
+  end
+end

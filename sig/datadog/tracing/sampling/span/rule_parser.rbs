@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Sampling
+      module Span
+        module RuleParser
+          def self.parse_json: (untyped rules) -> (nil | untyped)
+          def self.parse_list: (untyped rules) -> (nil | untyped)
+
+          private
+
+          def self.parse_rule: (untyped hash) -> untyped
+        end
+      end
+    end
+  end
+end

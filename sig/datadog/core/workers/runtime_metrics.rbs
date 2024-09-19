@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    module Workers
+      class RuntimeMetrics < Worker
+        include Workers::Polling
+        DEFAULT_FLUSH_INTERVAL: 10
+
+        DEFAULT_BACK_OFF_MAX: 30
+
+        attr_reader metrics: untyped
+
+        def initialize: (?::Hash[untyped, untyped] options) -> void
+
+        def perform: () -> true
+
+        def register_service: (untyped service) -> untyped
+        def stop: (*untyped args, ?close_metrics: bool) -> untyped
+      end
+    end
+  end
+end

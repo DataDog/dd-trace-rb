@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionCable
+        module Events
+          module Broadcast
+            include ActionCable::Event
+
+            EVENT_NAME: "broadcast.action_cable"
+
+            def self?.event_name: () -> untyped
+
+            def self?.span_name: () -> untyped
+
+            def self?.span_type: () -> untyped
+
+            def self?.process: (untyped span, untyped _event, untyped _id, untyped payload) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

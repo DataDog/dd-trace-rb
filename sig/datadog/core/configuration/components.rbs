@@ -1,0 +1,47 @@
+module Datadog
+  module Core
+    module Configuration
+      class Components
+        def self.build_health_metrics: (untyped settings) -> untyped
+
+        def self.build_logger: (untyped settings) -> untyped
+
+        def self.build_runtime_metrics: (untyped settings) -> untyped
+
+        def self.build_runtime_metrics_worker: (untyped settings) -> untyped
+
+        def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
+
+        def self.build_telemetry: (untyped settings) -> untyped
+
+        private
+
+        def self.build_tracer_tags: (untyped settings) -> untyped
+
+        def self.build_tracer_options: (untyped settings, untyped agent_settings) -> untyped
+
+        def self.build_tracer_test_mode_options: (untyped tracer_options, untyped settings, untyped agent_settings) -> untyped
+
+        public
+
+        attr_reader health_metrics: untyped
+
+        attr_reader logger: untyped
+
+        attr_reader profiler: untyped
+
+        attr_reader runtime_metrics: untyped
+
+        attr_reader tracer: untyped
+
+        attr_reader remote: Datadog::Core::Remote::Component
+
+        def initialize: (untyped settings) -> untyped
+
+        def startup!: (untyped settings) -> untyped
+
+        def shutdown!: (?untyped? replacement) -> untyped
+      end
+    end
+  end
+end

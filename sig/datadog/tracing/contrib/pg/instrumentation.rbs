@@ -1,0 +1,42 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Pg
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def exec: (untyped sql, *untyped args) ?{ () -> untyped } -> untyped
+
+            def exec_params: (untyped sql, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+
+            def exec_prepared: (untyped statement_name, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+            def async_exec: (untyped sql, *untyped args) ?{ () -> untyped } -> untyped
+            def async_exec_params: (untyped sql, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+            def async_exec_prepared: (untyped statement_name, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+
+            def sync_exec: (untyped sql, *untyped args) ?{ () -> untyped } -> untyped
+
+            def sync_exec_params: (untyped sql, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+
+            def sync_exec_prepared: (untyped statement_name, untyped params, *untyped args) ?{ () -> untyped } -> untyped
+
+            private
+
+            def trace: (untyped name, ?sql: untyped?, ?statement_name: untyped?, ?block: untyped?) { (untyped, untyped) -> untyped } -> untyped
+
+            def annotate_span_with_query!: (untyped span, untyped service) -> untyped
+            def annotate_span_with_result!: (untyped span, untyped result) -> untyped
+
+            def datadog_configuration: () -> untyped
+
+            def analytics_enabled?: () -> untyped
+
+            def analytics_sample_rate: () -> untyped
+
+            def comment_propagation: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

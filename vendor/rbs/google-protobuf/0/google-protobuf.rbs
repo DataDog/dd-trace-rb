@@ -1,0 +1,4 @@
+module Google
+  module Protobuf
+  end
+end

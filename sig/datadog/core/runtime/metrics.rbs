@@ -1,0 +1,31 @@
+module Datadog
+  module Core
+    module Runtime
+      class Metrics < Core::Metrics::Client
+        def initialize: (**untyped options) -> void
+        def register_service: (untyped service) -> (nil | untyped)
+        def flush: () -> (nil | untyped)
+
+        def gc_metrics: () -> untyped
+
+        def try_flush: () { () -> untyped } -> untyped
+
+        def default_metric_options: () -> untyped
+
+        private
+
+        attr_reader service_tags: untyped
+
+        attr_reader services: untyped
+
+        def compile_service_tags!: () -> untyped
+
+        def nested_gc_metric: (untyped prefix, untyped k, untyped v) -> untyped
+
+        def to_metric_name: (untyped str) -> untyped
+
+        def gauge_if_not_nil: (untyped metric_name, untyped metric_value) -> (untyped | nil)
+      end
+    end
+  end
+end

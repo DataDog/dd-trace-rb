@@ -1,0 +1,20 @@
+#!/usr/bin/env ruby
+
+# Start application process
+puts "\n== Starting application process =="
+
+profiling = Datadog::DemoEnv.feature?('profiling') ? 'DD_PROFILING_ENABLED=true ddprofrb exec ' : ''
+process = (ARGV[0] || Datadog::DemoEnv.process)
+command = case process
+          when 'main'
+            'bundle exec ruby app/main.rb'
+          when 'irb'
+            "bundle exec #{profiling}irb"
+          when nil, ''
+            abort("\n== ERROR: Must specify a application process! ==")
+          else
+            abort("\n== ERROR: Unknown application process '#{process}' ==")
+          end
+
+puts "Run: #{command}"
+Kernel.exec(command)

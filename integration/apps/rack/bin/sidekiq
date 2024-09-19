@@ -1,0 +1,8 @@
+#!/usr/bin/env ruby
+
+puts "\n== Starting sidekiq process =="
+
+command = "bundle exec ddprofrb exec sidekiq -r ./app/sidekiq_background_job.rb"
+
+puts "Run: #{command}"
+Kernel.exec(command)

@@ -1,0 +1,12 @@
+module ActionDispatch
+  class Response
+    def initialize: (::Integer status, ::Hash[::String, ::String] headers, ::Array[::String] body) -> void
+  end
+end
+
+module Rails
+  class Railtie
+  end
+
+  def self.env: -> String
+end

@@ -1,0 +1,14 @@
+require 'datadog/demo_env'
+
+source "https://rubygems.org"
+
+gem 'ffi'
+gem 'google-protobuf'
+
+gem 'opentelemetry-sdk'
+
+# Choose correct specs for 'datadog' demo environment
+gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+
+gem 'byebug'
+gem 'rspec'

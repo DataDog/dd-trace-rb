@@ -1,0 +1,50 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class TraceContext
+        TRACEPARENT_KEY: "traceparent"
+
+        TRACESTATE_KEY: "tracestate"
+
+        SPEC_VERSION: "00"
+
+        def initialize: (fetcher: untyped, ?traceparent_key: untyped, ?tracestate_key: untyped) -> void
+
+        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+
+        def extract: (untyped data) -> (nil | untyped)
+
+        private
+        module Refine
+        end
+        def build_traceparent: (untyped digest) -> untyped
+        def build_traceparent_string: (untyped trace_id, untyped parent_id, untyped trace_flags) -> ::String
+        def build_trace_flags: (untyped digest) -> untyped
+        def build_tracestate: (untyped digest) -> untyped
+        def serialize_origin: (untyped value) -> untyped
+        def serialize_tag_key: (untyped name) -> untyped
+        def serialize_tag_value: (untyped value) -> untyped
+
+        def extract_traceparent: (untyped traceparent) -> (nil | ::Array[untyped])
+
+        def parse_traceparent_string: (untyped traceparent) -> untyped
+
+        def parse_sampled_flag: (untyped trace_flags) -> untyped
+        def extract_tracestate: (untyped tracestate) -> (nil | untyped | ::Array[untyped])
+
+        def extract_datadog_fields: (untyped dd_tracestate) -> ::Array[untyped]
+        def deserialize_tag_value: (untyped value) -> untyped
+        def parse_priority_sampling: (untyped sampled, untyped sampling_priority) -> untyped
+
+        def split_tracestate: (untyped tracestate) -> untyped
+        INVALID_VERSION: "ff"
+        DEFAULT_TRACE_FLAGS: 0
+        TRACE_FLAGS_SAMPLED: 1
+        TRACESTATE_VALUE_SIZE_LIMIT: 256
+        INVALID_ORIGIN_CHARS: ::Regexp
+        INVALID_TAG_KEY_CHARS: ::Regexp
+        INVALID_TAG_VALUE_CHARS: ::Regexp
+      end
+    end
+  end
+end

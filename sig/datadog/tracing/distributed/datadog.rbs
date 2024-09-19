@@ -1,0 +1,41 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class Datadog
+        TRACE_ID_KEY: "x-datadog-trace-id"
+
+        PARENT_ID_KEY: "x-datadog-parent-id"
+
+        SAMPLING_PRIORITY_KEY: "x-datadog-sampling-priority"
+
+        ORIGIN_KEY: "x-datadog-origin"
+        TAGS_KEY: "x-datadog-tags"
+        TAGS_PREFIX: "x-datadog-"
+
+        def initialize: (fetcher: untyped, ?trace_id_key: untyped, ?parent_id_key: untyped, ?sampling_priority_key: untyped, ?origin_key: untyped, ?tags_key: untyped) -> void
+
+        def inject!: (untyped digest, untyped data) -> (nil | untyped)
+
+        def extract: (untyped data) -> (nil | untyped)
+
+        private
+
+        def parse_trace_id: (untyped fetcher_object) -> (nil | untyped)
+
+        def parse_parent_id: (untyped fetcher_object) -> (nil | untyped)
+
+        def build_tags: (untyped digest) -> untyped
+        def extract_trace_id!: (untyped trace_id, untyped tags) -> untyped
+        def inject_tags!: (untyped tags, untyped data) -> untyped
+        def extract_tags: (untyped fetcher) -> untyped
+
+        def set_tags_propagation_error: (reason: untyped) -> nil
+
+        def tags_disabled?: () -> untyped
+
+        def tags_too_large?: (untyped size, scenario: untyped) -> (false | true)
+        EXCLUDED_TAG: "_dd.p.upstream_services"
+      end
+    end
+  end
+end

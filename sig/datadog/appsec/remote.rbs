@@ -1,0 +1,47 @@
+module Datadog
+  module AppSec
+    module Remote
+      class ReadError < StandardError
+      end
+
+      class NoRulesError < StandardError
+      end
+
+      CAP_ASM_RESERVED_1: Integer
+
+      CAP_ASM_ACTIVATION: Integer
+
+      CAP_ASM_IP_BLOCKING: Integer
+
+      CAP_ASM_DD_RULES: Integer
+
+      CAP_ASM_EXCLUSIONS: Integer
+
+      CAP_ASM_REQUEST_BLOCKING: Integer
+
+      CAP_ASM_RESPONSE_BLOCKING: Integer
+
+      CAP_ASM_USER_BLOCKING: Integer
+
+      CAP_ASM_CUSTOM_RULES: Integer
+
+      CAP_ASM_CUSTOM_BLOCKING_RESPONSE: Integer
+
+      CAP_ASM_TRUSTED_IPS: Integer
+
+      ASM_CAPABILITIES: Array[Integer]
+
+      ASM_PRODUCTS: ::Array[String]
+
+      def self.capabilities: () -> ::Array[Integer]
+
+      def self.products: () -> ::Array[String]
+
+      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
+
+      def self.remote_features_enabled?: () -> bool
+
+      def self.parse_content: (Datadog::Core::Remote::Configuration::Content content) -> Hash[String, untyped]
+    end
+  end
+end

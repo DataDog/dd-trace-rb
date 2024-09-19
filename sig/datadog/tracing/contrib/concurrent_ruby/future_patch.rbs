@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ConcurrentRuby
+        module FuturePatch
+          def self.included: (untyped base) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    class Tracer
+      def active_root_span: (?untyped? key) -> Datadog::Tracing::Span
+
+      def active_span: (?untyped? key) -> Datadog::Tracing::Span
+
+      def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier
+    end
+  end
+end

@@ -1,0 +1,4 @@
+module OpenTelemetry
+  module Trace
+  end
+end

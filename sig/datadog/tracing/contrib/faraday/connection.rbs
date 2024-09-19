@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Faraday
+        module Connection
+          def initialize: (*untyped args) ?{ () -> untyped } -> void
+        end
+      end
+    end
+  end
+end

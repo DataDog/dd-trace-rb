@@ -1,0 +1,5 @@
+module Mysql2
+  class Client
+    def self.info: () -> { version: ::String, header_version: ::String? }
+  end
+end

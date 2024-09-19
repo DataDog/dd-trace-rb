@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class Resource
+          def initialize: (untyped resource) -> void
+
+          def id: () -> (untyped | nil)
+
+          def email: () -> (untyped | nil)
+
+          def username: () -> (untyped | nil)
+
+          private
+
+          def extract: (Symbol method) -> (untyped | nil)
+        end
+      end
+    end
+  end
+end

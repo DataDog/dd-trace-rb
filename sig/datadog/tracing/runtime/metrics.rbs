@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Runtime
+      module Metrics
+        def self.associate_trace: (untyped trace) -> (nil | untyped)
+      end
+    end
+  end
+end

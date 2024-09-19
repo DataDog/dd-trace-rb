@@ -1,0 +1,41 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        module AppSecSetupPatch
+          def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
+        end
+
+        module DefaultMiddlewarePatch
+          def setup_middleware: (*untyped args) ?{ () -> untyped } -> untyped
+        end
+
+        module DispatchPatch
+          def dispatch!: () -> untyped
+        end
+
+        module RoutePatch
+          def process_route: () { (untyped) -> untyped } -> untyped
+        end
+
+        module Patcher
+          include Datadog::AppSec::Contrib::Patcher
+
+          def self?.patched?: () -> untyped
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.setup_security: () -> untyped
+
+          def self?.patch_default_middlewares: () -> untyped
+
+          def self?.patch_dispatch: () -> untyped
+
+          def self?.patch_route: () -> untyped
+        end
+      end
+    end
+  end
+end

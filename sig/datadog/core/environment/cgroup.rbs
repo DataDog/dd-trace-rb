@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Environment
+      module Cgroup
+        LINE_REGEX: untyped
+
+        Descriptor: untyped
+
+        def self?.descriptors: (?::String process) -> untyped
+
+        def self?.parse: (untyped line) -> untyped
+      end
+    end
+  end
+end

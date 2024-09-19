@@ -1,0 +1,41 @@
+module Datadog
+  module Core
+    module Diagnostics
+      module EnvironmentLogging
+        def log_configuration!: (string prefix, string data) -> void
+
+        def log_debug!: (string prefix, string data) -> void
+
+        def log_error!: (string prefix, string type, string error) -> void
+
+        def logger: () -> ::Logger
+        def log?: () -> bool
+      end
+      module EnvironmentLogger
+        extend EnvironmentLogging
+
+        def self.collect_and_log!: (Hash[Symbol, untyped] extra_fields) -> void
+      end
+      module EnvironmentCollector
+        def self.collect_config!: () -> { date: untyped, os_name: untyped, version: untyped, lang: untyped, lang_version: untyped, env: untyped, service: untyped, dd_version: untyped, debug: untyped, tags: untyped, runtime_metrics_enabled: untyped, vm: untyped, health_metrics_enabled: untyped }
+
+        def self.date: () -> untyped
+        def self.os_name: () -> untyped
+        def self.version: () -> untyped
+        def self.lang: () -> untyped
+        def self.lang_version: () -> untyped
+        def self.env: () -> untyped
+        def self.service: () -> untyped
+        def self.dd_version: () -> untyped
+        def self.debug: () -> untyped
+        def self.tags: () -> (nil | untyped)
+        def self.runtime_metrics_enabled: () -> untyped
+        def self.vm: () -> ::String
+        def self.health_metrics_enabled: () -> untyped
+
+        private
+        def self.hash_serializer: (untyped h) -> untyped
+      end
+    end
+  end
+end

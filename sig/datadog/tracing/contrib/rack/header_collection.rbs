@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module Header
+          class RequestHeaderCollection < Datadog::Core::HeaderCollection
+            def initialize: (untyped env) -> void
+            def get: (untyped header_name) -> untyped
+            alias [] get
+            def key?: (untyped header_name) -> untyped
+          end
+
+          def self.to_rack_header: (untyped name) -> ::String
+        end
+      end
+    end
+  end
+end

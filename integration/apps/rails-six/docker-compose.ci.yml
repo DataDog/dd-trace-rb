@@ -1,0 +1,93 @@
+version: '3.4'
+services:
+  app:
+    # Build at dd-trace-rb level to copy in current code
+    # and use it as the `datadog` gem.
+    build:
+      context: ../../..
+      dockerfile: integration/apps/rails-six/Dockerfile-ci
+      args:
+        BASE_IMAGE: ${APP_IMAGE}
+    depends_on:
+      - mysql
+      - redis
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
+      - DATABASE_ROOT_USER=root
+      - DATABASE_ROOT_PASSWORD=root
+      - DD_AGENT_HOST=ddagent
+      - DD_METRIC_AGENT_PORT=8125
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_HEALTH_METRICS_ENABLED=true
+      - DD_SERVICE=acme-rails-six
+      - DD_PROFILING_ENABLED=true
+      - RAILS_ENV=production
+      - RAILS_LOG_TO_STDOUT=true
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
+      # Use these to choose what is run
+      - DD_DEMO_ENV_PROCESS=puma
+      - DD_DEMO_ENV_FEATURES=tracing,profiling
+      - DD_INSTRUMENTATION_TELEMETRY_ENABLED=true
+    expose:
+      - "80"
+    stdin_open: true
+    tty: true
+
+  # The agent is not relevant to the result of running integration test on CI.
+  # Since the current integration test suite is mostly about sending a http request
+  # to an app and verified the responsee and run a couple of self-owned test cases.
+
+  mysql:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_DATABASE=acme_production
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_PASSWORD=mysql
+      - MYSQL_USER=mysql
+    expose:
+      - "3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+  redis:
+    image: redis:3.0
+    expose:
+      - "6379"
+  # Build at dd-trace-rb level to copy in current code
+  # and use it as the `datadog` gem.
+  integration-tester:
+    build:
+      context: ../../..
+      dockerfile: integration/apps/rails-six/Dockerfile-ci
+      args:
+        BASE_IMAGE: ${APP_IMAGE}
+    command: bin/test
+    depends_on:
+      - app
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DATABASE_URL=mysql2://mysql:mysql@mysql:3306
+      - DD_AGENT_HOST=ddagent
+      - DD_METRIC_AGENT_PORT=8125
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_HEALTH_METRICS_ENABLED=true
+      - DD_SERVICE=acme-rails-six-tester
+      - RAILS_ENV=test
+      - REDIS_URL=redis://redis:6379
+      - SECRET_KEY_BASE=5ced2602472cdf650e2cfa5be40c7d0dffd4e1da1483e21fa9c776e338b363c8bf75144bc6e6c5177a0d7a208a899552f98b3f82d4ea74cf5f9b9d3accbb1537
+      - HEALTH_CHECK_URL=http://app/health
+      - HEALTH_CHECK_INTERVAL=1
+      - HEALTH_CHECK_MAX_ATTEMPTS=60
+      - TEST_HOSTNAME=app
+      - TEST_PORT=80
+      - TEST_INTEGRATION=true
+    # volumes:
+    #   - .:/app
+    #   - ../../images/include:/vendor/dd-demo
+    #   - ../../..:/vendor/dd-trace-rb

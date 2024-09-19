@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        module Ext
+          APP: untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class RateSampler < Sampler
+        KNUTH_FACTOR: 1111111111111111111
+        def initialize: (?::Float sample_rate, ?decision: untyped?) -> void
+
+        def sample_rate: (*untyped _) -> untyped
+
+        def sample_rate=: (untyped sample_rate) -> untyped
+
+        def sample?: (untyped trace) -> untyped
+
+        def sample!: (untyped trace) -> (false | true)
+      end
+    end
+  end
+end

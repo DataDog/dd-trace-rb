@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rack
+        class RequestBodyMiddleware
+          def initialize: (untyped app, ?::Hash[untyped, untyped] opt) -> void
+
+          def call: (untyped env) -> untyped
+        end
+      end
+    end
+  end
+end

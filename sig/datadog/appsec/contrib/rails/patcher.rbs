@@ -1,0 +1,43 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        module Patcher
+          include Datadog::AppSec::Contrib::Patcher
+
+          BEFORE_INITIALIZE_ONLY_ONCE_PER_APP: untyped
+
+          AFTER_INITIALIZE_ONLY_ONCE_PER_APP: untyped
+
+          def self?.patched?: () -> untyped
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_before_initialize: () -> untyped
+
+          def self?.before_initialize: (untyped app) -> untyped
+
+          def self?.add_middleware: (untyped app) -> untyped
+
+          module ProcessActionPatch
+            def process_action: (*untyped args) -> untyped
+          end
+
+          def self?.patch_process_action: () -> untyped
+
+          def self?.include_middleware?: (untyped middleware, untyped app) -> untyped
+
+          def self?.inspect_middlewares: (untyped app) -> untyped
+
+          def self?.patch_after_initialize: () -> untyped
+
+          def self?.after_initialize: (untyped app) -> untyped
+
+          def self?.setup_security: () -> untyped
+        end
+      end
+    end
+  end
+end

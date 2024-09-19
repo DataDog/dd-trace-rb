@@ -1,0 +1,66 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module Ext
+        ENV_ENABLED: "DD_TRACE_ENABLED"
+
+        ENV_TRACE_ID_128_BIT_GENERATION_ENABLED: "DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED"
+        module SpanAttributeSchema
+          ENV_GLOBAL_DEFAULT_SERVICE_NAME_ENABLED: "DD_TRACE_REMOVE_INTEGRATION_SERVICE_NAMES_ENABLED"
+          ENV_PEER_SERVICE_MAPPING: "DD_TRACE_PEER_SERVICE_MAPPING"
+        end
+        module Analytics
+          ENV_TRACE_ANALYTICS_ENABLED: "DD_TRACE_ANALYTICS_ENABLED"
+        end
+        module Correlation
+          ENV_LOGS_INJECTION_ENABLED: "DD_LOGS_INJECTION"
+
+          ENV_TRACE_ID_128_BIT_LOGGING_ENABLED: "DD_TRACE_128_BIT_TRACEID_LOGGING_ENABLED"
+        end
+        module Distributed
+          PROPAGATION_STYLE_DATADOG: "Datadog"
+
+          PROPAGATION_STYLE_B3_MULTI_HEADER: "b3multi"
+          PROPAGATION_STYLE_B3_SINGLE_HEADER: "b3"
+          PROPAGATION_STYLE_TRACE_CONTEXT: "tracecontext"
+          ENV_PROPAGATION_STYLE: "DD_TRACE_PROPAGATION_STYLE"
+
+          ENV_PROPAGATION_STYLE_INJECT: "DD_TRACE_PROPAGATION_STYLE_INJECT"
+          ENV_PROPAGATION_STYLE_EXTRACT: "DD_TRACE_PROPAGATION_STYLE_EXTRACT"
+          PROPAGATION_STYLE_NONE: "none"
+
+          ENV_X_DATADOG_TAGS_MAX_LENGTH: "DD_TRACE_X_DATADOG_TAGS_MAX_LENGTH"
+        end
+        module NET
+          ENV_REPORT_HOSTNAME: "DD_TRACE_REPORT_HOSTNAME"
+        end
+        module Sampling
+          ENV_RULES: String
+          ENV_SAMPLE_RATE: "DD_TRACE_SAMPLE_RATE"
+
+          ENV_RATE_LIMIT: "DD_TRACE_RATE_LIMIT"
+          module Span
+            ENV_SPAN_SAMPLING_RULES: "DD_SPAN_SAMPLING_RULES"
+
+            ENV_SPAN_SAMPLING_RULES_FILE: "DD_SPAN_SAMPLING_RULES_FILE"
+          end
+        end
+        module Test
+          ENV_MODE_ENABLED: "DD_TRACE_TEST_MODE_ENABLED"
+        end
+        module Transport
+          ENV_DEFAULT_PORT: "DD_TRACE_AGENT_PORT"
+
+          ENV_DEFAULT_URL: "DD_TRACE_AGENT_URL"
+        end
+        module ClientIp
+          ENV_ENABLED: "DD_TRACE_CLIENT_IP_ENABLED"
+
+          ENV_DISABLED: "DD_TRACE_CLIENT_IP_HEADER_DISABLED"
+
+          ENV_HEADER_NAME: "DD_TRACE_CLIENT_IP_HEADER"
+        end
+      end
+    end
+  end
+end

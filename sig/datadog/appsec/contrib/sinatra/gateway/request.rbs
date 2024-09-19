@@ -1,0 +1,12 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Sinatra
+        module Gateway
+          class Request < Rack::Gateway::Request
+          end
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Sampling
+      module Span
+        class Sampler
+          attr_reader rules: untyped
+          def initialize: (?untyped rules) -> void
+          def sample!: (untyped trace_op, untyped span_op) -> nil
+        end
+      end
+    end
+  end
+end

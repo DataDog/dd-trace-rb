@@ -1,0 +1,7 @@
+module Datadog
+  module Core
+    module Chunker
+      def self?.chunk_by_size: (untyped list, untyped max_chunk_size) -> untyped
+    end
+  end
+end

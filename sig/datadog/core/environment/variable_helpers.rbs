@@ -1,0 +1,15 @@
+module Datadog
+  module Core
+    module Environment
+      module VariableHelpers
+        extend ::Datadog::Core::Environment::VariableHelpers
+
+        def env_to_bool: (untyped var, ?untyped? default) -> untyped
+
+        private
+
+        def decode_array: (untyped var) -> untyped
+      end
+    end
+  end
+end

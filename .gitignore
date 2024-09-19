@@ -1,0 +1,55 @@
+*.gem
+*.rbc
+*.swp
+*.vim
+/.config
+/coverage/
+/InstalledFiles
+/pkg/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+/tmp/
+/log/
+TODO
+ext/**/skipped_reason.txt
+
+# Used by dotenv library to load environment variables.
+# .env
+
+## Documentation cache and generated files:
+/.yardoc/
+/_yardoc/
+/doc/
+/rdoc/
+/html/
+
+## Environment normalization:
+/.bundle/
+/vendor/bundle
+/lib/bundler/man/
+
+# for a library or gem, you might want to ignore these files since the code is
+# intended to run in multiple environments; otherwise, check them in:
+.ruby-version
+.ruby-gemset
+
+# unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
+.rvmrc
+# Ignore local variables
+.envrc
+
+# lock files
+Gemfile.lock
+Gemfile-*.lock
+
+# bundle config
+gemfiles/.bundle
+
+# Native extension binaries
+lib/*.bundle
+lib/*.so
+
+# Benchmark result files
+/benchmarks/*.json

@@ -1,0 +1,22 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveModelSerializers
+        module Event
+          def self.included: (untyped base) -> untyped
+          module ClassMethods
+            def span_options: () -> ::Hash[untyped, untyped]
+
+            def configuration: () -> untyped
+
+            def set_common_tags: (untyped span, untyped payload) -> untyped
+
+            private
+
+            def resource: (untyped serializer) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

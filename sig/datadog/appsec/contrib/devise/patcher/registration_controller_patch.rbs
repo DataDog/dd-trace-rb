@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Patcher
+          module RegistrationControllerPatch
+            def create: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

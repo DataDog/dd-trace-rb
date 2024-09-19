@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Sampling
+      module Span
+        class Matcher
+          attr_reader name: untyped
+
+          attr_reader service: untyped
+          MATCH_ALL_PATTERN: "*"
+          def initialize: (?name_pattern: untyped, ?service_pattern: untyped) -> void
+          def match?: (untyped span) -> untyped
+
+          def ==: (untyped other) -> untyped
+
+          private
+          def pattern_to_regex: (untyped pattern) -> untyped
+        end
+      end
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rails
+        module LogInjection
+          def self?.add_as_tagged_logging_logger: (untyped app) -> untyped
+        end
+      end
+    end
+  end
+end

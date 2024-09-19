@@ -1,0 +1,316 @@
+services:
+  tracer-2.5:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
+    command: /bin/bash
+    depends_on: &common-depends-on
+      - ddagent
+      - elasticsearch
+      - memcached
+      - mongodb
+      - mysql
+      - opensearch
+      - postgres
+      - presto
+      - redis
+      - testagent
+    env_file: ./.env
+    environment: &common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.5
+      DD_AGENT_HOST: testagent
+      DD_TRACE_AGENT_PORT: 9126
+      TEST_DATADOG_INTEGRATION: 1
+      TEST_ELASTICSEARCH_HOST: elasticsearch
+      TEST_MEMCACHED_HOST: memcached
+      TEST_MONGODB_HOST: mongodb
+      TEST_MYSQL_HOST: mysql
+      TEST_OPENSEARCH_HOST: opensearch
+      TEST_OPENSEARCH_PORT: 9200
+      TEST_POSTGRES_HOST: postgres
+      TEST_PRESTO_HOST: presto
+      TEST_REDIS_HOST: redis
+      DATADOG_GEM_CI: 'true'
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-2.5:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-2.6:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.6
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-2.6:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-2.7:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-2.7
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-2.7:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.0:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-3.0
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.0:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.1:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-3.1
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.1:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.2:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-3.2
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.2:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.3:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-3.3
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-3.4:
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.4.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-3.4
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - extension-build-tmp:/app/tmp
+      - bundle-3.4:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  # ADD NEW RUBIES HERE
+  tracer-jruby-9.2:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.2
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.2:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-jruby-9.3:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.3
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.3:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  tracer-jruby-9.4:
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.7.0-dd
+    command: /bin/bash
+    depends_on: *common-depends-on
+    env_file: ./.env
+    environment:
+      <<: *common-environment
+      BUNDLE_GEMFILE: /app/Gemfile-jruby-9.4
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/app
+      - bundle-jruby-9.4:/usr/local/bundle
+      - "ddagent_var_run:${TEST_DDAGENT_VAR_RUN}"
+  ddagent:
+    image: datadog/agent
+    environment:
+      - DD_APM_ENABLED=true
+      - DD_BIND_HOST=0.0.0.0
+      - "DD_API_KEY=${DD_API_KEY}"
+      - DD_HOSTNAME=dd-trace-rb-ci
+      - DD_APM_RECEIVER_SOCKET=/var/run/datadog/apm.socket
+      - DD_REMOTE_CONFIGURATION_ENABLED=true
+    expose:
+      - "8125/udp"
+      - "8126"
+    ports:
+      - "127.0.0.1:${DD_METRIC_AGENT_PORT}:8125/udp"
+      - "127.0.0.1:${DD_REAL_AGENT_PORT}:8126"
+    volumes:
+      - ddagent_var_run:/var/run/datadog
+
+  testagent:
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
+    ports:
+        - "127.0.0.1:${DD_TRACE_AGENT_PORT}:9126"
+    depends_on:
+      - ddagent
+    env_file: ./.env
+    environment:
+        - LOG_LEVEL=DEBUG
+        - TRACE_LANGUAGE=ruby
+        - DD_TRACE_AGENT_URL=http://${DD_REAL_AGENT_HOST}:${DD_REAL_AGENT_PORT}
+        - PORT=${DD_TRACE_AGENT_PORT}
+        - DD_POOL_TRACE_CHECK_FAILURES=true
+        - DD_DISABLE_ERROR_RESPONSES=true
+        - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+
+  elasticsearch:
+    image: elasticsearch:8.1.3
+    expose:
+      - "9200"
+      - "9300"
+    ports:
+      - "127.0.0.1:${TEST_ELASTICSEARCH_REST_PORT}:9200"
+      - "127.0.0.1:${TEST_ELASTICSEARCH_NATIVE_PORT}:9300"
+    environment:
+      # Ensure production cluster requirements are not enforced
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xmx750m
+  memcached:
+    image: memcached:1.5-alpine
+    expose:
+      - "11211"
+    ports:
+      - "127.0.0.1:${TEST_MEMCACHED_PORT}:11211"
+  mongodb:
+    image: mongo:3.6
+    expose:
+      - "27017"
+    ports:
+      - "127.0.0.1:${TEST_MONGODB_PORT}:27017"
+  mysql:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=$TEST_MYSQL_DB
+      - MYSQL_ROOT_PASSWORD=$TEST_MYSQL_ROOT_PASSWORD
+      - MYSQL_PASSWORD=$TEST_MYSQL_PASSWORD
+      - MYSQL_USER=$TEST_MYSQL_USER
+    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+    # rather than mysql_native_password which was the default in previous versions.
+    command: --default-authentication-plugin=mysql_native_password
+    expose:
+      - "3306"
+    ports:
+      - "127.0.0.1:${TEST_MYSQL_PORT}:3306"
+  opensearch:
+    image: opensearchproject/opensearch:2.8.0
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+      # Make sure it works on nearly full disk.
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=3gb
+      - cluster.routing.allocation.disk.watermark.high=2gb
+      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+      - cluster.routing.allocation.disk.threshold_enabled=false
+    ports:
+      - 9201:9200
+  postgres:
+    image: postgres:9.6
+    environment:
+      - POSTGRES_PASSWORD=$TEST_POSTGRES_PASSWORD
+      - POSTGRES_USER=$TEST_POSTGRES_USER
+      - POSTGRES_DB=$TEST_POSTGRES_DB
+    expose:
+      - "5432"
+    ports:
+      - "127.0.0.1:${TEST_POSTGRES_PORT}:5432"
+  presto:
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
+    expose:
+      - "8080"
+    ports:
+      - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
+  redis:
+    image: redis:6.2
+    expose:
+      - "6379"
+    ports:
+      - "127.0.0.1:${TEST_REDIS_PORT}:6379"
+volumes:
+  bundle-2.5:
+  bundle-2.6:
+  bundle-2.7:
+  bundle-3.0:
+  bundle-3.1:
+  bundle-3.2:
+  bundle-3.3:
+  bundle-3.4:
+  # ADD NEW RUBIES HERE
+  bundle-jruby-9.2:
+  bundle-jruby-9.3:
+  bundle-jruby-9.4:
+  ddagent_var_run:
+  # Temporary folder used while compiling the profiling native extension. We place this in a volume to avoid the
+  # massive performance hit (seconds to minutes) that we get when the tmp folder is shared with the host on macOS.
+  # Hopefully this will be fixed by
+  # https://www.docker.com/blog/speed-boost-achievement-unlocked-on-docker-desktop-4-6-for-mac/
+  # (which is not available for those of us still on macOS 11).
+  extension-build-tmp:

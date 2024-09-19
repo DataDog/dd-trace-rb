@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Environment
+      module ClassCount
+        def self?.value: () -> untyped
+
+        def self?.available?: () -> untyped
+      end
+    end
+  end
+end

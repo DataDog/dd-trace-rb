@@ -1,0 +1,72 @@
+module Datadog
+  module Tracing
+    class TraceSegment
+      TAG_NAME: ::String
+      TAG_RESOURCE: ::String
+      TAG_SERVICE: ::String
+
+      attr_reader id: untyped
+      attr_reader spans: untyped
+      attr_reader agent_sample_rate: untyped
+      attr_reader hostname: untyped
+      attr_reader lang: untyped
+      attr_reader name: untyped
+      attr_reader origin: untyped
+      attr_reader process_id: untyped
+      attr_reader rate_limiter_rate: untyped
+      attr_reader resource: untyped
+      attr_reader rule_sample_rate: untyped
+      attr_reader runtime_id: untyped
+      attr_reader sample_rate: untyped
+      attr_reader sampling_decision_maker: untyped
+      attr_reader sampling_priority: untyped
+      attr_reader service: untyped
+
+      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?) -> void
+      def any?: () -> untyped
+      def count: () -> untyped
+      def empty?: () -> untyped
+      def length: () -> untyped
+      def size: () -> untyped
+
+      def keep!: () -> void
+      def reject!: () -> void
+      def sampled?: () -> untyped
+
+      attr_reader root_span_id: untyped
+      attr_reader meta: untyped
+      attr_reader metrics: untyped
+
+      private
+
+      attr_writer agent_sample_rate: untyped
+      attr_writer hostname: untyped
+      attr_writer lang: untyped
+      attr_writer name: untyped
+      attr_writer origin: untyped
+      attr_writer process_id: untyped
+      attr_writer rate_limiter_rate: untyped
+      attr_writer resource: untyped
+      attr_writer rule_sample_rate: untyped
+      attr_writer runtime_id: untyped
+      attr_writer sample_rate: untyped
+      attr_writer sampling_priority: untyped
+      attr_writer service: untyped
+
+      def agent_sample_rate_tag: () -> untyped
+      def hostname_tag: () -> untyped
+      def lang_tag: () -> untyped
+      def name_tag: () -> untyped
+      def origin_tag: () -> untyped
+      def process_id_tag: () -> untyped
+      def rate_limiter_rate_tag: () -> untyped
+      def resource_tag: () -> untyped
+      def rule_sample_rate_tag: () -> untyped
+      def runtime_id_tag: () -> untyped
+      def sample_rate_tag: () -> untyped
+      def sampling_decision_maker_tag: () -> untyped
+      def sampling_priority_tag: () -> untyped
+      def service_tag: () -> untyped
+    end
+  end
+end

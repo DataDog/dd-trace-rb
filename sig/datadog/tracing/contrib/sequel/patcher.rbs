@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sequel
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_sequel_database: () -> untyped
+
+          def self?.patch_sequel_dataset: () -> untyped
+        end
+      end
+    end
+  end
+end

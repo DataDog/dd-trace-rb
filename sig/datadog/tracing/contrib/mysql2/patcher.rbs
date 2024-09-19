@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Mysql2
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_mysql2_client: () -> untyped
+        end
+      end
+    end
+  end
+end

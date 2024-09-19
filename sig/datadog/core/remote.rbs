@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Remote
+      def self.active_remote: () -> Datadog::Core::Remote::Component
+
+      private
+
+      def self.components: () -> Datadog::Core::Configuration::Components
+
+      def self.remote: () -> Datadog::Core::Remote::Component
+    end
+  end
+end

@@ -1,0 +1,47 @@
+module Datadog
+  module Core
+    module Environment
+      module Ext
+        LANG: String
+
+        LANG_ENGINE: String
+
+        LANG_INTERPRETER: String
+
+        LANG_PLATFORM: String
+
+        LANG_VERSION: String
+
+        RUBY_ENGINE: String
+
+        GEM_DATADOG_VERSION: String
+
+        ENGINE_VERSION: String
+
+        ENV_API_KEY: String
+
+        ENV_ENVIRONMENT: String
+
+        ENV_SERVICE: String
+
+        ENV_OTEL_SERVICE: String
+
+        ENV_SITE: String
+
+        ENV_TAGS: String
+
+        ENV_OTEL_RESOURCE_ATTRIBUTES: String
+
+        ENV_VERSION: String
+
+        FALLBACK_SERVICE_NAME: String
+
+        TAG_ENV: String
+
+        TAG_SERVICE: String
+
+        TAG_VERSION: String
+      end
+    end
+  end
+end

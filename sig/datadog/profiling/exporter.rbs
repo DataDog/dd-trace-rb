@@ -1,0 +1,40 @@
+module Datadog
+  module Profiling
+    class Exporter
+      PROFILE_DURATION_THRESHOLD_SECONDS: 1
+
+      private
+
+      attr_reader pprof_recorder: Datadog::Profiling::StackRecorder
+      attr_reader code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?
+      attr_reader minimum_duration_seconds: ::Integer
+      attr_reader time_provider: untyped
+      attr_reader last_flush_finish_at: ::Time?
+      attr_reader created_at: ::Time
+      attr_reader internal_metadata: ::Hash[::Symbol, untyped]
+      attr_reader info_json: ::String
+
+      public
+
+      def initialize: (
+        pprof_recorder: Datadog::Profiling::StackRecorder,
+        worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
+        info_collector: Datadog::Profiling::Collectors::Info,
+        code_provenance_collector: Datadog::Profiling::Collectors::CodeProvenance?,
+        internal_metadata: ::Hash[::Symbol, untyped],
+        ?minimum_duration_seconds: ::Integer,
+        ?time_provider: untyped
+      ) -> void
+
+      def flush: () -> Datadog::Profiling::Flush?
+
+      def can_flush?: () -> bool
+
+      def reset_after_fork: () -> void
+
+      private
+
+      def duration_below_threshold?: (::Time start, ::Time finish) -> bool
+    end
+  end
+end

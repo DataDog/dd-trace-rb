@@ -1,0 +1,32 @@
+module Datadog
+  module Tracing
+    module Configuration
+      module Dynamic
+        class LogInjectionEnabled < SimpleOption
+          def initialize: () -> void
+        end
+        class TracingHeaderTags < SimpleOption
+          def initialize: () -> void
+
+          def call: (untyped tracing_header_tags) -> untyped
+        end
+        class TracingSamplingRate < SimpleOption
+          def initialize: () -> void
+          def call: (untyped tracing_sampling_rate) -> untyped
+
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
+        end
+
+        class TracingSamplingRules < SimpleOption
+          def initialize: () -> void
+          def call: (Array[Hash[String, untyped]] tracing_sampling_rules) -> void
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
+        end
+
+        # Correct type is `OPTIONS: Array[[String, String, Option]]`
+        # but steep can't recognize that.
+        OPTIONS: Array[Array[(String | Option)]]
+      end
+    end
+  end
+end

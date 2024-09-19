@@ -1,0 +1,11 @@
+module Datadog
+  module Core
+    module Diagnostics
+      module Health
+        class Metrics < Core::Metrics::Client
+          extend Tracing::Diagnostics::Health::Metrics
+        end
+      end
+    end
+  end
+end

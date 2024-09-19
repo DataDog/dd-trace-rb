@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Distributed
+      class B3Multi
+        B3_TRACE_ID_KEY: "x-b3-traceid"
+
+        B3_SPAN_ID_KEY: "x-b3-spanid"
+
+        B3_SAMPLED_KEY: "x-b3-sampled"
+
+        def initialize: (fetcher: untyped, ?trace_id_key: untyped, ?span_id_key: untyped, ?sampled_key: untyped) -> void
+
+        def inject!: (untyped digest, ?::Hash[untyped, untyped] data) -> (nil | untyped)
+
+        def extract: (untyped data) -> (nil | untyped)
+      end
+    end
+  end
+end

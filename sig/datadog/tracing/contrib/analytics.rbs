@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Analytics
+        def self?.enabled?: (?untyped? flag) -> untyped
+
+        def self?.set_sample_rate: (untyped span, untyped sample_rate) -> untyped
+
+        def self?.set_measured: (untyped span, ?bool value) -> untyped
+      end
+    end
+  end
+end

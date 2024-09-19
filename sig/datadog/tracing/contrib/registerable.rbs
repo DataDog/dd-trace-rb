@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Registerable
+        def self.included: (untyped base) -> untyped
+        module ClassMethods
+          def register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
+        end
+        module InstanceMethods
+          attr_reader name: untyped
+
+          def initialize: (untyped name, **untyped options) -> void
+        end
+      end
+    end
+  end
+end

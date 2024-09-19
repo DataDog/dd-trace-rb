@@ -1,0 +1,6 @@
+module Datadog
+  module OpenTelemetry
+    LOADED: true
+    def logger: () -> untyped
+  end
+end

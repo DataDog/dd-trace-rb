@@ -1,0 +1,14 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module SemanticLogger
+        module Instrumentation
+          def self.included: (untyped base) -> untyped
+          module InstanceMethods
+            def log: (untyped log, ?untyped? message, ?untyped? progname) ?{ () -> untyped } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

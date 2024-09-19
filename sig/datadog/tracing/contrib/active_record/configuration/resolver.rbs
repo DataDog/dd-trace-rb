@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActiveRecord
+        module Configuration
+          class Resolver < Contrib::Configuration::Resolver
+            prepend MakaraResolver
+
+            def initialize: (?untyped? active_record_configuration) -> void
+
+            def active_record_configuration: () -> untyped
+
+            def add: (untyped matcher, untyped value) -> untyped
+
+            def resolve: (untyped db_config) -> untyped
+
+            def parse_matcher: (untyped matcher) -> untyped
+
+            def connection_resolver: () -> untyped
+
+            def resolve_connection_key: (untyped key) -> untyped
+            def normalize_for_config: (untyped active_record_config) -> { adapter: untyped, host: untyped, port: untyped, database: untyped, username: untyped }
+            alias normalize_for_resolve normalize_for_config
+          end
+        end
+      end
+    end
+  end
+end

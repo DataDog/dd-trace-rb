@@ -1,0 +1,23 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionMailer
+        module Events
+          module Process
+            include ActionMailer::Event
+
+            EVENT_NAME: "process.action_mailer"
+
+            def self?.event_name: () -> untyped
+
+            def self?.span_name: () -> untyped
+
+            def self?.span_type: () -> untyped
+
+            def self?.process: (untyped span, untyped event, untyped _id, untyped payload) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

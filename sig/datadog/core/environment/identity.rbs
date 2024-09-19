@@ -1,0 +1,25 @@
+module Datadog
+  module Core
+    module Environment
+      module Identity
+        extend Datadog::Core::Utils::Forking
+
+        def self?.id: () -> ::String
+
+        def self?.lang: () -> ::String
+
+        def self?.lang_engine: () -> ::String
+
+        def self?.lang_interpreter: () -> ::String
+
+        def self?.lang_platform: () -> ::String
+
+        def self?.lang_version: () -> ::String
+
+        def self?.gem_datadog_version: () -> ::String
+
+        def self?.gem_datadog_version_semver2: () -> ::String
+      end
+    end
+  end
+end

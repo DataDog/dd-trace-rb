@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Metadata
+      module Analytics
+        def set_tag: (untyped key, untyped value) -> untyped
+      end
+    end
+  end
+end

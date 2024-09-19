@@ -1,0 +1,7 @@
+module Datadog
+  module Tracing
+    module Contrib
+      REGISTRY: untyped
+    end
+  end
+end

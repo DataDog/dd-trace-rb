@@ -1,0 +1,45 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module Formatting
+          VALUE_UNKNOWN: "unknown"
+          class MethodObjectFormatter
+            attr_reader grpc_full_method: String
+            attr_reader legacy_grpc_service: String
+            attr_reader legacy_grpc_method: String
+            attr_reader resource_name: String
+
+            def initialize: (untyped grpc_method_object) -> void
+
+            private
+
+            def format_full_method: (untyped grpc_method_object) -> ::String
+
+            def extract_grpc_service: (untyped grpc_method_object) -> String
+            def extract_grpc_method: (untyped grpc_method_object) -> String
+
+            def extract_legacy_grpc_service: (untyped grpc_method_object) -> String
+
+            def extract_legacy_grpc_method: (untyped grpc_method_object) -> String
+
+            def format_resource_name: (untyped grpc_method_object) -> String
+          end
+          class FullMethodStringFormatter
+            attr_reader grpc_full_method: String
+            attr_reader resource_name: String
+            attr_reader rpc_service: String
+
+            def initialize: (String grpc_full_method) -> void
+
+            private
+
+            def format_resource_name: (String grpc_full_method) -> String
+
+            def extract_grpc_service: (String grpc_full_method) -> String
+          end
+        end
+      end
+    end
+  end
+end

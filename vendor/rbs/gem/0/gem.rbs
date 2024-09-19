@@ -1,0 +1,18 @@
+class Gem::Platform
+  def self.local: () -> Gem::Platform
+
+  def os: () -> String
+  def cpu: () -> String
+  def version: () -> String
+end
+
+class Gem::Platform
+end
+
+class Gem::BasicSpecification
+  def platform: () -> Gem::Platform
+  def version: () -> String
+  def name: () -> String
+  def gem_dir: () -> String
+  def extension_dir: () -> String
+end

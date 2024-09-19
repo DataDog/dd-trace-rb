@@ -1,0 +1,20 @@
+module Datadog
+  module Core
+    module Utils
+      class OnlyOnce
+        @ran_once: bool
+        @mutex: Thread::Mutex
+
+        def initialize: () -> untyped
+
+        def run: () { () -> untyped } -> untyped
+
+        def ran?: () -> untyped
+
+        private
+
+        def reset_ran_once_state_for_tests: () -> untyped
+      end
+    end
+  end
+end

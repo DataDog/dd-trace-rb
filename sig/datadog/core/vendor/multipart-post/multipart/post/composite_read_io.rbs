@@ -1,0 +1,40 @@
+module Datadog
+  module Core
+    module Vendor
+      module Multipart
+        module Post
+          class CompositeReadIO
+            def initialize: (*untyped ios) -> void
+            def read: (?untyped? length, ?untyped? outbuf) -> untyped
+
+            def rewind: () -> untyped
+
+            private
+
+            def current_io: () -> untyped
+
+            def advance_io: () -> untyped
+          end
+          class UploadIO
+            attr_reader content_type: untyped
+
+            attr_reader original_filename: untyped
+
+            attr_reader local_path: untyped
+
+            attr_reader io: untyped
+
+            attr_reader opts: untyped
+            def initialize: (untyped filename_or_io, untyped content_type, ?untyped? filename, ?::Hash[untyped, untyped] opts) -> void
+
+            def self.convert!: (untyped io, untyped content_type, untyped original_filename, untyped local_path) -> untyped
+
+            def method_missing: (*untyped args) -> untyped
+
+            def respond_to?: (untyped meth, ?bool include_all) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

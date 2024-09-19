@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module HTTP
+        module Distributed
+          class Fetcher < Tracing::Distributed::Fetcher
+            def []: (String name) -> (String | nil)
+          end
+        end
+      end
+    end
+  end
+end

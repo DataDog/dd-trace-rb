@@ -1,0 +1,20 @@
+module Datadog
+  module OpenTelemetry
+    module SDK
+      class SpanProcessor
+        def on_start: (untyped span, untyped parent_context) -> untyped
+        def on_finish: (untyped span) -> untyped
+        def force_flush: (?timeout: untyped?) -> untyped
+        def shutdown: (?timeout: untyped?) -> untyped
+
+        private
+
+        def writer: () -> untyped
+
+        def create_matching_datadog_span: (untyped span, untyped parent_context) -> untyped
+
+        def start_datadog_span: (untyped span) -> untyped
+      end
+    end
+  end
+end

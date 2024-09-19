@@ -1,0 +1,35 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class CodeProvenance
+        def initialize: (?standard_library_path: String) -> void
+        def refresh: (?loaded_files: Array[String], ?loaded_specs: Array[Gem::Specification]) -> self
+        def generate: () -> Set[Library]
+        def generate_json: () -> ::String
+
+        private
+
+        attr_reader libraries_by_name: Hash[String, Library]
+        attr_reader libraries_by_path: Hash[String, Library]
+        attr_reader seen_files: Set[String]
+        attr_reader seen_libraries: Set[Library]
+
+        def record_library: (Library) -> void
+        def sort_libraries_by_longest_path_first: () -> void
+        def record_loaded_specs: (Array[Gem::Specification]) -> void
+        def record_loaded_files: (Array[String]) -> void
+
+        class Library
+          def initialize: (kind: String, name: String, version: String, path: String) -> void
+
+          def kind: -> String
+          def name: -> String
+          def version: -> String
+          def path: -> String
+
+          def to_json: (?JSON::State state) -> String
+        end
+      end
+    end
+  end
+end

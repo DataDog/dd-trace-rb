@@ -1,0 +1,6 @@
+logs:
+  - type: file
+    path: /var/log/rails-five/production.log
+    service: ruby
+    source: ruby
+    sourcecategory: sourcecode

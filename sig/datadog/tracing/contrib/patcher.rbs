@@ -1,0 +1,27 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Patcher
+        def self.included: (untyped base) -> untyped
+        module CommonMethods
+          attr_accessor patch_error_result: untyped
+
+          attr_accessor patch_successful: untyped
+
+          def patch_name: () -> untyped
+
+          def patched?: () -> untyped
+
+          def patch: () -> (nil | untyped)
+          def on_patch_error: (untyped e) -> untyped
+
+          def default_tags: () -> untyped
+
+          private
+
+          def patch_only_once: () -> untyped
+        end
+      end
+    end
+  end
+end

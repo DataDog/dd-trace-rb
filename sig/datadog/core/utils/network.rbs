@@ -1,0 +1,23 @@
+module Datadog
+  module Core
+    module Utils
+      module Network
+        DEFAULT_IP_HEADERS_NAMES: ::Array[::String]
+
+        def self.stripped_ip_from_request_headers: (Datadog::Core::HeaderCollection headers, ?::Array[::String] ip_headers_to_check) -> ::String?
+        def self.stripped_ip: (::String ip) -> String?
+
+        private
+
+        def self.ip_header: (Datadog::Core::HeaderCollection headers, ::Array[::String] ip_headers_to_check) -> untyped?
+        def self.strip_zone_specifier: (::String ipv6) -> ::String
+        def self.strip_ipv6_port: (::String ip) -> ::String
+        def self.strip_ipv4_port: (::String ip) -> ::String
+        def self.global_ip?: (untyped parsed_ip) -> bool
+        def self.private?: (untyped ip) -> bool
+        def self.link_local?: (untyped ip) -> bool
+        def self.loopback?: (untyped ip) -> bool
+      end
+    end
+  end
+end

@@ -1,0 +1,17 @@
+module Datadog
+  module Tracing
+    class Context
+      include Core::Utils::Forking
+
+      attr_reader active_trace: untyped
+
+      def initialize: (?trace: untyped?) -> void
+      def activate!: (untyped trace) { () -> untyped } -> untyped
+      def fork_clone: () -> untyped
+
+      private
+
+      def set_active_trace!: (untyped trace) -> untyped
+    end
+  end
+end

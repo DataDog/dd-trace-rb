@@ -1,0 +1,13 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Sidekiq
+        module ServerInternalTracer
+          module RedisInfo
+            def redis_info: () -> untyped
+          end
+        end
+      end
+    end
+  end
+end

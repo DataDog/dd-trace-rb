@@ -1,0 +1,16 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module Vendor
+          class Resolver
+            DEFAULTS: { url: untyped, scheme: "redis", host: "127.0.0.1", port: 6379, path: nil, password: nil, db: 0 }
+
+            def resolve: (untyped options) -> untyped
+            def _parse_options: (untyped options) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

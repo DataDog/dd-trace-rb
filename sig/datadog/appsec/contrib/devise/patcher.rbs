@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Patcher
+          include Datadog::AppSec::Contrib::Patcher
+
+          def self?.patched?: () -> untyped
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> untyped
+
+          def self?.patch_authenticable_strategy: () -> untyped
+
+          def self?.patch_registration_controller: () -> untyped
+        end
+      end
+    end
+  end
+end

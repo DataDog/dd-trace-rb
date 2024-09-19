@@ -1,0 +1,4 @@
+module GRPC
+  class Interceptor
+  end
+end

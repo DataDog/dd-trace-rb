@@ -1,0 +1,24 @@
+module Datadog
+  module AppSec
+    class RateLimiter
+      type timestamp = ::Float
+      type rate = ::Integer
+
+      @rate: ::Integer
+      @timestamps: ::Array[timestamp]
+
+      def initialize: (rate rate) -> void
+
+      # TODO: return type of limit is return type of block
+      def limit: () { () -> untyped } -> untyped
+
+      def self.limit: (::Symbol name) { () -> untyped } -> untyped
+
+      def self.reset!: (::Symbol name) -> void
+
+      def self.rate_limiter: (::Symbol name) -> RateLimiter
+
+      def self.trace_rate_limit: () -> rate
+    end
+  end
+end

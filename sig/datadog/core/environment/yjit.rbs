@@ -1,0 +1,19 @@
+module Datadog
+  module Core
+    module Environment
+      module YJIT
+        def self?.inline_code_size: () -> untyped
+        def self?.outlined_code_size: () -> untyped
+        def self?.freed_page_count: () -> untyped
+        def self?.freed_code_size: () -> untyped
+        def self?.live_page_count: () -> untyped
+        def self?.code_gc_count: () -> untyped
+        def self?.code_region_size: () -> untyped
+        def self?.object_shape_count: () -> untyped
+        def self?.yjit_alloc_size: () -> untyped
+
+        def self?.available?: () -> untyped
+      end
+    end
+  end
+end

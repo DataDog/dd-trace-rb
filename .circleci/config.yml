@@ -1,0 +1,802 @@
+version: 2.1
+
+# Common variables, containers, jobs and steps.
+job_defaults: &job_defaults
+  # TODO: We should move away from using a directory
+  # TODO: that requires root permission to be created.
+  # TODO: Changing this requires rebuilding all docker images.
+  working_directory: /app
+  shell: /bin/bash --login
+
+test_containers:
+  - &job_parameters
+    parameters:
+      ruby_version:
+        description: Ruby version
+        type: string
+      image:
+        description: Docker image location
+        type: string
+      resource_class_to_use:
+        description: Resource class to use
+        type: string
+        default: medium
+      edge:
+        description: Use latest version of dependencies during testing
+        type: boolean
+        default: false
+    resource_class: <<parameters.resource_class_to_use>>
+  - &container_base_environment
+    BUNDLE_GEMFILE: /app/Gemfile
+    JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+    # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
+    # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
+    # issue when you connect to the testing container via ssh, then try lowering this file a notch.
+    GRPC_RUBY_BUILD_PROCS: 6
+    DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+    DD_REMOTE_CONFIGURATION_ENABLED: false
+    TEST_OPENSEARCH_HOST: opensearch
+    TEST_OPENSEARCH_PORT: 9200
+    DD_AGENT_HOST: testagent
+    DD_TRACE_AGENT_PORT: 9126
+    DATADOG_GEM_CI: true
+  - &container_parameters_environment
+    - *container_base_environment
+    - TEST_DATADOG_INTEGRATION: 1
+    - COVERAGE_BASE_DIR: coverage
+  - &container_base
+    image: <<parameters.image>>
+    environment:
+      *container_parameters_environment
+  - &test_job_default
+    <<: *job_defaults
+    <<: *job_parameters
+    docker:
+      - *container_base
+  - &container_postgres
+    image: postgres:9.6
+    environment:
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+  - &postgres_port 5432
+  - &container_presto
+    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+    image: starburstdata/presto:332-e.9
+  - &presto_port 8080
+  - &container_mysql
+    image: mysql:8.0
+    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+    # rather than mysql_native_password which was the default in previous versions.
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_PASSWORD=mysql
+      - MYSQL_USER=mysql
+  - &mysql_port 3306
+  - &opensearch_host opensearch
+  - &container_opensearch
+    image: opensearchproject/opensearch:2.8.0
+    name: *opensearch_host
+    environment:
+      - discovery.type=single-node
+      - DISABLE_SECURITY_PLUGIN=true
+      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+      # Make sure it works on nearly full disk.
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=3gb
+      - cluster.routing.allocation.disk.watermark.high=2gb
+      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+      - cluster.routing.allocation.disk.threshold_enabled=false
+  - &opensearch_port 9200
+  - &container_elasticsearch
+    image: elasticsearch:8.1.3
+    environment:
+      # Ensure production cluster requirements are not enforced
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms750m -Xmx750m
+  - &elasticsearch_port 9200
+  - &container_redis
+    image: redis:6.2
+  - &redis_port 6379
+  - &container_mongo
+    image: mongo:3.5
+  - &mongo_port 27017
+  - &container_memcached
+    image: memcached:1.5-alpine
+  - &memcached_port 11211
+  - &container_testagent
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
+    name: testagent
+    environment:
+      - LOG_LEVEL=DEBUG
+      - TRACE_LANGUAGE=ruby
+      - PORT=9126
+      - DD_POOL_TRACE_CHECK_FAILURES=true
+      - DD_DISABLE_ERROR_RESPONSES=true
+      - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+  - &testagent_port 9126
+
+check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
+  run:
+    name: Check if we restored an exact cache of gems that this job requires
+    # CircleCI doesn't tell us if we had a perfect cache match or partial match.
+    # To accomplish such check, we save `bundle_checksum` alongside the cached
+    # gems. After gems are restored, we compare the restored `bundle_checksum`'s
+    # content with the current commit's `bundle_checksum`.
+    #
+    # Because we are using a "soft" approach to our gemset lock files, we allow
+    # for partial matches to lock files until a new release goes out.
+    # This means that we might install slightly out of date gems, instead of the
+    # very latest versions from RubyGems until the next gemset update commit.
+    command: |
+      ! cmp -s .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+      echo "export CI_BUNDLE_CACHE_HIT=$?" >> $BASH_ENV
+save_bundle_checksum: &save_bundle_checksum
+  run:
+    name: Save current bundle checksum alongside cached gems
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        # Recompute gemfiles/*.lock checksum, as those files might have changed
+        cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      fi
+      cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
+step_bundle_install: &step_bundle_install
+  run:
+    name: Install gem dependencies
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        bundle install
+      else
+        echo "All required gems were found in cache."
+      fi
+step_rubocop: &step_rubocop
+  run:
+    name: Delint with Rubocop
+    # There's no straightforward way to get the number of available processors & CPU threads in CircleCI.
+    # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
+    # The workaround is to use `cpu.shares / 1024`:
+    # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake rubocop
+step_standardrb: &step_standardrb
+  run:
+    name: Delint with Standardrb
+    # There's no straightforward way to get the number of available processors & CPU threads in CircleCI.
+    # Currently it always return 18 physical processors and 36 threads, regardless of executor size.
+    # The workaround is to use `cpu.shares / 1024`:
+    # https://discuss.circleci.com/t/environment-variable-set-to-the-number-of-available-cpus/32670/4
+    command: PARALLEL_PROCESSOR_COUNT=$((`cat /sys/fs/cgroup/cpu/cpu.shares` / 1024)) bundle exec rake standard
+step_appraisal_install: &step_appraisal_install
+  run:
+    name: Install Appraisal gems
+    command: |
+      if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
+        bundle exec appraisal install
+      else
+        bundle exec appraisal generate # Generate the appraisal files to match the lockfiles in the tree
+        echo "All required gems were found in cache."
+      fi
+step_appraisal_update: &step_appraisal_update
+  run:
+    name: Update Appraisal gems
+    command: | # Remove all generated gemfiles and lockfiles, resolve, and install dependencies again
+      bundle exec appraisal update
+step_compute_bundle_checksum: &step_compute_bundle_checksum
+  run:
+    name: Compute bundle checksum
+    # This checksum leaves some leeway for changes to Gemfile.lock, as
+    # we have a "soft" approach to committing gemset changes until release, given
+    # updating the gemset lock files produces extremely large commits.
+    command: |
+      bundle lock # Create Gemfile.lock
+      cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+step_run_all_tests: &step_run_all_tests
+  run:
+    name: Run tests
+    command: |
+        # Ensures it's possible to debug hung tests in CI
+        echo "--format=documentation" >> .rspec-local
+
+        # Configure RSpec metadata exporter
+        echo "
+        --format=RspecJunitFormatter
+        --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
+        " >> .rspec-local
+
+        bundle exec rake ci
+step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
+  run:
+    name: Get APM Test Agent Trace Check Results
+    command: |
+      set +e  # Disable exiting from testagent response failure
+      SUMMARY_RESPONSE=$(curl -s -w "\n%{http_code}" -o summary_response.txt http://testagent:9126/test/trace_check/summary)
+      set -e
+      SUMMARY_RESPONSE_CODE=$(echo "$SUMMARY_RESPONSE" | awk 'END {print $NF}')
+
+      if [[ SUMMARY_RESPONSE_CODE -eq 200 ]]; then
+        echo "APM Test Agent is running. (HTTP 200)"
+      else
+        echo "APM Test Agent is not running and was not used for testing. No checks failed."
+        exit 0
+      fi
+
+      RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/trace_check/failures)
+      RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
+
+      if [[ $RESPONSE_CODE -eq 200 ]]; then
+        echo "All APM Test Agent Check Traces returned successful! (HTTP 200)"
+        echo "APM Test Agent Check Traces Summary Results:"
+        cat summary_response.txt | jq '.'
+      elif [[ $RESPONSE_CODE -eq 404 ]]; then
+        echo "Real APM Agent running in place of TestAgent, no checks to validate!"
+      else
+        echo "APM Test Agent Check Traces failed with response code: $RESPONSE_CODE"
+        echo "Failures:"
+        cat response.txt
+        echo "APM Test Agent Check Traces Summary Results:"
+        cat summary_response.txt | jq '.'
+        exit 1
+      fi
+    when: always
+
+filters_all_branches_and_tags: &filters_all_branches_and_tags
+  filters:
+    tags:
+      only: /.*/
+filters_only_release_tags: &filters_only_release_tags
+  filters:
+    branches:
+      ignore: /.*/
+    tags:
+      only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
+
+orbs:
+  orb:
+    orbs:
+      codecov: codecov/codecov@3.2.3
+    jobs:
+      build:
+        <<: *test_job_default
+        resource_class: <<parameters.resource_class_to_use>>
+        steps:
+          - checkout
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - *step_compute_bundle_checksum
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}
+          - *check_exact_bundle_cache_hit
+          - *step_bundle_install
+          - when:
+              condition:
+                equal: [ << parameters.edge >>, true ]
+              steps:
+                - *step_appraisal_update # Run on latest version of all gems we integrate with
+          - when:
+              condition:
+                not:
+                  equal: [ << parameters.edge >>, true ]
+              steps:
+                - *step_appraisal_install # Run on a stable set of gems we integrate with
+          - *save_bundle_checksum
+          - save_cache:
+              key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+              paths:
+                - /app
+          - save_cache:
+              key: bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+              paths:
+                - /usr/local/bundle
+      build_and_test_integration:
+        executor: docker-integration
+        parameters:
+          ruby_version:
+            description: Ruby version
+            type: string
+          integration_apps:
+            description: Integration apps
+            type: string
+        steps:
+          - checkout
+          - setup_remote_docker:
+              docker_layer_caching: true
+          - run:
+              name: Build integration base images
+              command: ./integration/script/build-images -v <<parameters.ruby_version>>
+          - run:
+              name: Build integration app images
+              command: |
+                for i in <<parameters.integration_apps>>; do
+                  ./integration/apps/$i/script/build-images -v <<parameters.ruby_version>>
+                done
+          - run:
+              name: Test integration apps
+              command: |
+                for i in <<parameters.integration_apps>>; do
+                  ./integration/apps/$i/script/ci -v <<parameters.ruby_version>>
+                done
+      test:
+        <<: *test_job_default
+        docker:
+          - <<: *container_base
+          - *container_postgres
+          - *container_presto
+          - *container_mysql
+          - *container_opensearch
+          - *container_elasticsearch
+          - *container_redis
+          - *container_mongo
+          - *container_memcached
+          - *container_testagent
+        parallelism: 22
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+          - run:
+              name: Set coverage report directory
+              command: |
+                # Create a unique coverage directory for this job, to avoid conflicts when merging all results
+                echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
+          # Wait for containers to start
+          - docker-wait:
+              port: *postgres_port
+          - docker-wait:
+              port: *presto_port
+          - docker-wait:
+              port: *mysql_port
+          - docker-wait:
+              host: *opensearch_host
+              port: *opensearch_port
+          - docker-wait:
+              port: *elasticsearch_port
+          - docker-wait:
+              port: *redis_port
+          - docker-wait:
+              port: *mongo_port
+          - docker-wait:
+              port: *memcached_port
+          - docker-wait:
+              host: "testagent"
+              port: *testagent_port
+          - *step_run_all_tests
+          - *step_get_test_agent_trace_check_results
+          - store_test_results:
+              path: /tmp/rspec
+          - persist_to_workspace:
+              root: .
+              paths:
+                - coverage
+      lint:
+        <<: *test_job_default
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+          - *step_rubocop
+          - *step_standardrb
+      coverage:
+        <<: *test_job_default
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+          - attach_workspace:
+              at: /tmp/workspace
+          - run:
+              name: Generate combined coverage report for all tests
+              command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
+          - codecov/upload:
+              file: /tmp/workspace/coverage/report/coverage.xml
+          - run:
+              name: Generate individual coverage report for each Ruby version
+              command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version
+          - store_artifacts:
+              path: /tmp/workspace/coverage/report/
+              destination: coverage
+      changelog:
+        <<: *test_job_default
+        steps:
+          - restore_cache:
+              keys:
+                - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
+          - restore_cache:
+              keys:
+                - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}-{{ .Branch }}-{{ checksum ".circleci/bundle_checksum" }}
+          - attach_workspace:
+              at: /tmp/workspace
+          - run:
+              name: Format changelog
+              command: bundle exec rake changelog:format
+          - run:
+              name: Check if changelog was unformatted
+              command: |
+                if ! git diff-files --quiet; then
+                  echo "Please run 'bundle exec rake changelog:format' and commit the results."
+                fi
+    commands:
+      docker-wait:
+        description: Wait for containers to listen on a TCP port.
+        parameters:
+          host:
+            description: Host name or IP address the container is running on.
+            type: string
+            default: localhost
+          port:
+            description: TCP port the container is listening on.
+            type: integer
+          timeout:
+            description: How long to wait for the port to be responsive.
+            type: string
+            default: 1m
+        steps:
+          - run:
+              name: Wait for container at <<parameters.host>>:<<parameters.port>>
+              command: dockerize -wait 'tcp://<<parameters.host>>:<<parameters.port>>' -timeout '<<parameters.timeout>>'
+    executors:
+      docker-integration:
+        docker:
+          - image: circleci/buildpack-deps:stretch
+
+job_configuration:
+  # MRI
+  - &config-2_5
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-2.5.9'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
+    resource_class_to_use: medium+
+  - &config-2_6
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-2.6.10'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
+    resource_class_to_use: medium+
+  - &config-2_7
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-2.7.6'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
+    resource_class_to_use: medium+
+  - &config-2_7-small
+    <<: *config-2_7
+    resource_class_to_use: small
+  - &config-3_0
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.0.4'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
+    resource_class_to_use: medium+
+  - &config-3_1
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.1.2'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
+    resource_class_to_use: medium+
+  - &config-3_2
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.2.0'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
+    resource_class_to_use: medium+
+  - &config-3_3
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.3.0'
+    image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
+    resource_class_to_use: medium+
+    # ADD NEW RUBIES HERE
+  - &config-jruby-9_2 # More recent release of 9.2
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.2.21.0'
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
+    resource_class_to_use: large
+  - &config-jruby-9_3
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.3.9.0'
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
+    resource_class_to_use: large
+  - &config-jruby-9_4
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'jruby-9.4.7.0'
+    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.7.0-dd
+    resource_class_to_use: large
+
+workflows:
+  version: 2
+  build-and-test:
+    jobs:
+      - orb/lint:
+          <<: *config-2_7-small
+          name: lint
+          requires:
+            - build-2.7
+      - orb/coverage:
+          <<: *config-2_7-small
+          name: coverage
+          requires:
+            - test-2.5
+            - test-2.6
+            - test-2.7
+            - test-3.0
+            - test-3.1
+            - test-3.2
+            - test-3.3
+            # ADD NEW RUBIES HERE
+            - test-jruby-9.2
+            - test-jruby-9.3
+            - test-jruby-9.4
+      - orb/changelog:
+          <<: *config-2_7-small
+          name: changelog
+          requires:
+            - build-2.7
+          filters:
+            branches:
+              only: /bump_to_version_.*/
+      # Integration
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.5
+          integration_apps: 'rack rails-five rails-six'
+          ruby_version: '2.5'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.6
+          integration_apps: 'rack rails-five rails-six sinatra2-classic sinatra2-modular hanami'
+          ruby_version: '2.6'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.7
+          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular hanami'
+          ruby_version: '2.7'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.0
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.0'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.1
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.1'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.2
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.2'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.3
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.3'
+          <<: *filters_all_branches_and_tags
+      # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
+      #
+      # ADD NEW RUBIES HERE
+      - orb/build:
+          <<: *config-2_5
+          name: build-2.5
+      - orb/test:
+          <<: *config-2_5
+          name: test-2.5
+          requires:
+            - build-2.5
+      - orb/build:
+          <<: *config-2_6
+          name: build-2.6
+      - orb/test:
+          <<: *config-2_6
+          name: test-2.6
+          requires:
+            - build-2.6
+      - orb/build:
+          <<: *config-2_7
+          name: build-2.7
+      - orb/test:
+          <<: *config-2_7
+          name: test-2.7
+          requires:
+            - build-2.7
+      - orb/build:
+          <<: *config-3_0
+          name: build-3.0
+      - orb/test:
+          <<: *config-3_0
+          name: test-3.0
+          requires:
+            - build-3.0
+      - orb/build:
+          <<: *config-3_1
+          name: build-3.1
+      - orb/test:
+          <<: *config-3_1
+          name: test-3.1
+          requires:
+            - build-3.1
+      - orb/build:
+          <<: *config-3_2
+          name: build-3.2
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
+      - orb/build:
+          <<: *config-3_3
+          name: build-3.3
+      - orb/test:
+          <<: *config-3_3
+          name: test-3.3
+          requires:
+            - build-3.3
+      # ADD NEW RUBIES HERE
+      - orb/build:
+          <<: *config-jruby-9_2
+          name: build-jruby-9.2
+      - orb/test:
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
+          requires:
+            - build-jruby-9.2
+      - orb/build:
+          <<: *config-jruby-9_3
+          name: build-jruby-9.3
+      - orb/test:
+          <<: *config-jruby-9_3
+          name: test-jruby-9.3
+          requires:
+            - build-jruby-9.3
+      - orb/build:
+          <<: *config-jruby-9_4
+          name: build-jruby-9.4
+      - orb/test:
+          <<: *config-jruby-9_4
+          name: test-jruby-9.4
+          requires:
+            - build-jruby-9.4
+  # This workflow runs the same `build` and `test` jobs as above on a schedule.
+  # Tasks related to housekeeping (e.g. prerelease) are not relevant
+  # to this daily check, as they are not expected to be impacted here.
+  edge:
+    triggers:
+      - schedule:
+          cron: "0 0 * * 1-5" # Every weekday
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      # Integration
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.5
+          integration_apps: 'rack rails-five rails-six'
+          ruby_version: '2.5'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.6
+          integration_apps: 'rack rails-five rails-six sinatra2-classic sinatra2-modular'
+          ruby_version: '2.6'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-2.7
+          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '2.7'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.0
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.0'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.1
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.1'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.2
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.2'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.3
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.3'
+          <<: *filters_all_branches_and_tags
+      # ADD NEW RUBIES HERE
+      - orb/build:
+          <<: *config-2_5
+          name: build-2.5
+          edge: true
+      - orb/test:
+          <<: *config-2_5
+          name: test-2.5
+          requires:
+            - build-2.5
+      - orb/build:
+          <<: *config-2_6
+          name: build-2.6
+          edge: true
+      - orb/test:
+          <<: *config-2_6
+          name: test-2.6
+          requires:
+            - build-2.6
+      - orb/build:
+          <<: *config-2_7
+          name: build-2.7
+          edge: true
+      - orb/test:
+          <<: *config-2_7
+          name: test-2.7
+          requires:
+            - build-2.7
+      - orb/build:
+          <<: *config-3_0
+          name: build-3.0
+          edge: true
+      - orb/test:
+          <<: *config-3_0
+          name: test-3.0
+          requires:
+            - build-3.0
+      - orb/build:
+          <<: *config-3_1
+          name: build-3.1
+          edge: true
+      - orb/test:
+          <<: *config-3_1
+          name: test-3.1
+          requires:
+            - build-3.1
+      - orb/build:
+          <<: *config-3_2
+          name: build-3.2
+          edge: true
+      - orb/test:
+          <<: *config-3_2
+          name: test-3.2
+          requires:
+            - build-3.2
+      - orb/build:
+          <<: *config-3_3
+          name: build-3.3
+          edge: true
+      - orb/test:
+          <<: *config-3_3
+          name: test-3.3
+          requires:
+            - build-3.3
+      # ADD NEW RUBIES HERE
+      - orb/build:
+          <<: *config-jruby-9_2
+          name: build-jruby-9.2
+          edge: true
+      - orb/test:
+          <<: *config-jruby-9_2
+          name: test-jruby-9.2
+          requires:
+            - build-jruby-9.2
+      - orb/build:
+          <<: *config-jruby-9_3
+          name: build-jruby-9.3
+          edge: true
+      - orb/test:
+          <<: *config-jruby-9_3
+          name: test-jruby-9.3
+          requires:
+            - build-jruby-9.3
+      - orb/build:
+          <<: *config-jruby-9_4
+          name: build-jruby-9.4
+      - orb/test:
+          <<: *config-jruby-9_4
+          name: test-jruby-9.4
+          requires:
+            - build-jruby-9.4

@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module ClientIp
+      def self.set_client_ip_tag: (Span span, ?headers: Core::HeaderCollection?, ?remote_ip: String?) -> void
+
+      def self.set_client_ip_tag!: (Span span, ?headers: Core::HeaderCollection?, ?remote_ip: String?) -> void
+
+      def self.extract_client_ip: (Core::HeaderCollection? headers, String? remote_ip) -> String?
+
+      private
+
+      def self.configuration: () -> Core::Configuration
+    end
+  end
+end

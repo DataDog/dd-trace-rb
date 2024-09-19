@@ -1,0 +1,18 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Httpclient
+        module Patcher
+          include Contrib::Patcher
+
+          PATCH_ONLY_ONCE: untyped
+
+          def self?.patched?: () -> untyped
+
+          def self?.target_version: () -> untyped
+          def self?.patch: () -> untyped
+        end
+      end
+    end
+  end
+end

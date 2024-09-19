@@ -1,0 +1,42 @@
+version: '3.4'
+services:
+  app:
+    # Build at dd-trace-rb level to copy in current code
+    # and use it as the `datadog` gem.
+    build:
+      context: ../../..
+      dockerfile: integration/apps/ruby/Dockerfile-ci
+      args:
+        BASE_IMAGE: ${APP_IMAGE}
+    environment:
+      - BUNDLE_GEMFILE=/app/Gemfile
+      - DD_AGENT_HOST=ddagent
+      - DD_METRIC_AGENT_PORT=8125
+      - DD_TRACE_AGENT_PORT=8126
+      - DD_HEALTH_METRICS_ENABLED=true
+      - DD_SERVICE=acme-ruby
+      - DD_PROFILING_ENABLED=true
+      # Use these to choose what is run
+      - DD_DEMO_ENV_PROCESS=fibonacci
+      - DD_DEMO_ENV_FEATURES=tracing
+    stdin_open: true
+    tty: true
+
+  # The agent is not relevant to the result of running integration test on CI.
+  # Since the current integration test suite is mostly about sending a http request
+  # to an app and verified the responsee and run a couple of self-owned test cases.
+
+  # ddagent:
+  # Build at dd-trace-rb level to copy in current code
+  # and use it as the `datadog` gem.
+  integration-tester:
+    build:
+      context: ../../..
+      dockerfile: integration/apps/ruby/Dockerfile-ci
+      args:
+        BASE_IMAGE: ${APP_IMAGE}
+    command: bin/test
+    # volumes:
+    #   - .:/app
+    #   - ../../images/include:/vendor/dd-demo
+    #   - ../../..:/vendor/dd-trace-rb

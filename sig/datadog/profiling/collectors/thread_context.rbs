@@ -1,0 +1,38 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class ThreadContext
+        def initialize: (
+          recorder: Datadog::Profiling::StackRecorder,
+          max_frames: ::Integer,
+          tracer: Datadog::Tracing::Tracer?,
+          endpoint_collection_enabled: bool,
+          timeline_enabled: bool,
+          ?allocation_type_enabled: bool,
+        ) -> void
+
+        def self._native_initialize: (
+          Datadog::Profiling::Collectors::ThreadContext collector_instance,
+          Datadog::Profiling::StackRecorder recorder_instance,
+          ::Integer max_frames,
+          ::Symbol? tracer_context_key,
+          bool endpoint_collection_enabled,
+          bool timeline_enabled,
+          bool allocation_type_enabled,
+        ) -> void
+
+        def inspect: () -> ::String
+
+        def self._native_inspect: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> ::String
+
+        def reset_after_fork: () -> true
+
+        def self._native_reset_after_fork: (Datadog::Profiling::Collectors::ThreadContext collector_instance) -> true
+
+        private
+
+        def safely_extract_context_key_from: (untyped tracer) -> ::Symbol?
+      end
+    end
+  end
+end

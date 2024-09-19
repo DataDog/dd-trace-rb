@@ -1,0 +1,29 @@
+module Datadog
+  module Tracing
+    module Sampling
+      class PrioritySampler
+        attr_reader pre_sampler: untyped
+        attr_reader priority_sampler: untyped
+
+        def initialize: (?::Hash[untyped, untyped] opts) -> void
+
+        def sample?: (untyped trace) -> untyped
+        def sample!: (untyped trace) -> untyped
+        def update: (untyped rate_by_service, ?decision: untyped?) -> untyped
+        def self.sampled?: (untyped priority_sampling) -> untyped
+
+        private
+
+        def pre_sample?: (untyped trace) -> untyped
+
+        def priority_assigned?: (untyped trace) -> untyped
+
+        def priority_sample!: (untyped trace) -> untyped
+        def preserving_priority_sampling: (untyped trace) { () -> untyped } -> untyped
+        def preserving_sampling: (untyped trace) { () -> untyped } -> untyped
+
+        def assign_priority!: (untyped trace, untyped priority) -> untyped
+      end
+    end
+  end
+end

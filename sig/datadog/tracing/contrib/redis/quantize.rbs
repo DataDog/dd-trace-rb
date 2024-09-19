@@ -1,0 +1,30 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Redis
+        module Quantize
+          PLACEHOLDER: "?"
+
+          TOO_LONG_MARK: "..."
+
+          VALUE_MAX_LEN: 50
+
+          CMD_MAX_LEN: 500
+
+          AUTH_COMMANDS: ::Array["AUTH" | "auth"]
+
+          MULTI_VERB_COMMANDS: untyped
+
+          def self?.format_arg: (untyped arg) -> untyped
+
+          def self?.format_command_args: (untyped command_args) -> ("AUTH ?" | untyped)
+
+          def self?.get_verb: (untyped command_args) -> (nil | untyped | ::String)
+
+          def self?.auth_command?: (untyped command_args) -> (false | untyped)
+          def self?.resolve_command_args: (untyped command_args) -> untyped
+        end
+      end
+    end
+  end
+end

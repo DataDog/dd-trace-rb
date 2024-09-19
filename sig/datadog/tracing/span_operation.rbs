@@ -1,0 +1,133 @@
+module Datadog
+  module Tracing
+    class SpanOperation
+      include Metadata
+      include Metadata::Tagging
+      include Metadata::Errors
+      prepend Metadata::Analytics
+
+      attr_reader links: untyped
+
+      attr_reader span_events: untyped
+
+      attr_reader end_time: untyped
+
+      attr_reader id: untyped
+
+      attr_reader name: untyped
+
+      attr_reader parent_id: untyped
+
+      attr_reader resource: untyped
+
+      attr_reader service: untyped
+
+      attr_reader start_time: untyped
+
+      attr_reader trace_id: untyped
+
+      attr_reader type: untyped
+
+      attr_accessor status: untyped
+
+      def initialize: (untyped name, ?child_of: untyped?, ?events: untyped?, ?on_error: untyped?, ?parent_id: ::Integer, ?resource: untyped, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?trace_id: untyped?, ?type: untyped?, ?links: untyped?, ?span_events: untyped?) -> void
+
+      def name=: (untyped name) -> untyped
+
+      def type=: (untyped `type`) -> untyped
+
+      def service=: (untyped service) -> untyped
+
+      def resource=: (untyped resource) -> untyped
+
+      def measure: () { (untyped) -> untyped } -> untyped
+
+      def start: (?untyped? start_time) -> self
+
+      def stop: (?untyped? stop_time) -> (nil | self)
+
+      def started?: () -> untyped
+
+      def stopped?: () -> untyped
+
+      def start_time=: (untyped time) -> untyped
+
+      def end_time=: (untyped time) -> untyped
+
+      def finish: (?untyped? end_time) -> untyped
+
+      def finished?: () -> untyped
+
+      def duration: () -> untyped
+
+      def set_error: (untyped e) -> untyped
+
+      def to_s: () -> ::String
+
+      def to_hash: () -> untyped
+
+      def pretty_print: (untyped q) -> untyped
+
+      class Events
+        include Tracing::Events
+
+        DEFAULT_ON_ERROR: untyped
+
+        attr_reader after_finish: untyped
+
+        attr_reader after_stop: untyped
+
+        attr_reader before_start: untyped
+
+        def initialize: (?on_error: untyped?) -> void
+
+        def on_error: () -> untyped
+
+        class AfterFinish < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class AfterStop < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class BeforeStart < Tracing::Event
+          def initialize: () -> void
+        end
+
+        class OnError
+          def initialize: (untyped default) -> void
+
+          def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
+
+          def publish: (*untyped args) -> true
+        end
+      end
+
+      class AlreadyStartedError < StandardError
+        def message: () -> "Cannot measure an already started span!"
+      end
+
+      private
+
+      attr_reader events: untyped
+
+      attr_reader parent: untyped
+
+      attr_reader span: untyped
+
+      module RefineNil
+      end
+
+      def build_span: () -> untyped
+
+      def parent=: (untyped parent) -> untyped
+
+      def duration_marker: () -> untyped
+
+      def start_time_nano: () -> untyped
+
+      def duration_nano: () -> untyped
+    end
+  end
+end

@@ -1,0 +1,13 @@
+# Select base image
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+# Add gem
+COPY . /vendor/dd-trace-rb
+
+# Install dependencies
+ENV DD_DEMO_ENV_GEM_LOCAL_DATADOG /vendor/dd-trace-rb
+
+RUN /vendor/dd-demo/build_datadog_profiling_native_extension.rb
+
+RUN bundle install

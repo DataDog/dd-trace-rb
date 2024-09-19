@@ -1,0 +1,19 @@
+module Datadog
+  module Tracing
+    module Sampling
+      module Span
+        class Rule
+          attr_reader matcher: untyped
+
+          attr_reader sample_rate: untyped
+
+          attr_reader rate_limit: untyped
+          def initialize: (untyped matcher, ?sample_rate: untyped, ?rate_limit: untyped) -> void
+          def sample!: (untyped span_op) -> (:not_matched | untyped)
+
+          def ==: (untyped other) -> untyped
+        end
+      end
+    end
+  end
+end

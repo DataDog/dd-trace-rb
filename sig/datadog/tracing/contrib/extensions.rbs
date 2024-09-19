@@ -1,0 +1,28 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Extensions
+        def self.extend!: () -> untyped
+        module Helpers
+          def registry: () -> untyped
+        end
+        module Configuration
+          def configure: () ?{ () -> untyped } -> untyped
+          module Settings
+            InvalidIntegrationError: untyped
+            def instrument: (untyped integration_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+            alias use instrument
+            def []: (untyped integration_name, ?::Symbol key) -> untyped
+            def integrations_pending_activation: () -> untyped
+            def instrumented_integrations: () -> untyped
+            def reset!: () -> untyped
+            def fetch_integration: (untyped name) -> untyped
+            def ignore_integration_load_errors?: () -> (untyped | false)
+
+            def ignore_integration_load_errors=: (untyped value) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

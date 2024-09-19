@@ -1,0 +1,9 @@
+module Seahorse
+  module Client
+    class Handler
+    end
+
+    class Plugin
+    end
+  end
+end

@@ -1,0 +1,33 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Ethon
+        module Ext
+          ENV_ENABLED: "DD_TRACE_ETHON_ENABLED"
+
+          ENV_PEER_SERVICE: "DD_TRACE_ETHON_PEER_SERVICE"
+          ENV_SERVICE_NAME: "DD_TRACE_ETHON_SERVICE_NAME"
+
+          ENV_ANALYTICS_ENABLED: "DD_TRACE_ETHON_ANALYTICS_ENABLED"
+
+          ENV_ANALYTICS_SAMPLE_RATE: "DD_TRACE_ETHON_ANALYTICS_SAMPLE_RATE"
+
+          DEFAULT_PEER_SERVICE_NAME: "ethon"
+
+          PEER_SERVICE_SOURCES: Array[String]
+          SPAN_REQUEST: "ethon.request"
+
+          SPAN_MULTI_REQUEST: "ethon.multi.request"
+
+          NOT_APPLICABLE_METHOD: "N/A"
+
+          TAG_COMPONENT: "ethon"
+
+          TAG_OPERATION_REQUEST: "request"
+
+          TAG_OPERATION_MULTI_REQUEST: "multi.request"
+        end
+      end
+    end
+  end
+end

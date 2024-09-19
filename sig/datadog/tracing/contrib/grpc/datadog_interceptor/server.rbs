@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        module DatadogInterceptor
+          class Server < Base
+            def trace: (untyped keywords) { () -> untyped } -> untyped
+
+            private
+
+            def set_distributed_context!: (untyped metadata) -> untyped
+
+            def annotate!: (untyped span, untyped metadata) -> untyped
+
+            def format_resource: (untyped proto_method) -> untyped
+          end
+        end
+      end
+    end
+  end
+end
