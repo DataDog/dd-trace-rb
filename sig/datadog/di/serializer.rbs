@@ -7,7 +7,7 @@ module Datadog
 
       def initialize: (untyped settings, untyped redactor) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: untyped
       def serialize_args: (untyped args, untyped kwargs) -> untyped
