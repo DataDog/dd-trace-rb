@@ -38,6 +38,7 @@ Metrics/BlockNesting:
 # AllowedAcronyms: CLI, DSL, ACL, API, ASCII, CPU, CSS, DNS, EOF, GUID, HTML, HTTP, HTTPS, ID, IP, JSON, LHS, QPS, RAM, RHS, RPC, SLA, SMTP, SQL, SSH, TCP, TLS, TTL, UDP, UI, UID, UUID, URI, URL, UTF8, VM, XML, XMPP, XSRF, XSS
 Naming/FileName:
   Exclude:
+    - 'lib/datadog/single_step_instrument.rb'
     - 'lib/datadog/appsec/autoload.rb'
     - 'lib/datadog/opentelemetry/api/trace/span.rb'
     - 'lib/datadog/opentelemetry/sdk/trace/span.rb'
