@@ -2,6 +2,8 @@
 
 require 'pry'
 
+# TODO: This is a work in progress, the rake tasks to be replaced by automation
+
 namespace :appraisal do # rubocop:disable Metrics/BlockLength
   def ruby_versions(versions)
     return TRACER_VERSIONS if versions.empty?
