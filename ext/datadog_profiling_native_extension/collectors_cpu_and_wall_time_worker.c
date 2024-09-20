@@ -802,8 +802,8 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
     ;
   }
 
-  #ifndef NO_GVL_INSTRUMENTATION
-    if (state->gvl_profiling_enabled) {
+  if (state->gvl_profiling_enabled) {
+    #ifndef NO_GVL_INSTRUMENTATION
       state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
         on_gvl_event,
         (
@@ -814,8 +814,10 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
         ),
         NULL
       );
-    }
-  #endif
+    #else
+      rb_raise(rb_eArgError, "GVL profiling is not supported in this Ruby version");
+    #endif
+  }
 
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
   rb_funcall(instance, rb_intern("signal_running"), 0);

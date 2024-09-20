@@ -122,9 +122,8 @@ module ProfileHelpers
     end
   end
 
-  def skip_if_gvl_profiling_not_supported(testcase, &skip_steps)
+  def skip_if_gvl_profiling_not_supported(testcase)
     if RUBY_VERSION < "3.3."
-      yield if skip_steps
       testcase.skip "GVL profiling is only supported on Ruby >= 3.3"
     end
   end

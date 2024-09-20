@@ -148,6 +148,18 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
+    context "when gvl_profiling_enabled is true on an unsupported Ruby" do
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+
+      let(:gvl_profiling_enabled) { true }
+
+      it do
+        expect(Datadog.logger).to receive(:warn).with(/GVL profiling is not supported/)
+
+        cpu_and_wall_time_worker.start
+      end
+    end
+
     context "when gvl_profiling_enabled is false" do
       let(:gvl_profiling_enabled) { false }
 
@@ -935,6 +947,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "after starting" do
       before do
+        skip_if_gvl_profiling_not_supported(self) if gvl_profiling_enabled
+
         cpu_and_wall_time_worker.start
         wait_until_running
       end
@@ -967,8 +981,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       context "when GVL profiling is enabled" do
-        before { skip_if_gvl_profiling_not_supported(self) { stop } }
-
         let(:gvl_profiling_enabled) { true }
 
         it "disables the GVL profiling hook" do
@@ -1005,6 +1017,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
+      skip_if_gvl_profiling_not_supported(self) if gvl_profiling_enabled
+
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
       # which we do in this spec to make it easier to test the reset_after_fork behavior
       allow(thread_context_collector).to receive(:reset_after_fork)
@@ -1024,8 +1038,6 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "when gvl_profiling_enabled is true" do
-      before { skip_if_gvl_profiling_not_supported(self) }
-
       let(:gvl_profiling_enabled) { true }
 
       it "disables the gvl profiling hook" do
