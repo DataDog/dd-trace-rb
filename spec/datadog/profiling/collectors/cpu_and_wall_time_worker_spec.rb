@@ -149,7 +149,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "when gvl_profiling_enabled is true on an unsupported Ruby" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
       let(:gvl_profiling_enabled) { true }
 
