@@ -5,7 +5,7 @@ on:
     - cron: '0 0 * * 0' # Every Sunday at midnight
   push:
     branches:
-      - quinna/update-gemfiles-workflow # TODO: remove, for testing
+      - tonycthsu/pat # TODO: remove, for testing
   workflow_dispatch:
 
 concurrency:
@@ -83,12 +83,13 @@ jobs:
           path: gemfiles
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
-                  
+
       - run: git diff
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
+          token: ${{ secrets.GHA_PAT }}
           branch: update-latest-gemfiles
           commit-message: "update latest gemfiles, workflow run: ${{ github.run_id }}"
           delete-branch: true
@@ -102,4 +103,4 @@ jobs:
             Merge if green, otherwise add to backlog.
 
             The default behavior is to create a pull request that will be continually updated with new changes
-            until it is merged or closed.            
+            until it is merged or closed.
