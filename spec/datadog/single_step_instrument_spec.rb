@@ -1,4 +1,4 @@
-RSpec.describe 'Single step instrument' do
+RSpec.describe 'Single step instrument', skip: !Process.respond_to?(:fork) do
   it do
     expect_in_fork do
       expect_any_instance_of(Object)
