@@ -1,0 +1,105 @@
+name: Auto-update Gemfiles
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  push:
+    branches:
+      - quinna/update-gemfiles-workflow # TODO: remove, for testing
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+        contents: read
+    strategy:
+        fail-fast: false
+        matrix:
+            engine:
+              # ADD NEW RUBIES HERE
+              - name: ruby
+                version: '3.4'
+              - name: ruby
+                version: '3.3'
+              - name: ruby
+                version: '3.2'
+              - name: ruby
+                version: '3.1'
+              - name: ruby
+                version: '3.0'
+              - name: ruby
+                version: '2.7'
+              - name: ruby
+                version: '2.6'
+              - name: ruby
+                version: '2.5'
+              - name: jruby
+                version: '9.4'
+              - name: jruby
+                version: '9.3'
+              - name: jruby
+                version: '9.2'
+    container:
+      image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Output Ruby version
+        run: ruby -v
+
+      - name: Bundle
+        run: bundle install
+
+      - name: Update latest
+        run: bundle exec rake edge:latest
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
+          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
+          retention-days: 3
+
+  aggregate:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts for all runtimes
+        uses: actions/download-artifact@v4
+        with:
+          path: gemfiles
+          pattern: gha${{ github.run_id }}-datadog-gem-*
+          merge-multiple: true
+                  
+      - run: git diff
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: update-latest-gemfiles
+          commit-message: "update latest gemfiles, workflow run: ${{ github.run_id }}"
+          delete-branch: true
+          base: master
+          title: 'Update Latest Gemfiles'
+          labels: dev/internal, integrations
+          body: |
+            This is an auto-generated PR from 'Auto-update Gemfiles' workflow.
+            The PR updates the integration gemfiles to latest versions of dependencies.
+
+            Merge if green, otherwise add to backlog.
+
+            The default behavior is to create a pull request that will be continually updated with new changes
+            until it is merged or closed.            
