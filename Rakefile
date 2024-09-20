@@ -82,6 +82,7 @@ end
 desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
+  # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark,
              :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
@@ -227,6 +228,7 @@ namespace :spec do
   end
 
   # Datadog Tracing integrations
+  # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   [
     :action_cable,
     :action_mailer,
