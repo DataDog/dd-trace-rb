@@ -1304,7 +1304,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     //
     // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
     // are not directly tied to the `target_thread` object and the like)
-    VALUE target_thread = event_data->thread;
+    gvl_profiling_thread target_thread = thread_from_event(event_data);
 
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(target_thread);
