@@ -1,4 +1,4 @@
-name: Auto-update Gemfiles
+name: "Update Latest Dependency"
 
 on:
   schedule:
@@ -64,15 +64,11 @@ jobs:
         with:
           name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
-          retention-days: 3
+          retention-days: 1
 
   aggregate:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -90,17 +86,13 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GHA_PAT }}
-          branch: update-latest-gemfiles
-          commit-message: "update latest gemfiles, workflow run: ${{ github.run_id }}"
-          delete-branch: true
+          branch: auto-generate/update-latest-dependencies
+          title: '[🤖] Update Latest Dependency'
           base: master
-          title: 'Update Latest Gemfiles'
           labels: dev/internal, integrations
+          commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
           body: |
-            This is an auto-generated PR from 'Auto-update Gemfiles' workflow.
-            The PR updates the integration gemfiles to latest versions of dependencies.
+            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/auto-update-gemfiles.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
-            Merge if green, otherwise add to backlog.
-
-            The default behavior is to create a pull request that will be continually updated with new changes
-            until it is merged or closed.
+            The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.

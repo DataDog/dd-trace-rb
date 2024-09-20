@@ -106,6 +106,7 @@ jobs:
         with:
           name: lock-dependency-${{ github.run_id }}-${{ matrix.engine.name }}-${{ matrix.engine.version }}
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}*
+          retention-days: 1
 
   # TODO: Change token to trigger workflow automation
   # > New commit by GITHUB_TOKEN does not trigger workflow automation to prevent infinite loop
@@ -113,8 +114,6 @@ jobs:
     name: Commit changes
     needs: lock
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
