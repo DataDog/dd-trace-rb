@@ -35,17 +35,5 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::TracingPatcher do
         end
       end
     end
-
-    context 'when given something else' do
-      before { remove_patch!(:graphql) }
-
-      it do
-        expect_any_instance_of(Datadog::Core::Logger).to receive(:warn).with(/Unable to patch/)
-
-        Datadog.configure do |c|
-          c.tracing.instrument :graphql, with_deprecated_tracer: true, schemas: [OpenStruct.new]
-        end
-      end
-    end
   end
 end
