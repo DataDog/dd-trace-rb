@@ -1,11 +1,8 @@
-name: Auto-update Gemfiles
+name: "Update Latest Dependency"
 
 on:
   schedule:
     - cron: '0 0 * * 0' # Every Sunday at midnight
-  push:
-    branches:
-      - quinna/update-gemfiles-workflow # TODO: remove, for testing
   workflow_dispatch:
 
 concurrency:
@@ -64,15 +61,11 @@ jobs:
         with:
           name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
           path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
-          retention-days: 3
+          retention-days: 1
 
   aggregate:
     needs: build
     runs-on: ubuntu-latest
-    permissions:
-      actions: read
-      contents: write
-      pull-requests: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -83,23 +76,20 @@ jobs:
           path: gemfiles
           pattern: gha${{ github.run_id }}-datadog-gem-*
           merge-multiple: true
-                  
+
       - run: git diff
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
         with:
-          branch: update-latest-gemfiles
-          commit-message: "update latest gemfiles, workflow run: ${{ github.run_id }}"
-          delete-branch: true
+          token: ${{ secrets.GHA_PAT }}
+          branch: auto-generate/update-latest-dependencies
+          title: '[🤖] Update Latest Dependency'
           base: master
-          title: 'Update Latest Gemfiles'
           labels: dev/internal, integrations
+          commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
           body: |
-            This is an auto-generated PR from 'Auto-update Gemfiles' workflow.
-            The PR updates the integration gemfiles to latest versions of dependencies.
+            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
-            Merge if green, otherwise add to backlog.
-
-            The default behavior is to create a pull request that will be continually updated with new changes
-            until it is merged or closed.            
+            The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.
