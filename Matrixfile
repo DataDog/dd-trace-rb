@@ -79,11 +79,11 @@
   'grape' => {
     'activesupport' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
   },
-  'graphql' => {
-    'graphql-2.3'  => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'graphql-2.2'  => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'graphql-2.1'  => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
-    'graphql-2.0'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+  ['graphql', 'graphql_unified_trace_patcher', 'graphql_trace_patcher', 'graphql_tracing_patcher'] => {
+    'graphql-2.3' => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+    'graphql-2.2' => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+    'graphql-2.1' => '❌ 2.5 / ❌ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
+    'graphql-2.0' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
     # Although GraphQL 1.13.x depends on Ruby >= 2.4, but it does not work with Ruby 2.5
     #
     # require 'graphql'
@@ -243,7 +243,7 @@
     'rails6-postgres-redis'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ 3.4 / ✅ jruby',
     'rails61-postgres-redis' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby'
   },
-  'hanami' => {
+  ['hanami', 'hanami_autoinstrument'] => {
     'hanami-1' => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ❌ 3.0 / ❌ 3.1 / ❌ 3.2 / ❌ 3.3 / ❌ 3.4 / ❌ jruby'
   },
   'sinatra' => {
@@ -283,7 +283,11 @@
     'graphql-2.0'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
     'graphql-1.13' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
   }
-}.freeze
+}.each_with_object({}) do |(tasks, spec_metadata), hash|
+  Array(tasks).each do |task|
+    hash[task] = spec_metadata
+  end
+end.freeze
 # rubocop:enable Layout/HashAlignment
 
 # vim: ft=ruby

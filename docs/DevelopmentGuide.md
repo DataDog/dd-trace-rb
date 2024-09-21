@@ -53,22 +53,22 @@ All tests should run in CI. When adding new `_spec.rb` files, you may need to ad
  ```ruby
    namespace :spec do
      RSpec::Core::RakeTask.new(:foo) do |t, args|
-       t.pattern = "spec/datadog/tracing/contrib/bar/**/*_spec.rb"
+       t.pattern = "spec/datadog/tracing/contrib/foo/**/*_spec.rb"
        t.rspec_opts = args.to_a.join(' ')
      end
    end
  ```
 
- - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by introducing it to our test matrix. You should find the task with `bundle exec rake -T test:<foo>`.
+ - Ensure the Rake task is configured to run for the appropriate Ruby runtimes, by adding it to our `Matrixfile`. You should find the task with `bundle exec rake -T test:foo` after adding it.
 
 ```ruby
-  TEST_METADATA = {
+  {
     'foo' => {
       # Without any appraisal group dependencies
       ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
 
-      # or with appraisal group definition `bar`
-      'bar' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
+      # or with appraisal group definition `foo-on-rails`, that includes additional gems
+      'foo-on-rails' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
     },
   }
 ```
