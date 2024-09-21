@@ -283,10 +283,10 @@
     'graphql-2.0'  => '✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
     'graphql-1.13' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
   }
-}.flat_map do |tasks, spec_metadata|
-  # Explode arrays of task names into individual tasks
-  # e.g. ['rails', 'railsdisableenv'] => {'...'} becomes [['rails7', '...'], ['railsdisableenv7', '...']]
-  Array(tasks).map { |task| [task, spec_metadata] }
+}.each_with_object({}) do |(tasks, spec_metadata), hash|
+  Array(tasks).each do |task|
+    hash[task] = spec_metadata
+  end
 end.freeze
 # rubocop:enable Layout/HashAlignment
 
