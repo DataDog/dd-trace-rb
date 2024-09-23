@@ -1638,8 +1638,6 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "GVL profiling requires timeline to be enabled");
 
-    struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
-
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 
     if (gvl_waiting_at >= 0) {
@@ -1649,6 +1647,8 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       // We do nothing in this case.
       return Qfalse;
     }
+
+    struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
     // We don't actually account for cpu-time during Waiting for GVL. BUT, we may chose to push an
     // extra sample to represent the period prior to Waiting for GVL. To support that, we retrieve the current
