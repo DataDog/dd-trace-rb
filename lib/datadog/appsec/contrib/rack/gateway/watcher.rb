@@ -46,6 +46,10 @@ module Datadog
                           scope.service_entry_span.set_tag('appsec.event', 'true')
                         end
 
+                        # Propagate to downstream services the information that the current distributed trace is
+                        # containing at least one ASM security event
+                        scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
+
                         scope.processor_context.events << event
                       end
                     end
@@ -90,6 +94,10 @@ module Datadog
                           scope.service_entry_span.set_tag('appsec.event', 'true')
                         end
 
+                        # Propagate to downstream services the information that the current distributed trace is
+                        # containing at least one ASM security event
+                        scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
+
                         scope.processor_context.events << event
                       end
                     end
@@ -133,6 +141,10 @@ module Datadog
                           scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
                           scope.service_entry_span.set_tag('appsec.event', 'true')
                         end
+
+                        # Propagate to downstream services the information that the current distributed trace is
+                        # containing at least one ASM security event
+                        scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
 
                         scope.processor_context.events << event
                       end

@@ -146,6 +146,7 @@ end
 RSpec.shared_examples 'a trace without AppSec events' do
   it do
     expect(spans.select { |s| s.get_tag('appsec.event') }).to be_empty
+    expect(spans.select { |s| s.get_tag('_dd.p.appsec') }).to be_empty
     expect(service_span.send(:meta)['_dd.appsec.triggers']).to be_nil
   end
 end
@@ -155,6 +156,7 @@ RSpec.shared_examples 'a trace with AppSec events' do |params = { blocking: fals
 
   it do
     expect(spans.select { |s| s.get_tag('appsec.event') }).to_not be_empty
+    expect(spans.select { |s| s.get_tag('_dd.p.appsec') }).to_not be_empty
     expect(service_span.send(:meta)['_dd.appsec.json']).to be_a String
     expect(spans.select { |s| s.get_tag('appsec.blocked') }).to_not be_empty if blocking_request
   end
