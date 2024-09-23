@@ -1,0 +1,21 @@
+module Datadog
+  module DI
+    class CodeTracker
+      @registry: Hash[String,RubyVM::InstructionSequence]
+
+      @lock: Thread::Mutex
+
+      @compiled_trace_point: TracePoint?
+
+      def initialize: () -> void
+
+      def start: () -> void
+      def active?: () -> bool
+      def iseqs_for_path: (String suffix) -> (::Array[RubyVM::InstructionSequence])
+      def stop: () -> void
+
+      private
+      attr_reader registry: Hash[String,RubyVM::InstructionSequence]
+    end
+  end
+end
