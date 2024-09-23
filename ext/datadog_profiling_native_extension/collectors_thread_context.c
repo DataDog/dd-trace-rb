@@ -1655,6 +1655,8 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     // cpu-time of the thread and let `update_metrics_and_sample` decide what to do with it.
     long cpu_time_for_thread = cpu_time_now_ns(thread_context);
 
+    // TODO: Should we update the dynamic sampling rate overhead tracking with this sample as well?
+
     update_metrics_and_sample(
       state,
       /* thread_being_sampled: */ current_thread,
