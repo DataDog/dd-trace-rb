@@ -33,7 +33,7 @@ module Datadog
     class Probe
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
-        template: nil, capture_snapshot: false)
+        template: nil, capture_snapshot: false, max_capture_depth: nil, rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
         if line_no && method_name
@@ -52,6 +52,7 @@ module Datadog
         @method_name = method_name
         @template = template
         @capture_snapshot = !!capture_snapshot
+        @max_capture_depth = max_capture_depth
 
         # These checks use instance methods that have more complex logic
         # than checking a single argument value. To avoid duplicating
@@ -61,11 +62,8 @@ module Datadog
           raise ArgumentError, "Unhandled probe type: neither method nor line probe: #{id}"
         end
 
-        @rate_limiter = if capture_snapshot
-          Datadog::Core::TokenBucket.new(1)
-        else
-          Datadog::Core::TokenBucket.new(5000)
-        end
+        @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
+        @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
       end
 
       attr_reader :id
@@ -76,7 +74,14 @@ module Datadog
       attr_reader :method_name
       attr_reader :template
 
-      # For internal DI use only
+      # Configured maximum capture depth. Can be nil in which case
+      # the global default will be used.
+      attr_reader :max_capture_depth
+
+      # Rate limit in effect, in invocations per second. Always present.
+      attr_reader :rate_limit
+
+      # Rate limiter object. For internal DI use only.
       attr_reader :rate_limiter
 
       def capture_snapshot?
