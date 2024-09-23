@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/aws/service/sqs'
+require_relative 'shared_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
   let(:span) { instance_double('Span') }
@@ -30,5 +31,17 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SQS do
       sqs.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_QUEUE_NAME, 'AnotherQueueName')
     end
+  end
+
+  it_behaves_like 'injects AWS attribute propagation' do
+    let(:service) { sqs }
+    let(:operation) { :send_message }
+    let(:data_type) { 'String' }
+  end
+
+  it_behaves_like 'extract AWS attribute propagation' do
+    let(:service) { sqs }
+    let(:operation) { :receive_message }
+    let(:data_type) { 'String' }
   end
 end

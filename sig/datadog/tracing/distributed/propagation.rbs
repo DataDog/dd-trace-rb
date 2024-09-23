@@ -2,7 +2,18 @@ module Datadog
   module Tracing
     module Distributed
       class Propagation
-        def initialize: (propagation_styles: untyped) -> void
+        @propagation_styles: Hash[String,untyped]
+        @propagation_extract_first: bool
+        @propagation_style_inject: Array[untyped]
+        @propagation_style_extract: Array[untyped]
+
+        def initialize: (
+            propagation_styles: Hash[String,untyped],
+            propagation_style_inject: Array[String],
+            propagation_style_extract: Array[String],
+            propagation_extract_first: bool,
+        ) -> void
+
         def inject!: (untyped digest, untyped data) -> (nil | untyped)
         def extract: (untyped data) -> untyped
       end

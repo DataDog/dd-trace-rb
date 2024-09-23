@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Distributed
+      @propagation: Propagation
+
+      def inject: (TraceDigest digest, ::Hash[untyped, untyped] data) -> (bool | nil)
+
+      def extract: (::Hash[untyped, untyped] data) -> (TraceDigest | nil)
+    end
+  end
+end
+

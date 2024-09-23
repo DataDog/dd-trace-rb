@@ -191,4 +191,55 @@ RSpec.describe Datadog::Tracing::TraceDigest do
 
     it { is_expected.to be_frozen }
   end
+
+  describe '#==' do
+    let(:other) { described_class.new(**other_options) }
+    let(:other_options) { { span_id: 123 } }
+
+    context 'when equal' do
+      let(:other_options) { options }
+
+      it { is_expected.to eq(other) }
+    end
+
+    context 'when not equal' do
+      let(:other_options) { { span_name: 'new span' } }
+
+      it { is_expected.not_to eq(other) }
+    end
+  end
+
+  describe '#eql?' do
+    let(:other) { described_class.new(**other_options) }
+    let(:other_options) { { span_id: 123 } }
+
+    context 'when equal' do
+      let(:other_options) { options }
+
+      it { is_expected.to eql(other) }
+    end
+
+    context 'when not equal' do
+      let(:other_options) { { span_name: 'new span' } }
+
+      it { is_expected.not_to eql(other) }
+    end
+  end
+
+  describe '#hash' do
+    let(:other) { described_class.new(**other_options) }
+    let(:other_options) { { span_id: 123 } }
+
+    context 'when equal' do
+      let(:other_options) { options }
+
+      it { expect(trace_digest.hash).to eq(other.hash) }
+    end
+
+    context 'when not equal' do
+      let(:other_options) { { span_name: 'new span' } }
+
+      it { expect(trace_digest.hash).not_to eq(other.hash) }
+    end
+  end
 end

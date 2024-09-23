@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/tracing/contrib/aws/service/sns'
+require_relative 'shared_examples'
 
 RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
   let(:span) { instance_double('Span') }
@@ -36,5 +37,11 @@ RSpec.describe Datadog::Tracing::Contrib::Aws::Service::SNS do
       sns.add_tags(span, params)
       expect(span).to have_received(:set_tag).with(Datadog::Tracing::Contrib::Aws::Ext::TAG_TOPIC_NAME, nil)
     end
+  end
+
+  it_behaves_like 'injects AWS attribute propagation' do
+    let(:service) { sns }
+    let(:operation) { :publish }
+    let(:data_type) { 'Binary' }
   end
 end

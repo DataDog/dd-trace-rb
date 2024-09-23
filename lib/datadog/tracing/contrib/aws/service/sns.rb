@@ -10,6 +10,18 @@ module Datadog
         module Service
           # SNS tag handlers.
           class SNS < Base
+            PROPAGATION_DATATYPE = 'Binary'
+
+            def process(config, trace, context)
+              return unless config[:propagation]
+
+              case context.operation
+              when :publish
+                inject_propagation(trace, context.params, PROPAGATION_DATATYPE)
+                # TODO: when :publish_batch # Future support for batch publishing
+              end
+            end
+
             def add_tags(span, params)
               topic_arn = params[:topic_arn]
               topic_name = params[:name]

@@ -18,33 +18,56 @@ module Datadog
 
         # Generates Spans for all interactions with AWS
         class Handler < Seahorse::Client::Handler
+          # Some services contain trace propagation information (e.g. SQS) that affect what active trace
+          # we'll use for the AWS span.
+          # But because this information is only available after the request is made, we need to make the AWS
+          # request first, then create the trace and span with correct distributed trace parenting.
           def call(context)
-            Tracing.trace(Ext::SPAN_COMMAND) do |span|
-              @handler.call(context).tap do
-                annotate!(span, ParsedContext.new(context))
-              end
+            config = configuration
+
+            # Find the AWS service instrumentation
+            parsed_context = ParsedContext.new(context)
+            aws_service = parsed_context.safely(:resource).split('.')[0]
+            handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service]
+
+            # Execute handler stack, to ensure we have the response object before the trace and span are created
+            start_time = Core::Utils::Time.now.utc # Save the start time as the span creation is delayed
+            begin
+              response = @handler.call(context)
+            rescue Exception => e # rubocop:disable Lint/RescueException
+              # Catch exception to reraise it inside the trace block, to ensure the span has correct error information
+              # This matches the behavior of {Datadog::Tracing::SpanOperation#measure}
             end
+
+            Tracing.trace(Ext::SPAN_COMMAND, start_time: start_time) do |span, trace|
+              handler.before_span(config, context, response) if handler
+
+              annotate!(config, span, trace, parsed_context, aws_service)
+
+              raise e if e
+            end
+
+            response
           end
 
           private
 
-          # rubocop:disable Metrics/AbcSize
-          def annotate!(span, context)
-            span.service = configuration[:service_name]
+          def annotate!(config, span, trace, context, aws_service)
+            span.service = config[:service_name]
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
-            aws_service = span.resource.split('.')[0]
             span.set_tag(Ext::TAG_AWS_SERVICE, aws_service)
             params = context.safely(:params)
             if (handler = Datadog::Tracing::Contrib::Aws::SERVICE_HANDLERS[aws_service])
+              handler.process(config, trace, context)
               handler.add_tags(span, params)
             end
 
-            if configuration[:peer_service]
+            if config[:peer_service]
               span.set_tag(
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
-                configuration[:peer_service]
+                config[:peer_service]
               )
             end
 
@@ -61,8 +84,8 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, context.safely(:host))
 
             # Set analytics sample rate
-            if Contrib::Analytics.enabled?(configuration[:analytics_enabled])
-              Contrib::Analytics.set_sample_rate(span, configuration[:analytics_sample_rate])
+            if Contrib::Analytics.enabled?(config[:analytics_enabled])
+              Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
             end
             Contrib::Analytics.set_measured(span)
 
@@ -77,7 +100,6 @@ module Datadog
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
           end
-          # rubocop:enable Metrics/AbcSize
 
           def configuration
             Datadog.configuration.tracing[:aws]
