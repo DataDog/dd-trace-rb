@@ -44,8 +44,7 @@ module Datadog
       # @param default_service [String] A fallback value for {Datadog::Tracing::Span#service}, as spans without
       #                        service are rejected
       # @param enabled [Boolean] set if the tracer submits or not spans to the local agent
-      # @param
-      sampler [Datadog::Tracing::Sampler] a tracer sampler, responsible for filtering out spans when needed
+      # @param sampler [Datadog::Tracing::Sampler] a tracer sampler, responsible for filtering out spans when needed
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
       def initialize(
@@ -503,7 +502,10 @@ module Datadog
       def flush_trace(trace_op)
         begin
           trace = @trace_flush.consume!(trace_op)
-          write(trace) if trace && !trace.empty?
+          if trace && !trace.empty?
+            sample(trace)
+            write(trace)
+          end
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
             Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
