@@ -161,6 +161,29 @@ module Datadog
         @resource || (root_span && root_span.resource)
       end
 
+      # When retrieving tags or metrics we need to include root span tags for sampling purposes
+      def get_tag(key)
+        super || (root_span && root_span.get_tag(key))
+      end
+
+
+      def get_metric(key)
+        @metric[key?] || (root_span && root_span.get_metric(key))
+      end
+
+      def tags
+        all_tags = {}
+        all_tags.merge(root_span.tags) if root_span
+        all_tags.merge(@tags)
+        all_tags.merge(@metrics)
+        all_tags
+      end
+
+
+
+        @resource || (root_span && root_span.resource)
+      end
+
       # Returns true if the resource has been explicitly set
       #
       # @return [Boolean]
