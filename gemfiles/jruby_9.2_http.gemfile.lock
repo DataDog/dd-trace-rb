@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.3.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 11.0.0.1.0)
+      libdatadog (~> 12.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -85,7 +85,7 @@ GEM
     httpclient (2.8.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (11.0.0.1.0)
+    libdatadog (12.0.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -143,7 +143,6 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (7.1.0)
     strscan (3.1.0-java)
     thor (1.2.2)
     typhoeus (1.4.0)
@@ -154,7 +153,6 @@ GEM
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    yard (0.9.34)
 
 PLATFORMS
   universal-java-1.8
@@ -190,11 +188,9 @@ DEPENDENCIES
   rspec_junit_formatter (>= 0.5.1)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
-  stripe (~> 7.0)
   typhoeus
   warning (~> 1)
   webmock (>= 3.10.0)
-  yard (~> 0.9)
 
 BUNDLED WITH
    2.3.27

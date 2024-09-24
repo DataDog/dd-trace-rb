@@ -24,27 +24,30 @@ module Datadog
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
                   block = false
                   event = nil
+
                   scope = AppSec::Scope.active_scope
 
-                  AppSec::Reactive::Operation.new('graphql.multiplex') do |op|
-                    GraphQL::Reactive::Multiplex.subscribe(op, scope.processor_context) do |result|
-                      event = {
-                        waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
-                        multiplex: gateway_multiplex,
-                        actions: result.actions
-                      }
+                  if scope
+                    AppSec::Reactive::Operation.new('graphql.multiplex') do |op|
+                      GraphQL::Reactive::Multiplex.subscribe(op, scope.processor_context) do |result|
+                        event = {
+                          waf_result: result,
+                          trace: scope.trace,
+                          span: scope.service_entry_span,
+                          multiplex: gateway_multiplex,
+                          actions: result.actions
+                        }
 
-                      if scope.service_entry_span
-                        scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                        scope.service_entry_span.set_tag('appsec.event', 'true')
+                        if scope.service_entry_span
+                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
+                          scope.service_entry_span.set_tag('appsec.event', 'true')
+                        end
+
+                        scope.processor_context.events << event
                       end
 
-                      scope.processor_context.events << event
+                      block = GraphQL::Reactive::Multiplex.publish(op, gateway_multiplex)
                     end
-
-                    block = GraphQL::Reactive::Multiplex.publish(op, gateway_multiplex)
                   end
 
                   next [nil, [[:block, event]]] if block

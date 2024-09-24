@@ -6,9 +6,10 @@ require 'datadog/appsec/scope'
 RSpec.describe Datadog::AppSec::Scope do
   let(:trace) { double }
   let(:span) { double }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
-  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset) }
+  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
+  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
 
   after do
     described_class.send(:reset_active_scope)

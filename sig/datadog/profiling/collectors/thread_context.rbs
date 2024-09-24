@@ -8,6 +8,7 @@ module Datadog
           tracer: Datadog::Tracing::Tracer?,
           endpoint_collection_enabled: bool,
           timeline_enabled: bool,
+          waiting_for_gvl_threshold_ns: ::Integer,
           ?allocation_type_enabled: bool,
         ) -> void
 
@@ -18,6 +19,7 @@ module Datadog
           ::Symbol? tracer_context_key,
           bool endpoint_collection_enabled,
           bool timeline_enabled,
+          ::Integer waiting_for_gvl_threshold_ns,
           bool allocation_type_enabled,
         ) -> void
 

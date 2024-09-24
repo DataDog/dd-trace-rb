@@ -27,7 +27,6 @@
 #define ENFORCE_BOOLEAN(value) \
   { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
 
-// Called by ENFORCE_TYPE; should not be used directly
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
 // Helper to retrieve Datadog::VERSION::STRING
@@ -38,9 +37,6 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   ddog_CharSlice char_slice = {.ptr = RSTRING_PTR(string), .len = RSTRING_LEN(string)};
   return char_slice;
 }
-
-__attribute__((warn_unused_result))
-ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration);
 
 __attribute__((warn_unused_result))
 ddog_Vec_Tag convert_tags(VALUE tags_as_array);

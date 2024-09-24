@@ -20,16 +20,7 @@ struct sampling_buffer {
   frame_info *stack_buffer;
 }; // Note: typedef'd in the header to sampling_buffer
 
-static VALUE _native_sample(
-  VALUE self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-);
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
@@ -47,7 +38,7 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 7);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
@@ -65,16 +56,24 @@ struct native_sample_args {
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-) {
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  // Positional args
+  VALUE thread;
+  VALUE recorder_instance;
+  VALUE metric_values_hash;
+  VALUE labels_array;
+  VALUE numeric_labels_array;
+  VALUE options;
+
+  rb_scan_args(argc, argv, "5:", &thread, &recorder_instance, &metric_values_hash, &labels_array, &numeric_labels_array, &options);
+
+  if (options == Qnil) options = rb_hash_new();
+
+  // Optional keyword args
+  VALUE max_frames = rb_hash_lookup2(options, ID2SYM(rb_intern("max_frames")), INT2NUM(400));
+  VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
+  VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
+
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
@@ -128,7 +127,7 @@ static VALUE _native_sample(
     .in_gc = in_gc,
     .recorder_instance = recorder_instance,
     .values = values,
-    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label},
+    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
     .thread = thread,
     .locations = locations,
     .buffer = buffer,
@@ -222,7 +221,10 @@ void sample_thread(
 
   if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
 
-  if (has_cpu_time) state_label->str = DDOG_CHARSLICE_C("had cpu");
+  if (has_cpu_time) {
+    state_label->str = DDOG_CHARSLICE_C("had cpu");
+    if (labels.is_gvl_waiting_state) rb_raise(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
+  }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
@@ -252,12 +254,15 @@ void sample_thread(
     bool top_of_the_stack = i == 0;
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
-    //
-    // We try to categorize what it was doing based on what we observe at the top of the stack. This is a very rough
-    // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-    // GVL instrumentation API.)
     if (top_of_the_stack && only_wall_time) {
-      if (!buffer->stack_buffer[i].is_ruby_frame) {
+      // Did the caller already provide the state?
+      if (labels.is_gvl_waiting_state) {
+        state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+
+      // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+      // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+      // GVL instrumentation API.)
+      } else if (!buffer->stack_buffer[i].is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,

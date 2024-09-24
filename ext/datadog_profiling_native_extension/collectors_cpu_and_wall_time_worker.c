@@ -88,6 +88,7 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
   // `collectors_cpu_and_wall_time_worker_init` below and always get reused after that.
   static rb_postponed_job_handle_t sample_from_postponed_job_handle;
   static rb_postponed_job_handle_t after_gc_from_postponed_job_handle;
+  static rb_postponed_job_handle_t after_gvl_running_from_postponed_job_handle;
 #endif
 
 // Contains state for a single CpuAndWallTimeWorker instance
@@ -99,6 +100,7 @@ struct cpu_and_wall_time_worker_state {
   bool dynamic_sampling_rate_enabled;
   bool allocation_profiling_enabled;
   bool allocation_counting_enabled;
+  bool gvl_profiling_enabled;
   bool skip_idle_samples_for_testing;
   VALUE self_instance;
   VALUE thread_context_collector_instance;
@@ -122,6 +124,11 @@ struct cpu_and_wall_time_worker_state {
   // Used to detect/avoid nested sampling, e.g. when on_newobj_event gets triggered by a memory allocation
   // that happens during another sample.
   bool during_sample;
+
+  #ifndef NO_GVL_INSTRUMENTATION
+  // Only set when sampling is active (gets created at start and cleaned on stop)
+  rb_internal_thread_event_hook_t *gvl_profiling_hook;
+  #endif
 
   struct stats {
     // # Generic stats
@@ -169,23 +176,15 @@ struct cpu_and_wall_time_worker_state {
     uint64_t allocation_sampling_time_ns_total;
     // How many times we saw allocations being done inside a sample
     unsigned int allocations_during_sample;
+
+    // # GVL profiling stats
+    // How many times we triggered the after_gvl_running sampling
+    unsigned int after_gvl_running;
   } stats;
 };
 
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE self_instance,
-  VALUE thread_context_collector_instance,
-  VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance,
-  VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled,
-  VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled,
-  VALUE allocation_counting_enabled,
-  VALUE skip_idle_samples_for_testing
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static void cpu_and_wall_time_worker_typed_data_mark(void *state_ptr);
 static VALUE _native_sampling_loop(VALUE self, VALUE instance);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self, VALUE self_instance, VALUE worker_thread);
@@ -227,6 +226,11 @@ static void delayed_error(struct cpu_and_wall_time_worker_state *state, const ch
 static VALUE _native_delayed_error(DDTRACE_UNUSED VALUE self, VALUE instance, VALUE error_msg);
 static VALUE _native_hold_signals(DDTRACE_UNUSED VALUE self);
 static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
+#ifndef NO_GVL_INSTRUMENTATION
+static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
+static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
+#endif
+static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
 // with signature `rb_event_hook_func_t` which doesn't match `on_newobj_event`.
@@ -272,8 +276,13 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
     int unused_flags = 0;
     sample_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, sample_from_postponed_job, NULL);
     after_gc_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gc_from_postponed_job, NULL);
+    after_gvl_running_from_postponed_job_handle = rb_postponed_job_preregister(unused_flags, after_gvl_running_from_postponed_job, NULL);
 
-    if (sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID || after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID) {
+    if (
+      sample_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
+      after_gc_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID ||
+      after_gvl_running_from_postponed_job_handle == POSTPONED_JOB_HANDLE_INVALID
+    ) {
       rb_raise(rb_eRuntimeError, "Failed to register profiler postponed jobs (got POSTPONED_JOB_HANDLE_INVALID)");
     }
   #else
@@ -295,7 +304,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_cpu_and_wall_time_worker_class, _native_new);
 
-  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, 10);
+  rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_sampling_loop", _native_sampling_loop, 1);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_stop", _native_stop, 2);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
@@ -317,6 +326,7 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_is_sigprof_blocked_in_current_thread", _native_is_sigprof_blocked_in_current_thread, 0);
   rb_define_singleton_method(testing_module, "_native_with_blocked_sigprof", _native_with_blocked_sigprof, 0);
   rb_define_singleton_method(testing_module, "_native_delayed_error", _native_delayed_error, 2);
+  rb_define_singleton_method(testing_module, "_native_gvl_profiling_hook_active", _native_gvl_profiling_hook_active, 1);
 }
 
 // This structure is used to define a Ruby object that stores a pointer to a struct cpu_and_wall_time_worker_state
@@ -345,6 +355,7 @@ static VALUE _native_new(VALUE klass) {
   state->dynamic_sampling_rate_enabled = true;
   state->allocation_profiling_enabled = false;
   state->allocation_counting_enabled = false;
+  state->gvl_profiling_enabled = false;
   state->skip_idle_samples_for_testing = false;
   state->thread_context_collector_instance = Qnil;
   state->idle_sampling_helper_instance = Qnil;
@@ -358,6 +369,10 @@ static VALUE _native_new(VALUE klass) {
 
   state->during_sample = false;
 
+  #ifndef NO_GVL_INSTRUMENTATION
+    state->gvl_profiling_hook = NULL;
+  #endif
+
   reset_stats_not_thread_safe(state);
   discrete_dynamic_sampler_init(&state->allocation_sampler, "allocation", now);
 
@@ -368,25 +383,30 @@ static VALUE _native_new(VALUE klass) {
   return state->self_instance = TypedData_Wrap_Struct(klass, &cpu_and_wall_time_worker_typed_data, state);
 }
 
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE self_instance,
-  VALUE thread_context_collector_instance,
-  VALUE gc_profiling_enabled,
-  VALUE idle_sampling_helper_instance,
-  VALUE no_signals_workaround_enabled,
-  VALUE dynamic_sampling_rate_enabled,
-  VALUE dynamic_sampling_rate_overhead_target_percentage,
-  VALUE allocation_profiling_enabled,
-  VALUE allocation_counting_enabled,
-  VALUE skip_idle_samples_for_testing
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE self_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE thread_context_collector_instance = rb_hash_fetch(options, ID2SYM(rb_intern("thread_context_collector")));
+  VALUE gc_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gc_profiling_enabled")));
+  VALUE idle_sampling_helper_instance = rb_hash_fetch(options, ID2SYM(rb_intern("idle_sampling_helper")));
+  VALUE no_signals_workaround_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("no_signals_workaround_enabled")));
+  VALUE dynamic_sampling_rate_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("dynamic_sampling_rate_enabled")));
+  VALUE dynamic_sampling_rate_overhead_target_percentage = rb_hash_fetch(options, ID2SYM(rb_intern("dynamic_sampling_rate_overhead_target_percentage")));
+  VALUE allocation_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_profiling_enabled")));
+  VALUE allocation_counting_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_counting_enabled")));
+  VALUE gvl_profiling_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("gvl_profiling_enabled")));
+  VALUE skip_idle_samples_for_testing = rb_hash_fetch(options, ID2SYM(rb_intern("skip_idle_samples_for_testing")));
+
   ENFORCE_BOOLEAN(gc_profiling_enabled);
   ENFORCE_BOOLEAN(no_signals_workaround_enabled);
   ENFORCE_BOOLEAN(dynamic_sampling_rate_enabled);
   ENFORCE_TYPE(dynamic_sampling_rate_overhead_target_percentage, T_FLOAT);
   ENFORCE_BOOLEAN(allocation_profiling_enabled);
   ENFORCE_BOOLEAN(allocation_counting_enabled);
+  ENFORCE_BOOLEAN(gvl_profiling_enabled);
   ENFORCE_BOOLEAN(skip_idle_samples_for_testing)
 
   struct cpu_and_wall_time_worker_state *state;
@@ -397,6 +417,7 @@ static VALUE _native_initialize(
   state->dynamic_sampling_rate_enabled = (dynamic_sampling_rate_enabled == Qtrue);
   state->allocation_profiling_enabled = (allocation_profiling_enabled == Qtrue);
   state->allocation_counting_enabled = (allocation_counting_enabled == Qtrue);
+  state->gvl_profiling_enabled = (gvl_profiling_enabled == Qtrue);
   state->skip_idle_samples_for_testing = (skip_idle_samples_for_testing == Qtrue);
 
   double total_overhead_target_percentage = NUM2DBL(dynamic_sampling_rate_overhead_target_percentage);
@@ -781,6 +802,23 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
     ;
   }
 
+  if (state->gvl_profiling_enabled) {
+    #ifndef NO_GVL_INSTRUMENTATION
+      state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
+        on_gvl_event,
+        (
+          // For now we're only asking for these events, even though there's more
+          // (e.g. check docs or gvl-tracing gem)
+          RUBY_INTERNAL_THREAD_EVENT_READY /* waiting for gvl */ |
+          RUBY_INTERNAL_THREAD_EVENT_RESUMED /* running/runnable */
+        ),
+        NULL
+      );
+    #else
+      rb_raise(rb_eArgError, "GVL profiling is not supported in this Ruby version");
+    #endif
+  }
+
   // Flag the profiler as running before we release the GVL, in case anyone's waiting to know about it
   rb_funcall(instance, rb_intern("signal_running"), 0);
 
@@ -892,7 +930,6 @@ static void after_gc_from_postponed_job(DDTRACE_UNUSED void *_unused) {
 
   state->during_sample = true;
 
-  // Trigger sampling using the Collectors::ThreadState; rescue against any exceptions that happen during sampling
   safely_call(thread_context_collector_sample_after_gc, state->thread_context_collector_instance, state->self_instance);
 
   state->during_sample = false;
@@ -999,6 +1036,9 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocation_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.allocation_sampling_time_ns_total, state->stats.allocation_sampled),
     ID2SYM(rb_intern("allocation_sampler_snapshot")),       /* => */ allocation_sampler_snapshot,
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
+
+    // GVL profiling stats
+    ID2SYM(rb_intern("after_gvl_running")), /* => */ UINT2NUM(state->stats.after_gvl_running),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1173,7 +1213,15 @@ static void disable_tracepoints(struct cpu_and_wall_time_worker_state *state) {
   if (state->gc_tracepoint != Qnil) {
     rb_tracepoint_disable(state->gc_tracepoint);
   }
+
   rb_remove_event_hook_with_data(on_newobj_event_as_hook, state->self_instance);
+
+  #ifndef NO_GVL_INSTRUMENTATION
+    if (state->gvl_profiling_hook) {
+      rb_internal_thread_remove_event_hook(state->gvl_profiling_hook);
+      state->gvl_profiling_hook = NULL;
+    }
+  #endif
 }
 
 static VALUE _native_with_blocked_sigprof(DDTRACE_UNUSED VALUE self) {
@@ -1248,3 +1296,60 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
   unblock_sigprof_signal_handler_from_running_in_current_thread();
   return Qtrue;
 }
+
+#ifndef NO_GVL_INSTRUMENTATION
+  static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused) {
+    // Be very careful about touching the `state` here or doing anything at all:
+    // This function gets called without the GVL, and potentially from background Ractors!
+    //
+    // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
+    // are not directly tied to the `target_thread` object and the like)
+    VALUE target_thread = event_data->thread;
+
+    if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
+      thread_context_collector_on_gvl_waiting(target_thread);
+    } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
+      // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
+      // (And... I think target_thread will be == rb_thread_current()?)
+      // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
+      // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
+      // Ractor. Thus, if we really really wanted to access the state, we could do it after making sure we're on the correct Ractor.
+
+      bool should_sample = thread_context_collector_on_gvl_running(target_thread);
+
+      if (should_sample) {
+        // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
+        rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+      }
+    } else {
+      // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
+      fprintf(stderr, "[ddtrace] Unexpected value in on_gvl_event (%d)\n", event_id);
+    }
+  }
+
+  static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused) {
+    struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+    // This can potentially happen if the CpuAndWallTimeWorker was stopped while the postponed job was waiting to be executed; nothing to do
+    if (state == NULL) return;
+
+    state->during_sample = true;
+
+    safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+
+    state->stats.after_gvl_running++;
+
+    state->during_sample = false;
+  }
+
+  static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
+    struct cpu_and_wall_time_worker_state *state;
+    TypedData_Get_Struct(instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+    return state->gvl_profiling_hook != NULL ? Qtrue : Qfalse;
+  }
+#else
+  static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, DDTRACE_UNUSED VALUE instance) {
+    return Qfalse;
+  }
+#endif

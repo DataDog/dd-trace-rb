@@ -25,7 +25,6 @@ gem "simplecov-cobertura", "~> 2.1.0"
 gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "rexml", ">= 3.2.7"
-gem "yard", "~> 0.9"
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "ffi", "~> 1.16.3", require: false
 gem "activerecord", "~> 5"
@@ -34,7 +33,7 @@ gem "delayed_job_active_record"
 gem "makara"
 gem "activerecord-jdbcmysql-adapter", ">= 52", platform: :jruby
 gem "activerecord-jdbcpostgresql-adapter", ">= 52", platform: :jruby
-gem "sequel", "~> 5.54.0"
+gem "sequel"
 gem "activerecord-jdbcsqlite3-adapter", ">= 52", platform: :jruby
 
 group :check do

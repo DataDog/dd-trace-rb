@@ -11,14 +11,7 @@ module Datadog
         # which is required to use features such as API Catalog.
         # DEV-3.0: This tracer should be the default one in the next major version.
         module UnifiedTrace
-          # @param analytics_enabled [Boolean] Deprecated
-          # @param analytics_sample_rate [Float] Deprecated
-          # @param service [String|nil] The service name to be set on the spans
-          def initialize(*args, analytics_enabled: false, analytics_sample_rate: 1.0, service: nil, **kwargs)
-            @analytics_enabled = analytics_enabled
-            @analytics_sample_rate = analytics_sample_rate
-
-            @service_name = service
+          def initialize(*args, **kwargs)
             @has_prepare_span = respond_to?(:prepare_span)
             super
           end
@@ -139,7 +132,18 @@ module Datadog
           private
 
           def trace(callable, trace_key, resource, **kwargs)
-            Tracing.trace("graphql.#{trace_key}", resource: resource, service: @service_name, type: 'graphql') do |span|
+            config = Datadog.configuration.tracing[:graphql]
+
+            Tracing.trace(
+              "graphql.#{trace_key}",
+              type: 'graphql',
+              resource: resource,
+              service: config[:service_name]
+            ) do |span|
+              if Contrib::Analytics.enabled?(config[:analytics_enabled])
+                Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
+              end
+
               yield(span) if block_given?
 
               prepare_span(trace_key, kwargs, span) if @has_prepare_span

@@ -72,10 +72,11 @@ module Datadog
 
           @message: String
           @level: "ERROR" | "DEBUG" | "WARN"
+          @stack_trace: String?
 
-          def initialize: (message: String, level: Symbol) -> void
+          def initialize: (message: String, level: Symbol, ?stack_trace: String?) -> void
 
-          def payload: () -> { logs: [{ message: String, level: String }] }
+          def payload: () -> { logs: [Hash[Symbol, String]] }
         end
 
         class Distributions < GenerateMetrics

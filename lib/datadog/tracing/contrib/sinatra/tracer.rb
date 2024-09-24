@@ -69,6 +69,10 @@ module Datadog
 
                 trace.resource = span.resource
 
+                _, path = env['sinatra.route'].split(' ', 2)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE, path)
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+
                 sinatra_request_span = Sinatra::Env.datadog_span(env)
 
                 sinatra_request_span.resource = span.resource

@@ -391,7 +391,7 @@ The public API provides new functions to access active trace data:
 
 ```ruby
 ### Old 0.x ###
-# Retuns the active context (contains trace state)
+# Returns the active context (contains trace state)
 Datadog.tracer.call_context
 # Returns the active Span
 Datadog.tracer.active_span
@@ -400,7 +400,7 @@ Datadog.tracer.active_correlation
 
 
 ### New 1.0 ###
-# Retuns the active TraceOperation for the current thread (contains trace state)
+# Returns the active TraceOperation for the current thread (contains trace state)
 Datadog::Tracing.active_trace
 # Returns the active SpanOperation for the current thread (contains span state)
 Datadog::Tracing.active_span

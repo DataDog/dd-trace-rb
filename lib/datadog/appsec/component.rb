@@ -10,10 +10,10 @@ module Datadog
     # Core-pluggable component for AppSec
     class Component
       class << self
-        def build_appsec_component(settings)
+        def build_appsec_component(settings, telemetry:)
           return unless settings.respond_to?(:appsec) && settings.appsec.enabled
 
-          processor = create_processor(settings)
+          processor = create_processor(settings, telemetry)
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
@@ -28,8 +28,11 @@ module Datadog
 
         private
 
-        def create_processor(settings)
-          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
+        def create_processor(settings, telemetry)
+          rules = AppSec::Processor::RuleLoader.load_rules(
+            telemetry: telemetry,
+            ruleset: settings.appsec.ruleset
+          )
           return nil unless rules
 
           actions = rules['actions']
@@ -47,9 +50,10 @@ module Datadog
             rules: [rules],
             data: data,
             exclusions: exclusions,
+            telemetry: telemetry
           )
 
-          processor = Processor.new(ruleset: ruleset)
+          processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
           return nil unless processor.ready?
 
           processor
@@ -63,11 +67,11 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:, actions:)
+      def reconfigure(ruleset:, actions:, telemetry:)
         @mutex.synchronize do
           AppSec::Processor::Actions.merge(actions)
 
-          new = Processor.new(ruleset: ruleset)
+          new = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
           if new && new.ready?
             old = @processor

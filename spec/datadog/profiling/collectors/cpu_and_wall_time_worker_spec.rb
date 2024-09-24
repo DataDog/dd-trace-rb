@@ -16,6 +16,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:timeline_enabled) { false }
   let(:options) { {} }
   let(:allocation_counting_enabled) { false }
+  let(:gvl_profiling_enabled) { false }
   let(:worker_settings) do
     {
       gc_profiling_enabled: gc_profiling_enabled,
@@ -24,6 +25,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       dynamic_sampling_rate_overhead_target_percentage: 2.0,
       allocation_profiling_enabled: allocation_profiling_enabled,
       allocation_counting_enabled: allocation_counting_enabled,
+      gvl_profiling_enabled: gvl_profiling_enabled,
       **options
     }
   end
@@ -131,6 +133,43 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         start
 
         expect(described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker)).to_not be_enabled
+      end
+    end
+
+    context "when gvl_profiling_enabled is true" do
+      before { skip_if_gvl_profiling_not_supported(self) }
+
+      let(:gvl_profiling_enabled) { true }
+
+      it "enables the gvl profiling hook" do
+        start
+
+        expect(described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker)).to be true
+      end
+    end
+
+    context "when gvl_profiling_enabled is true on an unsupported Ruby" do
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+
+      let(:gvl_profiling_enabled) { true }
+
+      it do
+        expect(Datadog.logger).to receive(:warn).with(/GVL profiling is not supported/)
+        proc_called = Queue.new
+
+        cpu_and_wall_time_worker.start(on_failure_proc: proc { proc_called << true })
+
+        proc_called.pop
+      end
+    end
+
+    context "when gvl_profiling_enabled is false" do
+      let(:gvl_profiling_enabled) { false }
+
+      it "does not enable the gvl profiling hook" do
+        start
+
+        expect(described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker)).to be false
       end
     end
 
@@ -323,7 +362,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
     end
 
-    context "when main thread is sleeping but a background thread is working" do
+    context "when main thread is sleeping but a background thread is working", :memcheck_valgrind_skip do
       let(:ready_queue) { Queue.new }
       let(:background_thread) do
         Thread.new do
@@ -338,7 +377,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         background_thread.join
       end
 
-      it "is able to sample even when the main thread is sleeping", :memcheck_valgrind_skip do
+      it "is able to sample even when the main thread is sleeping" do
         background_thread
         ready_queue.pop
 
@@ -369,6 +408,71 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # the test below.
         expect(sample_count).to be >= 5, "sample_count: #{sample_count}, stats: #{stats}"
         expect(trigger_sample_attempts).to be >= sample_count
+      end
+
+      context "when GVL profiling is enabled" do
+        before { skip_if_gvl_profiling_not_supported(self) }
+
+        let(:gvl_profiling_enabled) { true }
+
+        let(:timeline_enabled) { true }
+        let(:ready_queue_2) { Queue.new }
+        let(:background_thread_affected_by_gvl_contention) do
+          Thread.new do
+            ready_queue_2 << true
+            loop { Thread.pass }
+          end
+        end
+
+        after do
+          background_thread_affected_by_gvl_contention.kill
+          background_thread_affected_by_gvl_contention.join
+        end
+
+        it "records Waiting for GVL samples" do
+          background_thread_affected_by_gvl_contention
+          ready_queue_2.pop
+
+          start
+          wait_until_running
+
+          background_thread
+          ready_queue.pop
+
+          sleep 0.2
+
+          cpu_and_wall_time_worker.stop
+
+          background_thread.kill
+          background_thread_affected_by_gvl_contention.kill
+
+          samples = samples_for_thread(
+            samples_from_pprof_without_gc_and_overhead(recorder.serialize!),
+            background_thread_affected_by_gvl_contention
+          ).sort_by { |s| s.labels.fetch(:end_timestamp_ns) }
+
+          # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
+          # will have an unknown state because the profiler may have missed the beginning of the Waiting for GVL
+          #
+          # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
+          # consideration
+          missed_by_profiler_time =
+            samples.take_while { |s| s.labels[:state] == "unknown" }.sum { |sample| sample.values.fetch(:"wall-time") }
+
+          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
+          total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
+          waiting_for_gvl_time = waiting_for_gvl_samples.sum { |sample| sample.values.fetch(:"wall-time") }
+
+          expect(waiting_for_gvl_samples.size).to be > 0
+
+          # The background thread should spend almost all of its time waiting to run (since when it gets to run
+          # it just passes and starts waiting)
+          expect(total_time).to be >= 200_000_000 # This test should run for at least 200ms, which is how long we sleep for
+          expect(waiting_for_gvl_time).to be < total_time
+          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time)
+
+          expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
+        end
       end
     end
 
@@ -855,6 +959,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
     context "after starting" do
       before do
+        skip_if_gvl_profiling_not_supported(self) if gvl_profiling_enabled
+
         cpu_and_wall_time_worker.start
         wait_until_running
       end
@@ -885,6 +991,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # come from us -- it's the default message for an unhandled SIGPROF. Pretty confusing UNIX/POSIX behavior...)
         Process.kill("SIGPROF", Process.pid)
       end
+
+      context "when GVL profiling is enabled" do
+        let(:gvl_profiling_enabled) { true }
+
+        it "disables the GVL profiling hook" do
+          expect { stop }
+            .to change { described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker) }
+            .from(true).to(false)
+        end
+      end
     end
 
     it "unblocks SIGPROF signal handling from the worker thread" do
@@ -909,18 +1025,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   describe "#reset_after_fork" do
     subject(:reset_after_fork) { cpu_and_wall_time_worker.reset_after_fork }
 
-    let(:thread_context_collector) do
-      Datadog::Profiling::Collectors::ThreadContext.new(
-        recorder: recorder,
-        max_frames: 400,
-        tracer: nil,
-        endpoint_collection_enabled: endpoint_collection_enabled,
-        timeline_enabled: timeline_enabled,
-      )
-    end
+    let(:thread_context_collector) { build_thread_context_collector(recorder) }
     let(:options) { {thread_context_collector: thread_context_collector} }
 
     before do
+      skip_if_gvl_profiling_not_supported(self) if gvl_profiling_enabled
+
       # This is important -- the real #reset_after_fork must not be called concurrently with the worker running,
       # which we do in this spec to make it easier to test the reset_after_fork behavior
       allow(thread_context_collector).to receive(:reset_after_fork)
@@ -937,6 +1047,16 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       expect { reset_after_fork }
         .to change { described_class::Testing._native_gc_tracepoint(cpu_and_wall_time_worker).enabled? }
         .from(true).to(false)
+    end
+
+    context "when gvl_profiling_enabled is true" do
+      let(:gvl_profiling_enabled) { true }
+
+      it "disables the gvl profiling hook" do
+        expect { reset_after_fork }
+          .to change { described_class::Testing._native_gvl_profiling_hook_active(cpu_and_wall_time_worker) }
+          .from(true).to(false)
+      end
     end
 
     it "resets the CpuAndWallTime collector only after disabling the tracepoint" do
@@ -980,6 +1100,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampling_time_ns_avg: nil,
           allocation_sampler_snapshot: nil,
           allocations_during_sample: nil,
+          after_gvl_running: 0,
         }
       )
     end
@@ -1261,10 +1382,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   end
 
   def build_thread_context_collector(recorder)
-    Datadog::Profiling::Collectors::ThreadContext.new(
+    Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
-      max_frames: 400,
-      tracer: nil,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
     )

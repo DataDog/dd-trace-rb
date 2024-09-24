@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.3.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 11.0.0.1.0)
+      libdatadog (~> 12.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -112,8 +112,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (11.0.0.1.0-aarch64-linux)
-    libdatadog (11.0.0.1.0-x86_64-linux)
+    libdatadog (12.0.0.1.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -249,7 +249,6 @@ GEM
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    yard (0.9.34)
     zeitwerk (2.6.11)
 
 PLATFORMS
@@ -298,7 +297,6 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
-  yard (~> 0.9)
 
 BUNDLED WITH
    2.3.26
