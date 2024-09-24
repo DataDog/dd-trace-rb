@@ -43,6 +43,7 @@ module Datadog
         # DEV-2.0: if needed.
         # DEV-2.0: Ideally, we'd have a separate stream to report tracer errors and never
         # DEV-2.0: touch the active span.
+        # DEV-3.0: Sample trace here instead of when generating digest.
         #
         # @param digest [TraceDigest]
         # @param data [Hash]
@@ -62,11 +63,6 @@ module Datadog
           end
 
           result = false
-          # Probably sample here
-          # Do we need to update tags on the parent span here first?
-          # That should probably be done in the tracer, not here.
-          # Can we sample off of digest or do we need to grab the parent span?
-          # Looking at how we do span sampling would be helpful to answer some of this.
           components.sampler.sample!(digest)
 
           # Inject all configured propagation styles
