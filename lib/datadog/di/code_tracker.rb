@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "concurrent/map"
-
 module Datadog
   module DI
     # Tracks loaded Ruby code by source file and maintains a map from
@@ -19,8 +17,9 @@ module Datadog
     # @api private
     class CodeTracker
       def initialize
-        @registry = Concurrent::Map.new
-        @lock = Mutex.new
+        @registry = Hash.new
+        @trace_point_lock = Mutex.new
+        @registry_lock = Hash.new
       end
 
       def start
@@ -44,10 +43,12 @@ module Datadog
           #
           # For now just map the path to the instruction sequence.
           path = tp.instruction_sequence.path
-          registry[path] = tp.instruction_sequence
+          registry_lock.synchronize do
+            registry[path] = tp.instruction_sequence
+          end
         end
 
-        @lock.synchronize do
+        trace_point_lock.synchronize do
           # Since trace point creation itself is not under a lock, see if
           # another thread created the trace point, in which case we can
           # disable our trace point and do nothing.
@@ -64,7 +65,7 @@ module Datadog
       # Returns whether this code tracker has been activated and is
       # tracking.
       def active?
-        @lock.synchronize do
+        trace_point_lock.synchronize do
           !!@compiled_trace_point
         end
       end
@@ -90,29 +91,31 @@ module Datadog
       # Otherwise all known paths that end in the suffix are returned.
       # If no paths match, an empty array is returned.
       def iseqs_for_path(suffix)
-        exact = registry[suffix]
-        if exact
-          return [exact]
-        end
-        inexact = []
-        registry.each do |path, iseq|
-          # Exact match is not possible here, meaning any matching path
-          # has to be longer than the suffix. Require full component matches,
-          # meaning either the first character of the suffix is a slash
-          # or the previous character in the path is a slash.
-          # For now only check for forward slashes for Unix-like OSes;
-          # backslash is a legitimate character of a file name in Unix
-          # therefore simply permitting forward or back slash is not
-          # sufficient, we need to perform an OS check to know which
-          # path separator to use.
-          if path.length > suffix.length && (
-            path[path.length - suffix.length - 1] == "/" ||
-            suffix[0] == "/"
-          ) && path.end_with?(suffix)
-            inexact << iseq
+        registry_lock.synchronize do
+          exact = registry[suffix]
+          if exact
+            return [exact]
           end
+          inexact = []
+          registry.each do |path, iseq|
+            # Exact match is not possible here, meaning any matching path
+            # has to be longer than the suffix. Require full component matches,
+            # meaning either the first character of the suffix is a slash
+            # or the previous character in the path is a slash.
+            # For now only check for forward slashes for Unix-like OSes;
+            # backslash is a legitimate character of a file name in Unix
+            # therefore simply permitting forward or back slash is not
+            # sufficient, we need to perform an OS check to know which
+            # path separator to use.
+            if path.length > suffix.length && (
+              path[path.length - suffix.length - 1] == "/" ||
+              suffix[0] == "/"
+            ) && path.end_with?(suffix)
+              inexact << iseq
+            end
+          end
+          inexact
         end
-        inexact
       end
 
       # Stops tracking code that is being loaded.
@@ -125,13 +128,15 @@ module Datadog
       # code tracker instances are created, to fully clean up the old instances.
       def stop
         # Permit multiple stop calls.
-        @lock.synchronize do
+        trace_point_lock.synchronize do
           @compiled_trace_point&.disable
           # Clear the instance variable so that the trace point may be
           # reinstated in the future.
           @compiled_trace_point = nil
         end
-        registry.clear
+        registry_lock.synchronize do
+          registry.clear
+        end
       end
 
       private
@@ -139,6 +144,9 @@ module Datadog
       # Mapping from paths of loaded files to RubyVM::InstructionSequence
       # objects representing compiled code of those files.
       attr_reader :registry
+
+      attr_reader :trace_point_lock
+      attr_reader :registry_lock
     end
   end
 end

@@ -16,6 +16,8 @@ module Datadog
 
       private
       attr_reader registry: Hash[String,RubyVM::InstructionSequence]
+      attr_reader trace_point_lock: Thread::Mutex
+      attr_reader registry_lock: Thread::Mutex
     end
   end
 end
