@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../utils/forking'
+require_relative '../utils/sequence'
+
 module Datadog
   module Core
     module Telemetry
@@ -338,7 +341,6 @@ module Datadog
         class Log < Base
           LEVELS = {
             error: 'ERROR',
-            debug: 'DEBUG',
             warn: 'WARN',
           }.freeze
 
@@ -346,19 +348,22 @@ module Datadog
             'logs'
           end
 
-          def initialize(message:, level:)
+          def initialize(message:, level:, stack_trace: nil)
             super()
             @message = message
+            @stack_trace = stack_trace
             @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
           end
 
           def payload
             {
-              logs: [{
-                message: @message,
-                level: @level,
-                # More optional fields to be added here...
-              }]
+              logs: [
+                {
+                  message: @message,
+                  level: @level,
+                  stack_trace: @stack_trace,
+                }.compact
+              ]
             }
           end
         end

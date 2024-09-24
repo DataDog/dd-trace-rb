@@ -28,6 +28,8 @@ jobs:
           - name: proxy
             internal: datadog/system-tests:proxy-v1
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     name: Build (${{ matrix.image.name }})
     steps:
       - name: Checkout
@@ -101,6 +103,8 @@ jobs:
           - graphql23
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
+    permissions:
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -184,6 +188,12 @@ jobs:
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
         include:
+          - library: ruby
+            app: rack
+            scenario: INTEGRATIONS
+          - library: ruby
+            app: rack
+            scenario: CROSSED_TRACING_LIBRARIES
           - library: ruby
             app: rack
             scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
@@ -280,6 +290,10 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: us-east-1
+          AWS_DEFAULT_REGION: us-east-1  # AWS services should use `AWS_REGION`, but some still use the older `AWS_DEFAULT_REGION`
       - name: Archive logs
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
@@ -308,6 +322,8 @@ jobs:
           - graphql23
     runs-on: ubuntu-latest
     needs:
+      - build-harness
+      - build-apps
       - test
     if: ${{ always() }}
     name: Aggregate (${{ matrix.app }})
@@ -360,7 +376,7 @@ jobs:
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-      - uses: actions/delete-package-versions@v4
+      - uses: actions/delete-package-versions@v5
         with:
           package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
           package-name: 'system-tests/${{ matrix.image }}'

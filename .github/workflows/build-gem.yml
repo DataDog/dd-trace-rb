@@ -60,7 +60,7 @@ jobs:
         run: |
           find pkg
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg/*.gem'
@@ -77,7 +77,7 @@ jobs:
       - build
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'
@@ -103,7 +103,7 @@ jobs:
     if: ${{ inputs.push }}
     steps:
       - name: Download artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: 'datadog-gem-${{ matrix.type }}-gha${{ github.run_id }}-g${{ github.sha }}'
           path: 'pkg'

@@ -22,7 +22,11 @@ module Datadog
 
         def shutdown!: () -> void
 
-        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
+        def self.build: (
+          untyped settings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings,
+          telemetry: Datadog::Core::Telemetry::Component
+        ) -> Datadog::Core::Remote::Component?
 
         class Barrier
           type timeout_s = ::Integer | ::Float

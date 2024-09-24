@@ -51,8 +51,6 @@ elsif RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
   gem 'webrick', '>= 1.7.0'
 end
 
-gem 'yard', '~> 0.9' # NOTE: YardDoc is generated with ruby 3.2 in GitHub Actions
-
 if RUBY_VERSION >= '2.6.0'
   # 1.50 is the last version to support Ruby 2.6
   gem 'rubocop', '~> 1.50.0', require: false

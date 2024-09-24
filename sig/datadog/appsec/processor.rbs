@@ -34,7 +34,7 @@ module Datadog
       @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: (ruleset: ::Hash[untyped, untyped]) -> void
+      def initialize: (ruleset: ::Hash[untyped, untyped], telemetry: Datadog::Core::Telemetry::Component) -> void
       def ready?: () -> bool
       def finalize: () -> void
 
@@ -42,14 +42,11 @@ module Datadog
 
       private
 
-      def load_libddwaf: () -> bool
+      def require_libddwaf: () -> bool
+      def libddwaf_provides_waf?: () -> bool
       def create_waf_handle: (Datadog::Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
-
-      def self.libddwaf_provides_waf?: () -> bool
-      def self.require_libddwaf: () -> bool
-      def self.libddwaf_spec: () -> ::Gem::BasicSpecification
-      def self.libddwaf_platform: () -> ::String
-      def self.ruby_platforms: () -> ::Array[::String]
+      def libddwaf_platform: () -> ::String
+      def ruby_platforms: () -> ::Array[::String]
     end
   end
 end

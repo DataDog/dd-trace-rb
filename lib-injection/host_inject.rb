@@ -197,7 +197,7 @@ else
 
           bundle_add_cmd = "bundle add #{gem} --skip-install --version #{gem_version_mapping[gem]} "
           bundle_add_cmd << ' --verbose ' if ENV['DD_TRACE_DEBUG'] == 'true'
-          bundle_add_cmd << '--require datadog/auto_instrument' if gem == 'datadog'
+          bundle_add_cmd << '--require datadog/single_step_instrument' if gem == 'datadog'
 
           utils.debug "Injection with `#{bundle_add_cmd}`"
 

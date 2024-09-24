@@ -2,6 +2,8 @@
 
 require 'pry'
 
+# TODO: This is a work in progress, the rake tasks to be replaced by automation
+
 namespace :appraisal do # rubocop:disable Metrics/BlockLength
   def ruby_versions(versions)
     return TRACER_VERSIONS if versions.empty?
@@ -209,10 +211,7 @@ TRACER_VERSIONS = [
 ].freeze
 
 FORCE_BUNDLER_VERSION = {
-  # Some groups require bundler 1.x https://github.com/DataDog/dd-trace-rb/issues/2444
-  '2.3' => '1.17.3',
-
-  # 2.4.x seems to cause problems with appraisal
+  '2.5' => '2.3.26',
   '2.6' => '2.3.26',
   '2.7' => '2.3.26',
   '3.0' => '2.3.26',

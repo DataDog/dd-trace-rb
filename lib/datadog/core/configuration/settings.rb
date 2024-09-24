@@ -410,10 +410,8 @@ module Datadog
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
             #
             # We've discovered that this can trigger a bug in a number of Ruby APIs in the `Dir` class, as
-            # described in https://github.com/DataDog/dd-trace-rb/issues/3450 . This workaround prevents the issue
-            # from happening by monkey patching the affected APIs.
-            #
-            # (In the future, once a fix lands upstream, we'll disable this workaround for Rubies that don't need it)
+            # described in https://bugs.ruby-lang.org/issues/20586 .
+            # This was fixed for Ruby 3.4+, and this setting is a no-op for those versions.
             #
             # @default `DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED` environment variable as a boolean,
             # otherwise `true`
@@ -461,6 +459,32 @@ module Datadog
                   end
                 end
               end
+            end
+
+            # Enables GVL profiling. This will show when threads are waiting for GVL in the timeline view.
+            #
+            # This is a preview feature and disabled by default. It requires Ruby 3.3+ although in the future we may
+            # be able to support Ruby 3.2 as well.
+            #
+            # @default `DD_PROFILING_PREVIEW_GVL_ENABLED` environment variable as a boolean, otherwise `false`
+            option :preview_gvl_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_PREVIEW_GVL_ENABLED'
+              o.default false
+            end
+
+            # Controls the smallest time period the profiler will report a thread waiting for the GVL.
+            #
+            # The default value was set to minimize overhead. Periods smaller than the set value will not be reported (e.g.
+            # the thread will be reported as whatever it was doing before it waited for the GVL).
+            #
+            # We do not recommend setting this to less than 1ms. Tweaking this value can increase application latency and
+            # memory use.
+            #
+            # @default 10_000_000 (10ms)
+            option :waiting_for_gvl_threshold_ns do |o|
+              o.type :int
+              o.default 10_000_000
             end
           end
 

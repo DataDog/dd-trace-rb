@@ -67,9 +67,10 @@ RSpec.describe Datadog::Profiling::Component do
 
           expect(settings.profiling.advanced).to receive(:max_frames).and_return(:max_frames_config)
           expect(settings.profiling.advanced)
-            .to receive(:timeline_enabled).and_return(:timeline_enabled_config)
+            .to receive(:timeline_enabled).at_least(:once).and_return(:timeline_enabled_config)
           expect(settings.profiling.advanced.endpoint.collection)
             .to receive(:enabled).and_return(:endpoint_collection_enabled_config)
+          expect(settings.profiling.advanced).to receive(:waiting_for_gvl_threshold_ns).and_return(:threshold_ns_config)
 
           expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new).with(
             recorder: dummy_stack_recorder,
@@ -77,6 +78,7 @@ RSpec.describe Datadog::Profiling::Component do
             tracer: tracer,
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             timeline_enabled: :timeline_enabled_config,
+            waiting_for_gvl_threshold_ns: :threshold_ns_config,
           )
 
           build_profiler_component
@@ -90,6 +92,7 @@ RSpec.describe Datadog::Profiling::Component do
             .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
           expect(settings.profiling.advanced)
             .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
+          expect(described_class).to receive(:enable_gvl_profiling?).and_return(:gvl_profiling_result)
 
           expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker).to receive(:new).with(
             gc_profiling_enabled: anything,
@@ -98,6 +101,7 @@ RSpec.describe Datadog::Profiling::Component do
             dynamic_sampling_rate_overhead_target_percentage: :overhead_target_percentage_config,
             allocation_profiling_enabled: false,
             allocation_counting_enabled: :allocation_counting_enabled_config,
+            gvl_profiling_enabled: :gvl_profiling_result,
           )
 
           build_profiler_component
@@ -414,7 +418,7 @@ RSpec.describe Datadog::Profiling::Component do
           allow(Datadog::Profiling::StackRecorder).to receive(:new)
 
           expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(:no_signals_result)
-          expect(settings.profiling.advanced).to receive(:timeline_enabled).and_return(:timeline_result)
+          expect(settings.profiling.advanced).to receive(:timeline_enabled).at_least(:once).and_return(:timeline_result)
           expect(settings.profiling.advanced).to receive(:experimental_heap_sample_rate).and_return(456)
           expect(Datadog::Profiling::Exporter).to receive(:new).with(
             hash_including(
@@ -543,13 +547,27 @@ RSpec.describe Datadog::Profiling::Component do
         let(:no_signals_workaround_enabled) { false }
 
         before do
-          expect(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
+          allow(described_class).to receive(:no_signals_workaround_enabled?).and_return(no_signals_workaround_enabled)
         end
 
-        it "is enabled by default" do
-          expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+        context "on Ruby >= 3.4" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.4." }
 
-          build_profiler_component
+          it "is never applied" do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
+
+            build_profiler_component
+          end
+        end
+
+        context "on Ruby < 3.4" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.4." }
+
+          it "is applied by default" do
+            expect(Datadog::Profiling::Ext::DirMonkeyPatches).to receive(:apply!)
+
+            build_profiler_component
+          end
         end
 
         context "when the no signals workaround is enabled" do
@@ -569,6 +587,57 @@ RSpec.describe Datadog::Profiling::Component do
             expect(Datadog::Profiling::Ext::DirMonkeyPatches).to_not receive(:apply!)
 
             build_profiler_component
+          end
+        end
+      end
+
+      context "when GVL profiling is requested" do
+        before do
+          settings.profiling.advanced.preview_gvl_enabled = true
+          # This triggers a warning in some Rubies so it's easier for testing to disable it
+          settings.profiling.advanced.gc_enabled = false
+        end
+
+        context "on Ruby < 3.3" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+
+          it "does not enable GVL profiling" do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+              .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
+
+            build_profiler_component
+          end
+
+          it "logs a warning" do
+            expect(Datadog.logger).to receive(:warn).with(/GVL profiling is currently not supported/)
+
+            build_profiler_component
+          end
+        end
+
+        context "on Ruby >= 3.3" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+
+          context "when timeline is enabled" do
+            before { settings.profiling.advanced.timeline_enabled = true }
+
+            it "enables GVL profiling" do
+              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+                .to receive(:new).with(hash_including(gvl_profiling_enabled: true))
+
+              build_profiler_component
+            end
+          end
+
+          context "when timeline is disabled" do
+            before { settings.profiling.advanced.timeline_enabled = false }
+
+            it "does not enable GVL profiling" do
+              expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+                .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
+
+              build_profiler_component
+            end
           end
         end
       end

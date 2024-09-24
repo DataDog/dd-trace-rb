@@ -68,6 +68,7 @@ target :datadog do
   ignore 'lib/datadog/core/metrics/metric.rb'
   ignore 'lib/datadog/core/metrics/options.rb'
   ignore 'lib/datadog/core/pin.rb'
+  ignore 'lib/datadog/core/rate_limiter.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/ext.rb'
@@ -100,6 +101,7 @@ target :datadog do
   ignore 'lib/datadog/core/workers/polling.rb'
   ignore 'lib/datadog/core/workers/queue.rb'
   ignore 'lib/datadog/core/workers/runtime_metrics.rb'
+  ignore 'lib/datadog/di/configuration/settings.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'
@@ -495,7 +497,6 @@ target :datadog do
   ignore 'lib/datadog/tracing/sampling/priority_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rate_by_key_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rate_by_service_sampler.rb'
-  ignore 'lib/datadog/tracing/sampling/rate_limiter.rb'
   ignore 'lib/datadog/tracing/sampling/rate_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/rule.rb'
   ignore 'lib/datadog/tracing/sampling/rule_sampler.rb'
@@ -569,6 +570,7 @@ target :datadog do
   library 'passenger'
   library 'webmock'
   library 'graphql'
+  library 'datadog-ci'
 
   # TODO: gem 'libddwaf'
   library 'libddwaf'

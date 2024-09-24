@@ -26,8 +26,7 @@ gem "simplecov-cobertura", "~> 2.1.0"
 gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "rexml", ">= 3.2.7"
-gem "webrick", ">= 1.7.0"
-gem "yard", "~> 0.9"
+gem "webrick", git: "https://github.com/ruby/webrick.git", ref: "0c600e169bd4ae267cb5eeb6197277c848323bbe"
 gem "rubocop", "~> 1.50.0", require: false
 gem "rubocop-packaging", "~> 0.5.2", require: false
 gem "rubocop-performance", "~> 1.9", require: false
@@ -39,7 +38,7 @@ gem "redis", "< 4.0"
 gem "resque", ">= 2.0"
 
 group :check do
-
+  gem "ruby_memcheck", ">= 3"
 end
 
 group :dev do

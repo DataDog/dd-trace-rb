@@ -41,6 +41,38 @@ def appraise(group, &block)
   end
 end
 
+# Builds a matrix of versions to test for a given integration
+#
+# `range`: the range of versions to test
+# `gem`  : optional, gem name to test (gem name can be different from the integration name)
+# `min`  : optional, minimum version to test
+# `meta` : optional, additional metadata (development dependencies, etc.) for the group
+def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
+  gem ||= integration
+
+  if min
+    appraise "#{integration}-min" do
+      gem gem, "= #{min}"
+      meta.each { |k, v| gem k, v }
+    end
+  end
+
+  range.each do |n|
+    appraise "#{integration}-#{n}" do
+      gem gem, "~> #{n}"
+      meta.each { |k, v| gem k, v }
+    end
+  end
+
+  appraise "#{integration}-latest" do
+    # The latest group declares dependencies without version constraints,
+    # still requires being updated to pick up the next major version and
+    # committing the changes to lockfiles.
+    gem gem
+    meta.each { |k, v| gem k, v }
+  end
+end
+
 major, minor, = if defined?(RUBY_ENGINE_VERSION)
                   Gem::Version.new(RUBY_ENGINE_VERSION).segments
                 else

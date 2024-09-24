@@ -8,12 +8,19 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
+GIT
+  remote: https://github.com/ruby/webrick.git
+  revision: 0c600e169bd4ae267cb5eeb6197277c848323bbe
+  ref: 0c600e169bd4ae267cb5eeb6197277c848323bbe
+  specs:
+    webrick (1.8.1)
+
 PATH
   remote: ..
   specs:
     datadog (2.3.0)
       debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 11.0.0.1.0)
+      libdatadog (~> 12.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -119,8 +126,8 @@ GEM
     json (2.7.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (11.0.0.1.0-aarch64-linux)
-    libdatadog (11.0.0.1.0-x86_64-linux)
+    libdatadog (12.0.0.1.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)
@@ -251,6 +258,8 @@ GEM
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
+    ruby_memcheck (3.0.0)
+      nokogiri
     semantic_logger (4.15.0)
       concurrent-ruby (~> 1.0)
     simplecov-cobertura (2.1.0)
@@ -277,11 +286,9 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.8.1)
     websocket-driver (0.7.6)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    yard (0.9.36)
     zeitwerk (2.6.16)
 
 PLATFORMS
@@ -321,13 +328,13 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
+  ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick (>= 1.7.0)
-  yard (~> 0.9)
+  webrick!
 
 BUNDLED WITH
    2.3.26

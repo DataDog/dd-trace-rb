@@ -28,20 +28,6 @@ module Datadog
 
             multiplex_return
           end
-
-          private
-
-          def active_trace
-            return unless defined?(Datadog::Tracing)
-
-            Datadog::Tracing.active_trace
-          end
-
-          def active_span
-            return unless defined?(Datadog::Tracing)
-
-            Datadog::Tracing.active_span
-          end
         end
       end
     end
