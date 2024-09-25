@@ -170,7 +170,7 @@ module Datadog
       end
 
       def get_metric(key)
-        @metric[key?] || (root_span && root_span.get_metric(key))
+        super || (root_span && root_span.get_metric(key))
       end
 
       def tags
