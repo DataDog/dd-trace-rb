@@ -349,7 +349,6 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
-          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
