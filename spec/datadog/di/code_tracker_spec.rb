@@ -1,6 +1,8 @@
 require "datadog/di/code_tracker"
 
 RSpec.describe Datadog::DI::CodeTracker do
+  di_test
+
   let(:tracker) do
     described_class.new
   end
