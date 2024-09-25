@@ -65,7 +65,7 @@ module Datadog
                 key = payload[:key]
                 store = payload[:store]
 
-                mapping = MAPPING[event]
+                mapping = MAPPING.fetch(event)
 
                 span.service = configuration[:cache_service]
                 span.resource = mapping[:resource]
