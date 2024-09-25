@@ -498,7 +498,7 @@ module Datadog
           trace = @trace_flush.consume!(trace_op)
           if trace && !trace.empty?
             # check if trace is not sampled
-            sample_trace(trace) unless trace.sampled?
+            sample_trace(trace) unless trace.priority_sampled?
             write(trace)
           end
         rescue StandardError => e
