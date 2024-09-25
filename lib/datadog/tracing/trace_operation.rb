@@ -2,7 +2,7 @@
 
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-
+require_relative 'tracer'
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
@@ -284,10 +284,14 @@ module Datadog
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
+        # sample the trace_operation with the tracer
+        tracer.sample_trace(self)
 
         TraceDigest.new(
           span_id: span_id,
