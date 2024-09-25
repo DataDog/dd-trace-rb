@@ -5,6 +5,8 @@ target :datadog do
 
   ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'
+  # Excluded due to https://github.com/soutaro/steep/issues/1232
+  ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/'
   ignore 'lib/datadog/appsec/contrib/auto_instrument.rb'
   ignore 'lib/datadog/appsec/contrib/integration.rb'

@@ -17,7 +17,7 @@ module Datadog
 
         def self.add_settings!: (untyped base) -> untyped
 
-        def enabled:  -> bool
+        def self.enabled:  -> bool
       end
     end
   end
