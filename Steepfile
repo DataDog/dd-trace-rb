@@ -5,6 +5,8 @@ target :datadog do
 
   ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'
+  # Excluded due to https://github.com/soutaro/steep/issues/1232
+  ignore 'lib/datadog/appsec/configuration/settings.rb'
   ignore 'lib/datadog/appsec/contrib/'
   ignore 'lib/datadog/appsec/contrib/auto_instrument.rb'
   ignore 'lib/datadog/appsec/contrib/integration.rb'
@@ -69,6 +71,8 @@ target :datadog do
   ignore 'lib/datadog/core/metrics/options.rb'
   ignore 'lib/datadog/core/pin.rb'
   ignore 'lib/datadog/core/rate_limiter.rb'
+  # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
+  ignore 'lib/datadog/core/remote/tie.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/ext.rb'
