@@ -2,7 +2,7 @@
 
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-
+require_relative 'tracer'
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
@@ -75,7 +75,9 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        remote_parent: false
+        remote_parent: false,
+        tracer: nil
+
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
@@ -98,6 +100,7 @@ module Datadog
         @profiling_enabled = profiling_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @tracer = tracer
 
         # Generic tags
         set_tags(tags) if tags
@@ -301,10 +304,14 @@ module Datadog
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
+        # sample the trace_operation with the tracer
+        tracer&.sample_trace(self) unless priority_sampled?
 
         TraceDigest.new(
           span_id: span_id,
