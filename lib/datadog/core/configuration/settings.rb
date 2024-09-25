@@ -654,10 +654,10 @@ module Datadog
           end
         end
 
-        # The monotonic clock time provider used by Datadog.
-        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
+        # The monotonic clock time provider used by Datadog. This option is internal and is used by `datadog-ci`
+        # gem to avoid traces' durations being skewed by timecop.
         #
-        # When testing, it can be helpful to use a different monotonic clock time provider.
+        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
         #
         # For [Timecop](https://rubygems.org/gems/timecop), for example,
         # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
