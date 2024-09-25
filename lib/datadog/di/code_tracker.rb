@@ -22,6 +22,14 @@ module Datadog
         @registry_lock = Mutex.new
       end
 
+      # Starts tracking loaded code.
+      #
+      # This method should generally be called early in application boot
+      # process, because any code loaded before code tracking is enabled
+      # will not be instrumentable via line probes.
+      #
+      # Normally tracking should remain active for the lifetime of the
+      # process and would not be ever stopped.
       def start
         # If this code tracker is already running, we can do nothing or
         # restart it (by disabling the trace point and recreating it).
