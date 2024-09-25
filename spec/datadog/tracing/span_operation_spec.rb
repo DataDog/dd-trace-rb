@@ -880,7 +880,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           clock_time = clock_increment
           Datadog.configure do |c|
             # Use a custom clock provider that increments by `clock_increment`
-            c.get_time_provider = lambda { |_unit = :float_second| clock_time += incr }
+            c.get_time_provider = ->(_unit = :float_second) { clock_time += incr }
           end
         end
 

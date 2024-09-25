@@ -660,10 +660,11 @@ module Datadog
         # When testing, it can be helpful to use a different monotonic clock time provider.
         #
         # For [Timecop](https://rubygems.org/gems/timecop), for example,
-        # `lambda { |unit = :float_second| ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
-        # allows Datadog features to use the real monotonic time when time is frozen with `Timecop.mock_process_clock = true`.
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # allows Datadog features to use the real monotonic time when time is frozen with
+        # `Timecop.mock_process_clock = true`.
         #
-        # @default `lambda { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
         # @return [Proc<Numeric>]
         option :get_time_provider do |o|
           o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
@@ -674,7 +675,7 @@ module Datadog
           end
 
           o.resetter do |_value|
-            lambda { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}.tap do |default|
+            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
               Core::Utils::Time.get_time_provider = default
             end
           end

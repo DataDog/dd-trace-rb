@@ -34,7 +34,6 @@ module Datadog
           define_singleton_method(:now, &block)
         end
 
-
         # Overrides the implementation of `#get_time
         # with the provided callable.
         #
@@ -42,7 +41,7 @@ module Datadog
         # indirectly calling `block` removes
         # one level of method call overhead.
         #
-        # @param block [Proc] block that accepts unit and returns timestamp in the requested unit, since some unspecified starting point
+        # @param block [Proc] block that accepts unit and returns timestamp in the requested unit
         def get_time_provider=(block)
           define_singleton_method(:get_time, &block)
         end

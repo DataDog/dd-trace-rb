@@ -1407,7 +1407,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       new_milliseconds = get_time_new_milliseconds # Capture for closure
       new_seconds = get_time_new_seconds # Capture for closure
 
-      lambda { |unit| if unit == :float_millisecond then new_milliseconds else new_seconds end}
+      ->(unit) { unit == :float_millisecond ? new_milliseconds : new_seconds }
     end
 
     context 'when default' do
@@ -1422,14 +1422,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     context 'when given a value' do
       before { set_get_time_provider }
 
-      context "when unit is :float_second" do
+      context 'when unit is :float_second' do
         it 'returns the provided time in float seconds' do
           expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
           expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
         end
       end
 
-      context "when unit is :float_millisecond" do
+      context 'when unit is :float_millisecond' do
         let(:unit) { :float_millisecond }
 
         it 'returns the provided time in float milliseconds' do
