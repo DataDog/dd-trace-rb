@@ -24,7 +24,7 @@ module Datadog
 
           def agent_transport: (untyped config) -> String
 
-          def conf_value: (String name, Object value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
+          def conf_value: (String name, untyped value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
 
           def to_value: (Object value) -> Object
 
