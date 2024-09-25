@@ -17,7 +17,7 @@ module Datadog
     # @api private
     class CodeTracker
       def initialize
-        @registry = Hash.new
+        @registry = {}
         @trace_point_lock = Mutex.new
         @registry_lock = {}
       end
