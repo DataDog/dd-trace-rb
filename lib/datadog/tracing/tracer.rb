@@ -494,7 +494,11 @@ module Datadog
       def flush_trace(trace_op)
         begin
           trace = @trace_flush.consume!(trace_op)
-          write(trace) if trace && !trace.empty?
+          if trace && !trace.empty?
+            # check if trace is not sampled
+            sample_trace(trace) unless trace.sampled?
+            write(trace)
+          end
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
             Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
