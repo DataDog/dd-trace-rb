@@ -75,7 +75,9 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        remote_parent: false
+        remote_parent: false,
+        tracer: nil
+
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
@@ -98,6 +100,7 @@ module Datadog
         @profiling_enabled = profiling_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @tracer = tracer
 
         # Generic tags
         set_tags(tags) if tags
@@ -291,7 +294,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        tracer.sample_trace(self) unless sampled?
+        tracer&.sample_trace(self) unless priority_sampled?
 
         TraceDigest.new(
           span_id: span_id,
