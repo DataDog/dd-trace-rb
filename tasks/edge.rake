@@ -11,6 +11,7 @@ namespace :edge do
       'stripe' => 'stripe',
       'elasticsearch' => 'elasticsearch',
       'opensearch' => 'opensearch-ruby',
+      'rack' => 'rack',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 
@@ -45,6 +46,7 @@ namespace :edge do
       'stripe' => 'stripe',
       'elasticsearch' => 'elasticsearch',
       'opensearch' => 'opensearch-ruby',
+      'rack' => 'rack',
       # Add more integrations here, when hey are extracted to its own isolated group
     }
 
