@@ -362,8 +362,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           it_behaves_like "samples without code hotspots information"
         end
 
-        context 'when thread has a tracer context, and a trace is in progress' do
-          let(:root_span_type) { 'not-web' }
+        context "when thread has a tracer context, and a trace is in progress" do
+          let(:root_span_type) { "not-web" }
           let(:allow_invalid_ids) { false }
 
           let(:t1) do
@@ -543,15 +543,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           def self.otel_otlp_exporter_available?
-            begin
-              require 'opentelemetry-exporter-otlp'
-              true
-            rescue LoadError
-              false
-            end
+            require "opentelemetry-exporter-otlp"
+            true
+          rescue LoadError
+            false
           end
 
-          context 'when trace comes from otel sdk', if: otel_sdk_available? && !otel_otlp_exporter_available? do
+          context "when trace comes from otel sdk", if: otel_sdk_available? && !otel_otlp_exporter_available? do
             let(:otel_tracer) do
               require "datadog/opentelemetry"
 
@@ -685,21 +683,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           context(
-            'when trace comes from otel sdk and the ddtrace otel support is not loaded',
+            "when trace comes from otel sdk and the ddtrace otel support is not loaded",
             if: otel_sdk_available? && otel_otlp_exporter_available?
           ) do
             let(:otel_tracer) do
               if defined?(Datadog::OpenTelemetry::LOADED)
-                raise 'This test should not be run with the ddtrace otel support loaded. ' \
+                raise "This test should not be run with the ddtrace otel support loaded. " \
                   "Make sure that no `require 'datadog/opentelemetry'` runs when testing this spec."
               end
 
               OpenTelemetry::SDK.configure
-              OpenTelemetry.tracer_provider.tracer('ddtrace-profiling-test')
+              OpenTelemetry.tracer_provider.tracer("ddtrace-profiling-test")
             end
             let(:t1) do
               Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                otel_tracer.in_span('profiler.test') do |span|
+                otel_tracer.in_span("profiler.test") do |span|
                   @t1_span_id = otel_span_id_to_i(span.context.span_id)
                   @t1_local_root_span_id = @t1_span_id
                   ready_queue << true
@@ -713,32 +711,32 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
 
             def otel_span_id_to_i(span_id)
-              span_id.unpack1('Q>').to_i
+              span_id.unpack1("Q>").to_i
             end
 
             it 'includes "local root span id" and "span id" labels in the samples' do
               sample
 
               expect(t1_sample.labels).to include(
-                :'local root span id' => @t1_local_root_span_id.to_i,
-                :'span id' => @t1_span_id.to_i,
+                "local root span id": @t1_local_root_span_id.to_i,
+                "span id": @t1_span_id.to_i,
               )
             end
 
             it 'does not include the "trace endpoint" label' do
               sample
 
-              expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+              expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
-            context 'when there are multiple otel spans nested' do
+            context "when there are multiple otel spans nested" do
               let(:t1) do
                 Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                  otel_tracer.in_span('profiler.test') do |root_span|
+                  otel_tracer.in_span("profiler.test") do |root_span|
                     @t1_local_root_span_id = otel_span_id_to_i(root_span.context.span_id)
-                    otel_tracer.in_span('profiler.test.nested.1') do
-                      otel_tracer.in_span('profiler.test.nested.2') do
-                        otel_tracer.in_span('profiler.test.nested.3') do |leaf_span|
+                    otel_tracer.in_span("profiler.test.nested.1") do
+                      otel_tracer.in_span("profiler.test.nested.2") do
+                        otel_tracer.in_span("profiler.test.nested.3") do |leaf_span|
                           @t1_span_id = otel_span_id_to_i(leaf_span.context.span_id)
                           ready_queue << true
                           sleep
@@ -753,21 +751,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 sample
 
                 expect(t1_sample.labels).to include(
-                  :'local root span id' => @t1_local_root_span_id.to_i,
-                  :'span id' => @t1_span_id.to_i,
+                  "local root span id": @t1_local_root_span_id.to_i,
+                  "span id": @t1_span_id.to_i,
                 )
               end
             end
 
-            context 'when the context storage contains spans related to multiple traces' do
+            context "when the context storage contains spans related to multiple traces" do
               let(:t1) do
                 Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                  otel_tracer.in_span('another.trace') do # <-- Is ignored
+                  otel_tracer.in_span("another.trace") do # <-- Is ignored
                     OpenTelemetry::Trace.with_span(
-                      otel_tracer.start_span('profiler.test', with_parent: OpenTelemetry::Context.empty)
+                      otel_tracer.start_span("profiler.test", with_parent: OpenTelemetry::Context.empty)
                     ) do |root_span|
                       @t1_local_root_span_id = otel_span_id_to_i(root_span.context.span_id)
-                      otel_tracer.in_span('profiler.test.nested.1') do |leaf_span|
+                      otel_tracer.in_span("profiler.test.nested.1") do |leaf_span|
                         @t1_span_id = otel_span_id_to_i(leaf_span.context.span_id)
                         ready_queue << true
                         sleep
@@ -781,16 +779,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 sample
 
                 expect(t1_sample.labels).to include(
-                  :'local root span id' => @t1_local_root_span_id.to_i,
-                  :'span id' => @t1_span_id.to_i,
+                  "local root span id": @t1_local_root_span_id.to_i,
+                  "span id": @t1_span_id.to_i,
                 )
               end
             end
 
-            context 'when local root span kind is :server' do
+            context "when local root span kind is :server" do
               let(:t1) do
                 Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                  otel_tracer.in_span('profiler.test', kind: :server) do |span|
+                  otel_tracer.in_span("profiler.test", kind: :server) do |span|
                     @t1_span_id = otel_span_id_to_i(span.context.span_id)
                     @t1_local_root_span_id = @t1_span_id
                     ready_queue << true
@@ -802,17 +800,17 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               it 'includes the "trace endpoint" label' do
                 sample
 
-                expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+                expect(t1_sample.labels).to include("trace endpoint": "profiler.test")
               end
 
-              context 'when there are multiple otel spans nested' do
+              context "when there are multiple otel spans nested" do
                 let(:t1) do
                   Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
-                    otel_tracer.in_span('profiler.test', kind: :server) do |root_span|
+                    otel_tracer.in_span("profiler.test", kind: :server) do |root_span|
                       @t1_local_root_span_id = otel_span_id_to_i(root_span.context.span_id)
-                      otel_tracer.in_span('profiler.test.nested.1') do
-                        otel_tracer.in_span('profiler.test.nested.2') do
-                          otel_tracer.in_span('profiler.test.nested.3') do |leaf_span|
+                      otel_tracer.in_span("profiler.test.nested.1") do
+                        otel_tracer.in_span("profiler.test.nested.2") do
+                          otel_tracer.in_span("profiler.test.nested.3") do |leaf_span|
                             @t1_span_id = otel_span_id_to_i(leaf_span.context.span_id)
                             ready_queue << true
                             sleep
@@ -826,31 +824,31 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 it 'includes the "trace endpoint" label set to the root span name' do
                   sample
 
-                  expect(t1_sample.labels).to include(:'trace endpoint' => 'profiler.test')
+                  expect(t1_sample.labels).to include("trace endpoint": "profiler.test")
                 end
               end
 
-              context 'when endpoint_collection_enabled is false' do
+              context "when endpoint_collection_enabled is false" do
                 let(:endpoint_collection_enabled) { false }
 
                 it 'still includes "local root span id" and "span id" labels in the samples' do
                   sample
 
                   expect(t1_sample.labels).to include(
-                    :'local root span id' => @t1_local_root_span_id.to_i,
-                    :'span id' => @t1_span_id.to_i,
+                    "local root span id": @t1_local_root_span_id.to_i,
+                    "span id": @t1_span_id.to_i,
                   )
                 end
 
                 it 'does not include the "trace endpoint" label' do
                   sample
 
-                  expect(t1_sample.labels).to_not include(:'trace endpoint' => anything)
+                  expect(t1_sample.labels).to_not include("trace endpoint": anything)
                 end
               end
             end
 
-            context 'when current span is invalid' do
+            context "when current span is invalid" do
               let(:allow_invalid_ids) { true }
 
               let(:t1) do
@@ -872,26 +870,26 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 sample
 
                 expect(t1_sample.labels).to_not include(
-                  :'local root span id' => anything,
-                  :'span id' => anything,
+                  "local root span id": anything,
+                  "span id": anything,
                 )
               end
             end
           end
 
-          context 'when trace comes from otel sdk (warning)', unless: otel_sdk_available? do
-            it 'is not being tested' do
-              skip 'Skipping OpenTelemetry tests because `opentelemetry-sdk` gem is not available'
+          context "when trace comes from otel sdk (warning)", unless: otel_sdk_available? do
+            it "is not being tested" do
+              skip "Skipping OpenTelemetry tests because `opentelemetry-sdk` gem is not available"
             end
           end
 
-          context 'when trace comes from otel sdk (warning)', if: otel_sdk_available? do
-            not_being_tested = otel_otlp_exporter_available? ? 'otel sdk with ddtrace' : 'otel sdk without ddtrace'
+          context "when trace comes from otel sdk (warning)", if: otel_sdk_available? do
+            not_being_tested = otel_otlp_exporter_available? ? "otel sdk with ddtrace" : "otel sdk without ddtrace"
 
             it "#{not_being_tested} is not being tested" do
-              skip 'The tests for otel sdk with and without ddtrace are mutually exclusive, because ddtrace monkey ' \
-                'patches the otel sdk in a way that makes it hard to remove. To test both configurations, run this ' \
-                'spec with and without `opentelemetry-exporter-otlp` on your Gemfile (hint: can be done using appraisals).'
+              skip "The tests for otel sdk with and without ddtrace are mutually exclusive, because ddtrace monkey " \
+                "patches the otel sdk in a way that makes it hard to remove. To test both configurations, run this " \
+                "spec with and without `opentelemetry-exporter-otlp` on your Gemfile (hint: can be done using appraisals)."
             end
           end
         end
