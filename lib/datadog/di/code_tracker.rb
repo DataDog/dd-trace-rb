@@ -93,9 +93,8 @@ module Datadog
       def iseqs_for_path(suffix)
         registry_lock.synchronize do
           exact = registry[suffix]
-          if exact
-            return [exact]
-          end
+          return [exact] if exact
+
           inexact = []
           registry.each do |path, iseq|
             # Exact match is not possible here, meaning any matching path
