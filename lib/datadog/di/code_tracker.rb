@@ -31,42 +31,31 @@ module Datadog
       # Normally tracking should remain active for the lifetime of the
       # process and would not be ever stopped.
       def start
-        # If this code tracker is already running, we can do nothing or
-        # restart it (by disabling the trace point and recreating it).
-        # It is likely that some applications will attempt to activate
-        # DI more than once where the intention is to just activate DI;
-        # do not break such applications by clearing out the registry.
-        # For now, until there is a use case for recreating the trace point,
-        # do nothing if the code tracker has already started.
-        return if active?
-
-        compiled_trace_point = TracePoint.trace(:script_compiled) do |tp|
-          # Useful attributes of the trace point object here:
-          # .instruction_sequence
-          # .method_id
-          # .path (refers to the code location that called the require/eval/etc.,
-          #   not where the loaded code is; use .path on the instruction sequence
-          #   to obtain the location of the compiled code)
-          # .eval_script
-          #
-          # For now just map the path to the instruction sequence.
-          path = tp.instruction_sequence.path
-          registry_lock.synchronize do
-            registry[path] = tp.instruction_sequence
-          end
-        end
-
         trace_point_lock.synchronize do
-          # Since trace point creation itself is not under a lock, see if
-          # another thread created the trace point, in which case we can
-          # disable our trace point and do nothing.
-          if @compiled_trace_point
-            # Disable the local variable, leave instance variable as it is.
-            compiled_trace_point.disable
-            return
-          end
+          # If this code tracker is already running, we can do nothing or
+          # restart it (by disabling the trace point and recreating it).
+          # It is likely that some applications will attempt to activate
+          # DI more than once where the intention is to just activate DI;
+          # do not break such applications by clearing out the registry.
+          # For now, until there is a use case for recreating the trace point,
+          # do nothing if the code tracker has already started.
+          return if @compiled_trace_point
 
-          @compiled_trace_point = compiled_trace_point
+          @compiled_trace_point = TracePoint.trace(:script_compiled) do |tp|
+            # Useful attributes of the trace point object here:
+            # .instruction_sequence
+            # .method_id
+            # .path (refers to the code location that called the require/eval/etc.,
+            #   not where the loaded code is; use .path on the instruction sequence
+            #   to obtain the location of the compiled code)
+            # .eval_script
+            #
+            # For now just map the path to the instruction sequence.
+            path = tp.instruction_sequence.path
+            registry_lock.synchronize do
+              registry[path] = tp.instruction_sequence
+            end
+          end
         end
       end
 
