@@ -1,6 +1,9 @@
+require "datadog/di/spec_helper"
 require "datadog/di/probe"
 
 RSpec.describe Datadog::DI::Probe do
+  di_test
+
   shared_context "method probe" do
     let(:probe) do
       described_class.new(id: "42", type: "foo", type_name: "Foo", method_name: "bar")
