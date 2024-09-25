@@ -19,7 +19,7 @@ module Datadog
       def initialize
         @registry = Hash.new
         @trace_point_lock = Mutex.new
-        @registry_lock = Hash.new
+        @registry_lock = {}
       end
 
       def start
