@@ -1392,6 +1392,73 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     end
   end
 
+  describe '#get_time_provider=' do
+    subject(:set_get_time_provider) { settings.get_time_provider = get_time_provider }
+
+    after { settings.reset! }
+
+    let(:get_time) { 1 }
+
+    let(:get_time_new_milliseconds) { 42 }
+    let(:get_time_new_seconds) { 0.042 }
+
+    let(:unit) { :float_second }
+    let(:get_time_provider) do
+      new_milliseconds = get_time_new_milliseconds # Capture for closure
+      new_seconds = get_time_new_seconds # Capture for closure
+
+      lambda { |unit| if unit == :float_millisecond then new_milliseconds else new_seconds end}
+    end
+
+    context 'when default' do
+      before { allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(1) }
+
+      it 'delegates to Process.clock_gettime' do
+        expect(settings.get_time_provider.call(unit)).to eq(get_time)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time)
+      end
+    end
+
+    context 'when given a value' do
+      before { set_get_time_provider }
+
+      context "when unit is :float_second" do
+        it 'returns the provided time in float seconds' do
+          expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
+          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
+        end
+      end
+
+      context "when unit is :float_millisecond" do
+        let(:unit) { :float_millisecond }
+
+        it 'returns the provided time in float milliseconds' do
+          expect(settings.get_time_provider.call(unit)).to eq(get_time_new_milliseconds)
+          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_milliseconds)
+        end
+      end
+    end
+
+    context 'then reset' do
+      let(:original_get_time) { 1 }
+
+      before do
+        set_get_time_provider
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(original_get_time)
+      end
+
+      it 'returns the provided time' do
+        expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
+
+        settings.reset!
+
+        expect(settings.get_time_provider.call(unit)).to eq(original_get_time)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(original_get_time)
+      end
+    end
+  end
+
   # Important note: These settings are used as inputs of the AgentSettingsResolver and are used by all components
   # that consume its result (e.g. tracing, profiling, and telemetry, as of January 2023).
   describe '#agent' do

@@ -654,6 +654,21 @@ module Datadog
           end
         end
 
+        option :get_time_provider do |o|
+          o.default_proc { |unit| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.type :proc
+
+          o.after_set do |get_time_provider|
+            Core::Utils::Time.get_time_provider = get_time_provider
+          end
+
+          o.resetter do |_value|
+            lambda { |unit| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}.tap do |default|
+              Core::Utils::Time.get_time_provider = default
+            end
+          end
+        end
+
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_VERSION` environment variable, otherwise `nils`

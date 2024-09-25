@@ -34,6 +34,19 @@ module Datadog
           define_singleton_method(:now, &block)
         end
 
+
+        # Overrides the implementation of `#get_time
+        # with the provided callable.
+        #
+        # Overriding the method `#get_time` instead of
+        # indirectly calling `block` removes
+        # one level of method call overhead.
+        #
+        # @param block [Proc] block that accepts unit and returns timestamp in the requested unit, since some unspecified starting point
+        def get_time_provider=(block)
+          define_singleton_method(:get_time, &block)
+        end
+
         def measure(unit = :float_second)
           before = get_time(unit)
           yield
