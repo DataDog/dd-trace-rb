@@ -291,7 +291,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        tracer.sample_trace(self) if @sampled.nil?
+        tracer.sample_trace(self) unless sampled?
 
         TraceDigest.new(
           span_id: span_id,
