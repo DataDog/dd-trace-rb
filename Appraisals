@@ -53,14 +53,14 @@ def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
   if min
     appraise "#{integration}-min" do
       gem gem, "= #{min}"
-      meta.each { |k, v| gem k, v }
+      meta.each { |k, v| v ? gem(k, v) : gem(k) }
     end
   end
 
   range.each do |n|
     appraise "#{integration}-#{n}" do
       gem gem, "~> #{n}"
-      meta.each { |k, v| gem k, v }
+      meta.each { |k, v| v ? gem(k, v) : gem(k) }
     end
   end
 
@@ -69,7 +69,7 @@ def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
     # still requires being updated to pick up the next major version and
     # committing the changes to lockfiles.
     gem gem
-    meta.each { |k, v| gem k, v }
+    meta.each { |k, v| v ? gem(k, v) : gem(k) }
   end
 end
 
