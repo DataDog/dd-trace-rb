@@ -53,7 +53,7 @@ GEM
     elasticsearch-api (8.15.0)
       multi_json
     extlz4 (0.3.4)
-    faraday (1.10.3)
+    faraday (1.10.4)
       faraday-em_http (~> 1.0)
       faraday-em_synchrony (~> 1.0)
       faraday-excon (~> 1.1)

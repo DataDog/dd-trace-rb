@@ -5,6 +5,7 @@ module Datadog
         def self?.get_time: (?::Symbol unit) -> ::Numeric
         def self?.now: () -> ::Time
         def self?.now_provider=: (^() -> ::Time block) -> void
+        def self?.get_time_provider=: (^(?::Symbol unit) -> ::Numeric block) -> void
         def self?.measure: (?::Symbol unit) { () -> void } -> ::Numeric
         def self?.as_utc_epoch_ns: (::Time time) -> ::Integer
       end

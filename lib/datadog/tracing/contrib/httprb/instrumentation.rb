@@ -110,6 +110,9 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response.headers)
               )
+            rescue StandardError => e
+              logger.error("error preparing span from http.rb response: #{e}, Source: #{e.backtrace}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def annotate_span_with_error!(span, error)
