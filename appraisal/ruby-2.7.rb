@@ -220,13 +220,7 @@ end
   end
 end
 
-[1, 2, 3].each do |n|
-  appraise "rack-#{n}" do
-    gem 'rack', "~> #{n}"
-    gem 'rack-contrib'
-    gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
+build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 # Sinatra 4 requires Ruby (>= 2.7.8), but current image with Ruby 2.7.6
 [2, 3].each do |n|
