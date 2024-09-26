@@ -31,7 +31,6 @@ GEM
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
@@ -156,7 +155,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
@@ -187,4 +185,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26
