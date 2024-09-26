@@ -1,6 +1,9 @@
+require "datadog/di/spec_helper"
 require "datadog/di/probe_builder"
 
 RSpec.describe Datadog::DI::ProbeBuilder do
+  di_test
+
   describe ".build_from_remote_config" do
     let(:probe) do
       described_class.build_from_remote_config(rc_probe_spec)
