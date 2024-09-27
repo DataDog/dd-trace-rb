@@ -39,6 +39,11 @@ module Datadog
                   Contrib::HTTP.inject(trace, req)
                 end
 
+                if Datadog.configuration.appsec.standalone.enabled &&
+                    (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1')
+                  trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+                end
+
                 # Add additional request specific tags to the span.
                 annotate_span_with_request!(span, req, request_options)
 
