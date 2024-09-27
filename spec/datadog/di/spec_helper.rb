@@ -6,7 +6,7 @@ module DIHelpers
           skip "Dynamic instrumentation is not supported on JRuby"
         end
       end
-      if RUBY_VERSION < '2.6'
+      if RUBY_VERSION < "2.6"
         before(:all) do
           skip "Dynamic instrumentation requires Ruby 2.6 or higher"
         end
