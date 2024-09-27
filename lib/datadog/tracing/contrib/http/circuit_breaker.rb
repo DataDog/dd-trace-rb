@@ -29,6 +29,14 @@ module Datadog
           end
 
           def should_skip_distributed_tracing?(client_config)
+            if Datadog.configuration.appsec.standalone.enabled
+              active_trace = Tracing.active_trace
+
+              # return true if absence of upstream ASM event (_dd.p.appsec:1)
+              # and no local security event (which sets _dd.p.appsec:1 locally)
+              return true if active_trace.nil? || active_trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1'
+            end
+
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 
             !Datadog.configuration.tracing[:http][:distributed_tracing]
