@@ -43,7 +43,6 @@ GEM
     binding_of_caller (1.0.1)
       debug_inspector (>= 1.2.0)
     bson (4.15.0)
-    builder (3.3.0)
     bunny (2.22.0)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -231,7 +230,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   dalli (>= 3.0.0)

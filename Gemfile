@@ -5,7 +5,7 @@ gemspec
 gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
-gem 'builder'
+
 gem 'climate_control', '~> 0.2.0'
 
 gem 'concurrent-ruby'
