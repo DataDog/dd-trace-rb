@@ -56,6 +56,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   describe '::new' do
     let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
     let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
+    let(:crashtracker) { CrashtrackingHelpers.supported? ? instance_double(Datadog::Core::Crashtracking::Component) : nil }
     let(:runtime_metrics) { instance_double(Datadog::Core::Workers::RuntimeMetrics) }
     let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics) }
 
@@ -67,7 +68,6 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(described_class).to receive(:build_tracer)
         .with(settings, agent_settings, logger: logger)
         .and_return(tracer)
-      crashtracker = double('crashtracker')
       expect(described_class).to receive(:build_crashtracker)
         .with(settings, agent_settings, logger: logger)
         .and_return(crashtracker)
@@ -1148,6 +1148,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.health_metrics.statsd).to receive(:close)
         expect(components.telemetry).to receive(:emit_closing!)
         expect(components.telemetry).to receive(:stop!)
+        expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
         shutdown!
       end
@@ -1165,6 +1166,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
         let(:statsd) { instance_double(::Datadog::Statsd) }
         let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+        let(:crashtracker) { CrashtrackingHelpers.supported? ? instance_double(Datadog::Core::Crashtracking::Component) : nil }
 
         before do
           allow(replacement).to receive(:tracer).and_return(tracer)
@@ -1174,6 +1176,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
           allow(replacement).to receive(:telemetry).and_return(telemetry)
+          allow(replacement).to receive(:crashtracker).and_return(crashtracker)
         end
       end
 
@@ -1190,6 +1193,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:stop!)
+          expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
           shutdown!
         end
@@ -1209,6 +1213,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             expect(components.health_metrics.statsd).to receive(:close)
             expect(components.remote).to receive(:shutdown!)
             expect(components.telemetry).to receive(:stop!)
+            expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
             shutdown!
           end
@@ -1229,6 +1234,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:stop!)
+          expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
           shutdown!
         end
@@ -1248,6 +1254,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.health_metrics.statsd).to receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:stop!)
+          expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
           shutdown!
         end
@@ -1268,6 +1275,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.health_metrics.statsd).to_not receive(:close)
           expect(components.remote).to receive(:shutdown!)
           expect(components.telemetry).to receive(:stop!)
+          expect(components.crashtracker).to receive(:stop) unless components.crashtracker.nil?
 
           shutdown!
         end
