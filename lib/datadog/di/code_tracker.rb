@@ -103,11 +103,9 @@ module Datadog
             # therefore simply permitting forward or back slash is not
             # sufficient, we need to perform an OS check to know which
             # path separator to use.
-            if path.length > suffix.length && (
-              path[path.length - suffix.length - 1] == "/" ||
-              suffix[0] == "/"
-            ) && path.end_with?(suffix)
-              inexact << iseq
+            if path.length > suffix.length && path.end_with?(suffix)
+              previous_char = path[path.length - suffix.length - 1]
+              inexact << iseq if (previous_char == "/" || suffix[0] == "/")
             end
           end
           inexact
