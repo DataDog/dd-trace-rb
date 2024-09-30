@@ -218,7 +218,7 @@ static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t ext
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_recording(heap_recorder*, heap_record*, recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
-static double inline ewma_stat(double previous, double current);
+static inline double ewma_stat(double previous, double current);
 
 // ==========================
 // Heap Recorder External API
@@ -1188,7 +1188,7 @@ st_index_t heap_record_key_hash_st(st_data_t key) {
   }
 }
 
-static double inline ewma_stat(double previous, double current) {
+static inline double ewma_stat(double previous, double current) {
   double alpha = 0.3;
   return (1 - alpha) * previous + alpha * current;
 }
