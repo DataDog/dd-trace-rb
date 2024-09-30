@@ -537,13 +537,14 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   long heap_iteration_prep_start_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
   bool apparent_gc_notification_failure = rb_gc_count() > state->last_notified_gc_gen + GC_GEN_TOLERANCE;
-  if (apparent_gc_notification_failure) {
-    // We'll force-trigger heap recorder updates before flushing if we suspect the GC notification to be
-    // broken (i.e. the view of GC activity tracked in stack_recorder does not match that of the runtime).
-    // Forcing full updates before flushing acts as a last resort layer to prevent heap recorder data from
-    // becoming too stale and growing unbounded over time.
-    heap_recorder_update(state->heap_recorder, apparent_gc_notification_failure);
-  }
+  // Ask for a heap recorder update before serialization. Assuming the GC notification system is working
+  // correctly, this will usually be a no-op (heap recorder will skip updates for the same GC generation).
+  // It will only do something in 2 situations:
+  // * _native_serialize won the race and got to call update before the notification system did so.
+  // * We suspect the GC notification to be broken (i.e. the view of GC activity tracked in stack_recorder
+  //   does not match that of the runtime). In this case, we'll force a full update before serialization
+  //   as we can't trust heap recorder to not be overly stale.
+  heap_recorder_update(state->heap_recorder, apparent_gc_notification_failure);
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
 
