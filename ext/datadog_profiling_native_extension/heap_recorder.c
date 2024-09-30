@@ -5,6 +5,8 @@
 #include <errno.h>
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
+#include "time_helpers.h"
+#include "collectors_gc_profiling_helper.h"
 
 #if (defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG))
   #define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
@@ -20,6 +22,12 @@
 // to align with Ruby's GC definition of what constitutes an old object which are only
 // supposed to be reclaimed in major GCs.
 #define OLD_AGE 3
+// Wait at least 2 seconds before asking heap recorder to explicitly update itself. Heap recorder
+// data will only materialize at profile serialization time but updating often helps keep our
+// heap tracking data small since every GC should get rid of a bunch of temporary objects. The
+// more we clean up before profile flush, the less work we'll have to do all-at-once when preparing
+// to flush heap data and holding the GVL which should hopefully help with reducing latency impact.
+#define MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS SECONDS_AS_NS(2)
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
@@ -148,14 +156,23 @@ struct heap_recorder {
   // mutation of the data so iteration can occur without acquiring a lock.
   // NOTE: Contrary to object_records, this table has no ownership of its data.
   st_table *object_records_snapshot;
+  // Is there a pending update due to a conflict with an ongoing iteration?
+  // If there is, we'll want to re-issue it after we finish the iteration.
+  bool pending_update;
+  // Was that pending update forced to be a full update?
+  bool pending_update_forced_full;
   // The GC gen/epoch/count in which we are updating (or last updated if not currently updating).
   //
-  // This enables us to calculate the age of iterated objects in the above snapshot by
-  // comparing it against an object's alloc_gen.
+  // This enables us to calculate the age of objects considered in the update by comparing it
+  // against an object's alloc_gen.
   size_t update_gen;
   // Whether the current update (or last update if not currently updating) is including old
   // objects or not.
   bool update_include_old;
+  // When did we do the last update of heap recorder?
+  long last_update_ns;
+  // Did we see a major GC since then?
+  bool last_update_major_gc_since;
 
   // Data for a heap recording that was started but not yet ended
   recording active_recording;
@@ -172,6 +189,17 @@ struct heap_recorder {
     size_t objects_skipped;
     size_t objects_frozen;
   } stats_last_update;
+
+  struct stats_lifetime {
+    unsigned long updates_successful;
+    unsigned long updates_skipped_time;
+    unsigned long updates_skipped_gcgen;
+    unsigned long updates_forced;
+
+    double ewma_objects_alive;
+    double ewma_objects_dead;
+    double ewma_objects_skipped;
+  } stats_lifetime;
 };
 
 struct end_heap_allocation_args {
@@ -190,6 +218,7 @@ static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t ext
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_recording(heap_recorder*, heap_record*, recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
+static double inline ewma_stat(double previous, double current);
 
 // ==========================
 // Heap Recorder External API
@@ -287,6 +316,9 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   if (heap_recorder->object_records_snapshot != NULL) {
     heap_recorder_finish_iteration(heap_recorder);
   }
+
+  // Clear lifetime stats since this is essentially a new heap recorder
+  heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
 void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class) {
@@ -401,40 +433,63 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   return Qnil;
 }
 
-bool heap_recorder_update(heap_recorder *heap_recorder, bool include_old) {
+void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) {
   if (heap_recorder == NULL) {
-    return false;
+    return;
   }
 
   if (heap_recorder->object_records_snapshot != NULL) {
-    // If we're currently iterating, fail the update. Although we iterate on a snapshot of object_records,
-    // these records point to other data that has not been snapshotted for efficiency reasons (e.g. heap_records).
-    // Since there's a chance that updating may invalidate some of that non-snapshotted data, lets refrain from
-    // doing updates during iteration. This also enforces the semantic that iteration will operate as a point-in-time
-    // snapshot.
-    return false;
+    // If we're currently iterating, don't do the update now, we'll do it when we finish the iteration.
+    // Although we iterate on a snapshot of object_records, these records point to other data that has not been
+    // snapshotted for efficiency reasons (e.g. heap_records). Since there's a chance that updating may invalidate
+    // some of that non-snapshotted data, lets refrain from doing updates during iteration. This also enforces the
+    // semantic that iteration will operate as a point-in-time snapshot.
+    heap_recorder->pending_update = true;
+    heap_recorder->pending_update_forced_full = force_full_update;
+    return;
   }
 
   size_t current_gc_gen = rb_gc_count();
 
-  if (current_gc_gen == heap_recorder->update_gen && (heap_recorder->update_include_old || !include_old)) {
-    // Are we still in the same GC gen as last update? If so, skip updating (without signalling failure)
-    // since things should not have changed significantly since last time.
+  bool last_update_included_old = heap_recorder->update_include_old;
+  bool this_update_should_include_old = heap_recorder->last_update_major_gc_since || force_full_update;
+
+  if (current_gc_gen == heap_recorder->update_gen && !force_full_update && (last_update_included_old || !this_update_should_include_old)) {
+    // Are we still in the same GC gen as last update? If so, skip updating since things should not have
+    // changed significantly since last time (especially if last time already included old objects or
+    // if this update is not going to look at old objects). But skip signalling success/no-op.
     // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
     // GC steps and sizes may change. But because we have to iterate through all our tracked
     // object records to do an update, lets wait until all steps for a particular GC generation
     // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
-    return true;
+    heap_recorder->stats_lifetime.updates_skipped_gcgen++;
+    return;
   }
 
-  heap_recorder->update_gen = current_gc_gen;
-  heap_recorder->update_include_old = include_old;
+  long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
+
+  if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS && !force_full_update) {
+    // We did an update not too long ago. Lets skip this one with a no-op unless we were forced.
+    heap_recorder->stats_lifetime.updates_skipped_time++;
+    return;
+  }
 
   // Reset last update stats, we'll be building them from scratch during the st_foreach call below
-  heap_recorder->stats_last_update = (struct stats_last_update) {};
+  heap_recorder->stats_last_update = (struct stats_last_update) {0};
+
+  heap_recorder->update_gen = current_gc_gen;
+  heap_recorder->update_include_old = this_update_should_include_old;
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
-  return true;
+
+  heap_recorder->last_update_major_gc_since = false;
+  heap_recorder->last_update_ns = now_ns;
+  heap_recorder->stats_lifetime.updates_successful++;
+
+  // Lifetime stats updating
+  heap_recorder->stats_lifetime.ewma_objects_alive = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_alive, heap_recorder->stats_last_update.objects_alive);
+  heap_recorder->stats_lifetime.ewma_objects_dead = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_dead, heap_recorder->stats_last_update.objects_dead);
+  heap_recorder->stats_lifetime.ewma_objects_skipped = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_skipped, heap_recorder->stats_last_update.objects_skipped);
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
@@ -465,6 +520,10 @@ void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
 
   st_free_table(heap_recorder->object_records_snapshot);
   heap_recorder->object_records_snapshot = NULL;
+
+  if (heap_recorder->pending_update) {
+    heap_recorder_update(heap_recorder, heap_recorder->pending_update_forced_full);
+  }
 }
 
 // Internal data we need while performing iteration over live objects.
@@ -510,6 +569,15 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("last_update_objects_dead")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_dead),
     ID2SYM(rb_intern("last_update_objects_skipped")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_skipped),
     ID2SYM(rb_intern("last_update_objects_frozen")), /* => */ LONG2NUM(heap_recorder->stats_last_update.objects_frozen),
+
+    // Lifetime stats
+    ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_successful),
+    ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
+    ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
+    ID2SYM(rb_intern("lifetime_updates_forced")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_forced),
+    ID2SYM(rb_intern("lifetime_ewma_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_alive),
+    ID2SYM(rb_intern("lifetime_ewma_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_dead),
+    ID2SYM(rb_intern("lifetime_ewma_objects_skipped")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_skipped),
   };
   VALUE hash = rb_hash_new();
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(hash, arguments[i], arguments[i+1]);
@@ -1106,4 +1174,9 @@ st_index_t heap_record_key_hash_st(st_data_t key) {
   } else {
     return ddog_location_slice_hash(*record_key->location_slice, FNV1_32A_INIT);
   }
+}
+
+static double inline ewma_stat(double previous, double current) {
+  double alpha = 0.3;
+  return (1 - alpha) * previous + alpha * current;
 }
