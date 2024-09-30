@@ -631,6 +631,9 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
 
   VALUE debug_str = rb_str_new2("object records:\n");
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) debug_str);
+
+  rb_str_catf(debug_str, "\nstate snapshot:%"PRIsVALUE"\n", heap_recorder_state_snapshot(heap_recorder));
+
   return debug_str;
 }
 
