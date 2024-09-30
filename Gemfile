@@ -82,9 +82,7 @@ end
 
 group :check do
   if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
-    # Go back to released version of rbs when
-    # https://github.com/ruby/rbs/pull/2027 is included in them.
-    gem 'rbs', github: 'datadog/rbs', branch: 'iseq'
+    gem 'rbs', '~> 3.6', require: false
     gem 'steep', '~> 1.7.0', require: false
   end
   gem 'ruby_memcheck', '>= 3' if RUBY_VERSION >= '3.4.0' && RUBY_PLATFORM != 'java'
