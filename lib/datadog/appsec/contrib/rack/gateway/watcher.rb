@@ -48,6 +48,11 @@ module Datadog
 
                         # Propagate to downstream services the information that the current distributed trace is
                         # containing at least one ASM security event
+                        scope.trace.keep!
+                        scope.trace.set_tag(
+                          Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                          Datadog::Tracing::Sampling::Ext::Decision::ASM
+                        )
                         scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
 
                         scope.processor_context.events << event
@@ -96,6 +101,11 @@ module Datadog
 
                         # Propagate to downstream services the information that the current distributed trace is
                         # containing at least one ASM security event
+                        scope.trace.keep!
+                        scope.trace.set_tag(
+                          Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                          Datadog::Tracing::Sampling::Ext::Decision::ASM
+                        )
                         scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
 
                         scope.processor_context.events << event
@@ -144,6 +154,11 @@ module Datadog
 
                         # Propagate to downstream services the information that the current distributed trace is
                         # containing at least one ASM security event
+                        scope.trace.keep!
+                        scope.trace.set_tag(
+                          Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+                          Datadog::Tracing::Sampling::Ext::Decision::ASM
+                        )
                         scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
 
                         scope.processor_context.events << event

@@ -35,13 +35,13 @@ module Datadog
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
-                  Contrib::HTTP.inject(trace, req)
-                end
-
                 if Datadog.configuration.appsec.standalone.enabled &&
                     (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1')
                   trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+                end
+
+                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
+                  Contrib::HTTP.inject(trace, req)
                 end
 
                 # Add additional request specific tags to the span.
