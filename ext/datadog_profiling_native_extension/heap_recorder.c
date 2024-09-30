@@ -161,6 +161,8 @@ struct heap_recorder {
   bool pending_update;
   // Was that pending update forced to be a full update?
   bool pending_update_forced_full;
+  // Are we currently updating or not?
+  bool updating;
   // The GC gen/epoch/count in which we are updating (or last updated if not currently updating).
   //
   // This enables us to calculate the age of objects considered in the update by comparing it
@@ -192,8 +194,9 @@ struct heap_recorder {
 
   struct stats_lifetime {
     unsigned long updates_successful;
-    unsigned long updates_skipped_time;
+    unsigned long updates_skipped_concurrent;
     unsigned long updates_skipped_gcgen;
+    unsigned long updates_skipped_time;
     unsigned long updates_forced;
 
     double ewma_objects_alive;
@@ -454,26 +457,39 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
   bool last_update_included_old = heap_recorder->update_include_old;
   bool this_update_should_include_old = heap_recorder->last_update_major_gc_since || force_full_update;
 
-  if (current_gc_gen == heap_recorder->update_gen && !force_full_update && (last_update_included_old || !this_update_should_include_old)) {
-    // Are we still in the same GC gen as last update? If so, skip updating since things should not have
-    // changed significantly since last time (especially if last time already included old objects or
-    // if this update is not going to look at old objects). But skip signalling success/no-op.
-    // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
-    // GC steps and sizes may change. But because we have to iterate through all our tracked
-    // object records to do an update, lets wait until all steps for a particular GC generation
-    // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
-    heap_recorder->stats_lifetime.updates_skipped_gcgen++;
-    return;
-  }
-
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
-  if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS && !force_full_update) {
-    // We did an update not too long ago. Lets skip this one with a no-op unless we were forced.
-    heap_recorder->stats_lifetime.updates_skipped_time++;
+  if (!force_full_update) {
+    if (current_gc_gen == heap_recorder->update_gen && (last_update_included_old || !this_update_should_include_old)) {
+      // Are we still in the same GC gen as last update? If so, skip updating since things should not have
+      // changed significantly since last time (especially if last time already included old objects or
+      // if this update is not going to look at old objects). But skip signalling success/no-op.
+      // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
+      // GC steps and sizes may change. But because we have to iterate through all our tracked
+      // object records to do an update, lets wait until all steps for a particular GC generation
+      // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
+      heap_recorder->stats_lifetime.updates_skipped_gcgen++;
+      return;
+    }
+
+    if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS) {
+      // We did an update not too long ago. Lets skip this one with a no-op unless we were forced.
+      heap_recorder->stats_lifetime.updates_skipped_time++;
+      return;
+    }
+  } else {
+    heap_recorder->stats_lifetime.updates_forced++;
+  }
+
+  if (heap_recorder->updating) {
+    // If we try to update while another update is still running, short-circuit.
+    // NOTE: This runs while holding the GVL. But since updates may be triggered from GC activity, there's still
+    //       a chance for updates to be attempted concurrently if scheduling gods so determine.
+    heap_recorder->stats_lifetime.updates_skipped_concurrent++;
     return;
   }
 
+  heap_recorder->updating = true;
   // Reset last update stats, we'll be building them from scratch during the st_foreach call below
   heap_recorder->stats_last_update = (struct stats_last_update) {0};
 
@@ -490,6 +506,8 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
   heap_recorder->stats_lifetime.ewma_objects_alive = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_alive, heap_recorder->stats_last_update.objects_alive);
   heap_recorder->stats_lifetime.ewma_objects_dead = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_dead, heap_recorder->stats_last_update.objects_dead);
   heap_recorder->stats_lifetime.ewma_objects_skipped = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_skipped, heap_recorder->stats_last_update.objects_skipped);
+
+  heap_recorder->updating = false;
 }
 
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
@@ -572,6 +590,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
 
     // Lifetime stats
     ID2SYM(rb_intern("lifetime_updates_successful")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_successful),
+    ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
     ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
     ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
     ID2SYM(rb_intern("lifetime_updates_forced")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_forced),
