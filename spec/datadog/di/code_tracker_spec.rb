@@ -8,12 +8,6 @@ RSpec.describe Datadog::DI::CodeTracker do
     described_class.new
   end
 
-  describe ".new" do
-    it "creates an instance" do
-      expect(tracker).to be_a(described_class)
-    end
-  end
-
   describe "#start" do
     after do
       tracker.stop
