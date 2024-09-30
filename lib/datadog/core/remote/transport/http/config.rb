@@ -42,7 +42,7 @@ module Datadog
                 begin
                   payload = JSON.parse(http_response.payload, symbolize_names: true)
                 rescue JSON::ParserError => e
-                  raise ParseError.new(:roots, e)
+                  raise ResponseParseError, "Failed to parse remote config response as JSON: #{e.class}: #{e}"
                 end
 
                 raise TypeError.new(Hash, payload) unless payload.is_a?(Hash)
