@@ -105,7 +105,7 @@ module Datadog
             # path separator to use.
             if path.length > suffix.length && path.end_with?(suffix)
               previous_char = path[path.length - suffix.length - 1]
-              inexact << iseq if (previous_char == "/" || suffix[0] == "/")
+              inexact << iseq if previous_char == "/" || suffix[0] == "/"
             end
           end
           inexact
