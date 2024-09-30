@@ -493,13 +493,10 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
+        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
-          if trace && !trace.empty?
-            # check if trace is not sampled
-            sample_trace(trace) unless trace.priority_sampled?
-            write(trace)
-          end
+          write(trace) if trace && !trace.empty?
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
             Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
