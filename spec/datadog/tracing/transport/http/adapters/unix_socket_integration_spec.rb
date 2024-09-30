@@ -7,7 +7,7 @@ require 'datadog/tracing/transport/http'
 require 'datadog/core/transport/http/adapters/unix_socket'
 
 RSpec.describe 'Adapters::UnixSocket integration tests' do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  integration_test
 
   subject(:adapter) { Datadog::Core::Transport::HTTP::Adapters::UnixSocket.new(**options) }
 

@@ -11,11 +11,7 @@ module TestHelpers
     module Integration
       def self.included(base)
         base.class_exec do
-          before do
-            unless ENV['TEST_DATADOG_INTEGRATION']
-              skip('Integration tests can be enabled by setting the environment variable `TEST_DATADOG_INTEGRATION=1`')
-            end
-          end
+          integration_test
 
           include_context 'non-development execution environment'
         end

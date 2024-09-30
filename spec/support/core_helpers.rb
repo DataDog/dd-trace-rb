@@ -44,4 +44,18 @@ module CoreHelpers
       false
     end
   end
+
+  module ClassMethods
+    def integration_test
+      unless ENV['TEST_DATADOG_INTEGRATION']
+        before(:all) do
+          skip "Set TEST_DATADOG_INTEGRATION=1 in environment to run this test"
+        end
+      end
+    end
+  end
+
+  def self.included(base)
+    base.extend ClassMethods
+  end
 end
