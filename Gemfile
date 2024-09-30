@@ -5,7 +5,7 @@ gemspec
 gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
-gem 'builder'
+
 gem 'climate_control', '~> 0.2.0'
 
 gem 'concurrent-ruby'
@@ -51,8 +51,6 @@ elsif RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
   gem 'webrick', '>= 1.7.0'
 end
 
-gem 'yard', '~> 0.9' # NOTE: YardDoc is generated with ruby 3.2 in GitHub Actions
-
 if RUBY_VERSION >= '2.6.0'
   # 1.50 is the last version to support Ruby 2.6
   gem 'rubocop', '~> 1.50.0', require: false
@@ -84,8 +82,8 @@ end
 
 group :check do
   if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
-    gem 'rbs', '~> 3.2.0', require: false
-    gem 'steep', '~> 1.6.0', require: false
+    gem 'rbs', '~> 3.5.0', require: false
+    gem 'steep', '~> 1.7.0', require: false
   end
   gem 'ruby_memcheck', '>= 3' if RUBY_VERSION >= '3.4.0' && RUBY_PLATFORM != 'java'
   gem 'standard', require: false

@@ -43,7 +43,6 @@ GEM
     binding_of_caller (1.0.1)
       debug_inspector (>= 1.2.0)
     bson (4.15.0)
-    builder (3.3.0)
     bunny (2.22.0)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -222,7 +221,6 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    yard (0.9.36)
 
 PLATFORMS
   aarch64-linux
@@ -232,7 +230,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   dalli (>= 3.0.0)
@@ -274,7 +271,6 @@ DEPENDENCIES
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick!
-  yard (~> 0.9)
 
 BUNDLED WITH
    2.3.26

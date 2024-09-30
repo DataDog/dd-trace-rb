@@ -39,7 +39,7 @@ module Datadog
               components.telemetry
             else
               Datadog.logger.warn(
-                'Fail to send telemetry log before components initialization or within components lifecycle'
+                'Failed to send telemetry before components initialization or within components lifecycle'
               )
               nil
             end

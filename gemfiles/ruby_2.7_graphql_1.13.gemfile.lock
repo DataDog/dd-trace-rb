@@ -285,7 +285,6 @@ GEM
     websocket-driver (0.7.6)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    yard (0.9.34)
     zeitwerk (2.6.16)
 
 PLATFORMS
@@ -296,7 +295,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
@@ -330,7 +328,6 @@ DEPENDENCIES
   sprockets (< 4)
   warning (~> 1)
   webmock (>= 3.10.0)
-  yard (~> 0.9)
 
 BUNDLED WITH
    2.3.26

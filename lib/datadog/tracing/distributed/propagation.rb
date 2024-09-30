@@ -3,6 +3,7 @@
 require_relative '../configuration/ext'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
+require_relative '../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -72,6 +73,10 @@ module Datadog
             ::Datadog.logger.error(
               "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )
+            ::Datadog::Core::Telemetry::Logger.report(
+              e,
+              description: "Error injecting distributed trace data with #{propagator.class.name}"
+            )
           end
 
           result
@@ -127,6 +132,7 @@ module Datadog
               )
             end
           rescue => e
+            # TODO: Not to report Telemetry logs for now
             ::Datadog.logger.error(
               "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )

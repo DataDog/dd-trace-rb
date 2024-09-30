@@ -40,6 +40,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
+  # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
+  # want to support more platforms
+  let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
+  let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -48,6 +52,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       tracer: tracer,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       allocation_type_enabled: allocation_type_enabled,
     )
   end
@@ -83,6 +88,22 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
   end
 
+  def on_gvl_waiting(thread)
+    described_class::Testing._native_on_gvl_waiting(thread)
+  end
+
+  def gvl_waiting_at_for(thread)
+    described_class::Testing._native_gvl_waiting_at_for(thread)
+  end
+
+  def on_gvl_running(thread)
+    described_class::Testing._native_on_gvl_running(thread)
+  end
+
+  def sample_after_gvl_running(thread)
+    described_class::Testing._native_sample_after_gvl_running(cpu_and_wall_time_collector, thread)
+  end
+
   def thread_list
     described_class::Testing._native_thread_list
   end
@@ -99,6 +120,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_gc_tracking(cpu_and_wall_time_collector)
   end
 
+  def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
+    described_class::Testing
+      ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+  end
+
   # This method exists only so we can look for its name in the stack trace in a few tests
   def inside_t1
     yield
@@ -107,6 +133,13 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # This method exists only so we can look for its name in the stack trace in a few tests
   def another_way_of_calling_sample(profiler_overhead_stack_thread: Thread.current)
     sample(profiler_overhead_stack_thread: profiler_overhead_stack_thread)
+  end
+
+  describe ".new" do
+    it "sets the waiting_for_gvl_threshold_ns to the provided value" do
+      # This is a bit ugly but it saves us from having to introduce yet another way to poke at the native state
+      expect(cpu_and_wall_time_collector.inspect).to include("global_waiting_for_gvl_threshold_ns=222333444")
+    end
   end
 
   describe "#sample" do
@@ -744,6 +777,195 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
         end
+
+        context "when thread starts Waiting for GVL" do
+          before do
+            skip_if_gvl_profiling_not_supported(self)
+
+            sample # trigger context creation
+            samples_from_pprof(recorder.serialize!) # flush sample
+
+            @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+            @time_before_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            on_gvl_waiting(t1)
+            @time_after_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+
+            @gvl_waiting_at = gvl_waiting_at_for(t1)
+
+            expect(@gvl_waiting_at).to be >= @previous_sample_timestamp_ns
+          end
+
+          it "records a first sample to represent the time between the previous sample and the start of Waiting for GVL" do
+            sample
+
+            first_sample = samples_for_thread(samples, t1, expected_size: 2).first
+
+            expect(first_sample.values.fetch(:"wall-time")).to be(@gvl_waiting_at - @previous_sample_timestamp_ns)
+            expect(first_sample.labels).to include(
+              state: "sleeping",
+              end_timestamp_ns: be_between(@time_before_gvl_waiting, @time_after_gvl_waiting),
+            )
+          end
+
+          it "records a second sample to represent the time spent Waiting for GVL" do
+            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            sample
+            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+
+            second_sample = samples_for_thread(samples, t1, expected_size: 2).last
+
+            expect(second_sample.values.fetch(:"wall-time"))
+              .to be(per_thread_context.dig(t1, :wall_time_at_previous_sample_ns) - @gvl_waiting_at)
+            expect(second_sample.labels).to include(
+              state: "waiting for gvl",
+              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            )
+          end
+
+          context "cpu-time behavior on Linux" do
+            before do
+              skip "Test only runs on Linux" unless PlatformHelpers.linux?
+
+              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+            end
+
+            it "assigns all the cpu-time to the sample before Waiting for GVL started" do
+              sample
+
+              first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
+
+              expect(first_sample.values.fetch(:"cpu-time")).to be 12345
+              expect(second_sample.values.fetch(:"cpu-time")).to be 0
+            end
+          end
+        end
+
+        context "when thread is Waiting for GVL" do
+          before do
+            skip_if_gvl_profiling_not_supported(self)
+
+            sample # trigger context creation
+            on_gvl_waiting(t1)
+            sample # trigger creation of sample representing the period before Waiting for GVL
+            recorder.serialize! # flush previous samples
+          end
+
+          def sample_and_check(expected_state:)
+            monotonic_time_before_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+            time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+            sample
+
+            time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+            monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
+
+            expect(monotonic_time_after_sample).to be >= monotonic_time_sanity_check
+
+            latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+
+            expect(latest_sample.values.fetch(:"wall-time"))
+              .to be(monotonic_time_after_sample - monotonic_time_before_sample)
+            expect(latest_sample.labels).to include(
+              state: expected_state,
+              end_timestamp_ns: be_between(time_before_sample, time_after_sample),
+            )
+
+            latest_sample
+          end
+
+          it "records a new Waiting for GVL sample on every subsequent sample" do
+            3.times { sample_and_check(expected_state: "waiting for gvl") }
+          end
+
+          it "does not change the gvl_waiting_at" do
+            value_before = gvl_waiting_at_for(t1)
+
+            sample
+
+            expect(gvl_waiting_at_for(t1)).to be value_before
+            expect(gvl_waiting_at_for(t1)).to be > 0
+          end
+
+          context "cpu-time behavior on Linux" do
+            before do
+              skip "Test only runs on Linux" unless PlatformHelpers.linux?
+
+              apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+            end
+
+            it "does not assign any cpu-time to the Waiting for GVL samples" do
+              3.times do
+                latest_sample = sample_and_check(expected_state: "waiting for gvl")
+
+                expect(latest_sample.values.fetch(:"cpu-time")).to be 0
+              end
+            end
+          end
+
+          context "when thread is ready to run again" do
+            before { on_gvl_running(t1) }
+
+            context "when Waiting for GVL duration >= the threshold" do
+              let(:waiting_for_gvl_threshold_ns) { 0 }
+
+              it "records a last Waiting for GVL sample" do
+                sample_and_check(expected_state: "waiting for gvl")
+              end
+
+              it "resets the gvl_waiting_at to GVL_WAITING_ENABLED_EMPTY" do
+                expect(gvl_waiting_at_for(t1)).to be < 0
+
+                expect { sample }.to change { gvl_waiting_at_for(t1) }
+                  .from(gvl_waiting_at_for(t1))
+                  .to(gvl_waiting_enabled_empty_magic_value)
+              end
+
+              it "does not record a new Waiting for GVL sample afterwards" do
+                sample # last Waiting for GVL sample
+                recorder.serialize! # flush previous samples
+
+                3.times { sample_and_check(expected_state: "sleeping") }
+              end
+
+              context "cpu-time behavior on Linux" do
+                before do
+                  skip "Test only runs on Linux" unless PlatformHelpers.linux?
+                end
+
+                it "assigns all the cpu-time to samples only after Waiting for GVL ends" do
+                  apply_delta_to_cpu_time_at_previous_sample_ns(t1, -12345) # Rewind back cpu-clock since previous sample
+
+                  sample # last Waiting for GVL sample
+
+                  latest_sample = sample_for_thread(samples_from_pprof(recorder.serialize!), t1)
+                  expect(latest_sample.values.fetch(:"cpu-time")).to be 0
+
+                  latest_sample = sample_and_check(expected_state: "had cpu")
+                  expect(latest_sample.values.fetch(:"cpu-time")).to be 12345
+                end
+              end
+            end
+
+            context "when Waiting for GVL duration < the threshold" do
+              let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+              it "records a regular sample" do
+                expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+
+                # This is a rare situation (but can still happen) -- the thread was Waiting for GVL on the previous sample,
+                # but the overall duration of the Waiting for GVL was below the threshold. This means that on_gvl_running
+                # clears the Waiting for GVL state, and the next sample is immediately back to being a regular sample.
+                #
+                # Because the state has been cleared immediately, the next sample is a regular one. We effectively ignore
+                # a small time period that was still Waiting for GVL as a means to reduce overhead.
+
+                sample_and_check(expected_state: "sleeping")
+              end
+            end
+          end
+        end
       end
     end
   end
@@ -1242,6 +1464,190 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
+  describe "#on_gvl_waiting" do
+    before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "if thread has not been sampled before" do
+      it "does not record anything in the internal_thread_specific value" do
+        on_gvl_waiting(t1)
+
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+    end
+
+    context "after the first sample" do
+      before { sample }
+
+      it "records the wall-time when gvl waiting started in the thread's internal_thread_specific value" do
+        wall_time_before_on_gvl_waiting_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+        on_gvl_waiting(t1)
+        wall_time_after_on_gvl_waiting_ns = Datadog::Core::Utils::Time.get_time(:nanosecond)
+
+        expect(per_thread_context.fetch(t1)).to include(
+          gvl_waiting_at: be_between(wall_time_before_on_gvl_waiting_ns, wall_time_after_on_gvl_waiting_ns)
+        )
+      end
+    end
+  end
+
+  describe "#on_gvl_running" do
+    before { skip_if_gvl_profiling_not_supported(self) }
+
+    context "if thread has not been sampled before" do
+      it "does not record anything in the internal_thread_specific value" do
+        on_gvl_running(t1)
+
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+    end
+
+    context "when the internal_thread_specific value is GVL_WAITING_ENABLED_EMPTY" do
+      before do
+        sample
+        expect(gvl_waiting_at_for(t1)).to eq gvl_waiting_enabled_empty_magic_value
+      end
+
+      it do
+        expect { on_gvl_running(t1) }.to_not(change { gvl_waiting_at_for(t1) })
+      end
+
+      it "does not flag that a sample is needed" do
+        expect(on_gvl_running(t1)).to be false
+      end
+    end
+
+    context "when the thread was Waiting on GVL" do
+      before do
+        sample
+        on_gvl_waiting(t1)
+        @gvl_waiting_at = gvl_waiting_at_for(t1)
+        expect(@gvl_waiting_at).to be > 0
+      end
+
+      context "when Waiting for GVL duration >= the threshold" do
+        let(:waiting_for_gvl_threshold_ns) { 0 }
+
+        it "flips the value of gvl_waiting_at to negative" do
+          expect { on_gvl_running(t1) }
+            .to change { gvl_waiting_at_for(t1) }
+            .from(@gvl_waiting_at)
+            .to(-@gvl_waiting_at)
+        end
+
+        it "flags that a sample is needed" do
+          expect(on_gvl_running(t1)).to be true
+        end
+
+        context "when called several times in a row" do
+          before { on_gvl_running(t1) }
+
+          it "flags that a sample is needed" do
+            expect(on_gvl_running(t1)).to be true
+          end
+
+          it "keeps the value of gvl_waiting_at as negative" do
+            on_gvl_running(t1)
+
+            expect(gvl_waiting_at_for(t1)).to be(-@gvl_waiting_at)
+          end
+        end
+      end
+
+      context "when Waiting for GVL duration < the threshold" do
+        let(:waiting_for_gvl_threshold_ns) { 1_000_000_000 }
+
+        it "resets the value of gvl_waiting_at back to GVL_WAITING_ENABLED_EMPTY" do
+          expect { on_gvl_running(t1) }
+            .to change { gvl_waiting_at_for(t1) }
+            .from(@gvl_waiting_at)
+            .to(gvl_waiting_enabled_empty_magic_value)
+        end
+
+        it "flags that a sample is not needed" do
+          expect(on_gvl_running(t1)).to be false
+        end
+      end
+    end
+  end
+
+  describe "#sample_after_gvl_running" do
+    before { skip_if_gvl_profiling_not_supported(self) }
+
+    let(:timeline_enabled) { true }
+
+    context "when thread is not at the end of a Waiting for GVL period" do
+      before do
+        expect(gvl_waiting_at_for(t1)).to be 0
+      end
+
+      it do
+        expect(sample_after_gvl_running(t1)).to be false
+      end
+
+      it "does not sample the thread" do
+        sample_after_gvl_running(t1)
+
+        expect(samples).to be_empty
+      end
+    end
+
+    # @ivoanjo: The behavior here is expected to be (in terms of wall-time accounting and timestamps) exactly the same
+    # as for #sample. That's because both call the same underlying `update_metrics_and_sample` method to do the work.
+    #
+    # See the big comment next to the definition of `thread_context_collector_sample_after_gvl_running_with_thread`
+    # for why we need a separate `sample_after_gvl_running`.
+    #
+    # Thus, I chose to not repeat the extensive Waiting for GVL specs we already have in #sample, and do a smaller pass.
+    context "when thread is at the end of a Waiting for GVL period" do
+      let(:waiting_for_gvl_threshold_ns) { 0 }
+
+      before do
+        sample # trigger context creation
+        on_gvl_waiting(t1)
+
+        sample if record_start
+
+        on_gvl_running(t1)
+        recorder.serialize! # flush samples
+
+        expect(gvl_waiting_at_for(t1)).to be < 0
+      end
+
+      context "when a start was not yet recorded" do
+        let(:record_start) { false }
+
+        it do
+          expect(sample_after_gvl_running(t1)).to be true
+        end
+
+        it "records a sample to represent the time prior to Waiting for GVL, and another to represent the waiting" do
+          sample_after_gvl_running(t1)
+
+          expect(samples.size).to be 2
+
+          expect(samples.first.labels).to include(state: "sleeping")
+          expect(samples.last.labels).to include(state: "waiting for gvl")
+        end
+      end
+
+      context "when a start was already recorded" do
+        let(:record_start) { true }
+
+        it do
+          expect(sample_after_gvl_running(t1)).to be true
+        end
+
+        it "records a sample to represent the Waiting for GVL" do
+          sample_after_gvl_running(t1)
+
+          expect(samples.size).to be 1
+
+          expect(samples.first.labels).to include(state: "waiting for gvl")
+        end
+      end
+    end
+  end
+
   describe "#thread_list" do
     it "returns the same as Ruby's Thread.list" do
       expect(thread_list).to eq Thread.list
@@ -1412,6 +1818,28 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             expect(invoke_location).to eq "(Unnamed thread)"
           end
           # rubocop:enable Style/GlobalVars
+        end
+      end
+
+      describe ":gvl_waiting_at" do
+        context "on supported Rubies" do
+          before { skip_if_gvl_profiling_not_supported(self) }
+
+          it "is initialized to GVL_WAITING_ENABLED_EMPTY (INTPTR_MAX)" do
+            expect(per_thread_context.values).to all(
+              include(gvl_waiting_at: gvl_waiting_enabled_empty_magic_value)
+            )
+          end
+        end
+
+        context "on legacy Rubies" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+
+          it "is not set" do
+            per_thread_context.each do |_thread, context|
+              expect(context.key?(:gvl_waiting_at)).to be false
+            end
+          end
         end
       end
     end

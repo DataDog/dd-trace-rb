@@ -9,7 +9,7 @@ module Datadog
 
       def initialize: (untyped settings) -> void
 
-      attr_reader settings: untyped
+      attr_reader settings: Datadog::Core::Configuration::Settings
 
       def redact_identifier?: (String name) -> (true | false)
 

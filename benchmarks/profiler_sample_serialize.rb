@@ -27,14 +27,12 @@ class ProfilerSampleSerializeBenchmark
       heap_sample_every: 1,
       timeline_enabled: timeline_enabled,
     )
-    @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: timeline_enabled
-    )
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: timeline_enabled)
   end
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 60, warmup: 2 }
       x.config(
         **benchmark_time,
       )

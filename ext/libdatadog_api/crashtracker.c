@@ -28,6 +28,7 @@ void crashtracker_init(VALUE crashtracking_module) {
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
   VALUE options;
   rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
 
   VALUE agent_base_url = rb_hash_fetch(options, ID2SYM(rb_intern("agent_base_url")));
   VALUE path_to_crashtracking_receiver_binary = rb_hash_fetch(options, ID2SYM(rb_intern("path_to_crashtracking_receiver_binary")));

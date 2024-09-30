@@ -42,6 +42,7 @@ module Datadog
 
               # collect endpoint details
               endpoint = payload.fetch(:endpoint)
+              env = payload.fetch(:env)
               api_view = api_view(endpoint.options[:for])
               request_method = endpoint.options.fetch(:method).first
               path = endpoint_expand_path(endpoint)
@@ -61,6 +62,18 @@ module Datadog
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
+
+              if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
+                trace.set_tag(
+                  Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
+                  # here we are removing the format from the path:
+                  # e.g. /path/to/resource(.json) => /path/to/resource
+                  # e.g. /path/to/resource(.:format) => /path/to/resource
+                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
+                )
+
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+              end
 
               Thread.current[KEY_RUN] = true
             rescue StandardError => e
