@@ -118,12 +118,13 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 __attribute__((warn_unused_result))
 int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
-// Update the heap recorder to reflect the latest state of the VM as it pertains to object liveness.
+// Update the heap recorder to reflect the latest state of the VM.
 //
 // @param include_old
 //   Whether we should also update old objects in this pass or just new ones (age < 3 GCs).
-// @return true if update was successful or skipped, false if it failed and should be retried.
-bool heap_recorder_update(heap_recorder *heap_recorder, bool include_old);
+// @param force_full_update
+//   Whether we should force a full heap update even if we witnessed no major gcs since last time.
+void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update);
 
 // Prepare internal structures for efficient iteration.
 //
