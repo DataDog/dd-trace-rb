@@ -3,6 +3,14 @@ require 'spec_helper'
 require 'datadog/core/telemetry/request'
 
 RSpec.describe Datadog::Core::Telemetry::Request do
+  before do
+    # The tests here assert on time equality after rounding to a second;
+    # these assertions will fail if the code executes just before
+    # a second boundary and the assertions run just after the second boundary.
+    # Align the runs closer to the beginning of a second to reduce flakiness.
+    sleep 0 until Time.now.usec < 750000
+  end
+
   describe '.build_payload' do
     subject { described_class.build_payload(event, seq_id) }
     let(:event) { double('event', payload: payload, type: request_type) }
