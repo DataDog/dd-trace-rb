@@ -397,7 +397,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
 
-        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6),
           "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
@@ -499,7 +499,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
-        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8),
           "Expected at least 80% of signals to be simulated, stats: #{stats}, debug_failures: #{debug_failures}"
 
         # Sanity checking
@@ -530,7 +530,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # To avoid the flakiness, I've added a dummy margin here but... yeah in practice this can happen as many times
           # as we try to sample.
           margin = 1
-          expect(trigger_sample_attempts).to (be >= (sample_count - margin)), \
+          expect(trigger_sample_attempts).to (be >= (sample_count - margin)),
             "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         end
       end
@@ -776,6 +776,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         skip "Heap profiling is only supported on Ruby >= 2.7" if RUBY_VERSION < "2.7"
         allow(Datadog.logger).to receive(:warn)
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
+      end
+
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts("Heap recorder debugging info:")
+          puts(described_class::Testing._native_debug_heap_recorder(recorder))
+        end
       end
 
       it "records live heap objects" do
