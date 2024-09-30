@@ -49,7 +49,7 @@ module CoreHelpers
     def integration_test
       unless ENV['TEST_DATADOG_INTEGRATION']
         before(:all) do
-          skip "Set TEST_DATADOG_INTEGRATION=1 in environment to run this test"
+          skip 'Set TEST_DATADOG_INTEGRATION=1 in environment to run this test'
         end
       end
     end
