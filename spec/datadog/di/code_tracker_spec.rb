@@ -56,6 +56,19 @@ RSpec.describe Datadog::DI::CodeTracker do
       # And, we should in fact have a full path.
       expect(path).to start_with("/")
     end
+
+    it "does not track eval'd code" do
+      # The expectations appear to be lazy-loaded, therefore
+      # we need to invoke the same expectation before starting
+      # code tracking as we'll be using later in the test.
+      expect(tracker.send(:registry)).to be_empty
+      tracker.start
+      # Should still be empty here.
+      expect(tracker.send(:registry)).to be_empty
+      eval '1 + 2'
+      # Should still be empty here.
+      expect(tracker.send(:registry)).to be_empty
+    end
   end
 
   describe "#active?" do
