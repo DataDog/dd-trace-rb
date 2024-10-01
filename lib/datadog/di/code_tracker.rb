@@ -63,8 +63,16 @@ module Datadog
             # .eval_script
             #
             # For now just map the path to the instruction sequence.
-            unless tp.eval_script
-              path = tp.instruction_sequence.absolute_path
+            path = tp.instruction_sequence.absolute_path
+            # Do not store mapping for eval'd code, since there is no way
+            # to target such code from dynamic instrumentation UI.
+            # eval'd code always sets tp.eval_script.
+            # When tp.eval_script is nil, code is either 'load'ed or 'require'd.
+            # steep, of course, complains about indexing with +path+
+            # without checking that it is not nil, so here, maybe there is
+            # some situation where path would in fact be nil and
+            # steep would end up saving the day.
+            if path && !tp.eval_script
               registry_lock.synchronize do
                 registry[path] = tp.instruction_sequence
               end
