@@ -277,6 +277,7 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_force_update_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
@@ -314,6 +315,8 @@ void stack_recorder_init(VALUE profiling_module) {
       _native_end_fake_slow_heap_serialization, 1);
   rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
       _native_debug_heap_recorder, 1);
+  rb_define_singleton_method(testing_module, "_native_force_update_heap_recorder",
+      _native_force_update_heap_recorder, 1);
   rb_define_singleton_method(testing_module, "_native_gc_force_recycle",
       _native_gc_force_recycle, 1);
   rb_define_singleton_method(testing_module, "_native_has_seen_id_flag",
@@ -1020,6 +1023,17 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   return heap_recorder_testonly_debug(state->heap_recorder);
+}
+
+// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
+// It SHOULD NOT be used for other purposes.
+static VALUE _native_force_update_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  struct stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_update(state->heap_recorder, true);
+
+  return Qnil;
 }
 
 #pragma GCC diagnostic push
