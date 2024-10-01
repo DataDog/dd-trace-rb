@@ -11,7 +11,7 @@ module TestHelpers
     module Integration
       def self.included(base)
         base.class_exec do
-          integration_test
+          skip_unless_integration_testing_enabled
 
           include_context 'non-development execution environment'
         end

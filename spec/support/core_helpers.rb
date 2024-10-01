@@ -46,7 +46,7 @@ module CoreHelpers
   end
 
   module ClassMethods
-    def integration_test
+    def skip_unless_integration_testing_enabled
       unless ENV['TEST_DATADOG_INTEGRATION']
         before(:all) do
           skip 'Set TEST_DATADOG_INTEGRATION=1 in environment to run this test'

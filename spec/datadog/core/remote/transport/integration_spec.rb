@@ -8,7 +8,7 @@ require 'datadog/core/remote/transport/http/negotiation'
 require 'datadog/core/remote/transport/negotiation'
 
 RSpec.describe Datadog::Core::Remote::Transport::HTTP do
-  integration_test
+  skip_unless_integration_testing_enabled
 
   describe '.root' do
     subject(:transport) { described_class.root(&client_options) }

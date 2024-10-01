@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/ethon/integration_context'
 require 'spec/datadog/tracing/contrib/ethon/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Ethon do
-  integration_test
+  skip_unless_integration_testing_enabled
 
   before(:context) do
     # Ethon will lazily initialize LibCurl,

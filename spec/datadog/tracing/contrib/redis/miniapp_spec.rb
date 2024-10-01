@@ -6,7 +6,7 @@ require 'redis'
 require 'datadog'
 
 RSpec.describe 'Redis mini app test' do
-  integration_test
+  skip_unless_integration_testing_enabled
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }

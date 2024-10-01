@@ -6,7 +6,7 @@ require 'datadog/tracing/transport/http/traces'
 require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
-  integration_test
+  skip_unless_integration_testing_enabled
 
   describe 'HTTP#default' do
     subject(:transport) { Datadog::Tracing::Transport::HTTP.default(&client_options) }

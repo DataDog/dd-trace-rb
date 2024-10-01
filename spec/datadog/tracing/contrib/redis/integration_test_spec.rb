@@ -5,7 +5,7 @@ require 'redis'
 require 'datadog'
 
 RSpec.describe 'Redis integration test' do
-  integration_test
+  skip_unless_integration_testing_enabled
 
   before do
     use_real_tracer!
