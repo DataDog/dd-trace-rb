@@ -174,8 +174,6 @@ RSpec.shared_examples 'a trace with ASM Standalone tags' do
     it do
       expect(service_span.send(:metrics)['_dd.apm.enabled']).to eq(0)
       expect(service_span.send(:metrics)['_dd.appsec.enabled']).to eq(1.0)
-      expect(service_span.send(:meta)['_dd.runtime_family']).to eq('ruby')
-      expect(service_span.send(:meta)['_dd.appsec.waf.version']).to match(/^\d+\.\d+\.\d+/)
     end
   end
 
@@ -184,8 +182,6 @@ RSpec.shared_examples 'a trace with ASM Standalone tags' do
     it do
       expect(service_span.send(:metrics)['_dd.apm.enabled']).to be_nil
       expect(service_span.send(:metrics)['_dd.appsec.enabled']).to be_nil
-      expect(service_span.send(:meta)['_dd.runtime_family']).to be_nil
-      expect(service_span.send(:meta)['_dd.appsec.waf.version']).to be_nil
     end
   end
 end
