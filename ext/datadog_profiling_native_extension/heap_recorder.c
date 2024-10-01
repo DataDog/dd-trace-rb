@@ -463,7 +463,7 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
     if (current_gc_gen == heap_recorder->update_gen && (last_update_included_old || !this_update_should_include_old)) {
       // Are we still in the same GC gen as last update? If so, skip updating since things should not have
       // changed significantly since last time (especially if last time already included old objects or
-      // if this update is not going to look at old objects). But skip signalling success/no-op.
+      // if this update is not going to look at old objects).
       // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
       // GC steps and sizes may change. But because we have to iterate through all our tracked
       // object records to do an update, lets wait until all steps for a particular GC generation

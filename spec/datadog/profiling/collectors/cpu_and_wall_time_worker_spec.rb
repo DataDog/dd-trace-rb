@@ -803,6 +803,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
         cpu_and_wall_time_worker.stop
 
+        # Heap recorder updates on its own in accordance with GC activity. However, it may also
+        # decide to not necessarily do so after every GC or to rate limit itself over time. For
+        # us to be able to deterministically reason about the test expectations, lets ensure
+        # heap recorder state fully reflects everything that happened up until we stopped the
+        # cpu_and_wall_time_worker
+        Datadog::Profiling::StackRecorder::Testing._native_force_update_heap_recorder(recorder)
+
         test_struct_heap_sample = lambda { |sample|
           first_frame = sample.locations.first
           first_frame.lineno == allocation_line &&
