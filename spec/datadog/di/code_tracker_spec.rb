@@ -65,7 +65,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       tracker.start
       # Should still be empty here.
       expect(tracker.send(:registry)).to be_empty
-      eval '1 + 2'
+      eval "1 + 2"
       # Should still be empty here.
       expect(tracker.send(:registry)).to be_empty
     end
