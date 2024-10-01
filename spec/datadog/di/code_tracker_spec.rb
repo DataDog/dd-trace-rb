@@ -43,7 +43,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       tracker.start
       # Should still be empty here.
       expect(tracker.send(:registry)).to be_empty
-      require_relative "code_tracker_require_class.rb"
+      require_relative "code_tracker_require_class"
       expect(tracker.send(:registry).length).to eq(1)
 
       path = tracker.send(:registry).to_a.dig(0, 0)
