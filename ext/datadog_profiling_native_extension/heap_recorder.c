@@ -632,7 +632,7 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   VALUE debug_str = rb_str_new2("object records:\n");
   st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) debug_str);
 
-  rb_str_catf(debug_str, "\nstate snapshot:%"PRIsVALUE"\n", heap_recorder_state_snapshot(heap_recorder));
+  rb_str_catf(debug_str, "state snapshot: %"PRIsVALUE"\n------\n", heap_recorder_state_snapshot(heap_recorder));
 
   return debug_str;
 }
@@ -979,12 +979,12 @@ VALUE object_record_inspect(object_record *record) {
     rb_str_catf(inspect, "object=<invalid>");
   } else {
     rb_str_catf(inspect, "value=%p ", (void *) ref);
-    VALUE ruby_inspect = ruby_safe_inspect(ref);
+    /*VALUE ruby_inspect = ruby_safe_inspect(ref);
     if (ruby_inspect != Qnil) {
       rb_str_catf(inspect, "object=%"PRIsVALUE, ruby_inspect);
     } else {
       rb_str_catf(inspect, "object=%s", ruby_value_type_to_string(rb_type(ref)));
-    }
+    }*/
   }
 
   return inspect;
