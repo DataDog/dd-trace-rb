@@ -199,6 +199,7 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
+          - APPSEC_STANDALONE
         include:
           - library: ruby
             app: rack
