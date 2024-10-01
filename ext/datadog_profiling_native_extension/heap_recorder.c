@@ -979,12 +979,12 @@ VALUE object_record_inspect(object_record *record) {
     rb_str_catf(inspect, "object=<invalid>");
   } else {
     rb_str_catf(inspect, "value=%p ", (void *) ref);
-    /*VALUE ruby_inspect = ruby_safe_inspect(ref);
+    VALUE ruby_inspect = ruby_safe_inspect(ref);
     if (ruby_inspect != Qnil) {
       rb_str_catf(inspect, "object=%"PRIsVALUE, ruby_inspect);
     } else {
       rb_str_catf(inspect, "object=%s", ruby_value_type_to_string(rb_type(ref)));
-    }*/
+    }
   }
 
   return inspect;
