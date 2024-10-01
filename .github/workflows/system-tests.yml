@@ -98,7 +98,7 @@ jobs:
           - sinatra31
           - sinatra32
           - sinatra40
-#          - rails42 # DEV: Uncomment after https://github.com/DataDog/system-tests/pull/3142 is merged
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -186,7 +186,7 @@ jobs:
           - sinatra31
           - sinatra32
           - sinatra40
-#          - rails42 # DEV: Uncomment after https://github.com/DataDog/system-tests/pull/3142 is merged
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -329,7 +329,7 @@ jobs:
           - sinatra31
           - sinatra32
           - sinatra40
-#          - rails42 # DEV: Uncomment after https://github.com/DataDog/system-tests/pull/3142 is merged
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -383,7 +383,7 @@ jobs:
           - weblog-sinatra32
           - weblog-sinatra32
           - weblog-sinatra40
-#          - weblog-rails42 # DEV: Uncomment after https://github.com/DataDog/system-tests/pull/3142 is merged
+          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52
