@@ -88,6 +88,23 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
         )
       end
     end
+
+    describe "libdatadog version reporting" do
+      it "reports the libdatadog version, including platform" do
+        libdatadog_gem = Gem.loaded_specs["libdatadog"]
+
+        expect(info.dig(:profiler, :libdatadog)).to eq("#{libdatadog_gem.version}-#{libdatadog_gem.platform}")
+      end
+
+      context "when libdatadog is not available in loaded_specs" do
+        it "reports the libdatadog version, with an unknown platform" do
+          expect(Gem.loaded_specs).to receive(:[]).with("libdatadog").and_return(nil)
+          allow(Gem.loaded_specs).to receive(:[]).and_call_original
+
+          expect(info.dig(:profiler, :libdatadog)).to eq("#{Libdatadog::VERSION}-(unknown)")
+        end
+      end
+    end
   end
 end
 
