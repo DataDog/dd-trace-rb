@@ -40,22 +40,7 @@ module Datadog
                           actions: result.actions
                         }
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
-
-                        # Propagate to downstream services the information that the current distributed trace is
-                        # containing at least one ASM security event
-                        if scope.trace
-                          scope.trace.keep!
-                          scope.trace.set_tag(
-                            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                            Datadog::Tracing::Sampling::Ext::Decision::ASM
-                          )
-                          scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
-                        end
-
+                        Datadog::AppSec::Event.add_event_tags(scope, result)
                         scope.processor_context.events << event
                       end
                     end
@@ -95,22 +80,7 @@ module Datadog
                           actions: result.actions
                         }
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
-
-                        # Propagate to downstream services the information that the current distributed trace is
-                        # containing at least one ASM security event
-                        if scope.trace
-                          scope.trace.keep!
-                          scope.trace.set_tag(
-                            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-                            Datadog::Tracing::Sampling::Ext::Decision::ASM
-                          )
-                          scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
-                        end
-
+                        Datadog::AppSec::Event.add_event_tags(scope, result)
                         scope.processor_context.events << event
                       end
                     end
