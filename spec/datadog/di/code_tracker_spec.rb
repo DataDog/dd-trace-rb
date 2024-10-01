@@ -57,7 +57,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       expect(path).to start_with("/")
     end
 
-    context 'eval without location' do
+    context "eval without location" do
       it "does not track eval'd code" do
         # The expectations appear to be lazy-loaded, therefore
         # we need to invoke the same expectation before starting
@@ -66,13 +66,13 @@ RSpec.describe Datadog::DI::CodeTracker do
         tracker.start
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
-        eval '1 + 2'# standard:disable Style/EvalWithLocation
+        eval "1 + 2" # standard:disable Style/EvalWithLocation
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
       end
     end
 
-    context 'eval with location' do
+    context "eval with location" do
       it "does not track eval'd code" do
         # The expectations appear to be lazy-loaded, therefore
         # we need to invoke the same expectation before starting
@@ -81,7 +81,7 @@ RSpec.describe Datadog::DI::CodeTracker do
         tracker.start
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
-        eval '1 + 2', nil, __FILE__, __LINE__
+        eval "1 + 2", nil, __FILE__, __LINE__
         # Should still be empty here.
         expect(tracker.send(:registry)).to be_empty
       end
