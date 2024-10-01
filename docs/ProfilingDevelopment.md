@@ -4,7 +4,7 @@ This file contains development notes specific to the continuous profiler.
 
 For a more practical view of getting started with development of `datadog`, see <DevelopmentGuide.md>.
 
-There's also a `NativeExtentionDesign.md` file in the `ext/datadog_profiling_native_extension` that contains further profiler implementation design notes.
+There's also a `NativeExtensionDesign.md` file in the `ext/datadog_profiling_native_extension` that contains further profiler implementation design notes.
 
 ## Profiling components high-level view
 
