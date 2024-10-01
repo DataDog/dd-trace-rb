@@ -20,6 +20,7 @@ module Datadog
         @registry = {}
         @trace_point_lock = Mutex.new
         @registry_lock = Mutex.new
+        @compiled_trace_point = nil
       end
 
       # Starts tracking loaded code.
