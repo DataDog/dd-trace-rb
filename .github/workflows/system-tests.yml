@@ -380,7 +380,7 @@ jobs:
           - weblog-sinatra21
           - weblog-sinatra22
           - weblog-sinatra30
-          - weblog-sinatra32
+          - weblog-sinatra31
           - weblog-sinatra32
           - weblog-sinatra40
           - weblog-rails42
