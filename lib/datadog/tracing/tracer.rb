@@ -262,6 +262,17 @@ module Datadog
         context.activate!(trace, &block)
       end
 
+      # Sample a span, tagging the trace as appropriate.
+      def sample_trace(trace_op)
+        begin
+          @sampler.sample!(trace_op)
+        rescue StandardError => e
+          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
+        end
+      end
+
       # @!visibility private
       # TODO: make this private
       def trace_completed
@@ -461,17 +472,6 @@ module Datadog
 
         trace.send(:events).trace_finished.subscribe_deactivate_trace do
           context.activate!(original_trace)
-        end
-      end
-
-      # Sample a span, tagging the trace as appropriate.
-      def sample_trace(trace_op)
-        begin
-          @sampler.sample!(trace_op)
-        rescue StandardError => e
-          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
         end
       end
 
