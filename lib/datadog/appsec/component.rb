@@ -31,17 +31,15 @@ module Datadog
 
         def incompatible_ffi_version?
           ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
-          if RUBY_VERSION >= '3.3.0' && ffi_version < '1.16.0'
-            Datadog.logger.warn(
-              'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
-              'and will be forcibly disabled due to a memory leak in `ffi`. ' \
-              'Please upgrade your `ffi` version to 1.16.0 or higher.'
-            )
+          return false unless RUBY_VERSION >= '3.3.0' && ffi_version < '1.16.0'
 
-            true
-          else
-            false
-          end
+          Datadog.logger.warn(
+            'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
+            'and will be forcibly disabled due to a memory leak in `ffi`. ' \
+            'Please upgrade your `ffi` version to 1.16.0 or higher.'
+          )
+
+          true
         end
 
         def create_processor(settings, telemetry)
