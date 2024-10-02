@@ -11,7 +11,8 @@ module Datadog
     class Component
       class << self
         def build_appsec_component(settings, telemetry:)
-          return unless settings.respond_to?(:appsec) && settings.appsec.enabled
+          return if !settings.respond_to?(:appsec) || !settings.appsec.enabled
+          return if incompatible_ffi_version?
 
           processor = create_processor(settings, telemetry)
 
@@ -27,6 +28,21 @@ module Datadog
         end
 
         private
+
+        def incompatible_ffi_version?
+          ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
+          if RUBY_VERSION >= '3.3.0' && ffi_version < '1.16.0'
+            Datadog.logger.warn(
+              'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
+              'and will be forcibly disabled due to a memory leak in `ffi`. ' \
+              'Please upgrade your `ffi` version to 1.16.0 or higher.'
+            )
+
+            true
+          else
+            false
+          end
+        end
 
         def create_processor(settings, telemetry)
           rules = AppSec::Processor::RuleLoader.load_rules(
