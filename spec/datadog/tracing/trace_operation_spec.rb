@@ -136,6 +136,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'given' do
+      context ':trace_operation_samples' do
+        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+        let(:trace_op) { described_class.new(tracer: tracer) }
+
+        describe '#to_digest' do
+          before do
+            allow(tracer).to receive(:sample_trace)
+          end
+
+          it 'calls tracer.sample_trace' do
+            expect(tracer).to receive(:sample_trace).with(trace_op)
+            trace_op.to_digest
+          end
+        end
+      end
+
       context ':agent_sample_rate' do
         subject(:options) { { agent_sample_rate: agent_sample_rate } }
         let(:agent_sample_rate) { 0.5 }
