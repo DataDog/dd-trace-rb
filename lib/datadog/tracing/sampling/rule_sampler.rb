@@ -31,8 +31,8 @@ module Datadog
         )
           @rules = rules
           @rate_limiter = if Datadog.configuration.appsec.standalone.enabled
-                            # 0.0167 ~ 1 trace per minute
-                            Core::TokenBucket.new(0.0167, 1.0)
+                            # 1 trace per minute
+                            Core::TokenBucket.new(1.0 / 60, 1.0)
                           elsif rate_limiter
                             rate_limiter
                           elsif rate_limit

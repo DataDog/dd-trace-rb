@@ -34,7 +34,9 @@ module Datadog
 
               # return true if absence of upstream ASM event (_dd.p.appsec:1)
               # and no local security event (which sets _dd.p.appsec:1 locally)
-              return true if active_trace.nil? || active_trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1'
+              no_upstream_or_local_event = active_trace.nil? ||
+                active_trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1'
+              return true if no_upstream_or_local_event
             end
 
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
