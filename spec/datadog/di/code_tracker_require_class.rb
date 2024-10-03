@@ -1,0 +1,2 @@
+class CodeTrackerRequireClass
+end

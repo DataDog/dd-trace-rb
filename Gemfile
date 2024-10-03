@@ -5,7 +5,7 @@ gemspec
 gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
-gem 'builder'
+
 gem 'climate_control', '~> 0.2.0'
 
 gem 'concurrent-ruby'
@@ -82,7 +82,7 @@ end
 
 group :check do
   if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
-    gem 'rbs', '~> 3.5.0', require: false
+    gem 'rbs', '~> 3.6', require: false
     gem 'steep', '~> 1.7.0', require: false
   end
   gem 'ruby_memcheck', '>= 3' if RUBY_VERSION >= '3.4.0' && RUBY_PLATFORM != 'java'
