@@ -270,7 +270,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
@@ -302,4 +301,4 @@ DEPENDENCIES
   webmock (>= 3.10.0)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26

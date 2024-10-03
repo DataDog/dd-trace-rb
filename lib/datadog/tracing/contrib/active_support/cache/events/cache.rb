@@ -2,6 +2,7 @@
 
 require_relative '../../ext'
 require_relative '../event'
+require_relative '../../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -64,7 +65,7 @@ module Datadog
                 key = payload[:key]
                 store = payload[:store]
 
-                mapping = MAPPING[event]
+                mapping = MAPPING.fetch(event)
 
                 span.service = configuration[:cache_service]
                 span.resource = mapping[:resource]
@@ -81,6 +82,9 @@ module Datadog
                 span.set_tag('EVENT', event)
 
                 set_cache_key(span, key, mapping[:multi_key])
+              rescue StandardError => e
+                Datadog.logger.error(e.message)
+                Datadog::Core::Telemetry::Logger.report(e)
               end
 
               def set_cache_key(span, key, multi_key)

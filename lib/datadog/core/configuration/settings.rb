@@ -654,6 +654,33 @@ module Datadog
           end
         end
 
+        # The monotonic clock time provider used by Datadog. This option is internal and is used by `datadog-ci`
+        # gem to avoid traces' durations being skewed by timecop.
+        #
+        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
+        #
+        # For [Timecop](https://rubygems.org/gems/timecop), for example,
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # allows Datadog features to use the real monotonic time when time is frozen with
+        # `Timecop.mock_process_clock = true`.
+        #
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @return [Proc<Numeric>]
+        option :get_time_provider do |o|
+          o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.type :proc
+
+          o.after_set do |get_time_provider|
+            Core::Utils::Time.get_time_provider = get_time_provider
+          end
+
+          o.resetter do |_value|
+            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
+              Core::Utils::Time.get_time_provider = default
+            end
+          end
+        end
+
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_VERSION` environment variable, otherwise `nils`

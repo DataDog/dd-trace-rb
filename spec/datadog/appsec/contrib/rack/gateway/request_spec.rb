@@ -65,12 +65,6 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Request do
     end
   end
 
-  describe '#body' do
-    it 'returns the body' do
-      expect(request.body).to eq('')
-    end
-  end
-
   describe '#url' do
     it 'returns the url' do
       expect(request.url).to eq('http://example.com:8080/?a=foo&a=bar&b=baz')

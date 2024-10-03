@@ -20,9 +20,9 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before do
-      skip unless ENV['TEST_DATADOG_INTEGRATION']
+    skip_unless_integration_testing_enabled
 
+    before do
       # Ensure background Writer worker doesn't wait, making tests faster.
       stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL', 0)
 
