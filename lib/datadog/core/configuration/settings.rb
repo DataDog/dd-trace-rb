@@ -886,7 +886,7 @@ module Datadog
           # Enables reporting of information when Ruby VM crashes.
           option :enabled do |o|
             o.type :bool
-            o.default true
+            o.default false
             o.env 'DD_CRASHTRACKING_ENABLED'
           end
         end
