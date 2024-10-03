@@ -103,10 +103,6 @@ module Datadog
         def tags_match?(trace)
           @tags.all? do |name, matcher|
             tag = trace.get_tag(name)
-            puts "tag: #{tag}"
-            puts "matcher: #{matcher}"
-            puts 'hello'
-            puts matcher != MATCH_ALL
 
             # Floats: Matching floating point values with a non-zero decimal part is not supported.
             # For floating point values with a non-zero decimal part, any all * pattern always returns true.
