@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
+require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'securerandom'
@@ -131,15 +132,29 @@ RSpec.describe 'Rack integration tests' do
   end
 
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
     unless remote_enabled
       Datadog.configure do |c|
         c.tracing.enabled = tracing_enabled
+
         c.tracing.instrument :rack
+        c.tracing.instrument :http
 
         c.appsec.enabled = appsec_enabled
+
+        c.appsec.instrument :rack
+
         c.appsec.standalone.enabled = appsec_standalone_enabled
         c.appsec.waf_timeout = 10_000_000 # in us
-        c.appsec.instrument :rack
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
         c.appsec.user_id_denylist = appsec_user_id_denylist
@@ -153,6 +168,9 @@ RSpec.describe 'Rack integration tests' do
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
   end
@@ -224,6 +242,24 @@ RSpec.describe 'Rack integration tests' do
         proc do
           map '/success/' do
             run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
+          end
+
+          map '/requestdownstream' do
+            run(
+              proc do |_env|
+                uri = URI('http://localhost:3000/returnheaders')
+                ext_request = nil
+                ext_response = nil
+
+                Net::HTTP.start(uri.host, uri.port) do |http|
+                  ext_request = Net::HTTP::Get.new(uri)
+
+                  ext_response = http.request(ext_request)
+                end
+
+                [200, { 'Content-Type' => 'application/json' }, [ext_response.body]]
+              end
+            )
           end
         end
       end

@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
+require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'securerandom'
@@ -97,25 +98,41 @@ RSpec.describe 'Sinatra integration tests' do
   end
 
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
+
       c.tracing.instrument :sinatra
+      c.tracing.instrument :http
 
       c.appsec.enabled = appsec_enabled
+
+      c.appsec.instrument :sinatra
+      # TODO: test with c.appsec.instrument :rack
+
       c.appsec.standalone.enabled = appsec_standalone_enabled
       c.appsec.waf_timeout = 10_000_000 # in us
-      c.appsec.instrument :sinatra
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
       c.appsec.api_security.sample_rate = api_security_sample
-
-      # TODO: test with c.appsec.instrument :rack
     end
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
@@ -169,6 +186,22 @@ RSpec.describe 'Sinatra integration tests' do
           get '/set_user' do
             Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
             'ok'
+          end
+
+          get '/requestdownstream' do
+            content_type :json
+
+            uri = URI('http://localhost:3000/returnheaders')
+            ext_request = nil
+            ext_response = nil
+
+            Net::HTTP.start(uri.host, uri.port) do |http|
+              ext_request = Net::HTTP::Get.new(uri)
+
+              ext_response = http.request(ext_request)
+            end
+
+            ext_response.body
           end
         end
       end

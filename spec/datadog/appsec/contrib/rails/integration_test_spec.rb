@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
+require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'datadog/tracing'
@@ -34,7 +35,7 @@ RSpec.describe 'Rails integration tests' do
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
-  let(:nested_app) { false }
+  let(:appsec_instrument_rack) { false }
   let(:api_security_enabled) { false }
   let(:api_security_sample) { 0.0 }
 
@@ -86,25 +87,44 @@ RSpec.describe 'Rails integration tests' do
   end
 
   before do
+    # It may have been better to add this endpoint to the Rails app,
+    # but I couldn't figure out how to call the Rails app from itself using Net::HTTP.
+    # Creating a WebMock and stubbing it was easier.
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
+
       c.tracing.instrument :rails
+      c.tracing.instrument :http
 
       c.appsec.enabled = appsec_enabled
+
+      c.appsec.instrument :rails
+      c.appsec.instrument :rack if appsec_instrument_rack
+
       c.appsec.standalone.enabled = appsec_standalone_enabled
       c.appsec.waf_timeout = 10_000_000 # in us
-      c.appsec.instrument :rails
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
       c.appsec.api_security.enabled = api_security_enabled
       c.appsec.api_security.sample_rate = api_security_sample
-
-      c.appsec.instrument :rack if nested_app
     end
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.configuration.reset!
     Datadog.registry[:rails].reset_configuration!
   end
@@ -137,6 +157,20 @@ RSpec.describe 'Rails integration tests' do
             Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
             head :ok
           end
+
+          def request_downstream
+            uri = URI('http://localhost:3000/returnheaders')
+            ext_request = nil
+            ext_response = nil
+
+            Net::HTTP.start(uri.host, uri.port) do |http|
+              ext_request = Net::HTTP::Get.new('/returnheaders')
+
+              ext_response = http.request(ext_request)
+            end
+
+            render json: ext_response.body, content_type: 'application/json'
+          end
         end
       )
     end
@@ -166,6 +200,7 @@ RSpec.describe 'Rails integration tests' do
           '/success' => 'test#success',
           [:post, '/success'] => 'test#success',
           '/set_user' => 'test#set_user',
+          '/requestdownstream' => 'test#request_downstream',
         }
       end
 
@@ -413,7 +448,7 @@ RSpec.describe 'Rails integration tests' do
       end
 
       describe 'Nested apps' do
-        let(:nested_app) { true }
+        let(:appsec_instrument_rack) { true }
         let(:middlewares) do
           [
             Datadog::Tracing::Contrib::Rack::TraceMiddleware,
