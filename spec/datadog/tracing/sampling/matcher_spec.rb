@@ -120,6 +120,13 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
               let(:tags) { { 'metric1' => '1', 'metric2' => '3' } }
 
               it { is_expected.to eq(false) }
+
+              context 'with a float that has a non-zero decimal' do
+                let(:tags) { { 'metric1' => '2*' } }
+                let(:trace_tags) { { 'metric1' => 20.1 } }
+
+                it { is_expected.to eq(false) }
+              end
             end
           end
 
