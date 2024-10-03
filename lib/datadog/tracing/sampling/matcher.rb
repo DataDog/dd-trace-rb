@@ -44,6 +44,10 @@ module Datadog
           Regexp.new(glob, Regexp::IGNORECASE)
         end
 
+        def match_all?
+          pattern == MATCH_ALL_PATTERN
+        end
+
         # Returns `true` for any input
         MATCH_ALL = Class.new do
           def match?(_other)
@@ -99,6 +103,10 @@ module Datadog
         def tags_match?(trace)
           @tags.all? do |name, matcher|
             tag = trace.get_tag(name)
+            # Floats: Matching floating point values with a non-zero decimal part is not supported.
+            # For floating point values with a non-zero decimal part, any all * pattern always returns true.
+            # Other patterns always return false.
+            return false if tag.is_a?(Float) && !tag.integer? && !matcher.match_all?
 
             # Format metrics as strings, to allow for partial number matching (/4.*/ matching '400', '404', etc.).
             # Because metrics are floats, we use the '%g' format specifier to avoid trailing zeros, which
