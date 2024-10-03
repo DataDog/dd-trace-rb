@@ -28,7 +28,7 @@ module Datadog
         # @return [#match?(String)]
         def self.glob_to_regex(glob)
           # Optimization for match-all case
-          return MATCH_ALL if glob == MATCH_ALL_PATTERN
+          return MATCH_ALL if /\A\*+\z/.match?(glob)
 
           # Ensure no undesired characters are treated as regex.
           glob = Regexp.quote(glob)
@@ -42,10 +42,6 @@ module Datadog
           glob = "\\A#{glob}\\z"
 
           Regexp.new(glob, Regexp::IGNORECASE)
-        end
-
-        def self.match_all?(pattern)
-          pattern == MATCH_ALL_PATTERN
         end
 
         # Returns `true` for any input
