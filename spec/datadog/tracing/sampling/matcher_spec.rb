@@ -158,6 +158,13 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
 
         it { is_expected.to eq(true) }
       end
+
+      context 'when multiple *s are used' do
+        let(:trace_service) { 'hello_service' }
+        let(:service) { '***' }
+
+        it { is_expected.to eq(true) }
+      end
     end
 
     context 'with a resource matcher' do
