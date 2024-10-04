@@ -151,8 +151,7 @@ See comments at the top of `collectors_thread_context.c` for an explanation on h
 
 Profiling the Ruby Global VM Lock (GVL) works by using the [GVL instrumentation API](https://github.com/ruby/ruby/pull/5500).
 
-This API currently only works on Ruby 3.2+, although there were a few changes and refinements on Ruby 3.3+ and as of this writing
-(September 2024) we _only_ support Ruby 3.3+.
+This API currently only works on Ruby 3.2+.
 
 These blog posts are good starting points to understand this API:
 
@@ -240,7 +239,7 @@ The weirdest piece of this puzzle is done in the `ThreadContext` collector. Beca
 
 Instead, we ask Ruby to hold the data we need for us using the `rb_internal_thread_specific` API. This API provides
 an extremely low-level and limited thread-local storage mechanism, but one that's thread-safe and thus a good match
-for our needs. (This API is only available on Ruby 3.3+; to support Ruby 3.2 we'll need to figure out an alternative.)
+for our needs. (This API is only available on Ruby 3.3+; to support Ruby 3.2 we use an alternative implementation.)
 
 So, here's how this works: the first time the `ThreadContext` collector sees a thread (e.g. when it creates a context
 for it), it uses this API to tag this thread as a thread we want to know about:
@@ -292,3 +291,49 @@ There's some (lovely?) ASCII art in `handle_gvl_waiting` to explain how we creat
 Once a thread is in the "Waiting for GVL" state, then all regular cpu/wall-time samples triggered by the `CpuAndWallTimeWorker`
 will continue to mark the thread as being in this state, until `on_gvl_running` + `sample_after_gvl_running` happen and
 clear the `per_thread_gvl_waiting_timestamp`, which will make samples revert back to the regular behavior.
+
+### Supporting Ruby 3.2
+
+Supporting GVL profiling on Ruby 3.2 needs special additional work. That's because while in Ruby 3.2 we have the GVL
+instrumentation API giving us the events we need to profile the GVL, we're missing:
+
+1. Getting the Ruby thread `VALUE` as an argument in GVL instrumentation API events
+2. The `rb_internal_thread_specific` API that allows us to attach in a thread-safe way data to Ruby thread objects
+
+Both 1 and 2 were only introduced in Ruby 3.3, and our implementation of GVL profiling relies on them.
+
+We bridge this gap with alternative implementations for Ruby 3.2:
+
+To solve 1, we're using native level thread-locals (GCC's `__thread`) to keep a pointer to the underlying Ruby `rb_thread_t` structure.
+
+This is more complex than than "just keep it on a thread-local" because:
+
+a) Ruby reuses native threads. When a Ruby thread dies, Ruby keeps the underlying native thread around for a bit,
+and if another Ruby thread is born very quickly after the previous one, Ruby will reuse the native thread and attach it
+to the new Ruby thread.
+
+   To avoid incorrectly reusing the thread-locals, we install an event hook on Ruby thread start, and make sure to
+   clean any native thread-locals when a new thread stats.
+
+b) Some of the GVL instrumentation API events are emitted while the thread does not have the GVL and so we need to be
+careful when we can and cannot read VM information.
+
+   Thus, we only initialize the thread-local during the `RUBY_INTERNAL_THREAD_EVENT_RESUMED` which is emitted while the
+   thread owns the GVL.
+
+c) Since we don't get the current thread in events, we need to get a bit... creative. Thus, what we do is in
+`RUBY_INTERNAL_THREAD_EVENT_RESUMED`, because we know the current thread MUST own the GVL, we read from the internal
+Ruby VM state which thread is the GVL owner to find the info we need.
+
+With a + b + c together we are able to keep a pointer to the underlying `rb_thread_t` up-to-date in a native thread
+local, thus replacing the need to get a `VALUE thread` as an argument.
+
+To solve 2, we rely on an important observation: there's a `VALUE stat_insn_usage` field inside `rb_thread_t` that's
+unused and seems to have effectively been forgotten about.
+
+There's nowhere in the VM code that's writing or reading it (other than marking it for GC), and not even git history
+reveals a time where this field was used. I could not find any other references to this field anywhere else. Thus, we
+make use of this field to store the information we need, as a replacement for `rb_internal_thread_specific`.
+
+Since presumably Ruby 3.2 will never see this field either removed or used during its remaining maintenance release
+period this should work fine, and we have a nice clean solution for 3.3+.

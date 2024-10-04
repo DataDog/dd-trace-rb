@@ -463,8 +463,7 @@ module Datadog
 
             # Enables GVL profiling. This will show when threads are waiting for GVL in the timeline view.
             #
-            # This is a preview feature and disabled by default. It requires Ruby 3.3+ although in the future we may
-            # be able to support Ruby 3.2 as well.
+            # This is a preview feature and disabled by default. It requires Ruby 3.2+.
             #
             # @default `DD_PROFILING_PREVIEW_GVL_ENABLED` environment variable as a boolean, otherwise `false`
             option :preview_gvl_enabled do |o|
