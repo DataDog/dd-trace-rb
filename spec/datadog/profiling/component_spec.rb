@@ -598,8 +598,8 @@ RSpec.describe Datadog::Profiling::Component do
           settings.profiling.advanced.gc_enabled = false
         end
 
-        context "on Ruby < 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+        context "on Ruby < 3.2" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "does not enable GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -615,8 +615,8 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "on Ruby >= 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+        context "on Ruby >= 3.2" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.2." }
 
           context "when timeline is enabled" do
             before { settings.profiling.advanced.timeline_enabled = true }

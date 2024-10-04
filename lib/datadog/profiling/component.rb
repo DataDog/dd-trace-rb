@@ -443,9 +443,9 @@ module Datadog
       end
 
       private_class_method def self.enable_gvl_profiling?(settings)
-        if RUBY_VERSION < "3.3"
+        if RUBY_VERSION < "3.2"
           if settings.profiling.advanced.preview_gvl_enabled
-            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.3 and will not be enabled.")
+            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.2 and will not be enabled.")
           end
 
           return false

@@ -40,9 +40,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
   let(:allocation_type_enabled) { true }
-  # This mirrors the use of INTPTR_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we ever
-  # want to support more platforms
-  let(:gvl_waiting_enabled_empty_magic_value) { 2**63 - 1 }
+  # This mirrors the use of RUBY_FIXNUM_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we
+  # ever want to support more platforms
+  let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
 
   subject(:cpu_and_wall_time_collector) do
@@ -1833,7 +1833,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         end
 
         context "on legacy Rubies" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "is not set" do
             per_thread_context.each do |_thread, context|

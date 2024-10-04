@@ -1,5 +1,4 @@
 #include <ruby.h>
-#include <ruby/thread.h>
 
 #include "collectors_thread_context.h"
 #include "clock_id.h"
@@ -80,7 +79,7 @@
 // This is used as a placeholder to mark threads that are allowed to be profiled (enabled)
 // (e.g. to avoid trying to gvl profile threads that are not from the main Ractor)
 // and for which there's no data yet
-#define GVL_WAITING_ENABLED_EMPTY INTPTR_MAX
+#define GVL_WAITING_ENABLED_EMPTY RUBY_FIXNUM_MAX
 
 static ID at_active_span_id;  // id of :@active_span in Ruby
 static ID at_active_trace_id; // id of :@active_trace in Ruby
@@ -91,10 +90,6 @@ static ID at_type_id;         // id of :@type in Ruby
 static ID at_otel_values_id;  // id of :@otel_values in Ruby
 static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
 static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
-
-#ifndef NO_GVL_INSTRUMENTATION
-static rb_internal_thread_specific_key_t per_thread_gvl_waiting_timestamp_key;
-#endif
 
 // This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
 // it's safe to access the state of the thread context collector, we store this setting as a global value. This does
@@ -320,7 +315,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
 
   #ifndef NO_GVL_INSTRUMENTATION
     // This will raise if Ruby already ran out of thread-local keys
-    per_thread_gvl_waiting_timestamp_key = rb_internal_thread_specific_key_create();
+    gvl_profiling_init();
   #endif
 
   gc_profiling_init();
@@ -1019,7 +1014,7 @@ static void initialize_context(VALUE thread, struct per_thread_context *thread_c
     // (Setting this is potentially a race, but what we want is to avoid _stale_ data, so
     // if this gets set concurrently with context initialization, then such a value will belong
     // to the current profiler instance, so that's OK)
-    rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
+    gvl_profiling_state_thread_object_set(thread, GVL_WAITING_ENABLED_EMPTY);
   #endif
 }
 
@@ -1083,7 +1078,7 @@ static int per_thread_context_as_ruby_hash(st_data_t key_thread, st_data_t value
     ID2SYM(rb_intern("gc_tracking.wall_time_at_start_ns")),  /* => */ LONG2NUM(thread_context->gc_tracking.wall_time_at_start_ns),
 
     #ifndef NO_GVL_INSTRUMENTATION
-      ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM((intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key)),
+      ID2SYM(rb_intern("gvl_waiting_at")), /* => */ LONG2NUM(gvl_profiling_state_thread_object_get(thread)),
     #endif
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(context_as_hash, arguments[i], arguments[i+1]);
@@ -1558,7 +1553,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
 #ifndef NO_GVL_INSTRUMENTATION
   // This function can get called from outside the GVL and even on non-main Ractors
-  void thread_context_collector_on_gvl_waiting(VALUE thread) {
+  void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread) {
     // Because this function gets called from a thread that is NOT holding the GVL, we avoid touching the
     // per-thread context directly.
     //
@@ -1567,19 +1562,19 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     //
     // Also, this function can get called on the non-main Ractor. We deal with this by checking if the value in the context
     // is non-zero, since only `initialize_context` ever sets the value from 0 to non-zero for threads it sees.
-    intptr_t thread_being_profiled = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+    intptr_t thread_being_profiled = gvl_profiling_state_get(thread);
     if (!thread_being_profiled) return;
 
     long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
     if (current_monotonic_wall_time_ns <= 0 || current_monotonic_wall_time_ns > GVL_WAITING_ENABLED_EMPTY) return;
 
-    rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) current_monotonic_wall_time_ns);
+    gvl_profiling_state_set(thread, current_monotonic_wall_time_ns);
   }
 
   // This function can get called from outside the GVL and even on non-main Ractors
   __attribute__((warn_unused_result))
-  bool thread_context_collector_on_gvl_running_with_threshold(VALUE thread, uint32_t waiting_for_gvl_threshold_ns) {
-    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+  bool thread_context_collector_on_gvl_running_with_threshold(gvl_profiling_thread thread, uint32_t waiting_for_gvl_threshold_ns) {
+    intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
 
     // Thread was not being profiled / not waiting on gvl
     if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
@@ -1595,17 +1590,17 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       // We flip the gvl_waiting_at to negative to mark that the thread is now running and no longer waiting
       intptr_t gvl_waiting_at_is_now_running = -gvl_waiting_at;
 
-      rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) gvl_waiting_at_is_now_running);
+      gvl_profiling_state_set(thread, gvl_waiting_at_is_now_running);
     } else {
       // We decided not to sample. Let's mark the thread back to the initial "enabled but empty" state
-      rb_internal_thread_specific_set(thread, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
+      gvl_profiling_state_set(thread, GVL_WAITING_ENABLED_EMPTY);
     }
 
     return should_sample;
   }
 
   __attribute__((warn_unused_result))
-  bool thread_context_collector_on_gvl_running(VALUE thread) {
+  bool thread_context_collector_on_gvl_running(gvl_profiling_thread thread) {
     return thread_context_collector_on_gvl_running_with_threshold(thread, global_waiting_for_gvl_threshold_ns);
   }
 
@@ -1643,9 +1638,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     if (!state->timeline_enabled) rb_raise(rb_eRuntimeError, "GVL profiling requires timeline to be enabled");
 
-    struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
-
-    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(current_thread, per_thread_gvl_waiting_timestamp_key);
+    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(current_thread);
 
     if (gvl_waiting_at >= 0) {
       // @ivoanjo: I'm not sure if this can ever happen. This means that we're not on the same thread
@@ -1655,10 +1648,14 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       return Qfalse;
     }
 
+    struct per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
+
     // We don't actually account for cpu-time during Waiting for GVL. BUT, we may chose to push an
     // extra sample to represent the period prior to Waiting for GVL. To support that, we retrieve the current
     // cpu-time of the thread and let `update_metrics_and_sample` decide what to do with it.
     long cpu_time_for_thread = cpu_time_now_ns(thread_context);
+
+    // TODO: Should we update the dynamic sampling rate overhead tracking with this sample as well?
 
     update_metrics_and_sample(
       state,
@@ -1688,7 +1685,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
     sampling_buffer* sampling_buffer,
     long current_cpu_time_ns
   ) {
-    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread_being_sampled, per_thread_gvl_waiting_timestamp_key);
+    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread_being_sampled);
 
     bool is_gvl_waiting_state = gvl_waiting_at != 0 && gvl_waiting_at != GVL_WAITING_ENABLED_EMPTY;
 
@@ -1738,7 +1735,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
     if (gvl_waiting_at < 0) {
       // Negative means the waiting for GVL just ended, so we clear the state, so next samples no longer represent waiting
-      rb_internal_thread_specific_set(thread_being_sampled, per_thread_gvl_waiting_timestamp_key, (void *) GVL_WAITING_ENABLED_EMPTY);
+      gvl_profiling_state_thread_object_set(thread_being_sampled, GVL_WAITING_ENABLED_EMPTY);
     }
 
     long gvl_waiting_started_wall_time_ns = labs(gvl_waiting_at);
@@ -1779,21 +1776,21 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    thread_context_collector_on_gvl_waiting(thread);
+    thread_context_collector_on_gvl_waiting(thread_from_thread_object(thread));
     return Qnil;
   }
 
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    intptr_t gvl_waiting_at = (intptr_t) rb_internal_thread_specific_get(thread, per_thread_gvl_waiting_timestamp_key);
+    intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread);
     return LONG2NUM(gvl_waiting_at);
   }
 
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_on_gvl_running(thread) ? Qtrue : Qfalse;
+    return thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) ? Qtrue : Qfalse;
   }
 
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {

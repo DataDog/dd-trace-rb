@@ -149,7 +149,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     end
 
     context "when gvl_profiling_enabled is true on an unsupported Ruby" do
-      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+      before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
       let(:gvl_profiling_enabled) { true }
 
@@ -451,6 +451,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             background_thread_affected_by_gvl_contention
           ).sort_by { |s| s.labels.fetch(:end_timestamp_ns) }
 
+          thread_activity_time =
+            samples
+              .group_by { |s| s.labels[:state] }
+              .map { |state, state_samples| [state, state_samples.sum { |s| s.values.fetch(:"wall-time") }] }.to_h
+
           # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
           # will have an unknown state because the profiler may have missed the beginning of the Waiting for GVL
           #
@@ -459,17 +464,23 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           missed_by_profiler_time =
             samples.take_while { |s| s.labels[:state] == "unknown" }.sum { |sample| sample.values.fetch(:"wall-time") }
 
-          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
+          waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
           waiting_for_gvl_time = waiting_for_gvl_samples.sum { |sample| sample.values.fetch(:"wall-time") }
 
-          expect(waiting_for_gvl_samples.size).to be > 0
+          debug_failures = {
+            thread_activity_time: thread_activity_time,
+            missed_by_profiler_time: missed_by_profiler_time,
+            total_time: total_time,
+            waiting_for_gvl_time: waiting_for_gvl_time,
+          }
 
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
           # it just passes and starts waiting)
           expect(total_time).to be >= 200_000_000 # This test should run for at least 200ms, which is how long we sleep for
           expect(waiting_for_gvl_time).to be < total_time
-          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time)
+          expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time), \
+            "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
           expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
         end
