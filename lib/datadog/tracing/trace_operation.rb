@@ -178,6 +178,7 @@ module Datadog
         all_tags.merge!(root_span&.tags || {}) if root_span
         all_tags.merge!(@tags || {})
         all_tags.merge!(@metrics || {})
+        all_tags.merge!(@meta || {})
         all_tags
       end
 
