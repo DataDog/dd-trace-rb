@@ -317,6 +317,20 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
     end
 
+    context 'when trace operation returns root span values as well' do
+      let(:options) { { tags: { ok: 'test' } } }
+      context 'for tags' do
+        it do
+          # When tags are added to the root span they should be accessible through the trace operation
+          span = trace_op.build_span('test', tags: { 'foo' => 'bar' })
+          span.start
+          expect(trace_op.get_tag('foo')).to eq('bar')
+          expect(trace_op.get_tag('ok')).to eq('test')
+          expect(trace_op.tags).to eq('foo' => 'bar', 'ok' => 'test')
+        end
+      end
+    end
+
     context 'when :max_length is non-zero' do
       let(:options) { { max_length: 3 } }
 

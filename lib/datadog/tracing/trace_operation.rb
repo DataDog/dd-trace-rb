@@ -175,9 +175,9 @@ module Datadog
 
       def tags
         all_tags = {}
-        all_tags.merge(root_span.tags) if root_span
-        all_tags.merge(@tags)
-        all_tags.merge(@metrics)
+        all_tags.merge!(root_span&.tags || {}) if root_span
+        all_tags.merge!(@tags || {})
+        all_tags.merge!(@metrics || {})
         all_tags
       end
 
