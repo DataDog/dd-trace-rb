@@ -98,7 +98,7 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
-    stripe (12.6.0)
+    stripe (13.0.0)
     thor (1.2.2)
     warning (1.4.0)
     webmock (3.23.1)
