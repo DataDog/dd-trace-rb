@@ -317,7 +317,7 @@ module Datadog
         # Resolve hostname if configured
         hostname = Core::Environment::Socket.hostname if Datadog.configuration.tracing.report_hostname
         hostname = hostname && !hostname.empty? ? hostname : nil
-
+        # So we can build traces out of digests
         if digest
           TraceOperation.new(
             hostname: hostname,
@@ -342,15 +342,23 @@ module Datadog
       end
 
       def bind_trace_events!(trace_op)
+        # need to find out what trace_op.send does
+        # ok trace_op is just a trace and we run bind_trace_events right after
+        # build_trace
+        # and what events is.
+        # events is probably just all the spans
         events = trace_op.send(:events)
-
+        # so we loop through all the spans and trace sample them if they're the root span
+        # and span sample all of them as well.
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
+          # here's where we sample for the trace rn
           sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
+          # then span sampling is done here
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
@@ -494,7 +502,10 @@ module Datadog
       def flush_trace(trace_op)
         begin
           trace = @trace_flush.consume!(trace_op)
-          write(trace) if trace && !trace.empty?
+          if trace && !trace.empty?
+            sample(trace)
+            write(trace)
+          end
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
             Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }

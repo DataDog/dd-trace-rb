@@ -161,6 +161,28 @@ module Datadog
         @resource || (root_span && root_span.resource)
       end
 
+
+      def get_tag(key)
+        super || (root_span && root_span.get_tag(key))
+      end
+
+      def get_metric(key)
+        @metric[key?] || (root_span && root_span.get_metric(key))
+      end
+
+      def tags
+        all_tags = {}
+        all_tags.merge(root_span.tags) if root_span
+        all_tags.merge(@tags)
+        all_tags.merge(@metrics)
+        all_tags
+      end
+
+
+
+        @resource || (root_span && root_span.resource)
+      end
+
       # Returns true if the resource has been explicitly set
       #
       # @return [Boolean]
@@ -285,6 +307,8 @@ module Datadog
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
       def to_digest
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
@@ -352,7 +376,6 @@ module Datadog
       # Callback behavior
       class Events
         include Tracing::Events
-
         attr_reader \
           :span_before_start,
           :span_finished,
