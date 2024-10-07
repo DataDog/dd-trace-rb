@@ -327,6 +327,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(trace_op.get_tag('foo')).to eq('bar')
           expect(trace_op.get_tag('ok')).to eq('test')
           expect(trace_op.tags).to eq('foo' => 'bar', 'ok' => 'test')
+          span.finish
         end
 
         context 'trace operation tags take precedent over root span tags' do
@@ -335,6 +336,33 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             span = trace_op.build_span('test', tags: { 'ok' => 'should_not_be' })
             span.start
             expect(trace_op.tags).to eq('ok' => 'test')
+            span.finish
+          end
+
+          context 'for metrics' do
+            let(:options) { { metrics: { metric1: 123 } } }
+            it do
+              # When tags are added to the root span they should be accessible through the trace operation
+              span = trace_op.build_span('test', tags: { 'metric2' => 456 })
+              span.start
+              expect(trace_op.get_metric('metric1')).to eq(123)
+              expect(trace_op.get_metric('metric2')).to eq(456)
+
+              span.finish
+            end
+          end
+
+          context 'for metrics override' do
+            let(:options) { { metrics: { metric1: 123 } } }
+
+            it do
+              # When tags are added to the root span they should be accessible through the trace operation
+              span = trace_op.build_span('test', tags: { 'metric1' => 456 })
+              span.start
+              expect(trace_op.get_metric('metric1')).to eq(123)
+              expect(trace_op.tags).to eq({ 'metric1' => 123 })
+              span.finish
+            end
           end
         end
       end
