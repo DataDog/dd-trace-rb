@@ -328,6 +328,15 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           expect(trace_op.get_tag('ok')).to eq('test')
           expect(trace_op.tags).to eq('foo' => 'bar', 'ok' => 'test')
         end
+
+        context 'trace operation tags take precedent over root span tags' do
+          it do
+            # When tags are added to the root span they should be accessible through the trace operation
+            span = trace_op.build_span('test', tags: { 'ok' => 'should_not_be' })
+            span.start
+            expect(trace_op.tags).to eq('ok' => 'test')
+          end
+        end
       end
     end
 
