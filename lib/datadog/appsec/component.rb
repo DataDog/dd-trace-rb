@@ -31,7 +31,8 @@ module Datadog
 
         def incompatible_ffi_version?
           ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
-          return false unless RUBY_VERSION >= '3.3.0' && ffi_version < '1.16.0'
+          return false unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') &&
+            ffi_version < Gem::Version.new('1.16.0')
 
           Datadog.logger.warn(
             'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
