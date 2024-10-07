@@ -213,7 +213,7 @@ RSpec.shared_examples 'a trace sent to agent with Datadog-Client-Computed-Stats 
 
   it do
     agent_return = agent_http_client.send_traces(traces)
-    expect(agent_return[0].ok?).to be true
+    expect(agent_return.first.ok?).to be true
   end
 end
 

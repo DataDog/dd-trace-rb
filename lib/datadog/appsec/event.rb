@@ -137,16 +137,16 @@ module Datadog
         end
         # rubocop:enable Metrics/MethodLength
 
-        def add_event_tags(scope, waf_result)
+        def add_tags(scope, waf_result)
           if scope.service_entry_span
             scope.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.include?('block')
             scope.service_entry_span.set_tag('appsec.event', 'true')
           end
 
-          # Propagate to downstream services the information that the current distributed trace is
-          # containing at least one ASM security event
           return unless scope.trace
 
+          # Propagate to downstream services the information that the current distributed trace is
+          # containing at least one ASM security event.
           scope.trace.keep!
           scope.trace.set_tag(
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,

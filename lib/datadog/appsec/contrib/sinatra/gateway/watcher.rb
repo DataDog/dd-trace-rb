@@ -40,7 +40,7 @@ module Datadog
                           actions: result.actions
                         }
 
-                        Datadog::AppSec::Event.add_event_tags(scope, result)
+                        Datadog::AppSec::Event.add_tags(scope, result)
                         scope.processor_context.events << event
                       end
                     end
@@ -80,7 +80,7 @@ module Datadog
                           actions: result.actions
                         }
 
-                        Datadog::AppSec::Event.add_event_tags(scope, result)
+                        Datadog::AppSec::Event.add_tags(scope, result)
                         scope.processor_context.events << event
                       end
                     end

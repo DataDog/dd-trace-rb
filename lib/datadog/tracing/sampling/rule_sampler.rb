@@ -29,7 +29,14 @@ module Datadog
           default_sample_rate: Datadog.configuration.tracing.sampling.default_rate,
           default_sampler: nil
         )
-          @rules = rules
+          @rules = if Datadog.configuration.appsec.standalone.enabled
+                     [SimpleRule.new(sample_rate: 1.0)]
+                   elsif default_sample_rate && !default_sampler
+                     # Add to the end of the rule list a rule always matches any trace
+                     rules << SimpleRule.new(sample_rate: default_sample_rate)
+                   else
+                     rules
+                   end
           @rate_limiter = if Datadog.configuration.appsec.standalone.enabled
                             # 1 trace per minute
                             Core::TokenBucket.new(1.0 / 60, 1.0)
@@ -40,15 +47,11 @@ module Datadog
                           else
                             Core::UnlimitedLimiter.new
                           end
-          @default_sampler = if Datadog.configuration.appsec.standalone.enabled
-                               @rules = [SimpleRule.new(sample_rate: 1.0)]
+          @default_sampler = if Datadog.configuration.appsec.standalone.enabled ||
+              (default_sample_rate && !default_sampler)
                                nil
                              elsif default_sampler
                                default_sampler
-                             elsif default_sample_rate
-                               # Add to the end of the rule list a rule always matches any trace
-                               @rules << SimpleRule.new(sample_rate: default_sample_rate)
-                               nil
                              else
                                # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
                                RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })

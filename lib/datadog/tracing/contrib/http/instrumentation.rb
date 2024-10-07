@@ -35,10 +35,7 @@ module Datadog
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                asm_standalone_no_upstream_or_local_event = Datadog.configuration.appsec.standalone.enabled &&
-                  (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1')
-
-                if asm_standalone_no_upstream_or_local_event
+                if Tracing::TraceOperation.asm_standalone_reject?(trace)
                   trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
                 end
 
