@@ -23,4 +23,5 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
-      - run: env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:main
+      # @ivoanjo: Disabled the use of prism as of October 2024 via --parser=parse.y because asan was complaining about it
+      - run: bundle exec env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 ruby --parser=parse.y -S rake spec:profiling:main
