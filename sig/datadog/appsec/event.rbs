@@ -13,7 +13,9 @@ module Datadog
       def self.record_via_span: (Datadog::Tracing::SpanOperation, *untyped events) -> untyped
 
       def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
-
+                                       
+      def self.add_tags: (untyped scope, untyped waf_result) -> untyped
+                       
       private
 
       def self.compressed_and_base64_encoded: (untyped value) -> untyped
@@ -21,6 +23,8 @@ module Datadog
       def self.json_parse: (untyped value) -> untyped
 
       def self.gzip: (untyped value) -> untyped
+                   
+      def self.add_distributed_tags: (untyped trace) -> untyped
     end
   end
 end

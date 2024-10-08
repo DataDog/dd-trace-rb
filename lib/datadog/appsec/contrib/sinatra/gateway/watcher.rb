@@ -40,6 +40,8 @@ module Datadog
                           actions: result.actions
                         }
 
+                        # We want to keep the trace in case of security event
+                        scope.trace.keep! if scope.trace
                         Datadog::AppSec::Event.add_tags(scope, result)
                         scope.processor_context.events << event
                       end
@@ -80,6 +82,8 @@ module Datadog
                           actions: result.actions
                         }
 
+                        # We want to keep the trace in case of security event
+                        scope.trace.keep! if scope.trace
                         Datadog::AppSec::Event.add_tags(scope, result)
                         scope.processor_context.events << event
                       end

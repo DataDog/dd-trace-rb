@@ -143,16 +143,7 @@ module Datadog
             scope.service_entry_span.set_tag('appsec.event', 'true')
           end
 
-          return unless scope.trace
-
-          # Propagate to downstream services the information that the current distributed trace is
-          # containing at least one ASM security event.
-          scope.trace.keep!
-          scope.trace.set_tag(
-            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
-            Datadog::Tracing::Sampling::Ext::Decision::ASM
-          )
-          scope.trace.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, '1')
+          add_distributed_tags(scope.trace)
         end
 
         private
@@ -182,6 +173,18 @@ module Datadog
           gz.write(value)
           gz.close
           sio.string
+        end
+
+        # Propagate to downstream services the information that the current distributed trace is
+        # containing at least one ASM security event.
+        def add_distributed_tags(trace)
+          return unless trace
+
+          trace.set_tag(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+            Datadog::Tracing::Sampling::Ext::Decision::ASM
+          )
+          trace.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, '1')
         end
       end
     end
