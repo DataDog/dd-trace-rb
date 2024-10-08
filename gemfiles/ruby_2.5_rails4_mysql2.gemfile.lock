@@ -54,16 +54,6 @@ GIT
       rake (>= 0.8.7)
       thor (>= 0.18.1, < 2.0)
 
-GIT
-  remote: https://github.com/DataDog/simplecov
-  revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  specs:
-    simplecov (0.21.2)
-      docile (~> 1.1)
-      simplecov-html (~> 0.11)
-      simplecov_json_formatter (~> 0.1)
-
 PATH
   remote: ..
   specs:
@@ -207,6 +197,10 @@ GEM
       rspec (>= 3, < 4)
     rspec_junit_formatter (0.6.0)
       rspec-core (>= 2, < 4, != 2.12.0)
+    simplecov (0.21.2)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -263,7 +257,7 @@ DEPENDENCIES
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
-  simplecov!
+  simplecov
   simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)
   warning (~> 1)

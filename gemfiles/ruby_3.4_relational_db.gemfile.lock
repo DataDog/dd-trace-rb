@@ -1,14 +1,4 @@
 GIT
-  remote: https://github.com/DataDog/simplecov
-  revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
-  specs:
-    simplecov (0.21.2)
-      docile (~> 1.1)
-      simplecov-html (~> 0.11)
-      simplecov_json_formatter (~> 0.1)
-
-GIT
   remote: https://github.com/ruby/webrick.git
   revision: 0c600e169bd4ae267cb5eeb6197277c848323bbe
   ref: 0c600e169bd4ae267cb5eeb6197277c848323bbe
@@ -170,6 +160,10 @@ GEM
       nokogiri
     sequel (5.83.1)
       bigdecimal
+    simplecov (0.21.2)
+      docile (~> 1.1)
+      simplecov-html (~> 0.11)
+      simplecov_json_formatter (~> 0.1)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -230,7 +224,7 @@ DEPENDENCIES
   rubocop-rspec (~> 2.20, < 2.21)
   ruby_memcheck (>= 3)
   sequel
-  simplecov!
+  simplecov
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (>= 1.4.2)
   trilogy
