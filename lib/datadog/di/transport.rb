@@ -27,11 +27,11 @@ module Datadog
       def initialize(agent_settings)
         # Note that this uses host, port, timeout and TLS flag from
         # agent settings.
-        @client = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
+        @client = Core::Transport::HTTP::Adapters::Net.new(agent_settings)
       end
 
       def send_diagnostics(payload)
-        event_payload = Datadog::Core::Vendor::Multipart::Post::UploadIO.new(
+        event_payload = Core::Vendor::Multipart::Post::UploadIO.new(
           StringIO.new(JSON.dump(payload)), 'application/json', 'event.json'
         )
         payload = {'event' => event_payload}
@@ -56,7 +56,7 @@ module Datadog
         )
         # steep:ignore:end
         response = client.post(env)
-        unless (200..299).cover?(response.code)
+        unless response.ok?
           raise Error::AgentCommunicationError, "#{desc} failed: #{response.code}: #{response.payload}"
         end
       rescue IOError, SystemCallError => exc
