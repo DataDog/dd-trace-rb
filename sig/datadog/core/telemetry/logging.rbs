@@ -1,8 +1,20 @@
 module Datadog
   module Core
     module Telemetry
-      module Logging
-        def report: (Exception exception, level: Symbol) -> void
+      interface _Logging
+        def log!: (Datadog::Core::Telemetry::Event::Log) -> void
+      end
+
+      module Logging : _Logging
+        module DatadogStackTrace
+          GEM_ROOT: String
+
+          def self.from: (Exception exception) -> String?
+        end
+
+        def report: (Exception exception, ?level: Symbol, ?description: String?) -> void
+
+        def error: (String description) -> void
       end
     end
   end

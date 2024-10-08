@@ -9,6 +9,7 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInArrayLiteral
   - Style/TrailingCommaInHashLiteral
+  - Style/StringLiterals
 
 # This disables standardrb for the rest of dd-trace-rb (other than profiling)
 - .pryrc
@@ -41,4 +42,5 @@ ignore:
 - spec/datadog/tracing/**/**
 - spec/support/**/**
 - tasks/**/**
+- tools/**/**
 - yard/**/**

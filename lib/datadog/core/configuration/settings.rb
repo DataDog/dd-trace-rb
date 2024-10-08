@@ -410,10 +410,8 @@ module Datadog
             # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
             #
             # We've discovered that this can trigger a bug in a number of Ruby APIs in the `Dir` class, as
-            # described in https://github.com/DataDog/dd-trace-rb/issues/3450 . This workaround prevents the issue
-            # from happening by monkey patching the affected APIs.
-            #
-            # (In the future, once a fix lands upstream, we'll disable this workaround for Rubies that don't need it)
+            # described in https://bugs.ruby-lang.org/issues/20586 .
+            # This was fixed for Ruby 3.4+, and this setting is a no-op for those versions.
             #
             # @default `DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED` environment variable as a boolean,
             # otherwise `true`
@@ -461,6 +459,31 @@ module Datadog
                   end
                 end
               end
+            end
+
+            # Enables GVL profiling. This will show when threads are waiting for GVL in the timeline view.
+            #
+            # This is a preview feature and disabled by default. It requires Ruby 3.2+.
+            #
+            # @default `DD_PROFILING_PREVIEW_GVL_ENABLED` environment variable as a boolean, otherwise `false`
+            option :preview_gvl_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_PREVIEW_GVL_ENABLED'
+              o.default false
+            end
+
+            # Controls the smallest time period the profiler will report a thread waiting for the GVL.
+            #
+            # The default value was set to minimize overhead. Periods smaller than the set value will not be reported (e.g.
+            # the thread will be reported as whatever it was doing before it waited for the GVL).
+            #
+            # We do not recommend setting this to less than 1ms. Tweaking this value can increase application latency and
+            # memory use.
+            #
+            # @default 10_000_000 (10ms)
+            option :waiting_for_gvl_threshold_ns do |o|
+              o.type :int
+              o.default 10_000_000
             end
           end
 
@@ -626,6 +649,33 @@ module Datadog
             # TODO: to help reduce duplication.
             -> { ::Time.now }.tap do |default|
               Core::Utils::Time.now_provider = default
+            end
+          end
+        end
+
+        # The monotonic clock time provider used by Datadog. This option is internal and is used by `datadog-ci`
+        # gem to avoid traces' durations being skewed by timecop.
+        #
+        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
+        #
+        # For [Timecop](https://rubygems.org/gems/timecop), for example,
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # allows Datadog features to use the real monotonic time when time is frozen with
+        # `Timecop.mock_process_clock = true`.
+        #
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @return [Proc<Numeric>]
+        option :get_time_provider do |o|
+          o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.type :proc
+
+          o.after_set do |get_time_provider|
+            Core::Utils::Time.get_time_provider = get_time_provider
+          end
+
+          o.resetter do |_value|
+            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
+              Core::Utils::Time.get_time_provider = default
             end
           end
         end

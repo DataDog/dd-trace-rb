@@ -24,7 +24,7 @@ module Datadog
 
           def agent_transport: (untyped config) -> String
 
-          def conf_value: (String name, Object value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
+          def conf_value: (String name, untyped value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
 
           def to_value: (Object value) -> Object
 
@@ -72,10 +72,11 @@ module Datadog
 
           @message: String
           @level: "ERROR" | "DEBUG" | "WARN"
+          @stack_trace: String?
 
-          def initialize: (message: String, level: Symbol) -> void
+          def initialize: (message: String, level: Symbol, ?stack_trace: String?) -> void
 
-          def payload: () -> { logs: [{ message: String, level: String }] }
+          def payload: () -> { logs: [Hash[Symbol, String]] }
         end
 
         class Distributions < GenerateMetrics

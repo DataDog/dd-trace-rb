@@ -4,6 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../http'
 require_relative '../analytics'
 require_relative '../http_annotation_helper'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -35,6 +36,7 @@ module Datadog
                   annotate_span_with_request!(span, req, request_options)
                 rescue StandardError => e
                   logger.error("error preparing span for http.rb request: #{e}, Source: #{e.backtrace}")
+                  Datadog::Core::Telemetry::Logger.report(e)
                 ensure
                   res = super(req, options)
                 end
@@ -108,6 +110,9 @@ module Datadog
               span.set_tags(
                 Datadog.configuration.tracing.header_tags.response_tags(response.headers)
               )
+            rescue StandardError => e
+              logger.error("error preparing span from http.rb response: #{e}, Source: #{e.backtrace}")
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def annotate_span_with_error!(span, error)

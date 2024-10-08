@@ -92,7 +92,7 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
   return sampler->sampling_probability * 100.;
 }
 
-size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
+unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
   return sampler->events_since_last_sample;
 }
 
@@ -259,7 +259,9 @@ void discrete_dynamic_sampler_readjust(discrete_dynamic_sampler *sampler, long n
   //       are so big they don't fit into the sampling_interval. In both cases lets just disable sampling until next readjustment
   //       by setting interval to 0.
   double sampling_interval = sampler->sampling_probability == 0 ? 0 : ceil(1.0 / sampler->sampling_probability);
-  sampler->sampling_interval = sampling_interval > ULONG_MAX ? 0 : sampling_interval;
+  // NOTE: We use UINT32_MAX instead of ULONG_MAX here to avoid clang warnings; in practice, we shouldn't ever hit
+  // such high sampling intervals.
+  sampler->sampling_interval = sampling_interval > UINT32_MAX ? 0 : sampling_interval;
 
   #ifdef DD_DEBUG
     double allocs_in_60s = sampler->events_per_ns * 1e9 * 60;

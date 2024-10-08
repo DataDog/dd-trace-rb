@@ -21,9 +21,7 @@ class ProfilerSampleLoopBenchmark
       heap_sample_every: 1,
       timeline_enabled: false,
     )
-    @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: false
-    )
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
   end
 
   def thread_with_very_deep_stack(depth: 500)

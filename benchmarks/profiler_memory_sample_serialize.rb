@@ -30,8 +30,6 @@ def sample_object(recorder, depth = 0)
       METRIC_VALUES,
       [],
       [],
-      400,
-      false
     )
     obj
   else

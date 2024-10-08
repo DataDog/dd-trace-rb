@@ -62,6 +62,7 @@ module Datadog
           dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
           allocation_profiling_enabled: allocation_profiling_enabled,
           allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
+          gvl_profiling_enabled: enable_gvl_profiling?(settings),
         )
 
         internal_metadata = {
@@ -89,6 +90,7 @@ module Datadog
           tracer: optional_tracer,
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
+          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
         )
       end
 
@@ -252,6 +254,7 @@ module Datadog
         legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?("2.5.")
 
         unless [true, false, :auto].include?(setting_value)
+          # TODO: Replace with a warning instead.
           Datadog.logger.error(
             "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}. " \
             "Valid options are `true`, `false` or (default) `:auto`."
@@ -394,6 +397,7 @@ module Datadog
         if overhead_target_percentage > 0 && overhead_target_percentage <= 20
           overhead_target_percentage
         else
+          # TODO: Replace with a warning instead.
           Datadog.logger.error(
             "Ignoring invalid value for profiling overhead_target_percentage setting: " \
             "#{overhead_target_percentage.inspect}. Falling back to default value."
@@ -433,12 +437,23 @@ module Datadog
       end
 
       private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
-        return false if no_signals_workaround_enabled
-
-        # NOTE: In the future this method will evolve to check for Ruby versions affected and not apply the workaround
-        # when it's not needed but currently all known Ruby versions are affected.
+        return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
 
         settings.profiling.advanced.dir_interruption_workaround_enabled
+      end
+
+      private_class_method def self.enable_gvl_profiling?(settings)
+        if RUBY_VERSION < "3.2"
+          if settings.profiling.advanced.preview_gvl_enabled
+            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.2 and will not be enabled.")
+          end
+
+          return false
+        end
+
+        # GVL profiling only makes sense in the context of timeline. We could emit a warning here, but not sure how
+        # useful it is -- if a customer disables timeline, there's nowhere to look for GVL profiling anyway!
+        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.preview_gvl_enabled
       end
     end
   end

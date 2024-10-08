@@ -182,7 +182,7 @@ uint64_t native_thread_id_for(VALUE thread) {
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
-      if (native_thread == NULL) rb_raise(rb_eRuntimeError, "BUG: rb_native_thread* is null. Is this Ruby running with RUBY_MN_THREADS=1?");
+      if (native_thread == NULL) return 0;
       return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
@@ -753,5 +753,56 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void) {
     return GET_VM()->objspace;
+  }
+#endif
+
+#ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS // Ruby 3.2
+  #include "gvl_profiling_helper.h"
+
+  gvl_profiling_thread thread_from_thread_object(VALUE thread) {
+    return (gvl_profiling_thread) {.thread = thread_struct_from_object(thread)};
+  }
+
+  // Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
+  // rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby 3.2. On Ruby 3.2 we instead store the
+  // needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
+  //
+  // Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
+  // that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
+  // code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
+  // field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
+  //
+  // Thus, since this hack is only for 3.2, which presumably will never see this field either removed or used
+  // during its remaining maintenance release period we... kinda take it for our own usage. It's ugly, I know...
+  intptr_t gvl_profiling_state_get(gvl_profiling_thread thread) {
+    if (thread.thread == NULL) return 0;
+
+    VALUE current_value = ((rb_thread_t *)thread.thread)->stat_insn_usage;
+    intptr_t result = current_value == Qnil ? 0 : FIX2LONG(current_value);
+    return result;
+  }
+
+  void gvl_profiling_state_set(gvl_profiling_thread thread, intptr_t value) {
+    if (thread.thread == NULL) return;
+    ((rb_thread_t *)thread.thread)->stat_insn_usage = LONG2FIX(value);
+  }
+
+  // Because Ruby 3.2 does not give us the current thread when calling the RUBY_INTERNAL_THREAD_EVENT_READY and
+  // RUBY_INTERNAL_THREAD_EVENT_RESUMED APIs, we need to figure out this info ourselves.
+  //
+  // Specifically, this method was created to be called from a RUBY_INTERNAL_THREAD_EVENT_RESUMED callback --
+  // when it's triggered, we know the thread the code gets executed on is holding the GVL, so we use this
+  // opportunity to initialize our thread-local value.
+  gvl_profiling_thread gvl_profiling_state_maybe_initialize(void) {
+    gvl_profiling_thread current_thread = gvl_waiting_tls;
+
+    if (current_thread.thread == NULL) {
+      // threads.sched.running is the thread currently holding the GVL, which when this gets executed is the
+      // current thread!
+      current_thread = (gvl_profiling_thread) {.thread = (void *) rb_current_ractor()->threads.sched.running};
+      gvl_waiting_tls = current_thread;
+    }
+
+    return current_thread;
   }
 #endif

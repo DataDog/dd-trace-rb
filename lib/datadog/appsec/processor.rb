@@ -73,13 +73,15 @@ module Datadog
 
       attr_reader :diagnostics, :addresses
 
-      def initialize(ruleset:)
+      def initialize(ruleset:, telemetry:)
         @diagnostics = nil
         @addresses = []
         settings = Datadog.configuration.appsec
+        @telemetry = telemetry
 
-        unless load_libddwaf && create_waf_handle(settings, ruleset)
-          Datadog.logger.warn { 'AppSec is disabled, see logged errors above' }
+        # TODO: Refactor to make it easier to test
+        unless require_libddwaf && libddwaf_provides_waf? && create_waf_handle(settings, ruleset)
+          Datadog.logger.warn('AppSec is disabled, see logged errors above')
         end
       end
 
@@ -97,8 +99,27 @@ module Datadog
 
       private
 
-      def load_libddwaf
-        Processor.require_libddwaf && Processor.libddwaf_provides_waf?
+      # libddwaf raises a LoadError on unsupported platforms; it may at some
+      # point succeed in being required yet not provide a specific needed feature.
+      def require_libddwaf
+        Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
+
+        require 'libddwaf'
+
+        true
+      rescue LoadError => e
+        Datadog.logger.error do
+          'libddwaf failed to load,' \
+            "installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms} error: #{e.inspect}"
+        end
+        @telemetry.report(e, description: 'libddwaf failed to load')
+
+        false
+      end
+
+      # check whether libddwaf is required *and* able to provide the needed feature
+      def libddwaf_provides_waf?
+        defined?(Datadog::AppSec::WAF) ? true : false
       end
 
       def create_waf_handle(settings, ruleset)
@@ -119,6 +140,7 @@ module Datadog
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
+        @telemetry.report(e, description: 'libddwaf failed to initialize')
 
         @diagnostics = e.diagnostics if e.diagnostics
 
@@ -127,44 +149,21 @@ module Datadog
         Datadog.logger.error do
           "libddwaf failed to initialize, error: #{e.inspect}"
         end
+        @telemetry.report(e, description: 'libddwaf failed to initialize')
 
         false
       end
 
-      class << self
-        # check whether libddwaf is required *and* able to provide the needed feature
-        def libddwaf_provides_waf?
-          defined?(Datadog::AppSec::WAF) ? true : false
+      def libddwaf_platform
+        if Gem.loaded_specs['libddwaf']
+          Gem.loaded_specs['libddwaf'].platform.to_s
+        else
+          'unknown'
         end
+      end
 
-        # libddwaf raises a LoadError on unsupported platforms; it may at some
-        # point succeed in being required yet not provide a specific needed feature.
-        def require_libddwaf
-          Datadog.logger.debug { "libddwaf platform: #{libddwaf_platform}" }
-
-          require 'libddwaf'
-
-          true
-        rescue LoadError => e
-          Datadog.logger.error do
-            'libddwaf failed to load,' \
-              "installed platform: #{libddwaf_platform} ruby platforms: #{ruby_platforms} error: #{e.inspect}"
-          end
-
-          false
-        end
-
-        def libddwaf_spec
-          Gem.loaded_specs['libddwaf']
-        end
-
-        def libddwaf_platform
-          libddwaf_spec ? libddwaf_spec.platform.to_s : 'unknown'
-        end
-
-        def ruby_platforms
-          Gem.platforms.map(&:to_s)
-        end
+      def ruby_platforms
+        Gem.platforms.map(&:to_s)
       end
     end
   end

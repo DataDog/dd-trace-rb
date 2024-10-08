@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "../core/telemetry/logger"
+
 module Datadog
   module Profiling
     # Stores stack samples in a native libdatadog data structure and expose Ruby-level serialization APIs
@@ -42,6 +44,7 @@ module Datadog
           error_message = result
 
           Datadog.logger.error("Failed to serialize profiling data: #{error_message}")
+          Datadog::Core::Telemetry::Logger.error("Failed to serialize profiling data")
 
           nil
         end

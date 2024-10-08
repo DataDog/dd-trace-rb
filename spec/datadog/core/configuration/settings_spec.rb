@@ -883,6 +883,56 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(false)
         end
       end
+
+      describe '#preview_gvl_enabled' do
+        subject(:preview_gvl_enabled) { settings.profiling.advanced.preview_gvl_enabled }
+
+        context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#preview_gvl_enabled=' do
+        it 'updates the #preview_gvl_enabled setting' do
+          expect { settings.profiling.advanced.preview_gvl_enabled = true }
+            .to change { settings.profiling.advanced.preview_gvl_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
+      describe '#waiting_for_gvl_threshold_ns' do
+        subject(:waiting_for_gvl_threshold_ns) { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
+
+        it { is_expected.to be 10_000_000 }
+      end
+
+      describe '#waiting_for_gvl_threshold_ns=' do
+        it 'updates the #waiting_for_gvl_threshold_ns setting' do
+          expect { settings.profiling.advanced.waiting_for_gvl_threshold_ns = 123_000_000 }
+            .to change { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
+            .from(10_000_000)
+            .to(123_000_000)
+        end
+      end
     end
 
     describe '#upload' do
@@ -1338,6 +1388,73 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
         expect(settings.time_now_provider.call).to be(original_time_now)
         expect(Datadog::Core::Utils::Time.now).to be(original_time_now)
+      end
+    end
+  end
+
+  describe '#get_time_provider=' do
+    subject(:set_get_time_provider) { settings.get_time_provider = get_time_provider }
+
+    after { settings.reset! }
+
+    let(:get_time) { 1 }
+
+    let(:get_time_new_milliseconds) { 42 }
+    let(:get_time_new_seconds) { 0.042 }
+
+    let(:unit) { :float_second }
+    let(:get_time_provider) do
+      new_milliseconds = get_time_new_milliseconds # Capture for closure
+      new_seconds = get_time_new_seconds # Capture for closure
+
+      ->(unit) { unit == :float_millisecond ? new_milliseconds : new_seconds }
+    end
+
+    context 'when default' do
+      before { allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(1) }
+
+      it 'delegates to Process.clock_gettime' do
+        expect(settings.get_time_provider.call(unit)).to eq(get_time)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time)
+      end
+    end
+
+    context 'when given a value' do
+      before { set_get_time_provider }
+
+      context 'when unit is :float_second' do
+        it 'returns the provided time in float seconds' do
+          expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
+          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
+        end
+      end
+
+      context 'when unit is :float_millisecond' do
+        let(:unit) { :float_millisecond }
+
+        it 'returns the provided time in float milliseconds' do
+          expect(settings.get_time_provider.call(unit)).to eq(get_time_new_milliseconds)
+          expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_milliseconds)
+        end
+      end
+    end
+
+    context 'then reset' do
+      let(:original_get_time) { 1 }
+
+      before do
+        set_get_time_provider
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC, unit).and_return(original_get_time)
+      end
+
+      it 'returns the provided time' do
+        expect(settings.get_time_provider.call(unit)).to eq(get_time_new_seconds)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(get_time_new_seconds)
+
+        settings.reset!
+
+        expect(settings.get_time_provider.call(unit)).to eq(original_get_time)
+        expect(Datadog::Core::Utils::Time.get_time(unit)).to eq(original_get_time)
       end
     end
   end

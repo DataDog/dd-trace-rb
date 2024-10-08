@@ -12,10 +12,11 @@ module Datadog
         class Capabilities
           attr_reader :products, :capabilities, :receivers, :base64_capabilities
 
-          def initialize(settings)
+          def initialize(settings, telemetry)
             @capabilities = []
             @products = []
             @receivers = []
+            @telemetry = telemetry
 
             register(settings)
 
@@ -28,12 +29,12 @@ module Datadog
             if settings.respond_to?(:appsec) && settings.appsec.enabled
               register_capabilities(Datadog::AppSec::Remote.capabilities)
               register_products(Datadog::AppSec::Remote.products)
-              register_receivers(Datadog::AppSec::Remote.receivers)
+              register_receivers(Datadog::AppSec::Remote.receivers(@telemetry))
             end
 
             register_capabilities(Datadog::Tracing::Remote.capabilities)
             register_products(Datadog::Tracing::Remote.products)
-            register_receivers(Datadog::Tracing::Remote.receivers)
+            register_receivers(Datadog::Tracing::Remote.receivers(@telemetry))
           end
 
           def register_capabilities(capabilities)

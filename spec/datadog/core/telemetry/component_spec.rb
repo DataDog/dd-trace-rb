@@ -219,6 +219,14 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     end
   end
 
+  describe 'includes Datadog::Core::Telemetry::Logging' do
+    after do
+      telemetry.stop!
+    end
+
+    it { is_expected.to a_kind_of(Datadog::Core::Telemetry::Logging) }
+  end
+
   describe '#log!' do
     after do
       telemetry.stop!
