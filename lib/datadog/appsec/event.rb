@@ -152,7 +152,7 @@ module Datadog
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
             Datadog::Tracing::Sampling::Ext::Decision::ASM
           )
-          scope.trace.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT, '1')
+          scope.trace.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, '1')
         end
 
         private

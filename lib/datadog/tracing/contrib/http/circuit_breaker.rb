@@ -35,7 +35,7 @@ module Datadog
               # If there is an ASM event, we still have to check if distributed tracing is enabled or not
               return true unless Tracing.active_trace
 
-              return true if Tracing.active_trace.get_tag(Datadog::AppSec::Ext::TAG_APPSEC_EVENT) != '1'
+              return true if Tracing.active_trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1'
             end
 
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
