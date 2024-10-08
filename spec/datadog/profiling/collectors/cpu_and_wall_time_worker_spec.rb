@@ -473,6 +473,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             missed_by_profiler_time: missed_by_profiler_time,
             total_time: total_time,
             waiting_for_gvl_time: waiting_for_gvl_time,
+            samples: samples.map { |s| [s.values, s.labels] },
           }
 
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
