@@ -65,6 +65,7 @@ module Datadog
 
             if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
               logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+              # Consider return OpenStruct.new as null object to avoid nil checks
               return
             end
 
@@ -133,6 +134,7 @@ module Datadog
         # If it has another instance to compare to, it will compare
         # and avoid tearing down parts still in use.
         def shutdown!(replacement = nil)
+          crashtracker.stop if crashtracker
           # Shutdown remote configuration
           remote.shutdown! if remote
 

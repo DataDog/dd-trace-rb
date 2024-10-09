@@ -5,6 +5,13 @@ require 'webrick'
 require 'fiddle'
 
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
+  # No crash tracker process should still be running at the start of each testcase
+  around do |example|
+    wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+    example.run
+    wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+  end
+
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:agent_settings) { double('agent_settings') }
@@ -97,13 +104,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
   end
 
   context 'instance methods' do
-    # No crash tracker process should still be running at the start of each testcase
-    around do |example|
-      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-      example.run
-      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
-    end
-
     describe '#start' do
       context 'when _native_start_or_update_on_fork raises an exception' do
         it 'logs the exception' do
@@ -387,6 +387,46 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
                 agent_base_url: 'http://google.com:12345/',
               )
             )
+          end
+        end
+
+        context 'when does not for the fork' do
+          it do
+            Datadog.configure {}
+
+            fork {}
+
+            Datadog.shutdown!
+
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 0
+          end
+        end
+
+        context 'when `Process.wait(pid)` for the fork' do
+          it do
+            Datadog.configure {}
+
+            pid = fork {}
+
+            Process.wait(pid)
+
+            Datadog.shutdown!
+
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 0
+          end
+        end
+
+        context 'when `Process.waitall` for the fork' do
+          it 'deos not hang', :skip => 'FIXME: https://github.com/DataDog/dd-trace-rb/issues/3954' do
+            Datadog.configure {}
+
+            fork {}
+
+            Process.waitall
+
+            Datadog.shutdown!
+
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 0
           end
         end
       end
