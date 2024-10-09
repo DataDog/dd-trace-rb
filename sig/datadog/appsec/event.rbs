@@ -14,7 +14,7 @@ module Datadog
 
       def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
                                        
-      def self.add_tags: (untyped scope, untyped waf_result) -> untyped
+      def self.add_tags: (Datadog::AppSec::Scope scope, Datadog::AppSec::WAF::Result waf_result) -> untyped
                        
       private
 
