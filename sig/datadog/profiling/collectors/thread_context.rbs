@@ -9,7 +9,7 @@ module Datadog
           endpoint_collection_enabled: bool,
           timeline_enabled: bool,
           waiting_for_gvl_threshold_ns: ::Integer,
-          otel_context_enabled: (nil | false | :both | :only),
+          otel_context_enabled: (::Symbol? | bool),
           ?allocation_type_enabled: bool,
         ) -> void
 
@@ -21,7 +21,7 @@ module Datadog
           bool endpoint_collection_enabled,
           bool timeline_enabled,
           ::Integer waiting_for_gvl_threshold_ns,
-          (nil | false | :both | :only) otel_context_enabled,
+          (::Symbol? | bool) otel_context_enabled,
           bool allocation_type_enabled,
         ) -> void
 
