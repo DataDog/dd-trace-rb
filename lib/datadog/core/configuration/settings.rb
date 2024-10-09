@@ -507,8 +507,8 @@ module Datadog
               o.setter do |value|
                 if value == true
                   'both'
-                elsif ['only', 'both'].include?(value)
-                  value
+                elsif ['only', 'both', :only, :both].include?(value)
+                  value.to_s
                 else
                   'false'
                 end

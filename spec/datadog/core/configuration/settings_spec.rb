@@ -989,7 +989,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
-        context 'with only' do
+        context 'with "only"' do
           it 'updates the #preview_otel_context_enabled setting' do
             expect { settings.profiling.advanced.preview_otel_context_enabled = 'only' }
               .to change { settings.profiling.advanced.preview_otel_context_enabled }
@@ -998,9 +998,27 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
-        context 'with both' do
+        context 'with "both"' do
           it 'updates the #preview_otel_context_enabled setting' do
             expect { settings.profiling.advanced.preview_otel_context_enabled = 'both' }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('false')
+              .to('both')
+          end
+        end
+
+        context 'with :only' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = :only }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('false')
+              .to('only')
+          end
+        end
+
+        context 'with :both' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = :both }
               .to change { settings.profiling.advanced.preview_otel_context_enabled }
               .from('false')
               .to('both')
