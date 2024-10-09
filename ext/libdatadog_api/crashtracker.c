@@ -36,6 +36,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   VALUE tags_as_array = rb_hash_fetch(options, ID2SYM(rb_intern("tags_as_array")));
   VALUE action = rb_hash_fetch(options, ID2SYM(rb_intern("action")));
   VALUE upload_timeout_seconds = rb_hash_fetch(options, ID2SYM(rb_intern("upload_timeout_seconds")));
+  VALUE optional_stdout_filename = rb_hash_fetch(options, ID2SYM(rb_intern("optional_stdout_filename")));
+  VALUE optional_stderr_filename = rb_hash_fetch(options, ID2SYM(rb_intern("optional_stderr_filename")));
 
   VALUE start_action = ID2SYM(rb_intern("start"));
   VALUE update_on_fork_action = ID2SYM(rb_intern("update_on_fork"));
@@ -46,6 +48,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ENFORCE_TYPE(ld_library_path, T_STRING);
   ENFORCE_TYPE(action, T_SYMBOL);
   ENFORCE_TYPE(upload_timeout_seconds, T_FIXNUM);
+  ENFORCE_TYPE(optional_stdout_filename, T_STRING);
+  ENFORCE_TYPE(optional_stderr_filename, T_STRING);
 
   if (action != start_action && action != update_on_fork_action) rb_raise(rb_eArgError, "Unexpected action: %+"PRIsVALUE, action);
 
@@ -91,8 +95,8 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .args = {},
     .env = {.ptr = &ld_library_path_env, .len = 1},
     .path_to_receiver_binary = char_slice_from_ruby_string(path_to_crashtracking_receiver_binary),
-    .optional_stderr_filename = {},
-    .optional_stdout_filename = {},
+    .optional_stderr_filename = char_slice_from_ruby_string(optional_stderr_filename),
+    .optional_stdout_filename = char_slice_from_ruby_string(optional_stdout_filename),
   };
 
   ddog_crasht_Result result =
