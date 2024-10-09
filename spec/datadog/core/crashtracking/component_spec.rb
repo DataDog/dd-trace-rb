@@ -97,6 +97,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
   end
 
   context 'instance methods' do
+    # No crash tracker process should still be running at the start of each testcase
+    around do |example|
+      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+      example.run
+      wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
+    end
+
     describe '#start' do
       context 'when _native_start_or_update_on_fork raises an exception' do
         it 'logs the exception' do
@@ -107,6 +114,56 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           expect(logger).to receive(:error).with(/Failed to start crash tracking: Test failure/)
 
           crashtracker.start
+        end
+      end
+
+      it 'starts the crash tracker' do
+        crashtracker = build_crashtracker
+
+        crashtracker.start
+
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to_not be_empty
+
+        tear_down!
+      end
+
+      context 'when calling start multiple times in a row' do
+        it 'only starts the crash tracker once' do
+          crashtracker = build_crashtracker
+
+          3.times { crashtracker.start }
+
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+          tear_down!
+        end
+      end
+
+      context 'when multiple instances' do
+        it 'only starts the crash tracker once' do
+          crashtracker = build_crashtracker
+          crashtracker.start
+
+          another_crashtracker = build_crashtracker
+          another_crashtracker.start
+
+          wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+          tear_down!
+        end
+      end
+
+      context 'when forked' do
+        it 'starts a second crash tracker for the fork' do
+          crashtracker = build_crashtracker
+
+          crashtracker.start
+
+          expect_in_fork do
+            wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 2
+          end
+
+          tear_down!
         end
       end
     end
@@ -122,6 +179,18 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
           crashtracker.stop
         end
+      end
+
+      it 'stops the crash tracker' do
+        crashtracker = build_crashtracker
+
+        crashtracker.start
+
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to eq 1
+
+        crashtracker.stop
+
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver` }.to be_empty
       end
     end
 
@@ -146,6 +215,17 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         crashtracker = build_crashtracker
 
         crashtracker.update_on_fork
+      end
+
+      it 'updates existing crash tracking process after started' do
+        crashtracker = build_crashtracker
+
+        crashtracker.start
+        crashtracker.update_on_fork
+
+        wait_for { `pgrep -f libdatadog-crashtracking-receiver`.lines.size }.to be 1
+
+        tear_down!
       end
     end
 
@@ -278,6 +358,36 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           expect(crash_report_message[:metadata]).to_not be_empty
           expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
+        end
+      end
+
+      context 'when forked' do
+        # This integration test coverages the case that
+        # the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
+        # does not contain a stale instance of the crashtracker component.
+        it 'ensures the latest configuration applied' do
+          allow(described_class).to receive(:_native_start_or_update_on_fork)
+
+          # `Datadog.configure` to trigger crashtracking component reinstantiation,
+          #  a callback is first registered with `Utils::AtForkMonkeyPatch.at_fork`,
+          #  but not with the second `Datadog.configure` invokation.
+          Datadog.configure do |c|
+            c.agent.host = 'example.com'
+          end
+
+          Datadog.configure do |c|
+            c.agent.host = 'google.com'
+            c.agent.port = 12345
+          end
+
+          expect_in_fork do
+            expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
+              hash_including(
+                action: :update_on_fork,
+                agent_base_url: 'http://google.com:12345/',
+              )
+            )
+          end
         end
       end
     end
