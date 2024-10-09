@@ -1,34 +1,72 @@
 module Datadog
   module Core
     class RateLimiter
-      def allow?: (untyped size) -> nil
-      def effective_rate: () -> nil
-    end
-    class TokenBucket < RateLimiter
-      attr_reader rate: untyped
+      def allow?: (?::Integer size) -> void
 
-      attr_reader max_tokens: untyped
-      def initialize: (untyped rate, ?untyped max_tokens) -> void
-      def allow?: (untyped size) -> untyped
-      def effective_rate: () -> (::Float | untyped)
-      def current_window_rate: () -> (::Float | untyped)
-      def available_tokens: () -> untyped
+      def effective_rate: () -> void
+    end
+
+    class TokenBucket < RateLimiter
+      # This should be `::Numeric`, but it's used with `*` method on another
+      # `Numeric` which makes steep fail with an error `Ruby::UnresolvedOverloading`
+      # "Cannot find compatible overloading of method"
+      @rate: ::Float
+
+      @max_tokens: ::Numeric
+
+      @tokens: ::Numeric
+
+      @total_messages: ::Integer
+
+      @conforming_messages: ::Integer
+
+      # This should be `::Integer?` but steep can't see conditional branching
+      # which safe-guards us from errors like "undefined method for NilClass"
+      @prev_conforming_messages: ::Integer
+
+      # This should be `::Integer?` but steep can't see conditional branching
+      # which safe-guards us from errors like "undefined method for NilClass"
+      @prev_total_messages: ::Integer
+
+      # This should be `::Integer?`, but steep can't see conditional branching
+      # which safe-guards us from errors like "undefined method for NilClass"
+      @current_window: ::Numeric
+
+      @last_refill: ::Numeric
+
+      # This should be `::Numeric`, but has to follow `@rate` type definition
+      attr_reader rate: ::Float
+
+      attr_reader max_tokens: ::Numeric
+
+      def initialize: (::Numeric rate, ?::Numeric max_tokens) -> void
+
+      def allow?: (?::Integer size) -> bool
+
+      def effective_rate: () -> ::Float
+
+      def current_window_rate: () -> ::Float
+
+      def available_tokens: () -> ::Numeric
 
       private
 
-      def refill_since_last_message: () -> untyped
+      def refill_since_last_message: () -> void
 
-      def refill_tokens: (untyped size) -> untyped
+      def refill_tokens: (::Numeric size) -> void
 
-      def increment_total_count: () -> untyped
+      def increment_total_count: () -> void
 
-      def increment_conforming_count: () -> untyped
+      def increment_conforming_count: () -> void
 
-      def should_allow?: (untyped size) -> (false | true)
-      def update_rate_counts: (untyped allowed) -> untyped
+      def should_allow?: (?::Integer size) -> bool
+
+      def update_rate_counts: (bool allowed) -> void
     end
+
     class UnlimitedLimiter < RateLimiter
-      def allow?: (untyped _) -> true
+      def allow?: (?::Integer _) -> true
+
       def effective_rate: () -> ::Float
     end
   end
