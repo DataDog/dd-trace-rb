@@ -29,6 +29,11 @@ module Datadog
           default_sample_rate: Datadog.configuration.tracing.sampling.default_rate,
           default_sampler: nil
         )
+          # AppSec events are sent to the backend using traces.
+          # Standalone ASM billing means that we don't want to charge clients for APM traces,
+          # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
+          # but for features such as API Security, we need to send at least one trace per minute,
+          # to keep the service alive on the backend side.
           @rules = if Datadog.configuration.appsec.standalone.enabled
                      [SimpleRule.new(sample_rate: 1.0)]
                    elsif default_sample_rate && !default_sampler
