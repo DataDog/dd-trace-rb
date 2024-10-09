@@ -109,6 +109,8 @@ static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ i
 // and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
 
+enum otel_context_enabled {otel_context_enabled_false, otel_context_enabled_only, otel_context_enabled_both};
+
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
   // Note: Places in this file that usually need to be changed when this struct is changed are tagged with
@@ -135,6 +137,8 @@ struct thread_context_collector_state {
   bool endpoint_collection_enabled;
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
+  // Used to control context collection
+  enum otel_context_enabled otel_context_enabled;
   // Used to omit class information from collected allocation data
   bool allocation_type_enabled;
   // Used when calling monotonic_to_system_epoch_ns
@@ -206,6 +210,7 @@ static VALUE _native_initialize(
   VALUE endpoint_collection_enabled,
   VALUE timeline_enabled,
   VALUE waiting_for_gvl_threshold_ns,
+  VALUE otel_context_enabled,
   VALUE allocation_type_enabled
 );
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
@@ -304,7 +309,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 9);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -427,6 +432,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
+  state->otel_context_enabled = otel_context_enabled_false;
   state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
@@ -447,6 +453,7 @@ static VALUE _native_new(VALUE klass) {
   return instance;
 }
 
+// TODO: Convert this to use options like CpuAndWallTimeWorker
 static VALUE _native_initialize(
   DDTRACE_UNUSED VALUE _self,
   VALUE collector_instance,
@@ -456,6 +463,7 @@ static VALUE _native_initialize(
   VALUE endpoint_collection_enabled,
   VALUE timeline_enabled,
   VALUE waiting_for_gvl_threshold_ns,
+  VALUE otel_context_enabled,
   VALUE allocation_type_enabled
 ) {
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
@@ -473,6 +481,15 @@ static VALUE _native_initialize(
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
+  if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
+    state->otel_context_enabled = otel_context_enabled_false;
+  } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
+    state->otel_context_enabled = otel_context_enabled_only;
+  } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
+    state->otel_context_enabled = otel_context_enabled_both;
+  } else {
+    rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
+  }
   state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
@@ -850,7 +867,7 @@ static void trigger_sample_for_thread(
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
-  if (!trace_identifiers_result.valid) {
+  if (!trace_identifiers_result.valid && state->otel_context_enabled != otel_context_enabled_false) {
     // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
     otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
   }
@@ -1075,6 +1092,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
   rb_str_concat(result, rb_sprintf(" allocation_type_enabled=%"PRIsVALUE, state->allocation_type_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
@@ -1266,6 +1284,7 @@ static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_ins
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
+  if (state->otel_context_enabled == otel_context_enabled_only) return;
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
   VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);

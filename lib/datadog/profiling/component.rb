@@ -84,6 +84,16 @@ module Datadog
       end
 
       private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        otel_context_enabled =
+          case settings.profiling.advanced.preview_otel_context_enabled
+          when 'both'
+            :both
+          when 'only'
+            :only
+          else
+            false
+          end
+
         Datadog::Profiling::Collectors::ThreadContext.new(
           recorder: recorder,
           max_frames: settings.profiling.advanced.max_frames,
@@ -91,6 +101,7 @@ module Datadog
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
+          otel_context_enabled: otel_context_enabled,
         )
       end
 

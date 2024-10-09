@@ -44,6 +44,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # ever want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
   let(:waiting_for_gvl_threshold_ns) { 222_333_444 }
+  let(:otel_context_enabled) { false }
 
   subject(:cpu_and_wall_time_collector) do
     described_class.new(
@@ -53,6 +54,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+      otel_context_enabled: otel_context_enabled,
       allocation_type_enabled: allocation_type_enabled,
     )
   end
@@ -728,6 +730,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               OpenTelemetry::SDK.configure
               OpenTelemetry.tracer_provider.tracer("ddtrace-profiling-test")
             end
+            let(:otel_context_enabled) { :both }
             let(:t1) do
               Thread.new(ready_queue, otel_tracer) do |ready_queue, otel_tracer|
                 otel_tracer.in_span("profiler.test") do |span|
@@ -760,6 +763,16 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample
 
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
+            end
+
+            context 'when otel_context_enabled is false' do
+              let(:otel_context_enabled) { false }
+
+              it 'does not include "local root span id" or "span id" labels in the samples' do
+                sample
+
+                expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
+              end
             end
 
             context "when there are multiple otel spans nested" do

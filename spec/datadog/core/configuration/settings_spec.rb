@@ -933,6 +933,80 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(123_000_000)
         end
       end
+
+      describe '#preview_otel_context_enabled' do
+        subject(:preview_otel_context_enabled) { settings.profiling.advanced.preview_otel_context_enabled }
+
+        context 'when DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq 'false' }
+          end
+
+          ['only', 'both', 'false'].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to eq value }
+            end
+          end
+
+          ['true', '1'].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to eq 'both' }
+            end
+          end
+        end
+      end
+
+      describe '#preview_otel_context_enabled=' do
+        context 'with true' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = true }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('false')
+              .to('both')
+          end
+        end
+
+        context 'with false' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            settings.profiling.advanced.preview_otel_context_enabled = true
+
+            expect { settings.profiling.advanced.preview_otel_context_enabled = false }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('both')
+              .to('false')
+          end
+        end
+
+        context 'with only' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = 'only' }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('false')
+              .to('only')
+          end
+        end
+
+        context 'with both' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = 'both' }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from('false')
+              .to('both')
+          end
+        end
+      end
     end
 
     describe '#upload' do
