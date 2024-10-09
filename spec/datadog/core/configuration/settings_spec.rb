@@ -1967,7 +1967,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
 
         [true, false].each do |value|
@@ -1982,9 +1982,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#enabled=' do
       it 'updates the #enabled setting' do
-        expect { settings.crashtracking.enabled = false }
+        expect { settings.crashtracking.enabled = true }
           .to change { settings.crashtracking.enabled }
-          .from(true).to(false)
+          .from(false).to(true)
       end
     end
   end
