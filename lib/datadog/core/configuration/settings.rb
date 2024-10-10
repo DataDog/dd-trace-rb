@@ -491,7 +491,7 @@ module Datadog
             # @default false
             option :preview_otel_context_enabled do |o|
               o.env 'DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED'
-              o.default 'false'
+              o.default false
               o.env_parser do |value|
                 if value
                   value = value.strip.downcase
@@ -506,11 +506,11 @@ module Datadog
               end
               o.setter do |value|
                 if value == true
-                  'both'
+                  :both
                 elsif ['only', 'both', :only, :both].include?(value)
-                  value.to_s
+                  value.to_sym
                 else
-                  'false'
+                  false
                 end
               end
             end
