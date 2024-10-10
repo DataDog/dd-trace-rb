@@ -195,7 +195,8 @@ struct trace_identifiers {
 
 struct otel_span {
   VALUE span;
-  VALUE span_context;
+  VALUE span_id;
+  VALUE trace_id;
 };
 
 static void thread_context_collector_typed_data_mark(void *state_ptr);
@@ -292,7 +293,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   VALUE thread,
   struct trace_identifiers *trace_identifiers_result
 );
-static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE otel_current_span_key);
+static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 
 void collectors_thread_context_init(VALUE profiling_module) {
@@ -1650,38 +1651,24 @@ static void otel_without_ddtrace_trace_identifiers_for(
   int active_context_index = RARRAY_LEN(context_storage) - 1;
   if (active_context_index < 0) return;
 
-  struct otel_span active_span_and_context = otel_span_and_context_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
-  // If it exists, active_span_context is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
-  VALUE active_span_context = active_span_and_context.span_context;
-  if (active_span_context == Qnil) return;
+  struct otel_span active_span = otel_span_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
+  if (active_span.span == Qnil) return;
 
-  // Get the span id and trace id from the active span...
-  VALUE active_span_id = rb_ivar_get(active_span_context, at_span_id_id /* @span_id */);
-  VALUE active_span_trace_id = rb_ivar_get(active_span_context, at_trace_id_id /* @trace_id */);
-  if (active_span_id == Qnil || active_span_trace_id == Qnil || !RB_TYPE_P(active_span_id, T_STRING) || !RB_TYPE_P(active_span_trace_id, T_STRING)) return;
-
-  VALUE local_root_span_id = active_span_id;
-  VALUE local_root_span = active_span_and_context.span;
+  struct otel_span local_root_span = active_span;
 
   // Now find the oldest span starting from the active span that still has the same trace id as the active span
   for (int i = active_context_index - 1; i >= 0; i--) {
-    struct otel_span span_and_context = otel_span_and_context_from(rb_ary_entry(context_storage, i), otel_current_span_key);
-    VALUE span_context = span_and_context.span_context;
-    if (span_context == Qnil) return;
+    struct otel_span checking_span = otel_span_from(rb_ary_entry(context_storage, i), otel_current_span_key);
+    if (checking_span.span == Qnil) return;
 
-    VALUE span_id = rb_ivar_get(span_context, at_span_id_id /* @span_id */);
-    VALUE span_trace_id = rb_ivar_get(span_context, at_trace_id_id /* @trace_id */);
-    if (span_id == Qnil || span_trace_id == Qnil || !RB_TYPE_P(span_id, T_STRING) || !RB_TYPE_P(span_trace_id, T_STRING)) return;
+    if (rb_str_equal(active_span.trace_id, checking_span.trace_id) == Qfalse) break;
 
-    if (rb_str_equal(active_span_trace_id, span_trace_id) == Qfalse) break;
-
-    local_root_span_id = span_id;
-    local_root_span = span_and_context.span;
+    local_root_span = checking_span;
   }
 
   // Convert the span ids into uint64_t to match what the Datadog tracer does
-  trace_identifiers_result->span_id = otel_span_id_to_uint(active_span_id);
-  trace_identifiers_result->local_root_span_id = otel_span_id_to_uint(local_root_span_id);
+  trace_identifiers_result->span_id = otel_span_id_to_uint(active_span.span_id);
+  trace_identifiers_result->local_root_span_id = otel_span_id_to_uint(local_root_span.span_id);
 
   if (trace_identifiers_result->span_id == 0 || trace_identifiers_result->local_root_span_id == 0) return;
 
@@ -1689,18 +1676,18 @@ static void otel_without_ddtrace_trace_identifiers_for(
 
   if (!state->endpoint_collection_enabled) return;
 
-  VALUE root_span_type = rb_ivar_get(local_root_span, at_kind_id /* @kind */);
+  VALUE root_span_type = rb_ivar_get(local_root_span.span, at_kind_id /* @kind */);
   // We filter out spans that don't have `kind: :server`
   if (root_span_type == Qnil || !RB_TYPE_P(root_span_type, T_SYMBOL) || SYM2ID(root_span_type) != server_id) return;
 
-  VALUE trace_resource = rb_ivar_get(local_root_span, at_name_id /* @name */);
+  VALUE trace_resource = rb_ivar_get(local_root_span.span, at_name_id /* @name */);
   if (!RB_TYPE_P(trace_resource, T_STRING)) return;
 
   trace_identifiers_result->trace_endpoint = trace_resource;
 }
 
-static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE otel_current_span_key) {
-  struct otel_span failed = {.span = Qnil, .span_context = Qnil};
+static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key) {
+  struct otel_span failed = {.span = Qnil, .span_id = Qnil, .trace_id = Qnil};
 
   if (otel_context == Qnil) return failed;
 
@@ -1711,7 +1698,15 @@ static struct otel_span otel_span_and_context_from(VALUE otel_context, VALUE ote
   VALUE span = rb_hash_lookup(context_entries, otel_current_span_key);
   if (span == Qnil) return failed;
 
-  return (struct otel_span) {.span = span, .span_context = rb_ivar_get(span, at_context_id /* @context */)};
+  // If it exists, span_context is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
+  VALUE span_context = rb_ivar_get(span, at_context_id /* @context */);
+  if (span_context == Qnil) return failed;
+
+  VALUE span_id = rb_ivar_get(span_context, at_span_id_id /* @span_id */);
+  VALUE trace_id = rb_ivar_get(span_context, at_trace_id_id /* @trace_id */);
+  if (span_id == Qnil || trace_id == Qnil || !RB_TYPE_P(span_id, T_STRING) || !RB_TYPE_P(trace_id, T_STRING)) return failed;
+
+  return (struct otel_span) {.span = span, .span_id = span_id, .trace_id = trace_id};
 }
 
 // Otel span ids are represented as a big-endian 8-byte string
