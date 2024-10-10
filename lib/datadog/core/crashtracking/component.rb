@@ -30,6 +30,13 @@ module Datadog
         ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         def self.build(settings, agent_settings, logger:)
+          return unless settings.crashtracking.enabled
+
+          if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
+            logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+            return
+          end
+
           tags = TagBuilder.call(settings)
           agent_base_url = AgentBaseUrl.resolve(agent_settings)
           logger.warn('Missing agent base URL; cannot enable crash tracking') unless agent_base_url
@@ -55,12 +62,14 @@ module Datadog
           ).tap(&:start)
         end
 
-        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:, logger:)
+        def initialize(tags:, agent_base_url:, ld_library_path:, path_to_crashtracking_receiver_binary:, logger:, optional_stdout_filename: nil, optional_stderr_filename: nil)
           @tags = tags
           @agent_base_url = agent_base_url
           @ld_library_path = ld_library_path
           @path_to_crashtracking_receiver_binary = path_to_crashtracking_receiver_binary
           @logger = logger
+          @optional_stdout_filename = optional_stdout_filename
+          @optional_stderr_filename = optional_stderr_filename
         end
 
         def start
@@ -68,7 +77,10 @@ module Datadog
 
           start_or_update_on_fork(action: :start)
           ONLY_ONCE.run do
+            File.open('foo1', 'wb') { |f| f.write("#{Process.pid}: ONLYONCE\n") }
             Utils::AtForkMonkeyPatch.at_fork(:child) do
+              File.open('foo2', 'wb') { |f| f.write("#{Process.pid}: at_fork\n") }
+              # EWWWWWW use a closure + uninstall/reinstall
               # Must NOT reference `self` here, as only the first instance will
               # be captured by the ONLY_ONCE and we want to pick the latest active one
               # (which may have different tags or agent config)
@@ -78,6 +90,7 @@ module Datadog
         end
 
         def update_on_fork
+          File.open('foo3', 'wb') { |f| f.write("#{Process.pid}: update_on_fork\n") }
           start_or_update_on_fork(action: :update_on_fork)
         end
 
@@ -90,7 +103,7 @@ module Datadog
 
         private
 
-        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger
+        attr_reader :tags, :agent_base_url, :ld_library_path, :path_to_crashtracking_receiver_binary, :logger, :optional_stdout_filename, :optional_stderr_filename
 
         def start_or_update_on_fork(action:)
           self.class._native_start_or_update_on_fork(
@@ -99,11 +112,13 @@ module Datadog
             path_to_crashtracking_receiver_binary: path_to_crashtracking_receiver_binary,
             ld_library_path: ld_library_path,
             tags_as_array: tags.to_a,
-            upload_timeout_seconds: 1
+            upload_timeout_seconds: 1,
+            optional_stdout_filename: optional_stdout_filename, # + ".#{Process.pid}.#{Process.ppid}",
+            optional_stderr_filename: optional_stderr_filename, # + ".#{Process.pid}.#{Process.ppid}",
           )
-          logger.debug("Crash tracking #{action} successfully")
+          logger.debug("Crash tracking #{action} for #{Process.pid} successfully")
         rescue => e
-          logger.error("Failed to #{action} crash tracking: #{e.message}")
+          logger.error("Failed to #{action} for #{Process.pid} crash tracking: #{e.message}")
         end
       end
     end
