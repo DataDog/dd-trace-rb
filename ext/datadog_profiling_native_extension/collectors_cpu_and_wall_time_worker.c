@@ -17,13 +17,6 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
-#define ERR_CLOCK_FAIL "failed to get clock time"
-
-// Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
-// See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
-// (Datadog-only link) for research backing the choice of this value.
-unsigned int MAX_ALLOC_WEIGHT = 10000;
-
 // Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
 //
@@ -82,6 +75,13 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
 // trigger samples.
 //
 // ---
+
+#define ERR_CLOCK_FAIL "failed to get clock time"
+
+// Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
+// See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
+// (Datadog-only link) for research backing the choice of this value.
+unsigned int MAX_ALLOC_WEIGHT = 10000;
 
 #ifndef NO_POSTPONED_TRIGGER
   // Used to call the rb_postponed_job_trigger from Ruby 3.3+. These get initialized in
