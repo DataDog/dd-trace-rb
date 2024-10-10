@@ -248,6 +248,24 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
             end
           end
         end
+
+        context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? true' do
+          before do
+            unless Datadog::Core::Environment::YJIT.stats_available?
+              skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? true')
+            end
+            skip('Test only runs on Ruby >= 3.3') if RUBY_VERSION < '3.3.'
+            allow(runtime_metrics).to receive(:gauge)
+          end
+
+          it do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT, kind_of(Numeric))
+              .once
+          end
+        end
       end
     end
 

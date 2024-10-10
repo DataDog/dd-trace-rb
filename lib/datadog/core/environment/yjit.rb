@@ -52,10 +52,19 @@ module Datadog
           ::RubyVM::YJIT.runtime_stats[:yjit_alloc_size]
         end
 
+        # Ratio of YJIT-executed instructions
+        def ratio_in_yjit
+          ::RubyVM::YJIT.runtime_stats[:ratio_in_yjit]
+        end
+
         def available?
           defined?(::RubyVM::YJIT) \
             && ::RubyVM::YJIT.enabled? \
             && ::RubyVM::YJIT.respond_to?(:runtime_stats)
+        end
+
+        def stats_available?
+          available? && ::RubyVM::YJIT.respond_to?(:stats_enabled?)
         end
       end
     end
