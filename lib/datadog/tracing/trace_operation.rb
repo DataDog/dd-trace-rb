@@ -373,7 +373,7 @@ module Datadog
         )
       end
 
-      def self.asm_standalone_reject?(trace)
+      def self.appsec_standalone_reject?(trace)
         Datadog.configuration.appsec.standalone.enabled &&
           (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
       end
