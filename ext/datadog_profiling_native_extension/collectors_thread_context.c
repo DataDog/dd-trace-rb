@@ -109,7 +109,7 @@ static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ i
 // and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
 
-enum otel_context_enabled {otel_context_enabled_false, otel_context_enabled_only, otel_context_enabled_both};
+typedef enum { OTEL_CONTEXT_ENABLED_FALSE, OTEL_CONTEXT_ENABLED_ONLY, OTEL_CONTEXT_ENABLED_BOTH } otel_context_enabled;
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -138,7 +138,7 @@ struct thread_context_collector_state {
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
   // Used to control context collection
-  enum otel_context_enabled otel_context_enabled;
+  otel_context_enabled otel_context_enabled;
   // Used to omit class information from collected allocation data
   bool allocation_type_enabled;
   // Used when calling monotonic_to_system_epoch_ns
@@ -435,7 +435,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
-  state->otel_context_enabled = otel_context_enabled_false;
+  state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
@@ -485,11 +485,11 @@ static VALUE _native_initialize(
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
-    state->otel_context_enabled = otel_context_enabled_false;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
-    state->otel_context_enabled = otel_context_enabled_only;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_ONLY;
   } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
-    state->otel_context_enabled = otel_context_enabled_both;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
   } else {
     rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
@@ -885,7 +885,7 @@ static void trigger_sample_for_thread(
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
-  if (!trace_identifiers_result.valid && state->otel_context_enabled != otel_context_enabled_false) {
+  if (!trace_identifiers_result.valid && state->otel_context_enabled != OTEL_CONTEXT_ENABLED_FALSE) {
     // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
     otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
   }
@@ -1302,7 +1302,7 @@ static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_ins
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
-  if (state->otel_context_enabled == otel_context_enabled_only) return;
+  if (state->otel_context_enabled == OTEL_CONTEXT_ENABLED_ONLY) return;
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
   VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);
