@@ -217,7 +217,10 @@ void sample_thread(
   ddog_prof_Label *state_label = labels.state_label;
   bool cpu_or_wall_sample = values.cpu_or_wall_samples > 0;
   bool has_cpu_time = cpu_or_wall_sample && values.cpu_time_ns > 0;
-  bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns > 0;
+  // Note: In theory, a cpu_or_wall_sample should always have some wall-time. In practice, the first sample for a thread
+  // will be zero, as well as if the system clock does something weird. Thus, at some point we had values.wall_time_ns > 0
+  // here, but >= 0 makes this easier to understand/debug.
+  bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns >= 0;
 
   if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
 

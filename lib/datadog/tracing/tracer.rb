@@ -262,6 +262,17 @@ module Datadog
         context.activate!(trace, &block)
       end
 
+      # Sample a span, tagging the trace as appropriate.
+      def sample_trace(trace_op)
+        begin
+          @sampler.sample!(trace_op)
+        rescue StandardError => e
+          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
+        end
+      end
+
       # @!visibility private
       # TODO: make this private
       def trace_completed
@@ -331,12 +342,14 @@ module Datadog
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
+            tracer: self
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             remote_parent: false,
+            tracer: self
           )
         end
       end
@@ -347,7 +360,6 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
-          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
@@ -463,17 +475,6 @@ module Datadog
         end
       end
 
-      # Sample a span, tagging the trace as appropriate.
-      def sample_trace(trace_op)
-        begin
-          @sampler.sample!(trace_op)
-        rescue StandardError => e
-          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
-        end
-      end
-
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
@@ -492,6 +493,7 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
+        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?

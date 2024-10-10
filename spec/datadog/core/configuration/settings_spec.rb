@@ -933,6 +933,79 @@ RSpec.describe Datadog::Core::Configuration::Settings do
             .to(123_000_000)
         end
       end
+
+      describe '#preview_otel_context_enabled' do
+        subject(:preview_otel_context_enabled) { settings.profiling.advanced.preview_otel_context_enabled }
+
+        context 'when DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to eq false }
+          end
+
+          ['only', 'both'].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value }
+
+              it { is_expected.to eq value.to_sym }
+            end
+          end
+
+          ['true', '1'].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to eq :both }
+            end
+          end
+
+          context 'is defined as false' do
+            let(:environment) { 'false' }
+
+            it { is_expected.to eq false }
+          end
+        end
+      end
+
+      describe '#preview_otel_context_enabled=' do
+        context 'with true' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            expect { settings.profiling.advanced.preview_otel_context_enabled = true }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from(false)
+              .to(:both)
+          end
+        end
+
+        ['only', 'both', :only, :both].each do |value|
+          context "with #{value.inspect}" do
+            it 'updates the #preview_otel_context_enabled setting' do
+              expect { settings.profiling.advanced.preview_otel_context_enabled = value }
+                .to change { settings.profiling.advanced.preview_otel_context_enabled }
+                .from(false)
+                .to(value.to_sym)
+            end
+          end
+        end
+
+        context 'with false' do
+          it 'updates the #preview_otel_context_enabled setting' do
+            settings.profiling.advanced.preview_otel_context_enabled = true
+
+            expect { settings.profiling.advanced.preview_otel_context_enabled = false }
+              .to change { settings.profiling.advanced.preview_otel_context_enabled }
+              .from(:both)
+              .to(false)
+          end
+        end
+      end
     end
 
     describe '#upload' do
@@ -1967,7 +2040,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         context 'is not defined' do
           let(:environment) { nil }
 
-          it { is_expected.to be true }
+          it { is_expected.to be false }
         end
 
         [true, false].each do |value|
@@ -1982,9 +2055,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#enabled=' do
       it 'updates the #enabled setting' do
-        expect { settings.crashtracking.enabled = false }
+        expect { settings.crashtracking.enabled = true }
           .to change { settings.crashtracking.enabled }
-          .from(true).to(false)
+          .from(false).to(true)
       end
     end
   end

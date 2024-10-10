@@ -804,6 +804,10 @@ static VALUE release_gvl_and_run_sampling_trigger_loop(VALUE instance) {
 
   if (state->gvl_profiling_enabled) {
     #ifndef NO_GVL_INSTRUMENTATION
+      #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
+        gvl_profiling_state_thread_tracking_workaround();
+      #endif
+
       state->gvl_profiling_hook = rb_internal_thread_add_event_hook(
         on_gvl_event,
         (
@@ -1304,7 +1308,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     //
     // In fact, the `target_thread` that this event is about may not even be the current thread. (So be careful with thread locals that
     // are not directly tied to the `target_thread` object and the like)
-    VALUE target_thread = event_data->thread;
+    gvl_profiling_thread target_thread = thread_from_event(event_data);
 
     if (event_id == RUBY_INTERNAL_THREAD_EVENT_READY) { /* waiting for gvl */
       thread_context_collector_on_gvl_waiting(target_thread);
@@ -1315,11 +1319,19 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
       // Ractor. Thus, if we really really wanted to access the state, we could do it after making sure we're on the correct Ractor.
 
+      #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
+        target_thread = gvl_profiling_state_maybe_initialize();
+      #endif
+
       bool should_sample = thread_context_collector_on_gvl_running(target_thread);
 
       if (should_sample) {
         // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
-        rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+        #ifndef NO_POSTPONED_TRIGGER
+          rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
+        #else
+          rb_postponed_job_register_one(0, after_gvl_running_from_postponed_job, NULL);
+        #endif
       }
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr

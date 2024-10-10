@@ -91,6 +91,7 @@ module Datadog
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
+          otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
         )
       end
 
@@ -443,9 +444,9 @@ module Datadog
       end
 
       private_class_method def self.enable_gvl_profiling?(settings)
-        if RUBY_VERSION < "3.3"
+        if RUBY_VERSION < "3.2"
           if settings.profiling.advanced.preview_gvl_enabled
-            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.3 and will not be enabled.")
+            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.2 and will not be enabled.")
           end
 
           return false
