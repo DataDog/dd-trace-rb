@@ -50,6 +50,7 @@ else
   docker build -t datadog/dd-apm-demo:rb-3.1 -f $INTEGRATION_DIR/images/ruby/3.1/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.2 -f $INTEGRATION_DIR/images/ruby/3.2/Dockerfile $INTEGRATION_DIR/images
   docker build -t datadog/dd-apm-demo:rb-3.3 -f $INTEGRATION_DIR/images/ruby/3.3/Dockerfile $INTEGRATION_DIR/images
+  docker build -t datadog/dd-apm-demo:rb-3.4 -f $INTEGRATION_DIR/images/ruby/3.4/Dockerfile $INTEGRATION_DIR/images
   # ADD NEW RUBIES HERE
 fi
 echo "== Done building base images. =="
