@@ -930,10 +930,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
           end
 
           context "when trace comes from otel sdk (warning)", if: otel_sdk_available? do
-            not_being_tested = otel_otlp_exporter_available? ? "otel sdk with ddtrace" : "otel sdk without ddtrace"
+            not_being_tested = otel_otlp_exporter_available? ? "otel sdk WITH ddtrace" : "otel sdk WITHOUT ddtrace"
 
             it "#{not_being_tested} is not being tested" do
-              skip "The tests for otel sdk with and without ddtrace are mutually exclusive, because ddtrace monkey " \
+              skip "The tests for otel sdk WITH and WITHOUT ddtrace are mutually exclusive, because ddtrace monkey " \
                 "patches the otel sdk in a way that makes it hard to remove. To test both configurations, run this " \
                 "spec with and without `opentelemetry-exporter-otlp` on your Gemfile (hint: can be done using appraisals)."
             end
