@@ -21,9 +21,14 @@ module Datadog
         end
 
         def self.set_peer_service!(span, sources)
+          config = Datadog.configuration.tracing.contrib
+
+          # If `peer_service_defaults` is disabled, we only read peer service from an explicitly set `peer.service` tag
+          sources = Datadog::Tracing::Contrib::SpanAttributeSchema::REFLEXIVE_SOURCES unless config.peer_service_defaults
+
           # Acquire all peer.service values as well as any potential remapping
           peer_service_val, peer_service_source = set_peer_service_from_source(span, sources)
-          remap_val = Datadog.configuration.tracing.contrib.peer_service_mapping[peer_service_val]
+          remap_val = config.peer_service_mapping[peer_service_val]
 
           # Only continue to setting peer.service if actual source is found
           return false unless peer_service_source
