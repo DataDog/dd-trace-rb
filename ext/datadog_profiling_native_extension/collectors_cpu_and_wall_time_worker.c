@@ -17,13 +17,6 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
-#define ERR_CLOCK_FAIL "failed to get clock time"
-
-// Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
-// See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
-// (Datadog-only link) for research backing the choice of this value.
-unsigned int MAX_ALLOC_WEIGHT = 10000;
-
 // Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
 //
@@ -82,6 +75,13 @@ unsigned int MAX_ALLOC_WEIGHT = 10000;
 // trigger samples.
 //
 // ---
+
+#define ERR_CLOCK_FAIL "failed to get clock time"
+
+// Maximum allowed value for an allocation weight. Attempts to use higher values will result in clamping.
+// See https://docs.google.com/document/d/1lWLB714wlLBBq6T4xZyAc4a5wtWhSmr4-hgiPKeErlA/edit#heading=h.ugp0zxcj5iqh
+// (Datadog-only link) for research backing the choice of this value.
+unsigned int MAX_ALLOC_WEIGHT = 10000;
 
 #ifndef NO_POSTPONED_TRIGGER
   // Used to call the rb_postponed_job_trigger from Ruby 3.3+. These get initialized in
@@ -315,8 +315,6 @@ void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_current_sigprof_signal_handler", _native_current_sigprof_signal_handler, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_hold_signals", _native_hold_signals, 0);
   rb_define_singleton_method(collectors_cpu_and_wall_time_worker_class, "_native_resume_signals", _native_resume_signals, 0);
-  // TODO: Remove `_native_is_running` from `testing_module` (should be in class) once `prof-correctness` has been updated to not need it
-  rb_define_singleton_method(testing_module, "_native_is_running?", _native_is_running, 1);
   rb_define_singleton_method(testing_module, "_native_install_testing_signal_handler", _native_install_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_remove_testing_signal_handler", _native_remove_testing_signal_handler, 0);
   rb_define_singleton_method(testing_module, "_native_trigger_sample", _native_trigger_sample, 0);
