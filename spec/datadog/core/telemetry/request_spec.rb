@@ -63,7 +63,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     end
 
     it do
-      is_expected.to eq(
+      is_expected.to match(
         api_version: api_version,
         application: application,
         debug: debug,
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
       end
 
       it do
-        is_expected.to eq(
+        is_expected.to match(
           api_version: api_version,
           application: application.merge(tracer_version: "#{tracer_version}-ci-1.2.3"),
           debug: debug,
