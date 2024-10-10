@@ -395,7 +395,7 @@ RSpec.describe Datadog::AppSec::Event do
 
     before do
       # prevent rate limiter to bias tests
-      Datadog::AppSec::RateLimiter.reset!(:traces)
+      Datadog::AppSec::RateLimiter.reset!
 
       described_class.add_tags(scope, waf_result)
     end
