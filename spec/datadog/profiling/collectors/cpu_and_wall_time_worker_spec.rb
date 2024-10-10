@@ -441,6 +441,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           sleep 0.2
 
+          threads = Thread.list
+
           cpu_and_wall_time_worker.stop
 
           background_thread.kill
@@ -457,12 +459,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               .map { |state, state_samples| [state, state_samples.sum { |s| s.values.fetch(:"wall-time") }] }.to_h
 
           # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
-          # will have an unknown state because the profiler may have missed the beginning of the Waiting for GVL
+          # will have a sequence of unknown states because the profiler may have missed the beginning of the
+          # Waiting for GVL (and cannot categorize the state yet).
+          #
+          # In these cases, the pattern will be "unknown (one or more times), had cpu, waiting for gvl".
+          #
+          # In rare cases, we observe the background_thread_affected_by_gvl_contention just as it's starting the
+          # Waiting for GVL. Because "starting the Waiting for GVL" still uses a bit of CPU, we'll see
+          # "unknown, had cpu, unknown (one or more times), had cpu, waiting for gvl".
           #
           # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
           # consideration
+
+          found_first_cpu = false
           missed_by_profiler_time =
-            samples.take_while { |s| s.labels[:state] == "unknown" }.sum { |sample| sample.values.fetch(:"wall-time") }
+            samples
+              .take_while do |s|
+                if s.labels[:state] == "unknown"
+                  true
+                elsif s.labels[:state] == "had cpu" && !found_first_cpu
+                  found_first_cpu = true
+                  true
+                end
+              end.sum { |sample| sample.values.fetch(:"wall-time") }
 
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
           waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
@@ -473,12 +492,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             missed_by_profiler_time: missed_by_profiler_time,
             total_time: total_time,
             waiting_for_gvl_time: waiting_for_gvl_time,
+            sample_states: samples.map { |s| s.labels[:state] },
             samples: samples.map { |s| [s.values, s.labels] },
+            threads: threads.map { |t| [t.inspect, t.object_id] }
           }
 
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
           # it just passes and starts waiting)
-          expect(total_time).to be >= 200_000_000 # This test should run for at least 200ms, which is how long we sleep for
+
+          # This test should run for at least 200ms, which is how long we sleep for
+          # (unless somehow the missed_by_profiler_time is too big?)
+          expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time), \
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
