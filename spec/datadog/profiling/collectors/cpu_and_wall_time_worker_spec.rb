@@ -509,6 +509,32 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
         end
+
+        context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
+          let(:options) do
+            ten_seconds_as_ns = 1_000_000_000
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: ten_seconds_as_ns)
+
+            {thread_context_collector: collector}
+          end
+
+          it "does not trigger extra samples" do
+            background_thread_affected_by_gvl_contention
+            ready_queue_2.pop
+
+            start
+            wait_until_running
+
+            sleep 0.1
+            background_thread_affected_by_gvl_contention.kill
+
+            cpu_and_wall_time_worker.stop
+
+            expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be 0
+            expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample))
+              .to be > 100 # Arbitrary, on my machine I see 250k on a run
+          end
+        end
       end
     end
 
@@ -1137,6 +1163,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampler_snapshot: nil,
           allocations_during_sample: nil,
           after_gvl_running: 0,
+          gvl_dont_sample: 0,
         }
       )
     end
@@ -1417,11 +1444,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     described_class.new(**worker_settings)
   end
 
-  def build_thread_context_collector(recorder)
+  def build_thread_context_collector(recorder, **options)
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      **options,
     )
   end
 

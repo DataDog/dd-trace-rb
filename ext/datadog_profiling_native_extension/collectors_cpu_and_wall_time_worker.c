@@ -180,6 +180,8 @@ struct cpu_and_wall_time_worker_state {
     // # GVL profiling stats
     // How many times we triggered the after_gvl_running sampling
     unsigned int after_gvl_running;
+    // How many times we skipped the after_gvl_running sampling
+    unsigned int gvl_dont_sample;
   } stats;
 };
 
@@ -1043,6 +1045,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
 
     // GVL profiling stats
     ID2SYM(rb_intern("after_gvl_running")), /* => */ UINT2NUM(state->stats.after_gvl_running),
+    ID2SYM(rb_intern("gvl_dont_sample")),   /* => */ UINT2NUM(state->stats.gvl_dont_sample),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1315,23 +1318,29 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
+      //
       // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
-      // Ractor. Thus, if we really really wanted to access the state, we could do it after making sure we're on the correct Ractor.
+      // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
 
       #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
         target_thread = gvl_profiling_state_maybe_initialize();
       #endif
 
-      bool should_sample = thread_context_collector_on_gvl_running(target_thread);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
 
-      if (should_sample) {
-        // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
+      if (result == ON_GVL_RUNNING_SAMPLE) {
         #ifndef NO_POSTPONED_TRIGGER
           rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
         #else
           rb_postponed_job_register_one(0, after_gvl_running_from_postponed_job, NULL);
         #endif
+      } else if (result == ON_GVL_RUNNING_DONT_SAMPLE) {
+        struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+        if (state == NULL) return; // This should not happen, but just in case...
+
+        state->stats.gvl_dont_sample++;
       }
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
