@@ -197,6 +197,14 @@ module Datadog
                 o.type :bool, nilable: true
                 o.env 'DD_APPSEC_SCA_ENABLED'
               end
+
+              settings :standalone do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED'
+                  o.default false
+                end
+              end
             end
           end
         end

@@ -182,7 +182,8 @@ module Datadog
         attr_reader events: data
         attr_reader total_runtime: ::Float
         attr_reader timeout: bool
-        attr_reader actions: data
+        # Until we update libddwaf, actions is an array
+        attr_reader actions: ::Array[data]
         attr_reader derivatives: data
 
         def initialize: (::Symbol, data, ::Float, bool, data, data) -> void
