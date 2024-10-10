@@ -287,6 +287,8 @@
     'graphql-1.13' => '❌ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ 3.4 / ✅ jruby',
   }
 }.each_with_object({}) do |(tasks, spec_metadata), hash|
+  # Explode arrays of task names into individual tasks
+  # e.g. ['rails', 'railsdisableenv'] => {'...'} becomes [['rails7', '...'], ['railsdisableenv7', '...']]
   Array(tasks).each do |task|
     hash[task] = spec_metadata
   end
