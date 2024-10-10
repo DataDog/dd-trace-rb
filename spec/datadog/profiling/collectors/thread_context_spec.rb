@@ -39,7 +39,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   let(:tracer) { nil }
   let(:endpoint_collection_enabled) { true }
   let(:timeline_enabled) { false }
-  let(:allocation_type_enabled) { true }
   # This mirrors the use of RUBY_FIXNUM_MAX for GVL_WAITING_ENABLED_EMPTY in the native code; it may need adjusting if we
   # ever want to support more platforms
   let(:gvl_waiting_enabled_empty_magic_value) { 2**62 - 1 }
@@ -55,7 +54,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       timeline_enabled: timeline_enabled,
       waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
       otel_context_enabled: otel_context_enabled,
-      allocation_type_enabled: allocation_type_enabled,
     )
   end
 
@@ -1595,16 +1593,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           expect(single_sample.labels.fetch(:"allocation class")).to eq klass
         end
-
-        context "when allocation_type_enabled is false" do
-          let(:allocation_type_enabled) { false }
-
-          it "does not record the correct class for the passed object" do
-            sample_allocation(weight: 123, new_object: object)
-
-            expect(single_sample.labels).to_not include("allocation class": anything)
-          end
-        end
       end
     end
 
@@ -1624,18 +1612,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         expect(single_sample.labels.fetch(:"allocation class")).to eq "File"
       end
-
-      context "when allocation_type_enabled is false" do
-        let(:allocation_type_enabled) { false }
-
-        it "does not record the correct class for the passed object" do
-          File.open(__FILE__) do |file|
-            sample_allocation(weight: 123, new_object: file)
-          end
-
-          expect(single_sample.labels).to_not include("allocation class": anything)
-        end
-      end
     end
 
     context "when sampling a Struct" do
@@ -1653,16 +1629,6 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
 
         expect(single_sample.labels.fetch(:"allocation class")).to eq "ThreadContextSpec::TestStruct"
-      end
-
-      context "when allocation_type_enabled is false" do
-        let(:allocation_type_enabled) { false }
-
-        it "does not record the correct class for the passed object" do
-          sample_allocation(weight: 123, new_object: ThreadContextSpec::TestStruct.new)
-
-          expect(single_sample.labels).to_not include("allocation class": anything)
-        end
       end
     end
   end

@@ -21,8 +21,7 @@ module Datadog
           endpoint_collection_enabled:,
           timeline_enabled:,
           waiting_for_gvl_threshold_ns:,
-          otel_context_enabled:,
-          allocation_type_enabled: true
+          otel_context_enabled:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
@@ -34,7 +33,6 @@ module Datadog
             timeline_enabled: timeline_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
             otel_context_enabled: otel_context_enabled,
-            allocation_type_enabled: allocation_type_enabled,
           )
         end
 

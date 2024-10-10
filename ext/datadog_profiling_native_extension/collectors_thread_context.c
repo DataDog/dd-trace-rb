@@ -139,8 +139,6 @@ struct thread_context_collector_state {
   bool timeline_enabled;
   // Used to control context collection
   otel_context_enabled otel_context_enabled;
-  // Used to omit class information from collected allocation data
-  bool allocation_type_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
@@ -425,7 +423,6 @@ static VALUE _native_new(VALUE klass) {
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
   state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
-  state->allocation_type_enabled = true;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
   state->main_thread = main_thread;
@@ -458,13 +455,11 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
   VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
   VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
-  VALUE allocation_type_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_type_enabled")));
 
   ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
-  ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -485,7 +480,6 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   } else {
     rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
-  state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
@@ -1103,7 +1097,6 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
-  rb_str_concat(result, rb_sprintf(" allocation_type_enabled=%"PRIsVALUE, state->allocation_type_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
     state->time_converter_state.system_epoch_ns_reference,
@@ -1407,62 +1400,60 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   ddog_CharSlice *optional_class_name = NULL;
   char imemo_type[100];
 
-  if (state->allocation_type_enabled) {
-    optional_class_name = &class_name;
+  optional_class_name = &class_name;
 
-    if (
-      type == RUBY_T_OBJECT   ||
-      type == RUBY_T_CLASS    ||
-      type == RUBY_T_MODULE   ||
-      type == RUBY_T_FLOAT    ||
-      type == RUBY_T_STRING   ||
-      type == RUBY_T_REGEXP   ||
-      type == RUBY_T_ARRAY    ||
-      type == RUBY_T_HASH     ||
-      type == RUBY_T_STRUCT   ||
-      type == RUBY_T_BIGNUM   ||
-      type == RUBY_T_FILE     ||
-      type == RUBY_T_DATA     ||
-      type == RUBY_T_MATCH    ||
-      type == RUBY_T_COMPLEX  ||
-      type == RUBY_T_RATIONAL ||
-      type == RUBY_T_NIL      ||
-      type == RUBY_T_TRUE     ||
-      type == RUBY_T_FALSE    ||
-      type == RUBY_T_SYMBOL   ||
-      type == RUBY_T_FIXNUM
-    ) {
-      VALUE klass = rb_class_of(new_object);
+  if (
+    type == RUBY_T_OBJECT   ||
+    type == RUBY_T_CLASS    ||
+    type == RUBY_T_MODULE   ||
+    type == RUBY_T_FLOAT    ||
+    type == RUBY_T_STRING   ||
+    type == RUBY_T_REGEXP   ||
+    type == RUBY_T_ARRAY    ||
+    type == RUBY_T_HASH     ||
+    type == RUBY_T_STRUCT   ||
+    type == RUBY_T_BIGNUM   ||
+    type == RUBY_T_FILE     ||
+    type == RUBY_T_DATA     ||
+    type == RUBY_T_MATCH    ||
+    type == RUBY_T_COMPLEX  ||
+    type == RUBY_T_RATIONAL ||
+    type == RUBY_T_NIL      ||
+    type == RUBY_T_TRUE     ||
+    type == RUBY_T_FALSE    ||
+    type == RUBY_T_SYMBOL   ||
+    type == RUBY_T_FIXNUM
+  ) {
+    VALUE klass = rb_class_of(new_object);
 
-      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
-      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
-      // Thus, we need to make sure there's actually a class before getting its name.
+    // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+    // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+    // Thus, we need to make sure there's actually a class before getting its name.
 
-      if (klass != 0) {
-        const char *name = rb_class2name(klass);
-        size_t name_length = name != NULL ? strlen(name) : 0;
+    if (klass != 0) {
+      const char *name = rb_class2name(klass);
+      size_t name_length = name != NULL ? strlen(name) : 0;
 
-        if (name_length > 0) {
-          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
-        } else {
-          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
-          class_name = ruby_value_type_to_class_name(type);
-        }
+      if (name_length > 0) {
+        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
       } else {
-        // Fallback for objects with no class
+        // @ivoanjo: I'm not sure this can ever happen, but just-in-case
         class_name = ruby_value_type_to_class_name(type);
       }
-    } else if (type == RUBY_T_IMEMO) {
-      const char *imemo_string = imemo_kind(new_object);
-      if (imemo_string != NULL) {
-        snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
-        class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
-      } else { // Ruby < 3
-        class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
-      }
     } else {
-      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
+      // Fallback for objects with no class
+      class_name = ruby_value_type_to_class_name(type);
     }
+  } else if (type == RUBY_T_IMEMO) {
+    const char *imemo_string = imemo_kind(new_object);
+    if (imemo_string != NULL) {
+      snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
+      class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
+    } else { // Ruby < 3
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+    }
+  } else {
+    class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
   track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
