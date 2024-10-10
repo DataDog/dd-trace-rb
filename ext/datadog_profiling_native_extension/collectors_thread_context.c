@@ -146,6 +146,8 @@ struct thread_context_collector_state {
   // Used to identify the main thread, to give it a fallback name
   VALUE main_thread;
   // Used when extracting trace identifiers from otel spans. Lazily initialized.
+  // Qtrue serves as a marker we've not yet extracted it; when we try to extract it, we set it to an object if
+  // successful and Qnil if not.
   VALUE otel_current_span_key;
 
   struct stats {
@@ -437,7 +439,7 @@ static VALUE _native_new(VALUE klass) {
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
   state->main_thread = main_thread;
-  state->otel_current_span_key = Qnil;
+  state->otel_current_span_key = Qtrue;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
@@ -1525,15 +1527,13 @@ static VALUE read_otel_current_span_key_const(DDTRACE_UNUSED VALUE _unused) {
 }
 
 static VALUE get_otel_current_span_key(struct thread_context_collector_state *state) {
-  if (state->otel_current_span_key == Qnil) {
+  if (state->otel_current_span_key == Qtrue) { // Qtrue means we haven't tried to extract it yet
     // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
     // gets refactored, we should not fall on our face)
     VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
 
-    // Marks when we failed to get the value, so we don't wasting resources trying
-    VALUE not_found_marker = Qfalse;
-
-    state->otel_current_span_key = span_key != Qnil ? span_key : not_found_marker;
+    // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
+    state->otel_current_span_key = span_key;
   }
 
   return state->otel_current_span_key;
@@ -1559,7 +1559,7 @@ static void ddtrace_otel_trace_identifiers_for(
   if (resolved_numeric_span_id == Qnil) return;
 
   VALUE otel_current_span_key = get_otel_current_span_key(state);
-  if (otel_current_span_key == Qfalse) return;
+  if (otel_current_span_key == Qnil) return;
   VALUE current_trace = *active_trace;
 
   // ddtrace uses a different structure when spans are created from otel, where each otel span will have a unique ddtrace
@@ -1645,7 +1645,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
   if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
 
   VALUE otel_current_span_key = get_otel_current_span_key(state);
-  if (otel_current_span_key == Qfalse) return;
+  if (otel_current_span_key == Qnil) return;
 
   int active_context_index = RARRAY_LEN(context_storage) - 1;
   if (active_context_index < 0) return;
