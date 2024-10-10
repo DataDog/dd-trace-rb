@@ -585,6 +585,21 @@ static void update_metrics_and_sample(
     IS_WALL_TIME
   );
 
+  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
+  //
+  // As a consequence, it's possible that a thread enters "Waiting for GVL" in parallel with the current thread working
+  // on sampling, and thus for the  `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
+  // to be < the time at which we started Waiting for GVL.
+  //
+  // All together, this means that when `handle_gvl_waiting` creates an extra sample (see comments on that function for
+  // what the extra sample is), it's possible that there's no more wall-time to be assigned.
+  // Thus, in this case, we don't want to produce a sample representing Waiting for GVL with a wall-time of 0, and
+  // thus we skip creating such a sample.
+  if (is_gvl_waiting_state && wall_time_elapsed_ns == 0) return;
+  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
+  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
+  // may revisit/change our minds on this in the future.
+
   trigger_sample_for_thread(
     state,
     thread_being_sampled,
