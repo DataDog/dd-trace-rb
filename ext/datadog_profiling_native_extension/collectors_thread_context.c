@@ -204,18 +204,7 @@ static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(
-  VALUE self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE otel_context_enabled,
-  VALUE allocation_type_enabled
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
@@ -312,7 +301,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 9);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -456,26 +445,29 @@ static VALUE _native_new(VALUE klass) {
   return instance;
 }
 
-// TODO: Convert this to use options like CpuAndWallTimeWorker
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE otel_context_enabled,
-  VALUE allocation_type_enabled
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE self_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("recorder")));
+  VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
+  VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
+  VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
+  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
+  VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
+  VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
+  VALUE allocation_type_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("allocation_type_enabled")));
+
+  ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
   ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
   state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
