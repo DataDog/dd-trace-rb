@@ -397,7 +397,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
 
-        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6),
           "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
@@ -535,7 +535,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
-        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8),
           "Expected at least 80% of signals to be simulated, stats: #{stats}, debug_failures: #{debug_failures}"
 
         # Sanity checking
@@ -566,7 +566,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # To avoid the flakiness, I've added a dummy margin here but... yeah in practice this can happen as many times
           # as we try to sample.
           margin = 1
-          expect(trigger_sample_attempts).to (be >= (sample_count - margin)), \
+          expect(trigger_sample_attempts).to (be >= (sample_count - margin)),
             "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         end
       end
@@ -814,6 +814,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          puts("Heap recorder debugging info:")
+          puts(Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder))
+        end
+      end
+
       it "records live heap objects" do
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
@@ -829,6 +838,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         GC.start
 
         cpu_and_wall_time_worker.stop
+
+        # Heap recorder updates on its own in accordance with GC activity. However, it may also
+        # decide to not necessarily do so after every GC or to rate limit itself over time. For
+        # us to be able to deterministically reason about the test expectations, lets ensure
+        # heap recorder state fully reflects everything that happened up until we stopped the
+        # cpu_and_wall_time_worker
+        Datadog::Profiling::StackRecorder::Testing._native_force_update_heap_recorder(recorder)
 
         test_struct_heap_sample = lambda { |sample|
           first_frame = sample.locations.first
