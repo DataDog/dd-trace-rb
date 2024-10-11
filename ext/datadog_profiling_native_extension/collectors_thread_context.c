@@ -109,7 +109,7 @@ static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ i
 // and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
 
-enum otel_context_enabled {otel_context_enabled_false, otel_context_enabled_only, otel_context_enabled_both};
+typedef enum { OTEL_CONTEXT_ENABLED_FALSE, OTEL_CONTEXT_ENABLED_ONLY, OTEL_CONTEXT_ENABLED_BOTH } otel_context_enabled;
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -138,9 +138,7 @@ struct thread_context_collector_state {
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
   // Used to control context collection
-  enum otel_context_enabled otel_context_enabled;
-  // Used to omit class information from collected allocation data
-  bool allocation_type_enabled;
+  otel_context_enabled otel_context_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
@@ -204,18 +202,7 @@ static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(
-  VALUE self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE otel_context_enabled,
-  VALUE allocation_type_enabled
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
@@ -312,7 +299,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 9);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -435,8 +422,7 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
-  state->otel_context_enabled = otel_context_enabled_false;
-  state->allocation_type_enabled = true;
+  state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
   state->main_thread = main_thread;
@@ -456,26 +442,27 @@ static VALUE _native_new(VALUE klass) {
   return instance;
 }
 
-// TODO: Convert this to use options like CpuAndWallTimeWorker
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE otel_context_enabled,
-  VALUE allocation_type_enabled
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE self_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("recorder")));
+  VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
+  VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
+  VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
+  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
+  VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
+  VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
+
+  ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
-  ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
   state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
@@ -485,15 +472,14 @@ static VALUE _native_initialize(
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
   if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
-    state->otel_context_enabled = otel_context_enabled_false;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
-    state->otel_context_enabled = otel_context_enabled_only;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_ONLY;
   } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
-    state->otel_context_enabled = otel_context_enabled_both;
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
   } else {
     rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
-  state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
@@ -885,7 +871,7 @@ static void trigger_sample_for_thread(
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
-  if (!trace_identifiers_result.valid && state->otel_context_enabled != otel_context_enabled_false) {
+  if (!trace_identifiers_result.valid && state->otel_context_enabled != OTEL_CONTEXT_ENABLED_FALSE) {
     // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
     otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
   }
@@ -1111,7 +1097,6 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
-  rb_str_concat(result, rb_sprintf(" allocation_type_enabled=%"PRIsVALUE, state->allocation_type_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
     state->time_converter_state.system_epoch_ns_reference,
@@ -1302,7 +1287,7 @@ static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_ins
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
-  if (state->otel_context_enabled == otel_context_enabled_only) return;
+  if (state->otel_context_enabled == OTEL_CONTEXT_ENABLED_ONLY) return;
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
   VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);
@@ -1415,62 +1400,60 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   ddog_CharSlice *optional_class_name = NULL;
   char imemo_type[100];
 
-  if (state->allocation_type_enabled) {
-    optional_class_name = &class_name;
+  optional_class_name = &class_name;
 
-    if (
-      type == RUBY_T_OBJECT   ||
-      type == RUBY_T_CLASS    ||
-      type == RUBY_T_MODULE   ||
-      type == RUBY_T_FLOAT    ||
-      type == RUBY_T_STRING   ||
-      type == RUBY_T_REGEXP   ||
-      type == RUBY_T_ARRAY    ||
-      type == RUBY_T_HASH     ||
-      type == RUBY_T_STRUCT   ||
-      type == RUBY_T_BIGNUM   ||
-      type == RUBY_T_FILE     ||
-      type == RUBY_T_DATA     ||
-      type == RUBY_T_MATCH    ||
-      type == RUBY_T_COMPLEX  ||
-      type == RUBY_T_RATIONAL ||
-      type == RUBY_T_NIL      ||
-      type == RUBY_T_TRUE     ||
-      type == RUBY_T_FALSE    ||
-      type == RUBY_T_SYMBOL   ||
-      type == RUBY_T_FIXNUM
-    ) {
-      VALUE klass = rb_class_of(new_object);
+  if (
+    type == RUBY_T_OBJECT   ||
+    type == RUBY_T_CLASS    ||
+    type == RUBY_T_MODULE   ||
+    type == RUBY_T_FLOAT    ||
+    type == RUBY_T_STRING   ||
+    type == RUBY_T_REGEXP   ||
+    type == RUBY_T_ARRAY    ||
+    type == RUBY_T_HASH     ||
+    type == RUBY_T_STRUCT   ||
+    type == RUBY_T_BIGNUM   ||
+    type == RUBY_T_FILE     ||
+    type == RUBY_T_DATA     ||
+    type == RUBY_T_MATCH    ||
+    type == RUBY_T_COMPLEX  ||
+    type == RUBY_T_RATIONAL ||
+    type == RUBY_T_NIL      ||
+    type == RUBY_T_TRUE     ||
+    type == RUBY_T_FALSE    ||
+    type == RUBY_T_SYMBOL   ||
+    type == RUBY_T_FIXNUM
+  ) {
+    VALUE klass = rb_class_of(new_object);
 
-      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
-      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
-      // Thus, we need to make sure there's actually a class before getting its name.
+    // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+    // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+    // Thus, we need to make sure there's actually a class before getting its name.
 
-      if (klass != 0) {
-        const char *name = rb_class2name(klass);
-        size_t name_length = name != NULL ? strlen(name) : 0;
+    if (klass != 0) {
+      const char *name = rb_class2name(klass);
+      size_t name_length = name != NULL ? strlen(name) : 0;
 
-        if (name_length > 0) {
-          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
-        } else {
-          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
-          class_name = ruby_value_type_to_class_name(type);
-        }
+      if (name_length > 0) {
+        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
       } else {
-        // Fallback for objects with no class
+        // @ivoanjo: I'm not sure this can ever happen, but just-in-case
         class_name = ruby_value_type_to_class_name(type);
       }
-    } else if (type == RUBY_T_IMEMO) {
-      const char *imemo_string = imemo_kind(new_object);
-      if (imemo_string != NULL) {
-        snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
-        class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
-      } else { // Ruby < 3
-        class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
-      }
     } else {
-      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
+      // Fallback for objects with no class
+      class_name = ruby_value_type_to_class_name(type);
     }
+  } else if (type == RUBY_T_IMEMO) {
+    const char *imemo_string = imemo_kind(new_object);
+    if (imemo_string != NULL) {
+      snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
+      class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
+    } else { // Ruby < 3
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+    }
+  } else {
+    class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
   track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
