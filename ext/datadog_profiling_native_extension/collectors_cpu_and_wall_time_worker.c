@@ -180,6 +180,12 @@ struct cpu_and_wall_time_worker_state {
     // # GVL profiling stats
     // How many times we triggered the after_gvl_running sampling
     unsigned int after_gvl_running;
+    // How many times we skipped the after_gvl_running sampling
+    unsigned int gvl_dont_sample;
+    // Min/max/total wall-time spent on gvl sampling
+    uint64_t gvl_sampling_time_ns_min;
+    uint64_t gvl_sampling_time_ns_max;
+    uint64_t gvl_sampling_time_ns_total;
   } stats;
 };
 
@@ -230,6 +236,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 #endif
+static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -1040,7 +1047,12 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
 
     // GVL profiling stats
-    ID2SYM(rb_intern("after_gvl_running")), /* => */ UINT2NUM(state->stats.after_gvl_running),
+    ID2SYM(rb_intern("after_gvl_running")),          /* => */ UINT2NUM(state->stats.after_gvl_running),
+    ID2SYM(rb_intern("gvl_dont_sample")),            /* => */ UINT2NUM(state->stats.gvl_dont_sample),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1078,8 +1090,10 @@ static void reset_stats_not_thread_safe(struct cpu_and_wall_time_worker_state *s
   //       Given the expected infrequency of resetting (~once per 60s profile) and the auxiliary/non-critical nature of these stats
   //       this momentary loss of accuracy is deemed acceptable to keep overhead to a minimum.
   state->stats = (struct stats) {
-    .cpu_sampling_time_ns_min = UINT64_MAX, // Since we always take the min between existing and latest sample
-    .allocation_sampling_time_ns_min = UINT64_MAX, // Since we always take the min between existing and latest sample
+    // All these values are initialized to their highest value possible since we always take the min between existing and latest sample
+    .cpu_sampling_time_ns_min        = UINT64_MAX,
+    .allocation_sampling_time_ns_min = UINT64_MAX,
+    .gvl_sampling_time_ns_min        = UINT64_MAX,
   };
 }
 
@@ -1313,23 +1327,29 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     } else if (event_id == RUBY_INTERNAL_THREAD_EVENT_RESUMED) { /* running/runnable */
       // Interesting note: A RUBY_INTERNAL_THREAD_EVENT_RESUMED is guaranteed to be called with the GVL being acquired.
       // (And... I think target_thread will be == rb_thread_current()?)
+      //
       // But we're not sure if we're on the main Ractor yet. The thread context collector actually can actually help here:
       // it tags threads it's tracking, so if a thread is tagged then by definition we know that thread belongs to the main
-      // Ractor. Thus, if we really really wanted to access the state, we could do it after making sure we're on the correct Ractor.
+      // Ractor. Thus, if we get a ON_GVL_RUNNING_UNKNOWN result we shouldn't touch any state, but otherwise we're good to go.
 
       #ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS
         target_thread = gvl_profiling_state_maybe_initialize();
       #endif
 
-      bool should_sample = thread_context_collector_on_gvl_running(target_thread);
+      on_gvl_running_result result = thread_context_collector_on_gvl_running(target_thread);
 
-      if (should_sample) {
-        // should_sample is only true if a thread belongs to the main Ractor, so we're good to go
+      if (result == ON_GVL_RUNNING_SAMPLE) {
         #ifndef NO_POSTPONED_TRIGGER
           rb_postponed_job_trigger(after_gvl_running_from_postponed_job_handle);
         #else
           rb_postponed_job_register_one(0, after_gvl_running_from_postponed_job, NULL);
         #endif
+      } else if (result == ON_GVL_RUNNING_DONT_SAMPLE) {
+        struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
+
+        if (state == NULL) return; // This should not happen, but just in case...
+
+        state->stats.gvl_dont_sample++;
       }
     } else {
       // This is a very delicate time and it's hard for us to raise an exception so let's at least complain to stderr
@@ -1345,11 +1365,32 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     state->during_sample = true;
 
-    safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+    // Rescue against any exceptions that happen during sampling
+    safely_call(rescued_after_gvl_running_from_postponed_job, state->self_instance, state->self_instance);
+
+    state->during_sample = false;
+  }
+
+  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance) {
+    struct cpu_and_wall_time_worker_state *state;
+    TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+    long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
+    long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
+    long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
+
+    // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
+    uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
+
+    state->stats.gvl_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_min);
+    state->stats.gvl_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_max);
+    state->stats.gvl_sampling_time_ns_total += sampling_time_ns;
 
     state->stats.after_gvl_running++;
 
-    state->during_sample = false;
+    return Qnil;
   }
 
   static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
