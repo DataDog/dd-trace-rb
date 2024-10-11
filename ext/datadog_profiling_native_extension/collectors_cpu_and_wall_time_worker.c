@@ -182,6 +182,10 @@ struct cpu_and_wall_time_worker_state {
     unsigned int after_gvl_running;
     // How many times we skipped the after_gvl_running sampling
     unsigned int gvl_dont_sample;
+    // Min/max/total wall-time spent on gvl sampling
+    uint64_t gvl_sampling_time_ns_min;
+    uint64_t gvl_sampling_time_ns_max;
+    uint64_t gvl_sampling_time_ns_total;
   } stats;
 };
 
@@ -1045,8 +1049,12 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("allocations_during_sample")),         /* => */ state->allocation_profiling_enabled ? UINT2NUM(state->stats.allocations_during_sample) : Qnil,
 
     // GVL profiling stats
-    ID2SYM(rb_intern("after_gvl_running")), /* => */ UINT2NUM(state->stats.after_gvl_running),
-    ID2SYM(rb_intern("gvl_dont_sample")),   /* => */ UINT2NUM(state->stats.gvl_dont_sample),
+    ID2SYM(rb_intern("after_gvl_running")),          /* => */ UINT2NUM(state->stats.after_gvl_running),
+    ID2SYM(rb_intern("gvl_dont_sample")),            /* => */ UINT2NUM(state->stats.gvl_dont_sample),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_min")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_min, != UINT64_MAX, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_max")),   /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_max, > 0, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_total")), /* => */ RUBY_NUM_OR_NIL(state->stats.gvl_sampling_time_ns_total, > 0, ULL2NUM),
+    ID2SYM(rb_intern("gvl_sampling_time_ns_avg")),   /* => */ RUBY_AVG_OR_NIL(state->stats.gvl_sampling_time_ns_total, state->stats.after_gvl_running),
   };
   for (long unsigned int i = 0; i < VALUE_COUNT(arguments); i += 2) rb_hash_aset(stats_as_hash, arguments[i], arguments[i+1]);
   return stats_as_hash;
@@ -1084,8 +1092,10 @@ static void reset_stats_not_thread_safe(struct cpu_and_wall_time_worker_state *s
   //       Given the expected infrequency of resetting (~once per 60s profile) and the auxiliary/non-critical nature of these stats
   //       this momentary loss of accuracy is deemed acceptable to keep overhead to a minimum.
   state->stats = (struct stats) {
-    .cpu_sampling_time_ns_min = UINT64_MAX, // Since we always take the min between existing and latest sample
-    .allocation_sampling_time_ns_min = UINT64_MAX, // Since we always take the min between existing and latest sample
+    // All these values are initialized to their highest value possible since we always take the min between existing and latest sample
+    .cpu_sampling_time_ns_min        = UINT64_MAX,
+    .allocation_sampling_time_ns_min = UINT64_MAX,
+    .gvl_sampling_time_ns_min        = UINT64_MAX,
   };
 }
 
@@ -1369,6 +1379,16 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
     thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
+    long wall_time_ns_after_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+
+    long delta_ns = wall_time_ns_after_sample - wall_time_ns_before_sample;
+
+    // Guard against wall-time going backwards, see https://github.com/DataDog/dd-trace-rb/pull/2336 for discussion.
+    uint64_t sampling_time_ns = delta_ns < 0 ? 0 : delta_ns;
+
+    state->stats.gvl_sampling_time_ns_min = uint64_min_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_min);
+    state->stats.gvl_sampling_time_ns_max = uint64_max_of(sampling_time_ns, state->stats.gvl_sampling_time_ns_max);
+    state->stats.gvl_sampling_time_ns_total += sampling_time_ns;
 
     state->stats.after_gvl_running++;
 

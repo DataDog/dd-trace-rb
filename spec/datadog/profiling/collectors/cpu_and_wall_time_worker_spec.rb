@@ -507,7 +507,15 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time), \
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
-          expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
+          expect(cpu_and_wall_time_worker.stats).to match(
+            hash_including(
+              after_gvl_running: be > 0,
+              gvl_sampling_time_ns_min: be > 0,
+              gvl_sampling_time_ns_max: be > 0,
+              gvl_sampling_time_ns_total: be > 0,
+              gvl_sampling_time_ns_avg: be > 0,
+            )
+          )
         end
 
         context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
@@ -530,9 +538,21 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
             cpu_and_wall_time_worker.stop
 
-            expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be 0
+            # Note: There may still be "Waiting for GVL" samples in the output, but these samples will come from the
+            # periodic cpu/wall-sampling, not samples directly triggered by the end of a "Waiting for GVL" period.
+
             expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample))
               .to be > 100 # Arbitrary, on my machine I see 250k on a run
+
+            expect(cpu_and_wall_time_worker.stats).to match(
+              hash_including(
+                after_gvl_running: 0,
+                gvl_sampling_time_ns_min: nil,
+                gvl_sampling_time_ns_max: nil,
+                gvl_sampling_time_ns_total: nil,
+                gvl_sampling_time_ns_avg: nil,
+              )
+            )
           end
         end
       end
@@ -1164,6 +1184,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocations_during_sample: nil,
           after_gvl_running: 0,
           gvl_dont_sample: 0,
+          gvl_sampling_time_ns_min: nil,
+          gvl_sampling_time_ns_max: nil,
+          gvl_sampling_time_ns_total: nil,
+          gvl_sampling_time_ns_avg: nil,
         }
       )
     end
