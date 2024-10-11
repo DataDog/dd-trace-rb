@@ -1367,7 +1367,8 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
     struct cpu_and_wall_time_worker_state *state;
     TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
 
-    thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current());
+    long wall_time_ns_before_sample = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+    thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance, rb_thread_current(), wall_time_ns_before_sample);
 
     state->stats.after_gvl_running++;
 
