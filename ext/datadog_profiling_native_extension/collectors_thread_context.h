@@ -26,5 +26,5 @@ VALUE enforce_thread_context_collector_instance(VALUE object);
 
   void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread);
   __attribute__((warn_unused_result)) on_gvl_running_result thread_context_collector_on_gvl_running(gvl_profiling_thread thread);
-  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance);
+  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread);
 #endif

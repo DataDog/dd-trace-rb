@@ -1822,7 +1822,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   //
   // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); the `current_thread` parameter only
   // exists to enable testing.
-  VALUE thread_context_collector_sample_after_gvl_running_with_thread(VALUE self_instance, VALUE current_thread) {
+  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread) {
     struct thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -1857,11 +1857,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
     );
 
-    return Qtrue; // To allow this to be called from rb_rescue2
-  }
-
-  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
-    return thread_context_collector_sample_after_gvl_running_with_thread(self_instance, rb_thread_current());
+    return Qtrue;
   }
 
   // This method is intended to be called from update_metrics_and_sample. It exists to handle extra sampling steps we
@@ -1986,7 +1982,7 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_sample_after_gvl_running_with_thread(collector_instance, thread);
+    return thread_context_collector_sample_after_gvl_running(collector_instance, thread);
   }
 
   static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns) {
