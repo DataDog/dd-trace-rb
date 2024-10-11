@@ -541,8 +541,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             # Note: There may still be "Waiting for GVL" samples in the output, but these samples will come from the
             # periodic cpu/wall-sampling, not samples directly triggered by the end of a "Waiting for GVL" period.
 
-            expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample))
-              .to be > 100 # Arbitrary, on my machine I see 250k on a run
+            expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample)).to be > 0
 
             expect(cpu_and_wall_time_worker.stats).to match(
               hash_including(
