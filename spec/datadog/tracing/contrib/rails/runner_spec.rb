@@ -136,6 +136,14 @@ RSpec.describe Datadog::Tracing::Contrib::Rails::Runner do
       expect(span.get_tag('operation')).to eq('runner.inline')
     end
 
+    context "when a current span isn't detected" do
+      it "doesn't error when a span can't be identified to set the source tag on" do
+        allow(Datadog::Tracing).to receive(:active_span).and_return(nil)
+
+        expect { run }.to output('OK').to_stdout
+      end
+    end
+
     include_context 'with a custom service name'
     include_context 'with source code too long'
 
