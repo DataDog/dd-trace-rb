@@ -232,6 +232,7 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self);
 static void on_gvl_event(rb_event_flag_t event_id, const rb_internal_thread_event_data_t *event_data, DDTRACE_UNUSED void *_unused);
 static void after_gvl_running_from_postponed_job(DDTRACE_UNUSED void *_unused);
 #endif
+static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance);
 static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance);
 
 // We're using `on_newobj_event` function with `rb_add_event_hook2`, which requires in its public signature a function
@@ -1356,11 +1357,21 @@ static VALUE _native_resume_signals(DDTRACE_UNUSED VALUE self) {
 
     state->during_sample = true;
 
-    safely_call(thread_context_collector_sample_after_gvl_running, state->thread_context_collector_instance, state->self_instance);
+    // Rescue against any exceptions that happen during sampling
+    safely_call(rescued_after_gvl_running_from_postponed_job, state->self_instance, state->self_instance);
+
+    state->during_sample = false;
+  }
+
+  static VALUE rescued_after_gvl_running_from_postponed_job(VALUE self_instance) {
+    struct cpu_and_wall_time_worker_state *state;
+    TypedData_Get_Struct(self_instance, struct cpu_and_wall_time_worker_state, &cpu_and_wall_time_worker_typed_data, state);
+
+    thread_context_collector_sample_after_gvl_running(state->thread_context_collector_instance);
 
     state->stats.after_gvl_running++;
 
-    state->during_sample = false;
+    return Qnil;
   }
 
   static VALUE _native_gvl_profiling_hook_active(DDTRACE_UNUSED VALUE self, VALUE instance) {
