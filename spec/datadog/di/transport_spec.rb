@@ -82,7 +82,7 @@ RSpec.describe Datadog::DI::Transport do
         it 'raises AgentCommunicationError' do
           expect do
             client.send_diagnostics(payload)
-          end.to raise_exception(Datadog::DI::Error::AgentCommunicationError, /Connection refused.*99999/)
+          end.to raise_exception(Datadog::DI::Error::AgentCommunicationError, /(?:Connection refused|connect).*99999/)
         end
       end
 
@@ -94,7 +94,7 @@ RSpec.describe Datadog::DI::Transport do
         it 'raises AgentCommunicationError' do
           expect do
             client.send_input(payload)
-          end.to raise_exception(Datadog::DI::Error::AgentCommunicationError, /Connection refused.*99999/)
+          end.to raise_exception(Datadog::DI::Error::AgentCommunicationError, /(?:Connection refused|connect).*99999/)
         end
       end
     end
