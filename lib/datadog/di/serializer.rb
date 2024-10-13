@@ -26,6 +26,16 @@ module Datadog
     # All serialization methods take the names of the variables being
     # serialized in order to be able to redact values.
     #
+    # The result of serialization should not reference parameter values when
+    # the values are mutable (currently, this only applies to string values).
+    # Serializer will duplicate such mutable values, so that if method
+    # arguments are captured at entry and then modified during method execution,
+    # the serialized values from entry are correctly preserved.
+    # Alternatively, we could pass a parameter to the serialization methods
+    # which would control whether values are duplicated. This may be more
+    # efficient but there would be additional overhead from passing this
+    # parameter all the time and the API would get more complex.
+    #
     # @api private
     class Serializer
       def initialize(settings, redactor)
@@ -43,6 +53,11 @@ module Datadog
       # between positional and keyword arguments. We convert positional
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
+      #
+      # If +copy+ is true, all of the values are duplicated. This is meant
+      # to be used when capturing method parameters at the beginning of
+      # method execution, to preserve the initial values even if they are
+      # modified during method execution.
       def serialize_args(args, kwargs)
         counter = 0
         combined = args.each_with_object({}) do |value, c|
@@ -92,7 +107,14 @@ module Datadog
         when Integer, Float, TrueClass, FalseClass
           serialized.update(value: value.to_s)
         when String, Symbol
-          value = value.to_s
+          value = case value
+          when String
+            # This is the only place where we duplicate the value, currently.
+            # All other values are immutable primitives (e.g. numbers).
+            value.dup
+          when Symbol
+            value.to_s
+          end
           max = settings.dynamic_instrumentation.max_capture_string_length
           if value.length > max
             serialized.update(truncated: true, size: value.length)

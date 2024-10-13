@@ -320,5 +320,44 @@ RSpec.describe Datadog::DI::Serializer do
         end
       end
     end
+
+    context 'when positional args is mutated' do
+      let(:args) do
+        ['hello', 'world']
+      end
+
+      let(:kwargs) { {} }
+
+      it 'preserves original value' do
+        serialized
+
+        args.first.gsub!('hello', 'bye')
+
+        expect(serialized).to eq(
+          arg1: {type: 'String', value: 'hello'},
+          arg2: {type: 'String', value: 'world'},
+        )
+      end
+    end
+
+    context 'when keyword args is mutated' do
+      let(:args) do
+        []
+      end
+
+      let(:kwargs) do
+        {foo: 'bar'}
+      end
+
+      it 'preserves original value' do
+        serialized
+
+        kwargs[:foo].gsub!('bar', 'bye')
+
+        expect(serialized).to eq(
+          foo: {type: 'String', value: 'bar'},
+        )
+      end
+    end
   end
 end
