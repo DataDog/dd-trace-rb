@@ -162,6 +162,11 @@ appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
 end
 
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0

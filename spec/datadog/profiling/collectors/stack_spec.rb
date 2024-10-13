@@ -305,6 +305,15 @@ RSpec.describe Datadog::Profiling::Collectors::Stack do
         it do
           expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
         end
+
+        # See comment on sample_thread in collectors_stack.c for details of why we do this
+        context 'when wall_time is zero' do
+          let(:metric_values) { {"cpu-time" => 0, "cpu-samples" => 1, "wall-time" => 0} }
+
+          it do
+            expect(sample_and_decode(background_thread, :labels)).to include(state: "sleeping")
+          end
+        end
       end
 
       context "when sampling a thread waiting on a select" do

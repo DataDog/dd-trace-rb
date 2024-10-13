@@ -91,12 +91,25 @@ static ID at_otel_values_id;  // id of :@otel_values in Ruby
 static ID at_parent_span_id_id; // id of :@parent_span_id in Ruby
 static ID at_datadog_trace_id;  // id of :@datadog_trace in Ruby
 
+// Used to support reading trace identifiers from the opentelemetry Ruby library when the ddtrace gem tracing
+// integration is NOT in use.
+static ID at_span_id_id;  // id of :@span_id in Ruby
+static ID at_trace_id_id; // id of :@trace_id in Ruby
+static ID at_entries_id;  // id of :@entries in Ruby
+static ID at_context_id;  // id of :@context in Ruby
+static ID at_kind_id;     // id of :@kind in Ruby
+static ID at_name_id;     // id of :@name in Ruby
+static ID server_id;      // id of :server in Ruby
+static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
+
 // This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
 // it's safe to access the state of the thread context collector, we store this setting as a global value. This does
 // mean this setting is shared among all thread context collectors, and thus it's "last writer wins".
 // In production this should not be a problem: there should only be one profiler, which is the last one created,
 // and that'll be the one that last wrote this setting.
 static uint32_t global_waiting_for_gvl_threshold_ns = MILLIS_AS_NS(10);
+
+typedef enum { OTEL_CONTEXT_ENABLED_FALSE, OTEL_CONTEXT_ENABLED_ONLY, OTEL_CONTEXT_ENABLED_BOTH } otel_context_enabled;
 
 // Contains state for a single ThreadContext instance
 struct thread_context_collector_state {
@@ -124,13 +137,15 @@ struct thread_context_collector_state {
   bool endpoint_collection_enabled;
   // Used to omit timestamps / timeline events from collected data
   bool timeline_enabled;
-  // Used to omit class information from collected allocation data
-  bool allocation_type_enabled;
+  // Used to control context collection
+  otel_context_enabled otel_context_enabled;
   // Used when calling monotonic_to_system_epoch_ns
   monotonic_to_system_epoch_state time_converter_state;
   // Used to identify the main thread, to give it a fallback name
   VALUE main_thread;
   // Used when extracting trace identifiers from otel spans. Lazily initialized.
+  // Qtrue serves as a marker we've not yet extracted it; when we try to extract it, we set it to an object if
+  // successful and Qnil if not.
   VALUE otel_current_span_key;
 
   struct stats {
@@ -176,22 +191,18 @@ struct trace_identifiers {
   VALUE trace_endpoint;
 };
 
+struct otel_span {
+  VALUE span;
+  VALUE span_id;
+  VALUE trace_id;
+};
+
 static void thread_context_collector_typed_data_mark(void *state_ptr);
 static void thread_context_collector_typed_data_free(void *state_ptr);
 static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _value, st_data_t _argument);
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
-static VALUE _native_initialize(
-  VALUE self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE allocation_type_enabled
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
@@ -264,6 +275,13 @@ static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread)
 static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread);
 static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns);
+static void otel_without_ddtrace_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result
+);
+static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
+static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -281,7 +299,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(collectors_thread_context_class, _native_new);
 
-  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, 8);
+  rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
@@ -312,6 +330,14 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_otel_values_id = rb_intern_const("@otel_values");
   at_parent_span_id_id = rb_intern_const("@parent_span_id");
   at_datadog_trace_id = rb_intern_const("@datadog_trace");
+  at_span_id_id = rb_intern_const("@span_id");
+  at_trace_id_id = rb_intern_const("@trace_id");
+  at_entries_id = rb_intern_const("@entries");
+  at_context_id = rb_intern_const("@context");
+  at_kind_id = rb_intern_const("@kind");
+  at_name_id = rb_intern_const("@name");
+  server_id = rb_intern_const("server");
+  otel_context_storage_id = rb_intern_const("__opentelemetry_context_storage__");
 
   #ifndef NO_GVL_INSTRUMENTATION
     // This will raise if Ruby already ran out of thread-local keys
@@ -396,11 +422,11 @@ static VALUE _native_new(VALUE klass) {
   state->thread_list_buffer = thread_list_buffer;
   state->endpoint_collection_enabled = true;
   state->timeline_enabled = true;
-  state->allocation_type_enabled = true;
+  state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
   state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   VALUE main_thread = rb_thread_main();
   state->main_thread = main_thread;
-  state->otel_current_span_key = Qnil;
+  state->otel_current_span_key = Qtrue;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
 
@@ -416,24 +442,27 @@ static VALUE _native_new(VALUE klass) {
   return instance;
 }
 
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE collector_instance,
-  VALUE recorder_instance,
-  VALUE max_frames,
-  VALUE tracer_context_key,
-  VALUE endpoint_collection_enabled,
-  VALUE timeline_enabled,
-  VALUE waiting_for_gvl_threshold_ns,
-  VALUE allocation_type_enabled
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE self_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("recorder")));
+  VALUE max_frames = rb_hash_fetch(options, ID2SYM(rb_intern("max_frames")));
+  VALUE tracer_context_key = rb_hash_fetch(options, ID2SYM(rb_intern("tracer_context_key")));
+  VALUE endpoint_collection_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("endpoint_collection_enabled")));
+  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
+  VALUE waiting_for_gvl_threshold_ns = rb_hash_fetch(options, ID2SYM(rb_intern("waiting_for_gvl_threshold_ns")));
+  VALUE otel_context_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("otel_context_enabled")));
+
+  ENFORCE_TYPE(max_frames, T_FIXNUM);
   ENFORCE_BOOLEAN(endpoint_collection_enabled);
   ENFORCE_BOOLEAN(timeline_enabled);
   ENFORCE_TYPE(waiting_for_gvl_threshold_ns, T_FIXNUM);
-  ENFORCE_BOOLEAN(allocation_type_enabled);
 
   struct thread_context_collector_state *state;
-  TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
   // Update this when modifying state struct
   state->max_frames = sampling_buffer_check_max_frames(NUM2INT(max_frames));
@@ -442,7 +471,15 @@ static VALUE _native_initialize(
   state->recorder_instance = enforce_recorder_instance(recorder_instance);
   state->endpoint_collection_enabled = (endpoint_collection_enabled == Qtrue);
   state->timeline_enabled = (timeline_enabled == Qtrue);
-  state->allocation_type_enabled = (allocation_type_enabled == Qtrue);
+  if (otel_context_enabled == Qfalse || otel_context_enabled == Qnil) {
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_FALSE;
+  } else if (otel_context_enabled == ID2SYM(rb_intern("only"))) {
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_ONLY;
+  } else if (otel_context_enabled == ID2SYM(rb_intern("both"))) {
+    state->otel_context_enabled = OTEL_CONTEXT_ENABLED_BOTH;
+  } else {
+    rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
+  }
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
@@ -584,6 +621,21 @@ static void update_metrics_and_sample(
     INVALID_TIME,
     IS_WALL_TIME
   );
+
+  // A thread enters "Waiting for GVL", well, as the name implies, without the GVL.
+  //
+  // As a consequence, it's possible that a thread enters "Waiting for GVL" in parallel with the current thread working
+  // on sampling, and thus for the  `current_monotonic_wall_time_ns` (which is recorded at the start of sampling)
+  // to be < the time at which we started Waiting for GVL.
+  //
+  // All together, this means that when `handle_gvl_waiting` creates an extra sample (see comments on that function for
+  // what the extra sample is), it's possible that there's no more wall-time to be assigned.
+  // Thus, in this case, we don't want to produce a sample representing Waiting for GVL with a wall-time of 0, and
+  // thus we skip creating such a sample.
+  if (is_gvl_waiting_state && wall_time_elapsed_ns == 0) return;
+  // ...you may also wonder: is there any other situation where it makes sense to produce a sample with
+  // wall_time_elapsed_ns == 0? I believe that yes, because the sample still includes a timestamp and a stack, but we
+  // may revisit/change our minds on this in the future.
 
   trigger_sample_for_thread(
     state,
@@ -819,6 +871,11 @@ static void trigger_sample_for_thread(
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result);
 
+  if (!trace_identifiers_result.valid && state->otel_context_enabled != OTEL_CONTEXT_ENABLED_FALSE) {
+    // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
+    otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
+  }
+
   if (trace_identifiers_result.valid) {
     labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("local root span id"), .num = trace_identifiers_result.local_root_span_id};
     labels[label_pos++] = (ddog_prof_Label) {.key = DDOG_CHARSLICE_C("span id"), .num = trace_identifiers_result.span_id};
@@ -1039,7 +1096,7 @@ static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instanc
   rb_str_concat(result, rb_sprintf(" stats=%"PRIsVALUE, stats_as_ruby_hash(state)));
   rb_str_concat(result, rb_sprintf(" endpoint_collection_enabled=%"PRIsVALUE, state->endpoint_collection_enabled ? Qtrue : Qfalse));
   rb_str_concat(result, rb_sprintf(" timeline_enabled=%"PRIsVALUE, state->timeline_enabled ? Qtrue : Qfalse));
-  rb_str_concat(result, rb_sprintf(" allocation_type_enabled=%"PRIsVALUE, state->allocation_type_enabled ? Qtrue : Qfalse));
+  rb_str_concat(result, rb_sprintf(" otel_context_enabled=%d", state->otel_context_enabled));
   rb_str_concat(result, rb_sprintf(
     " time_converter_state={.system_epoch_ns_reference=%ld, .delta_to_epoch_ns=%ld}",
     state->time_converter_state.system_epoch_ns_reference,
@@ -1230,6 +1287,7 @@ static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_ins
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
 static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
+  if (state->otel_context_enabled == OTEL_CONTEXT_ENABLED_ONLY) return;
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
   VALUE current_context = rb_thread_local_aref(thread, state->tracer_context_key);
@@ -1342,62 +1400,60 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
   ddog_CharSlice *optional_class_name = NULL;
   char imemo_type[100];
 
-  if (state->allocation_type_enabled) {
-    optional_class_name = &class_name;
+  optional_class_name = &class_name;
 
-    if (
-      type == RUBY_T_OBJECT   ||
-      type == RUBY_T_CLASS    ||
-      type == RUBY_T_MODULE   ||
-      type == RUBY_T_FLOAT    ||
-      type == RUBY_T_STRING   ||
-      type == RUBY_T_REGEXP   ||
-      type == RUBY_T_ARRAY    ||
-      type == RUBY_T_HASH     ||
-      type == RUBY_T_STRUCT   ||
-      type == RUBY_T_BIGNUM   ||
-      type == RUBY_T_FILE     ||
-      type == RUBY_T_DATA     ||
-      type == RUBY_T_MATCH    ||
-      type == RUBY_T_COMPLEX  ||
-      type == RUBY_T_RATIONAL ||
-      type == RUBY_T_NIL      ||
-      type == RUBY_T_TRUE     ||
-      type == RUBY_T_FALSE    ||
-      type == RUBY_T_SYMBOL   ||
-      type == RUBY_T_FIXNUM
-    ) {
-      VALUE klass = rb_class_of(new_object);
+  if (
+    type == RUBY_T_OBJECT   ||
+    type == RUBY_T_CLASS    ||
+    type == RUBY_T_MODULE   ||
+    type == RUBY_T_FLOAT    ||
+    type == RUBY_T_STRING   ||
+    type == RUBY_T_REGEXP   ||
+    type == RUBY_T_ARRAY    ||
+    type == RUBY_T_HASH     ||
+    type == RUBY_T_STRUCT   ||
+    type == RUBY_T_BIGNUM   ||
+    type == RUBY_T_FILE     ||
+    type == RUBY_T_DATA     ||
+    type == RUBY_T_MATCH    ||
+    type == RUBY_T_COMPLEX  ||
+    type == RUBY_T_RATIONAL ||
+    type == RUBY_T_NIL      ||
+    type == RUBY_T_TRUE     ||
+    type == RUBY_T_FALSE    ||
+    type == RUBY_T_SYMBOL   ||
+    type == RUBY_T_FIXNUM
+  ) {
+    VALUE klass = rb_class_of(new_object);
 
-      // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
-      // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
-      // Thus, we need to make sure there's actually a class before getting its name.
+    // Ruby sometimes plays a bit fast and loose with some of its internal objects, e.g.
+    // `rb_str_tmp_frozen_acquire` allocates a string with no class (klass=0).
+    // Thus, we need to make sure there's actually a class before getting its name.
 
-      if (klass != 0) {
-        const char *name = rb_class2name(klass);
-        size_t name_length = name != NULL ? strlen(name) : 0;
+    if (klass != 0) {
+      const char *name = rb_class2name(klass);
+      size_t name_length = name != NULL ? strlen(name) : 0;
 
-        if (name_length > 0) {
-          class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
-        } else {
-          // @ivoanjo: I'm not sure this can ever happen, but just-in-case
-          class_name = ruby_value_type_to_class_name(type);
-        }
+      if (name_length > 0) {
+        class_name = (ddog_CharSlice) {.ptr = name, .len = name_length};
       } else {
-        // Fallback for objects with no class
+        // @ivoanjo: I'm not sure this can ever happen, but just-in-case
         class_name = ruby_value_type_to_class_name(type);
       }
-    } else if (type == RUBY_T_IMEMO) {
-      const char *imemo_string = imemo_kind(new_object);
-      if (imemo_string != NULL) {
-        snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
-        class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
-      } else { // Ruby < 3
-        class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
-      }
     } else {
-      class_name = ruby_vm_type; // For other weird internal things we just use the VM type
+      // Fallback for objects with no class
+      class_name = ruby_value_type_to_class_name(type);
     }
+  } else if (type == RUBY_T_IMEMO) {
+    const char *imemo_string = imemo_kind(new_object);
+    if (imemo_string != NULL) {
+      snprintf(imemo_type, 100, "(VM Internal, T_IMEMO, %s)", imemo_string);
+      class_name = (ddog_CharSlice) {.ptr = imemo_type, .len = strlen(imemo_type)};
+    } else { // Ruby < 3
+      class_name = DDOG_CHARSLICE_C("(VM Internal, T_IMEMO)");
+    }
+  } else {
+    class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
   track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
@@ -1460,25 +1516,29 @@ static ddog_CharSlice ruby_value_type_to_class_name(enum ruby_value_type type) {
   }
 }
 
+// Used to access OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY). Will raise exceptions if it fails.
+static VALUE read_otel_current_span_key_const(DDTRACE_UNUSED VALUE _unused) {
+  VALUE opentelemetry_module = rb_const_get(rb_cObject, rb_intern("OpenTelemetry"));
+  ENFORCE_TYPE(opentelemetry_module, T_MODULE);
+  VALUE trace_module = rb_const_get(opentelemetry_module, rb_intern("Trace"));
+  ENFORCE_TYPE(trace_module, T_MODULE);
+  return rb_const_get(trace_module, rb_intern("CURRENT_SPAN_KEY"));
+}
+
 static VALUE get_otel_current_span_key(struct thread_context_collector_state *state) {
-  if (state->otel_current_span_key == Qnil) {
-    VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-    VALUE opentelemetry_module = rb_const_get(datadog_module, rb_intern("OpenTelemetry"));
-    VALUE api_module = rb_const_get(opentelemetry_module, rb_intern("API"));
-    VALUE context_module = rb_const_get(api_module, rb_intern_const("Context"));
-    VALUE current_span_key = rb_const_get(context_module, rb_intern_const("CURRENT_SPAN_KEY"));
+  if (state->otel_current_span_key == Qtrue) { // Qtrue means we haven't tried to extract it yet
+    // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
+    // gets refactored, we should not fall on our face)
+    VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
 
-    if (current_span_key == Qnil) {
-      rb_raise(rb_eRuntimeError, "Unexpected: Missing Datadog::OpenTelemetry::API::Context::CURRENT_SPAN_KEY");
-    }
-
-    state->otel_current_span_key = current_span_key;
+    // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
+    state->otel_current_span_key = span_key;
   }
 
   return state->otel_current_span_key;
 }
 
-// This method gets used when ddtrace is being used indirectly via the otel APIs. Information gets stored slightly
+// This method gets used when ddtrace is being used indirectly via the opentelemetry APIs. Information gets stored slightly
 // differently, and this codepath handles it.
 static void ddtrace_otel_trace_identifiers_for(
   struct thread_context_collector_state *state,
@@ -1498,6 +1558,7 @@ static void ddtrace_otel_trace_identifiers_for(
   if (resolved_numeric_span_id == Qnil) return;
 
   VALUE otel_current_span_key = get_otel_current_span_key(state);
+  if (otel_current_span_key == Qnil) return;
   VALUE current_trace = *active_trace;
 
   // ddtrace uses a different structure when spans are created from otel, where each otel span will have a unique ddtrace
@@ -1551,6 +1612,118 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   return Qtrue;
 }
 
+// This method differs from trace_identifiers_for/ddtrace_otel_trace_identifiers_for to support the situation where
+// the opentelemetry ruby library is being used for tracing AND the ddtrace tracing bits are not involved at all.
+//
+// Thus, in this case, we're directly reading from the opentelemetry stuff, which is different to how ddtrace tracing
+// does it.
+//
+// This is somewhat brittle: we're coupling on internal details of the opentelemetry gem to get what we need. In the
+// future maybe the otel ruby folks would be open to having a nice public way of getting this data that suits the
+// usecase of profilers.
+// Until then, the strategy below is to be extremely defensive, and if anything is out of place, we immediately return
+// and give up on getting trace data from opentelemetry. (Thus, worst case would be -- you upgrade opentelemetry and
+// profiling features relying on reading this data stop working, but you'll still get profiles and the app will be
+// otherwise undisturbed).
+//
+// Specifically, the way this works is:
+// 1. The latest entry in the opentelemetry context storage represents the current span (if any). We take the span id
+//    and trace id from this span.
+// 2. To find the local root span id, we walk the context storage backwards from the current span, and find the earliest
+//    entry in the context storage that has the same trace id as the current span; we use the found span as the local
+//    root span id.
+//    This matches the semantics of how ddtrace tracing creates a TraceOperation and assigns a local root span to it.
+static void otel_without_ddtrace_trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result
+) {
+  VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
+
+  // If it exists, context_storage is expected to be an Array[OpenTelemetry::Context]
+  if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
+
+  VALUE otel_current_span_key = get_otel_current_span_key(state);
+  if (otel_current_span_key == Qnil) return;
+
+  int active_context_index = RARRAY_LEN(context_storage) - 1;
+  if (active_context_index < 0) return;
+
+  struct otel_span active_span = otel_span_from(rb_ary_entry(context_storage, active_context_index), otel_current_span_key);
+  if (active_span.span == Qnil) return;
+
+  struct otel_span local_root_span = active_span;
+
+  // Now find the oldest span starting from the active span that still has the same trace id as the active span
+  for (int i = active_context_index - 1; i >= 0; i--) {
+    struct otel_span checking_span = otel_span_from(rb_ary_entry(context_storage, i), otel_current_span_key);
+    if (checking_span.span == Qnil) return;
+
+    if (rb_str_equal(active_span.trace_id, checking_span.trace_id) == Qfalse) break;
+
+    local_root_span = checking_span;
+  }
+
+  // Convert the span ids into uint64_t to match what the Datadog tracer does
+  trace_identifiers_result->span_id = otel_span_id_to_uint(active_span.span_id);
+  trace_identifiers_result->local_root_span_id = otel_span_id_to_uint(local_root_span.span_id);
+
+  if (trace_identifiers_result->span_id == 0 || trace_identifiers_result->local_root_span_id == 0) return;
+
+  trace_identifiers_result->valid = true;
+
+  if (!state->endpoint_collection_enabled) return;
+
+  VALUE root_span_type = rb_ivar_get(local_root_span.span, at_kind_id /* @kind */);
+  // We filter out spans that don't have `kind: :server`
+  if (root_span_type == Qnil || !RB_TYPE_P(root_span_type, T_SYMBOL) || SYM2ID(root_span_type) != server_id) return;
+
+  VALUE trace_resource = rb_ivar_get(local_root_span.span, at_name_id /* @name */);
+  if (!RB_TYPE_P(trace_resource, T_STRING)) return;
+
+  trace_identifiers_result->trace_endpoint = trace_resource;
+}
+
+static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key) {
+  struct otel_span failed = {.span = Qnil, .span_id = Qnil, .trace_id = Qnil};
+
+  if (otel_context == Qnil) return failed;
+
+  VALUE context_entries = rb_ivar_get(otel_context, at_entries_id /* @entries */);
+  if (context_entries == Qnil || !RB_TYPE_P(context_entries, T_HASH)) return failed;
+
+  // If it exists, context_entries is expected to be a Hash[OpenTelemetry::Context::Key, OpenTelemetry::Trace::Span]
+  VALUE span = rb_hash_lookup(context_entries, otel_current_span_key);
+  if (span == Qnil) return failed;
+
+  // If it exists, span_context is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
+  VALUE span_context = rb_ivar_get(span, at_context_id /* @context */);
+  if (span_context == Qnil) return failed;
+
+  VALUE span_id = rb_ivar_get(span_context, at_span_id_id /* @span_id */);
+  VALUE trace_id = rb_ivar_get(span_context, at_trace_id_id /* @trace_id */);
+  if (span_id == Qnil || trace_id == Qnil || !RB_TYPE_P(span_id, T_STRING) || !RB_TYPE_P(trace_id, T_STRING)) return failed;
+
+  return (struct otel_span) {.span = span, .span_id = span_id, .trace_id = trace_id};
+}
+
+// Otel span ids are represented as a big-endian 8-byte string
+static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
+  if (!RB_TYPE_P(otel_span_id, T_STRING) || RSTRING_LEN(otel_span_id) != 8) { return 0; }
+
+  unsigned char *span_bytes = (unsigned char*) StringValuePtr(otel_span_id);
+
+  return \
+    ((uint64_t)span_bytes[0] << 56) |
+    ((uint64_t)span_bytes[1] << 48) |
+    ((uint64_t)span_bytes[2] << 40) |
+    ((uint64_t)span_bytes[3] << 32) |
+    ((uint64_t)span_bytes[4] << 24) |
+    ((uint64_t)span_bytes[5] << 16) |
+    ((uint64_t)span_bytes[6] <<  8) |
+    ((uint64_t)span_bytes[7]);
+}
+
 #ifndef NO_GVL_INSTRUMENTATION
   // This function can get called from outside the GVL and even on non-main Ractors
   void thread_context_collector_on_gvl_waiting(gvl_profiling_thread thread) {
@@ -1573,14 +1746,14 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 
   // This function can get called from outside the GVL and even on non-main Ractors
   __attribute__((warn_unused_result))
-  bool thread_context_collector_on_gvl_running_with_threshold(gvl_profiling_thread thread, uint32_t waiting_for_gvl_threshold_ns) {
+  on_gvl_running_result thread_context_collector_on_gvl_running_with_threshold(gvl_profiling_thread thread, uint32_t waiting_for_gvl_threshold_ns) {
     intptr_t gvl_waiting_at = gvl_profiling_state_get(thread);
 
     // Thread was not being profiled / not waiting on gvl
-    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return false;
+    if (gvl_waiting_at == 0 || gvl_waiting_at == GVL_WAITING_ENABLED_EMPTY) return ON_GVL_RUNNING_UNKNOWN;
 
     // @ivoanjo: I'm not sure if this can happen -- It means we should've sampled already but haven't gotten the chance yet?
-    if (gvl_waiting_at < 0) return true;
+    if (gvl_waiting_at < 0) return ON_GVL_RUNNING_SAMPLE;
 
     long waiting_for_gvl_duration_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - gvl_waiting_at;
 
@@ -1596,11 +1769,11 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       gvl_profiling_state_set(thread, GVL_WAITING_ENABLED_EMPTY);
     }
 
-    return should_sample;
+    return should_sample ? ON_GVL_RUNNING_SAMPLE : ON_GVL_RUNNING_DONT_SAMPLE;
   }
 
   __attribute__((warn_unused_result))
-  bool thread_context_collector_on_gvl_running(gvl_profiling_thread thread) {
+  on_gvl_running_result thread_context_collector_on_gvl_running(gvl_profiling_thread thread) {
     return thread_context_collector_on_gvl_running_with_threshold(thread, global_waiting_for_gvl_threshold_ns);
   }
 
@@ -1632,7 +1805,7 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   //
   // NOTE: In normal use, current_thread is expected to be == rb_thread_current(); the `current_thread` parameter only
   // exists to enable testing.
-  VALUE thread_context_collector_sample_after_gvl_running_with_thread(VALUE self_instance, VALUE current_thread) {
+  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance, VALUE current_thread, long current_monotonic_wall_time_ns) {
     struct thread_context_collector_state *state;
     TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
 
@@ -1664,14 +1837,10 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
       thread_context,
       thread_context->sampling_buffer,
       cpu_time_for_thread,
-      monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+      current_monotonic_wall_time_ns
     );
 
-    return Qtrue; // To allow this to be called from rb_rescue2
-  }
-
-  VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance) {
-    return thread_context_collector_sample_after_gvl_running_with_thread(self_instance, rb_thread_current());
+    return Qtrue;
   }
 
   // This method is intended to be called from update_metrics_and_sample. It exists to handle extra sampling steps we
@@ -1790,13 +1959,17 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) ? Qtrue : Qfalse;
+    return thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
   }
 
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_sample_after_gvl_running_with_thread(collector_instance, thread);
+    return thread_context_collector_sample_after_gvl_running(
+      collector_instance,
+      thread,
+      monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+    );
   }
 
   static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns) {

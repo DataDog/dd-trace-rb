@@ -485,6 +485,35 @@ module Datadog
               o.type :int
               o.default 10_000_000
             end
+
+            # Controls if the profiler should attempt to read context from the otel library
+            #
+            # @default false
+            option :preview_otel_context_enabled do |o|
+              o.env 'DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED'
+              o.default false
+              o.env_parser do |value|
+                if value
+                  value = value.strip.downcase
+                  if ['only', 'both'].include?(value)
+                    value
+                  elsif ['true', '1'].include?(value)
+                    'both'
+                  else
+                    'false'
+                  end
+                end
+              end
+              o.setter do |value|
+                if value == true
+                  :both
+                elsif ['only', 'both', :only, :both].include?(value)
+                  value.to_sym
+                else
+                  false
+                end
+              end
+            end
           end
 
           # @public_api
@@ -886,7 +915,7 @@ module Datadog
           # Enables reporting of information when Ruby VM crashes.
           option :enabled do |o|
             o.type :bool
-            o.default true
+            o.default false
             o.env 'DD_CRASHTRACKING_ENABLED'
           end
         end

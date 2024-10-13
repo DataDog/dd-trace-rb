@@ -209,9 +209,9 @@ from the VM callbacks and also messing with cpu/wall-time accounting for threads
 
 The `ThreadContext` collector exposes three APIs for GVL profiling:
 
-* `void thread_context_collector_on_gvl_waiting(VALUE thread)`
-* `bool thread_context_collector_on_gvl_running(VALUE thread)`
-* `VALUE thread_context_collector_sample_after_gvl_running(VALUE self_instance)`
+* `thread_context_collector_on_gvl_waiting`
+* `thread_context_collector_on_gvl_running`
+* `thread_context_collector_sample_after_gvl_running`
 
 The intuition here is that:
 
