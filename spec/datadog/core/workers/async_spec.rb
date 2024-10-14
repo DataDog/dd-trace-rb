@@ -454,39 +454,19 @@ RSpec.describe Datadog::Core::Workers::Async::Thread do
     describe 'thread naming and fork-safety marker' do
       after { worker.terminate }
 
-      context 'on Ruby < 2.3' do
-        before do
-          skip 'Only applies to old Rubies' if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
-        end
-
-        it 'does not try to set a thread name' do
-          without_partial_double_verification do
-            expect_any_instance_of(Thread).not_to receive(:name=)
+      let(:worker_class) do
+        stub_const(
+          'AsyncSpecThreadNaming',
+          Class.new(Datadog::Core::Worker) do
+            include Datadog::Core::Workers::Async::Thread
           end
-
-          worker.perform
-        end
+        )
       end
 
-      context 'on Ruby >= 2.3' do
-        before do
-          skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-        end
+      it 'sets the name of the created thread to match the worker class name' do
+        worker.perform
 
-        let(:worker_class) do
-          stub_const(
-            'AsyncSpecThreadNaming',
-            Class.new(Datadog::Core::Worker) do
-              include Datadog::Core::Workers::Async::Thread
-            end
-          )
-        end
-
-        it 'sets the name of the created thread to match the worker class name' do
-          worker.perform
-
-          expect(worker.send(:worker).name).to eq worker_class.to_s
-        end
+        expect(worker.send(:worker).name).to eq worker_class.to_s
       end
 
       # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359
