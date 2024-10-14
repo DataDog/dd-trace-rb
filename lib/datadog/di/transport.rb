@@ -49,7 +49,11 @@ module Datadog
 
       def send_request(desc, path, payload, headers: {})
         # steep:ignore:start
-        env = Env.new(path: path, headers: headers, form: payload)
+        env = OpenStruct.new(
+          path: path,
+          form: payload,
+          headers: headers,
+        )
         # steep:ignore:end
         response = client.post(env)
         unless response.ok?
