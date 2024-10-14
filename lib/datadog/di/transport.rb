@@ -49,7 +49,7 @@ module Datadog
 
       def send_request(desc, path, payload, headers: {})
         # steep:ignore:start
-        env = Env.new(path: path, headers: headers, form: payload)
+        env = Datadog::Core::Transport::HTTP::Env.new(path: path, headers: headers, form: payload)
         # steep:ignore:end
         response = client.post(env)
         unless response.ok?
