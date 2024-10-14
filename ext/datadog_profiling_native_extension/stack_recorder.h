@@ -29,4 +29,3 @@ void record_endpoint(VALUE recorder_instance, uint64_t local_root_span_id, ddog_
 void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice *alloc_class);
 void recorder_after_gc_step(VALUE recorder_instance);
 VALUE enforce_recorder_instance(VALUE object);
-

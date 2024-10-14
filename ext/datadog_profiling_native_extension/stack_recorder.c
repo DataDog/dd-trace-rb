@@ -8,7 +8,6 @@
 #include "ruby_helpers.h"
 #include "time_helpers.h"
 #include "heap_recorder.h"
-#include "collectors_gc_profiling_helper.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
