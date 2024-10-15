@@ -83,11 +83,14 @@ else
           Bundler::SharedHelpers.in_bundle?
         end
 
+        # CRuby does *not* break API or ABI compatibility in TEENY version bumps.
+        # The ABI always sets the TEENY version to zero to reflect that: {MAJOR}.{MINOR}.0.
+        # https://www.ruby-lang.org/en/news/2013/12/21/ruby-version-policy-changes-with-2-1-0/
         def runtime_supported?
-          major, minor, = RUBY_VERSION.split('.')
+          major, minor, = RUBY_VERSION.split('.') # {MAJOR}_{MINOR}_{TEENY}
           ruby_api_version = "#{major}.#{minor}.0"
 
-          supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0'].freeze
+          supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0', '3.3.0'].freeze
 
           RUBY_ENGINE == 'ruby' && supported_ruby_api_versions.any? { |v| ruby_api_version == v }
         end
