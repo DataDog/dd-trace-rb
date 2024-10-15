@@ -10,19 +10,19 @@ Integration tests for `datadog` that use a variety of real applications.
     ./script/build-images
     ```
 
-You can specify which ruby version to build using the `-v` option.
+You can specify which ruby version to build using the `-v` option. If you are running on ARM architecture (e.g. mac), include `DOCKER_DEFAULT_PLATFORM=linux/arm64` as a prefix to the script.
 
-2. Choose an application and follow instructions (in corresponding `README.md`.)
+2. Choose an application, and follow the instructions in the corresponding `README.md`.
 
 ## Demo applications
 
-Ruby demo applications are configured with Datadog APM, which can be used to generate sample traces/profiles. These are used to drive tests in the integration suite.
+Ruby demo applications are configured with Datadog APM, which can be used to generate sample traces and profiles. These are used to drive tests in the integration suite.
 
 ### Applications
 
 See `README.md` in each directory for more information:
 
-- `apps/opentelemetry`: Generates OpenTelemetry traces
+- `apps/opentelemetry`: OpenTelemetry traces
 - `apps/rack`: Rack application
 - `apps/rails-five`: Rails 5 application
 - `apps/rails-six`: Rails 6 application
