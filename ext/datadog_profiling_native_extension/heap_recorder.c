@@ -156,11 +156,6 @@ struct heap_recorder {
   // mutation of the data so iteration can occur without acquiring a lock.
   // NOTE: Contrary to object_records, this table has no ownership of its data.
   st_table *object_records_snapshot;
-  // Is there a pending update due to a conflict with an ongoing iteration?
-  // If there is, we'll want to re-issue it after we finish the iteration.
-  bool pending_update;
-  // Was that pending update forced to be a full update?
-  bool pending_update_forced_full;
   // Are we currently updating or not?
   bool updating;
   // The GC gen/epoch/count in which we are updating (or last updated if not currently updating).
@@ -442,13 +437,11 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
   }
 
   if (heap_recorder->object_records_snapshot != NULL) {
-    // If we're currently iterating, don't do the update now, we'll do it when we finish the iteration.
+    // While serialization is happening, it runs without the GVL and uses the object_records_snapshot.
     // Although we iterate on a snapshot of object_records, these records point to other data that has not been
-    // snapshotted for efficiency reasons (e.g. heap_records). Since there's a chance that updating may invalidate
-    // some of that non-snapshotted data, lets refrain from doing updates during iteration. This also enforces the
+    // snapshotted for efficiency reasons (e.g. heap_records). Since updating may invalidate
+    // some of that non-snapshotted data, let's refrain from doing updates during iteration. This also enforces the
     // semantic that iteration will operate as a point-in-time snapshot.
-    heap_recorder->pending_update = true;
-    heap_recorder->pending_update_forced_full = force_full_update;
     return;
   }
 
@@ -538,10 +531,6 @@ void heap_recorder_finish_iteration(heap_recorder *heap_recorder) {
 
   st_free_table(heap_recorder->object_records_snapshot);
   heap_recorder->object_records_snapshot = NULL;
-
-  if (heap_recorder->pending_update) {
-    heap_recorder_update(heap_recorder, heap_recorder->pending_update_forced_full);
-  }
 }
 
 // Internal data we need while performing iteration over live objects.
