@@ -1,24 +1,23 @@
 module Datadog
   module AppSec
     class RateLimiter
-      type timestamp = ::Float
-      type rate = ::Integer
+      @rate_limiter: Datadog::Core::TokenBucket
 
-      @rate: ::Integer
-      @timestamps: ::Array[timestamp]
+      THREAD_KEY: :datadog_security_appsec_rate_limiter
 
-      def initialize: (rate rate) -> void
+      def self.thread_local: () -> RateLimiter
 
-      # TODO: return type of limit is return type of block
-      def limit: () { () -> untyped } -> untyped
+      def self.reset!: () -> void
 
-      def self.limit: (::Symbol name) { () -> untyped } -> untyped
+      private
 
-      def self.reset!: (::Symbol name) -> void
+      def self.trace_rate_limit: () -> ::Integer
 
-      def self.rate_limiter: (::Symbol name) -> RateLimiter
+      public
 
-      def self.trace_rate_limit: () -> rate
+      def initialize: (::Integer rate) -> void
+
+      def limit: () { () -> untyped } -> void
     end
   end
 end

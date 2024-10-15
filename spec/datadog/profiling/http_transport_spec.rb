@@ -226,7 +226,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "logs an error message" do
           expect(Datadog.logger).to receive(:error).with(
-            'Failed to report profiling data ({:agent=>"http://192.168.0.1:12345/"}): ' \
+            "Failed to report profiling data (agent: http://192.168.0.1:12345/): " \
             "server returned unexpected HTTP 500 status code"
           )
 
@@ -252,7 +252,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
         it "logs an error message" do
           expect(Datadog.logger).to receive(:error)
-            .with('Failed to report profiling data ({:agent=>"http://192.168.0.1:12345/"}): Some error message')
+            .with("Failed to report profiling data (agent: http://192.168.0.1:12345/): Some error message")
 
           export
         end
@@ -266,31 +266,6 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         end
 
         it { is_expected.to be false }
-      end
-    end
-  end
-
-  describe "#config_without_api_key" do
-    subject(:config_without_api_key) { http_transport.send(:config_without_api_key) }
-
-    context "when using agentless mode" do
-      let(:site) { "test.datadoghq.com" }
-      let(:api_key) { SecureRandom.uuid }
-
-      around do |example|
-        ClimateControl.modify("DD_PROFILING_AGENTLESS" => "true") do
-          example.run
-        end
-      end
-
-      it "returns the mode and site, but not the api key" do
-        is_expected.to eq(agentless: "test.datadoghq.com")
-      end
-    end
-
-    context "when using agent mode" do
-      it "returns the mode the agent url" do
-        is_expected.to eq(agent: "http://192.168.0.1:12345/")
       end
     end
   end

@@ -139,7 +139,7 @@ module Datadog
       end
 
       def config_without_api_key
-        [exporter_configuration[0..1]].to_h
+        "#{exporter_configuration[0]}: #{exporter_configuration[1]}"
       end
     end
   end

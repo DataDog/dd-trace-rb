@@ -79,9 +79,34 @@ RSpec.describe Datadog::Profiling::Component do
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
+            otel_context_enabled: false,
           )
 
           build_profiler_component
+        end
+
+        context "when otel_context_enabled is set to 'both'" do
+          before { settings.profiling.advanced.preview_otel_context_enabled = "both" }
+
+          it "initializes a ThreadContext collector with otel_context_enabled: :both" do
+            expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
+              .with(hash_including(otel_context_enabled: :both))
+              .and_call_original
+
+            build_profiler_component
+          end
+        end
+
+        context "when otel_context_enabled is set to 'only'" do
+          before { settings.profiling.advanced.preview_otel_context_enabled = "only" }
+
+          it "initializes a ThreadContext collector with otel_context_enabled: :only" do
+            expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
+              .with(hash_including(otel_context_enabled: :only))
+              .and_call_original
+
+            build_profiler_component
+          end
         end
 
         it "initializes a CpuAndWallTimeWorker collector" do
@@ -598,8 +623,8 @@ RSpec.describe Datadog::Profiling::Component do
           settings.profiling.advanced.gc_enabled = false
         end
 
-        context "on Ruby < 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.3." }
+        context "on Ruby < 3.2" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "does not enable GVL profiling" do
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
@@ -615,8 +640,8 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
-        context "on Ruby >= 3.3" do
-          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.3." }
+        context "on Ruby >= 3.2" do
+          before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "3.2." }
 
           context "when timeline is enabled" do
             before { settings.profiling.advanced.timeline_enabled = true }

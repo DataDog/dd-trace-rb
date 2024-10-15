@@ -90,9 +90,15 @@ jobs:
             path: dd-trace-rb
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -172,9 +178,15 @@ jobs:
           - ruby
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -290,10 +302,8 @@ jobs:
           ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
-          AWS_DEFAULT_REGION: us-east-1  # AWS services should use `AWS_REGION`, but some still use the older `AWS_DEFAULT_REGION`
+          SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
+          SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
       - name: Archive logs
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
@@ -309,9 +319,15 @@ jobs:
           - ruby
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -357,9 +373,15 @@ jobs:
           - runner
           - agent
           - weblog-rack
-#           - weblog-sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - weblog-sinatra14
           - weblog-sinatra20
           - weblog-sinatra21
+          - weblog-sinatra22
+          - weblog-sinatra30
+          - weblog-sinatra31
+          - weblog-sinatra32
+          - weblog-sinatra40
+          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52

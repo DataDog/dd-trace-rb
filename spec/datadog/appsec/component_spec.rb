@@ -19,6 +19,33 @@ RSpec.describe Datadog::AppSec::Component do
         expect(component).to be_a(described_class)
       end
 
+      context 'when using old ffi version with Ruby 3.3.x' do
+        before do
+          stub_const('RUBY_VERSION', '3.3.0')
+          allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
+        end
+
+        it 'returns a Datadog::AppSec::Component instance with a nil processor' do
+          expect(Datadog.logger).to receive(:warn)
+
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
+          expect(component).to be_nil
+        end
+      end
+
+      context 'when ffi is not loaded' do
+        before do
+          allow(Gem).to receive(:loaded_specs).and_return({})
+        end
+
+        it 'returns a Datadog::AppSec::Component instance with a nil processor and does not warn' do
+          expect(Datadog.logger).not_to receive(:warn)
+
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
+          expect(component).to be_nil
+        end
+      end
+
       context 'when processor is ready' do
         it 'returns a Datadog::AppSec::Component with a processor instance' do
           expect_any_instance_of(Datadog::AppSec::Processor).to receive(:ready?).and_return(true)

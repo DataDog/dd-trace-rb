@@ -131,10 +131,6 @@ end
 
 have_func "malloc_stats"
 
-# On older Rubies, there was no GVL instrumentation API and APIs created to support it
-# TODO: We can probably support Ruby 3.2 as well here, but we haven't done that work yet
-$defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.3"
-
 # On older Rubies, rb_postponed_job_preregister/rb_postponed_job_trigger did not exist
 $defs << "-DNO_POSTPONED_TRIGGER" if RUBY_VERSION < "3.3"
 
@@ -146,6 +142,12 @@ $defs << "-DNO_RACTOR_HEADER_INCLUDE" if RUBY_VERSION < "3.3"
 
 # On older Rubies, some of the Ractor internal APIs were directly accessible
 $defs << "-DUSE_RACTOR_INTERNAL_APIS_DIRECTLY" if RUBY_VERSION < "3.3"
+
+# On older Rubies, there was no GVL instrumentation API and APIs created to support it
+$defs << "-DNO_GVL_INSTRUMENTATION" if RUBY_VERSION < "3.2"
+
+# Supporting GVL instrumentation on 3.2 needs some workarounds
+$defs << "-DUSE_GVL_PROFILING_3_2_WORKAROUNDS" if RUBY_VERSION.start_with?("3.2")
 
 # On older Rubies, there was no struct rb_native_thread. See private_vm_api_acccess.c for details.
 $defs << "-DNO_RB_NATIVE_THREAD" if RUBY_VERSION < "3.2"

@@ -21,18 +21,18 @@ module Datadog
           endpoint_collection_enabled:,
           timeline_enabled:,
           waiting_for_gvl_threshold_ns:,
-          allocation_type_enabled: true
+          otel_context_enabled:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
-            self,
-            recorder,
-            max_frames,
-            tracer_context_key,
-            endpoint_collection_enabled,
-            timeline_enabled,
-            waiting_for_gvl_threshold_ns,
-            allocation_type_enabled,
+            self_instance: self,
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer_context_key: tracer_context_key,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
+            waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+            otel_context_enabled: otel_context_enabled,
           )
         end
 
@@ -43,6 +43,7 @@ module Datadog
           endpoint_collection_enabled: false,
           timeline_enabled: false,
           waiting_for_gvl_threshold_ns: 10_000_000,
+          otel_context_enabled: false,
           **options
         )
           new(
@@ -52,6 +53,7 @@ module Datadog
             endpoint_collection_enabled: endpoint_collection_enabled,
             timeline_enabled: timeline_enabled,
             waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+            otel_context_enabled: otel_context_enabled,
             **options,
           )
         end

@@ -45,7 +45,7 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before do
       # prevent rate limiter to bias tests
-      Datadog::AppSec::RateLimiter.reset!(:traces)
+      Datadog::AppSec::RateLimiter.reset!
     end
 
     let(:options) { {} }
@@ -309,7 +309,7 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         expect(trace).to_not be nil
       end
@@ -325,14 +325,19 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         described_class.record(nil, events)
       end
     end
 
     context 'with many traces' do
-      let(:rate_limit) { 100 }
+      before do
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
+        allow(Datadog::AppSec::RateLimiter).to receive(:trace_rate_limit).and_return(rate_limit)
+      end
+
+      let(:rate_limit) { 50 }
       let(:trace_count) { rate_limit * 2 }
 
       let(:traces) do

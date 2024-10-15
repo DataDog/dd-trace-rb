@@ -750,7 +750,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace('operation') do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: 1
+            sampling_priority: nil
           )
 
           expect(span).to have_attributes(
@@ -793,7 +793,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace('operation') do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: 1
+            sampling_priority: nil
           )
 
           expect(span).to have_attributes(
@@ -874,7 +874,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace('second') do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: 1
+            sampling_priority: nil
           )
 
           expect(span.trace_id).to_not eq(digest.trace_id)
@@ -914,7 +914,7 @@ RSpec.describe Datadog::Tracing::Tracer do
         tracer.trace('operation') do |span, trace|
           expect(trace).to have_attributes(
             origin: nil,
-            sampling_priority: 1
+            sampling_priority: nil
           )
 
           expect(span).to have_attributes(

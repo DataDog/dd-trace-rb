@@ -120,6 +120,20 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
               let(:tags) { { 'metric1' => '1', 'metric2' => '3' } }
 
               it { is_expected.to eq(false) }
+
+              context 'with a float that has a non-zero decimal' do
+                let(:tags) { { 'metric1' => '2*' } }
+                let(:trace_tags) { { 'metric1' => 20.1 } }
+
+                it { is_expected.to eq(false) }
+              end
+
+              context 'with a float that has a zero decimal' do
+                let(:tags) { { 'metric1' => '2*' } }
+                let(:trace_tags) { { 'metric1' => 20.0 } }
+
+                it { is_expected.to eq(true) }
+              end
             end
           end
 
@@ -148,6 +162,13 @@ RSpec.describe Datadog::Tracing::Sampling::SimpleMatcher do
       context 'when trace service is not present' do
         let(:trace_service) { nil }
         let(:service) { '*' }
+
+        it { is_expected.to eq(true) }
+      end
+
+      context 'when multiple *s are used' do
+        let(:trace_service) { 'hello_service' }
+        let(:service) { '***' }
 
         it { is_expected.to eq(true) }
       end

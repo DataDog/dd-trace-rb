@@ -44,6 +44,7 @@ module Datadog
         # DEV-2.0: if needed.
         # DEV-2.0: Ideally, we'd have a separate stream to report tracer errors and never
         # DEV-2.0: touch the active span.
+        # DEV-3.0: Sample trace here instead of when generating digest.
         #
         # @param digest [TraceDigest]
         # @param data [Hash]

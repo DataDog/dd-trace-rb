@@ -20,9 +20,9 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before do
-      skip unless ENV['TEST_DATADOG_INTEGRATION']
+    skip_unless_integration_testing_enabled
 
+    before do
       # Ensure background Writer worker doesn't wait, making tests faster.
       stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL', 0)
 
@@ -222,7 +222,11 @@ RSpec.describe 'Tracer integration tests' do
         @span = trace.spans[0]
       end
 
-      tracer.trace('my.op').finish
+      tracer.trace('my.op', service: 'my.service') do |span|
+        span.set_tag('tag', 'tag_value')
+        span.set_tag('tag2', 'tag_value2')
+        span.resource = 'my.resource'
+      end
 
       try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
 
@@ -317,6 +321,87 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'rule sampling rate metric', 1.0
           it_behaves_like 'rate limit metric', 1.0
           it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with a matching resource name' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { resource: 'my.resource', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with a matching service name' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { service: 'my.service', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with matching tags' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { tags: { tag: 'tag_value', tag2: 'tag_value2' }, sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value', tag2: 'tag_value2' },
+                sample_rate: 1.0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with not matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'wrong_tag_value' },
+                sample_rate: 1.0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+          it_behaves_like 'rule sampling rate metric', nil # Rule is not applied
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+          it_behaves_like 'sampling decision', '-0'
+        end
+
+        context 'drop with matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value' },
+                sample_rate: 0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
+          it_behaves_like 'rule sampling rate metric', 0.0
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+          it_behaves_like 'sampling decision', nil
         end
 
         context 'with low sample rate' do

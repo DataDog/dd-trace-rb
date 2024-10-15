@@ -70,7 +70,6 @@ target :datadog do
   ignore 'lib/datadog/core/metrics/metric.rb'
   ignore 'lib/datadog/core/metrics/options.rb'
   ignore 'lib/datadog/core/pin.rb'
-  ignore 'lib/datadog/core/rate_limiter.rb'
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
   ignore 'lib/datadog/core/remote/tie.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
