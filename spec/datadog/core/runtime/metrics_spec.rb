@@ -200,9 +200,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
 
         context 'with YJIT enabled' do
           before do
-            unless Datadog::Core::Environment::YJIT.available?
-              skip('Test only runs with YJIT enabled')
-            end
+            skip('Test only runs with YJIT enabled') unless Datadog::Core::Environment::YJIT.available?
             allow(runtime_metrics).to receive(:gauge)
           end
 
