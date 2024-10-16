@@ -64,6 +64,7 @@ RSpec.describe Datadog::DI::Transport do
       end
 
       it 'does not raise exceptions' do
+      raise "exception to see which configurations run this test"
         expect do
           client.send_input(payload)
         end.not_to raise_exception
