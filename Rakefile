@@ -313,6 +313,11 @@ namespace :spec do
 
   task appsec: [:'appsec:all']
 
+  RSpec::Core::RakeTask.new(:di) do |t, args|
+    t.pattern = 'spec/datadog/di/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   namespace :profiling do
     task all: [:main, :ractors]
 
