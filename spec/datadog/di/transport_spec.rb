@@ -25,11 +25,15 @@ RSpec.describe Datadog::DI::Transport do
   # Realistically, the only test that can check that the payload being
   # sent is the correct one is a system test.
   describe 'send methods' do
-    skip_unless_integration_testing_enabled
-
     before(:all) do
-      unless agent_host && agent_port
-        skip "Set DD_AGENT_HOST and DD_TRACE_AGENT_PORT in environment to run these tests"
+      # These tests require a functional datadog agent running at the
+      # configured (via agent_host & agent_port) location.
+      # CI has "dd-apm-test-agent" running which does not implement
+      # debugger endpoints, and thus is not suitable for these tests.
+      # These tests can be run locally, and test coverage in CI is
+      # accomplished via system tests.
+      unless agent_host && agent_port && ENV['TEST_DATADOG_AGENT'] == '1'
+        skip "Set TEST_DATADOG_AGENT=1, DD_AGENT_HOST and DD_TRACE_AGENT_PORT in environment to run these tests"
       end
     end
 
