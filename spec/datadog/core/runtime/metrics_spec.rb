@@ -198,10 +198,10 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.'
         end
 
-        context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? false' do
+        context 'with YJIT enabled' do
           before do
             unless Datadog::Core::Environment::YJIT.available?
-              skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? false')
+              skip('Test only runs with YJIT enabled')
             end
             allow(runtime_metrics).to receive(:gauge)
           end
