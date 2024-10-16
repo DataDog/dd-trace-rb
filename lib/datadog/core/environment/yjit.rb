@@ -62,10 +62,6 @@ module Datadog
             && ::RubyVM::YJIT.enabled? \
             && ::RubyVM::YJIT.respond_to?(:runtime_stats)
         end
-
-        def stats_available?
-          available? && ::RubyVM::YJIT.respond_to?(:stats_enabled?)
-        end
       end
     end
   end
