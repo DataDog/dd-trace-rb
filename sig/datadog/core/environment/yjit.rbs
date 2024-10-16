@@ -11,6 +11,7 @@ module Datadog
         def self?.code_region_size: () -> untyped
         def self?.object_shape_count: () -> untyped
         def self?.yjit_alloc_size: () -> untyped
+        def self?.ratio_in_yjit: () -> untyped
 
         def self?.available?: () -> untyped
       end
