@@ -13,16 +13,16 @@ jobs:
         platform:
           - os: darwin
             cpu: x86_64
-            base: macos-12
+            base: macos-13 # always x86_64-darwin
           - os: darwin
             cpu: arm64
-            base: macos-14
+            base: macos-14 # always arm64-darwin
           - os: linux
             cpu: x86_64
-            base: ubuntu-22.04
+            base: ubuntu-24.04 # always x86_64-linux-gnu
           - os: linux
             cpu: aarch64
-            base: arm-4core-linux
+            base: arm-4core-linux # always aarch64-linux-gnu
         nix:
           - 24.05
 
