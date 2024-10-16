@@ -3,7 +3,7 @@ require "datadog/di/transport"
 
 RSpec.describe Datadog::DI::Transport do
   let(:agent_settings) do
-    double('agent settings')
+    instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
   end
 
   describe '.new' do
