@@ -10,10 +10,10 @@ jobs:
         ruby:
           - '3.2'
           - '3.3'
+          # ADD NEW RUBIES HERE
         rubyopt:
           - '--yjit'
           - '--yjit --yjit-stats=quiet'
-          # ADD NEW RUBIES HERE
     name: Test YJIT (${{ matrix.os }}, ${{ matrix.ruby }} ${{ matrix.rubyopt }})
     runs-on: ${{ matrix.os }}
     env:
