@@ -11,10 +11,40 @@ jobs:
           - '3.2'
           - '3.3'
           # ADD NEW RUBIES HERE
-    name: Test (${{ matrix.os }}, ${{ matrix.ruby }})
+    name: Test YJIT (${{ matrix.os }}, ${{ matrix.ruby }})
     runs-on: ${{ matrix.os }}
     env:
       RUBYOPT: "--yjit"
+      SKIP_SIMPLECOV: 1
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
+    steps:
+      - uses: actions/checkout@v4
+      # bundler appears to match both prerelease and release rubies when we
+      # want the former only. relax the constraint to allow any version for
+      # head rubies
+      - if: ${{ matrix.ruby == 'head' }}
+        run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
+          cache-version: v2 # bump this to invalidate cache
+      - run: bundle exec rake spec:yjit
+  test-yjit-stats:
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        ruby:
+          - '3.3'
+          # ADD NEW RUBIES HERE
+    name: Test YJIT Stats (${{ matrix.os }}, ${{ matrix.ruby }})
+    runs-on: ${{ matrix.os }}
+    env:
+      RUBYOPT: "--yjit --yjit-stats=quiet"
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
