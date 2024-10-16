@@ -575,9 +575,7 @@ RSpec.describe Datadog::Core::Configuration do
 
       let(:fake_thread) do
         instance_double(Thread, 'fake thread').tap do |it|
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('2.3')
-            expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
-          end
+          expect(it).to(receive(:name=).with('Datadog::Core::Configuration'))
         end
       end
 
