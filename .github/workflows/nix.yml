@@ -1,0 +1,54 @@
+name: Test Nix
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - os: darwin
+            cpu: x86_64
+            base: macos-12
+          - os: darwin
+            cpu: arm64
+            base: macos-14
+          - os: linux
+            cpu: x86_64
+            base: ubuntu-22.04
+          - os: linux
+            cpu: aarch64
+            base: arm-4core-linux
+        nix:
+          - 24.05
+
+    name: Test Nix (${{ matrix.platform.cpu }}-${{ matrix.platform.os }}, ${{ matrix.nix }})
+    runs-on: ${{ matrix.platform.base }}
+
+    permissions:
+      contents: read
+      id-token: write
+
+    env:
+      SKIP_SIMPLECOV: 1
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - run: nix-shell --run 'which ruby'
+      - run: nix-shell --run 'ruby --version'
+      - name: Print ruby version
+        run: |
+          nix-shell --run 'which ruby'
+          nix-shell --run 'ruby --version'
+      - name: Bundle install
+        run: nix-shell --run 'bundle install'
+      - name: Run spec:main
+        run: nix-shell --run 'bundle exec rake spec:main'
