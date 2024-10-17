@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 require 'benchmark'
 
 module Datadog
@@ -280,3 +282,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition
