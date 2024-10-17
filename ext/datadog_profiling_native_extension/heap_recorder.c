@@ -189,7 +189,6 @@ struct heap_recorder {
     unsigned long updates_skipped_concurrent;
     unsigned long updates_skipped_gcgen;
     unsigned long updates_skipped_time;
-    unsigned long updates_forced;
 
     double ewma_objects_alive;
     double ewma_objects_dead;
@@ -429,11 +428,21 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
 }
 
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
-  heap_recorder_update(heap_recorder, false);
+  heap_recorder_update(heap_recorder, /* full_update: */ false);
 }
 
-void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) {
+void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
   if (heap_recorder == NULL) {
+    return;
+  }
+
+  if (heap_recorder->updating) {
+    if (full_update) rb_raise(rb_eRuntimeError, "full_update should not be triggered during another update");
+
+    // If we try to update while another update is still running, short-circuit.
+    // NOTE: This runs while holding the GVL. But since updates may be triggered from GC activity, there's still
+    //       a chance for updates to be attempted concurrently if scheduling gods so determine.
+    heap_recorder->stats_lifetime.updates_skipped_concurrent++;
     return;
   }
 
@@ -448,38 +457,25 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
 
   size_t current_gc_gen = rb_gc_count();
 
-  bool last_update_included_old = heap_recorder->update_include_old;
-  bool this_update_should_include_old = force_full_update;
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
-  if (!force_full_update) {
-    if (current_gc_gen == heap_recorder->update_gen && (last_update_included_old || !this_update_should_include_old)) {
+  if (!full_update) {
+    if (current_gc_gen == heap_recorder->update_gen) {
       // Are we still in the same GC gen as last update? If so, skip updating since things should not have
-      // changed significantly since last time (especially if last time already included old objects or
-      // if this update is not going to look at old objects).
+      // changed significantly since last time.
       // NOTE: This is mostly a performance decision. I suppose some objects may be cleaned up in intermediate
       // GC steps and sizes may change. But because we have to iterate through all our tracked
-      // object records to do an update, lets wait until all steps for a particular GC generation
+      // object records to do an update, let's wait until all steps for a particular GC generation
       // have finished to do so. We may revisit this once we have a better liveness checking mechanism.
       heap_recorder->stats_lifetime.updates_skipped_gcgen++;
       return;
     }
 
     if (now_ns > 0 && (now_ns - heap_recorder->last_update_ns) < MIN_TIME_BETWEEN_HEAP_RECORDER_UPDATES_NS) {
-      // We did an update not too long ago. Lets skip this one with a no-op unless we were forced.
+      // We did an update not too long ago. Let's skip this one to avoid over-taxing the system.
       heap_recorder->stats_lifetime.updates_skipped_time++;
       return;
     }
-  } else {
-    heap_recorder->stats_lifetime.updates_forced++;
-  }
-
-  if (heap_recorder->updating) {
-    // If we try to update while another update is still running, short-circuit.
-    // NOTE: This runs while holding the GVL. But since updates may be triggered from GC activity, there's still
-    //       a chance for updates to be attempted concurrently if scheduling gods so determine.
-    heap_recorder->stats_lifetime.updates_skipped_concurrent++;
-    return;
   }
 
   heap_recorder->updating = true;
@@ -487,7 +483,7 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
   heap_recorder->stats_last_update = (struct stats_last_update) {0};
 
   heap_recorder->update_gen = current_gc_gen;
-  heap_recorder->update_include_old = this_update_should_include_old;
+  heap_recorder->update_include_old = full_update;
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
@@ -581,7 +577,6 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
     ID2SYM(rb_intern("lifetime_updates_skipped_concurrent")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_concurrent),
     ID2SYM(rb_intern("lifetime_updates_skipped_gcgen")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_gcgen),
     ID2SYM(rb_intern("lifetime_updates_skipped_time")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_skipped_time),
-    ID2SYM(rb_intern("lifetime_updates_forced")), /* => */ LONG2NUM(heap_recorder->stats_lifetime.updates_forced),
     ID2SYM(rb_intern("lifetime_ewma_objects_alive")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_alive),
     ID2SYM(rb_intern("lifetime_ewma_objects_dead")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_dead),
     ID2SYM(rb_intern("lifetime_ewma_objects_skipped")), /* => */ DBL2NUM(heap_recorder->stats_lifetime.ewma_objects_skipped),
