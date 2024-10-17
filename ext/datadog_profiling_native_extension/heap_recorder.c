@@ -430,6 +430,10 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   return Qnil;
 }
 
+void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
+  heap_recorder_update(heap_recorder, false);
+}
+
 void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) {
   if (heap_recorder == NULL) {
     return;
