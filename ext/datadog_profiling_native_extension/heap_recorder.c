@@ -438,7 +438,7 @@ void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
 
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
   if (heap_recorder->updating) {
-    if (full_update) rb_raise(rb_eRuntimeError, "full_update should not be triggered during another update");
+    if (full_update) rb_raise(rb_eRuntimeError, "BUG: full_update should not be triggered during another update");
 
     // If we try to update while another update is still running, short-circuit.
     // NOTE: This runs while holding the GVL. But since updates may be triggered from GC activity, there's still
@@ -457,7 +457,6 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
   }
 
   size_t current_gc_gen = rb_gc_count();
-
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
   if (!full_update) {
