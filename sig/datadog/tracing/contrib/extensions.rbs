@@ -9,8 +9,8 @@ module Datadog
         module Configuration
           def configure: () ?{ () -> untyped } -> untyped
           module Settings
-            InvalidIntegrationError: untyped
-            def instrument: (untyped integration_name, ?::Hash[untyped, untyped] options) ?{ () -> untyped } -> untyped
+            InvalidIntegrationError: StandardError
+            def instrument: (Symbol integration_name, ?::Hash[Symbol, untyped] options) ?{ () -> untyped } -> Contrib::Integration
             alias use instrument
             def []: (untyped integration_name, ?::Symbol key) -> untyped
             def integrations_pending_activation: () -> untyped
