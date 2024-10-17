@@ -48,6 +48,11 @@ if [[ "$APP_RUBY_VERSION" == "3.3" ]]; then
   exit 1
 fi
 
+if [[ "$APP_RUBY_VERSION" == "3.4" ]]; then
+  echo "Ruby 3.4 is not supported by Rails 5"
+  exit 1
+fi
+
 # ADD NEW RUBIES HERE
 
 # Set configuration
