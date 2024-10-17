@@ -13,6 +13,7 @@ module Datadog
       def active?: () -> bool
       def iseqs_for_path_suffix: (String suffix) -> (::Array[RubyVM::InstructionSequence])
       def stop: () -> void
+      def clear: () -> void
 
       private
       attr_reader registry: Hash[String,RubyVM::InstructionSequence]

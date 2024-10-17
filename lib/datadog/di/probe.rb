@@ -139,6 +139,9 @@ module Datadog
       # If file is not an absolute path, the path matches if the file is its suffix,
       # at a path component boundary.
       def file_matches?(path)
+        unless file
+          raise ArgumentError, "Probe does not have a file to match against"
+        end
         Utils.path_matches_suffix?(path, file)
       end
 

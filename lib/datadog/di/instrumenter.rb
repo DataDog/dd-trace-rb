@@ -84,16 +84,15 @@ module Datadog
         rate_limiter = probe.rate_limiter
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs|
+          define_method(method_name) do |*args, **kwargs| # steep:ignore
             if rate_limiter.nil? || rate_limiter.allow?
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
-              # TODO args should only be serialized for enriched probes?
               entry_args = if probe.capture_snapshot?
                 serializer.serialize_args(args, kwargs)
               end
               rv = nil
-              duration = Benchmark.realtime do
+              duration = Benchmark.realtime do # steep:ignore
                 rv = super(*args, **kwargs)
               end
               # The method itself is not part of the stack trace because
@@ -102,7 +101,8 @@ module Datadog
               method_frame = "#{loc.first}:#{loc.last}:in `#{method_name}'"
               callers = [method_frame] + caller
               # TODO capture arguments at exit
-              block.call(probe: probe, rv: rv, duration: duration, callers: callers,
+              # & is to stop steep complaints, block is always present here.
+              block&.call(probe: probe, rv: rv, duration: duration, callers: callers,
                 serialized_entry_args: entry_args)
               rv
             else
@@ -165,7 +165,7 @@ module Datadog
 
         iseq = nil
         if code_tracker
-          iseq = code_tracker.iseqs_for_path_suffix(probe.file).first
+          iseq = code_tracker.iseqs_for_path_suffix(probe.file).first # steep:ignore
           unless iseq
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
@@ -211,7 +211,8 @@ module Datadog
           # are invoked for *each* line of Ruby executed.
           if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
             if rate_limiter.nil? || rate_limiter.allow?
-              block.call(probe: probe, trace_point: tp, callers: caller)
+              # & is to stop steep complaints, block is always present here.
+              block&.call(probe: probe, trace_point: tp, callers: caller)
             end
           end
         end
@@ -239,7 +240,7 @@ module Datadog
 
       def unhook_line(probe)
         lock.synchronize do
-          if (tp = probe.instrumentation_trace_point)
+          if tp = probe.instrumentation_trace_point
             tp.disable
             probe.instrumentation_trace_point = nil
           end
