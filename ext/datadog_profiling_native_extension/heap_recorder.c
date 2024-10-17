@@ -6,7 +6,6 @@
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
-#include "collectors_gc_profiling_helper.h"
 
 #if (defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG))
   #define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
