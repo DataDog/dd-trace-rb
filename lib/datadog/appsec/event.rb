@@ -137,7 +137,10 @@ module Datadog
         end
         # rubocop:enable Metrics/MethodLength
 
-        def add_tags(scope, waf_result)
+        def tag_and_keep!(scope, waf_result)
+          # We want to keep the trace in case of security event
+          scope.trace.keep! if scope.trace
+
           if scope.service_entry_span
             scope.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.include?('block')
             scope.service_entry_span.set_tag('appsec.event', 'true')

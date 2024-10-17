@@ -40,7 +40,7 @@ module Datadog
 
                         # We want to keep the trace in case of security event
                         scope.trace.keep! if scope.trace
-                        Datadog::AppSec::Event.add_tags(scope, result)
+                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
                         scope.processor_context.events << event
                       end
                     end

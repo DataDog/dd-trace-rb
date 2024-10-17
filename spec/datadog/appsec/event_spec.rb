@@ -362,7 +362,7 @@ RSpec.describe Datadog::AppSec::Event do
     end
   end
 
-  describe '.add_tags' do
+  describe '.tag_and_keep!' do
     let(:with_trace) { true }
     let(:with_span) { true }
 
@@ -397,7 +397,7 @@ RSpec.describe Datadog::AppSec::Event do
       # prevent rate limiter to bias tests
       Datadog::AppSec::RateLimiter.reset!
 
-      described_class.add_tags(scope, waf_result)
+      described_class.tag_and_keep!(scope, waf_result)
     end
 
     context 'with no actions' do
