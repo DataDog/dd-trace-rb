@@ -706,7 +706,11 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   #endif
 
-  if (recorder->size_enabled && !record->object_data.is_frozen) {
+  if (
+    recorder->size_enabled &&
+    recorder->update_include_old && // We only update sizes when doing a full update
+    !record->object_data.is_frozen
+  ) {
     // if we were asked to update sizes and this object was not already seen as being frozen,
     // update size again.
     record->object_data.size = ruby_obj_memsize_of(ref);
@@ -729,7 +733,6 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   iteration_context *context = (iteration_context*) extra;
 
   const heap_recorder *recorder = context->heap_recorder;
-
 
   if (record->object_data.gen_age < ITERATION_MIN_AGE) {
     // Skip objects that should not be included in iteration
