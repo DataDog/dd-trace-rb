@@ -167,8 +167,6 @@ struct heap_recorder {
   bool update_include_old;
   // When did we do the last update of heap recorder?
   long last_update_ns;
-  // Did we see a major GC since then?
-  bool last_update_major_gc_since;
 
   // Data for a heap recording that was started but not yet ended
   recording active_recording;
@@ -451,8 +449,7 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
   size_t current_gc_gen = rb_gc_count();
 
   bool last_update_included_old = heap_recorder->update_include_old;
-  bool this_update_should_include_old = heap_recorder->last_update_major_gc_since || force_full_update;
-
+  bool this_update_should_include_old = force_full_update;
   long now_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE);
 
   if (!force_full_update) {
@@ -494,7 +491,6 @@ void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update) 
 
   st_foreach(heap_recorder->object_records, st_object_record_update, (st_data_t) heap_recorder);
 
-  heap_recorder->last_update_major_gc_since = false;
   heap_recorder->last_update_ns = now_ns;
   heap_recorder->stats_lifetime.updates_successful++;
 
