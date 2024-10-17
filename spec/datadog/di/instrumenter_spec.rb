@@ -1,3 +1,4 @@
+require "datadog/di/spec_helper"
 require 'datadog/di'
 require_relative 'hook_line'
 require_relative 'hook_method'
@@ -351,6 +352,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         before do
           expect(di_settings).to receive(:untargeted_trace_points).and_return(false)
+          Datadog::DI.activate_tracking!
           code_tracker.clear
         end
 
