@@ -118,20 +118,13 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 __attribute__((warn_unused_result))
 int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
-// Update the heap recorder, checking young objects. The idea here is to align with GC: most young objects never
+// Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
 // survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
 // these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
-// Update the heap recorder to reflect the latest state of the VM.
-//
-// @param include_old
-//   Whether we should also update old objects in this pass or just new ones (age < 3 GCs).
-// @param force_full_update
-//   Whether we should force a full heap update even if we witnessed no major gcs since last time.
-void heap_recorder_update(heap_recorder *heap_recorder, bool force_full_update);
-
-// Prepare internal structures for efficient iteration.
+// Update the heap recorder to reflect the latest state of the VM and prepare internal structures
+// for efficient iteration.
 //
 // WARN: This must be called strictly before iteration. Failing to do so will result in exceptions.
 void heap_recorder_prepare_iteration(heap_recorder *heap_recorder);
