@@ -1,4 +1,5 @@
 module Datadog
   module DI
+    def self.code_tracker: () -> CodeTracker?
   end
 end
