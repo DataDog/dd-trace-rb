@@ -34,7 +34,7 @@ typedef struct live_object_data {
 
   // The class of the object that we're tracking.
   // NOTE: This is optional and will be set to NULL if not set.
-  char* class;
+  u_int32_t class;
 
   // The GC allocation gen in which we saw this object being allocated.
   //
@@ -59,7 +59,7 @@ typedef struct {
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
-heap_recorder* heap_recorder_new(void);
+heap_recorder* heap_recorder_new(const ddog_prof_ManagedStringStorage *string_storage);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
@@ -161,7 +161,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
 
 // Assert internal hashing logic is valid for the provided locations and its
 // corresponding internal representations in heap recorder.
-void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
+void heap_recorder_testonly_assert_hash_matches(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
 
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
