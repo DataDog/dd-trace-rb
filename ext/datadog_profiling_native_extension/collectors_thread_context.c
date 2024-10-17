@@ -1444,7 +1444,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
         class_name = ruby_value_type_to_class_name(type);
       }
     } else {
-      // Fallback for objects with no class
+      // Fallback for objects with no class. Objects with no class are a way for the Ruby VM to mark them
+      // as internal objects; see rb_objspace_internal_object_p for details.
       class_name = ruby_value_type_to_class_name(type);
     }
   } else if (type == RUBY_T_IMEMO) {
