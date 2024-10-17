@@ -40,7 +40,6 @@ module Datadog
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
       def fork_clone: () -> untyped
-      def self.appsec_standalone_reject?: (TraceOperation trace) -> bool
 
       class Events
         include Tracing::Events

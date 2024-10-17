@@ -35,7 +35,7 @@ module Datadog
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if Tracing::TraceOperation.appsec_standalone_reject?(trace)
+                if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
                   trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
                 end
 
