@@ -10,6 +10,8 @@ require 'datadog/di/probe'
 # not comprehensively verify correctness.
 
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
+  di_test
+
   let(:settings) do
     double("settings").tap do |settings|
       allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
