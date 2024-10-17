@@ -5,6 +5,9 @@ for guidance on how to set up your development environment,
 run the test suite, write new integrations, and more.
 -->
 
+**Change log entry**
+<!-- If this is a customer-visible change, a brief summary to be placed into the change log. -->
+
 **What does this PR do?**
 <!-- A brief description of the change being made with this pull request. -->
 

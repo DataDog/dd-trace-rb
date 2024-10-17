@@ -58,7 +58,7 @@ module Datadog
           # Capture the executed source code when provided from STDIN.
           def eval(*args)
             span = Datadog::Tracing.active_span
-            if span.name == Ext::SPAN_RUNNER_STDIN
+            if span&.name == Ext::SPAN_RUNNER_STDIN
               source = args[0]
               span.set_tag(
                 Ext::TAG_RUNNER_SOURCE,

@@ -10,7 +10,7 @@ Install [direnv](https://github.com/direnv/direnv) for applying local settings.
 
 1. `cp .envrc.sample .envrc` and add your Datadog API key.
 2. `direnv allow` to load the env var.
-4. `docker-compose run --rm app bin/setup`
+3. `docker-compose run --rm app bin/setup`
 
 ## Running the application
 
@@ -103,7 +103,7 @@ You can also define your own custom scenario by creating a LUA file, mounting it
 
 ### Running integration tests
 
-You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`)
+You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`). If you are running on ARM architecture (e.g. mac), include `DOCKER_DEFAULT_PLATFORM=linux/arm64` as a prefix for the build script and `DOCKER_BUILDKIT=0` as a prefix for the ci script.
 
 ```sh
 ./script/build-images -v <RUBY_VERSION>
