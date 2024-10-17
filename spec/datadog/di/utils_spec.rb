@@ -2,6 +2,8 @@ require "datadog/di/spec_helper"
 require "datadog/di/utils"
 
 RSpec.describe Datadog::DI::Utils do
+  di_test
+
   describe '.path_matches_suffix?' do
     [
       ['exact match - absolute path', '/foo/bar.rb', '/foo/bar.rb', true],
