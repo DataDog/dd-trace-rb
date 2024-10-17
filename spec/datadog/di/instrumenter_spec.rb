@@ -48,28 +48,11 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Probe.new(**base_probe_args.merge(probe_args))
   end
 
-  shared_context 'DI component referencing instrumenter under test' do
-
-    let(:component) do
-      instance_double(Datadog::DI::Component).tap do |component|
-        allow(component).to receive(:instrumenter).and_return(instrumenter)
-      end
-    end
-
-    before do
-      # TODO think about how the instrumenter would make it into
-      # the DI component in unit tests/partial initialization scenarios
-      allow(Datadog::DI).to receive(:component).and_return(component)
-    end
-  end
-
   let(:call_keys) do
     %i[callers duration probe rv serialized_entry_args]
   end
 
   describe '.hook_method' do
-    include_context 'DI component referencing instrumenter under test'
-
     after do
       instrumenter.unhook(probe)
     end
