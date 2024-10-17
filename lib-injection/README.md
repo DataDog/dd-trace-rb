@@ -41,7 +41,7 @@ Currently, we support
 
 | Environment| version |
 |---|---|
-| Ruby  | `2.7`, `3.0`, `3.1`, `3.2`|
+| Ruby  | `2.7`, `3.0`, `3.1`, `3.2`, `3.3`|
 | Arch  | `amd64`, `arm64` |
 | glibc |  2.28+ |
 
