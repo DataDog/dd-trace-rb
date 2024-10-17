@@ -301,7 +301,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     let(:call_keys) do
-      [:callers, :probe, :trace_point]
+      %i[callers probe trace_point]
     end
 
     context 'when called without a block' do
