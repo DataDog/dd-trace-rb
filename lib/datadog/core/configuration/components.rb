@@ -59,17 +59,6 @@ module Datadog
           def build_telemetry(settings, agent_settings, logger)
             Telemetry::Component.build(settings, agent_settings, logger)
           end
-
-          def build_crashtracker(settings, agent_settings, logger:)
-            return unless settings.crashtracking.enabled
-
-            if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
-              logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
-              return
-            end
-
-            Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
-          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -98,7 +87,7 @@ module Datadog
 
           @remote = Remote::Component.build(settings, agent_settings, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
-          @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
+          @crashtracker = Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
