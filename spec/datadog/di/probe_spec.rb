@@ -6,13 +6,13 @@ RSpec.describe Datadog::DI::Probe do
 
   shared_context "method probe" do
     let(:probe) do
-      described_class.new(id: "42", type: "foo", type_name: "Foo", method_name: "bar")
+      described_class.new(id: "42", type: :log, type_name: 'Foo', method_name: "bar")
     end
   end
 
   shared_context "line probe" do
     let(:probe) do
-      described_class.new(id: "42", type: "foo", file: "foo.rb", line_no: 4)
+      described_class.new(id: "42", type: :log, file: "foo.rb", line_no: 4)
     end
   end
 
@@ -23,7 +23,7 @@ RSpec.describe Datadog::DI::Probe do
       it "creates an instance" do
         expect(probe).to be_a(described_class)
         expect(probe.id).to eq "42"
-        expect(probe.type).to eq "foo"
+        expect(probe.type).to eq :log
         expect(probe.type_name).to eq "Foo"
         expect(probe.method_name).to eq "bar"
         expect(probe.file).to be nil
@@ -37,7 +37,7 @@ RSpec.describe Datadog::DI::Probe do
       it "creates an instance" do
         expect(probe).to be_a(described_class)
         expect(probe.id).to eq "42"
-        expect(probe.type).to eq "foo"
+        expect(probe.type).to eq :log
         expect(probe.type_name).to be nil
         expect(probe.method_name).to be nil
         expect(probe.file).to eq "foo.rb"
@@ -45,9 +45,23 @@ RSpec.describe Datadog::DI::Probe do
       end
     end
 
+    context 'unsupported type' do
+      let(:probe) do
+        # LOG_PROBE is a valid type in RC probe specification but not
+        # as an argument to Probe constructor.
+        described_class.new(id: '42', type: 'LOG_PROBE', file: 'x', line_no: 1)
+      end
+
+      it 'raises ArgumentError' do
+        expect do
+          probe
+        end.to raise_error(ArgumentError, /Unknown probe type/)
+      end
+    end
+
     context "neither method nor line" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo")
+        described_class.new(id: "42", type: :log)
       end
 
       it "raises ArgumentError" do
@@ -59,7 +73,7 @@ RSpec.describe Datadog::DI::Probe do
 
     context "both method and line" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo",
+        described_class.new(id: "42", type: :log,
           type_name: "foo", method_name: "bar", file: "baz", line_no: 4)
       end
 
@@ -74,7 +88,7 @@ RSpec.describe Datadog::DI::Probe do
   describe "#line?" do
     context "line probe" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", file: "bar.rb", line_no: 5)
+        described_class.new(id: "42", type: :log, file: "bar.rb", line_no: 5)
       end
 
       it "is true" do
@@ -84,7 +98,7 @@ RSpec.describe Datadog::DI::Probe do
 
     context "method probe" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", type_name: "FooClass", method_name: "bar")
+        described_class.new(id: "42", type: :log, type_name: "FooClass", method_name: "bar")
       end
 
       it "is false" do
@@ -94,7 +108,7 @@ RSpec.describe Datadog::DI::Probe do
 
     context "method probe with file name" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", type_name: "FooClass", method_name: "bar", file: "quux.rb")
+        described_class.new(id: "42", type: :log, type_name: "FooClass", method_name: "bar", file: "quux.rb")
       end
 
       it "is false" do
@@ -106,7 +120,7 @@ RSpec.describe Datadog::DI::Probe do
   describe "#method?" do
     context "line probe" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", file: "bar.rb", line_no: 5)
+        described_class.new(id: "42", type: :log, file: "bar.rb", line_no: 5)
       end
 
       it "is false" do
@@ -116,7 +130,7 @@ RSpec.describe Datadog::DI::Probe do
 
     context "method probe" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", type_name: "FooClass", method_name: "bar")
+        described_class.new(id: "42", type: :log, type_name: "FooClass", method_name: "bar")
       end
 
       it "is true" do
@@ -126,7 +140,7 @@ RSpec.describe Datadog::DI::Probe do
 
     context "method probe with file name" do
       let(:probe) do
-        described_class.new(id: "42", type: "foo", type_name: "FooClass", method_name: "bar", file: "quux.rb")
+        described_class.new(id: "42", type: :log, type_name: "FooClass", method_name: "bar", file: "quux.rb")
       end
 
       it "is true" do
@@ -137,7 +151,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "#line_no" do
     context "one line number" do
-      let(:probe) { described_class.new(id: "x", type: "log", line_no: 5) }
+      let(:probe) { described_class.new(id: "x", type: :log, line_no: 5) }
 
       it "returns the line number" do
         expect(probe.line_no).to eq 5
@@ -145,7 +159,7 @@ RSpec.describe Datadog::DI::Probe do
     end
 
     context "nil line number" do
-      let(:probe) { described_class.new(id: "id", type: "LOG", type_name: "x", method_name: "y", line_no: nil) }
+      let(:probe) { described_class.new(id: "id", type: :log, type_name: "x", method_name: "y", line_no: nil) }
 
       it "returns nil" do
         expect(probe.line_no).to be nil
@@ -155,7 +169,7 @@ RSpec.describe Datadog::DI::Probe do
 
   describe "#line_no!" do
     context "one line number" do
-      let(:probe) { described_class.new(id: "x", type: "log", line_no: 5) }
+      let(:probe) { described_class.new(id: "x", type: :log, line_no: 5) }
 
       it "returns the line number" do
         expect(probe.line_no!).to eq 5
@@ -163,7 +177,7 @@ RSpec.describe Datadog::DI::Probe do
     end
 
     context "nil line number" do
-      let(:probe) { described_class.new(id: "id", type: "LOG", type_name: "x", method_name: "y", line_no: nil) }
+      let(:probe) { described_class.new(id: "id", type: :log, type_name: "x", method_name: "y", line_no: nil) }
 
       it "raises MissingLineNumber" do
         expect do
