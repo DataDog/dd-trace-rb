@@ -14,6 +14,9 @@ jobs:
         rubyopt:
           - '--yjit'
           - '--yjit --yjit-stats=quiet'
+        exclude:
+          - ruby: '3.2'
+            rubyopt: '--yjit --yjit-stats=quiet'
     name: Test YJIT (${{ matrix.os }}, ${{ matrix.ruby }} ${{ matrix.rubyopt }})
     runs-on: ${{ matrix.os }}
     env:
