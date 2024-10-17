@@ -38,7 +38,8 @@ ext/**/skipped_reason.txt
 # unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
 .rvmrc
 # Ignore local variables
-.envrc
+/.envrc
+/.direnv
 
 # lock files
 Gemfile.lock
