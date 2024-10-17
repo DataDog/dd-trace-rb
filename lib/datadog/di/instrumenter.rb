@@ -239,7 +239,7 @@ module Datadog
 
       def unhook_line(probe)
         lock.synchronize do
-          if tp = probe.instrumentation_trace_point
+          if (tp = probe.instrumentation_trace_point)
             tp.disable
             probe.instrumentation_trace_point = nil
           end
