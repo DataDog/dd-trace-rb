@@ -150,9 +150,9 @@ module Datadog
 
             return unless trace && span
 
-            span.set_tag(Datadog::AppSec::Ext::TAG_APPSEC_ENABLED, 1)
+            span.set_metric(Datadog::AppSec::Ext::TAG_APPSEC_ENABLED, 1)
             # We add this tag when ASM standalone is enabled to make sure we don't bill APM
-            span.set_tag(Datadog::AppSec::Ext::TAG_APM_ENABLED, 0) if Datadog.configuration.appsec.standalone.enabled
+            span.set_metric(Datadog::AppSec::Ext::TAG_APM_ENABLED, 0) if Datadog.configuration.appsec.standalone.enabled
             span.set_tag('_dd.runtime_family', 'ruby')
             span.set_tag('_dd.appsec.waf.version', Datadog::AppSec::WAF::VERSION::BASE_STRING)
 
