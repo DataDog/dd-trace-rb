@@ -65,7 +65,7 @@ module Datadog
       attr_reader :code_tracker
 
       def hook_method(probe, &block)
-        unless block_given?
+        unless block
           raise ArgumentError, 'block is required'
         end
 
@@ -141,7 +141,7 @@ module Datadog
       # a file name and client invokes this method with the correct
       # file name for the eval'd code.
       def hook_line(probe, &block)
-        unless block_given?
+        unless block
           raise ArgumentError, 'No block given to hook_line'
         end
 

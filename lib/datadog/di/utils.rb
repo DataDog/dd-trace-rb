@@ -3,7 +3,6 @@
 module Datadog
   module DI
     module Utils
-
       # Returns whether the provided +path+ matches the user-designated
       # file suffix (of a line probe).
       #
@@ -25,7 +24,8 @@ module Datadog
           # therefore simply permitting forward or back slash is not
           # sufficient, we need to perform an OS check to know which
           # path separator to use.
-          !!if path.length > suffix.length && path.end_with?(suffix)
+          !!
+          if path.length > suffix.length && path.end_with?(suffix)
             previous_char = path[path.length - suffix.length - 1]
             previous_char == "/" || suffix[0] == "/"
           end
