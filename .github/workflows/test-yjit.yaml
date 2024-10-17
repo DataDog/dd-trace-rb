@@ -11,10 +11,16 @@ jobs:
           - '3.2'
           - '3.3'
           # ADD NEW RUBIES HERE
-    name: Test (${{ matrix.os }}, ${{ matrix.ruby }})
+        rubyopt:
+          - '--yjit'
+          - '--yjit --yjit-stats=quiet'
+        exclude:
+          - ruby: '3.2'
+            rubyopt: '--yjit --yjit-stats=quiet'
+    name: Test YJIT (${{ matrix.os }}, ${{ matrix.ruby }} ${{ matrix.rubyopt }})
     runs-on: ${{ matrix.os }}
     env:
-      RUBYOPT: "--yjit"
+      RUBYOPT: ${{ matrix.rubyopt }}
       SKIP_SIMPLECOV: 1
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false

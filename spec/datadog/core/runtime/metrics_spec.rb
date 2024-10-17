@@ -198,11 +198,9 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           skip('Test only runs on Ruby >= 3.2') if RUBY_VERSION < '3.2.'
         end
 
-        context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? false' do
+        context 'with YJIT enabled' do
           before do
-            unless Datadog::Core::Environment::YJIT.available?
-              skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? false')
-            end
+            skip('Test only runs with YJIT enabled') unless Datadog::Core::Environment::YJIT.available?
             allow(runtime_metrics).to receive(:gauge)
           end
 
@@ -246,6 +244,24 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
                 .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE, kind_of(Numeric))
                 .once
             end
+          end
+        end
+
+        context 'with YJIT enabled and RubyVM::YJIT.stats_enabled? true' do
+          before do
+            skip('Test only runs on Ruby >= 3.3') if RUBY_VERSION < '3.3.'
+            unless Datadog::Core::Environment::YJIT.available? && ::RubyVM::YJIT.stats_enabled?
+              skip('Test only runs with YJIT enabled and RubyVM::YJIT.stats_enabled? true')
+            end
+            allow(runtime_metrics).to receive(:gauge)
+          end
+
+          it do
+            flush
+
+            expect(runtime_metrics).to have_received(:gauge)
+              .with(Datadog::Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT, kind_of(Numeric))
+              .once
           end
         end
       end
