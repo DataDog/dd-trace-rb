@@ -64,7 +64,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:call_keys) do
-    [:callers, :duration, :probe, :rv, :serialized_entry_args]
+    %i[callers duration probe rv serialized_entry_args]
   end
 
   describe '.hook_method' do
