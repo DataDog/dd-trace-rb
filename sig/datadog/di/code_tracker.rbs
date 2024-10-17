@@ -11,7 +11,7 @@ module Datadog
 
       def start: () -> void
       def active?: () -> bool
-      def iseqs_for_path: (String suffix) -> (::Array[RubyVM::InstructionSequence])
+      def iseqs_for_path_suffix: (String suffix) -> (::Array[RubyVM::InstructionSequence])
       def stop: () -> void
 
       private

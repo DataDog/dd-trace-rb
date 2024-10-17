@@ -115,7 +115,7 @@ RSpec.describe Datadog::DI::CodeTracker do
     end
   end
 
-  describe "#iseqs_for_path" do
+  describe "#iseqs_for_path_suffix" do
     around do |example|
       tracker.start
 
@@ -142,7 +142,7 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
 
       it "returns the exact match only" do
-        expect(tracker.iseqs_for_path(path)).to eq([path])
+        expect(tracker.iseqs_for_path_suffix(path)).to eq([path])
       end
     end
 
@@ -155,13 +155,13 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
 
       it "returns the exact match only" do
-        expect(tracker.iseqs_for_path("code_tracker_test_class_1.rb")).to eq(expected)
+        expect(tracker.iseqs_for_path_suffix("code_tracker_test_class_1.rb")).to eq(expected)
       end
     end
 
     context "match not on path component boundary" do
       it "returns no matches" do
-        expect(tracker.iseqs_for_path("1.rb")).to eq([])
+        expect(tracker.iseqs_for_path_suffix("1.rb")).to eq([])
       end
     end
   end
