@@ -15,6 +15,10 @@ jobs:
           - '--yjit'
           - '--yjit --yjit-stats=quiet'
         exclude:
+          # NOTE: `--yjit-stats=quiet` is only present in 3.3+.
+          #   We've had `--yjit-stats` since 3.0, but
+          #   1) it dumps stat info to stdout, and
+          #   2) non of our <3.3 tests require the additional stats
           - ruby: '3.2'
             rubyopt: '--yjit --yjit-stats=quiet'
     name: Test YJIT (${{ matrix.os }}, ${{ matrix.ruby }} ${{ matrix.rubyopt }})
