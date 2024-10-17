@@ -491,6 +491,9 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
   heap_recorder->stats_lifetime.updates_successful++;
 
   // Lifetime stats updating
+  // TODO: Discuss with Alex -- should we separate these out between young objects only and full updates?
+  // Tracking them together in this way seems to be muddying the waters -- young object updates will have more objects
+  // skipped, and different mixes of alive/dead
   heap_recorder->stats_lifetime.ewma_objects_alive = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_alive, heap_recorder->stats_last_update.objects_alive);
   heap_recorder->stats_lifetime.ewma_objects_dead = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_dead, heap_recorder->stats_last_update.objects_dead);
   heap_recorder->stats_lifetime.ewma_objects_skipped = ewma_stat(heap_recorder->stats_lifetime.ewma_objects_skipped, heap_recorder->stats_last_update.objects_skipped);
