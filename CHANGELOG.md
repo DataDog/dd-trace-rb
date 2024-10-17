@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+* AppSec: Add Experimental Standalone AppSec Threats billing ([#3965][])
+
 ## [2.4.0] - 2024-10-11
 
 ### Added
