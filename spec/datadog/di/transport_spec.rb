@@ -2,6 +2,8 @@ require "datadog/di/spec_helper"
 require "datadog/di/transport"
 
 RSpec.describe Datadog::DI::Transport do
+  di_test
+
   let(:agent_settings) do
     instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
   end
