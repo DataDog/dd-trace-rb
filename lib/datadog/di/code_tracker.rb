@@ -140,6 +140,14 @@ module Datadog
           # reinstated in the future.
           @compiled_trace_point = nil
         end
+        clear
+      end
+
+      # Clears the stored mapping from paths to compiled code.
+      #
+      # This method should normally never be called. It is meant to be
+      # used only by the test suite.
+      def clear
         registry_lock.synchronize do
           registry.clear
         end

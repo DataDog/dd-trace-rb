@@ -1,4 +1,4 @@
-require 'datadog/di/instrumenter'
+require 'datadog/di'
 require_relative 'hook_line'
 require_relative 'hook_method'
 
@@ -349,6 +349,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         before do
           expect(di_settings).to receive(:untargeted_trace_points).and_return(false)
+          code_tracker.clear
         end
 
         let(:probe) do
