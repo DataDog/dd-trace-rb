@@ -212,6 +212,7 @@ static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t ext
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
 static void commit_recording(heap_recorder*, heap_record*, recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
+static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
 
 // ==========================
@@ -428,14 +429,14 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
 }
 
 void heap_recorder_update_young_objects(heap_recorder *heap_recorder) {
-  heap_recorder_update(heap_recorder, /* full_update: */ false);
-}
-
-void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
   if (heap_recorder == NULL) {
     return;
   }
 
+  heap_recorder_update(heap_recorder, /* full_update: */ false);
+}
+
+static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update) {
   if (heap_recorder->updating) {
     if (full_update) rb_raise(rb_eRuntimeError, "full_update should not be triggered during another update");
 
@@ -507,6 +508,8 @@ void heap_recorder_prepare_iteration(heap_recorder *heap_recorder) {
     // we could trivially handle this but we raise to highlight and catch unexpected usages.
     rb_raise(rb_eRuntimeError, "New heap recorder iteration prepared without the previous one having been finished.");
   }
+
+  heap_recorder_update(heap_recorder, /* full_update: */ true);
 
   heap_recorder->object_records_snapshot = st_copy(heap_recorder->object_records);
   if (heap_recorder->object_records_snapshot == NULL) {
