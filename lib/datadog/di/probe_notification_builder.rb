@@ -107,7 +107,6 @@ module Datadog
         end
 
         timestamp = timestamp_now
-        active_span = Datadog::Tracing.active_span
         {
           service: settings.service,
           "debugger.snapshot": {
@@ -136,8 +135,8 @@ module Datadog
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": active_span&.trace_id,
-          "dd.span_id": active_span&.id,
+          "dd.trace_id": Datadog::Tracing.active_trace&.id,
+          "dd.span_id": Datadog::Tracing.active_span&.id,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
             duration: duration ? duration * 1000 : nil),
