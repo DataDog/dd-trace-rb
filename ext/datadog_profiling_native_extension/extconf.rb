@@ -256,21 +256,21 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   create_makefile EXTENSION_NAME
 else
   # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  # the debase-ruby_core_source gem to get access to private VM headers.
+  # the datadog-ruby_core_source gem to get access to private VM headers.
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
-  # see https://github.com/ruby-debug/debase-ruby_core_source for details
+  # see https://github.com/DataDog/datadog-ruby_core_source for details
 
   create_header
 
-  require "debase/ruby_core_source"
+  require "datadog/ruby_core_source"
   dir_config("ruby") # allow user to pass in non-standard core include directory
 
   # This is a workaround for a weird issue...
   #
-  # The mkmf tool defines a `with_cppflags` helper that debase-ruby_core_source uses. This helper temporarily
+  # The mkmf tool defines a `with_cppflags` helper that datadog-ruby_core_source uses. This helper temporarily
   # replaces `$CPPFLAGS` (aka the C pre-processor [not c++!] flags) with a different set when doing something.
   #
-  # The debase-ruby_core_source gem uses `with_cppflags` during makefile generation to inject extra headers into the
+  # The datadog-ruby_core_source gem uses `with_cppflags` during makefile generation to inject extra headers into the
   # path. But because `with_cppflags` replaces `$CPPFLAGS`, well, the default `$CPPFLAGS` are not included in the
   # makefile.
   #
@@ -281,12 +281,12 @@ else
   # `VM_CHECK_MODE=1` when building Ruby will trigger this issue (because somethings in structures the profiler reads
   # are ifdef'd out using this setting).
   #
-  # To workaround this issue, we override `with_cppflags` for debase-ruby_core_source to still include `$CPPFLAGS`.
-  Debase::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
+  # To workaround this issue, we override `with_cppflags` for datadog-ruby_core_source to still include `$CPPFLAGS`.
+  Datadog::RubyCoreSource.define_singleton_method(:with_cppflags) do |newflags, &block|
     super("#{newflags} #{$CPPFLAGS}", &block)
   end
 
-  Debase::RubyCoreSource
+  Datadog::RubyCoreSource
     .create_makefile_with_core(
       proc do
         headers_available =
