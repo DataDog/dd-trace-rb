@@ -1,7 +1,6 @@
 GIT
   remote: https://github.com/DataDog/datadog-ruby_core_source
-  revision: 9c82abf5d47cadde0644b18adf3f58a5251c0abe
-  branch: sarahchen6/change-debase-to-datadog
+  revision: 1c54a611dd1ac07fc676167fe3c032533efc76eb
   specs:
     datadog-ruby_core_source (3.3.6)
 
