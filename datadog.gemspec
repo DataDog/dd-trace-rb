@@ -64,7 +64,8 @@ Gem::Specification.new do |spec|
   # Used by the profiler native extension to support Ruby < 2.6 and > 3.2
   #
   # We decided to pin it at the latest available version and will manually bump the dependency as needed.
-  spec.add_dependency 'debase-ruby_core_source', '= 3.3.1'
+  # Uncomment when datadog-ruby_core_source has officially been published as a gem
+  # spec.add_dependency 'datadog-ruby_core_source', '= 0.1.0'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'
