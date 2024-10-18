@@ -1,9 +1,11 @@
 module Datadog
   module DI
     class Probe
+      KNOWN_TYPES: Array[Symbol]
+      
       @id: String
 
-      @type: String
+      @type: Symbol
 
       @file: String?
 
@@ -19,12 +21,12 @@ module Datadog
 
       @rate_limiter: Datadog::Core::RateLimiter
 
-      def initialize: (id: String, type: String, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
+      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
 	?max_capture_depth: Integer, ?rate_limit: Integer) -> void
 
       attr_reader id: String
 
-      attr_reader type: String
+      attr_reader type: Symbol
 
       attr_reader file: String?
 
