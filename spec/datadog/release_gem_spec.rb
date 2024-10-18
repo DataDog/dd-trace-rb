@@ -100,7 +100,7 @@ RSpec.describe 'gem release process' do
           # This list MUST NOT derive from the `gemspec.dependencies`,
           # since it is used to alarm when dependencies  modified.
           'datadog',
-          'datadog-ruby_core_source',
+          # 'datadog-ruby_core_source',
           'ffi',
           'libdatadog',
           'libddwaf',
