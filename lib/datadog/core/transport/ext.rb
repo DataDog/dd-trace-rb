@@ -16,6 +16,7 @@ module Datadog
           #
           # Setting this header to any non-empty value enables this feature.
           HEADER_CLIENT_COMPUTED_TOP_LEVEL = 'Datadog-Client-Computed-Top-Level'
+          HEADER_CLIENT_COMPUTED_STATS = 'Datadog-Client-Computed-Stats'
           HEADER_META_LANG = 'Datadog-Meta-Lang'
           HEADER_META_LANG_VERSION = 'Datadog-Meta-Lang-Version'
           HEADER_META_LANG_INTERPRETER = 'Datadog-Meta-Lang-Interpreter'

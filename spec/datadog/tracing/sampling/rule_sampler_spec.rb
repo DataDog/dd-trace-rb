@@ -28,11 +28,33 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
+  shared_examples 'a token bucket rate limiter' do |options = { rate: 100, max_tokens: nil }|
+    it do
+      expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket)
+      expect(rule_sampler.rate_limiter.rate).to eq(options[:rate])
+      expect(rule_sampler.rate_limiter.max_tokens).to eq(options[:max_tokens] || options[:rate])
+    end
+  end
+
   describe '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
-    it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
+    it_behaves_like 'a token bucket rate limiter', rate: 100
     it { expect(rule_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler) }
+
+    context 'with appsec standalone enabled' do
+      before do
+        allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true)
+      end
+
+      it_behaves_like 'a simple rule that matches all span operations', sample_rate: 1.0 do
+        let(:rule) { rule_sampler.rules.last }
+      end
+
+      it_behaves_like 'a token bucket rate limiter', rate: 1.0 / 60, max_tokens: 1.0
+
+      it { expect(rule_sampler.default_sampler).to be_nil }
+    end
 
     context 'with rate_limit ENV' do
       before do
@@ -40,7 +62,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           .and_return(20.0)
       end
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
+      it_behaves_like 'a token bucket rate limiter', rate: 20.0
     end
 
     context 'with default_sample_rate ENV' do
@@ -57,7 +79,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     context 'with rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket) }
+      it_behaves_like 'a token bucket rate limiter', rate: 1.0
     end
 
     context 'with nil rate_limit' do
