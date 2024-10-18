@@ -98,3 +98,6 @@ end
 #
 # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
 gem 'ffi', '~> 1.16.3', require: false
+
+# TODO: Remove when datadog-ruby_core_source has officially been published as a gem
+gem 'datadog-ruby_core_source', git: 'https://github.com/DataDog/datadog-ruby_core_source'
