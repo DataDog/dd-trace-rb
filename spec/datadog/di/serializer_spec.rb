@@ -359,5 +359,40 @@ RSpec.describe Datadog::DI::Serializer do
         )
       end
     end
+
+    context 'when positional arg is frozen' do
+      let(:frozen_string) { 'hello'.freeze }
+
+      let(:args) do
+        [frozen_string, 'world']
+      end
+
+      let(:kwargs) { {} }
+
+      it 'serializes without duplication' do
+        expect(serialized).to eq(
+          arg1: {type: 'String', value: 'hello'},
+          arg2: {type: 'String', value: 'world'},
+        )
+
+        expect(serialized[:arg1][:value]).to be frozen_string
+      end
+    end
+
+    context 'when keyword arg is frozen' do
+      let(:frozen_string) { 'hello'.freeze }
+
+      let(:args) { [] }
+
+      let(:kwargs) { {foo: frozen_string} }
+
+      it 'serializes without duplication' do
+        expect(serialized).to eq(
+          foo: {type: 'String', value: 'hello'},
+        )
+
+        expect(serialized[:foo][:value]).to be frozen_string
+      end
+    end
   end
 end

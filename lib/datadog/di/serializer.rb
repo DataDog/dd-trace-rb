@@ -102,11 +102,15 @@ module Datadog
         when Integer, Float, TrueClass, FalseClass
           serialized.update(value: value.to_s)
         when String, Symbol
+          need_dup = false
           value = case value
           when String
             # This is the only place where we duplicate the value, currently.
             # All other values are immutable primitives (e.g. numbers).
-            value.dup
+            # However, do not duplicate if the string is frozen, or if
+            # it is later truncated.
+            need_dup = !value.frozen?
+            value
           else
             value.to_s
           end
@@ -114,7 +118,9 @@ module Datadog
           if value.length > max
             serialized.update(truncated: true, size: value.length)
             value = value[0...max]
+            need_dup = false
           end
+          value = value.dup if need_dup
           serialized.update(value: value)
         when Array
           if depth < 0
