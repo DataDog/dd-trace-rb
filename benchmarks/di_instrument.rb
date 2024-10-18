@@ -42,6 +42,9 @@ return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
 require 'benchmark/ips'
 require 'datadog'
+# Need to require datadog/di explicitly because dynamic instrumentation is not
+# currently integrated into the Ruby tracer due to being under development.
+require 'datadog/di'
 
 class DIInstrumentBenchmark
   class Target
@@ -93,7 +96,9 @@ class DIInstrumentBenchmark
     end
 
     calls = 0
-    instrumenter.hook_method('DIInstrumentBenchmark::Target', 'test_method') do
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method')
+    instrumenter.hook_method(probe) do
       calls += 1
     end
 
@@ -119,9 +124,13 @@ class DIInstrumentBenchmark
       raise "Expected at least 1000 calls to the method, got #{calls}"
     end
 
-    instrumenter.clear_hooks
+    instrumenter.unhook(probe)
+
+=begin Line probes require more of DI code to be merged
     calls = 0
-    instrumenter.hook_line_now(file, line + 1) do
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      file: file, line_no: line + 1)
+    instrumenter.hook_line(probe) do
       calls += 1
     end
 
@@ -147,11 +156,11 @@ class DIInstrumentBenchmark
       raise "Expected at least 1000 calls to the method, got #{calls}"
     end
 
-    require 'datadog/di/init'
+    Datadog::DI.activate_tracking!
     if defined?(DITarget)
       raise "DITarget is already defined, this should not happen"
     end
-    require_relative 'di_target'
+    require_relative 'support/di_target'
     unless defined?(DITarget)
       raise "DITarget is not defined, this should not happen"
     end
@@ -159,9 +168,11 @@ class DIInstrumentBenchmark
     m = DITarget.instance_method(:test_method_for_line_probe)
     targeted_file, targeted_line = m.source_location
 
-    instrumenter.clear_hooks
+    instrumenter.unhook(probe)
     calls = 0
-    instrumenter.hook_line_now(targeted_file, targeted_line + 1) do
+    probe = Datadog::DI::Probe.new(id: 1, type: :log,
+      file: targeted_file, line_no: targeted_line + 1)
+    instrumenter.hook_line(probe) do
       calls += 1
     end
 
@@ -190,7 +201,9 @@ class DIInstrumentBenchmark
     # Now, remove all installed hooks and check that the performance of
     # target code is approximately what it was prior to hook installation.
 
-    instrumenter.clear_hooks
+    instrumenter.unhook(probe)
+=end
+
     calls = 0
 
     Benchmark.ips do |x|
