@@ -179,10 +179,23 @@ The actionable in this case would be to ensure that the thread created in `worke
 
 Depending on the situation, the thread in question might need to be forced to terminate. It's recommended to have a mechanism in place to terminate it (a shared variable that changes value when the thread should exit), but as a last resort, `Thread#terminate` forces the thread to finish. Keep in mind that regardless of the termination method, `Thread#join` must be called to ensure that the thread has completely finished its shutdown process.
 
+**Catadog**
+
+The catadog Docker image is a composable and extensible tool for development, testing, and diagnosis. The catadog container
+runs alongside the Ruby tracer and forwards trace information to the APM Test Agent.
+
+Catadog also emits helpful logging, which can be viewed in local testing or in CircleCI as a job step for tracer and contrib
+tests. Locally, to get catadog logs:
+
+    $ docker-compose logs -f catadog
+
+Read more about catadog:
+https://github.com/datadog/catadog#readme
+
 **The APM Test Agent**
 
 The APM test agent emulates the APM endpoints of the Datadog Agent. The Test Agent container
-runs alongside the Ruby tracer locally and in CI, handles all traces during test runs and performs a number
+runs alongside catadog and in CI, handles all traces during test runs and performs a number
 of 'Trace Checks'. For more information on these checks, see:
 https://github.com/DataDog/dd-apm-test-agent#trace-invariant-checks
 
