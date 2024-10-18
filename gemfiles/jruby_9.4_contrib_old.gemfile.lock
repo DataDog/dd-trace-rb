@@ -1,4 +1,11 @@
 GIT
+  remote: https://github.com/DataDog/datadog-ruby_core_source
+  revision: 9c82abf5d47cadde0644b18adf3f58a5251c0abe
+  branch: sarahchen6/change-debase-to-datadog
+  specs:
+    datadog-ruby_core_source (3.3.6)
+
+GIT
   remote: https://github.com/DataDog/simplecov
   revision: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
   ref: 3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db
@@ -12,7 +19,6 @@ PATH
   remote: ..
   specs:
     datadog (2.3.0)
-      debase-ruby_core_source (= 3.3.1)
       libdatadog (~> 12.0.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -35,7 +41,6 @@ GEM
     crack (0.4.5)
       rexml
     dalli (2.7.11)
-    debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
@@ -154,6 +159,7 @@ DEPENDENCIES
   concurrent-ruby
   dalli (< 3.0.0)
   datadog!
+  datadog-ruby_core_source!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   ffi (~> 1.16.3)
   json-schema (< 3)
