@@ -65,7 +65,7 @@ Gem::Specification.new do |spec|
   #
   # We decided to pin it at the latest available version and will manually bump the dependency as needed.
   # Uncomment when datadog-ruby_core_source has officially been published as a gem
-  # spec.add_dependency 'datadog-ruby_core_source', '= 0.1.0'
+  # spec.add_dependency 'datadog-ruby_core_source', '= 3.3.6'
 
   # Used by appsec
   spec.add_dependency 'libddwaf', '~> 1.14.0.0.0'

@@ -70,7 +70,7 @@ env = {
 }
 
 [
-  'debase-ruby_core_source',
+  # 'datadog-ruby_core_source',
   'ffi',
   'libddwaf',
   'msgpack',

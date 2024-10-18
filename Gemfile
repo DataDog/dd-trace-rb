@@ -98,4 +98,4 @@ end
 gem 'ffi', '~> 1.16.3', require: false
 
 # TODO: Remove when datadog-ruby_core_source has officially been published as a gem
-gem 'datadog-ruby_core_source', git: 'https://github.com/DataDog/datadog-ruby_core_source'
+gem 'datadog-ruby_core_source', git: 'https://github.com/DataDog/datadog-ruby_core_source', branch: 'sarahchen6/change-debase-to-datadog'
