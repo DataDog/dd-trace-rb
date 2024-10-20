@@ -67,7 +67,7 @@ GEM
       ruby-debug-base (>= 0.10.4, < 0.12)
     public_suffix (5.1.1)
     racc (1.8.1-java)
-    rack (3.1.7)
+    rack (3.1.8)
     rack-contrib (2.5.0)
       rack (< 4)
     rack-test (2.1.0)
