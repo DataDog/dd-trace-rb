@@ -42,20 +42,6 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     it_behaves_like 'a token bucket rate limiter', rate: 100
     it { expect(rule_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler) }
 
-    context 'with appsec standalone enabled' do
-      before do
-        allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true)
-      end
-
-      it_behaves_like 'a simple rule that matches all span operations', sample_rate: 1.0 do
-        let(:rule) { rule_sampler.rules.last }
-      end
-
-      it_behaves_like 'a token bucket rate limiter', rate: 1.0 / 60, max_tokens: 1.0
-
-      it { expect(rule_sampler.default_sampler).to be_nil }
-    end
-
     context 'with rate_limit ENV' do
       before do
         allow(Datadog.configuration.tracing.sampling).to receive(:rate_limit)

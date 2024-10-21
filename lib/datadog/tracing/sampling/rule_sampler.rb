@@ -29,34 +29,23 @@ module Datadog
           default_sample_rate: Datadog.configuration.tracing.sampling.default_rate,
           default_sampler: nil
         )
-          # AppSec events are sent to the backend using traces.
-          # Standalone ASM billing means that we don't want to charge clients for APM traces,
-          # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
-          # but for features such as API Security, we need to send at least one trace per minute,
-          # to keep the service alive on the backend side.
-          @rules = if Datadog.configuration.appsec.standalone.enabled
-                     [SimpleRule.new(sample_rate: 1.0)]
-                   elsif default_sample_rate && !default_sampler
+          @rules = if default_sample_rate && !default_sampler
                      # Add to the end of the rule list a rule always matches any trace
                      rules << SimpleRule.new(sample_rate: default_sample_rate)
                    else
                      rules
                    end
-          @rate_limiter = if Datadog.configuration.appsec.standalone.enabled
-                            # 1 trace per minute
-                            Core::TokenBucket.new(1.0 / 60, 1.0)
-                          elsif rate_limiter
+          @rate_limiter = if rate_limiter
                             rate_limiter
                           elsif rate_limit
                             Core::TokenBucket.new(rate_limit)
                           else
                             Core::UnlimitedLimiter.new
                           end
-          @default_sampler = if Datadog.configuration.appsec.standalone.enabled ||
-              (default_sample_rate && !default_sampler)
-                               nil
-                             elsif default_sampler
+          @default_sampler = if default_sampler
                                default_sampler
+                             elsif default_sample_rate
+                               nil
                              else
                                # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
                                RateByServiceSampler.new(1.0, env: -> { Tracing.send(:tracer).tags['env'] })
