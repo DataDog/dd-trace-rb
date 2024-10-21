@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  ST_REF: vpellan/ruby-asm-standalone
+  ST_REF: main
   FORCE_TESTS: -F tests/appsec/test_asm_standalone.py
   FORCE_TESTS_SCENARIO: APPSEC_STANDALONE
 
