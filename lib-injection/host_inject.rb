@@ -178,7 +178,7 @@ else
         [
           'msgpack',
           'ffi',
-          # 'datadog-ruby_core_source',
+          'datadog-ruby_core_source',
           'libdatadog',
           'libddwaf',
           'datadog'
