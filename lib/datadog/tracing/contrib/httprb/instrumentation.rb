@@ -30,6 +30,10 @@ module Datadog
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
+                  if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
+                    trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+                  end
+
                   Contrib::HTTP.inject(trace, req) if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
 
                   # Add additional request specific tags to the span.
