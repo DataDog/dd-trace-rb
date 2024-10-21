@@ -54,7 +54,7 @@ else
         require 'open3'
         require 'json'
 
-        Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload.to_json)
+        Open3.capture2e(fowarder, 'library_entrypoint', stdin_data: payload.to_json)
       end
     end
   end
