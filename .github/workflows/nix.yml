@@ -45,13 +45,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
-      - run: nix-shell --run 'which ruby'
-      - run: nix-shell --run 'ruby --version'
       - name: Print ruby version
         run: |
-          nix-shell --run 'which ruby'
-          nix-shell --run 'ruby --version'
+          nix develop --command which ruby
+          nix develop --command ruby --version
       - name: Bundle install
-        run: nix-shell --run 'bundle install'
+        run: nix develop --command bundle install
       - name: Run spec:main
-        run: nix-shell --run 'bundle exec rake spec:main'
+        run: nix develop --command bundle exec rake spec:main
