@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DataDog/auto_inject/refs/heads/main/preload_go/cmd/library_requirements_tester/testdata/requirements_schema.json",
+  "version": 1,
+  "native_deps": {
+    "glibc": [
+      {
+        "arch": "x86",
+        "supported": true,
+        "min": "2.28"
+      },
+      {
+        "arch": "arm64",
+        "supported": true,
+        "min": "2.28"
+      }
+    ]
+  },
+  "deny": []
+}
