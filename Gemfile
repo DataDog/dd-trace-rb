@@ -73,10 +73,8 @@ gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 if RUBY_PLATFORM != 'java'
   if RUBY_VERSION >= '2.7.0' # Bundler 1.x fails to find that versions >= 3.8.0 are not compatible because of binary gems
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
-  elsif RUBY_VERSION >= '2.3.0'
-    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
   else
-    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.8.0']
+    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
   end
 end
 

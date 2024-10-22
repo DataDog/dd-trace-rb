@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.3.0)
-      debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 12.0.0.1.0)
+    datadog (2.4.0)
+      datadog-ruby_core_source (= 3.3.6)
+      libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -38,7 +38,7 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    debase-ruby_core_source (3.3.1)
+    datadog-ruby_core_source (3.3.6)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
     docile (1.4.1)
@@ -73,8 +73,8 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (12.0.0.1.0-aarch64-linux)
-    libdatadog (12.0.0.1.0-x86_64-linux)
+    libdatadog (13.1.0.1.0-aarch64-linux)
+    libdatadog (13.1.0.1.0-x86_64-linux)
     libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.14.0.0.0-x86_64-linux)

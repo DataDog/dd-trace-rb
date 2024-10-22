@@ -13,7 +13,8 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     let(:api_version) { 'v2' }
     let(:debug) { false }
     let(:runtime_id) { Datadog::Core::Environment::Identity.id }
-    let(:tracer_time) { Time.now.to_i }
+    let!(:before_time) { Time.now.to_i }
+    let(:after_time) { Time.now.to_i }
 
     let(:application) do
       {
@@ -62,7 +63,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
     end
 
     it do
-      is_expected.to eq(
+      is_expected.to match(
         api_version: api_version,
         application: application,
         debug: debug,
@@ -71,7 +72,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
         request_type: request_type,
         runtime_id: runtime_id,
         seq_id: seq_id,
-        tracer_time: tracer_time,
+        tracer_time: be_between(before_time, after_time),
       )
     end
 
@@ -90,7 +91,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
       end
 
       it do
-        is_expected.to eq(
+        is_expected.to match(
           api_version: api_version,
           application: application.merge(tracer_version: "#{tracer_version}-ci-1.2.3"),
           debug: debug,
@@ -99,7 +100,7 @@ RSpec.describe Datadog::Core::Telemetry::Request do
           request_type: request_type,
           runtime_id: runtime_id,
           seq_id: seq_id,
-          tracer_time: tracer_time,
+          tracer_time: be_between(before_time, after_time),
         )
       end
     end

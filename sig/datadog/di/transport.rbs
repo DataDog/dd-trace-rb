@@ -1,0 +1,23 @@
+module Datadog
+  module DI
+    class Transport
+      @client: untyped
+
+      DIAGNOSTICS_PATH: "/debugger/v1/diagnostics"
+
+      INPUT_PATH: "/debugger/v1/input"
+
+      def initialize: (untyped agent_settings) -> void
+
+      def send_diagnostics: (Hash[untyped,untyped] payload) -> untyped
+
+      def send_input: (Hash[untyped,untyped] payload) -> untyped
+
+      private
+
+      attr_reader client: untyped
+
+      def send_request: (String desc, String path, Hash[untyped,untyped] payload, ?headers: ::Hash[untyped, untyped]) -> void
+    end
+  end
+end

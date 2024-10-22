@@ -91,6 +91,7 @@ module Datadog
           endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
           timeline_enabled: timeline_enabled,
           waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
+          otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
         )
       end
 

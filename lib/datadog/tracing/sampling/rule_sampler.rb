@@ -29,7 +29,12 @@ module Datadog
           default_sample_rate: Datadog.configuration.tracing.sampling.default_rate,
           default_sampler: nil
         )
-          @rules = rules
+          @rules = if default_sample_rate && !default_sampler
+                     # Add to the end of the rule list a rule always matches any trace
+                     rules << SimpleRule.new(sample_rate: default_sample_rate)
+                   else
+                     rules
+                   end
           @rate_limiter = if rate_limiter
                             rate_limiter
                           elsif rate_limit
@@ -37,12 +42,9 @@ module Datadog
                           else
                             Core::UnlimitedLimiter.new
                           end
-
           @default_sampler = if default_sampler
                                default_sampler
                              elsif default_sample_rate
-                               # Add to the end of the rule list a rule always matches any trace
-                               @rules << SimpleRule.new(sample_rate: default_sample_rate)
                                nil
                              else
                                # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore

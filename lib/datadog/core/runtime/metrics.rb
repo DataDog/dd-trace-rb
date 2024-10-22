@@ -181,6 +181,10 @@ module Datadog
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
                 Core::Environment::YJIT.yjit_alloc_size
               )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT,
+                Core::Environment::YJIT.ratio_in_yjit
+              )
             end
           end
         end

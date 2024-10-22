@@ -441,6 +441,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
 
           sleep 0.2
 
+          threads = Thread.list
+
           cpu_and_wall_time_worker.stop
 
           background_thread.kill
@@ -457,12 +459,29 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
               .map { |state, state_samples| [state, state_samples.sum { |s| s.values.fetch(:"wall-time") }] }.to_h
 
           # Because the background_thread_affected_by_gvl_contention starts BEFORE the profiler, the first few samples
-          # will have an unknown state because the profiler may have missed the beginning of the Waiting for GVL
+          # will have a sequence of unknown states because the profiler may have missed the beginning of the
+          # Waiting for GVL (and cannot categorize the state yet).
+          #
+          # In these cases, the pattern will be "unknown (one or more times), had cpu, waiting for gvl".
+          #
+          # In rare cases, we observe the background_thread_affected_by_gvl_contention just as it's starting the
+          # Waiting for GVL. Because "starting the Waiting for GVL" still uses a bit of CPU, we'll see
+          # "unknown, had cpu, unknown (one or more times), had cpu, waiting for gvl".
           #
           # So that the below assertions make sense (and are not flaky), we drop these first few samples from our
           # consideration
+
+          found_first_cpu = false
           missed_by_profiler_time =
-            samples.take_while { |s| s.labels[:state] == "unknown" }.sum { |sample| sample.values.fetch(:"wall-time") }
+            samples
+              .take_while do |s|
+                if s.labels[:state] == "unknown"
+                  true
+                elsif s.labels[:state] == "had cpu" && !found_first_cpu
+                  found_first_cpu = true
+                  true
+                end
+              end.sum { |sample| sample.values.fetch(:"wall-time") }
 
           total_time = samples.sum { |sample| sample.values.fetch(:"wall-time") } - missed_by_profiler_time
           waiting_for_gvl_samples = samples.select { |sample| sample.labels[:state] == "waiting for gvl" }
@@ -473,17 +492,67 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
             missed_by_profiler_time: missed_by_profiler_time,
             total_time: total_time,
             waiting_for_gvl_time: waiting_for_gvl_time,
+            sample_states: samples.map { |s| s.labels[:state] },
             samples: samples.map { |s| [s.values, s.labels] },
+            threads: threads.map { |t| [t.inspect, t.object_id] }
           }
 
           # The background thread should spend almost all of its time waiting to run (since when it gets to run
           # it just passes and starts waiting)
-          expect(total_time).to be >= 200_000_000 # This test should run for at least 200ms, which is how long we sleep for
+
+          # This test should run for at least 200ms, which is how long we sleep for
+          # (unless somehow the missed_by_profiler_time is too big?)
+          expect(total_time).to be >= 200_000_000
           expect(waiting_for_gvl_time).to be < total_time
           expect(waiting_for_gvl_time).to be_within(5).percent_of(total_time), \
             "Expected waiting_for_gvl_time to be close to total_time, debug_failures: #{debug_failures}"
 
-          expect(cpu_and_wall_time_worker.stats.fetch(:after_gvl_running)).to be > 0
+          expect(cpu_and_wall_time_worker.stats).to match(
+            hash_including(
+              after_gvl_running: be > 0,
+              gvl_sampling_time_ns_min: be > 0,
+              gvl_sampling_time_ns_max: be > 0,
+              gvl_sampling_time_ns_total: be > 0,
+              gvl_sampling_time_ns_avg: be > 0,
+            )
+          )
+        end
+
+        context "when 'Waiting for GVL' periods are below waiting_for_gvl_threshold_ns" do
+          let(:options) do
+            ten_seconds_as_ns = 1_000_000_000
+            collector = build_thread_context_collector(recorder, waiting_for_gvl_threshold_ns: ten_seconds_as_ns)
+
+            {thread_context_collector: collector}
+          end
+
+          it "does not trigger extra samples" do
+            background_thread_affected_by_gvl_contention
+            ready_queue_2.pop
+
+            start
+            wait_until_running
+
+            sleep 0.1
+            background_thread_affected_by_gvl_contention.kill
+
+            cpu_and_wall_time_worker.stop
+
+            # Note: There may still be "Waiting for GVL" samples in the output, but these samples will come from the
+            # periodic cpu/wall-sampling, not samples directly triggered by the end of a "Waiting for GVL" period.
+
+            expect(cpu_and_wall_time_worker.stats.fetch(:gvl_dont_sample)).to be > 0
+
+            expect(cpu_and_wall_time_worker.stats).to match(
+              hash_including(
+                after_gvl_running: 0,
+                gvl_sampling_time_ns_min: nil,
+                gvl_sampling_time_ns_max: nil,
+                gvl_sampling_time_ns_total: nil,
+                gvl_sampling_time_ns_avg: nil,
+              )
+            )
+          end
         end
       end
     end
@@ -1113,6 +1182,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           allocation_sampler_snapshot: nil,
           allocations_during_sample: nil,
           after_gvl_running: 0,
+          gvl_dont_sample: 0,
+          gvl_sampling_time_ns_min: nil,
+          gvl_sampling_time_ns_max: nil,
+          gvl_sampling_time_ns_total: nil,
+          gvl_sampling_time_ns_avg: nil,
         }
       )
     end
@@ -1393,11 +1467,12 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
     described_class.new(**worker_settings)
   end
 
-  def build_thread_context_collector(recorder)
+  def build_thread_context_collector(recorder, **options)
     Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: recorder,
       endpoint_collection_enabled: endpoint_collection_enabled,
       timeline_enabled: timeline_enabled,
+      **options,
     )
   end
 

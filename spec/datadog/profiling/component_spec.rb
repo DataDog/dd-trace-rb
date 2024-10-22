@@ -79,9 +79,34 @@ RSpec.describe Datadog::Profiling::Component do
             endpoint_collection_enabled: :endpoint_collection_enabled_config,
             timeline_enabled: :timeline_enabled_config,
             waiting_for_gvl_threshold_ns: :threshold_ns_config,
+            otel_context_enabled: false,
           )
 
           build_profiler_component
+        end
+
+        context "when otel_context_enabled is set to 'both'" do
+          before { settings.profiling.advanced.preview_otel_context_enabled = "both" }
+
+          it "initializes a ThreadContext collector with otel_context_enabled: :both" do
+            expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
+              .with(hash_including(otel_context_enabled: :both))
+              .and_call_original
+
+            build_profiler_component
+          end
+        end
+
+        context "when otel_context_enabled is set to 'only'" do
+          before { settings.profiling.advanced.preview_otel_context_enabled = "only" }
+
+          it "initializes a ThreadContext collector with otel_context_enabled: :only" do
+            expect(Datadog::Profiling::Collectors::ThreadContext).to receive(:new)
+              .with(hash_including(otel_context_enabled: :only))
+              .and_call_original
+
+            build_profiler_component
+          end
         end
 
         it "initializes a CpuAndWallTimeWorker collector" do
