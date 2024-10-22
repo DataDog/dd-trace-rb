@@ -31,6 +31,26 @@ module Datadog
         )
       end
 
+      def self.for_testing(
+        cpu_time_enabled: true,
+        alloc_samples_enabled: false,
+        heap_samples_enabled: false,
+        heap_size_enabled: false,
+        heap_sample_every: 1,
+        timeline_enabled: false,
+        **options
+      )
+        new(
+          cpu_time_enabled: cpu_time_enabled,
+          alloc_samples_enabled: alloc_samples_enabled,
+          heap_samples_enabled: heap_samples_enabled,
+          heap_size_enabled: heap_size_enabled,
+          heap_sample_every: heap_sample_every,
+          timeline_enabled: timeline_enabled,
+          **options,
+        )
+      end
+
       def serialize
         status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
 

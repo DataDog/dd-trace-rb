@@ -10,7 +10,11 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
   let(:recorder) do
-    build_stack_recorder(heap_samples_enabled: heap_profiling_enabled, heap_size_enabled: heap_profiling_enabled)
+    Datadog::Profiling::StackRecorder.for_testing(
+      alloc_samples_enabled: true,
+      heap_samples_enabled: heap_profiling_enabled,
+      heap_size_enabled: heap_profiling_enabled,
+    )
   end
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }

@@ -13,14 +13,7 @@ class ProfilerSampleLoopBenchmark
   PROFILER_OVERHEAD_STACK_THREAD = Thread.new { sleep }
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new(
-      cpu_time_enabled: true,
-      alloc_samples_enabled: false,
-      heap_samples_enabled: false,
-      heap_size_enabled: false,
-      heap_sample_every: 1,
-      timeline_enabled: false,
-    )
+    @recorder = Datadog::Profiling::StackRecorder.for_testing
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder)
   end
 
