@@ -94,7 +94,7 @@ RSpec.describe 'gem release process' do
           # since it is used to alarm when dependencies  modified.
           'datadog-ci',
           'ddtrace',
-          'debase-ruby_core_source',
+          'datadog-ruby_core_source',
           'ffi',
           'libdatadog',
           'libddwaf',

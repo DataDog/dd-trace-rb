@@ -269,16 +269,16 @@ if Datadog::Profiling::NativeExtensionHelpers::CAN_USE_MJIT_HEADER
   create_makefile EXTENSION_NAME
 else
   # The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  # the debase-ruby_core_source gem to get access to private VM headers.
+  # the datadog-ruby_core_source gem to get access to private VM headers.
   # This gem ships source code copies of these VM headers for the different Ruby VM versions;
-  # see https://github.com/ruby-debug/debase-ruby_core_source for details
+  # see https://github.com/DataDog/datadog-ruby_core_source for details
 
   create_header
 
-  require 'debase/ruby_core_source'
+  require 'datadog/ruby_core_source'
   dir_config('ruby') # allow user to pass in non-standard core include directory
 
-  Debase::RubyCoreSource
+  Datadog::RubyCoreSource
     .create_makefile_with_core(
       proc do
         headers_available =

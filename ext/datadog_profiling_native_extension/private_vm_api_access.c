@@ -13,7 +13,7 @@
   #include RUBY_MJIT_HEADER
 #else
   // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the debase-ruby_core_source gem to get access to private VM headers.
+  // the datadog-ruby_core_source gem to get access to private VM headers.
 
   // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
