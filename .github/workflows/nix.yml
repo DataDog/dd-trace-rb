@@ -22,7 +22,7 @@ jobs:
             base: ubuntu-24.04 # always x86_64-linux-gnu
           - os: linux
             cpu: aarch64
-            base: arm-4core-linux # always aarch64-linux-gnu
+            base: arm-4core-linux-ubuntu24.04 # always aarch64-linux-gnu
         nix:
           - 24.05
 
@@ -39,6 +39,9 @@ jobs:
       DD_REMOTE_CONFIGURATION_ENABLED: false
 
     steps:
+      - name: Check CPU arch
+        run: |
+          test "$(uname -m)" = "${{ matrix.platform.cpu }}"
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
       - uses: DeterminateSystems/magic-nix-cache-action@main
