@@ -614,7 +614,7 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
 
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
-    return rb_str_new2("NULL heap_recorder");
+    rb_raise(rb_eArgError, "heap_recorder is NULL");
   }
 
   VALUE debug_str = rb_str_new2("object records:\n");
@@ -1204,4 +1204,21 @@ st_index_t heap_record_key_hash_st(st_data_t key) {
 static inline double ewma_stat(double previous, double current) {
   double alpha = 0.3;
   return (1 - alpha) * previous + alpha * current;
+}
+
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id) {
+  if (heap_recorder == NULL) {
+    rb_raise(rb_eArgError, "heap_recorder is NULL");
+  }
+
+  // Check if object records contains an object with this object_id
+  return st_is_member(heap_recorder->object_records, FIX2LONG(obj_id)) ? Qtrue : Qfalse;
+}
+
+void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
+  if (heap_recorder == NULL) {
+    rb_raise(rb_eArgError, "heap_recorder is NULL");
+  }
+
+  heap_recorder->last_update_ns = 0;
 }

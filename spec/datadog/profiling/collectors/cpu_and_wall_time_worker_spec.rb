@@ -863,6 +863,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         # This is here to facilitate troubleshooting when this test fails. Otherwise
         # it's very hard to understand what may be happening.
         if example.exception
+          cpu_and_wall_time_worker.stop
+
           puts("Heap recorder debugging info:")
           puts(Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder))
         end
@@ -905,6 +907,64 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(total_samples).to eq test_num_allocated_object
         # 40 is the size of a basic object and we have test_num_allocated_object of them
         expect(total_size).to eq test_num_allocated_object * 40
+      end
+
+      describe "heap cleanup after GC" do
+        let(:options) { {dynamic_sampling_rate_enabled: false} }
+
+        let(:cleared_object_id) do
+          stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
+
+          start
+
+          # Force a full GC to make sure there's no incremental GC going on at this point
+          GC.start
+
+          test_object = CpuAndWallTimeWorkerSpec::TestStruct.new
+          test_object_id = test_object.object_id
+
+          expect(
+            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id)
+          ).to be true
+
+          # Let's replace the test_object reference with another object, so that the original one can be GC'd
+          test_object = Object.new # rubocop:disable Lint/UselessAssignment
+
+          # Force an update to happen on the next GC
+          Datadog::Profiling::StackRecorder::Testing._native_heap_recorder_reset_last_update(recorder)
+
+          GC.start
+
+          test_object_id
+        end
+
+        context "when gc_profiling_enabled is enabled" do
+          let(:gc_profiling_enabled) { true }
+
+          it "removes live heap objects after GCs" do
+            expect(
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+            ).to be false
+          end
+        end
+
+        context "when GC profiling is disabled" do
+          let(:gc_profiling_enabled) { false }
+
+          it "does not remove live heap objects after minor GCs" do
+            # The object is still being tracked!
+            expect(
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+            ).to be true
+
+            # Sanity checking: It stops being tracked after a serialization, proving it was indeed dead, we just hadn't
+            # updated our state yet
+            recorder.serialize!
+            expect(
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+            ).to be false
+          end
+        end
       end
     end
 

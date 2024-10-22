@@ -171,3 +171,9 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
+
+// Check if a given object_id is being tracked or not
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id);
+
+// Used to ensure that a GC actually triggers an update of the objects
+void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
