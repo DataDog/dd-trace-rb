@@ -812,6 +812,48 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(slot_two_mutex_locked?).to be true
           end
         end
+
+        describe "#recorder_after_gc_step" do
+          def sample_and_clear
+            test_object = Object.new
+            test_object_id = test_object.object_id
+            sample_allocation(test_object)
+            # Let's replace the test_object reference with another object, so that the original one can be GC'd
+            test_object = Object.new # rubocop:disable Lint/UselessAssignment
+            GC.start
+            test_object_id
+          end
+
+          after { GC.enable }
+
+          it "clears young dead objects with age 1 and 2, but not older objects" do
+            GC.disable
+
+            object_ids = Array.new(4) { sample_and_clear }
+
+            # Every object is still being tracked at this point
+            expect(
+              object_ids
+                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
+            ).to eq [true, true, true, true]
+
+            Datadog::Profiling::StackRecorder::Testing._native_recorder_after_gc_step(stack_recorder)
+
+            # Young objects should no longer be tracked, but older objects are still kept
+            expect(
+              object_ids
+                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
+            ).to eq [true, true, false, false]
+
+            stack_recorder.serialize
+
+            # Older objects are only cleared at serialization time
+            expect(
+              object_ids
+                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
+            ).to eq [false, false, false, false]
+          end
+        end
       end
     end
 

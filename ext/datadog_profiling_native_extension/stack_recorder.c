@@ -272,6 +272,7 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -310,6 +311,7 @@ void stack_recorder_init(VALUE profiling_module) {
       _native_has_seen_id_flag, 1);
   rb_define_singleton_method(testing_module, "_native_is_object_recorded?", _native_is_object_recorded, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
+  rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -1083,5 +1085,10 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 
   heap_recorder_testonly_reset_last_update(state->heap_recorder);
 
+  return Qtrue;
+}
+
+static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
+  recorder_after_gc_step(recorder_instance);
   return Qtrue;
 }
