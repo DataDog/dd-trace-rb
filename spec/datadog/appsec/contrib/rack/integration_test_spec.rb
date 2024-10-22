@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
+require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'securerandom'
@@ -18,8 +19,34 @@ require 'datadog/appsec'
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
-  let(:appsec_enabled) { true }
+  # We send the trace to a mocked agent to verify that the trace includes the headers that we want
+  # In the future, it might be a good idea to use the traces that the mocked agent
+  # receives in the tests/shared examples
+  let(:agent_http_client) do
+    Datadog::Tracing::Transport::HTTP.default do |t|
+      t.adapter agent_http_adapter
+    end
+  end
+
+  let(:agent_http_adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
+
+  let(:agent_settings) do
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      adapter: nil,
+      ssl: false,
+      uds_path: nil,
+      hostname: 'localhost',
+      port: 6218,
+      timeout_seconds: 30,
+    )
+  end
+
+  let(:agent_tested_headers) { {} }
+
   let(:tracing_enabled) { true }
+  let(:appsec_enabled) { true }
+
+  let(:appsec_standalone_enabled) { false }
   let(:remote_enabled) { false }
   let(:appsec_ip_passlist) { [] }
   let(:appsec_ip_denylist) { [] }
@@ -130,14 +157,45 @@ RSpec.describe 'Rack integration tests' do
   end
 
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
+    # Mocked agent with correct headers
+    stub_request(:post, 'http://localhost:6218/v0.4/traces')
+      .with do |request|
+        agent_tested_headers <= request.headers
+      end
+      .to_return(status: 200)
+
+    # DEV: Would it be faster to do another stub for requests that don't match the headers
+    # rather than waiting for the TCP connection to fail?
+
+    # TODO: Mocked agent that matches a given body, then use it in the shared examples,
+    # That way it would be real integration tests
+
+    # We must format the trace to have the same result as the agent
+    # This is especially important for _sampling_priority_v1 metric
+
     unless remote_enabled
       Datadog.configure do |c|
         c.tracing.enabled = tracing_enabled
+
         c.tracing.instrument :rack
+        c.tracing.instrument :http
 
         c.appsec.enabled = appsec_enabled
-        c.appsec.waf_timeout = 10_000_000 # in us
+
         c.appsec.instrument :rack
+
+        c.appsec.standalone.enabled = appsec_standalone_enabled
+        c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
         c.appsec.user_id_denylist = appsec_user_id_denylist
@@ -151,6 +209,9 @@ RSpec.describe 'Rack integration tests' do
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
   end
@@ -185,11 +246,12 @@ RSpec.describe 'Rack integration tests' do
     let(:client_ip) { remote_addr }
 
     let(:service_span) do
-      span = spans.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
+      spans.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
+    end
 
-      expect(span.name).to eq 'rack.request'
-
-      span
+    let(:span) do
+      Datadog::Tracing::Transport::TraceFormatter.format!(trace)
+      spans.find { |s| s.name == 'rack.request' }
     end
 
     context 'with remote configuration' do
@@ -588,6 +650,24 @@ RSpec.describe 'Rack integration tests' do
               end
             )
           end
+
+          map '/requestdownstream' do
+            run(
+              proc do |_env|
+                uri = URI('http://localhost:3000/returnheaders')
+                ext_request = nil
+                ext_response = nil
+
+                Net::HTTP.start(uri.host, uri.port) do |http|
+                  ext_request = Net::HTTP::Get.new(uri)
+
+                  ext_response = http.request(ext_request)
+                end
+
+                [200, { 'Content-Type' => 'application/json' }, [ext_response.body]]
+              end
+            )
+          end
         end
       end
 
@@ -942,6 +1022,8 @@ RSpec.describe 'Rack integration tests' do
           end
         end
       end
+
+      it_behaves_like 'appsec standalone billing'
     end
   end
 end

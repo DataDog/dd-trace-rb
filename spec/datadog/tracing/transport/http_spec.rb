@@ -180,6 +180,22 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID) }
       end
     end
+
+    context 'when Datadog.configuration.appsec.standalone.enabled' do
+      before { expect(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(asm_standalone_enabled) }
+
+      context 'is true' do
+        let(:asm_standalone_enabled) { true }
+
+        it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS => 'yes') }
+      end
+
+      context 'is false' do
+        let(:asm_standalone_enabled) { false }
+
+        it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS) }
+      end
+    end
   end
 
   describe '.default_adapter' do
