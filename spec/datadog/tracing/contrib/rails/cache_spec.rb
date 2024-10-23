@@ -127,7 +127,7 @@ RSpec.describe 'Rails cache' do
         expect(read).to eq(50)
 
         expect(spans).to have(2).items
-        get, set = spans
+        get = spans
         expect(get.name).to eq('rails.cache')
         expect(get.get_tag('rails.cache.key')).to be_nil
       end
@@ -348,18 +348,20 @@ RSpec.describe 'Rails cache' do
         Datadog.configuration.tracing[:active_support][:cache_key_enabled] = false
       end
 
-      delete
-      expect(span.name).to eq('rails.cache')
-      expect(span.type).to eq('cache')
-      expect(span.resource).to eq('DELETE')
-      expect(span.service).to eq('rails-cache')
-      expect(span.get_tag('rails.cache.backend')).to eq('file_store')
-      expect(span.get_tag('rails.cache.key')).to be_nil
+      it do
+        delete
+        expect(span.name).to eq('rails.cache')
+        expect(span.type).to eq('cache')
+        expect(span.resource).to eq('DELETE')
+        expect(span.service).to eq('rails-cache')
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        expect(span.get_tag('rails.cache.key')).to be_nil
 
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
-        .to eq('active_support')
-      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
-        .to eq('cache')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('cache')
+      end
     end
   end
 
