@@ -123,12 +123,14 @@ RSpec.describe 'Rails cache' do
         Datadog.configuration.tracing[:active_support][:cache_key_enabled] = false
       end
 
-      expect(read).to eq(50)
+      it do
+        expect(read).to eq(50)
 
-      expect(spans).to have(2).items
-      get, set = spans
-      expect(get.name).to eq('rails.cache')
-      expect(get.get_tag('rails.cache.key')).to be_nil
+        expect(spans).to have(2).items
+        get, set = spans
+        expect(get.name).to eq('rails.cache')
+        expect(get.get_tag('rails.cache.key')).to be_nil
+      end
     end
   end
 
@@ -168,11 +170,13 @@ RSpec.describe 'Rails cache' do
         Datadog.configuration.tracing[:active_support][:cache_key_enabled] = false
       end
 
-      expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
-      expect(spans).to have(1 + multi_keys.size).items
-      get = spans[0]
-      expect(get.name).to eq('rails.cache')
-      expect(get.get_tag('rails.cache.keys')).to be_nil
+      it do
+        expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+        expect(spans).to have(1 + multi_keys.size).items
+        get = spans[0]
+        expect(get.name).to eq('rails.cache')
+        expect(get.get_tag('rails.cache.keys')).to be_nil
+      end
     end
   end
 
