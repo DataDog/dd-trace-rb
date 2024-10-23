@@ -857,6 +857,27 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               # Older objects are only cleared at serialization time
               expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
             end
+
+            context "when there's a heap serialization ongoing" do
+              it "does nothing" do
+                described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
+
+                test_object_id = sample_and_clear
+
+                expect do
+                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                  described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+                end.to_not change { is_object_recorded?(test_object_id) }.from(true)
+
+                described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+
+                # Sanity: after serialization finishes, we can finally clear it
+                expect do
+                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                  described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+                end.to change { is_object_recorded?(test_object_id) }.from(true).to(false)
+              end
+            end
           end
 
           context 'when heap_clean_after_gc_enabled is false' do
