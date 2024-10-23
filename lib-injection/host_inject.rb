@@ -54,7 +54,7 @@ else
         require 'open3'
         require 'json'
 
-        Open3.capture2e([fowarder, 'library_entrypoint'], stdin_data: payload.to_json)
+        Open3.capture2e(fowarder, 'library_entrypoint', stdin_data: payload.to_json)
       end
     end
   end
@@ -178,7 +178,7 @@ else
         [
           'msgpack',
           'ffi',
-          'debase-ruby_core_source',
+          'datadog-ruby_core_source',
           'libdatadog',
           'libddwaf',
           'datadog'

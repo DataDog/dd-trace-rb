@@ -12,8 +12,8 @@ env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
   ST_REF: main
-  FORCE_TESTS: -F tests/appsec/waf/test_addresses.py::Test_GraphQL -F tests/appsec/test_blocking_addresses.py::Test_BlockingGraphqlResolvers
-  FORCE_TESTS_SCENARIO: GRAPHQL_APPSEC
+  FORCE_TESTS: -F tests/appsec/test_asm_standalone.py
+  FORCE_TESTS_SCENARIO: APPSEC_STANDALONE
 
 jobs:
   build-harness:
@@ -199,6 +199,7 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
+          - APPSEC_STANDALONE
         include:
           - library: ruby
             app: rack
