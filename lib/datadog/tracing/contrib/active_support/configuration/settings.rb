@@ -39,6 +39,11 @@ module Datadog
                 )
               end
             end
+
+            option :cache_key_enabled do |o|
+              o.type :bool
+              o.default true
+            end
           end
         end
       end
