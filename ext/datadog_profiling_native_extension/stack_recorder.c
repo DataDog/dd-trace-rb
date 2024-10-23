@@ -327,7 +327,7 @@ static VALUE _native_new(VALUE klass) {
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
   // being leaked.
 
-  state->heap_clean_after_gc_enabled = true;
+  state->heap_clean_after_gc_enabled = false;
 
   ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
