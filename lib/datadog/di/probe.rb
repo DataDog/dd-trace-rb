@@ -31,11 +31,17 @@ module Datadog
     #
     # @api private
     class Probe
+      KNOWN_TYPES = %i[log].freeze
+
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
         template: nil, capture_snapshot: false, max_capture_depth: nil, rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
+        unless KNOWN_TYPES.include?(type)
+          raise ArgumentError, "Unknown probe type: #{type}"
+        end
+
         if line_no && method_name
           raise ArgumentError, "Probe contains both line number and method name: #{id}"
         end
