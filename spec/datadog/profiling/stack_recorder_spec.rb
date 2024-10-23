@@ -46,6 +46,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     described_class::Testing._native_is_object_recorded?(stack_recorder, obj_id)
   end
 
+  def recorder_after_gc_step
+    described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+  end
+
   describe "#initialize" do
     describe "locking behavior" do
       it "sets slot one as the active slot" do
@@ -820,8 +824,6 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         describe "#recorder_after_gc_step" do
-          subject(:recorder_after_gc_step) { described_class::Testing._native_recorder_after_gc_step(stack_recorder) }
-
           def sample_and_clear
             test_object = Object.new
             test_object_id = test_object.object_id
@@ -866,7 +868,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+                  recorder_after_gc_step
                 end.to_not change { is_object_recorded?(test_object_id) }.from(true)
 
                 described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
@@ -874,9 +876,31 @@ RSpec.describe Datadog::Profiling::StackRecorder do
                 # Sanity: after serialization finishes, we can finally clear it
                 expect do
                   described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
-                  described_class::Testing._native_recorder_after_gc_step(stack_recorder)
+                  recorder_after_gc_step
                 end.to change { is_object_recorded?(test_object_id) }.from(true).to(false)
               end
+            end
+
+            it "enforces a minimum time between heap updates" do
+              test_object_id_1 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+
+              test_object_id_2 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+            end
+
+            it "does not apply the minimum time between heap updates when serializing" do
+              test_object_id_1 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+
+              test_object_id_2 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+
+              expect { serialize }.to change { is_object_recorded?(test_object_id_2) }.from(true).to(false)
             end
           end
 
