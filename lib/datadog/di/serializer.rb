@@ -103,8 +103,7 @@ module Datadog
           serialized.update(value: value.to_s)
         when String, Symbol
           need_dup = false
-          value = case value
-          when String
+          value = if String === value
             # This is the only place where we duplicate the value, currently.
             # All other values are immutable primitives (e.g. numbers).
             # However, do not duplicate if the string is frozen, or if
