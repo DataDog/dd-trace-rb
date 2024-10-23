@@ -236,16 +236,7 @@ static VALUE _native_new(VALUE klass);
 static void initialize_slot_concurrency_control(struct stack_recorder_state *state);
 static void initialize_profiles(struct stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types);
 static void stack_recorder_typed_data_free(void *data);
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE recorder_instance,
-  VALUE cpu_time_enabled,
-  VALUE alloc_samples_enabled,
-  VALUE heap_samples_enabled,
-  VALUE heap_size_enabled,
-  VALUE heap_sample_every,
-  VALUE timeline_enabled
-);
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_serialize(VALUE self, VALUE recorder_instance);
 static VALUE ruby_time_from(ddog_Timespec ddprof_time);
 static void *call_serialize_without_gvl(void *call_args);
@@ -289,7 +280,7 @@ void stack_recorder_init(VALUE profiling_module) {
   // https://bugs.ruby-lang.org/issues/18007 for a discussion around this.
   rb_define_alloc_func(stack_recorder_class, _native_new);
 
-  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, 7);
+  rb_define_singleton_method(stack_recorder_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(stack_recorder_class, "_native_serialize",  _native_serialize, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
   rb_define_singleton_method(stack_recorder_class, "_native_stats", _native_stats, 1);
@@ -416,16 +407,19 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   ruby_xfree(state);
 }
 
-static VALUE _native_initialize(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE recorder_instance,
-  VALUE cpu_time_enabled,
-  VALUE alloc_samples_enabled,
-  VALUE heap_samples_enabled,
-  VALUE heap_size_enabled,
-  VALUE heap_sample_every,
-  VALUE timeline_enabled
-) {
+static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  VALUE options;
+  rb_scan_args(argc, argv, "0:", &options);
+  if (options == Qnil) options = rb_hash_new();
+
+  VALUE recorder_instance = rb_hash_fetch(options, ID2SYM(rb_intern("self_instance")));
+  VALUE cpu_time_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("cpu_time_enabled")));
+  VALUE alloc_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("alloc_samples_enabled")));
+  VALUE heap_samples_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_samples_enabled")));
+  VALUE heap_size_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_size_enabled")));
+  VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
+  VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
+
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
   ENFORCE_BOOLEAN(heap_samples_enabled);
