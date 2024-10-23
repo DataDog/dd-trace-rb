@@ -81,7 +81,7 @@ module Datadog
 
                 span.set_tag('EVENT', event)
 
-                set_cache_key(span, key, mapping[:multi_key]) if configuration[:cache_key_enabled]
+                set_cache_key(span, key, mapping[:multi_key]) if Datadog.configuration.tracing[:active_support][:cache_key_enabled]
               rescue StandardError => e
                 Datadog.logger.error(e.message)
                 Datadog::Core::Telemetry::Logger.report(e)

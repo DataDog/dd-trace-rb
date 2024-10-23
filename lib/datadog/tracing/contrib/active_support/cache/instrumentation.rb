@@ -59,7 +59,7 @@ module Datadog
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
 
-                set_cache_key(span, key, multi_key) if configuration[:cache_key_enabled]
+                set_cache_key(span, key, multi_key) if Datadog.configuration.tracing[:active_support][:cache_key_enabled]
 
                 yield
               end
