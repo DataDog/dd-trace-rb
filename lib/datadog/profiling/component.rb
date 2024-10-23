@@ -53,6 +53,7 @@ module Datadog
           heap_size_enabled: heap_size_profiling_enabled,
           heap_sample_every: heap_sample_every,
           timeline_enabled: timeline_enabled,
+          heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
         )
         thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
         worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(

@@ -187,6 +187,7 @@ typedef struct profile_slot {
 struct stack_recorder_state {
   // Heap recorder instance
   heap_recorder *heap_recorder;
+  bool heap_clean_after_gc_enabled;
 
   pthread_mutex_t mutex_slot_one;
   profile_slot profile_slot_one;
@@ -326,6 +327,8 @@ static VALUE _native_new(VALUE klass) {
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
   // being leaked.
 
+  state->heap_clean_after_gc_enabled = true;
+
   ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
 
   initialize_slot_concurrency_control(state);
@@ -419,6 +422,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   VALUE heap_size_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_size_enabled")));
   VALUE heap_sample_every = rb_hash_fetch(options, ID2SYM(rb_intern("heap_sample_every")));
   VALUE timeline_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("timeline_enabled")));
+  VALUE heap_clean_after_gc_enabled = rb_hash_fetch(options, ID2SYM(rb_intern("heap_clean_after_gc_enabled")));
 
   ENFORCE_BOOLEAN(cpu_time_enabled);
   ENFORCE_BOOLEAN(alloc_samples_enabled);
@@ -426,9 +430,12 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   ENFORCE_BOOLEAN(heap_size_enabled);
   ENFORCE_TYPE(heap_sample_every, T_FIXNUM);
   ENFORCE_BOOLEAN(timeline_enabled);
+  ENFORCE_BOOLEAN(heap_clean_after_gc_enabled);
 
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
+
+  state->heap_clean_after_gc_enabled = (heap_clean_after_gc_enabled == Qtrue);
 
   heap_recorder_set_sample_rate(state->heap_recorder, NUM2INT(heap_sample_every));
 
@@ -678,7 +685,7 @@ void recorder_after_gc_step(VALUE recorder_instance) {
   struct stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
-  heap_recorder_update_young_objects(state->heap_recorder);
+  if (state->heap_clean_after_gc_enabled) heap_recorder_update_young_objects(state->heap_recorder);
 }
 
 #define MAX_LEN_HEAP_ITERATION_ERROR_MSG 256

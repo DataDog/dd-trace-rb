@@ -14,11 +14,13 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       alloc_samples_enabled: true,
       heap_samples_enabled: heap_profiling_enabled,
       heap_size_enabled: heap_profiling_enabled,
+      **stack_recorder_options,
     )
   end
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
+  let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
   let(:worker_settings) do
@@ -945,10 +947,24 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         context "when gc_profiling_enabled is enabled" do
           let(:gc_profiling_enabled) { true }
 
-          it "removes live heap objects after GCs" do
-            expect(
-              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
-            ).to be false
+          context "when heap_clean_after_gc_enabled is enabled in the recorder" do
+            let(:stack_recorder_options) { {**super(), heap_clean_after_gc_enabled: true} }
+
+            it "removes live heap objects after GCs" do
+              expect(
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              ).to be false
+            end
+          end
+
+          context "when heap_clean_after_gc_enabled is disabled in the recorder" do
+            let(:stack_recorder_options) { {**super(), heap_clean_after_gc_enabled: false} }
+
+            it "does not remove live heap objects after GCs" do
+              expect(
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              ).to be true
+            end
           end
         end
 

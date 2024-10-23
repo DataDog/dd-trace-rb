@@ -10,6 +10,7 @@ module Datadog
         heap_size_enabled: bool,
         heap_sample_every: Integer,
         timeline_enabled: bool,
+        heap_clean_after_gc_enabled: bool,
       ) -> void
 
       def self._native_initialize: (
@@ -20,6 +21,7 @@ module Datadog
         heap_size_enabled: bool,
         heap_sample_every: Integer,
         timeline_enabled: bool,
+        heap_clean_after_gc_enabled: bool,
       ) -> true
 
       type serialized_profile_data = [

@@ -13,6 +13,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:heap_size_enabled) { false }
   let(:heap_sample_every) { 1 }
   let(:timeline_enabled) { true }
+  let(:heap_clean_after_gc_enabled) { true }
 
   subject(:stack_recorder) do
     described_class.new(
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       heap_size_enabled: heap_size_enabled,
       heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
+      heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
     )
   end
 
@@ -38,6 +40,10 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
   def slot_two_mutex_locked?
     described_class::Testing._native_slot_two_mutex_locked?(stack_recorder)
+  end
+
+  def is_object_recorded?(obj_id)
+    described_class::Testing._native_is_object_recorded?(stack_recorder, obj_id)
   end
 
   describe "#initialize" do
@@ -814,6 +820,8 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         end
 
         describe "#recorder_after_gc_step" do
+          subject(:recorder_after_gc_step) { described_class::Testing._native_recorder_after_gc_step(stack_recorder) }
+
           def sample_and_clear
             test_object = Object.new
             test_object_id = test_object.object_id
@@ -824,34 +832,50 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             test_object_id
           end
 
-          after { GC.enable }
-
-          it "clears young dead objects with age 1 and 2, but not older objects" do
+          before do
             GC.disable
 
-            object_ids = Array.new(4) { sample_and_clear }
+            @object_ids = Array.new(4) { sample_and_clear }
+          end
 
-            # Every object is still being tracked at this point
-            expect(
-              object_ids
-                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
-            ).to eq [true, true, true, true]
+          after { GC.enable }
 
-            Datadog::Profiling::StackRecorder::Testing._native_recorder_after_gc_step(stack_recorder)
+          context 'when heap_clean_after_gc_enabled is true' do
+            let(:heap_clean_after_gc_enabled) { true }
 
-            # Young objects should no longer be tracked, but older objects are still kept
-            expect(
-              object_ids
-                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
-            ).to eq [true, true, false, false]
+            it "clears young dead objects with age 1 and 2, but not older objects" do
+              # Every object is still being tracked at this point
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
 
-            stack_recorder.serialize
+              recorder_after_gc_step
 
-            # Older objects are only cleared at serialization time
-            expect(
-              object_ids
-                .map { |it| Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(stack_recorder, it) }
-            ).to eq [false, false, false, false]
+              # Young objects should no longer be tracked, but older objects are still kept
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
+
+              stack_recorder.serialize
+
+              # Older objects are only cleared at serialization time
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+            end
+          end
+
+          context 'when heap_clean_after_gc_enabled is false' do
+            let(:heap_clean_after_gc_enabled) { false }
+
+            it "does nothing" do
+              # Every object is still being tracked at this point
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+
+              recorder_after_gc_step
+
+              # No change -- all objects are still being tracked
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+
+              stack_recorder.serialize
+
+              # All objects are finally cleared
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+            end
           end
         end
       end
