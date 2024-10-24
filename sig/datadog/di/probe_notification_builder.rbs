@@ -8,29 +8,25 @@ module Datadog
       attr_reader settings: untyped
       attr_reader serializer: Serializer
 
-      def build_received: (Probe probe) -> untyped
+      def build_received: (Probe probe) -> Hash[Symbol,untyped]
 
-      def build_installed: (Probe probe) -> untyped
+      def build_installed: (Probe probe) -> Hash[Symbol,untyped]
 
-      def build_emitting: (Probe probe) -> untyped
+      def build_emitting: (Probe probe) -> Hash[Symbol,untyped]
 
-      def build_executed: (Probe probe, ?trace_point: untyped?, ?rv: untyped?, ?duration: untyped?, ?callers: untyped?, ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> untyped
+      def build_executed: (Probe probe, ?trace_point: TracePoint, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?duration: untyped?, ?callers: untyped?, ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> { service: untyped, :"debugger.snapshot" => { id: untyped, timestamp: untyped, evaluationErrors: ::Array[untyped], probe: { id: untyped, version: 0, location: untyped }, language: "ruby", stack: untyped, captures: untyped }, duration: untyped, host: nil, logger: { name: untyped, method: untyped, thread_name: untyped, thread_id: untyped, version: 2 }, :"dd.trace_id" => 136035165280417366521542318182735500431, :"dd.span_id" => 17576285113343575026, ddsource: "dd_debugger", message: untyped, timestamp: untyped }
+      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
-      def build_status: (Probe probe, message: untyped, status: untyped) -> (nil | { service: untyped, timestamp: untyped, message: untyped, ddsource: "dd_debugger", debugger: { diagnostics: { probeId: untyped, probeVersion: 0, runtimeId: untyped, parentId: nil, status: untyped } } })
+      def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
-      def format_callers: (untyped callers) -> untyped
+      def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
 
-      def evaluate_template: (untyped template, **untyped vars) -> untyped
+      def evaluate_template: (untyped template, **untyped vars) -> String
 
-      def timestamp_now: () -> untyped
+      def timestamp_now: () -> Integer
 
-      def get_local_variables: (TracePoint trace_point) -> untyped
-      
-      private
-      
-      def thread_id: -> Integer
+      def get_local_variables: (TracePoint trace_point) -> Hash[Symbol,untyped]
     end
   end
 end
