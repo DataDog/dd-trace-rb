@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
-          ref: conti/set-aws-env-on-docker-runner
+          ref: ${{ env.ST_REF }}
           persist-credentials: false
       - name: Pull released image
         run: |
@@ -277,7 +277,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
-          ref: ${{ env.ST_REF }}
+          ref: conti/set-aws-env-on-docker-runner
           persist-credentials: false
       - name: Pull runner image
         run: |
