@@ -20,8 +20,37 @@ RSpec.shared_context 'Sidekiq testing' do
   end
 end
 
+# Non-testing Sidekiq Server, performing the same operations as the production deployment.
+RSpec.shared_context 'Sidekiq server' do
+  include SidekiqServerExpectations
+
+  before do
+    unless Datadog::Tracing::Contrib::Sidekiq::Integration.compatible_with_server_internal_tracing?
+      skip 'Sidekiq internal server tracing is not supported on this version.'
+    end
+
+    skip 'Sidekiq server requires forking' unless Process.respond_to?(:fork)
+
+    # Fetches block for 2 seconds when there is nothing in the queue:
+    # https://github.com/mperham/sidekiq/blob/v6.2.2/lib/sidekiq/fetch.rb#L7-L9
+    # https://redis.io/commands/blpop#blocking-behavior
+    #
+    # We change the constant here to ensure test runs as fast possible.
+    require 'sidekiq/fetch' # Require late, as this is not available if `compatible_with_server_internal_tracing?` is false
+    stub_const('Sidekiq::BasicFetch::TIMEOUT', 0.0011) # A timeout lower than 0.0011 is rounded to zero
+
+    stub_const(
+      'EmptyWorker',
+      Class.new do
+        include Sidekiq::Worker
+        def perform; end
+      end
+    )
+  end
+end
+
 module SidekiqTestingConfiguration
-  def configure_sidekiq
+  def configure_sidekiq(log_level: Logger::ERROR)
     Datadog.configure do |c|
       c.tracing.instrument :sidekiq
     end
@@ -33,10 +62,14 @@ module SidekiqTestingConfiguration
 
     Sidekiq.configure_client do |config|
       config.redis = { url: redis_url }
+      config.logger.level = log_level
+      config.logger.formatter = Sidekiq::Logger::Formatters::JSON.new
     end
 
     Sidekiq.configure_server do |config|
       config.redis = { url: redis_url }
+      config.logger.level = log_level
+      config.logger.formatter = Sidekiq::Logger::Formatters::JSON.new
     end
 
     Sidekiq::Testing.inline!
@@ -46,7 +79,10 @@ end
 module SidekiqServerExpectations
   include SidekiqTestingConfiguration
 
-  def expect_in_sidekiq_server(wait_until: nil)
+  def expect_in_sidekiq_server(
+    wait_until: -> { fetch_spans.any? { |s| s.name == 'sidekiq.job_fetch' } },
+    log_level: Logger::ERROR
+  )
     app_tempfile = Tempfile.new(['sidekiq-server-app', '.rb'])
 
     expect_in_fork do
@@ -59,7 +95,9 @@ module SidekiqServerExpectations
 
       require 'sidekiq/cli'
 
-      configure_sidekiq
+      configure_sidekiq(log_level: log_level)
+
+      Sidekiq::Testing.disable! # Ensure the real Sidekiq server is used to process the job
 
       t = Thread.new do
         cli = Sidekiq::CLI.instance
@@ -88,6 +126,10 @@ module SidekiqServerExpectations
   ensure
     app_tempfile.close
     app_tempfile.unlink
+  end
+
+  def fetch_job_span
+    try_wait_until { fetch_spans.find { |s| s.name == 'sidekiq.job' } }
   end
 
   def expect_after_stopping_sidekiq_server
