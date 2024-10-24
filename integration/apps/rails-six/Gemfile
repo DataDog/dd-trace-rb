@@ -4,6 +4,8 @@ source "https://rubygems.org"
 
 rails_version = ['~> 6.1']
 
+gem 'mutex_m'
+
 gem 'actioncable', *rails_version
 gem 'actionmailer', *rails_version
 gem 'actionpack', *rails_version
