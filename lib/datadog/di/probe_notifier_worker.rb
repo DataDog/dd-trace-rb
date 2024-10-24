@@ -61,6 +61,8 @@ module Datadog
             end
 
             if sleep_remaining > 0
+              # Do not need to update @wake_scheduled here because
+              # wake-up is already scheduled for the earliest possible time.
               wake.wait(sleep_remaining)
               next
             end
@@ -71,6 +73,9 @@ module Datadog
               raise if settings.dynamic_instrumentation.propagate_all_exceptions
 
               warn "Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})"
+            end
+            @lock.synchronize do
+              @wake_scheduled = more
             end
             wake.wait(more ? MIN_SEND_INTERVAL : nil)
           end
