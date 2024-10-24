@@ -20,17 +20,41 @@ module Datadog
           tracer:,
           endpoint_collection_enabled:,
           timeline_enabled:,
-          allocation_type_enabled: true
+          waiting_for_gvl_threshold_ns:,
+          otel_context_enabled:
         )
           tracer_context_key = safely_extract_context_key_from(tracer)
           self.class._native_initialize(
-            self,
-            recorder,
-            max_frames,
-            tracer_context_key,
-            endpoint_collection_enabled,
-            timeline_enabled,
-            allocation_type_enabled,
+            self_instance: self,
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer_context_key: tracer_context_key,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
+            waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+            otel_context_enabled: otel_context_enabled,
+          )
+        end
+
+        def self.for_testing(
+          recorder:,
+          max_frames: 400,
+          tracer: nil,
+          endpoint_collection_enabled: false,
+          timeline_enabled: false,
+          waiting_for_gvl_threshold_ns: 10_000_000,
+          otel_context_enabled: false,
+          **options
+        )
+          new(
+            recorder: recorder,
+            max_frames: max_frames,
+            tracer: tracer,
+            endpoint_collection_enabled: endpoint_collection_enabled,
+            timeline_enabled: timeline_enabled,
+            waiting_for_gvl_threshold_ns: waiting_for_gvl_threshold_ns,
+            otel_context_enabled: otel_context_enabled,
+            **options,
           )
         end
 
@@ -48,12 +72,14 @@ module Datadog
         private
 
         def safely_extract_context_key_from(tracer)
-          provider = tracer && tracer.respond_to?(:provider) && tracer.provider
+          return unless tracer
+
+          provider = tracer.respond_to?(:provider) && tracer.provider
 
           return unless provider
 
           context = provider.instance_variable_get(:@context)
-          context && context.instance_variable_get(:@key)
+          context&.instance_variable_get(:@key)
         end
       end
     end

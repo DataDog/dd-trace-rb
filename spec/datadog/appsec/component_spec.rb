@@ -9,18 +9,47 @@ RSpec.describe Datadog::AppSec::Component do
       settings
     end
 
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
     context 'when appsec is enabled' do
       let(:appsec_enabled) { true }
 
       it 'returns a Datadog::AppSec::Component instance' do
-        component = described_class.build_appsec_component(settings)
+        component = described_class.build_appsec_component(settings, telemetry: telemetry)
         expect(component).to be_a(described_class)
+      end
+
+      context 'when using old ffi version with Ruby 3.3.x' do
+        before do
+          stub_const('RUBY_VERSION', '3.3.0')
+          allow(Gem).to receive(:loaded_specs).and_return('ffi' => double(version: Gem::Version.new('1.15.4')))
+        end
+
+        it 'returns a Datadog::AppSec::Component instance with a nil processor' do
+          expect(Datadog.logger).to receive(:warn)
+
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
+          expect(component).to be_nil
+        end
+      end
+
+      context 'when ffi is not loaded' do
+        before do
+          allow(Gem).to receive(:loaded_specs).and_return({})
+        end
+
+        it 'returns a Datadog::AppSec::Component instance with a nil processor and does not warn' do
+          expect(Datadog.logger).not_to receive(:warn)
+
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
+          expect(component).to be_nil
+        end
       end
 
       context 'when processor is ready' do
         it 'returns a Datadog::AppSec::Component with a processor instance' do
           expect_any_instance_of(Datadog::AppSec::Processor).to receive(:ready?).and_return(true)
-          component = described_class.build_appsec_component(settings)
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
 
           expect(component.processor).to be_a(Datadog::AppSec::Processor)
         end
@@ -29,7 +58,7 @@ RSpec.describe Datadog::AppSec::Component do
       context 'when processor fail to instanciate' do
         it 'returns a Datadog::AppSec::Component with a nil processor' do
           expect_any_instance_of(Datadog::AppSec::Processor).to receive(:ready?).and_return(false)
-          component = described_class.build_appsec_component(settings)
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
 
           expect(component.processor).to be_nil
         end
@@ -39,7 +68,7 @@ RSpec.describe Datadog::AppSec::Component do
         it 'returns a Datadog::AppSec::Component with a nil processor' do
           expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(nil)
 
-          component = described_class.build_appsec_component(settings)
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
 
           expect(component.processor).to be_nil
         end
@@ -85,7 +114,7 @@ RSpec.describe Datadog::AppSec::Component do
           expect(Datadog::AppSec::Processor::Actions).to receive(:merge).with(actions)
           expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(ruleset)
 
-          component = described_class.build_appsec_component(settings)
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
 
           expect(component.processor).to be_a(Datadog::AppSec::Processor)
         end
@@ -119,7 +148,7 @@ RSpec.describe Datadog::AppSec::Component do
           expect(Datadog::AppSec::Processor::Actions).to_not receive(:merge)
           expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).and_return(ruleset)
 
-          component = described_class.build_appsec_component(settings)
+          component = described_class.build_appsec_component(settings, telemetry: telemetry)
 
           expect(component.processor).to be_a(Datadog::AppSec::Processor)
         end
@@ -130,20 +159,24 @@ RSpec.describe Datadog::AppSec::Component do
       let(:appsec_enabled) { false }
 
       it 'returns nil' do
-        component = described_class.build_appsec_component(settings)
+        component = described_class.build_appsec_component(settings, telemetry: telemetry)
         expect(component).to be_nil
       end
     end
 
     context 'when appsec is not active' do
       it 'returns nil' do
-        component = described_class.build_appsec_component(double(Datadog::Core::Configuration::Settings))
+        component = described_class.build_appsec_component(
+          double(Datadog::Core::Configuration::Settings),
+          telemetry: telemetry
+        )
         expect(component).to be_nil
       end
     end
   end
 
   describe '#reconfigure' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component, report: nil) }
     let(:ruleset) do
       {
         'exclusions' => [{
@@ -196,7 +229,7 @@ RSpec.describe Datadog::AppSec::Component do
         component = described_class.new(processor: processor)
         component.instance_variable_set(:@mutex, mutex)
         expect(mutex).to receive(:synchronize)
-        component.reconfigure(ruleset: {}, actions: actions)
+        component.reconfigure(ruleset: {}, actions: actions, telemetry: telemetry)
       end
     end
 
@@ -207,7 +240,7 @@ RSpec.describe Datadog::AppSec::Component do
         component = described_class.new(processor: processor)
 
         expect(Datadog::AppSec::Processor::Actions).to receive(:merge).with(actions)
-        component.reconfigure(ruleset: ruleset, actions: actions)
+        component.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
       end
     end
 
@@ -219,7 +252,7 @@ RSpec.describe Datadog::AppSec::Component do
         old_processor = component.processor
 
         expect(old_processor).to receive(:finalize)
-        component.reconfigure(ruleset: ruleset, actions: actions)
+        component.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
         new_processor = component.processor
         expect(new_processor).to_not eq(old_processor)
         new_processor.finalize
@@ -234,7 +267,7 @@ RSpec.describe Datadog::AppSec::Component do
         old_processor = component.processor
 
         expect(old_processor).to_not receive(:finalize)
-        component.reconfigure(ruleset: ruleset, actions: actions)
+        component.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
         new_processor = component.processor
         expect(new_processor).to_not eq(old_processor)
         new_processor.finalize
@@ -251,7 +284,7 @@ RSpec.describe Datadog::AppSec::Component do
         ruleset = { 'invalid_one' => true }
 
         expect(old_processor).to_not receive(:finalize)
-        component.reconfigure(ruleset: ruleset, actions: actions)
+        component.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
         expect(component.processor).to eq(old_processor)
       end
     end

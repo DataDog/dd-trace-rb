@@ -265,10 +265,10 @@ Remove constants at `Datadog::Tracing::Distributed::Headers::Ext`. see table bel
 | `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_SAMPLING_PRIORITY`   | `Datadog::Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY` |
 | `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_ORIGIN`              | `Datadog::Tracing::Distributed::Datadog::ORIGIN_KEY`            |
 | `Datadog::Tracing::Distributed::Headers::Ext::HTTP_HEADER_TAGS`                | `Datadog::Tracing::Distributed::Datadog::TAGS_KEY`              |
-| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID`              | `Datadog::Tracing::Distirbuted::B3Multi::B3_TRACE_ID_KEY`       |
-| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID`               | `Datadog::Tracing::Distirbuted::B3Multi::B3_SPAN_ID_KEY`        |
-| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED`               | `Datadog::Tracing::Distirbuted::B3Multi::B3_SAMPLED_KEY`        |
-| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE`                | `Datadog::Tracing::Distirbuted::B3Single::B3_SINGLE_HEADER_KEY` |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_TRACE_ID`              | `Datadog::Tracing::Distributed::B3Multi::B3_TRACE_ID_KEY`       |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SPAN_ID`               | `Datadog::Tracing::Distributed::B3Multi::B3_SPAN_ID_KEY`        |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SAMPLED`               | `Datadog::Tracing::Distributed::B3Multi::B3_SAMPLED_KEY`        |
+| `Datadog::Tracing::Distributed::Headers::Ext::B3_HEADER_SINGLE`                | `Datadog::Tracing::Distributed::B3Single::B3_SINGLE_HEADER_KEY` |
 | `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_TRACE_ID`          | `Datadog::Tracing::Distributed::Datadog::TRACE_ID_KEY`          |
 | `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_PARENT_ID`         | `Datadog::Tracing::Distributed::Datadog::PARENT_ID_KEY`         |
 | `Datadog::Tracing::Distributed::Headers::Ext::GRPC_METADATA_SAMPLING_PRIORITY` | `Datadog::Tracing::Distributed::Datadog::SAMPLING_PRIORITY_KEY` |

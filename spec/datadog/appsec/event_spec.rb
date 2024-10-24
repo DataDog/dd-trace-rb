@@ -45,7 +45,7 @@ RSpec.describe Datadog::AppSec::Event do
   describe '.record' do
     before do
       # prevent rate limiter to bias tests
-      Datadog::AppSec::RateLimiter.reset!(:traces)
+      Datadog::AppSec::RateLimiter.reset!
     end
 
     let(:options) { {} }
@@ -309,7 +309,7 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         expect(trace).to_not be nil
       end
@@ -325,14 +325,19 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'does not call the rate limiter' do
-        expect(Datadog::AppSec::RateLimiter).to_not receive(:limit)
+        expect_any_instance_of(Datadog::AppSec::RateLimiter).to_not receive(:limit)
 
         described_class.record(nil, events)
       end
     end
 
     context 'with many traces' do
-      let(:rate_limit) { 100 }
+      before do
+        allow(Datadog::Core::Utils::Time).to receive(:get_time).and_return(0)
+        allow(Datadog::AppSec::RateLimiter).to receive(:trace_rate_limit).and_return(rate_limit)
+      end
+
+      let(:rate_limit) { 50 }
       let(:trace_count) { rate_limit * 2 }
 
       let(:traces) do
@@ -353,6 +358,97 @@ RSpec.describe Datadog::AppSec::Event do
         expect(described_class).to receive(:record_via_span).exactly(rate_limit).times.and_call_original
 
         expect(traces).to have_attributes(count: trace_count)
+      end
+    end
+  end
+
+  describe '.tag_and_keep!' do
+    let(:with_trace) { true }
+    let(:with_span) { true }
+
+    let(:waf_actions) { [] }
+    let(:waf_result) do
+      dbl = double
+
+      allow(dbl).to receive(:actions).and_return(waf_actions)
+
+      dbl
+    end
+
+    let(:scope) do
+      scope_trace = nil
+      scope_span = nil
+
+      trace_operation = Datadog::Tracing::TraceOperation.new
+      trace_operation.measure('root') do |span, trace|
+        scope_trace = trace if with_trace
+        scope_span = span if with_span
+      end
+
+      dbl = double
+
+      allow(dbl).to receive(:trace).and_return(scope_trace)
+      allow(dbl).to receive(:service_entry_span).and_return(scope_span)
+
+      dbl
+    end
+
+    before do
+      # prevent rate limiter to bias tests
+      Datadog::AppSec::RateLimiter.reset!
+
+      described_class.tag_and_keep!(scope, waf_result)
+    end
+
+    context 'with no actions' do
+      it 'does not add appsec.blocked tag to span' do
+        expect(scope.service_entry_span.send(:meta)).to_not include('appsec.blocked')
+        expect(scope.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        expect(scope.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(scope.trace.send(:meta)['_dd.p.appsec']).to eq('1')
+      end
+    end
+
+    context 'with block action' do
+      let(:waf_actions) { ['block'] }
+
+      it 'adds appsec.blocked tag to span' do
+        expect(scope.service_entry_span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(scope.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        expect(scope.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(scope.trace.send(:meta)['_dd.p.appsec']).to eq('1')
+      end
+    end
+
+    context 'without service_entry_span' do
+      let(:with_span) { false }
+
+      it 'does not add appsec span tags but still add distributed tags' do
+        expect(scope.service_entry_span).to be nil
+        expect(scope.trace.send(:meta)['_dd.p.dm']).to eq('-5')
+        expect(scope.trace.send(:meta)['_dd.p.appsec']).to eq('1')
+      end
+    end
+
+    context 'without trace' do
+      let(:with_trace) { false }
+
+      context 'with no actions' do
+        it 'does not add distributed tags but still add appsec span tags' do
+          expect(scope.trace).to be nil
+          expect(scope.service_entry_span.send(:meta)['appsec.blocked']).to be nil
+          expect(scope.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        end
+      end
+
+      context 'with block action' do
+        let(:waf_actions) { ['block'] }
+
+        it 'does not add distributed tags but still add appsec span tags' do
+          expect(scope.trace).to be nil
+          expect(scope.service_entry_span.send(:meta)['appsec.blocked']).to eq('true')
+          expect(scope.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        end
       end
     end
   end

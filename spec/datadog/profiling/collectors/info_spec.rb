@@ -1,5 +1,5 @@
-require 'datadog/profiling/collectors/info'
-require 'json-schema'
+require "datadog/profiling/collectors/info"
+require "json-schema"
 
 RSpec.describe Datadog::Profiling::Collectors::Info do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
@@ -7,9 +7,9 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
 
   subject(:info_collector) { described_class.new(settings) }
 
-  describe '#info' do
-    it 'records useful info in multiple categories' do
-      settings.service = 'test'
+  describe "#info" do
+    it "records useful info in multiple categories" do
+      settings.service = "test"
       expect(info).to match(
         {
           platform: hash_including(
@@ -28,7 +28,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       )
     end
 
-    it 'records a sensible application start time' do
+    it "records a sensible application start time" do
       now = Time.now
 
       # We approximate the start time to the loading time of info. For this not to be
@@ -37,7 +37,7 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       expect(parsed_start_time).to be_between(now - 60 * 60, now)
     end
 
-    it 'records profiler info including a json dump of settings' do
+    it "records profiler info including a json dump of settings" do
       settings.profiling.advanced.max_frames = 600
       settings.profiling.advanced.experimental_heap_enabled = true
 
@@ -49,43 +49,60 @@ RSpec.describe Datadog::Profiling::Collectors::Info do
       )
     end
 
-    it 'caches data' do
+    it "caches data" do
       expect(info_collector.info).to be(info_collector.info)
     end
 
-    context 'with exotic-typed profile settings' do
+    context "with exotic-typed profile settings" do
       let(:settings) do
         TestSettings.new
       end
 
-      it 'handles multiple types nicely' do
+      it "handles multiple types nicely" do
         expect(info[:profiler][:settings]).to match(
           {
             boolean_opt: true,
             symbol_opt: :a_symbol,
-            string_opt: 'a string',
+            string_opt: "a string",
             integer_opt: 123,
             float_opt: 123.456,
             nil_opt: nil,
             advanced: {
-              list_opt: [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol,
-                         a_string_including('#<ComplexObject:')],
+              list_opt: [false, 1, 2.0, "3", nil, [1, 2, 3], {"a" => "a", "b" => "b"}, :a_symbol,
+                a_string_including("#<ComplexObject:")],
               hash_opt: {
                 a: false,
                 b: 1,
                 c: 2.0,
-                d: '3',
+                d: "3",
                 e: nil,
                 f: [1, 2, 3],
-                g: { 'a' => 'a', 'b' => 'b' },
+                g: {"a" => "a", "b" => "b"},
                 h: :a_symbol,
-                i: a_string_including('#<ComplexObject:')
+                i: a_string_including("#<ComplexObject:")
               },
-              proc_opt: a_string_including('#<Proc:'),
-              complex_obj_opt: a_string_including('#<ComplexObject:')
+              proc_opt: a_string_including("#<Proc:"),
+              complex_obj_opt: a_string_including("#<ComplexObject:")
             }
           }
         )
+      end
+    end
+
+    describe "libdatadog version reporting" do
+      it "reports the libdatadog version, including platform" do
+        libdatadog_gem = Gem.loaded_specs["libdatadog"]
+
+        expect(info.dig(:profiler, :libdatadog)).to eq("#{libdatadog_gem.version}-#{libdatadog_gem.platform}")
+      end
+
+      context "when libdatadog is not available in loaded_specs" do
+        it "reports the libdatadog version, with an unknown platform" do
+          expect(Gem.loaded_specs).to receive(:[]).with("libdatadog").and_return(nil)
+          allow(Gem.loaded_specs).to receive(:[]).and_call_original
+
+          expect(info.dig(:profiler, :libdatadog)).to eq("#{Libdatadog::VERSION}-(unknown)")
+        end
       end
     end
   end
@@ -99,15 +116,15 @@ class TestSettings
   include Datadog::Core::Configuration::Base
 
   option :service do |o|
-    o.default 'test-service'
+    o.default "test-service"
   end
 
   option :env do |o|
-    o.default 'test-env'
+    o.default "test-env"
   end
 
   option :version do |o|
-    o.default 'test-version'
+    o.default "test-version"
   end
 
   settings :profiling do
@@ -123,7 +140,7 @@ class TestSettings
 
     option :string_opt do |o|
       o.type :string
-      o.default 'a string'
+      o.default "a string"
     end
 
     option :integer_opt do |o|
@@ -142,7 +159,7 @@ class TestSettings
     settings :advanced do
       option :list_opt do |o|
         o.type :array
-        o.default [false, 1, 2.0, '3', nil, [1, 2, 3], { 'a' => 'a', 'b' => 'b' }, :a_symbol, ComplexObject.new]
+        o.default [false, 1, 2.0, "3", nil, [1, 2, 3], {"a" => "a", "b" => "b"}, :a_symbol, ComplexObject.new]
       end
 
       option :hash_opt do |o|
@@ -152,10 +169,10 @@ class TestSettings
             a: false,
             b: 1,
             c: 2.0,
-            d: '3',
+            d: "3",
             e: nil,
             f: [1, 2, 3],
-            g: { 'a' => 'a', 'b' => 'b' },
+            g: {"a" => "a", "b" => "b"},
             h: :a_symbol,
             i: ComplexObject.new,
           }
@@ -166,7 +183,7 @@ class TestSettings
         o.type :proc
         o.default do
           proc {
-            'proc result'
+            "proc result"
           }
         end
       end

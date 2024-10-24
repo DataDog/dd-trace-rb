@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../core'
+require_relative '../../../core/telemetry/logger'
 require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative '../rack/ext'
@@ -41,6 +42,7 @@ module Datadog
 
               # collect endpoint details
               endpoint = payload.fetch(:endpoint)
+              env = payload.fetch(:env)
               api_view = api_view(endpoint.options[:for])
               request_method = endpoint.options.fetch(:method).first
               path = endpoint_expand_path(endpoint)
@@ -61,9 +63,22 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ENDPOINT_RUN)
 
+              if (grape_route = env['grape.routing_args']) && grape_route[:route_info]
+                trace.set_tag(
+                  Tracing::Metadata::Ext::HTTP::TAG_ROUTE,
+                  # here we are removing the format from the path:
+                  # e.g. /path/to/resource(.json) => /path/to/resource
+                  # e.g. /path/to/resource(.:format) => /path/to/resource
+                  grape_route[:route_info].path&.gsub(/\(\.:?\w+\)\z/, '')
+                )
+
+                trace.set_tag(Tracing::Metadata::Ext::HTTP::TAG_ROUTE_PATH, env['SCRIPT_NAME'])
+              end
+
               Thread.current[KEY_RUN] = true
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_run(name, start, finish, id, payload)
@@ -107,6 +122,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             # Status code resolution is tied to the exception handling
@@ -150,6 +166,7 @@ module Datadog
               Thread.current[KEY_RENDER] = true
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_render(name, start, finish, id, payload)
@@ -174,6 +191,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             def endpoint_run_filters(name, start, finish, id, payload)
@@ -212,6 +230,7 @@ module Datadog
               end
             rescue StandardError => e
               Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             private

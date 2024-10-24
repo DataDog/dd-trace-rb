@@ -4,6 +4,12 @@ rulesets:
   - ruby-security
   - ruby-best-practices:
     rules:
+      hash-fetch:
+        ignore:
+          - "**"
       percent-w:
         ignore:
-          - '**'
+          - "**"
+      symbols-as-keys:
+        ignore:
+          - "**"

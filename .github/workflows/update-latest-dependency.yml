@@ -1,0 +1,95 @@
+name: "Update Latest Dependency"
+
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Every Sunday at midnight
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+        contents: read
+    strategy:
+        fail-fast: false
+        matrix:
+            engine:
+              # ADD NEW RUBIES HERE
+              - name: ruby
+                version: '3.4'
+              - name: ruby
+                version: '3.3'
+              - name: ruby
+                version: '3.2'
+              - name: ruby
+                version: '3.1'
+              - name: ruby
+                version: '3.0'
+              - name: ruby
+                version: '2.7'
+              - name: ruby
+                version: '2.6'
+              - name: ruby
+                version: '2.5'
+              - name: jruby
+                version: '9.4'
+              - name: jruby
+                version: '9.3'
+              - name: jruby
+                version: '9.2'
+    container:
+      image: "ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Output Ruby version
+        run: ruby -v
+
+      - name: Bundle
+        run: bundle install
+
+      - name: Update latest
+        run: bundle exec rake edge:latest
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 'gha${{ github.run_id }}-datadog-gem-${{ matrix.engine.name }}-${{ matrix.engine.version }}'
+          path: gemfiles/${{ matrix.engine.name }}_${{ matrix.engine.version }}_*
+          retention-days: 1
+
+  aggregate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts for all runtimes
+        uses: actions/download-artifact@v4
+        with:
+          path: gemfiles
+          pattern: gha${{ github.run_id }}-datadog-gem-*
+          merge-multiple: true
+
+      - run: git diff
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GHA_PAT }}
+          branch: auto-generate/update-latest-dependencies
+          title: '[🤖] Update Latest Dependency'
+          base: master
+          labels: dev/internal, integrations
+          commit-message: "[🤖] Update Latest Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          delete-branch: true
+          body: |
+            _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
+
+            The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.

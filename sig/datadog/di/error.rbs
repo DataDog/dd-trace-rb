@@ -1,0 +1,12 @@
+module Datadog
+  module DI
+    class Error < StandardError
+      class MissingLineNumber < Error
+      end
+      class AgentCommunicationError < Error
+      end
+      class DITargetNotDefined < Error
+      end
+    end
+  end
+end

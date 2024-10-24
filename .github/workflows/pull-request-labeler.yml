@@ -9,8 +9,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: kachkaev/labeler@d89797c51d07680aec17049cc6790e9d323d9a93 # actions/labeler@v4 + https://github.com/actions/labeler/pull/316
+      - uses: actions/labeler@v5
         with:
           repo-token: "${{ secrets.GITHUB_TOKEN }}"
           configuration-path: .github/labeler.yml
-          dot: true # From https://github.com/actions/labeler/pull/316

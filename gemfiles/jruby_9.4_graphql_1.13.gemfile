@@ -5,7 +5,6 @@ source "https://rubygems.org"
 gem "appraisal", "~> 2.4.0"
 gem "benchmark-ips", "~> 2.8"
 gem "benchmark-memory", "< 0.2"
-gem "builder"
 gem "climate_control", "~> 0.2.0"
 gem "concurrent-ruby"
 gem "json-schema", "< 3"
@@ -26,14 +25,16 @@ gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "rexml", ">= 3.2.7"
 gem "webrick", ">= 1.7.0"
-gem "yard", "~> 0.9"
 gem "rubocop", "~> 1.50.0", require: false
 gem "rubocop-packaging", "~> 0.5.2", require: false
 gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", ["~> 2.20", "< 2.21"], require: false
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "ffi", "~> 1.16.3", require: false
+gem "rails", "~> 6.1.0"
 gem "graphql", "~> 1.13.0"
+gem "sprockets", "< 4"
+gem "lograge", "~> 0.11"
 
 group :check do
 

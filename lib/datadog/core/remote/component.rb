@@ -39,6 +39,7 @@ module Datadog
               @client.sync
               @healthy ||= true
             rescue Client::SyncError => e
+              # Transient errors due to network or agent. Logged the error but not via telemetry
               Datadog.logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
@@ -48,6 +49,7 @@ module Datadog
               # negotiation object stores error logging state that should be reset.
               negotiation = Negotiation.new(settings, agent_settings)
 
+              # Transient errors due to network or agent. Logged the error but not via telemetry
               Datadog.logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
                 'reseting client state'
@@ -150,10 +152,10 @@ module Datadog
           #
           # Those checks are instead performed inside the worker loop.
           # This allows users to upgrade their agent while keeping their application running.
-          def build(settings, agent_settings)
+          def build(settings, agent_settings, telemetry:)
             return unless settings.remote.enabled
 
-            new(settings, Client::Capabilities.new(settings), agent_settings)
+            new(settings, Client::Capabilities.new(settings, telemetry), agent_settings)
           end
         end
       end

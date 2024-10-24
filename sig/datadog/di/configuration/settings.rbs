@@ -1,0 +1,10 @@
+module Datadog
+  module DI
+    module Configuration
+      module Settings
+        def self.extended: (untyped base) -> untyped
+        def self.add_settings!: (untyped base) -> untyped
+      end
+    end
+  end
+end

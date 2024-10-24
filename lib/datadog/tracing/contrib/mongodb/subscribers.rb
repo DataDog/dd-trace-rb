@@ -70,6 +70,8 @@ module Datadog
 
             # set the resource with the quantized query
             span.resource = serialized_query
+          rescue StandardError => e
+            Datadog.logger.debug("error when handling MongoDB 'started' event: #{e}")
           end
           # rubocop:enable Metrics/AbcSize
 

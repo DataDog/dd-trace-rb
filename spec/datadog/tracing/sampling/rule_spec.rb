@@ -53,6 +53,8 @@ RSpec.describe Datadog::Tracing::Sampling::Rule do
 
         expect(Datadog.logger).to receive(:error)
           .with(a_string_including("Matcher failed. Cause: #{error}"))
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+          .with(error, description: 'Matcher failed')
       end
 
       it { is_expected.to be nil }

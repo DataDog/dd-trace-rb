@@ -50,13 +50,13 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       end
 
       it do
-        expect(Datadog.logger).to_not receive(:error)
+        expect(Datadog.logger).to_not receive(:warn)
 
         expect(endpoint?).to be true
       end
 
       it do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
 
         expect(negotiation.endpoint?('/bar')).to be false
       end
@@ -65,7 +65,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
         let(:suppress_logging) { { no_config_endpoint: true } }
 
         it 'does not log an error' do
-          expect(Datadog.logger).to_not receive(:error)
+          expect(Datadog.logger).to_not receive(:warn)
 
           expect(negotiation.endpoint?('/bar')).to be false
         end
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       let(:response_body) { '404 page not found' }
 
       before do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
       end
 
       it { expect(endpoint?).to be false }
@@ -95,7 +95,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       let(:response_body) { '400 bad request' }
 
       before do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
       end
 
       it { expect(endpoint?).to be false }
@@ -113,7 +113,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       let(:response_body) { '500 internal server error' }
 
       before do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
       end
 
       it { expect(endpoint?).to be false }
@@ -133,7 +133,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       end
 
       before do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
       end
 
       it { expect(endpoint?).to be false }
@@ -150,7 +150,7 @@ RSpec.describe Datadog::Core::Remote::Negotiation do
       let(:request_exception) { Errno::ECONNREFUSED.new }
 
       before do
-        expect(Datadog.logger).to receive(:error).and_return(nil)
+        expect(Datadog.logger).to receive(:warn)
       end
 
       it { expect(endpoint?).to be false }

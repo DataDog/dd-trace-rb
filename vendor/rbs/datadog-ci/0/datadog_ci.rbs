@@ -1,0 +1,7 @@
+module Datadog
+  module CI
+    module VERSION
+      STRING: String
+    end
+  end
+end

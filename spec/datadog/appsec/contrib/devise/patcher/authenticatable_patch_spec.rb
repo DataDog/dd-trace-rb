@@ -39,11 +39,11 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   let(:failed_login) {  mock_klass.new(false) }
 
   before do
-    expect(Datadog::AppSec).to receive(:enabled?).and_return(appsec_enabled)
+    allow(Datadog::AppSec).to receive(:enabled?).and_return(appsec_enabled)
     if appsec_enabled
-      expect(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
+      allow(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
 
-      expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if track_user_events_enabled
+      allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if track_user_events_enabled
     end
   end
 
@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
     end
   end
 
-  context 'AppSec scope is nil ' do
+  context 'AppSec scope is nil' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
     let(:mode) { 'safe' }
@@ -75,6 +75,33 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
     it 'do not tracks event' do
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_login_success)
+      expect(success_login.validate(resource)).to eq(true)
+    end
+  end
+
+  context 'when logging in from Rememberable devise strategy' do
+    let(:appsec_enabled) { true }
+    let(:track_user_events_enabled) { true }
+    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
+
+    let(:mock_klass) do
+      Class.new do
+        def validate(resource, &block)
+          @result
+        end
+
+        prepend Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch
+        prepend Datadog::AppSec::Contrib::Devise::Patcher::RememberablePatch
+
+        def initialize(result)
+          @result = result
+        end
+      end
+    end
+
+    it 'does not track login event' do
+      expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_login_success)
+
       expect(success_login.validate(resource)).to eq(true)
     end
   end

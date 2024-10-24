@@ -52,7 +52,7 @@ module Datadog
           # ensure rate limiter is called only when there are events to record
           return if events.empty? || span.nil?
 
-          Datadog::AppSec::RateLimiter.limit(:traces) do
+          Datadog::AppSec::RateLimiter.thread_local.limit do
             record_via_span(span, *events)
           end
         end
@@ -137,6 +137,18 @@ module Datadog
         end
         # rubocop:enable Metrics/MethodLength
 
+        def tag_and_keep!(scope, waf_result)
+          # We want to keep the trace in case of security event
+          scope.trace.keep! if scope.trace
+
+          if scope.service_entry_span
+            scope.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.include?('block')
+            scope.service_entry_span.set_tag('appsec.event', 'true')
+          end
+
+          add_distributed_tags(scope.trace)
+        end
+
         private
 
         def compressed_and_base64_encoded(value)
@@ -164,6 +176,18 @@ module Datadog
           gz.write(value)
           gz.close
           sio.string
+        end
+
+        # Propagate to downstream services the information that the current distributed trace is
+        # containing at least one ASM security event.
+        def add_distributed_tags(trace)
+          return unless trace
+
+          trace.set_tag(
+            Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
+            Datadog::Tracing::Sampling::Ext::Decision::ASM
+          )
+          trace.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, '1')
         end
       end
     end

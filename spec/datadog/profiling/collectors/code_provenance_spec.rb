@@ -1,76 +1,76 @@
-require 'datadog/profiling/collectors/code_provenance'
-require 'json-schema'
-require 'yaml'
+require "datadog/profiling/collectors/code_provenance"
+require "json-schema"
+require "yaml"
 
 RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
   subject(:code_provenance) { described_class.new }
 
-  describe '#refresh' do
+  describe "#refresh" do
     subject(:refresh) { code_provenance.refresh }
 
-    it 'records libraries that are currently loaded' do
+    it "records libraries that are currently loaded" do
       refresh
 
       expect(code_provenance.generate).to include(
         have_attributes(
-          kind: 'standard library',
-          name: 'stdlib',
+          kind: "standard library",
+          name: "stdlib",
           version: RUBY_VERSION.to_s,
-          path: start_with('/'),
+          path: start_with("/"),
         ),
         have_attributes(
-          kind: 'library',
-          name: 'datadog',
+          kind: "library",
+          name: "datadog",
           version: Datadog::VERSION::STRING,
-          path: start_with('/'),
+          path: start_with("/"),
         ),
         have_attributes(
-          kind: 'library',
-          name: 'rspec-core',
-          version: start_with('3.'), # This will one day need to be bumped for RSpec 4
-          path: start_with('/'),
+          kind: "library",
+          name: "rspec-core",
+          version: start_with("3."), # This will one day need to be bumped for RSpec 4
+          path: start_with("/"),
         )
       )
     end
 
-    it 'records the correct path for datadog' do
+    it "records the correct path for datadog" do
       refresh
 
       current_file_directory = __dir__
-      datadog_gem_root_directory = code_provenance.generate.find { |lib| lib.name == 'datadog' }.path
+      datadog_gem_root_directory = code_provenance.generate.find { |lib| lib.name == "datadog" }.path
 
       expect(current_file_directory).to start_with(datadog_gem_root_directory)
     end
 
-    it 'skips libraries not present in the loaded files' do
+    it "skips libraries not present in the loaded files" do
       code_provenance.refresh(
-        loaded_files: ['/is_loaded/is_loaded.rb'],
+        loaded_files: ["/is_loaded/is_loaded.rb"],
         loaded_specs: [
           instance_double(
             Gem::Specification,
-            name: 'not_loaded',
-            version: 'not_loaded_version',
-            gem_dir: '/not_loaded/'
+            name: "not_loaded",
+            version: "not_loaded_version",
+            gem_dir: "/not_loaded/"
           ),
           instance_double(
             Gem::Specification,
-            name: 'is_loaded',
-            version: 'is_loaded_version',
-            gem_dir: '/is_loaded/'
+            name: "is_loaded",
+            version: "is_loaded_version",
+            gem_dir: "/is_loaded/"
           )
         ],
       )
 
       expect(code_provenance.generate).to have(1).item
       expect(code_provenance.generate.first).to have_attributes(
-        name: 'is_loaded',
-        version: 'is_loaded_version',
-        path: '/is_loaded/',
-        kind: 'library',
+        name: "is_loaded",
+        version: "is_loaded_version",
+        path: "/is_loaded/",
+        kind: "library",
       )
     end
 
-    it 'returns self' do
+    it "returns self" do
       expect(code_provenance.refresh).to be code_provenance
     end
 
@@ -78,32 +78,32 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       # I'm not entirely sure if this can happen in end-user apps, but can happen in CI if bundler is configured to
       # install dependencies into a subfolder of datadog. In particular GitHub Actions does this.
 
-      it 'matches the loaded file to the longest matching path' do
+      it "matches the loaded file to the longest matching path" do
         code_provenance.refresh(
-          loaded_files: ['/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3/lib/byebug.rb'],
+          loaded_files: ["/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3/lib/byebug.rb"],
           loaded_specs: [
             instance_double(
               Gem::Specification,
-              name: 'datadog',
-              version: '1.2.3',
-              gem_dir: '/dd-trace-rb'
+              name: "datadog",
+              version: "1.2.3",
+              gem_dir: "/dd-trace-rb"
             ),
             instance_double(
               Gem::Specification,
-              name: 'byebug',
-              version: '4.5.6',
-              gem_dir: '/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3'
+              name: "byebug",
+              version: "4.5.6",
+              gem_dir: "/dd-trace-rb/vendor/bundle/ruby/2.7.0/gems/byebug-11.1.3"
             )
           ],
         )
 
         expect(code_provenance.generate).to have(1).item
-        expect(code_provenance.generate.first).to have_attributes(name: 'byebug')
+        expect(code_provenance.generate.first).to have_attributes(name: "byebug")
       end
     end
   end
 
-  describe '#generate_json' do
+  describe "#generate_json" do
     before do
       code_provenance.refresh
     end
@@ -162,30 +162,30 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
       ).freeze
     end
 
-    it 'renders the list of loaded libraries as json' do
-      expect(JSON.parse(code_provenance.generate_json).fetch('v1')).to include(
+    it "renders the list of loaded libraries as json" do
+      expect(JSON.parse(code_provenance.generate_json).fetch("v1")).to include(
         hash_including(
-          'name' => 'stdlib',
-          'kind' => 'standard library',
-          'version' => RUBY_VERSION.to_s,
-          'paths' => include(start_with('/')),
+          "name" => "stdlib",
+          "kind" => "standard library",
+          "version" => RUBY_VERSION.to_s,
+          "paths" => include(start_with("/")),
         ),
         hash_including(
-          'name' => 'datadog',
-          'kind' => 'library',
-          'version' => Datadog::VERSION::STRING,
-          'paths' => include(start_with('/')),
+          "name" => "datadog",
+          "kind" => "library",
+          "version" => Datadog::VERSION::STRING,
+          "paths" => include(start_with("/")),
         ),
         hash_including(
-          'name' => 'rspec-core',
-          'kind' => 'library',
-          'version' => start_with('3.'), # This will one day need to be bumped for RSpec 4
-          'paths' => include(start_with('/')),
+          "name" => "rspec-core",
+          "kind" => "library",
+          "version" => start_with("3."), # This will one day need to be bumped for RSpec 4
+          "paths" => include(start_with("/")),
         )
       )
     end
 
-    it 'renders the list of loaded libraries using the expected schema' do
+    it "renders the list of loaded libraries using the expected schema" do
       JSON::Validator.validate!(code_provenance_schema, code_provenance.generate_json)
     end
 
@@ -232,30 +232,30 @@ RSpec.describe Datadog::Profiling::Collectors::CodeProvenance do
     # {"world":2}
     # {"hello":1}
     #
-    describe 'when JSON encoder is broken and skips #to_json' do
+    describe "when JSON encoder is broken and skips #to_json" do
       let(:library_class_without_to_json) do
         Class.new(Datadog::Profiling::Collectors::CodeProvenance::Library) do
           undef to_json
         end
       end
 
-      it 'is still able to correctly encode a library instance' do
+      it "is still able to correctly encode a library instance" do
         instance = library_class_without_to_json.new(
-          name: 'datadog',
-          kind: 'library',
-          version: '1.2.3',
-          path: '/example/path/to/datadog/gem',
+          name: "datadog",
+          kind: "library",
+          version: "1.2.3",
+          path: "/example/path/to/datadog/gem",
         )
 
         serialized_without_to_json = YAML.dump(instance)
         # Remove class annotation, so it deserializes back as a hash and not an instance of our class
-        serialized_without_to_json.gsub!(/---.*/, '---')
+        serialized_without_to_json.gsub!(/---.*/, "---")
 
         expect(YAML.safe_load(serialized_without_to_json)).to eq(
-          'name' => 'datadog',
-          'kind' => 'library',
-          'version' => '1.2.3',
-          'paths' => ['/example/path/to/datadog/gem'],
+          "name" => "datadog",
+          "kind" => "library",
+          "version" => "1.2.3",
+          "paths" => ["/example/path/to/datadog/gem"],
         )
       end
     end

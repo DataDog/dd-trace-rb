@@ -19,7 +19,6 @@ void collectors_dynamic_sampling_rate_init(VALUE profiling_module);
 void collectors_idle_sampling_helper_init(VALUE profiling_module);
 void collectors_stack_init(VALUE profiling_module);
 void collectors_thread_context_init(VALUE profiling_module);
-void crashtracker_init(VALUE profiling_module);
 void http_transport_init(VALUE profiling_module);
 void stack_recorder_init(VALUE profiling_module);
 
@@ -54,7 +53,6 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_idle_sampling_helper_init(profiling_module);
   collectors_stack_init(profiling_module);
   collectors_thread_context_init(profiling_module);
-  crashtracker_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
 
@@ -255,7 +253,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 
 static void *trigger_enforce_success(void *trigger_args) {
   intptr_t syserr_errno = (intptr_t) trigger_args;
-  ENFORCE_SUCCESS_NO_GVL(syserr_errno);
+  ENFORCE_SUCCESS_NO_GVL((int) syserr_errno);
   return NULL;
 }
 

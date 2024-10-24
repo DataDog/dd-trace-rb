@@ -47,6 +47,13 @@ RSpec.describe 'Sequel instrumentation' do
         String :name
       end
 
+      # Warm up the connection and flushed out some internal queries.
+      # This mitigates inconsistent ordering during test assertion.
+      #
+      # For example:
+      # - `pg` retrieves the primary key column name of a table named tbl in a PostgreSQL database
+      sequel[:tbl].insert(name: 'data0')
+
       clear_traces!
     end
 
@@ -121,7 +128,7 @@ RSpec.describe 'Sequel instrumentation' do
             sequel[:tbl].insert(name: 'data1')
             sequel[:tbl].insert(name: 'data2')
             data = sequel[:tbl].select.to_a
-            expect(data.length).to eq(2)
+            expect(data.length).to eq(3)
             data.each do |row|
               expect(row[:name]).to match(/^data.$/)
             end
@@ -151,7 +158,7 @@ RSpec.describe 'Sequel instrumentation' do
           [sequel_cmd1_span, "INSERT INTO tbl (name) VALUES ('data1')"],
           [sequel_cmd2_span, "INSERT INTO tbl (name) VALUES ('data2')"],
           [sequel_cmd3_span, 'SELECT * FROM tbl'],
-          # Internal queries run by Sequel (e.g. 'SELECT version()').
+          # Internal queries run by Sequel (e.g. 'SELECT version()' for `mysql`).
           # We don't care about their content, only that they are
           # correctly tagged.
           *sequel_internal_spans.map { |span| [span, nil] }

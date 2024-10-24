@@ -1,9 +1,10 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils/time'
+require_relative "../core/utils/time"
 
-require_relative '../core/worker'
-require_relative '../core/workers/polling'
+require_relative "../core/worker"
+require_relative "../core/workers/polling"
+require_relative "../core/telemetry/logger"
 
 module Datadog
   module Profiling
@@ -22,7 +23,8 @@ module Datadog
 
       attr_reader \
         :exporter,
-        :transport
+        :transport,
+        :profiler_failed
 
       public
 
@@ -34,6 +36,7 @@ module Datadog
       )
         @exporter = exporter
         @transport = transport
+        @profiler_failed = false
 
         # Workers::Async::Thread settings
         self.fork_policy = fork_policy
@@ -50,25 +53,23 @@ module Datadog
       end
 
       def perform(on_failure_proc)
-        begin
-          # A profiling flush may be called while the VM is shutting down, to report the last profile. When we do so,
-          # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
-          # successfully finish in the strict timeout.
-          # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
-          interrupted = true
+        # A profiling flush may be called while the VM is shutting down, to report the last profile. When we do so,
+        # we impose a strict timeout. This means this last profile may or may not be sent, depending on if the flush can
+        # successfully finish in the strict timeout.
+        # This can be somewhat confusing (why did it not get reported?), so let's at least log what happened.
+        interrupted = true
 
-          flush_and_wait
-          interrupted = false
-        rescue Exception => e # rubocop:disable Lint/RescueException
-          Datadog.logger.warn(
-            'Profiling::Scheduler thread error. ' \
-            "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-          )
-          on_failure_proc&.call
-          raise
-        ensure
-          Datadog.logger.debug('#flush was interrupted or failed before it could complete') if interrupted
-        end
+        flush_and_wait
+        interrupted = false
+      rescue Exception => e # rubocop:disable Lint/RescueException
+        Datadog.logger.warn(
+          "Profiling::Scheduler thread error. " \
+          "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+        )
+        on_failure_proc&.call
+        raise
+      ensure
+        Datadog.logger.debug("#flush was interrupted or failed before it could complete") if interrupted
       end
 
       # Configure Workers::IntervalLoop to not report immediately when scheduler starts
@@ -80,8 +81,14 @@ module Datadog
         true
       end
 
+      # This is called by the Profiler class whenever an issue happened in the profiler. This makes sure that even
+      # if there is data to be flushed, we don't try to flush it.
+      def mark_profiler_failed
+        @profiler_failed = true
+      end
+
       def work_pending?
-        exporter.can_flush?
+        !profiler_failed && exporter.can_flush?
       end
 
       def reset_after_fork
@@ -124,10 +131,11 @@ module Datadog
 
         begin
           transport.export(flush)
-        rescue StandardError => e
+        rescue => e
           Datadog.logger.error(
             "Unable to report profile. Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
+          Datadog::Core::Telemetry::Logger.report(e, description: "Unable to report profile")
         end
 
         true

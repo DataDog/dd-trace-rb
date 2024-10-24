@@ -12,7 +12,8 @@ env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
   ST_REF: main
-  FORCE_TESTS:
+  FORCE_TESTS: -F tests/appsec/test_asm_standalone.py
+  FORCE_TESTS_SCENARIO: APPSEC_STANDALONE
 
 jobs:
   build-harness:
@@ -27,6 +28,8 @@ jobs:
           - name: proxy
             internal: datadog/system-tests:proxy-v1
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     name: Build (${{ matrix.image.name }})
     steps:
       - name: Checkout
@@ -34,6 +37,7 @@ jobs:
         with:
           repository: 'DataDog/system-tests'
           ref: ${{ env.ST_REF }}
+          persist-credentials: false
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest; then
@@ -86,9 +90,15 @@ jobs:
             path: dd-trace-rb
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -96,20 +106,25 @@ jobs:
           - rails61
           - rails70
           - rails71
+          - graphql23
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
+    permissions:
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
           ref: ${{ env.ST_REF }}
+          persist-credentials: false
       - name: Checkout ${{ matrix.library.repository }}
         uses: actions/checkout@v4
         with:
           repository: '${{ matrix.library.repository }}'
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
+          persist-credentials: false
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
@@ -163,9 +178,15 @@ jobs:
           - ruby
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -178,7 +199,14 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
+          - APPSEC_STANDALONE
         include:
+          - library: ruby
+            app: rack
+            scenario: INTEGRATIONS
+          - library: ruby
+            app: rack
+            scenario: CROSSED_TRACING_LIBRARIES
           - library: ruby
             app: rack
             scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
@@ -236,6 +264,9 @@ jobs:
           - library: ruby
             app: rack
             scenario: TELEMETRY_METRIC_GENERATION_DISABLED
+          - library: ruby
+            app: graphql23
+            scenario: GRAPHQL_APPSEC
     runs-on: ubuntu-latest
     needs:
       - build-harness
@@ -247,6 +278,7 @@ jobs:
         with:
           repository: 'DataDog/system-tests'
           ref: ${{ env.ST_REF }}
+          persist-credentials: false
       - name: Pull runner image
         run: |
           docker pull ${{ env.REPO }}/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }}
@@ -268,9 +300,11 @@ jobs:
           docker image list
       - name: Run scenario
         run: |
-          ./run.sh ++docker ${{ matrix.scenario }} ${{ env.FORCE_TESTS }}
+          ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
+          SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
+          SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
       - name: Archive logs
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
@@ -286,9 +320,15 @@ jobs:
           - ruby
         app:
           - rack
-#           - sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - sinatra14
           - sinatra20
           - sinatra21
+          - sinatra22
+          - sinatra30
+          - sinatra31
+          - sinatra32
+          - sinatra40
+          - rails42
           - rails50
           - rails51
           - rails52
@@ -296,8 +336,11 @@ jobs:
           - rails61
           - rails70
           - rails71
+          - graphql23
     runs-on: ubuntu-latest
     needs:
+      - build-harness
+      - build-apps
       - test
     if: ${{ always() }}
     name: Aggregate (${{ matrix.app }})
@@ -311,6 +354,7 @@ jobs:
         with:
           repository: 'DataDog/system-tests'
           ref: ${{ env.ST_REF }}
+          persist-credentials: false
       - name: Retrieve logs
         uses: actions/download-artifact@v4
         with:
@@ -330,15 +374,22 @@ jobs:
           - runner
           - agent
           - weblog-rack
-#           - weblog-sinatra14 # DEV-2.0: Uncomment after https://github.com/DataDog/system-tests/pull/1882 is merged
+          - weblog-sinatra14
           - weblog-sinatra20
           - weblog-sinatra21
+          - weblog-sinatra22
+          - weblog-sinatra30
+          - weblog-sinatra31
+          - weblog-sinatra32
+          - weblog-sinatra40
+          - weblog-rails42
           - weblog-rails50
           - weblog-rails51
           - weblog-rails52
           - weblog-rails60
           - weblog-rails61
           - weblog-rails70
+          - weblog-graphql23
     runs-on: ubuntu-latest
     needs:
       - test
@@ -348,7 +399,7 @@ jobs:
       - name: Log in to the Container registry
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
-      - uses: actions/delete-package-versions@v4
+      - uses: actions/delete-package-versions@v5
         with:
           package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
           package-name: 'system-tests/${{ matrix.image }}'

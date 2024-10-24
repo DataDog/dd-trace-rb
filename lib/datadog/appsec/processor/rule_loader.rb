@@ -9,7 +9,7 @@ module Datadog
       # that load appsec rules and data from  settings
       module RuleLoader
         class << self
-          def load_rules(ruleset:)
+          def load_rules(ruleset:, telemetry:)
             begin
               case ruleset
               when :recommended, :strict
@@ -34,6 +34,8 @@ module Datadog
               Datadog.logger.error do
                 "libddwaf ruleset failed to load, ruleset: #{ruleset.inspect} error: #{e.inspect}"
               end
+
+              telemetry.report(e, description: 'libddwaf ruleset failed to load')
 
               nil
             end

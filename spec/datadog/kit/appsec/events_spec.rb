@@ -120,17 +120,26 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
-    it 'sets user non-existence  on trace' do
-      trace_op.measure('root') do |span, _trace|
-        described_class.track_login_failure(trace_op, user_id: '42', user_exists: false)
-        expect(span.tags).to include('appsec.events.users.login.failure.usr.exists' => 'false')
-      end
-    end
-
     it 'sets other keys on trace' do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, foo: 'bar')
         expect(span.tags).to include('appsec.events.users.login.failure.foo' => 'bar')
+      end
+    end
+
+    context 'when user does not exist' do
+      it 'sets user non-existence on trace' do
+        trace_op.measure('root') do |span, _trace|
+          described_class.track_login_failure(trace_op, user_exists: false)
+          expect(span.tags).to include('appsec.events.users.login.failure.usr.exists' => 'false')
+        end
+      end
+
+      it 'does not set user id on trace' do
+        trace_op.measure('root') do |span, _trace|
+          described_class.track_login_failure(trace_op, user_exists: false)
+          expect(span.tags).not_to have_key('appsec.events.users.login.failure.usr.id')
+        end
       end
     end
 

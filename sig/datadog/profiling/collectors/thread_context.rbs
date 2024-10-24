@@ -8,17 +8,19 @@ module Datadog
           tracer: Datadog::Tracing::Tracer?,
           endpoint_collection_enabled: bool,
           timeline_enabled: bool,
-          ?allocation_type_enabled: bool,
+          waiting_for_gvl_threshold_ns: ::Integer,
+          otel_context_enabled: (::Symbol? | bool),
         ) -> void
 
         def self._native_initialize: (
-          Datadog::Profiling::Collectors::ThreadContext collector_instance,
-          Datadog::Profiling::StackRecorder recorder_instance,
-          ::Integer max_frames,
-          ::Symbol? tracer_context_key,
-          bool endpoint_collection_enabled,
-          bool timeline_enabled,
-          bool allocation_type_enabled,
+          self_instance: Datadog::Profiling::Collectors::ThreadContext,
+          recorder: Datadog::Profiling::StackRecorder,
+          max_frames: ::Integer,
+          tracer_context_key: ::Symbol?,
+          endpoint_collection_enabled: bool,
+          timeline_enabled: bool,
+          waiting_for_gvl_threshold_ns: ::Integer,
+          otel_context_enabled: (::Symbol? | bool),
         ) -> void
 
         def inspect: () -> ::String

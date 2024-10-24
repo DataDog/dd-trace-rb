@@ -53,7 +53,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        def receivers
+        def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
@@ -86,7 +86,10 @@ module Datadog
             end
 
             if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
+              settings_rules = AppSec::Processor::RuleLoader.load_rules(
+                telemetry: telemetry,
+                ruleset: Datadog.configuration.appsec.ruleset
+              )
 
               raise NoRulesError, 'no default rules available' unless settings_rules
 
@@ -99,9 +102,10 @@ module Datadog
               overrides: overrides,
               exclusions: exclusions,
               custom_rules: custom_rules,
+              telemetry: telemetry
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
           end
 
           [receiver]

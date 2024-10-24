@@ -18,6 +18,22 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
+typedef struct frame_info {
+  union {
+    struct {
+      VALUE iseq;
+      void *caching_pc; // For caching only
+      int line;
+    } ruby_frame;
+    struct {
+      VALUE caching_cme; // For caching only
+      ID method_id;
+    } native_frame;
+  } as;
+  bool is_ruby_frame : 1;
+  bool same_frame : 1;
+} frame_info;
+
 rb_nativethread_id_t pthread_id_for(VALUE thread);
 bool is_current_thread_holding_the_gvl(void);
 current_gvl_owner gvl_owner(void);
@@ -27,19 +43,9 @@ void ddtrace_thread_list(VALUE result_array);
 bool is_thread_alive(VALUE thread);
 VALUE thread_name_for(VALUE thread);
 
-int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, VALUE *buff, int *lines, bool* is_ruby_frame);
+int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *stack_buffer);
 // Returns true if the current thread belongs to the main Ractor or if Ruby has no Ractor support
 bool ddtrace_rb_ractor_main_p(void);
-
-// Ruby 3.0 finally added support for showing CFUNC frames (frames for methods written using native code)
-// in stack traces gathered via `rb_profile_frames` (https://github.com/ruby/ruby/pull/3299).
-// To access this information on older Rubies, beyond using our custom `ddtrace_rb_profile_frames` above, we also need
-// to backport the Ruby 3.0+ version of `rb_profile_frame_method_name`.
-#ifdef USE_BACKPORTED_RB_PROFILE_FRAME_METHOD_NAME
-  VALUE ddtrace_rb_profile_frame_method_name(VALUE frame);
-#else // Ruby > 3.0, just use the stock functionality
-  #define ddtrace_rb_profile_frame_method_name rb_profile_frame_method_name
-#endif
 
 // See comment on `record_placeholder_stack_in_native_code` for a full explanation of what this means (and why we don't just return 0)
 #define PLACEHOLDER_STACK_IN_NATIVE_CODE -1
@@ -59,3 +65,6 @@ const char *imemo_kind(VALUE imemo);
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void);
 #endif
+
+#define ENFORCE_THREAD(value) \
+  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, RTYPEDDATA_TYPE(rb_thread_current())))) raise_unexpected_type(value, ADD_QUOTES(value), "Thread", __FILE__, __LINE__, __func__); }

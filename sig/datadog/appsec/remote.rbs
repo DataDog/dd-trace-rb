@@ -37,7 +37,7 @@ module Datadog
 
       def self.products: () -> ::Array[String]
 
-      def self.receivers: () -> ::Array[Core::Remote::Dispatcher::Receiver]
+      def self.receivers: (Datadog::Core::Telemetry::Component telemetry) -> ::Array[Core::Remote::Dispatcher::Receiver]
 
       def self.remote_features_enabled?: () -> bool
 

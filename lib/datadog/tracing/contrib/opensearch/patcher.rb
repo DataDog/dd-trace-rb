@@ -6,6 +6,7 @@ require_relative 'ext'
 require_relative '../ext'
 require_relative '../integration'
 require_relative '../patcher'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -81,6 +82,8 @@ module Datadog
                   Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 rescue StandardError => e
                   Datadog.logger.error(e.message)
+                  Datadog::Core::Telemetry::Logger.report(e)
+                  # TODO: Refactor the code to streamline the execution without ensure
                 ensure
                   begin
                     response = super
@@ -90,12 +93,16 @@ module Datadog
                     raise
                   end
                   # Set post-response tags
-                  span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
-                  if response.headers['content-length']
-                    span.set_tag(
-                      OpenSearch::Ext::TAG_RESPONSE_CONTENT_LENGTH,
-                      response.headers['content-length'].to_i
-                    )
+                  if response
+                    if response.respond_to?(:status)
+                      span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, response.status)
+                    end
+                    if response.respond_to?(:headers) && (response.headers || {})['content-length']
+                      span.set_tag(
+                        OpenSearch::Ext::TAG_RESPONSE_CONTENT_LENGTH,
+                        response.headers['content-length'].to_i
+                      )
+                    end
                   end
                 end
               end

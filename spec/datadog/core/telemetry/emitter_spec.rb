@@ -18,16 +18,8 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
   end
 
   describe '#initialize' do
-    context 'when no params provided' do
-      subject(:emitter) { described_class.new }
-      it { is_expected.to be_a_kind_of(described_class) }
-    end
-
-    context 'when :http_transport is provided' do
-      let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
-      it { is_expected.to be_a_kind_of(described_class) }
-      it { expect(emitter.http_transport).to be(http_transport) }
-    end
+    it { is_expected.to be_a_kind_of(described_class) }
+    it { expect(emitter.http_transport).to be(http_transport) }
 
     it 'seq_id begins with 1' do
       original_seq_id = emitter.class.sequence.instance_variable_get(:@current)

@@ -10,6 +10,7 @@ variables:
 .benchmarks:
   stage: macrobenchmarks
   tags: ["runner:apm-k8s-same-cpu"]
+  needs: []
   timeout: 1h
   rules:
     - if: $CI_COMMIT_REF_NAME == "master"
@@ -30,6 +31,10 @@ variables:
     # Benchmark's env variables. Modify to tweak benchmark parameters.
     DD_TRACE_DEBUG: "false"
     DD_RUNTIME_METRICS_ENABLED: "true"
+
+    DD_SERVICE: "bp-ruby-gitlab"
+    DD_ENV: "staging"
+
     # Gitlab makes use of the rugged gem, which triggers the automatic no signals workaround use, see
     # https://docs.datadoghq.com/profiler/profiler_troubleshooting/ruby/#unexpected-failures-or-errors-from-ruby-gems-that-use-native-extensions-in-dd-trace-rb-1110
     # But in practice the endpoints we test it aren't affected, so we prefer to run the profiler in its default,
@@ -80,6 +85,7 @@ only-profiling:
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-alloc:
   extends: .benchmarks
@@ -87,6 +93,7 @@ only-profiling-alloc:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 only-profiling-heap:
   extends: .benchmarks
@@ -95,13 +102,17 @@ only-profiling-heap:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-crashtracking:
+only-profiling-heap-clean-after-gc:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
   extends: .benchmarks

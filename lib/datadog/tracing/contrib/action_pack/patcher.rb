@@ -2,6 +2,7 @@
 
 require_relative '../patcher'
 require_relative 'action_controller/patcher'
+require_relative 'action_dispatch/patcher'
 
 module Datadog
   module Tracing
@@ -19,6 +20,7 @@ module Datadog
 
           def patch
             ActionController::Patcher.patch
+            ActionDispatch::Patcher.patch
           end
         end
       end

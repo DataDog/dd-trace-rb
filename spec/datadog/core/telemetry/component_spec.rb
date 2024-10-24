@@ -6,10 +6,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
       enabled: enabled,
+      http_transport: http_transport,
       metrics_enabled: metrics_enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-      dependency_collection: dependency_collection
+      dependency_collection: dependency_collection,
+      shutdown_timeout_seconds: shutdown_timeout_seconds
     )
   end
 
@@ -17,8 +19,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:metrics_enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
   let(:metrics_aggregation_interval_seconds) { 1 }
+  let(:shutdown_timeout_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
+  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
   let(:not_found) { false }
 
   before do
@@ -28,7 +32,8 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       dependency_collection: dependency_collection,
       enabled: enabled,
       emitter: an_instance_of(Datadog::Core::Telemetry::Emitter),
-      metrics_manager: anything
+      metrics_manager: anything,
+      shutdown_timeout: shutdown_timeout_seconds
     ).and_return(worker)
 
     allow(worker).to receive(:start)
@@ -45,9 +50,11 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     context 'with default parameters' do
       subject(:telemetry) do
         described_class.new(
+          http_transport: http_transport,
           heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-          dependency_collection: dependency_collection
+          dependency_collection: dependency_collection,
+          shutdown_timeout_seconds: shutdown_timeout_seconds
         )
       end
 
@@ -207,6 +214,63 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         telemetry
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
+        end
+      end
+    end
+  end
+
+  describe 'includes Datadog::Core::Telemetry::Logging' do
+    after do
+      telemetry.stop!
+    end
+
+    it { is_expected.to a_kind_of(Datadog::Core::Telemetry::Logging) }
+  end
+
+  describe '#log!' do
+    after do
+      telemetry.stop!
+    end
+
+    describe 'when enabled' do
+      let(:enabled) { true }
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).to have_received(:enqueue).with(event)
+      end
+
+      context 'when in fork', skip: !Process.respond_to?(:fork) do
+        it do
+          expect_in_fork do
+            event = instance_double(Datadog::Core::Telemetry::Event::Log)
+            telemetry.log!(event)
+
+            expect(worker).to have_received(:enqueue).with(event)
+          end
+        end
+      end
+    end
+
+    describe 'when disabled' do
+      let(:enabled) { false }
+
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+
+      context 'when in fork', skip: !Process.respond_to?(:fork) do
+        it do
+          expect_in_fork do
+            event = instance_double(Datadog::Core::Telemetry::Event::Log)
+            telemetry.log!(event)
+
+            expect(worker).not_to have_received(:enqueue)
+          end
         end
       end
     end

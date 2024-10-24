@@ -151,6 +151,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/full')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span.type).to eq('web')
@@ -387,6 +389,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -422,6 +426,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/soft_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -460,6 +466,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/sub_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -573,6 +581,7 @@ RSpec.describe 'Rails Rack' do
       request_span = spans[0]
 
       expect(trace.resource).to eq('GET 404')
+      expect(trace.send(:meta)).not_to have_key('http.route')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')
@@ -599,6 +608,7 @@ RSpec.describe 'Rails Rack' do
       request_span = spans[0]
 
       expect(trace.resource).to eq('TestController#explicitly_not_found')
+      expect(trace.send(:meta).fetch('http.route')).to eq('/explicitly_not_found')
 
       expect(request_span.name).to eq('rack.request')
       expect(request_span.type).to eq('web')

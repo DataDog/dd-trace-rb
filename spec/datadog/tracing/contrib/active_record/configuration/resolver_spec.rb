@@ -106,6 +106,15 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
       let(:matcher) { 'bala boom!' }
 
       it 'does not resolves' do
+        expect(Datadog.logger).to receive(:error) do |message|
+          expect(message).to match(/failed to resolve/i)
+        end
+
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+          an_instance_of(URI::InvalidURIError),
+          description: 'Failed to resolve key'
+        )
+
         add
 
         expect(resolver.configurations).to be_empty
@@ -327,6 +336,11 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver 
           expect(message).to match(/failed to resolve/i)
           expect(message).not_to match(/password/i)
         end
+
+        expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+          an_instance_of(URI::InvalidURIError),
+          description: 'Failed to resolve ActiveRecord database configuration'
+        )
 
         is_expected.to be_nil
       end

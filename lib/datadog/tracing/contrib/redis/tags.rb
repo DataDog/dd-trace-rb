@@ -4,6 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -45,6 +46,9 @@ module Datadog
               span.set_tag Ext::TAG_RAW_COMMAND, raw_command
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+            rescue StandardError => e
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             private

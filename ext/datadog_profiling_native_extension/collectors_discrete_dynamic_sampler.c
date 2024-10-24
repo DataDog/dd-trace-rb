@@ -20,6 +20,9 @@
 
 #define EMA_SMOOTHING_FACTOR 0.6
 
+static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns);
+static inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now);
+
 void discrete_dynamic_sampler_init(discrete_dynamic_sampler *sampler, const char *debug_name, long now_ns) {
   sampler->debug_name = debug_name;
   discrete_dynamic_sampler_set_overhead_target_percentage(sampler, BASE_OVERHEAD_PCT, now_ns);
@@ -54,27 +57,25 @@ void discrete_dynamic_sampler_set_overhead_target_percentage(discrete_dynamic_sa
   return discrete_dynamic_sampler_reset(sampler, now_ns);
 }
 
-static void maybe_readjust(discrete_dynamic_sampler *sampler, long now);
-
-bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+// NOTE: See header for an explanation of when this should get used
+__attribute__((warn_unused_result))
+bool discrete_dynamic_sampler_should_sample(discrete_dynamic_sampler *sampler) {
   // For efficiency reasons we don't do true random sampling but rather systematic
   // sampling following a sample interval/skip. This can be biased and hide patterns
-  // but the dynamic interval and rather indeterministic pattern of allocations in
+  // but the dynamic interval and rather nondeterministic pattern of allocations in
   // most real applications should help reduce the bias impact.
   sampler->events_since_last_sample++;
   sampler->events_since_last_readjustment++;
-  bool should_sample = sampler->sampling_interval > 0 && sampler->events_since_last_sample >= sampler->sampling_interval;
 
-  if (should_sample) {
-    sampler->sample_start_time_ns = now_ns;
-  } else {
-    // check if we should readjust our sampler after this event, even if we didn't sample it
-    maybe_readjust(sampler, now_ns);
-  }
-
-  return should_sample;
+  return sampler->sampling_interval > 0 && sampler->events_since_last_sample >= sampler->sampling_interval;
 }
 
+// NOTE: See header for an explanation of when this should get used
+void discrete_dynamic_sampler_before_sample(discrete_dynamic_sampler *sampler, long now_ns) {
+  sampler->sample_start_time_ns = now_ns;
+}
+
+// NOTE: See header for an explanation of when this should get used
 long discrete_dynamic_sampler_after_sample(discrete_dynamic_sampler *sampler, long now_ns) {
   long last_sampling_time_ns = sampler->sample_start_time_ns == 0 ? 0 : long_max_of(0, now_ns - sampler->sample_start_time_ns);
   sampler->samples_since_last_readjustment++;
@@ -91,8 +92,13 @@ double discrete_dynamic_sampler_probability(discrete_dynamic_sampler *sampler) {
   return sampler->sampling_probability * 100.;
 }
 
-size_t discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
+unsigned long discrete_dynamic_sampler_events_since_last_sample(discrete_dynamic_sampler *sampler) {
   return sampler->events_since_last_sample;
+}
+
+// NOTE: See header for an explanation of when this should get used
+bool discrete_dynamic_sampler_skipped_sample(discrete_dynamic_sampler *sampler, coarse_instant now) {
+  return should_readjust(sampler, now);
 }
 
 static double ewma_adj_window(double latest_value, double avg, long current_window_time_ns, bool is_first) {
@@ -109,19 +115,27 @@ static double ewma_adj_window(double latest_value, double avg, long current_wind
   return (1-alpha) * avg + alpha * latest_value;
 }
 
-static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
-  long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now - sampler->last_readjust_time_ns;
+static void maybe_readjust(discrete_dynamic_sampler *sampler, long now_ns) {
+  if (should_readjust(sampler, to_coarse_instant(now_ns))) discrete_dynamic_sampler_readjust(sampler, now_ns);
+}
+
+static inline bool should_readjust(discrete_dynamic_sampler *sampler, coarse_instant now) {
+  long this_window_time_ns =
+    sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now.timestamp_ns - sampler->last_readjust_time_ns;
 
   bool should_readjust_based_on_time = this_window_time_ns >= ADJUSTMENT_WINDOW_NS;
   bool should_readjust_based_on_samples = sampler->samples_since_last_readjustment >= ADJUSTMENT_WINDOW_SAMPLES;
 
-  if (!should_readjust_based_on_time && !should_readjust_based_on_samples) {
-    // not enough time or samples have passed to perform a readjustment
-    return;
-  }
+  return should_readjust_based_on_time || should_readjust_based_on_samples;
+}
 
-  if (this_window_time_ns == 0) {
-    // should not be possible given previous condition but lets protect against div by 0 below.
+// NOTE: This method ASSUMES should_readjust == true
+// NOTE: See header for an explanation of when this should get used
+void discrete_dynamic_sampler_readjust(discrete_dynamic_sampler *sampler, long now_ns) {
+  long this_window_time_ns = sampler->last_readjust_time_ns == 0 ? ADJUSTMENT_WINDOW_NS : now_ns - sampler->last_readjust_time_ns;
+
+  if (this_window_time_ns <= 0) {
+    // should not be possible given should_readjust but lets protect against div by 0 below.
     return;
   }
 
@@ -143,7 +157,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     // Lets update our average sampling time per event
     long avg_sampling_time_in_window_ns = sampler->samples_since_last_readjustment == 0 ? 0 : sampler->sampling_time_since_last_readjustment_ns / sampler->samples_since_last_readjustment;
     if (avg_sampling_time_in_window_ns > sampler->max_sampling_time_ns) {
-      // If the average sampling time in the previous window was deemed unnacceptable, clamp it to the
+      // If the average sampling time in the previous window was deemed unacceptable, clamp it to the
       // maximum acceptable value and register this operation in our counter.
       // NOTE: This is important so that events like suspensions or system overloads do not lead us to
       //       learn arbitrarily big sampling times which may then result in us not sampling anything
@@ -245,7 +259,9 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   //       are so big they don't fit into the sampling_interval. In both cases lets just disable sampling until next readjustment
   //       by setting interval to 0.
   double sampling_interval = sampler->sampling_probability == 0 ? 0 : ceil(1.0 / sampler->sampling_probability);
-  sampler->sampling_interval = sampling_interval > ULONG_MAX ? 0 : sampling_interval;
+  // NOTE: We use UINT32_MAX instead of ULONG_MAX here to avoid clang warnings; in practice, we shouldn't ever hit
+  // such high sampling intervals.
+  sampler->sampling_interval = sampling_interval > UINT32_MAX ? 0 : sampling_interval;
 
   #ifdef DD_DEBUG
     double allocs_in_60s = sampler->events_per_ns * 1e9 * 60;
@@ -255,9 +271,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
     double num_this_windows_in_60s = 60 * 1e9 / this_window_time_ns;
     double real_total_sampling_time_in_60s = sampler->sampling_time_since_last_readjustment_ns * num_this_windows_in_60s / 1e9;
 
-    const char* readjustment_reason = should_readjust_based_on_time ? "time" : "samples";
-
-    fprintf(stderr, "[dds.%s] readjusting due to %s...\n", sampler->debug_name, readjustment_reason);
+    fprintf(stderr, "[dds.%s] readjusting...\n", sampler->debug_name);
     fprintf(stderr, "events_since_last_readjustment=%ld\n", sampler->events_since_last_readjustment);
     fprintf(stderr, "samples_since_last_readjustment=%ld\n", sampler->samples_since_last_readjustment);
     fprintf(stderr, "this_window_time=%ld\n", this_window_time_ns);
@@ -286,7 +300,7 @@ static void maybe_readjust(discrete_dynamic_sampler *sampler, long now) {
   sampler->events_since_last_readjustment = 0;
   sampler->samples_since_last_readjustment = 0;
   sampler->sampling_time_since_last_readjustment_ns = 0;
-  sampler->last_readjust_time_ns = now;
+  sampler->last_readjust_time_ns = now_ns;
   sampler->has_completed_full_adjustment_window = true;
 }
 
@@ -406,7 +420,14 @@ VALUE _native_should_sample(VALUE self, VALUE now_ns) {
   sampler_state *state;
   TypedData_Get_Struct(self, sampler_state, &sampler_typed_data, state);
 
-  return discrete_dynamic_sampler_should_sample(&state->sampler, NUM2LONG(now_ns)) ? Qtrue : Qfalse;
+  if (discrete_dynamic_sampler_should_sample(&state->sampler)) {
+    discrete_dynamic_sampler_before_sample(&state->sampler, NUM2LONG(now_ns));
+    return Qtrue;
+  } else {
+    bool needs_readjust = discrete_dynamic_sampler_skipped_sample(&state->sampler, to_coarse_instant(NUM2LONG(now_ns)));
+    if (needs_readjust) discrete_dynamic_sampler_readjust(&state->sampler, NUM2LONG(now_ns));
+    return Qfalse;
+  }
 }
 
 VALUE _native_after_sample(VALUE self, VALUE now_ns) {

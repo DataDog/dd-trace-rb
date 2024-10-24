@@ -2,6 +2,15 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Processor::RuleMerger do
+  around do |example|
+    described_class.instance_variable_set(:@default_waf_processors, nil)
+    described_class.instance_variable_set(:@default_waf_scanners, nil)
+    example.run
+    described_class.instance_variable_set(:@default_waf_processors, nil)
+    described_class.instance_variable_set(:@default_waf_scanners, nil)
+  end
+
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:rules) do
     [
       {
@@ -150,7 +159,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
             },
           ]
 
-          result = described_class.merge(rules: rules_dup.freeze)
+          result = described_class.merge(rules: rules_dup.freeze, telemetry: telemetry)
           expect(result).to include('rules' => expected_result)
         end
 
@@ -202,7 +211,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }.freeze
 
           expect do
-            described_class.merge(rules: rules_dup.freeze)
+            described_class.merge(rules: rules_dup.freeze, telemetry: telemetry)
           end.to raise_error(described_class::RuleVersionMismatchError)
         end
       end
@@ -214,7 +223,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
       it 'does not merge rules_overrides or exclusions' do
         expected_result = rules[0]
 
-        result = described_class.merge(rules: rules)
+        result = described_class.merge(rules: rules, telemetry: telemetry)
         expect(result).to include(expected_result)
       end
     end
@@ -236,7 +245,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           ]
         ]
 
-        result = described_class.merge(rules: rules, overrides: rules_overrides)
+        result = described_class.merge(rules: rules, overrides: rules_overrides, telemetry: telemetry)
         expect(result).to include('rules' => rules[0]['rules'])
         expect(result).to include('rules_override' => rules_overrides.flatten)
       end
@@ -311,7 +320,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         ],
       ]
 
-      result = described_class.merge(rules: rules, exclusions: exclusions)
+      result = described_class.merge(rules: rules, exclusions: exclusions, telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('exclusions' => exclusions.flatten)
     end
@@ -385,7 +394,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         },
       ]
 
-      result = described_class.merge(rules: rules, data: rules_data)
+      result = described_class.merge(rules: rules, data: rules_data, telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('rules_data' => expected_result)
     end
@@ -439,7 +448,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
         }
       ]
 
-      result = described_class.merge(rules: rules, data: rules_data)
+      result = described_class.merge(rules: rules, data: rules_data, telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('rules_data' => expected_result)
     end
@@ -486,7 +495,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        result = described_class.merge(rules: rules, data: rules_data)
+        result = described_class.merge(rules: rules, data: rules_data, telemetry: telemetry)
         expect(result).to include('rules' => rules[0]['rules'])
         expect(result).to include('rules_data' => expected_result)
       end
@@ -530,7 +539,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        result = described_class.merge(rules: rules, data: rules_data)
+        result = described_class.merge(rules: rules, data: rules_data, telemetry: telemetry)
         expect(result).to include('rules' => rules[0]['rules'])
         expect(result).to include('rules_data' => expected_result)
       end
@@ -591,7 +600,7 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           ]
         ]
 
-        result = described_class.merge(rules: rules, custom_rules: custom_rules)
+        result = described_class.merge(rules: rules, custom_rules: custom_rules, telemetry: telemetry)
         expect(result).to include('rules' => rules[0]['rules'])
         expect(result).to include('custom_rules' => custom_rules.flatten)
       end
@@ -676,7 +685,13 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
           }
         ]
 
-        result = described_class.merge(rules: rules, data: rules_data, overrides: rules_overrides, exclusions: exclusions)
+        result = described_class.merge(
+          rules: rules,
+          data: rules_data,
+          overrides: rules_overrides,
+          exclusions: exclusions,
+          telemetry: telemetry
+        )
         expect(result).to include('rules' => rules[0]['rules'])
         expect(result).to include('rules_data' => expect_rules_data)
         expect(result).to include('exclusions' => exclusions.flatten)
@@ -687,29 +702,59 @@ RSpec.describe Datadog::AppSec::Processor::RuleMerger do
 
   context 'processors' do
     it 'merges default processors' do
-      result = described_class.merge(rules: rules)
+      result = described_class.merge(rules: rules, telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
-      expect(result).to include('processors' => described_class::DEFAULT_WAF_PROCESSORS)
+      expect(result).to include('processors' => described_class.default_waf_processors)
     end
 
     it 'merges the provided processors' do
-      result = described_class.merge(rules: rules, processors: 'hello')
+      result = described_class.merge(rules: rules, processors: 'hello', telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('processors' => 'hello')
+    end
+
+    context 'when fail to parse default waf processors' do
+      it 'returns []' do
+        allow(Datadog::AppSec::Assets).to receive(:waf_processors).and_raise
+        expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf processors/)
+        expect(telemetry).to receive(:report).with(
+          a_kind_of(StandardError),
+          description: 'libddwaf rulemerger failed to parse default waf processors'
+        )
+
+        result = described_class.merge(rules: rules, telemetry: telemetry)
+        expect(result).to include('rules' => rules[0]['rules'])
+        expect(result).to include('processors' => [])
+      end
     end
   end
 
   context 'scanners' do
     it 'merges default scanners' do
-      result = described_class.merge(rules: rules)
+      result = described_class.merge(rules: rules, telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
-      expect(result).to include('scanners' => described_class::DEFAULT_WAF_SCANNERS)
+      expect(result).to include('scanners' => described_class.default_waf_scanners)
     end
 
-    it 'merges the provided processors' do
-      result = described_class.merge(rules: rules, scanners: 'hello')
+    it 'merges the provided scanners' do
+      result = described_class.merge(rules: rules, scanners: 'hello', telemetry: telemetry)
       expect(result).to include('rules' => rules[0]['rules'])
       expect(result).to include('scanners' => 'hello')
+    end
+
+    context 'when fail to parse default waf scanners' do
+      it 'returns []' do
+        allow(Datadog::AppSec::Assets).to receive(:waf_scanners).and_raise
+        expect(Datadog.logger).to receive(:error).with(/libddwaf rulemerger failed to parse default waf scanners/)
+        expect(telemetry).to receive(:report).with(
+          a_kind_of(StandardError),
+          description: 'libddwaf rulemerger failed to parse default waf scanners'
+        )
+
+        result = described_class.merge(rules: rules, telemetry: telemetry)
+        expect(result).to include('rules' => rules[0]['rules'])
+        expect(result).to include('scanners' => [])
+      end
     end
   end
 end

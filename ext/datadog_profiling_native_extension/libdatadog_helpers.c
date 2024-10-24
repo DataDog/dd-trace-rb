@@ -2,8 +2,6 @@
 
 #include <ruby.h>
 
-static VALUE log_failure_to_process_tag(VALUE err_details);
-
 const char *ruby_value_type_to_string(enum ruby_value_type type) {
   return ruby_value_type_to_char_slice(type).ptr;
 }
@@ -61,88 +59,4 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
   string[error_msg_size] = '\0';
   ddog_Error_drop(error);
   return error_msg_size;
-}
-
-__attribute__((warn_unused_result))
-ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
-  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
-
-  VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
-  ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
-  ID working_mode = SYM2ID(exporter_working_mode);
-
-  ID agentless_id = rb_intern("agentless");
-  ID agent_id = rb_intern("agent");
-
-  if (working_mode != agentless_id && working_mode != agent_id) {
-    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
-  }
-
-  if (working_mode == agentless_id) {
-    VALUE site = rb_ary_entry(exporter_configuration, 1);
-    VALUE api_key = rb_ary_entry(exporter_configuration, 2);
-    ENFORCE_TYPE(site, T_STRING);
-    ENFORCE_TYPE(api_key, T_STRING);
-
-    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
-  } else { // agent_id
-    VALUE base_url = rb_ary_entry(exporter_configuration, 1);
-    ENFORCE_TYPE(base_url, T_STRING);
-
-    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
-  }
-}
-
-__attribute__((warn_unused_result))
-ddog_Vec_Tag convert_tags(VALUE tags_as_array) {
-  ENFORCE_TYPE(tags_as_array, T_ARRAY);
-
-  long tags_count = RARRAY_LEN(tags_as_array);
-  ddog_Vec_Tag tags = ddog_Vec_Tag_new();
-
-  for (long i = 0; i < tags_count; i++) {
-    VALUE name_value_pair = rb_ary_entry(tags_as_array, i);
-
-    if (!RB_TYPE_P(name_value_pair, T_ARRAY)) {
-      ddog_Vec_Tag_drop(tags);
-      ENFORCE_TYPE(name_value_pair, T_ARRAY);
-    }
-
-    // Note: We can index the array without checking its size first because rb_ary_entry returns Qnil if out of bounds
-    VALUE tag_name = rb_ary_entry(name_value_pair, 0);
-    VALUE tag_value = rb_ary_entry(name_value_pair, 1);
-
-    if (!(RB_TYPE_P(tag_name, T_STRING) && RB_TYPE_P(tag_value, T_STRING))) {
-      ddog_Vec_Tag_drop(tags);
-      ENFORCE_TYPE(tag_name, T_STRING);
-      ENFORCE_TYPE(tag_value, T_STRING);
-    }
-
-    ddog_Vec_Tag_PushResult push_result =
-      ddog_Vec_Tag_push(&tags, char_slice_from_ruby_string(tag_name), char_slice_from_ruby_string(tag_value));
-
-    if (push_result.tag == DDOG_VEC_TAG_PUSH_RESULT_ERR) {
-      // libdatadog validates tags and may catch invalid tags that ddtrace didn't actually catch.
-      // We warn users about such tags, and then just ignore them.
-
-      int exception_state;
-      rb_protect(log_failure_to_process_tag, get_error_details_and_drop(&push_result.err), &exception_state);
-
-      // Since we are calling into Ruby code, it may raise an exception. Ensure that dynamically-allocated tags
-      // get cleaned before propagating the exception.
-      if (exception_state) {
-        ddog_Vec_Tag_drop(tags);
-        rb_jump_tag(exception_state);  // "Re-raise" exception
-      }
-    }
-  }
-
-  return tags;
-}
-
-static VALUE log_failure_to_process_tag(VALUE err_details) {
-  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
-
-  return rb_funcall(logger, rb_intern("warn"), 1, rb_sprintf("Failed to add tag to profiling request: %"PRIsVALUE, err_details));
 }

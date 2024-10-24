@@ -12,6 +12,7 @@ module Datadog
       def to_action_dispatch_response: () -> ::ActionDispatch::Response
 
       def self.negotiate: (::Hash[untyped, untyped] env, Array[String] actions) -> Response
+      def self.graphql_response: (Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex gateway_multiplex) -> Array[::GraphQL::Query::Result]
 
       private
 

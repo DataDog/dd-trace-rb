@@ -2,6 +2,7 @@
 
 #include <stdbool.h>
 #include <time.h>
+#include <ruby.h>
 
 // Contains the operating-system specific identifier needed to fetch CPU-time, and a flag to indicate if we failed to fetch it
 typedef struct thread_cpu_time_id {

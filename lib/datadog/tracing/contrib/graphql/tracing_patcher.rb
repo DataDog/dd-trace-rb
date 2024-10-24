@@ -8,13 +8,13 @@ module Datadog
         module TracingPatcher
           module_function
 
-          def patch!(schemas, options)
+          def patch!(schemas)
             if schemas.empty?
-              ::GraphQL::Schema.tracer(::GraphQL::Tracing::DataDogTracing.new(**options))
+              ::GraphQL::Schema.tracer(::GraphQL::Tracing::DataDogTracing.new)
             else
               schemas.each do |schema|
                 if schema.respond_to? :use
-                  schema.use(::GraphQL::Tracing::DataDogTracing, **options)
+                  schema.use(::GraphQL::Tracing::DataDogTracing)
                 else
                   Datadog.logger.warn("Unable to patch #{schema}: Please migrate to class-based schema.")
                 end

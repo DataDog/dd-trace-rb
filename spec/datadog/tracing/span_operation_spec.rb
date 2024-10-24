@@ -872,6 +872,27 @@ RSpec.describe Datadog::Tracing::SpanOperation do
           expect(span_op.end_time - span_op.start_time).to eq 0
         end
       end
+
+      context 'with get_time_provider set' do
+        let(:clock_increment) { 0.42 }
+        before do
+          incr = clock_increment
+          clock_time = clock_increment
+          Datadog.configure do |c|
+            # Use a custom clock provider that increments by `clock_increment`
+            c.get_time_provider = ->(_unit = :float_second) { clock_time += incr }
+          end
+        end
+
+        after { without_warnings { Datadog.configuration.reset! } }
+
+        it 'sets the duration to the provider increment' do
+          span_op.start
+          span_op.stop
+
+          expect(span_op.duration).to be_within(0.01).of(clock_increment)
+        end
+      end
     end
 
     context 'with start_time provided' do

@@ -1,0 +1,51 @@
+module Datadog
+  module Core
+    module Crashtracking
+      class Component
+        LIBDATADOG_API_FAILURE: ::String?
+        ONLY_ONCE: Core::Utils::OnlyOnce
+
+        def self.build: (
+          Datadog::Core::Configuration::Settings settings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings,
+          logger: untyped
+        ) -> Datadog::Core::Crashtracking::Component?
+
+        def initialize: (
+          tags: ::Hash[::String, ::String],
+          agent_base_url: ::String,
+          ld_library_path: ::String,
+          path_to_crashtracking_receiver_binary: ::String,
+          logger: untyped
+        ) -> void
+
+        def start: -> void
+
+        def update_on_fork: -> void
+
+        def stop: -> void
+
+        private
+
+        attr_reader tags: ::Hash[::String, ::String]
+        attr_reader agent_base_url: ::String
+        attr_reader ld_library_path: ::String
+        attr_reader path_to_crashtracking_receiver_binary: ::String
+        attr_reader logger: untyped
+
+        def start_or_update_on_fork: (action: :start | :update_on_fork) -> void
+
+        def self._native_start_or_update_on_fork: (
+          action: :start | :update_on_fork,
+          agent_base_url: ::String,
+          path_to_crashtracking_receiver_binary: ::String,
+          ld_library_path: ::String,
+          tags_as_array: ::Array[[::String, ::String]],
+          upload_timeout_seconds: ::Integer,
+        ) -> void
+
+        def self._native_stop: -> void
+      end
+    end
+  end
+end

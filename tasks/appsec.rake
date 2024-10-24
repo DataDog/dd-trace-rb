@@ -5,11 +5,38 @@ namespace :appsec do
       require 'net/http'
 
       version = args.to_a[0]
+      raise ArgumentError, 'You must provide a version' if version.nil?
+
+      # You need to generate a token with the `repo` scope
+      # and configure SSO for DataDog's GitHub organization
+      token = ENV['GITHUB_TOKEN']
+      raise ArgumentError, 'You must set GITHUB_TOKEN env variable' if token.nil?
 
       ['recommended', 'strict'].each do |ruleset|
-        uri = URI("https://raw.githubusercontent.com/DataDog/appsec-event-rules/#{version}/build/#{ruleset}.json")
+        uri = URI("https://api.github.com/repos/DataDog/appsec-event-rules/contents/build/#{ruleset}.json?ref=#{version}")
 
-        File.open("lib/datadog/appsec/assets/waf_rules/#{ruleset}.json", 'wb') { |f| f << Net::HTTP::get(uri) }
+        http = Net::HTTP.new(uri.host, uri.port)
+        http.use_ssl = true
+
+        req = Net::HTTP::Get.new(uri)
+        req['Authorization'] = "Bearer #{token}"
+        req['Accept'] = 'application/vnd.github.raw+json'
+
+        http.request(req) do |res|
+          case res
+          when Net::HTTPSuccess
+            filename = "lib/datadog/appsec/assets/waf_rules/#{ruleset}.json"
+            raise "File '#{filename}' was moved or deleted, please review the rake task" unless File.exist?(filename)
+
+            File.open(filename, 'wb') do |f|
+              res.read_body do |chunk|
+                f << chunk
+              end
+            end
+          else
+            raise "Failed to download #{ruleset}.json: #{response.code} #{response.message}"
+          end
+        end
       end
     end
   end

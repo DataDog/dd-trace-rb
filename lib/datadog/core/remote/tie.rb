@@ -19,6 +19,8 @@ module Datadog
             barrier = Datadog::Core::Remote.active_remote.barrier(:once)
           end
 
+          # steep does not permit the next line due to
+          # https://github.com/soutaro/steep/issues/1231
           Boot.new(barrier, t)
         end
       end

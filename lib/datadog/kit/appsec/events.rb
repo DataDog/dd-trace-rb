@@ -53,13 +53,11 @@ module Datadog
           # @param user_exists [bool] Whether the user id that did a login attempt exists.
           # @param others [Hash<String || Symbol, String>] Additional free-form
           #   event information to attach to the trace.
-          def track_login_failure(trace = nil, span = nil, user_id:, user_exists:, **others)
+          def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
             set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
-              raise ArgumentError, 'user_id cannot be nil' if user_id.nil?
-
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
-              active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id)
+              active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
               active_span.set_tag('appsec.events.users.login.failure.usr.exists', user_exists)
             end
           end

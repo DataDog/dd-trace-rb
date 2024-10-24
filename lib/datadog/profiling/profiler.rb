@@ -8,34 +8,30 @@ module Datadog
 
       private
 
-      attr_reader :worker, :scheduler, :optional_crashtracker
+      attr_reader :worker, :scheduler
 
       public
 
-      def initialize(worker:, scheduler:, optional_crashtracker:)
+      def initialize(worker:, scheduler:)
         @worker = worker
         @scheduler = scheduler
-        @optional_crashtracker = optional_crashtracker
       end
 
       def start
         after_fork! do
-          optional_crashtracker.reset_after_fork if optional_crashtracker
           worker.reset_after_fork
           scheduler.reset_after_fork
         end
 
-        optional_crashtracker.start if optional_crashtracker
         worker.start(on_failure_proc: proc { component_failed(:worker) })
         scheduler.start(on_failure_proc: proc { component_failed(:scheduler) })
       end
 
       def shutdown!
-        Datadog.logger.debug('Shutting down profiler')
+        Datadog.logger.debug("Shutting down profiler")
 
         stop_worker
         stop_scheduler
-        optional_crashtracker.stop if optional_crashtracker
       end
 
       private
@@ -52,13 +48,14 @@ module Datadog
       def component_failed(failed_component)
         Datadog.logger.warn(
           "Detected issue with profiler (#{failed_component} component), stopping profiling. " \
-          'See previous log messages for details.'
+          "See previous log messages for details."
         )
 
         # We explicitly not stop the crash tracker in this situation, under the assumption that, if a component failed,
         # we're operating in a degraded state and crash tracking may still be helpful.
 
         if failed_component == :worker
+          scheduler.mark_profiler_failed
           stop_scheduler
         elsif failed_component == :scheduler
           stop_worker

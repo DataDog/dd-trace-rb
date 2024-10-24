@@ -2,7 +2,7 @@
 
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-
+require_relative 'tracer'
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
@@ -75,7 +75,9 @@ module Datadog
         metrics: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
-        remote_parent: false
+        remote_parent: false,
+        tracer: nil
+
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
@@ -98,6 +100,7 @@ module Datadog
         @profiling_enabled = profiling_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @tracer = tracer
 
         # Generic tags
         set_tags(tags) if tags
@@ -159,6 +162,23 @@ module Datadog
 
       def resource
         @resource || (root_span && root_span.resource)
+      end
+
+      # When retrieving tags or metrics we need to include root span tags for sampling purposes
+      def get_tag(key)
+        super || (root_span && root_span.get_tag(key))
+      end
+
+      def get_metric(key)
+        super || (root_span && root_span.get_metric(key))
+      end
+
+      def tags
+        all_tags = {}
+        all_tags.merge!(root_span&.tags || {}) if root_span
+        all_tags.merge!(super)
+
+        all_tags
       end
 
       # Returns true if the resource has been explicitly set
@@ -284,10 +304,14 @@ module Datadog
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
+        # sample the trace_operation with the tracer
+        @tracer&.sample_trace(self) unless sampling_priority
 
         TraceDigest.new(
           span_id: span_id,

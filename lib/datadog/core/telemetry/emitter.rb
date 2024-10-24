@@ -16,22 +16,20 @@ module Datadog
 
         # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
         #   telemetry requests via the agent
-        def initialize(http_transport: Datadog::Core::Telemetry::Http::Transport.new)
+        def initialize(http_transport:)
           @http_transport = http_transport
         end
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         def request(event)
-          begin
-            seq_id = self.class.sequence.next
-            payload = Request.build_payload(event, seq_id)
-            res = @http_transport.request(request_type: event.type, payload: payload.to_json)
-            Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
-            res
-          rescue => e
-            Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
-            Telemetry::Http::InternalErrorResponse.new(e)
-          end
+          seq_id = self.class.sequence.next
+          payload = Request.build_payload(event, seq_id)
+          res = @http_transport.request(request_type: event.type, payload: payload.to_json)
+          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
+          res
+        rescue => e
+          Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
+          Telemetry::Http::InternalErrorResponse.new(e)
         end
 
         # Initializes a Sequence object to track seq_id if not already initialized; else returns stored

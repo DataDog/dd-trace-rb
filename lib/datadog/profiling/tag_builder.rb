@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/utils'
-require_relative '../core/environment/git'
+require_relative "../core/utils"
+require_relative "../core/environment/git"
 
 module Datadog
   module Profiling

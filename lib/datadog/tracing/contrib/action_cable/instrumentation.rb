@@ -14,21 +14,17 @@ module Datadog
           module ActionCableConnection
             def on_open
               Tracing.trace(Ext::SPAN_ON_OPEN) do |span, trace|
-                begin
-                  span.resource = "#{self.class}#on_open"
-                  span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
+                span.resource = "#{self.class}#on_open"
+                span.type = Tracing::Metadata::Ext::AppTypes::TYPE_WEB
 
-                  span.set_tag(Ext::TAG_ACTION, 'on_open')
-                  span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
+                span.set_tag(Ext::TAG_ACTION, 'on_open')
+                span.set_tag(Ext::TAG_CONNECTION, self.class.to_s)
 
-                  span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
-                  span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
+                span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
+                span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_ON_OPEN)
 
-                  # Set the resource name of the trace
-                  trace.resource = span.resource
-                rescue StandardError => e
-                  Datadog.logger.error("Error preparing span for ActionCable::Connection: #{e}")
-                end
+                # Set the resource name of the trace
+                trace.resource = span.resource
 
                 super
               end

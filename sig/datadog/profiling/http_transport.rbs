@@ -61,7 +61,7 @@ module Datadog
         ::String info_json,
       ) -> [:ok | :error, ::Integer | ::String]
 
-      def config_without_api_key: () -> ::Hash[:agent | :agentless, ::String]
+      def config_without_api_key: () -> ::String
     end
   end
 end

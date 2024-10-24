@@ -42,10 +42,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
           appsec: {
             enabled: false,
           },
-          profiler: {
-            enabled: false,
-            error: anything,
-          },
+          profiler: hash_including(enabled: false),
         },
         configuration: contain_configuration(
           ['DD_AGENT_HOST', '1.2.3.4'],
@@ -213,6 +210,40 @@ RSpec.describe Datadog::Core::Telemetry::Event do
 
     it 'has no payload' do
       is_expected.to eq({})
+    end
+  end
+
+  context 'Logs' do
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'ERROR'
+          }]
+        }
+      )
+    end
+
+    it do
+      event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :warn)
+      expect(event.type).to eq('logs')
+      expect(event.payload).to eq(
+        {
+          logs: [{
+            message: 'Hi',
+            level: 'WARN'
+          }]
+        }
+      )
+    end
+
+    it do
+      expect do
+        Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :unknown)
+      end.to raise_error(ArgumentError, /Invalid log level/)
     end
   end
 

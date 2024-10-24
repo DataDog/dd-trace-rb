@@ -8,12 +8,12 @@ module Datadog
         module TracePatcher
           module_function
 
-          def patch!(schemas, options)
+          def patch!(schemas)
             if schemas.empty?
-              ::GraphQL::Schema.trace_with(::GraphQL::Tracing::DataDogTrace, **options)
+              ::GraphQL::Schema.trace_with(::GraphQL::Tracing::DataDogTrace)
             else
               schemas.each do |schema|
-                schema.trace_with(::GraphQL::Tracing::DataDogTrace, **options)
+                schema.trace_with(::GraphQL::Tracing::DataDogTrace)
               end
             end
           end

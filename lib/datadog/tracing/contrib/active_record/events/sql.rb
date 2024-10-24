@@ -6,6 +6,7 @@ require_relative '../event'
 require_relative '../ext'
 require_relative '../../analytics'
 require_relative '../../utils/database'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -68,7 +69,8 @@ module Datadog
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
             rescue StandardError => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
           end
         end

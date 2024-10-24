@@ -10,7 +10,7 @@ module Datadog
 
         class Base
           def payload: () -> (Hash[Symbol, untyped] | Array[Hash[Symbol, untyped]])
-          def type: -> String?
+          def type: -> String
         end
 
         class AppStarted < Base
@@ -24,7 +24,7 @@ module Datadog
 
           def agent_transport: (untyped config) -> String
 
-          def conf_value: (String name, Object value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
+          def conf_value: (String name, untyped value, Integer seq_id, ?String origin) -> Hash[Symbol, untyped]
 
           def to_value: (Object value) -> Object
 
@@ -65,6 +65,18 @@ module Datadog
           @metric_series: Enumerable[Datadog::Core::Telemetry::Metric::Base]
 
           def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
+        end
+
+        class Log < Base
+          LEVELS: Hash[Symbol, String]
+
+          @message: String
+          @level: "ERROR" | "DEBUG" | "WARN"
+          @stack_trace: String?
+
+          def initialize: (message: String, level: Symbol, ?stack_trace: String?) -> void
+
+          def payload: () -> { logs: [Hash[Symbol, String]] }
         end
 
         class Distributions < GenerateMetrics

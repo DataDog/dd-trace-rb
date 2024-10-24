@@ -45,6 +45,7 @@ module Datadog
           TAG_STATUS_CODE: ::String
           TAG_USER_AGENT: ::String
           TAG_URL: ::String
+          TAG_ROUTE: ::String
           TYPE_INBOUND: untyped
           TYPE_OUTBOUND: ::String
           TYPE_PROXY: ::String
