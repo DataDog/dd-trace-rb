@@ -240,12 +240,12 @@ module Datadog
               warn_if_configuration_mismatch(
                 [
                   DetectedConfiguration.new(
-                    friendly_name: 'configuration of hostname/port for http/https use',
-                    value: "hostname: '#{hostname}', port: '#{port}'",
-                  ),
-                  DetectedConfiguration.new(
                     friendly_name: 'configuration for unix domain socket',
                     value: parsed_url.to_s,
+                  ),
+                  DetectedConfiguration.new(
+                    friendly_name: 'configuration of hostname/port for http/https use',
+                    value: "hostname: '#{hostname}', port: '#{port}'",
                   ),
                 ]
               )

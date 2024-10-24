@@ -170,32 +170,29 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
         context 'when there is a hostname specified along with uds configuration' do
           let(:with_agent_host) { 'custom-hostname' }
 
-          it 'prioritizes the http configuration' do
-            expect(resolver).to have_attributes(hostname: 'custom-hostname', adapter: :net_http)
+          it 'prioritizes the uds configuration' do
+            expect(resolver).to have_attributes(adapter: :unix)
           end
 
-          it 'logs a warning including the uds path' do
+          it 'logs a warning including the mismatching hostname' do
             expect(logger).to receive(:warn)
-              .with(%r{Configuration mismatch.*configuration for unix domain socket \("unix:.*/some/path"\)})
+              .with(/Configuration mismatch:.*hostname: 'custom-hostname'.*/)
 
             resolver
           end
 
-          it 'does not include a uds_path in the configuration' do
-            expect(resolver).to have_attributes(uds_path: nil)
+          it 'includes a uds_path in the configuration' do
+            expect(resolver).to have_attributes(uds_path: '/some/path')
           end
 
           context 'when there is no port specified' do
-            it 'prioritizes the http configuration and uses the default port' do
-              expect(resolver).to have_attributes(port: 8126, hostname: 'custom-hostname', adapter: :net_http)
+            it 'prioritizes the uds configuration and ignores the default port' do
+              expect(resolver).to have_attributes(adapter: :unix)
             end
 
-            it 'logs a warning including the hostname and default port' do
+            it 'logs a warning including the uds path' do
               expect(logger).to receive(:warn)
-                .with(/
-                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
-                  Using\ "hostname:\ 'custom-hostname',\ port:\ '8126'".*
-                /x)
+              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
 
               resolver
             end
@@ -204,51 +201,45 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           context 'when there is a port specified' do
             let(:with_agent_port) { 1234 }
 
-            it 'prioritizes the http configuration and uses the specified port' do
-              expect(resolver).to have_attributes(port: 1234, hostname: 'custom-hostname', adapter: :net_http)
+            it 'prioritizes the uds path' do
+              expect(resolver).to have_attributes(adapter: :unix)
             end
 
-            it 'logs a warning including the hostname and port' do
+            it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(/
-                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
-                  Using\ "hostname:\ 'custom-hostname',\ port:\ '1234'".*
-                /x)
+              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
 
               resolver
             end
           end
         end
 
-        context 'when there is a port specified along with uds configuration' do
+        context 'when there is a port specified along with a uds configuration' do
           let(:with_agent_port) { 5678 }
 
-          it 'prioritizes the http configuration' do
-            expect(resolver).to have_attributes(port: 5678, adapter: :net_http)
+          it 'prioritizes the uds configuration' do
+            expect(resolver).to have_attributes(port: 5678, adapter: :unix)
           end
 
-          it 'logs a warning including the uds path' do
+          it 'logs a warning including the mismatching port' do
             expect(logger).to receive(:warn)
-              .with(%r{Configuration mismatch.*configuration for unix domain socket \("unix:.*/some/path"\)})
+            .with(/Configuration mismatch:.*port: '5678'.*/)
 
             resolver
           end
 
-          it 'does not include a uds_path in the configuration' do
-            expect(resolver).to have_attributes(uds_path: nil)
+          it 'includes the uds path in the configuration' do
+            expect(resolver).to have_attributes(uds_path: '/some/path')
           end
 
           context 'when there is no hostname specified' do
-            it 'prioritizes the http configuration and uses the default hostname' do
-              expect(resolver).to have_attributes(port: 5678, hostname: '127.0.0.1', adapter: :net_http)
+            it 'prioritizes the uds configuration' do
+              expect(resolver).to have_attributes(port: 5678, hostname: nil, adapter: :unix)
             end
 
-            it 'logs a warning including the default hostname and port' do
+            it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(/
-                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
-                  Using\ "hostname:\ '127.0.0.1',\ port:\ '5678'".*
-                /x)
+                .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
 
               resolver
             end
@@ -257,16 +248,13 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
           context 'when there is a hostname specified' do
             let(:with_agent_host) { 'custom-hostname' }
 
-            it 'prioritizes the http configuration and uses the specified hostname' do
-              expect(resolver).to have_attributes(port: 5678, hostname: 'custom-hostname', adapter: :net_http)
+            it 'prioritizes the uds configuration' do
+              expect(resolver).to have_attributes(adapter: :unix)
             end
 
-            it 'logs a warning including the hostname and port' do
+            it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(/
-                  Configuration\ mismatch:\ values\ differ\ between\ configuration.*
-                  Using\ "hostname:\ 'custom-hostname',\ port:\ '5678'".*
-                /x)
+              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
 
               resolver
             end
