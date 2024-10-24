@@ -29,8 +29,7 @@ module Datadog
 
       private
 
-      attr_reader :wake_lock
-      attr_reader :wake
+      attr_reader :wake_lock, :wake
     end
   end
 end
