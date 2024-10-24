@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "error"
+require_relative "utils"
 require_relative "../core/rate_limiter"
 
 module Datadog
@@ -134,6 +135,28 @@ module Datadog
           raise NotImplementedError
         end
       end
+
+      # Returns whether the provided +path+ matches the user-designated
+      # file (of a line probe).
+      #
+      # If file is an absolute path (i.e., it starts with a slash), the file
+      # must be identical to path to match.
+      #
+      # If file is not an absolute path, the path matches if the file is its suffix,
+      # at a path component boundary.
+      def file_matches?(path)
+        unless file
+          raise ArgumentError, "Probe does not have a file to match against"
+        end
+        Utils.path_matches_suffix?(path, file)
+      end
+
+      # Instrumentation module for method probes.
+      attr_accessor :instrumentation_module
+
+      # Line trace point for line probes. Normally this would be a targeted
+      # trace point.
+      attr_accessor :instrumentation_trace_point
     end
   end
 end
