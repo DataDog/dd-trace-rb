@@ -134,7 +134,11 @@ module Datadog
             name: probe.file,
             method: probe.method_name || 'no_method',
             thread_name: Thread.current.name,
-            thread_id: thread_id,
+            # Dynamic instrumentation currently does not need thread_id for
+            # anything. It can be sent if a customer requests it at which point
+            # we can also determine which thread identifier to send
+            # (Thread#native_thread_id or something else).
+            thread_id: nil,
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
@@ -195,16 +199,6 @@ module Datadog
         binding.local_variables.each_with_object({}) do |name, map|
           value = binding.local_variable_get(name)
           map[name] = value
-        end
-      end
-
-      def thread_id
-        thread = Thread.current
-        if thread.respond_to?(:native_thread_id)
-          # Ruby 3.1+
-          thread.native_thread_id
-        else
-          thread.object_id
         end
       end
     end
