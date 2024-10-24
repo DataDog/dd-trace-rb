@@ -127,14 +127,14 @@ RSpec.describe Datadog::Tracing::Tracer do
           end
 
           context 'contains version and span.service is not equal to the default tracer service' do
-            let(:tracer_options) { { default_service: 'global-service', tags: { 'version' => '1.1.0' } } }
+            let(:tracer_options) { { default_service: 'global-service', tags: { version: '1.1.0' } } }
             let(:service) { 'my-service' }
             it 'does not set version on the span' do
               expect(tracer.default_service).to eq('global-service')
               expect(span.service).not_to eq('my-service')
 
-              expect(tracer.tags).to include('version' => '1.1.0')
-              expect(span.tags).not_to include('version')
+              expect(tracer.tags).to include(version: '1.1.0')
+              expect(span.tags).not_to include(:version)
             end
           end
 
