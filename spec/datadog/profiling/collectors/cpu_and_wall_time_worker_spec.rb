@@ -10,11 +10,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   let(:allocation_profiling_enabled) { false }
   let(:heap_profiling_enabled) { false }
   let(:recorder) do
-    build_stack_recorder(heap_samples_enabled: heap_profiling_enabled, heap_size_enabled: heap_profiling_enabled)
+    Datadog::Profiling::StackRecorder.for_testing(
+      alloc_samples_enabled: true,
+      heap_samples_enabled: heap_profiling_enabled,
+      heap_size_enabled: heap_profiling_enabled,
+      **stack_recorder_options,
+    )
   end
   let(:no_signals_workaround_enabled) { false }
   let(:timeline_enabled) { false }
   let(:options) { {} }
+  let(:stack_recorder_options) { {} }
   let(:allocation_counting_enabled) { false }
   let(:gvl_profiling_enabled) { false }
   let(:worker_settings) do
@@ -397,7 +403,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         signal_handler_enqueued_sample = stats.fetch(:signal_handler_enqueued_sample)
 
-        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6), \
+        expect(signal_handler_enqueued_sample.to_f / trigger_sample_attempts).to (be >= 0.6),
           "Expected at least 60% of signals to be delivered to correct thread (#{stats})"
 
         # Sanity checking
@@ -580,7 +586,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         trigger_sample_attempts = stats.fetch(:trigger_sample_attempts)
         simulated_signal_delivery = stats.fetch(:simulated_signal_delivery)
 
-        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8), \
+        expect(simulated_signal_delivery.to_f / trigger_sample_attempts).to (be >= 0.8),
           "Expected at least 80% of signals to be simulated, stats: #{stats}, debug_failures: #{debug_failures}"
 
         # Sanity checking
@@ -611,7 +617,7 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # To avoid the flakiness, I've added a dummy margin here but... yeah in practice this can happen as many times
           # as we try to sample.
           margin = 1
-          expect(trigger_sample_attempts).to (be >= (sample_count - margin)), \
+          expect(trigger_sample_attempts).to (be >= (sample_count - margin)),
             "sample_count: #{sample_count}, stats: #{stats}, debug_failures: #{debug_failures}"
         end
       end
@@ -859,6 +865,17 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(Datadog.logger).to receive(:warn).with(/dynamic sampling rate disabled/)
       end
 
+      after do |example|
+        # This is here to facilitate troubleshooting when this test fails. Otherwise
+        # it's very hard to understand what may be happening.
+        if example.exception
+          cpu_and_wall_time_worker.stop
+
+          puts("Heap recorder debugging info:")
+          puts(Datadog::Profiling::StackRecorder::Testing._native_debug_heap_recorder(recorder))
+        end
+      end
+
       it "records live heap objects" do
         stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
 
@@ -896,6 +913,78 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         expect(total_samples).to eq test_num_allocated_object
         # 40 is the size of a basic object and we have test_num_allocated_object of them
         expect(total_size).to eq test_num_allocated_object * 40
+      end
+
+      describe "heap cleanup after GC" do
+        let(:options) { {dynamic_sampling_rate_enabled: false} }
+
+        let(:cleared_object_id) do
+          stub_const("CpuAndWallTimeWorkerSpec::TestStruct", Struct.new(:foo))
+
+          start
+
+          # Force a full GC to make sure there's no incremental GC going on at this point
+          GC.start
+
+          test_object = CpuAndWallTimeWorkerSpec::TestStruct.new
+          test_object_id = test_object.object_id
+
+          expect(
+            Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, test_object_id)
+          ).to be true
+
+          # Let's replace the test_object reference with another object, so that the original one can be GC'd
+          test_object = Object.new # rubocop:disable Lint/UselessAssignment
+
+          # Force an update to happen on the next GC
+          Datadog::Profiling::StackRecorder::Testing._native_heap_recorder_reset_last_update(recorder)
+
+          GC.start
+
+          test_object_id
+        end
+
+        context "when gc_profiling_enabled is enabled" do
+          let(:gc_profiling_enabled) { true }
+
+          context "when heap_clean_after_gc_enabled is enabled in the recorder" do
+            let(:stack_recorder_options) { {**super(), heap_clean_after_gc_enabled: true} }
+
+            it "removes live heap objects after GCs" do
+              expect(
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              ).to be false
+            end
+          end
+
+          context "when heap_clean_after_gc_enabled is disabled in the recorder" do
+            let(:stack_recorder_options) { {**super(), heap_clean_after_gc_enabled: false} }
+
+            it "does not remove live heap objects after GCs" do
+              expect(
+                Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+              ).to be true
+            end
+          end
+        end
+
+        context "when GC profiling is disabled" do
+          let(:gc_profiling_enabled) { false }
+
+          it "does not remove live heap objects after minor GCs" do
+            # The object is still being tracked!
+            expect(
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+            ).to be true
+
+            # Sanity checking: It stops being tracked after a serialization, proving it was indeed dead, we just hadn't
+            # updated our state yet
+            recorder.serialize!
+            expect(
+              Datadog::Profiling::StackRecorder::Testing._native_is_object_recorded?(recorder, cleared_object_id)
+            ).to be false
+          end
+        end
       end
     end
 

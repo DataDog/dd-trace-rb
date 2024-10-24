@@ -31,14 +31,7 @@ class ProfilerSampleGvlBenchmark
   end
 
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new(
-      cpu_time_enabled: true,
-      alloc_samples_enabled: false,
-      heap_samples_enabled: false,
-      heap_size_enabled: false,
-      heap_sample_every: 1,
-      timeline_enabled: true,
-    )
+    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: true)
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(
       recorder: @recorder,
       waiting_for_gvl_threshold_ns: 0,

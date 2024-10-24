@@ -13,6 +13,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   let(:heap_size_enabled) { false }
   let(:heap_sample_every) { 1 }
   let(:timeline_enabled) { true }
+  let(:heap_clean_after_gc_enabled) { true }
 
   subject(:stack_recorder) do
     described_class.new(
@@ -22,6 +23,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       heap_size_enabled: heap_size_enabled,
       heap_sample_every: heap_sample_every,
       timeline_enabled: timeline_enabled,
+      heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
     )
   end
 
@@ -38,6 +40,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
 
   def slot_two_mutex_locked?
     described_class::Testing._native_slot_two_mutex_locked?(stack_recorder)
+  end
+
+  def is_object_recorded?(obj_id)
+    described_class::Testing._native_is_object_recorded?(stack_recorder, obj_id)
+  end
+
+  def recorder_after_gc_step
+    described_class::Testing._native_recorder_after_gc_step(stack_recorder)
   end
 
   describe "#initialize" do
@@ -810,6 +820,107 @@ RSpec.describe Datadog::Profiling::StackRecorder do
             expect(active_slot).to be 1
             expect(slot_one_mutex_locked?).to be false
             expect(slot_two_mutex_locked?).to be true
+          end
+        end
+
+        describe "#recorder_after_gc_step" do
+          def sample_and_clear
+            test_object = Object.new
+            test_object_id = test_object.object_id
+            sample_allocation(test_object)
+            # Let's replace the test_object reference with another object, so that the original one can be GC'd
+            test_object = Object.new # rubocop:disable Lint/UselessAssignment
+            GC.start
+            test_object_id
+          end
+
+          before do
+            GC.disable
+
+            @object_ids = Array.new(4) { sample_and_clear }
+          end
+
+          after { GC.enable }
+
+          context 'when heap_clean_after_gc_enabled is true' do
+            let(:heap_clean_after_gc_enabled) { true }
+
+            it "clears young dead objects with age 1 and 2, but not older objects" do
+              # Every object is still being tracked at this point
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+
+              recorder_after_gc_step
+
+              # Young objects should no longer be tracked, but older objects are still kept
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, false, false]
+
+              stack_recorder.serialize
+
+              # Older objects are only cleared at serialization time
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+            end
+
+            context "when there's a heap serialization ongoing" do
+              it "does nothing" do
+                described_class::Testing._native_start_fake_slow_heap_serialization(stack_recorder)
+
+                test_object_id = sample_and_clear
+
+                expect do
+                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                  recorder_after_gc_step
+                end.to_not change { is_object_recorded?(test_object_id) }.from(true)
+
+                described_class::Testing._native_end_fake_slow_heap_serialization(stack_recorder)
+
+                # Sanity: after serialization finishes, we can finally clear it
+                expect do
+                  described_class::Testing._native_heap_recorder_reset_last_update(stack_recorder)
+                  recorder_after_gc_step
+                end.to change { is_object_recorded?(test_object_id) }.from(true).to(false)
+              end
+            end
+
+            it "enforces a minimum time between heap updates" do
+              test_object_id_1 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+
+              test_object_id_2 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+            end
+
+            it "does not apply the minimum time between heap updates when serializing" do
+              test_object_id_1 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to change { is_object_recorded?(test_object_id_1) }.from(true).to(false)
+
+              test_object_id_2 = sample_and_clear
+
+              expect { recorder_after_gc_step }.to_not change { is_object_recorded?(test_object_id_2) }.from(true)
+
+              expect { serialize }.to change { is_object_recorded?(test_object_id_2) }.from(true).to(false)
+            end
+          end
+
+          context 'when heap_clean_after_gc_enabled is false' do
+            let(:heap_clean_after_gc_enabled) { false }
+
+            it "does nothing" do
+              # Every object is still being tracked at this point
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+
+              recorder_after_gc_step
+
+              # No change -- all objects are still being tracked
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [true, true, true, true]
+
+              stack_recorder.serialize
+
+              # All objects are finally cleared
+              expect(@object_ids.map { |it| is_object_recorded?(it) }).to eq [false, false, false, false]
+            end
           end
         end
       end

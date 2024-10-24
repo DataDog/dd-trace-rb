@@ -95,15 +95,6 @@ only-profiling-alloc:
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-alloc-ddprof:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_DDPROF: "true"
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
-
 only-profiling-heap:
   extends: .benchmarks
   variables:
@@ -111,6 +102,16 @@ only-profiling-heap:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
+
+only-profiling-heap-clean-after-gc:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
