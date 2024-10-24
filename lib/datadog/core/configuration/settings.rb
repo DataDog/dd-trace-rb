@@ -514,6 +514,18 @@ module Datadog
                 end
               end
             end
+
+            # Controls if the heap profiler should attempt to clean young objects after GC, rather than just at
+            # serialization time. This lowers memory usage and high percentile latency.
+            #
+            # Only takes effect when used together with `gc_enabled: true` and `experimental_heap_enabled: true`.
+            #
+            # @default false
+            option :heap_clean_after_gc_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED'
+              o.default false
+            end
           end
 
           # @public_api

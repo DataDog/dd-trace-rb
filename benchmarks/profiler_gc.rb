@@ -9,14 +9,7 @@ require_relative 'benchmarks_helper'
 
 class ProfilerGcBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new(
-      cpu_time_enabled: true,
-      alloc_samples_enabled: false,
-      heap_samples_enabled: false,
-      heap_size_enabled: false,
-      heap_sample_every: 1,
-      timeline_enabled: true,
-    )
+    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: true)
     @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: true)
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
