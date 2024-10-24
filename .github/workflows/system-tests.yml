@@ -36,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
-          ref: ${{ env.ST_REF }}
+          ref: conti/set-aws-env-on-docker-runner
           persist-credentials: false
       - name: Pull released image
         run: |
@@ -300,11 +300,7 @@ jobs:
           docker image list
       - name: Run scenario
         run: |
-          if [ ${{ matrix.scenario }} != "CROSSED_TRACING_LIBRARIES" ]; then
-            ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
-          else
-            ./run.sh ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
-          fi
+          ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
