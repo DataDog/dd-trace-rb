@@ -919,6 +919,41 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
+      describe '#heap_clean_after_gc_enabled' do
+        subject(:heap_clean_after_gc_enabled) { settings.profiling.advanced.heap_clean_after_gc_enabled }
+
+        context 'when DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be false }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#heap_clean_after_gc_enabled=' do
+        it 'updates the #heap_clean_after_gc_enabled setting' do
+          expect { settings.profiling.advanced.heap_clean_after_gc_enabled = true }
+            .to change { settings.profiling.advanced.heap_clean_after_gc_enabled }
+            .from(false)
+            .to(true)
+        end
+      end
+
       describe '#waiting_for_gvl_threshold_ns' do
         subject(:waiting_for_gvl_threshold_ns) { settings.profiling.advanced.waiting_for_gvl_threshold_ns }
 

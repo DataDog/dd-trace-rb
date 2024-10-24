@@ -35,11 +35,9 @@ module Datadog
                         actions: result.actions
                       }
 
-                      if scope.service_entry_span
-                        scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                        scope.service_entry_span.set_tag('appsec.event', 'true')
-                      end
-
+                      # We want to keep the trace in case of security event
+                      scope.trace.keep! if scope.trace
+                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
                       scope.processor_context.events << event
                     end
                   end

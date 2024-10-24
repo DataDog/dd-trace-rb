@@ -22,6 +22,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             logs: [{ message: 'RuntimeError', level: 'ERROR',
                      stack_trace: a_string_including('REDACTED') }]
           )
+          expect(event.payload).to include(
+            logs: [{ message: 'RuntimeError', level: 'ERROR',
+                     stack_trace: a_string_including(',/spec/') }]
+          )
         end
 
         begin
@@ -37,6 +41,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
             expect(event.payload).to include(
               logs: [{ message: 'RuntimeError:Must not contain PII', level: 'ERROR',
                        stack_trace: a_string_including('REDACTED') }]
+            )
+            expect(event.payload).to include(
+              logs: [{ message: 'RuntimeError:Must not contain PII', level: 'ERROR',
+                       stack_trace: a_string_including(',/spec/') }]
             )
           end
 
@@ -55,6 +63,10 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
           expect(event.payload).to include(
             logs: [{ message: /#<Class:/, level: 'ERROR',
                      stack_trace: a_string_including('REDACTED') }]
+          )
+          expect(event.payload).to include(
+            logs: [{ message: /#<Class:/, level: 'ERROR',
+                     stack_trace: a_string_including(',/spec/') }]
           )
         end
 

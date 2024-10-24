@@ -421,6 +421,28 @@ RSpec.describe Datadog::Profiling::Component do
           end
         end
 
+        context "when heap_clean_after_gc_enabled is enabled" do
+          before { settings.profiling.advanced.heap_clean_after_gc_enabled = true }
+
+          it "sets up the StackRecorder with heap_clean_after_gc_enabled: true" do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(heap_clean_after_gc_enabled: true)).and_call_original
+
+            build_profiler_component
+          end
+        end
+
+        context "when heap_clean_after_gc_enabled is disabled" do
+          before { settings.profiling.advanced.heap_clean_after_gc_enabled = false }
+
+          it "sets up the StackRecorder with heap_clean_after_gc_enabled: false" do
+            expect(Datadog::Profiling::StackRecorder)
+              .to receive(:new).with(hash_including(heap_clean_after_gc_enabled: false)).and_call_original
+
+            build_profiler_component
+          end
+        end
+
         it "sets up the Profiler with the CpuAndWallTimeWorker collector" do
           expect(Datadog::Profiling::Profiler).to receive(:new).with(
             worker: instance_of(Datadog::Profiling::Collectors::CpuAndWallTimeWorker),

@@ -9,7 +9,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     expect(Thread.list).to include(Thread.main, t1, t2, t3)
   end
 
-  let(:recorder) { build_stack_recorder(timeline_enabled: timeline_enabled) }
+  let(:recorder) do
+    Datadog::Profiling::StackRecorder.for_testing(alloc_samples_enabled: true, timeline_enabled: timeline_enabled)
+  end
   let(:ready_queue) { Queue.new }
   let(:t1) do
     Thread.new(ready_queue) do |ready_queue|
