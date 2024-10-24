@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../core/semaphore'
+
 module Datadog
   module DI
     # Background worker thread for sending probe statuses and snapshots
@@ -21,15 +23,20 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
+      # Minimum interval between submissions.
+      # TODO make this into an internal setting and increase default to 2 or 3.
+      MIN_SEND_INTERVAL = 1
+
       def initialize(settings, agent_settings, transport)
         @settings = settings
         @status_queue = []
         @snapshot_queue = []
         @transport = transport
         @lock = Mutex.new
-        @wake_lock = Mutex.new
-        @wake = ConditionVariable.new
+        @wake = Core::Semaphore.new
         @io_in_progress = false
+        @sleep_remaining = nil
+        @wake_scheduled = false
       end
 
       attr_reader :settings
@@ -38,22 +45,33 @@ module Datadog
         return if defined?(@thread) && @thread
         @thread = Thread.new do
           loop do
+            # TODO If stop is requested, we stop immediately without
+            # flushing the submissions. Should we send pending submissions
+            # and then quit?
             break if @stop_requested
-            begin
-              if maybe_send
-                # Run next iteration immediately in case more work is
-                # in the queue
+
+            sleep_remaining = @lock.synchronize do
+              if sleep_remaining && sleep_remaining > 0
+                # Recalculate how much sleep time is remaining, then sleep that long.
+                set_sleep_remaining
+              else
+                0
               end
-            rescue NoMemoryError, SystemExit, Interrupt
-              raise
+            end
+
+            if sleep_remaining > 0
+              wake.wait(sleep_remaining)
+              next
+            end
+
+            begin
+              more = maybe_send
             rescue => exc
               raise if settings.dynamic_instrumentation.propagate_all_exceptions
 
               warn "Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})"
             end
-            wake_lock.synchronize do
-              wake.wait(wake_lock, 1)
-            end
+            wake.wait(more ? MIN_SEND_INTERVAL : nil)
           end
         end
       end
@@ -64,9 +82,7 @@ module Datadog
       # to killing the thread using Thread#kill.
       def stop(timeout = 1)
         @stop_requested = true
-        wake_lock.synchronize do
-          wake.signal
-        end
+        wake.signal
         unless thread&.join(timeout)
           thread.kill
         end
@@ -108,7 +124,6 @@ module Datadog
 
       attr_reader :transport
       attr_reader :wake
-      attr_reader :wake_lock
       attr_reader :thread
 
       # This method should be called while @lock is held.
@@ -116,12 +131,13 @@ module Datadog
         @io_in_progress
       end
 
+      attr_reader :last_sent
+
       [
         [:status, 'probe status'],
         [:snapshot, 'snapshot'],
       ].each do |(event_type, event_name)|
         attr_reader "#{event_type}_queue"
-        attr_reader "last_#{event_type}_sent"
 
         # Adds a status or a snapshot to the queue to be sent to the agent
         # at the next opportunity.
@@ -137,26 +153,35 @@ module Datadog
             # TODO determine a suitable limit via testing/benchmarking
             if queue.length > 100
               # TODO use datadog logger
-              warn "dropping #{event_type} because queue is full"
+              warn "#{self.class.name}: dropping #{event_type} because queue is full"
             else
               queue << event
             end
           end
-          last_sent = @lock.synchronize do
-            send("last_#{event_type}_sent")
-          end
-          if last_sent
-            now = Core::Utils::Time.get_time
-            if now - last_sent > 1
-              wake_lock.synchronize do
-                wake.signal
-              end
-            end
-          else
-            # First time sending
-            wake_lock.synchronize do
+
+          # Figure out whether to wake up the worker thread.
+          # If minimum send interval has elapsed since the last send,
+          # wake up immediately.
+          @lock.synchronize do
+            unless @wake_scheduled
+              @wake_scheduled = true
+              set_sleep_remaining
               wake.signal
             end
+          end
+        end
+
+        # Determine how much longer the worker thread should sleep
+        # so as not to send in less than MIN_SEND_INTERVAL since the last send.
+        # Important: this method must be called when @lock is held.
+        #
+        # Returns the time remaining to sleep.
+        def set_sleep_remaining
+          now = Core::Utils::Time.get_time
+          @sleep_remaining = if last_sent
+            [last_sent + MIN_SEND_INTERVAL - now, 0].max
+          else
+            0
           end
         end
 
@@ -164,7 +189,7 @@ module Datadog
 
         # Sends pending probe statuses or snapshots.
         #
-        # This method should ideallyy only be called when there are actually
+        # This method should ideally only be called when there are actually
         # events to send, but it can be called when there is nothing to do.
         # Currently we only have one wake-up signaling object and two
         # types of events. Therefore on most wake-ups we expect to only
@@ -181,7 +206,7 @@ module Datadog
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
-                instance_variable_set("@last_#{event_type}_sent", time)
+                @last_sent = time
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.propagate_all_exceptions
