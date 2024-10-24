@@ -32,6 +32,7 @@ module Datadog
           status: 'EMITTING',)
       end
 
+      # Duration is in seconds.
       def build_executed(probe,
         trace_point: nil, rv: nil, duration: nil, caller_locations: nil,
         args: nil, kwargs: nil, serialized_entry_args: nil)
