@@ -406,7 +406,7 @@ module Datadog
             on_error: on_error,
             resource: resource,
             service: service,
-            tags: resolve_tags(tags),
+            tags: resolve_tags(tags, service),
             type: type,
             id: id,
             &block
@@ -420,7 +420,7 @@ module Datadog
             resource: resource,
             service: service,
             start_time: start_time,
-            tags: resolve_tags(tags),
+            tags: resolve_tags(tags, service),
             type: type,
             id: id
           )
@@ -432,15 +432,20 @@ module Datadog
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
 
-      def resolve_tags(tags)
-        if @tags.any? && tags
-          # Combine default tags with provided tags,
-          # preferring provided tags.
-          @tags.merge(tags)
-        else
-          # Use provided tags or default tags if none.
-          tags || @tags.dup
+      def resolve_tags(tags, service)
+        merged_tags = if @tags.any? && tags
+                        # Combine default tags with provided tags,
+                        # preferring provided tags.
+                        @tags.merge(tags)
+                      else
+                        # Use provided tags or default tags if none.
+                        tags || @tags.dup
+                      end
+        # Remove version tag if service is not the default service
+        if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service != @default_service
+          merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
         end
+        merged_tags
       end
 
       # Manually activate and deactivate the trace, when the span completes.
