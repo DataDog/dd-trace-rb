@@ -1,5 +1,3 @@
-require 'rails/all'
-
 require_relative 'controllers'
 require_relative 'models'
 require_relative 'log_configuration'

@@ -1,0 +1,27 @@
+module Datadog
+  module DI
+    class Redactor
+      @settings: untyped
+
+      @redacted_identifiers: untyped
+
+      @redacted_type_names_regexp: Regexp
+
+      def initialize: (untyped settings) -> void
+
+      attr_reader settings: Datadog::Core::Configuration::Settings
+
+      def redact_identifier?: (String name) -> (true | false)
+
+      def redact_type?: (untyped value) -> (true | false)
+
+      private
+
+      def redacted_identifiers: () -> untyped
+
+      def redacted_type_names_regexp: () -> untyped
+      DEFAULT_REDACTED_IDENTIFIERS: ::Array["2fa" | "accesstoken" | "aiohttpsession" | "apikey" | "apisecret" | "apisignature" | "appkey" | "applicationkey" | "auth" | "authorization" | "authtoken" | "ccnumber" | "certificatepin" | "cipher" | "clientid" | "clientsecret" | "connectionstring" | "connectsid" | "cookie" | "credentials" | "creditcard" | "csrf" | "csrftoken" | "cvv" | "databaseurl" | "dburl" | "encryptionkey" | "encryptionkeyid" | "env" | "geolocation" | "gpgkey" | "ipaddress" | "jti" | "jwt" | "licensekey" | "masterkey" | "mysqlpwd" | "nonce" | "oauth" | "oauthtoken" | "otp" | "passhash" | "passwd" | "password" | "passwordb" | "pemfile" | "pgpkey" | "phpsessid" | "pin" | "pincode" | "pkcs8" | "privatekey" | "publickey" | "pwd" | "recaptchakey" | "refreshtoken" | "routingnumber" | "salt" | "secret" | "secretkey" | "secrettoken" | "securityanswer" | "securitycode" | "securityquestion" | "serviceaccountcredentials" | "session" | "sessionid" | "sessionkey" | "setcookie" | "signature" | "signaturekey" | "sshkey" | "ssn" | "symfony" | "token" | "transactionid" | "twiliotoken" | "usersession" | "voterid" | "xapikey" | "xauthtoken" | "xcsrftoken" | "xforwardedfor" | "xrealip" | "xsrf" | "xsrftoken"]
+      def normalize: (untyped str) -> untyped
+    end
+  end
+end

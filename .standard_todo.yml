@@ -1,0 +1,46 @@
+# This file is used to ignore specific rules for specific files or directories.
+---
+ignore:
+
+# After quite some discussion on the team, we decided to make an exception to the
+# "standard-isn't-supposed-to-be-configured" thing to allow for trailing comma, see
+# https://github.com/standardrb/standard/issues/611 for a discussion
+- '**/**':
+  - Style/TrailingCommaInArguments
+  - Style/TrailingCommaInArrayLiteral
+  - Style/TrailingCommaInHashLiteral
+  - Style/StringLiterals
+
+# This disables standardrb for the rest of dd-trace-rb (other than profiling)
+- .pryrc
+- .simplecov
+- Appraisals
+- datadog.gemspec
+- Gemfile
+- Rakefile
+- Steepfile
+- appraisal/**/**
+- benchmarks/**/**
+- gemfiles/**/**
+- integration/**/**
+- lib-injection/**/**
+- ext/libdatadog_extconf_helpers.rb
+- ext/libdatadog_api/**/**
+- lib/*
+- lib/datadog/*
+- lib/datadog/appsec/**/**
+- lib/datadog/core/**/**
+- lib/datadog/kit/**/**
+- lib/datadog/opentelemetry/**/**
+- lib/datadog/tracing/**/**
+- spec/*
+- spec/datadog/*
+- spec/datadog/appsec/**/**
+- spec/datadog/benchmark/**/**
+- spec/datadog/core/**/**
+- spec/datadog/kit/**/**
+- spec/datadog/tracing/**/**
+- spec/support/**/**
+- tasks/**/**
+- tools/**/**
+- yard/**/**

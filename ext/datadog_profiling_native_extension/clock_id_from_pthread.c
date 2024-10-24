@@ -7,11 +7,10 @@
 #include <pthread.h>
 #include <time.h>
 #include <errno.h>
-#include <ruby.h>
 
+#include "clock_id.h"
 #include "helpers.h"
 #include "private_vm_api_access.h"
-#include "clock_id.h"
 #include "time_helpers.h"
 
 // Validate that our home-cooked pthread_id_for() matches pthread_self() for the current thread

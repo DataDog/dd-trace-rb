@@ -21,6 +21,8 @@ module Datadog
           thread_context_collector:,
           dynamic_sampling_rate_overhead_target_percentage:,
           allocation_profiling_enabled:,
+          allocation_counting_enabled:,
+          gvl_profiling_enabled:,
           # **NOTE**: This should only be used for testing; disabling the dynamic sampling rate will increase the
           # profiler overhead!
           dynamic_sampling_rate_enabled: true,
@@ -29,20 +31,22 @@ module Datadog
         )
           unless dynamic_sampling_rate_enabled
             Datadog.logger.warn(
-              'Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!'
+              "Profiling dynamic sampling rate disabled. This should only be used for testing, and will increase overhead!"
             )
           end
 
           self.class._native_initialize(
-            self,
-            thread_context_collector,
-            gc_profiling_enabled,
-            idle_sampling_helper,
-            no_signals_workaround_enabled,
-            dynamic_sampling_rate_enabled,
-            dynamic_sampling_rate_overhead_target_percentage,
-            allocation_profiling_enabled,
-            skip_idle_samples_for_testing,
+            self_instance: self,
+            thread_context_collector: thread_context_collector,
+            gc_profiling_enabled: gc_profiling_enabled,
+            idle_sampling_helper: idle_sampling_helper,
+            no_signals_workaround_enabled: no_signals_workaround_enabled,
+            dynamic_sampling_rate_enabled: dynamic_sampling_rate_enabled,
+            dynamic_sampling_rate_overhead_target_percentage: dynamic_sampling_rate_overhead_target_percentage,
+            allocation_profiling_enabled: allocation_profiling_enabled,
+            allocation_counting_enabled: allocation_counting_enabled,
+            gvl_profiling_enabled: gvl_profiling_enabled,
+            skip_idle_samples_for_testing: skip_idle_samples_for_testing,
           )
           @worker_thread = nil
           @failure_exception = nil
@@ -54,27 +58,25 @@ module Datadog
 
         def start(on_failure_proc: nil)
           @start_stop_mutex.synchronize do
-            return if @worker_thread && @worker_thread.alive?
+            return if @worker_thread&.alive?
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
             @idle_sampling_helper.start
 
             @worker_thread = Thread.new do
-              begin
-                Thread.current.name = self.class.name
+              Thread.current.name = self.class.name
 
-                self.class._native_sampling_loop(self)
+              self.class._native_sampling_loop(self)
 
-                Datadog.logger.debug('CpuAndWallTimeWorker thread stopping cleanly')
-              rescue Exception => e # rubocop:disable Lint/RescueException
-                @failure_exception = e
-                Datadog.logger.warn(
-                  'CpuAndWallTimeWorker thread error. ' \
-                  "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-                )
-                on_failure_proc&.call
-              end
+              Datadog.logger.debug("CpuAndWallTimeWorker thread stopping cleanly")
+            rescue Exception => e # rubocop:disable Lint/RescueException
+              @failure_exception = e
+              Datadog.logger.warn(
+                "CpuAndWallTimeWorker thread error. " \
+                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+              )
+              on_failure_proc&.call
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
@@ -85,7 +87,7 @@ module Datadog
 
         def stop
           @start_stop_mutex.synchronize do
-            Datadog.logger.debug('Requesting CpuAndWallTimeWorker thread shut down')
+            Datadog.logger.debug("Requesting CpuAndWallTimeWorker thread shut down")
 
             @idle_sampling_helper.stop
 

@@ -50,6 +50,14 @@ appraise 'rails61-trilogy' do
   gem 'net-smtp'
 end
 
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -72,21 +80,12 @@ appraise 'http' do
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe'
   gem 'typhoeus'
 end
 
-[2, 3].each do |n|
-  appraise "opensearch-#{n}" do
-    gem 'opensearch-ruby', "~> #{n}"
-  end
-end
-
-[7, 8].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
-end
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', 7..8)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -96,7 +95,7 @@ appraise 'relational_db' do
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'trilogy'
 end
 
@@ -129,24 +128,17 @@ appraise 'contrib' do
 end
 
 [
+  '2.3',
   '2.2',
   '2.1',
   '2.0',
   '1.13',
 ].each do |v|
   appraise "graphql-#{v}" do
+    gem 'rails', '~> 6.1.0'
     gem 'graphql', "~> #{v}.0"
-  end
-end
-
-[
-  '2.2',
-  '2.1',
-  '2.0',
-  '1.13',
-].each do |v|
-  appraise "graphql-#{v}" do
-    gem 'graphql', "~> #{v}.0"
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
   end
 end
 
@@ -156,13 +148,7 @@ end
   end
 end
 
-[2, 3].each do |n|
-  appraise "rack-#{n}" do
-    gem 'rack', "~> #{n}"
-    gem 'rack-contrib'
-    gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
+build_coverage_matrix('rack', 2..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -174,6 +160,11 @@ end
 
 appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
+end
+
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
 end
 
 appraise 'contrib-old' do

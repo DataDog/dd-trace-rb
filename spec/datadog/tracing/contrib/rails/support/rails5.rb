@@ -1,6 +1,8 @@
-require 'rails/all'
 # Loaded by the `bin/rails` script in a real Rails application
 require 'rails/command'
+
+# We may not always want to require rails/all, especially when we don't have a database.
+# Require is already always done where Rails test application is used, manually or through rails_helper.
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
@@ -34,14 +36,16 @@ RSpec.shared_context 'Rails 5 test application' do
 
       instance_eval(&during_init)
 
-      config.active_job.queue_adapter = :inline
-      if ENV['USE_SIDEKIQ']
-        config.active_job.queue_adapter = :sidekiq
-        # add Sidekiq middleware
-        Sidekiq::Testing.server_middleware do |chain|
-          chain.add(
-            Datadog::Tracing::Contrib::Sidekiq::ServerTracer
-          )
+      if defined?(ActiveJob)
+        config.active_job.queue_adapter = :inline
+        if ENV['USE_SIDEKIQ']
+          config.active_job.queue_adapter = :sidekiq
+          # add Sidekiq middleware
+          Sidekiq::Testing.server_middleware do |chain|
+            chain.add(
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+            )
+          end
         end
       end
     end
@@ -62,11 +66,13 @@ RSpec.shared_context 'Rails 5 test application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                            :sidekiq
-                                                          else
-                                                            :inline
-                                                          end
+      if Rails.application.config.respond_to?(:active_job)
+        Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                              :sidekiq
+                                                            else
+                                                              :inline
+                                                            end
+      end
 
       before_test_init.call
       initialize!
@@ -89,7 +95,7 @@ RSpec.shared_context 'Rails 5 test application' do
       append_controllers!
 
       # Force connection to initialize, and dump some spans
-      application_record.connection
+      application_record&.connection
 
       # Skip default Rails exception page rendering.
       # This avoid polluting the trace under test

@@ -1,0 +1,49 @@
+module Datadog
+  module DI
+    class Probe
+      KNOWN_TYPES: Array[Symbol]
+      
+      @id: String
+
+      @type: Symbol
+
+      @file: String?
+
+      @line_no: Integer?
+
+      @type_name: String?
+
+      @method_name: String?
+
+      @template: String
+
+      @capture_snapshot: bool
+
+      @rate_limiter: Datadog::Core::RateLimiter
+
+      def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
+	?max_capture_depth: Integer, ?rate_limit: Integer) -> void
+
+      attr_reader id: String
+
+      attr_reader type: Symbol
+
+      attr_reader file: String?
+
+      attr_reader line_no: Integer?
+
+      attr_reader type_name: String?
+
+      attr_reader method_name: String?
+
+      attr_reader template: String
+      attr_reader rate_limiter: Datadog::Core::RateLimiter
+
+      def capture_snapshot?: () -> bool
+      def line?: () -> bool
+      def method?: () -> bool
+      def line_no!: () -> Integer
+      def location: () -> ::String
+    end
+  end
+end

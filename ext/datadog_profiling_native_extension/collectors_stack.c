@@ -15,26 +15,22 @@ static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
 struct sampling_buffer {
-  unsigned int max_frames;
-  VALUE *stack_buffer;
-  int *lines_buffer;
-  bool *is_ruby_frame;
+  uint16_t max_frames;
   ddog_prof_Location *locations;
+  frame_info *stack_buffer;
 }; // Note: typedef'd in the header to sampling_buffer
 
-static VALUE _native_sample(
-  VALUE self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-);
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
+static VALUE native_sample_do(VALUE args);
+static VALUE native_sample_ensure(VALUE args);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
-static void record_placeholder_stack_in_native_code(sampling_buffer* buffer, VALUE recorder_instance, sample_values values, sample_labels labels);
+static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
+
+// These two functions are exposed as symbols by the VM but are not in any header.
+// Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
+extern VALUE rb_iseq_path(const VALUE);
+extern VALUE rb_iseq_base_label(const VALUE);
 
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -42,29 +38,49 @@ void collectors_stack_init(VALUE profiling_module) {
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
 
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 7);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
   missing_string = rb_str_new2("");
   rb_global_variable(&missing_string);
 }
 
+struct native_sample_args {
+  VALUE in_gc;
+  VALUE recorder_instance;
+  sample_values values;
+  sample_labels labels;
+  VALUE thread;
+  ddog_prof_Location *locations;
+  sampling_buffer *buffer;
+};
+
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(
-  DDTRACE_UNUSED VALUE _self,
-  VALUE thread,
-  VALUE recorder_instance,
-  VALUE metric_values_hash,
-  VALUE labels_array,
-  VALUE numeric_labels_array,
-  VALUE max_frames,
-  VALUE in_gc
-) {
+static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
+  // Positional args
+  VALUE thread;
+  VALUE recorder_instance;
+  VALUE metric_values_hash;
+  VALUE labels_array;
+  VALUE numeric_labels_array;
+  VALUE options;
+
+  rb_scan_args(argc, argv, "5:", &thread, &recorder_instance, &metric_values_hash, &labels_array, &numeric_labels_array, &options);
+
+  if (options == Qnil) options = rb_hash_new();
+
+  // Optional keyword args
+  VALUE max_frames = rb_hash_lookup2(options, ID2SYM(rb_intern("max_frames")), INT2NUM(400));
+  VALUE in_gc = rb_hash_lookup2(options, ID2SYM(rb_intern("in_gc")), Qfalse);
+  VALUE is_gvl_waiting_state = rb_hash_lookup2(options, ID2SYM(rb_intern("is_gvl_waiting_state")), Qfalse);
+
   ENFORCE_TYPE(metric_values_hash, T_HASH);
   ENFORCE_TYPE(labels_array, T_ARRAY);
   ENFORCE_TYPE(numeric_labels_array, T_ARRAY);
 
   VALUE zero = INT2NUM(0);
+  VALUE heap_sample = rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("heap_sample"), Qfalse);
+  ENFORCE_BOOLEAN(heap_sample);
   sample_values values = {
     .cpu_time_ns   = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-time"),      zero)),
     .cpu_or_wall_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("cpu-samples"), zero)),
@@ -72,6 +88,7 @@ static VALUE _native_sample(
     .alloc_samples = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples"), zero)),
     .alloc_samples_unscaled = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("alloc-samples-unscaled"), zero)),
     .timeline_wall_time_ns = NUM2UINT(rb_hash_lookup2(metric_values_hash, rb_str_new_cstr("timeline"), zero)),
+    .heap_sample = heap_sample == Qtrue,
   };
 
   long labels_count = RARRAY_LEN(labels_array) + RARRAY_LEN(numeric_labels_array);
@@ -99,32 +116,54 @@ static VALUE _native_sample(
     };
   }
 
-  int max_frames_requested = NUM2INT(max_frames);
-  if (max_frames_requested < 0) rb_raise(rb_eArgError, "Invalid max_frames: value must not be negative");
+  int max_frames_requested = sampling_buffer_check_max_frames(NUM2INT(max_frames));
 
-  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested);
+  ddog_prof_Location *locations = ruby_xcalloc(max_frames_requested, sizeof(ddog_prof_Location));
+  sampling_buffer *buffer = sampling_buffer_new(max_frames_requested, locations);
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
-  if (in_gc == Qtrue) {
+  struct native_sample_args args_struct = {
+    .in_gc = in_gc,
+    .recorder_instance = recorder_instance,
+    .values = values,
+    .labels = (sample_labels) {.labels = slice_labels, .state_label = state_label, .is_gvl_waiting_state = is_gvl_waiting_state == Qtrue},
+    .thread = thread,
+    .locations = locations,
+    .buffer = buffer,
+  };
+
+  return rb_ensure(native_sample_do, (VALUE) &args_struct, native_sample_ensure, (VALUE) &args_struct);
+}
+
+static VALUE native_sample_do(VALUE args) {
+  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+
+  if (args_struct->in_gc == Qtrue) {
     record_placeholder_stack(
-      buffer,
-      recorder_instance,
-      values,
-      (sample_labels) {.labels = slice_labels, .state_label = state_label},
+      args_struct->recorder_instance,
+      args_struct->values,
+      args_struct->labels,
       DDOG_CHARSLICE_C("Garbage Collection")
     );
   } else {
     sample_thread(
-      thread,
-      buffer,
-      recorder_instance,
-      values,
-      (sample_labels) {.labels = slice_labels, .state_label = state_label}
+      args_struct->thread,
+      args_struct->buffer,
+      args_struct->recorder_instance,
+      args_struct->values,
+      args_struct->labels
     );
   }
 
-  sampling_buffer_free(buffer);
+  return Qtrue;
+}
+
+static VALUE native_sample_ensure(VALUE args) {
+  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+
+  ruby_xfree(args_struct->locations);
+  sampling_buffer_free(args_struct->buffer);
 
   return Qtrue;
 }
@@ -151,47 +190,59 @@ void sample_thread(
     thread,
     0 /* stack starting depth */,
     buffer->max_frames,
-    buffer->stack_buffer,
-    buffer->lines_buffer,
-    buffer->is_ruby_frame
+    buffer->stack_buffer
   );
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
-    record_placeholder_stack_in_native_code(buffer, recorder_instance, values, labels);
+    record_placeholder_stack_in_native_code(recorder_instance, values, labels);
     return;
   }
+
+  // if (captured_frames > 0) {
+  //   int cache_hits = 0;
+  //   for (int i = 0; i < captured_frames; i++) {
+  //     if (buffer->stack_buffer[i].same_frame) cache_hits++;
+  //   }
+  //   fprintf(stderr, "Sampling cache hits: %f\n", ((double) cache_hits / captured_frames) * 100);
+  // }
 
   // Ruby does not give us path and line number for methods implemented using native code.
   // The convention in Kernel#caller_locations is to instead use the path and line number of the first Ruby frame
   // on the stack that is below (e.g. directly or indirectly has called) the native method.
   // Thus, we keep that frame here to able to replicate that behavior.
-  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame)
-  VALUE last_ruby_frame = Qnil;
+  // (This is why we also iterate the sampling buffers backwards below -- so that it's easier to keep the last_ruby_frame_filename)
+  VALUE last_ruby_frame_filename = Qnil;
   int last_ruby_line = 0;
 
   ddog_prof_Label *state_label = labels.state_label;
   bool cpu_or_wall_sample = values.cpu_or_wall_samples > 0;
   bool has_cpu_time = cpu_or_wall_sample && values.cpu_time_ns > 0;
-  bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns > 0;
+  // Note: In theory, a cpu_or_wall_sample should always have some wall-time. In practice, the first sample for a thread
+  // will be zero, as well as if the system clock does something weird. Thus, at some point we had values.wall_time_ns > 0
+  // here, but >= 0 makes this easier to understand/debug.
+  bool only_wall_time = cpu_or_wall_sample && values.cpu_time_ns == 0 && values.wall_time_ns >= 0;
 
   if (cpu_or_wall_sample && state_label == NULL) rb_raise(rb_eRuntimeError, "BUG: Unexpected missing state_label");
 
-  if (has_cpu_time) state_label->str = DDOG_CHARSLICE_C("had cpu");
+  if (has_cpu_time) {
+    state_label->str = DDOG_CHARSLICE_C("had cpu");
+    if (labels.is_gvl_waiting_state) rb_raise(rb_eRuntimeError, "BUG: Unexpected combination of cpu-time with is_gvl_waiting");
+  }
 
   for (int i = captured_frames - 1; i >= 0; i--) {
     VALUE name, filename;
     int line;
 
-    if (buffer->is_ruby_frame[i]) {
-      last_ruby_frame = buffer->stack_buffer[i];
-      last_ruby_line = buffer->lines_buffer[i];
+    if (buffer->stack_buffer[i].is_ruby_frame) {
+      name = rb_iseq_base_label(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      filename = rb_iseq_path(buffer->stack_buffer[i].as.ruby_frame.iseq);
+      line = buffer->stack_buffer[i].as.ruby_frame.line;
 
-      name = rb_profile_frame_base_label(buffer->stack_buffer[i]);
-      filename = rb_profile_frame_path(buffer->stack_buffer[i]);
-      line = buffer->lines_buffer[i];
+      last_ruby_frame_filename = filename;
+      last_ruby_line = line;
     } else {
-      name = ddtrace_rb_profile_frame_method_name(buffer->stack_buffer[i]);
-      filename = NIL_P(last_ruby_frame) ? Qnil : rb_profile_frame_path(last_ruby_frame);
+      name = rb_id2str(buffer->stack_buffer[i].as.native_frame.method_id);
+      filename = last_ruby_frame_filename;
       line = last_ruby_line;
     }
 
@@ -206,12 +257,15 @@ void sample_thread(
     bool top_of_the_stack = i == 0;
 
     // When there's only wall-time in a sample, this means that the thread was not active in the sampled period.
-    //
-    // We try to categorize what it was doing based on what we observe at the top of the stack. This is a very rough
-    // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
-    // GVL instrumentation API.)
     if (top_of_the_stack && only_wall_time) {
-      if (!buffer->is_ruby_frame[i]) {
+      // Did the caller already provide the state?
+      if (labels.is_gvl_waiting_state) {
+        state_label->str = DDOG_CHARSLICE_C("waiting for gvl");
+
+      // Otherwise, we try to categorize what the thread was doing based on what we observe at the top of the stack. This is a very rough
+      // approximation, and in the future we hope to replace this with a more accurate approach (such as using the
+      // GVL instrumentation API.)
+      } else if (!buffer->stack_buffer[i].is_ruby_frame) {
         // We know that known versions of Ruby implement these using native code; thus if we find a method with the
         // same name that is not native code, we ignore it, as it's probably a user method that coincidentally
         // has the same name. Thus, even though "matching just by method name" is kinda weak,
@@ -246,10 +300,8 @@ void sample_thread(
     }
 
     buffer->locations[i] = (ddog_prof_Location) {
-      .function = (ddog_prof_Function) {
-        .name = name_slice,
-        .filename = filename_slice,
-      },
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+      .function = (ddog_prof_Function) {.name = name_slice, .filename = filename_slice},
       .line = line,
     };
   }
@@ -287,7 +339,9 @@ static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_Char
   // Check filename doesn't end with ".rb"; templates are usually along the lines of .html.erb/.html.haml/...
   if (filename_slice->len < 3 || memcmp(filename_slice->ptr + filename_slice->len - 3, ".rb", 3) == 0) return;
 
-  int pos = name_slice->len - 1;
+  if (name_slice->len > 1024) return;
+
+  int pos = ((int) name_slice->len) - 1;
 
   // Let's match on something__number_number:
   // Find start of id suffix from the end...
@@ -325,6 +379,7 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
   ddog_CharSlice function_name = DDOG_CHARSLICE_C("");
   ddog_CharSlice function_filename = {.ptr = frames_omitted_message, .len = strlen(frames_omitted_message)};
   buffer->locations[buffer->max_frames - 1] = (ddog_prof_Location) {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
     .function = (ddog_prof_Function) {.name = function_name, .filename = function_filename},
     .line = 0,
   };
@@ -352,13 +407,11 @@ static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* 
 // with one containing a placeholder frame, so that these threads are properly represented in the UX.
 
 static void record_placeholder_stack_in_native_code(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels
 ) {
   record_placeholder_stack(
-    buffer,
     recorder_instance,
     values,
     labels,
@@ -367,36 +420,40 @@ static void record_placeholder_stack_in_native_code(
 }
 
 void record_placeholder_stack(
-  sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
   sample_labels labels,
   ddog_CharSlice placeholder_stack
 ) {
-  ddog_prof_Function placeholder = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack};
-  buffer->locations[0] = (ddog_prof_Location) {.function = placeholder, .line = 0};
+  ddog_prof_Location placeholder_location = {
+    .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+    .function = {.name = DDOG_CHARSLICE_C(""), .filename = placeholder_stack},
+    .line = 0,
+  };
 
   record_sample(
     recorder_instance,
-    (ddog_prof_Slice_Location) {.ptr = buffer->locations, .len = 1},
+    (ddog_prof_Slice_Location) {.ptr = &placeholder_location, .len = 1},
     values,
     labels
   );
 }
 
-sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
+uint16_t sampling_buffer_check_max_frames(int max_frames) {
   if (max_frames < 5) rb_raise(rb_eArgError, "Invalid max_frames: value must be >= 5");
   if (max_frames > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "Invalid max_frames: value must be <= " MAX_FRAMES_LIMIT_AS_STRING);
+  return max_frames;
+}
+
+sampling_buffer *sampling_buffer_new(uint16_t max_frames, ddog_prof_Location *locations) {
+  sampling_buffer_check_max_frames(max_frames);
 
   // Note: never returns NULL; if out of memory, it calls the Ruby out-of-memory handlers
   sampling_buffer* buffer = ruby_xcalloc(1, sizeof(sampling_buffer));
 
   buffer->max_frames = max_frames;
-
-  buffer->stack_buffer  = ruby_xcalloc(max_frames, sizeof(VALUE));
-  buffer->lines_buffer  = ruby_xcalloc(max_frames, sizeof(int));
-  buffer->is_ruby_frame = ruby_xcalloc(max_frames, sizeof(bool));
-  buffer->locations     = ruby_xcalloc(max_frames, sizeof(ddog_prof_Location));
+  buffer->locations = locations;
+  buffer->stack_buffer = ruby_xcalloc(max_frames, sizeof(frame_info));
 
   return buffer;
 }
@@ -404,10 +461,8 @@ sampling_buffer *sampling_buffer_new(unsigned int max_frames) {
 void sampling_buffer_free(sampling_buffer *buffer) {
   if (buffer == NULL) rb_raise(rb_eArgError, "sampling_buffer_free called with NULL buffer");
 
+  // buffer->locations are owned by whoever called sampling_buffer_new, not us
   ruby_xfree(buffer->stack_buffer);
-  ruby_xfree(buffer->lines_buffer);
-  ruby_xfree(buffer->is_ruby_frame);
-  ruby_xfree(buffer->locations);
 
   ruby_xfree(buffer);
 }

@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.2.0)
-      debase-ruby_core_source (= 3.3.1)
-      libdatadog (~> 10.0.0.1.0)
+    datadog (2.4.0)
+      datadog-ruby_core_source (= 3.3.6)
+      libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
 
@@ -31,7 +31,6 @@ GEM
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
     bson (4.15.0-java)
-    builder (3.2.4)
     bunny (2.20.2)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -42,7 +41,7 @@ GEM
     crack (0.4.5)
       rexml
     dalli (3.2.3)
-    debase-ruby_core_source (3.3.1)
+    datadog-ruby_core_source (3.3.6)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
@@ -51,7 +50,7 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (10.0.0.1.0)
+    libdatadog (13.1.0.1.0)
     libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -183,9 +182,6 @@ GEM
       addressable (>= 2.3.6)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.7.0)
-    yard (0.9.28)
-      webrick (~> 1.7.0)
 
 PLATFORMS
   universal-java-11
@@ -194,7 +190,6 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   dalli (>= 3.0.0)
@@ -232,7 +227,6 @@ DEPENDENCIES
   sucker_punch
   warning (~> 1)
   webmock (>= 3.10.0)
-  yard (~> 0.9)
 
 BUNDLED WITH
-   2.3.27
+   2.3.26

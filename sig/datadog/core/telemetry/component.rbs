@@ -9,9 +9,13 @@ module Datadog
 
         attr_reader enabled: bool
 
+        include Core::Telemetry::Logging
+        include Core::Telemetry::_Logging
         include Core::Utils::Forking
 
-        def initialize: (heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool) -> void
+        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
+
+        def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer) -> void
 
         def disable!: () -> void
 
@@ -22,6 +26,16 @@ module Datadog
         def stop!: () -> void
 
         def integrations_change!: () -> void
+
+        def inc: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def dec: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def gauge: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def rate: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
+
+        def distribution: (String namespace, String metric_name, Datadog::Core::Telemetry::Metric::input_value value, ?tags: Datadog::Core::Telemetry::Metric::tags_input, ?common: bool) -> void
       end
     end
   end

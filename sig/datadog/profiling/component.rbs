@@ -26,11 +26,6 @@ module Datadog
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings
       ) -> untyped
 
-      def self.build_crashtracker: (
-        untyped settings,
-        untyped transport,
-      ) -> Datadog::Profiling::Crashtracker?
-
       def self.enable_gc_profiling?: (untyped settings) -> bool
       def self.enable_allocation_profiling?: (untyped settings) -> bool
       def self.get_heap_sample_every: (untyped settings) -> ::Integer
@@ -44,6 +39,7 @@ module Datadog
       def self.valid_overhead_target: (::Float overhead_target_percentage) -> ::Float
       def self.looks_like_mariadb?: ({ header_version: ::String? }, ::Gem::Version) -> bool
       def self.dir_interruption_workaround_enabled?: (untyped settings, bool no_signals_workaround_enabled) -> bool
+      def self.enable_gvl_profiling?: (untyped settings) -> bool
     end
   end
 end

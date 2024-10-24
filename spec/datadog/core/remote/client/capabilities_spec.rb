@@ -5,10 +5,11 @@ require 'datadog/core/remote/client/capabilities'
 require 'datadog/appsec/configuration'
 
 RSpec.describe Datadog::Core::Remote::Client::Capabilities do
-  subject(:capabilities) { described_class.new(settings) }
+  subject(:capabilities) { described_class.new(settings, telemetry) }
   let(:settings) do
     double(Datadog::Core::Configuration)
   end
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   before do
     capabilities
@@ -34,7 +35,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
+          expect(capabilities.base64_capabilities).to eq('IABwAA==')
         end
       end
     end
@@ -52,7 +53,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
       describe '#base64_capabilities' do
         it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
+          expect(capabilities.base64_capabilities).to eq('IABwAA==')
         end
       end
     end
@@ -84,7 +85,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
 
   context 'Tracing component' do
     it 'register capabilities, products, and receivers' do
-      expect(capabilities.capabilities).to eq([1 << 29])
+      expect(capabilities.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
       expect(capabilities.products).to include('APM_TRACING')
       expect(capabilities.receivers).to include(
         lambda { |r|

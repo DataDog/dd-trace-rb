@@ -3,6 +3,7 @@
 require_relative '../configuration/ext'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
+require_relative '../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -43,6 +44,7 @@ module Datadog
         # DEV-2.0: if needed.
         # DEV-2.0: Ideally, we'd have a separate stream to report tracer errors and never
         # DEV-2.0: touch the active span.
+        # DEV-3.0: Sample trace here instead of when generating digest.
         #
         # @param digest [TraceDigest]
         # @param data [Hash]
@@ -71,6 +73,10 @@ module Datadog
             result = nil
             ::Datadog.logger.error(
               "Error injecting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
+            )
+            ::Datadog::Core::Telemetry::Logger.report(
+              e,
+              description: "Error injecting distributed trace data with #{propagator.class.name}"
             )
           end
 
@@ -127,6 +133,7 @@ module Datadog
               )
             end
           rescue => e
+            # TODO: Not to report Telemetry logs for now
             ::Datadog.logger.error(
               "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )

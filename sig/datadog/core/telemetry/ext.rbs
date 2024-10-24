@@ -10,6 +10,7 @@ module Datadog
         ENV_INSTALL_ID: ::String
         ENV_INSTALL_TIME: ::String
         ENV_INSTALL_TYPE: ::String
+        ENV_AGENTLESS_URL_OVERRIDE: ::String
       end
     end
   end

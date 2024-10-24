@@ -22,7 +22,7 @@ puts ruby_api_version
 
 current_path = Pathname.new(FileUtils.pwd)
 
-tmp_path = current_path.join('tmp')
+tmp_path = current_path.join('tmp', ENV["ARCH"])
 
 versioned_path = tmp_path.join(ruby_api_version)
 
@@ -63,8 +63,21 @@ end
 
 puts gem_version_mapping
 
-gem_version_mapping.each do |gem, version|
-  env = {}
+env = {
+  'GEM_HOME' => versioned_path.to_s,
+  # Install `datadog` gem locally without its profiling native extension
+  'DD_PROFILING_NO_EXTENSION' => 'true',
+}
+
+[
+  'datadog-ruby_core_source',
+  'ffi',
+  'libddwaf',
+  'msgpack',
+  'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
+  'datadog',
+].each do |gem|
+  version = gem_version_mapping.delete(gem)
 
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\
@@ -73,19 +86,13 @@ gem_version_mapping.each do |gem, version|
 
   case gem
   when 'ffi'
-    gem_install_cmd << "--install-dir #{versioned_path} "
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << '-- --disable-system-libffi '
   when 'datadog'
-    # Install `datadog` gem locally without its profiling native extension
-    env['DD_PROFILING_NO_EXTENSION'] = 'true'
     gem_install_cmd =
       "gem install --local #{ENV.fetch('DATADOG_GEM_LOCATION')} "\
       '--no-document '\
       '--ignore-dependencies '\
-      "--install-dir #{versioned_path} "
-  else
-    gem_install_cmd << "--install-dir #{versioned_path} "
   end
 
   puts "Execute: #{gem_install_cmd}"
@@ -97,6 +104,14 @@ gem_version_mapping.each do |gem, version|
   else
     exit 1
   end
+end
+
+raise "#{gem_version_mapping.keys.join(',')} are not installed." if gem_version_mapping.any?
+
+datadog_gem_path = versioned_path.join("gems/datadog-#{ENV.fetch('RUBY_PACKAGE_VERSION')}")
+libdatadog_so_file = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}.so"
+unless File.exist?("#{datadog_gem_path}/lib/#{libdatadog_so_file}")
+  raise "Missing #{libdatadog_so_file} in #{datadog_gem_path}."
 end
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do

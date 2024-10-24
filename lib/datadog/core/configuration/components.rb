@@ -13,6 +13,7 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../crashtracking/component'
 
 module Datadog
   module Core
@@ -56,19 +57,18 @@ module Datadog
           end
 
           def build_telemetry(settings, agent_settings, logger)
-            enabled = settings.telemetry.enabled
-            if agent_settings.adapter != Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-              enabled = false
-              logger.debug { "Telemetry disabled. Agent network adapter not supported: #{agent_settings.adapter}" }
+            Telemetry::Component.build(settings, agent_settings, logger)
+          end
+
+          def build_crashtracker(settings, agent_settings, logger:)
+            return unless settings.crashtracking.enabled
+
+            if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
+              logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+              return
             end
 
-            Telemetry::Component.new(
-              enabled: enabled,
-              metrics_enabled: enabled && settings.telemetry.metrics_enabled,
-              heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
-              metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
-              dependency_collection: settings.telemetry.dependency_collection
-            )
+            Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
         end
 
@@ -82,6 +82,7 @@ module Datadog
           :runtime_metrics,
           :telemetry,
           :tracer,
+          :crashtracker,
           :appsec
 
         def initialize(settings)
@@ -93,20 +94,22 @@ module Datadog
           # the Core resolver from within your product/component's namespace.
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings)
+          @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
+
+          @remote = Remote::Component.build(settings, agent_settings, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: @tracer,
+            optional_tracer: @tracer
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
-          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
 
           self.class.configure_tracing(settings)
         end

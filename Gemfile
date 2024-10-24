@@ -5,7 +5,7 @@ gemspec
 gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
-gem 'builder'
+
 gem 'climate_control', '~> 0.2.0'
 
 gem 'concurrent-ruby'
@@ -44,9 +44,12 @@ gem 'webmock', '>= 3.10.0'
 
 gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
 
-gem 'webrick', '>= 1.7.0' if RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
-
-gem 'yard', '~> 0.9' # NOTE: YardDoc is generated with ruby 3.2 in GitHub Actions
+if RUBY_VERSION.start_with?('3.4.')
+  # ruby 3.4 breaks stable webrick; we need this fix until a version later than 1.8.1 comes out
+  gem 'webrick', git: 'https://github.com/ruby/webrick.git', ref: '0c600e169bd4ae267cb5eeb6197277c848323bbe'
+elsif RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
+  gem 'webrick', '>= 1.7.0'
+end
 
 if RUBY_VERSION >= '2.6.0'
   # 1.50 is the last version to support Ruby 2.6
@@ -70,18 +73,18 @@ gem 'dogstatsd-ruby', '>= 3.3.0', '!= 5.0.0', '!= 5.0.1', '!= 5.1.0'
 if RUBY_PLATFORM != 'java'
   if RUBY_VERSION >= '2.7.0' # Bundler 1.x fails to find that versions >= 3.8.0 are not compatible because of binary gems
     gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
-  elsif RUBY_VERSION >= '2.3.0'
-    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
   else
-    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.8.0']
+    gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1', '< 3.19.2']
   end
 end
 
 group :check do
   if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
-    gem 'rbs', '~> 3.2.0', require: false
-    gem 'steep', '~> 1.6.0', require: false
+    gem 'rbs', '~> 3.6', require: false
+    gem 'steep', '~> 1.7.0', require: false
   end
+  gem 'ruby_memcheck', '>= 3' if RUBY_VERSION >= '3.4.0' && RUBY_PLATFORM != 'java'
+  gem 'standard', require: false
 end
 
 group :dev do

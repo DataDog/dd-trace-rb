@@ -34,7 +34,7 @@ module Datadog
           @starting = true
 
           thread = Thread.new { poll(@interval) }
-          thread.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+          thread.name = self.class.name
           thread.thread_variable_set(:fork_safe, true)
           @thr = thread
 

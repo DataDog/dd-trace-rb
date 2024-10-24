@@ -3,10 +3,7 @@ VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
 
 return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
 
-require 'benchmark/ips'
-require 'datadog'
-require 'pry'
-require_relative 'dogstatsd_reporter'
+require_relative 'benchmarks_helper'
 
 require 'libdatadog'
 
@@ -33,8 +30,6 @@ def sample_object(recorder, depth = 0)
       METRIC_VALUES,
       [],
       [],
-      400,
-      false
     )
     obj
   else
@@ -50,7 +45,7 @@ class ProfilerMemorySampleSerializeBenchmark
     @retain_every = (ENV['RETAIN_EVERY'] || '10').to_i
     @skip_end_gc = ENV['SKIP_END_GC'] == 'true'
     @recorder_factory = proc {
-      Datadog::Profiling::StackRecorder.new(
+      Datadog::Profiling::StackRecorder.for_testing(
         cpu_time_enabled: false,
         alloc_samples_enabled: true,
         heap_samples_enabled: @heap_samples_enabled,
@@ -66,7 +61,6 @@ class ProfilerMemorySampleSerializeBenchmark
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 30, warmup: 2 }
       x.config(
         **benchmark_time,
-        suite: report_to_dogstatsd_if_enabled_via_environment_variable(benchmark_name: 'profiler_memory_sample_serialize')
       )
 
       x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do
@@ -85,19 +79,8 @@ class ProfilerMemorySampleSerializeBenchmark
         recorder.serialize
       end
 
-      x.save! 'profiler_memory_sample_serialize-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
-    end
-  end
-
-  def run_forever
-    loop do
-      recorder = @recorder_factory.call
-      1000.times do |i|
-        sample_object(recorder, i % 400)
-      end
-      recorder.serialize
-      print '.'
     end
   end
 end
@@ -106,9 +89,5 @@ puts "Current pid is #{Process.pid}"
 
 ProfilerMemorySampleSerializeBenchmark.new.instance_exec do
   setup
-  if ARGV.include?('--forever')
-    run_forever
-  else
-    run_benchmark
-  end
+  run_benchmark
 end

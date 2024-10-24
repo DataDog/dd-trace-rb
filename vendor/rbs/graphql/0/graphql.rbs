@@ -22,11 +22,15 @@ module GraphQL
 
       class Field
       end
+
+      class Argument
+      end
     end
   end
 
   class Query
     class Result
+      def initialize: (query: ::GraphQL::Query, values: Hash[String, untyped]) -> void
     end
   end
 

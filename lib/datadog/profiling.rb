@@ -30,7 +30,7 @@ module Datadog
       profiler = Datadog.send(:components).profiler
       # ...but we still try to start it BECAUSE if the process forks, the profiler will exist but may
       # not yet have been started in the fork
-      profiler.start if profiler
+      profiler&.start
       !!profiler
     end
 
@@ -47,6 +47,7 @@ module Datadog
     # (This is similar to some OS-based time representations.)
     #
     # Note 2: All fibers in the same thread will share the same counter values.
+    # Note 3: This counter is not accurate when using the M:N scheduler.
     #
     # Only available when the profiler is running, and allocation-related features are not disabled via configuration.
     #
@@ -62,7 +63,7 @@ module Datadog
     def self.enabled?
       profiler = Datadog.send(:components).profiler
       # Use .send(...) to avoid exposing the attr_reader as an API to the outside
-      !!(profiler.send(:scheduler).running? if profiler)
+      !!profiler&.send(:scheduler)&.running?
     end
 
     def self.wait_until_running(timeout_seconds: 5)
@@ -97,7 +98,7 @@ module Datadog
 
         contents = file_api.read(skipped_reason_file).strip
         contents unless contents.empty?
-      rescue StandardError
+      rescue
         # Do nothing
       end
     end
@@ -135,7 +136,6 @@ module Datadog
     private_class_method def self.load_profiling
       return false unless supported?
 
-      require_relative 'profiling/ext/forking'
       require_relative 'profiling/ext/dir_monkey_patches'
       require_relative 'profiling/collectors/info'
       require_relative 'profiling/collectors/code_provenance'
@@ -144,7 +144,6 @@ module Datadog
       require_relative 'profiling/collectors/idle_sampling_helper'
       require_relative 'profiling/collectors/stack'
       require_relative 'profiling/collectors/thread_context'
-      require_relative 'profiling/crashtracker'
       require_relative 'profiling/stack_recorder'
       require_relative 'profiling/exporter'
       require_relative 'profiling/flush'

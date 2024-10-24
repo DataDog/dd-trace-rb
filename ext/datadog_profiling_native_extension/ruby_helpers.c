@@ -20,29 +20,6 @@ void ruby_helpers_init(void) {
   to_s_id = rb_intern("to_s");
 }
 
-void raise_unexpected_type(
-  VALUE value,
-  const char *value_name,
-  const char *type_name,
-  const char *file,
-  int line,
-  const char* function_name
-) {
-  rb_exc_raise(
-    rb_exc_new_str(
-      rb_eTypeError,
-      rb_sprintf("wrong argument %"PRIsVALUE" for '%s' (expected a %s) at %s:%d:in `%s'",
-        rb_inspect(value),
-        value_name,
-        type_name,
-        file,
-        line,
-        function_name
-      )
-    )
-  );
-}
-
 #define MAX_RAISE_MESSAGE_SIZE 256
 
 struct raise_arguments {
@@ -242,26 +219,19 @@ static bool ruby_is_obj_with_class(VALUE obj) {
   return false;
 }
 
+// These two functions are not present in the VM headers, but are public symbols that can be invoked.
+int rb_objspace_internal_object_p(VALUE obj);
+const char *rb_obj_info(VALUE obj);
+
 VALUE ruby_safe_inspect(VALUE obj) {
-  if (!ruby_is_obj_with_class(obj)) {
-    return rb_str_new_cstr("(Not an object)");
-  }
+  if (!ruby_is_obj_with_class(obj))       return rb_str_new_cstr("(Not an object)");
+  if (rb_objspace_internal_object_p(obj)) return rb_sprintf("(VM Internal, %s)", rb_obj_info(obj));
+  // @ivoanjo: I saw crashes on Ruby 3.1.4 when trying to #inspect matchdata objects. I'm not entirely sure why this
+  // is needed, but since we only use this method for debug purposes I put in this alternative and decided not to
+  // dig deeper.
+  if (rb_type(obj) == RUBY_T_MATCH)   return rb_sprintf("(MatchData, %s)", rb_obj_info(obj));
+  if (rb_respond_to(obj, inspect_id)) return rb_sprintf("%+"PRIsVALUE, obj);
+  if (rb_respond_to(obj, to_s_id))    return rb_sprintf("%"PRIsVALUE, obj);
 
-  if (rb_respond_to(obj, inspect_id)) {
-    return rb_sprintf("%+"PRIsVALUE, obj);
-  } else if (rb_respond_to(obj, to_s_id)) {
-    return rb_sprintf("%"PRIsVALUE, obj);
-  } else {
-    return rb_str_new_cstr("(Not inspectable)");
-  }
-}
-
-VALUE ddtrace_version(void) {
-  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  ENFORCE_TYPE(ddtrace_module, T_MODULE);
-  VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
-  ENFORCE_TYPE(version_module, T_MODULE);
-  VALUE version_string = rb_const_get(version_module, rb_intern("STRING"));
-  ENFORCE_TYPE(version_string, T_STRING);
-  return version_string;
+  return rb_str_new_cstr("(Not inspectable)");
 }

@@ -3,7 +3,7 @@
 # The objective is to thoroughly test our stack trace sampling abilities.
 # Control flow goes from bottom of file to top (e.g. ClassA will be the top of the stack)
 
-# ----
+# standard:disable all
 
 class IbhClassA
   def hello

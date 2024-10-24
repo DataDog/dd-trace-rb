@@ -2,14 +2,13 @@ require 'spec_helper'
 
 require 'datadog/tracing'
 require 'datadog/tracing/sampling/rate_by_service_sampler'
-require 'datadog/tracing/sampling/rate_limiter'
 require 'datadog/tracing/sampling/rule_sampler'
 require 'datadog/tracing/sampling/rule'
 
 RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
   let(:rule_sampler) { described_class.new(rules, rate_limiter: rate_limiter, default_sampler: default_sampler) }
   let(:rules) { [] }
-  let(:rate_limiter) { instance_double(Datadog::Tracing::Sampling::RateLimiter) }
+  let(:rate_limiter) { instance_double(Datadog::Core::RateLimiter) }
   let(:default_sampler) { instance_double(Datadog::Tracing::Sampling::RateByServiceSampler) }
   let(:effective_rate) { 0.9 }
   let(:allow?) { true }
@@ -18,7 +17,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
 
   before do
     allow(rate_limiter).to receive(:effective_rate).and_return(effective_rate)
-    allow(rate_limiter).to receive(:allow?).with(1).and_return(allow?)
+    allow(rate_limiter).to receive(:allow?).and_return(allow?)
   end
 
   shared_examples 'a simple rule that matches all span operations' do |options = { sample_rate: 1.0 }|
@@ -29,10 +28,18 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     end
   end
 
+  shared_examples 'a token bucket rate limiter' do |options = { rate: 100, max_tokens: nil }|
+    it do
+      expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::TokenBucket)
+      expect(rule_sampler.rate_limiter.rate).to eq(options[:rate])
+      expect(rule_sampler.rate_limiter.max_tokens).to eq(options[:max_tokens] || options[:rate])
+    end
+  end
+
   describe '#initialize' do
     subject(:rule_sampler) { described_class.new(rules) }
 
-    it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+    it_behaves_like 'a token bucket rate limiter', rate: 100
     it { expect(rule_sampler.default_sampler).to be_a(Datadog::Tracing::Sampling::RateByServiceSampler) }
 
     context 'with rate_limit ENV' do
@@ -41,7 +48,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
           .and_return(20.0)
       end
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+      it_behaves_like 'a token bucket rate limiter', rate: 20.0
     end
 
     context 'with default_sample_rate ENV' do
@@ -58,13 +65,13 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
     context 'with rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: 1.0) }
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::TokenBucket) }
+      it_behaves_like 'a token bucket rate limiter', rate: 1.0
     end
 
     context 'with nil rate_limit' do
       subject(:rule_sampler) { described_class.new(rules, rate_limit: nil) }
 
-      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Tracing::Sampling::UnlimitedLimiter) }
+      it { expect(rule_sampler.rate_limiter).to be_a(Datadog::Core::UnlimitedLimiter) }
     end
 
     context 'with default_sample_rate' do
@@ -174,7 +181,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rule) { { sample_rate: 'oops' } }
 
       it 'does not accept rule with a non-float sample_rate' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
     end
@@ -183,7 +190,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rule) { { name: 'test' } }
 
       it 'does not accept rule missing the mandatory sample_rate' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
 
@@ -191,7 +198,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
         let(:rules) { [{ sample_rate: 0.1 }, { name: 'test' }] }
 
         it 'rejects all rules if one is missing the mandatory sample_rate' do
-          expect(Datadog.logger).to receive(:error)
+          expect(Datadog.logger).to receive(:warn)
           is_expected.to be_nil
         end
       end
@@ -201,7 +208,7 @@ RSpec.describe Datadog::Tracing::Sampling::RuleSampler do
       let(:rules) { 'not a json array' }
 
       it 'returns nil in case of parsing error' do
-        expect(Datadog.logger).to receive(:error)
+        expect(Datadog.logger).to receive(:warn)
         is_expected.to be_nil
       end
     end

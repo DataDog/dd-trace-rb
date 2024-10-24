@@ -21,7 +21,7 @@ module Datadog
 
         def start
           @start_stop_mutex.synchronize do
-            return if @worker_thread && @worker_thread.alive?
+            return if @worker_thread&.alive?
 
             Datadog.logger.debug { "Starting thread for: #{self}" }
 
@@ -30,19 +30,17 @@ module Datadog
             self.class._native_reset(self)
 
             @worker_thread = Thread.new do
-              begin
-                Thread.current.name = self.class.name
+              Thread.current.name = self.class.name
 
-                self.class._native_idle_sampling_loop(self)
+              self.class._native_idle_sampling_loop(self)
 
-                Datadog.logger.debug('IdleSamplingHelper thread stopping cleanly')
-              rescue Exception => e # rubocop:disable Lint/RescueException
-                @failure_exception = e
-                Datadog.logger.warn(
-                  'IdleSamplingHelper thread error. ' \
-                  "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
-                )
-              end
+              Datadog.logger.debug("IdleSamplingHelper thread stopping cleanly")
+            rescue Exception => e # rubocop:disable Lint/RescueException
+              @failure_exception = e
+              Datadog.logger.warn(
+                "IdleSamplingHelper thread error. " \
+                "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
+              )
             end
             @worker_thread.name = self.class.name # Repeated from above to make sure thread gets named asap
             @worker_thread.thread_variable_set(:fork_safe, true)
@@ -53,7 +51,7 @@ module Datadog
 
         def stop
           @start_stop_mutex.synchronize do
-            Datadog.logger.debug('Requesting IdleSamplingHelper thread shut down')
+            Datadog.logger.debug("Requesting IdleSamplingHelper thread shut down")
 
             return unless @worker_thread
 

@@ -1,10 +1,22 @@
 require 'bundler/gem_tasks'
 require 'datadog/version'
 require 'rubocop/rake_task' if Gem.loaded_specs.key? 'rubocop'
+require 'standard/rake' if Gem.loaded_specs.key? 'standard'
 require 'rspec/core/rake_task'
 require 'rake/extensiontask'
-require 'yard'
 require 'os'
+if Gem.loaded_specs.key? 'ruby_memcheck'
+  require 'ruby_memcheck'
+  require 'ruby_memcheck/rspec/rake_task'
+
+  RubyMemcheck.config(
+    # If there's an error, print the suppression for that error, to allow us to easily skip such an error if it's
+    # a false-positive / something in the VM we can't fix.
+    valgrind_generate_suppressions: true,
+    # This feature provides better quality data -- I couldn't get good output out of ruby_memcheck without it.
+    use_only_ruby_free_at_exit: true,
+  )
+end
 
 Dir.glob('tasks/*.rake').each { |r| import r }
 
@@ -70,21 +82,44 @@ end
 desc 'Run RSpec'
 # rubocop:disable Metrics/BlockLength
 namespace :spec do
+  # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark,
+             :graphql, :graphql_unified_trace_patcher, :graphql_trace_patcher, :graphql_tracing_patcher,
              :rails, :railsredis, :railsredis_activesupport, :railsactivejob,
              :elasticsearch, :http, :redis, :sidekiq, :sinatra, :hanami, :hanami_autoinstrument,
-             :profiling]
+             :profiling, :crashtracking]
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:main) do |t, args|
     t.pattern = 'spec/**/*_spec.rb'
-    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,auto_instrument,opentelemetry,profiling}/**/*_spec.rb,'\
+    t.exclude_pattern = 'spec/**/{contrib,benchmark,redis,auto_instrument,opentelemetry,profiling,crashtracking}/**/*_spec.rb,'\
                         ' spec/**/{auto_instrument,opentelemetry}_spec.rb, spec/datadog/gem_packaging_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
   RSpec::Core::RakeTask.new(:benchmark) do |t, args|
     t.pattern = 'spec/datadog/benchmark/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/**/*_spec.rb'
+    t.exclude_pattern = 'spec/datadog/tracing/contrib/graphql/{unified_trace,trace,tracing}_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_unified_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/unified_trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_trace_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  RSpec::Core::RakeTask.new(:graphql_tracing_patcher) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/graphql/tracing_patcher_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -169,21 +204,23 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  # rubocop:disable Style/MultilineBlockChain
+  RSpec::Core::RakeTask.new(:crashtracking) do |t, args|
+    t.pattern = 'spec/datadog/core/crashtracking/**/*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end.tap do |t|
+    Rake::Task[t.name].enhance(["compile:libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"])
+  end
+  # rubocop:enable Style/MultilineBlockChain
+
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:contrib) do |t, args|
     contrib_paths = [
-      'analytics',
-      'configurable',
+      '*',
       'configuration/*',
       'configuration/resolvers/*',
-      'extensions',
-      'integration',
-      'patchable',
-      'patcher',
-      'registerable',
-      'registry',
       'registry/*',
-      'propagation/**/*'
+      'propagation/**/*',
     ].join(',')
 
     t.pattern = "spec/**/contrib/{#{contrib_paths}}_spec.rb"
@@ -191,6 +228,7 @@ namespace :spec do
   end
 
   # Datadog Tracing integrations
+  # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   [
     :action_cable,
     :action_mailer,
@@ -208,7 +246,6 @@ namespace :spec do
     :excon,
     :faraday,
     :grape,
-    :graphql,
     :grpc,
     :http,
     :httpclient,
@@ -247,7 +284,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :rack, :rails, :sinatra, :devise]
+    task all: [:main, :rack, :rails, :sinatra, :devise, :graphql]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -264,6 +301,7 @@ namespace :spec do
       :sinatra,
       :rails,
       :devise,
+      :graphql,
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
@@ -303,6 +341,25 @@ namespace :spec do
       t.rspec_opts = [*args.to_a, '-t ractors'].join(' ')
     end
 
+    desc 'Run spec:profiling:main tests with memory leak checking'
+    if Gem.loaded_specs.key?('ruby_memcheck')
+      RubyMemcheck::RSpec::RakeTask.new(:memcheck) do |t, args|
+        t.pattern = 'spec/datadog/profiling/**/*_spec.rb,spec/datadog/profiling_spec.rb'
+        # Some of our specs use multi-threading + busy looping, or multiple processes, or are just really really slow.
+        # We skip running these when running under valgrind.
+        # (As a reminder, by default valgrind simulates a sequential/single-threaded execution).
+        #
+        # @ivoanjo: I previously tried https://github.com/Shopify/ruby_memcheck/issues/51 but in some cases valgrind
+        # would give incomplete output, causing a "FATAL: Premature end of data in tag valgrindoutput line 3" error in
+        # ruby_memcheck. I did not figure out why exactly.
+        t.rspec_opts = [*args.to_a, '-t ~ractors -t ~memcheck_valgrind_skip'].join(' ')
+      end
+    else
+      task :memcheck do
+        raise 'Memcheck requires the ruby_memcheck gem to be installed'
+      end
+    end
+
     # Make sure each profiling test suite has a dependency on compiled native extensions
     Rake::Task[:all].prerequisite_tasks.each { |t| t.enhance([:compile_native_extensions]) }
   end
@@ -313,17 +370,6 @@ end
 if defined?(RuboCop::RakeTask)
   RuboCop::RakeTask.new(:rubocop) do |_t|
   end
-end
-
-YARD::Rake::YardocTask.new(:docs) do |t|
-  # Options defined in `.yardopts` are read first, then merged with
-  # options defined here.
-  #
-  # It's recommended to define options in `.yardopts` instead of here,
-  # as `.yardopts` can be read by external YARD tools, like the
-  # hot-reload YARD server `yard server --reload`.
-
-  t.options += ['--title', "datadog #{Datadog::VERSION::STRING} documentation"]
 end
 
 # Jobs are parallelized if running in CI.
@@ -382,6 +428,10 @@ NATIVE_EXTS = [
 
   Rake::ExtensionTask.new("datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/datadog_profiling_loader'
+  end,
+
+  Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|
+    ext.ext_dir = 'ext/libdatadog_api'
   end
 ].freeze
 
@@ -416,7 +466,7 @@ namespace :native_dev do
 end
 
 desc 'Runs rubocop + main test suite'
-task default: ['rubocop', 'typecheck', 'spec:main']
+task default: ['rubocop', 'standard', 'typecheck', 'spec:main']
 
 desc 'Runs the default task in parallel'
-multitask fastdefault: ['rubocop', 'typecheck', 'spec:main']
+multitask fastdefault: ['rubocop', 'standard', 'typecheck', 'spec:main']
