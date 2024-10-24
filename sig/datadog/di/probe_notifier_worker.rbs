@@ -1,6 +1,9 @@
 module Datadog
   module DI
     class ProbeNotifierWorker
+    
+      MIN_SEND_INTERVAL: 1
+      
       @settings: untyped
 
       @status_queue: Array[Hash[String, untyped]]
@@ -11,9 +14,7 @@ module Datadog
 
       @lock: Mutex
 
-      @wake_lock: Mutex
-
-      @wake: ConditionVariable
+      @wake: Core::Semaphore
 
       @io_in_progress: bool
 
@@ -30,6 +31,10 @@ module Datadog
       def flush: () -> void
 
       private
+      
+      def last_sent: () -> Numeric
+      
+      def set_sleep_remaining: () -> Numeric
 
       def status_queue: () -> Array[Hash[String, untyped]]
 
@@ -37,9 +42,7 @@ module Datadog
 
       attr_reader transport: Transport
 
-      attr_reader wake: ConditionVariable
-
-      attr_reader wake_lock: Mutex
+      attr_reader wake: Core::Semaphore
 
       attr_reader thread: Thread
       def io_in_progress?: () -> bool

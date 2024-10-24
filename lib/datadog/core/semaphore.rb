@@ -20,7 +20,10 @@ module Datadog
 
       def wait(timeout = nil)
         wake_lock.synchronize do
-          wake.wait(wake_lock, timeout)
+          # steep specifies that the second argument to wait is of type
+          # ::Time::_Timeout which for some reason is not Numeric and is not
+          # castable from Numeric.
+          wake.wait(wake_lock, timeout) # steep:ignore
         end
       end
 
