@@ -192,7 +192,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds path' do
               expect(logger).to receive(:warn)
-              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
+                .with(%r{Configuration mismatch.*Using "unix:[/|]some/path"})
 
               resolver
             end
@@ -207,7 +207,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
+                .with(%r{Configuration mismatch.*Using "unix:[/|]some/path"})
 
               resolver
             end
@@ -223,7 +223,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
           it 'logs a warning including the mismatching port' do
             expect(logger).to receive(:warn)
-            .with(/Configuration mismatch:.*port: '5678'.*/)
+              .with(/Configuration mismatch:.*port: '5678'.*/)
 
             resolver
           end
@@ -239,7 +239,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-                .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
+                .with(%r{Configuration mismatch.*Using "unix:[/|]some/path"})
 
               resolver
             end
@@ -254,7 +254,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
             it 'logs a warning including the uds configuration' do
               expect(logger).to receive(:warn)
-              .with(/Configuration mismatch.*Using "unix:\/some\/path"/)
+                .with(%r{Configuration mismatch.*Using "unix:[/|]some/path"})
 
               resolver
             end
