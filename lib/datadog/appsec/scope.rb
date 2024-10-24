@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'processor'
+require_relative 'processor/context'
 
 module Datadog
   module AppSec

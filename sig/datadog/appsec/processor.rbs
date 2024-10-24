@@ -1,40 +1,18 @@
 module Datadog
   module AppSec
     class Processor
-      class Context
-        type event = untyped
-        type data = WAF::data
-
-        attr_reader time_ns: ::Float
-        attr_reader time_ext_ns: ::Float
-        attr_reader timeouts: ::Integer
-        attr_reader events: ::Array[event]
-
-        @context: WAF::Context
-
-        @run_mutex: ::Thread::Mutex
-
-        def initialize: (Processor processor) -> void
-        def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
-        def extract_schema: () -> WAF::Result?
-        def finalize: () -> void
-
-        private
-        def extract_schema?: () -> bool
-      end
-
       def self.active_context: () -> Context
 
       private
 
-      attr_reader diagnostics: untyped
-      attr_reader addresses: untyped
+      attr_reader diagnostics: WAF::LibDDWAF::Object?
+      attr_reader addresses: ::Array[::String]
 
       @handle: WAF::Handle
       @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: (ruleset: ::Hash[untyped, untyped], telemetry: Datadog::Core::Telemetry::Component) -> void
+      def initialize: (ruleset: ::Hash[untyped, untyped], telemetry: Core::Telemetry::Component) -> void
       def ready?: () -> bool
       def finalize: () -> void
 
@@ -44,7 +22,7 @@ module Datadog
 
       def require_libddwaf: () -> bool
       def libddwaf_provides_waf?: () -> bool
-      def create_waf_handle: (Datadog::Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
+      def create_waf_handle: (Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
       def libddwaf_platform: () -> ::String
       def ruby_platforms: () -> ::Array[::String]
     end
