@@ -101,7 +101,7 @@ module Datadog
             tags_as_array: tags.to_a,
             upload_timeout_seconds: 1
           )
-          logger.debug("Crash tracking #{action} successfully")
+          logger.debug("Crash tracking action: #{action} successful")
         rescue => e
           logger.error("Failed to #{action} crash tracking: #{e.message}")
         end

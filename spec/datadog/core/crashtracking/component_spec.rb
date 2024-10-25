@@ -5,10 +5,11 @@ require 'webrick'
 require 'fiddle'
 
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
+  let(:logger) { Logger.new($stdout) }
+
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
     let(:agent_settings) { double('agent_settings') }
-    let(:logger) { Logger.new($stdout) }
     let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
@@ -100,7 +101,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     describe '#start' do
       context 'when _native_start_or_update_on_fork raises an exception' do
         it 'logs the exception' do
-          logger = Logger.new($stdout)
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
@@ -114,7 +114,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     describe '#stop' do
       context 'when _native_stop_crashtracker raises an exception' do
         it 'logs the exception' do
-          logger = Logger.new($stdout)
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_stop) { raise 'Test failure' }
@@ -128,7 +127,6 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     describe '#update_on_fork' do
       context 'when _native_stop_crashtracker raises an exception' do
         it 'logs the exception' do
-          logger = Logger.new($stdout)
           crashtracker = build_crashtracker(logger: logger)
 
           expect(described_class).to receive(:_native_start_or_update_on_fork) { raise 'Test failure' }
@@ -138,12 +136,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         end
       end
 
-      it 'update_on_fork the crash tracker' do
+      it 'updates the crash tracker' do
+        allow(logger).to receive(:debug)
+
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
           hash_including(action: :update_on_fork)
         )
 
-        crashtracker = build_crashtracker
+        crashtracker = build_crashtracker(logger: logger)
 
         crashtracker.update_on_fork
       end
