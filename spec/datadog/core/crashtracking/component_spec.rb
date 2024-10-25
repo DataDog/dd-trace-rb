@@ -149,8 +149,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       end
 
       it 'refreshes the latest settings' do
-        expect(Datadog).to receive(:configuration).and_return(:latest_settings)
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(:latest_settings).and_return([:latest_tags])
+        allow(Datadog).to receive(:configuration).and_return(:latest_settings)
+        allow(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(:latest_settings).and_return([:latest_tags])
+
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
           hash_including(tags_as_array: [:latest_tags])
         )
