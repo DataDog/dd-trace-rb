@@ -1,0 +1,27 @@
+module Datadog
+  module AppSec
+    class Processor
+      class Context
+        type event = untyped
+        type data = WAF::data
+
+        attr_reader time_ns: ::Float
+        attr_reader time_ext_ns: ::Float
+        attr_reader timeouts: ::Integer
+        attr_reader events: ::Array[event]
+
+        @context: WAF::Context
+
+        @run_mutex: ::Thread::Mutex
+
+        def initialize: (Processor processor) -> void
+        def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
+        def extract_schema: () -> WAF::Result?
+        def finalize: () -> void
+
+        private
+        def extract_schema?: () -> bool
+      end
+    end
+  end
+end

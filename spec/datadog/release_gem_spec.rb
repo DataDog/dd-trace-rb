@@ -35,6 +35,9 @@ RSpec.describe 'gem release process' do
            |datadog\.gemspec
            |docker-compose\.yml
            |shell\.nix
+           |default\.nix
+           |flake\.nix
+           |flake\.lock
            |static-analysis\.datadog\.yml
            |\.standard\.yml
            |\.standard_todo\.yml
@@ -100,7 +103,7 @@ RSpec.describe 'gem release process' do
           # This list MUST NOT derive from the `gemspec.dependencies`,
           # since it is used to alarm when dependencies  modified.
           'datadog',
-          'debase-ruby_core_source',
+          'datadog-ruby_core_source',
           'ffi',
           'libdatadog',
           'libddwaf',

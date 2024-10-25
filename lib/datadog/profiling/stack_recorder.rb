@@ -9,8 +9,13 @@ module Datadog
     # Methods prefixed with _native_ are implemented in `stack_recorder.c`
     class StackRecorder
       def initialize(
-        cpu_time_enabled:, alloc_samples_enabled:, heap_samples_enabled:, heap_size_enabled:,
-        heap_sample_every:, timeline_enabled:
+        cpu_time_enabled:,
+        alloc_samples_enabled:,
+        heap_samples_enabled:,
+        heap_size_enabled:,
+        heap_sample_every:,
+        timeline_enabled:,
+        heap_clean_after_gc_enabled:
       )
         # This mutex works in addition to the fancy C-level mutexes we have in the native side (see the docs there).
         # It prevents multiple Ruby threads calling serialize at the same time -- something like
@@ -21,13 +26,36 @@ module Datadog
         @no_concurrent_synchronize_mutex = Mutex.new
 
         self.class._native_initialize(
-          self,
-          cpu_time_enabled,
-          alloc_samples_enabled,
-          heap_samples_enabled,
-          heap_size_enabled,
-          heap_sample_every,
-          timeline_enabled,
+          self_instance: self,
+          cpu_time_enabled: cpu_time_enabled,
+          alloc_samples_enabled: alloc_samples_enabled,
+          heap_samples_enabled: heap_samples_enabled,
+          heap_size_enabled: heap_size_enabled,
+          heap_sample_every: heap_sample_every,
+          timeline_enabled: timeline_enabled,
+          heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+        )
+      end
+
+      def self.for_testing(
+        cpu_time_enabled: true,
+        alloc_samples_enabled: false,
+        heap_samples_enabled: false,
+        heap_size_enabled: false,
+        heap_sample_every: 1,
+        timeline_enabled: false,
+        heap_clean_after_gc_enabled: true,
+        **options
+      )
+        new(
+          cpu_time_enabled: cpu_time_enabled,
+          alloc_samples_enabled: alloc_samples_enabled,
+          heap_samples_enabled: heap_samples_enabled,
+          heap_size_enabled: heap_size_enabled,
+          heap_sample_every: heap_sample_every,
+          timeline_enabled: timeline_enabled,
+          heap_clean_after_gc_enabled: heap_clean_after_gc_enabled,
+          **options,
         )
       end
 

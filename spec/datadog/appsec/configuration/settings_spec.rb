@@ -757,5 +757,45 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         end
       end
     end
+
+    describe 'standalone' do
+      describe '#enabled' do
+        subject(:enabled) { settings.appsec.standalone.enabled }
+
+        context 'when DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' => appsec_standalone_enabled) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:appsec_standalone_enabled) { nil }
+
+            it { is_expected.to eq false }
+          end
+
+          context 'is defined' do
+            let(:appsec_standalone_enabled) { 'true' }
+
+            it { is_expected.to eq(true) }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        subject(:set_appsec_standalone_enabled) { settings.appsec.standalone.enabled = appsec_standalone_enabled }
+
+        [true, false].each do |value|
+          context "when given #{value}" do
+            let(:appsec_standalone_enabled) { value }
+
+            before { set_appsec_standalone_enabled }
+
+            it { expect(settings.appsec.standalone.enabled).to eq(value) }
+          end
+        end
+      end
+    end
   end
 end

@@ -96,22 +96,6 @@ module ProfileHelpers
     samples_for_thread(samples, thread, expected_size: 1).first
   end
 
-  # We disable heap_sample collection by default in tests since it requires some extra mocking/
-  # setup for it to properly work.
-  def build_stack_recorder(
-    heap_samples_enabled: false, heap_size_enabled: false, heap_sample_every: 1,
-    timeline_enabled: false
-  )
-    Datadog::Profiling::StackRecorder.new(
-      cpu_time_enabled: true,
-      alloc_samples_enabled: true,
-      heap_samples_enabled: heap_samples_enabled,
-      heap_size_enabled: heap_size_enabled,
-      heap_sample_every: heap_sample_every,
-      timeline_enabled: timeline_enabled,
-    )
-  end
-
   def self.maybe_fix_label_range(key, value)
     if [:"local root span id", :"span id"].include?(key) && value < 0
       # pprof labels are defined to be decoded as signed values BUT the backend explicitly interprets these as unsigned

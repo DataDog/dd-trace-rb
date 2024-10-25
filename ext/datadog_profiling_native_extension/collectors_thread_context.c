@@ -815,6 +815,9 @@ VALUE thread_context_collector_sample_after_gc(VALUE self_instance) {
 
   state->stats.gc_samples++;
 
+  // Let recorder do any cleanup/updates it requires after a GC step.
+  recorder_after_gc_step(state->recorder_instance);
+
   // Return a VALUE to make it easier to call this function from Ruby APIs that expect a return value (such as rb_rescue2)
   return Qnil;
 }
@@ -1441,7 +1444,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
         class_name = ruby_value_type_to_class_name(type);
       }
     } else {
-      // Fallback for objects with no class
+      // Fallback for objects with no class. Objects with no class are a way for the Ruby VM to mark them
+      // as internal objects; see rb_objspace_internal_object_p for details.
       class_name = ruby_value_type_to_class_name(type);
     }
   } else if (type == RUBY_T_IMEMO) {
