@@ -27,11 +27,12 @@ module Datadog
       # TODO make this into an internal setting and increase default to 2 or 3.
       MIN_SEND_INTERVAL = 1
 
-      def initialize(settings, transport)
+      def initialize(settings, transport, logger)
         @settings = settings
         @status_queue = []
         @snapshot_queue = []
         @transport = transport
+        @logger = logger
         @lock = Mutex.new
         @wake = Core::Semaphore.new
         @io_in_progress = false
@@ -41,6 +42,7 @@ module Datadog
       end
 
       attr_reader :settings
+      attr_reader :logger
 
       def start
         return if @thread
@@ -72,7 +74,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.propagate_all_exceptions
 
-              warn "Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})"
+              logger.warn("Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
             end
             @lock.synchronize do
               @wake_scheduled = more
@@ -158,8 +160,7 @@ module Datadog
             queue = send("#{event_type}_queue")
             # TODO determine a suitable limit via testing/benchmarking
             if queue.length > 100
-              # TODO use datadog logger
-              warn "#{self.class.name}: dropping #{event_type} because queue is full"
+              logger.warn("#{self.class.name}: dropping #{event_type} because queue is full")
             else
               queue << event
             end
@@ -216,8 +217,7 @@ module Datadog
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.propagate_all_exceptions
-              # TODO log to logger
-              puts "failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})"
+              logger.warn("failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
             end
           end
           batch.any? # steep:ignore
@@ -225,7 +225,7 @@ module Datadog
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
           # while consuming it here. Rescue ThreadError and return.
-          warn "unexpected #{event_name} queue underflow - consumed elsewhere?"
+          logger.warn("unexpected #{event_name} queue underflow - consumed elsewhere?")
         ensure
           @lock.synchronize do
             @io_in_progress = false

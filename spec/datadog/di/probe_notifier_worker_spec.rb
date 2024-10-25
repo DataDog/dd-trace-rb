@@ -20,7 +20,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     double('transport')
   end
 
-  let(:worker) { described_class.new(settings, transport) }
+  let(:logger) do
+    instance_double(Logger)
+  end
+
+  let(:worker) { described_class.new(settings, transport, logger) }
 
   context 'not started' do
     describe '#add_snapshot' do
