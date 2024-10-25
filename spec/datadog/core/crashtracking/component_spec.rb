@@ -125,6 +125,8 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     end
 
     describe '#update_on_fork' do
+      before { allow(logger).to receive(:debug) }
+
       context 'when _native_stop_crashtracker raises an exception' do
         it 'logs the exception' do
           crashtracker = build_crashtracker(logger: logger)
@@ -137,10 +139,20 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       end
 
       it 'updates the crash tracker' do
-        allow(logger).to receive(:debug)
-
         expect(described_class).to receive(:_native_start_or_update_on_fork).with(
           hash_including(action: :update_on_fork)
+        )
+
+        crashtracker = build_crashtracker(logger: logger)
+
+        crashtracker.update_on_fork
+      end
+
+      it 'refreshes the latest settings' do
+        expect(Datadog).to receive(:configuration).and_return(:latest_settings)
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(:latest_settings).and_return([:latest_tags])
+        expect(described_class).to receive(:_native_start_or_update_on_fork).with(
+          hash_including(tags_as_array: [:latest_tags])
         )
 
         crashtracker = build_crashtracker(logger: logger)
