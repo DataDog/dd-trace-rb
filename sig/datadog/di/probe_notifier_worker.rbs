@@ -21,10 +21,14 @@ module Datadog
       @thread: Thread
 
       @stop_requested: bool
+      
+      @logger: Core::Logger
 
-      def initialize: (untyped settings, untyped agent_settings, Transport transport) -> void
+      def initialize: (untyped settings, Transport transport, Core::Logger logger) -> void
 
       attr_reader settings: untyped
+      
+      attr_reader logger: Core::Logger
 
       def start: () -> void
       def stop: (?::Integer timeout) -> void
