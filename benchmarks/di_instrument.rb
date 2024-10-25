@@ -76,7 +76,8 @@ class DIInstrumentBenchmark
     settings.dynamic_instrumentation.untargeted_trace_points = true
     redactor = Datadog::DI::Redactor.new(settings)
     serializer = Datadog::DI::Serializer.new(settings, redactor)
-    instrumenter = Datadog::DI::Instrumenter.new(settings, serializer)
+    logger = Logger.new(STDERR)
+    instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, logger)
 
     m = Target.instance_method(:test_method_for_line_probe)
     file, line = m.source_location

@@ -32,8 +32,12 @@ RSpec.describe Datadog::DI::Instrumenter do
     Datadog::DI::Serializer.new(settings, redactor)
   end
 
+  let(:logger) do
+    instance_double(Logger)
+  end
+
   let(:instrumenter) do
-    described_class.new(settings, serializer, code_tracker: code_tracker)
+    described_class.new(settings, serializer, logger, code_tracker: code_tracker)
   end
 
   # We want to explicitly control when we pass code tracker to instrumenter
@@ -302,6 +306,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         # Needed for the cleanup unhook call.
         allow(probe).to receive(:method?).and_return(false)
         allow(probe).to receive(:line?).and_return(false)
+        allow(logger).to receive(:warn)
       end
 
       it 'raises ArgumentError' do

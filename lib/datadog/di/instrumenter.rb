@@ -54,9 +54,10 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      def initialize(settings, serializer, code_tracker: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil)
         @settings = settings
         @serializer = serializer
+        @logger = logger
         @code_tracker = code_tracker
 
         @lock = Mutex.new
@@ -64,6 +65,7 @@ module Datadog
 
       attr_reader :settings
       attr_reader :serializer
+      attr_reader :logger
       attr_reader :code_tracker
 
       # This is a substitute for Thread::Backtrace::Location
@@ -262,7 +264,8 @@ module Datadog
         elsif probe.line?
           hook_line(probe, &block)
         else
-          warn "Unknown probe type: #{probe}"
+          # TODO add test coverage for this path
+          logger.warn("Unknown probe type to hook: #{probe}")
         end
       end
 
@@ -272,7 +275,8 @@ module Datadog
         elsif probe.line?
           unhook_line(probe)
         else
-          warn "Unknown probe type: #{probe}"
+          # TODO add test coverage for this path
+          logger.warn("Unknown probe type to unhook: #{probe}")
         end
       end
 
