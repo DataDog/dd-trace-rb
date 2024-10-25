@@ -41,7 +41,6 @@ module Datadog
           @time_ext_ns += (stop_ns - start_ns)
           @timeouts += 1 if res.timeout
 
-          # TODO: handle the response
           res
         ensure
           @run_mutex.unlock
