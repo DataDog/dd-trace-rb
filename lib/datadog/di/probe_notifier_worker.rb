@@ -38,12 +38,13 @@ module Datadog
         @io_in_progress = false
         @sleep_remaining = nil
         @wake_scheduled = false
+        @thread = nil
       end
 
       attr_reader :settings
 
       def start
-        return if defined?(@thread) && @thread
+        return if @thread
         @thread = Thread.new do
           loop do
             # TODO If stop is requested, we stop immediately without
