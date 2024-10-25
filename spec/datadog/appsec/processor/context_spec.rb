@@ -18,9 +18,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
   let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
 
   let(:client_ip) { '1.2.3.4' }
-
   let(:input) { input_scanner }
-
   let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
 
   let(:run_count) { 1 }
@@ -36,12 +34,9 @@ RSpec.describe Datadog::AppSec::Processor::Context do
     results.first
   end
 
-  subject(:context) { described_class.new(processor) }
+  subject(:context) { processor.new_context }
 
-  before do
-    runs
-  end
-
+  before { runs }
   after do
     context.finalize
     processor.finalize

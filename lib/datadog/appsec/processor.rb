@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'processor/context'
+
 module Datadog
   module AppSec
     # Processor integrates libddwaf into datadog/appsec
@@ -7,10 +9,11 @@ module Datadog
       attr_reader :diagnostics, :addresses
 
       def initialize(ruleset:, telemetry:)
+        @telemetry = telemetry
         @diagnostics = nil
         @addresses = []
+
         settings = Datadog.configuration.appsec
-        @telemetry = telemetry
 
         # TODO: Refactor to make it easier to test
         unless require_libddwaf && libddwaf_provides_waf? && create_waf_handle(settings, ruleset)
@@ -26,9 +29,9 @@ module Datadog
         @handle.finalize
       end
 
-      protected
-
-      attr_reader :handle
+      def new_context
+        Context.new(@handle, telemetry: @telemetry)
+      end
 
       private
 
