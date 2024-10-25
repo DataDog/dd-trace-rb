@@ -28,7 +28,7 @@ module Datadog
       # TODO make this into an internal setting and increase default to 2 or 3.
       MIN_SEND_INTERVAL = 1
 
-      def initialize(settings, agent_settings, transport)
+      def initialize(settings, transport)
         @settings = settings
         @status_queue = []
         @snapshot_queue = []
