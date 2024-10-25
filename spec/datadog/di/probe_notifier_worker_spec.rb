@@ -16,15 +16,11 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
   end
 
-  let(:agent_settings) do
-    double('agent settings')
-  end
-
   let(:transport) do
     double('transport')
   end
 
-  let(:worker) { described_class.new(settings, agent_settings, transport) }
+  let(:worker) { described_class.new(settings, transport) }
 
   context 'not started' do
     describe '#add_snapshot' do
