@@ -267,7 +267,7 @@ RSpec.describe Datadog::DI::Instrumenter do
             id: 1, type: :log)
         end
 
-        xit 'does not invoke callback' do
+        it 'does not invoke callback' do
           instrumenter.hook_method(probe) do |payload|
             observed_calls << payload
           end
@@ -392,7 +392,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           id: 1, type: :log)
       end
 
-      xit 'does not invoke callback' do
+      it 'does not invoke callback' do
         observed_calls
 
         expect_any_instance_of(TracePoint).to receive(:enable).with(no_args).and_call_original
@@ -432,16 +432,15 @@ RSpec.describe Datadog::DI::Instrumenter do
         observed_calls.first
       end
 
-      xit 'invokes callback with expected keys' do
+      it 'invokes callback with expected keys' do
         expect(payload).to be_a(Hash)
         expect(payload.keys.sort).to eq(call_keys)
       end
 
       describe 'stack trace' do
-        xit 'contains instrumented method as top frame' do
+        it 'contains instrumented method as top frame' do
           frame = payload.fetch(:caller_locations).first
-          expect(frame).to be_a(String)
-          expect(frame).to match %r{hook_line\.rb:\d+:in }
+          expect(File.basename(frame.path)).to eq 'hook_line.rb'
         end
       end
     end
@@ -572,20 +571,22 @@ RSpec.describe Datadog::DI::Instrumenter do
         require_relative 'hook_line_recursive'
       end
 
+      let(:code_tracker) { Datadog::DI.code_tracker }
+
       # We need to use a rate limiter, otherwise the stack is exhausted
       # very slowly and this test burns 100% CPU for a long time performing
       # snapshot building etc.
-      let(:rate_limiter) do
-        Datadog::Core::TokenBucket.new(1)
+      let(:rate_limit) do
+        1
       end
 
       context 'non-enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(file: 'hook_line_recursive.rb', line_no: 11,
-            id: 1, type: :log, rate_limiter: rate_limiter)
+            id: 1, type: :log, rate_limit: rate_limit)
         end
 
-        xit 'does not invoke callback' do
+        it 'does not invoke callback' do
           instrumenter.hook_line(probe) do |payload|
             observed_calls << payload
           end
