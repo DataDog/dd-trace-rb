@@ -52,7 +52,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:call_keys) do
-    %i[callers duration probe rv serialized_entry_args]
+    %i[caller_locations duration probe rv serialized_entry_args]
   end
 
   describe '.hook_method' do
@@ -205,7 +205,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       let(:stack) do
-        payload.fetch(:callers)
+        payload.fetch(:caller_locations)
       end
 
       it 'contains at least 10 frames' do
@@ -214,15 +214,13 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       it 'contains instrumented method as top frame' do
         frame = stack.first
-        expect(frame).to be_a(String)
-        expect(frame).to match %r{hook_method\.rb:\d+:in }
+        expect(File.basename(frame.path)).to eq 'hook_method.rb'
       end
 
       it 'contains caller as second frame' do
         frame = stack[1]
-        expect(frame).to be_a(String)
         # This test file is calling the instrumented method.
-        expect(frame).to match %r{instrumenter_spec\.rb:\d+:in }
+        expect(File.basename(frame.path)).to eq 'instrumenter_spec.rb'
       end
     end
 
@@ -292,7 +290,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     let(:call_keys) do
-      %i[callers probe trace_point]
+      %i[caller_locations probe trace_point]
     end
 
     context 'when called without a block' do
@@ -441,7 +439,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       describe 'stack trace' do
         xit 'contains instrumented method as top frame' do
-          frame = payload.fetch(:callers).first
+          frame = payload.fetch(:caller_locations).first
           expect(frame).to be_a(String)
           expect(frame).to match %r{hook_line\.rb:\d+:in }
         end
@@ -554,16 +552,16 @@ RSpec.describe Datadog::DI::Instrumenter do
           # TODO add assertions for locals
 
           expect(observed_calls[0].keys.sort).to eq call_keys
-          expect(observed_calls[0][:callers]).to be_a(Array)
+          expect(observed_calls[0][:caller_locations]).to be_a(Array)
 
           expect(observed_calls[1].keys.sort).to eq call_keys
-          expect(observed_calls[1][:callers]).to be_a(Array)
+          expect(observed_calls[1][:caller_locations]).to be_a(Array)
 
           expect(observed_calls[2].keys.sort).to eq call_keys
-          expect(observed_calls[2][:callers]).to be_a(Array)
+          expect(observed_calls[2][:caller_locations]).to be_a(Array)
 
           expect(observed_calls[3].keys.sort).to eq call_keys
-          expect(observed_calls[3][:callers]).to be_a(Array)
+          expect(observed_calls[3][:caller_locations]).to be_a(Array)
         end
       end
     end
@@ -601,7 +599,7 @@ RSpec.describe Datadog::DI::Instrumenter do
           expect(observed_calls.length).to eq 1
 
           expect(observed_calls[0].keys.sort).to eq call_keys
-          expect(observed_calls[0][:callers]).to be_a(Array)
+          expect(observed_calls[0][:caller_locations]).to be_a(Array)
         end
       end
     end

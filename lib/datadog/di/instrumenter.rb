@@ -66,6 +66,13 @@ module Datadog
       attr_reader :serializer
       attr_reader :code_tracker
 
+      # This is a substitute for Thread::Backtrace::Location
+      # which does not have a public constructor.
+      # Used for the fabricated stack frame for the method itself
+      # for method probes (which use Module#prepend and thus aren't called
+      # from the method but from outside of the method).
+      Location = Struct.new(:path, :lineno, :label)
+
       def hook_method(probe, &block)
         unless block
           raise ArgumentError, 'block is required'
@@ -100,11 +107,11 @@ module Datadog
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
-              method_frame = "#{loc.first}:#{loc.last}:in `#{method_name}'"
-              callers = [method_frame] + caller
+              method_frame = Location.new(loc.first, loc.last, method_name)
+              caller_locs = [method_frame] + caller_locations
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe, rv: rv, duration: duration, callers: callers,
+              block&.call(probe: probe, rv: rv, duration: duration, caller_locations: caller_locs,
                 serialized_entry_args: entry_args)
               rv
             else
@@ -214,7 +221,7 @@ module Datadog
           if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
             if rate_limiter.nil? || rate_limiter.allow?
               # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe, trace_point: tp, callers: caller)
+              block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
             end
           end
         end
