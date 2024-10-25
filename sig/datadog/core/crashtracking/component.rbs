@@ -21,7 +21,7 @@ module Datadog
 
         def start: -> void
 
-        def update_on_fork: -> void
+        def update_on_fork: (settings: Datadog::Core::Configuration::Settings) -> void
 
         def stop: -> void
 
@@ -33,7 +33,7 @@ module Datadog
         attr_reader path_to_crashtracking_receiver_binary: ::String
         attr_reader logger: untyped
 
-        def start_or_update_on_fork: (action: :start | :update_on_fork) -> void
+        def start_or_update_on_fork: (action: :start | :update_on_fork, tags: ::Hash[::String, ::String]) -> void
 
         def self._native_start_or_update_on_fork: (
           action: :start | :update_on_fork,
