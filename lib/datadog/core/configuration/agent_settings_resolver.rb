@@ -234,6 +234,11 @@ module Datadog
         def should_use_uds?
           # When we have mixed settings for http/https and uds, we print a warning
           # and use the uds settings.
+          mixed_http_and_uds
+          can_use_uds?
+        end
+
+        def mixed_http_and_uds
           unless defined?(@mixed_http_and_uds)
             @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
             if @mixed_http_and_uds
@@ -251,7 +256,6 @@ module Datadog
               )
             end
           end
-          can_use_uds?
         end
 
         def can_use_uds?
