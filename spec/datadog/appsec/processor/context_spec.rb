@@ -78,13 +78,8 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       results.reject { |r| r.status == :ok }
     end
 
-    let(:events) do
-      matches.map(&:events).flatten
-    end
-
-    let(:actions) do
-      matches.map(&:actions)
-    end
+    let(:events) { matches.flat_map(&:events) }
+    let(:actions) { matches.map(&:actions) }
 
     context 'clear key with empty values' do
       it 'removes nil values' do
@@ -171,6 +166,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
     context 'one attack' do
       let(:input) { input_scanner }
 
+      it { expect(telemetry).not_to receive(:error) }
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
       it { expect(actions).to eq [[]] }
@@ -237,6 +233,28 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it { expect(events).to have_attributes(count: 1) }
       it { expect(actions).to eq [['block']] }
     end
+
+    context 'run failed with libddwaf error result' do
+      before do
+        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, timeout)
+          .and_return([result.status, result])
+      end
+
+      let(:result) do
+        instance_double(
+          Datadog::AppSec::WAF::Result,
+          status: :err_invalid_object,
+          total_runtime: 0.01,
+          timeout: false
+        )
+      end
+
+      it 'sends telemetry error' do
+        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_invalid_object/)
+
+        context.run(input, timeout)
+      end
+    end
   end
 
   describe '#extract_schema' do
@@ -257,15 +275,14 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           }
         }
 
-        dummy_code = 1
-        dummy_result = 2
+        result = instance_double(Datadog::AppSec::WAF::Result, status: :ok, timeout: false)
 
         expect(context.instance_variable_get(:@context)).to receive(:run).with(
           input,
           Datadog::AppSec::WAF::LibDDWAF::DDWAF_RUN_TIMEOUT
-        ).and_return([dummy_code, dummy_result])
+        ).and_return([result.status, result])
 
-        expect(context.extract_schema).to eq dummy_result
+        expect(context.extract_schema).to eq result
       end
 
       it 'returns schema extraction information' do
@@ -274,6 +291,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         results = context.extract_schema
         derivatives = results.derivatives
+
         expect(derivatives).to_not be_empty
         expect(derivatives['_dd.appsec.s.req.query']).to eq([{ 'vin' => [8, { 'category' => 'pii', 'type' => 'vin' }] }])
       end

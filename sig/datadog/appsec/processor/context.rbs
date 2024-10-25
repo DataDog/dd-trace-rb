@@ -16,6 +16,10 @@ module Datadog
 
         @run_mutex: ::Thread::Mutex
 
+        @libddwaf_tag: ::String
+
+        LIBDDWAF_SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
+
         attr_reader time_ns: ::Float
 
         attr_reader time_ext_ns: ::Float
@@ -33,6 +37,8 @@ module Datadog
         def finalize: () -> void
 
         private
+
+        def report_execution: (WAF::Result result) -> void
 
         def extract_schema?: () -> bool
       end
