@@ -23,7 +23,6 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-
       # Minimum interval between submissions.
       # TODO make this into an internal setting and increase default to 2 or 3.
       MIN_SEND_INTERVAL = 1
