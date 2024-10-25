@@ -1,6 +1,14 @@
 module Datadog
   module DI
     class Instrumenter
+      class Location
+        def initialize: (String path, Integer lineno, String? label) -> void
+        
+        def path: () -> String
+        def lineno: () -> Integer
+        def label: () -> String?
+      end
+      
       @settings: untyped
 
       @serializer: Serializer

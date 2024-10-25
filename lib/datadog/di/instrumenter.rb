@@ -108,7 +108,7 @@ module Datadog
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
               method_frame = Location.new(loc.first, loc.last, method_name)
-              caller_locs = [method_frame] + caller_locations
+              caller_locs = [method_frame] + caller_locations # steep:ignore
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
               block&.call(probe: probe, rv: rv, duration: duration, caller_locations: caller_locs,
