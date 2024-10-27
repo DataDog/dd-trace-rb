@@ -268,7 +268,7 @@ module Datadog
               namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
 
               parts = (namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
-              parts.join('/').prepend('/')
+              parts.join('/').delete_prefix('/').prepend('/')
             end
 
             def service_name
