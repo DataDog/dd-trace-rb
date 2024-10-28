@@ -239,23 +239,25 @@ module Datadog
         end
 
         def mixed_http_and_uds
-          unless defined?(@mixed_http_and_uds)
-            @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
-            if @mixed_http_and_uds
-              warn_if_configuration_mismatch(
-                [
-                  DetectedConfiguration.new(
-                    friendly_name: 'configuration for unix domain socket',
-                    value: parsed_url.to_s,
-                  ),
-                  DetectedConfiguration.new(
-                    friendly_name: 'configuration of hostname/port for http/https use',
-                    value: "hostname: '#{hostname}', port: '#{port}'",
-                  ),
-                ]
-              )
-            end
+          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
+          
+          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
+          if @mixed_http_and_uds
+            warn_if_configuration_mismatch(
+              [
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration for unix domain socket',
+                  value: parsed_url.to_s,
+                ),
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration of hostname/port for http/https use',
+                  value: "hostname: '#{hostname}', port: '#{port}'",
+                ),
+              ]
+            )
           end
+          
+          @mixed_http_and_uds
         end
 
         def can_use_uds?
