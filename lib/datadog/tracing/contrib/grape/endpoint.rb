@@ -267,8 +267,11 @@ module Datadog
               route_path = endpoint.options[:path]
               namespace = endpoint.routes.first && endpoint.routes.first.namespace || ''
 
-              parts = (namespace.split('/') + route_path).reject { |p| p.blank? || p.eql?('/') }
-              parts.join('/').delete_prefix('/').prepend('/')
+              path = (namespace.split('/') + route_path)
+                .reject { |p| p.blank? || p.eql?('/') }
+                .join('/')
+              path.prepend('/') if path[0] != '/'
+              path
             end
 
             def service_name
