@@ -6,6 +6,7 @@ require_relative 'di/configuration'
 require_relative 'di/extensions'
 require_relative 'di/instrumenter'
 require_relative 'di/probe'
+require_relative 'di/redactor'
 require_relative 'di/serializer'
 
 module Datadog
