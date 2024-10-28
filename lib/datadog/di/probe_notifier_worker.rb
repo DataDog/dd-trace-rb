@@ -91,10 +91,12 @@ module Datadog
       def stop(timeout = 1)
         @stop_requested = true
         wake.signal
-        unless thread&.join(timeout)
-          thread.kill
+        if thread
+          unless thread.join(timeout)
+            thread.kill
+          end
+          @thread = nil
         end
-        @thread = nil
       end
 
       # Waits for background thread to send pending notifications.

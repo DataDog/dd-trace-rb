@@ -43,13 +43,27 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   describe '#stop' do
-    before do
-      worker.start
+    context 'worker is running' do
+      before do
+        worker.start
+      end
+
+      it 'stops the thread' do
+        worker.stop
+        expect(worker.send(:thread)).to be nil
+      end
     end
 
-    it 'stops the thread' do
-      worker.stop
-      expect(worker.send(:thread)).to be nil
+    context 'worker is not running' do
+      before do
+        expect(worker.send(:thread)).to be nil
+      end
+
+      it 'does nothing and raises no exceptions' do
+        expect do
+          worker.stop
+        end.not_to raise_error
+      end
     end
   end
 
