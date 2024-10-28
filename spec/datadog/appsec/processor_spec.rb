@@ -283,4 +283,10 @@ RSpec.describe Datadog::AppSec::Processor do
       end
     end
   end
+
+  describe '#new_context' do
+    let(:processor) { described_class.new(ruleset: ruleset, telemetry: telemetry) }
+
+    it { expect(processor.new_context).to be_instance_of(described_class::Context) }
+  end
 end

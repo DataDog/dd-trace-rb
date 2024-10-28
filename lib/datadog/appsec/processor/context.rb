@@ -7,8 +7,10 @@ module Datadog
       class Context
         attr_reader :time_ns, :time_ext_ns, :timeouts, :events
 
-        def initialize(processor)
-          @context = Datadog::AppSec::WAF::Context.new(processor.send(:handle))
+        def initialize(handle, telemetry:)
+          @context = Datadog::AppSec::WAF::Context.new(handle)
+          @telemetry = telemetry
+
           @time_ns = 0.0
           @time_ext_ns = 0.0
           @timeouts = 0
