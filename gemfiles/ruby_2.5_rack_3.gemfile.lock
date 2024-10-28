@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.4.0)
-      datadog-ruby_core_source (= 3.3.6)
+      datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -66,7 +66,7 @@ GEM
     pry-stack_explorer (0.4.13)
       binding_of_caller (~> 0.7)
       pry (~> 0.13)
-    rack (3.0.8)
+    rack (3.1.8)
     rack-contrib (1.2.0)
       rack (>= 0.9.1)
     rack-test (2.1.0)
