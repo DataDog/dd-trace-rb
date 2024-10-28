@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.4.0)
-      datadog-ruby_core_source (= 3.3.6)
+      datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -27,7 +27,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
-    base64 (0.1.1)
+    base64 (0.2.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -44,16 +44,16 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    elastic-transport (8.3.0)
+    elastic-transport (8.3.5)
       faraday (< 3)
       multi_json
-    elasticsearch (8.10.0)
-      elastic-transport (~> 8)
-      elasticsearch-api (= 8.10.0)
-    elasticsearch-api (8.10.0)
+    elasticsearch (8.15.0)
+      elastic-transport (~> 8.3)
+      elasticsearch-api (= 8.15.0)
+    elasticsearch-api (8.15.0)
       multi_json
     extlz4 (0.3.4)
-    faraday (2.7.11)
+    faraday (2.8.1)
       base64
       faraday-net_http (>= 2.0, < 3.1)
       ruby2_keywords (>= 0.0.4)

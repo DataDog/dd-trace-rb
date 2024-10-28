@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.4.0)
-      datadog-ruby_core_source (= 3.3.6)
+      datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack
@@ -42,7 +42,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
-    faraday (1.10.3)
+    faraday (1.10.4)
       faraday-em_http (~> 1.0)
       faraday-em_synchrony (~> 1.0)
       faraday-excon (~> 1.1)
@@ -60,7 +60,7 @@ GEM
     faraday-httpclient (1.0.1)
     faraday-multipart (1.0.4)
       multipart-post (~> 2)
-    faraday-net_http (1.0.1)
+    faraday-net_http (1.0.2)
     faraday-net_http_persistent (1.2.0)
     faraday-patron (1.0.0)
     faraday-rack (1.0.0)
@@ -81,7 +81,7 @@ GEM
     method_source (1.0.0)
     msgpack (1.7.2)
     multi_json (1.15.0)
-    multipart-post (2.3.0)
+    multipart-post (2.4.1)
     opensearch-api (2.2.0)
       multi_json
     opensearch-ruby (2.1.0)
