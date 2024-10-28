@@ -45,3 +45,7 @@ group :development do
   # Speed up commands on slow machines / big apps [https://github.com/rails/spring]
   # gem "spring"
 end
+
+# Gems no longer included in Ruby 3.4
+gem 'bigdecimal'
+gem 'mutex_m'

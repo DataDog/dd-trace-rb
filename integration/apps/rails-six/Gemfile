@@ -96,3 +96,6 @@ group :test, :development do
 
   gem 'listen'
 end
+
+# Gem no longer included in Ruby 3.4
+gem 'mutex_m'
