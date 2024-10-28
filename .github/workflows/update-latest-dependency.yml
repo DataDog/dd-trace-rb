@@ -54,7 +54,7 @@ jobs:
         run: bundle install
 
       - name: Update latest
-        run: bundle exec rake edge:latest
+        run: bundle exec rake edge:update
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
