@@ -217,21 +217,19 @@ module Datadog
         # this optimization just yet and create a trace point for each probe.
 
         tp = TracePoint.new(:line) do |tp|
-          begin
-            # If trace point is not targeted, we must verify that the invocation
-            # is the file & line that we want, because untargeted trace points
-            # are invoked for *each* line of Ruby executed.
-            if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
-              if rate_limiter.nil? || rate_limiter.allow?
-                # & is to stop steep complaints, block is always present here.
-                block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
-              end
+          # If trace point is not targeted, we must verify that the invocation
+          # is the file & line that we want, because untargeted trace points
+          # are invoked for *each* line of Ruby executed.
+          if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
+            if rate_limiter.nil? || rate_limiter.allow?
+              # & is to stop steep complaints, block is always present here.
+              block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
             end
-          rescue => exc
-            raise if settings.dynamic_instrumentation.propagate_all_exceptions
-            logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
-            # TODO test this path
           end
+        rescue => exc
+          raise if settings.dynamic_instrumentation.propagate_all_exceptions
+          logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+          # TODO test this path
         end
 
         # TODO internal check - remove or use a proper exception
