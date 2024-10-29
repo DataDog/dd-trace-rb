@@ -67,6 +67,11 @@ ffi_version = gem_version_mapping.fetch('ffi')
 puts "=== ffi version ==="
 puts ffi_version
 
+libdatadog_version = gem_version_mapping.fetch('libdatadog')
+puts "=== libdatadog version ==="
+puts libdatadog_version
+
+
 env = {
   'GEM_HOME' => versioned_path.to_s,
   # Install `datadog` gem locally without its profiling native extension
@@ -120,10 +125,18 @@ end
 
 cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
 
+libdatadog_musl = versioned_path +
+  "gems" +
+  "libdatadog-#{libdatadog_version}-#{RUBY_PLATFORM}" +
+  "vendor" +
+  "libdatadog-#{libdatadog_version.split(".").take(3).join(".")}" +
+  "#{RUBY_PLATFORM}-musl"
+
 FileUtils.rm_r(
   [
     *cached_gems,
     versioned_path.join("gems/ffi-#{ffi_version}/ext"),
+    libdatadog_musl,
   ],
   verbose: true
 )
