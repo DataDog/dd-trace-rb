@@ -1,0 +1,32 @@
+module Datadog
+  module DI
+    class ProbeNotificationBuilder
+      @serializer: Serializer
+
+      def initialize: (untyped settings, Serializer serializer) -> void
+
+      attr_reader settings: untyped
+      attr_reader serializer: Serializer
+
+      def build_received: (Probe probe) -> Hash[Symbol,untyped]
+
+      def build_installed: (Probe probe) -> Hash[Symbol,untyped]
+
+      def build_emitting: (Probe probe) -> Hash[Symbol,untyped]
+
+      def build_executed: (Probe probe, ?trace_point: TracePoint, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+
+      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+
+      def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
+
+      def format_caller_locations: (Array[untyped] callers) -> Array[Hash[Symbol,untyped]]
+
+      def evaluate_template: (untyped template, **untyped vars) -> String
+
+      def timestamp_now: () -> Integer
+
+      def get_local_variables: (TracePoint trace_point) -> Hash[Symbol,untyped]
+    end
+  end
+end
