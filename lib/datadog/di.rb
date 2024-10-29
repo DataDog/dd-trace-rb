@@ -1,13 +1,15 @@
 # frozen_string_literal: true
 
 require_relative 'di/error'
-require_relative 'di/code_tracker'
 require_relative 'di/configuration'
+require_relative 'di/code_tracker'
 require_relative 'di/extensions'
 require_relative 'di/instrumenter'
 require_relative 'di/probe'
 require_relative 'di/redactor'
 require_relative 'di/serializer'
+require_relative 'di/transport'
+require_relative 'di/utils'
 
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
