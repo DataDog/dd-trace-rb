@@ -16,7 +16,7 @@ module Datadog
 
         @run_mutex: ::Thread::Mutex
 
-        @libddwaf_tag: ::String
+        @libddwaf_debug_tag: ::String
 
         LIBDDWAF_SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
 
@@ -37,6 +37,8 @@ module Datadog
         def finalize: () -> void
 
         private
+
+        def try_run: (Hash[untyped, untyped] input, ::Integer timeout) -> [::Symbol, WAF::Result]
 
         def report_execution: (WAF::Result result) -> void
 

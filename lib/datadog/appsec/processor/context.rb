@@ -21,7 +21,7 @@ module Datadog
           @events = []
           @run_mutex = Mutex.new
 
-          @libddwaf_tag = "libddwaf:#{WAF::VERSION::STRING}"
+          @libddwaf_debug_tag = "libddwaf:#{WAF::VERSION::STRING}"
         end
 
         def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
@@ -35,7 +35,7 @@ module Datadog
             v.nil? ? true : v.empty?
           end
 
-          _code, result = @context.run(input, timeout)
+          _code, result = try_run(input, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -59,7 +59,7 @@ module Datadog
             }
           }
 
-          _code, result = @context.run(input, WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+          _code, result = try_run(input, WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
 
           report_execution(result)
           result
@@ -71,13 +71,22 @@ module Datadog
 
         private
 
+        def try_run(input, timeout)
+          @context.run(input, timeout)
+        rescue WAF::LibDDWAF::Error => e
+          Datadog.logger.debug { "#{@libddwaf_debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
+          @telemetry.report(e, description: 'libddwaf internal low-level error')
+
+          [:err_internal, WAF::Result.new(:err_internal, [], 0.0, false, [], [])]
+        end
+
         def report_execution(result)
-          Datadog.logger.debug { "#{@libddwaf_tag} execution timed out: #{result.inspect}" } if result.timeout
+          Datadog.logger.debug { "#{@libddwaf_debug_tag} execution timed out: #{result.inspect}" } if result.timeout
 
           if LIBDDWAF_SUCCESSFUL_EXECUTION_CODES.include?(result.status)
-            Datadog.logger.debug { "#{@libddwaf_tag} execution result: #{result.inspect}" }
+            Datadog.logger.debug { "#{@libddwaf_debug_tag} execution result: #{result.inspect}" }
           else
-            message = "#{@libddwaf_tag} execution error: #{result.status.inspect}"
+            message = "#{@libddwaf_debug_tag} execution error: #{result.status.inspect}"
 
             Datadog.logger.debug { message }
             @telemetry.error(message)

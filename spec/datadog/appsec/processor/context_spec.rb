@@ -255,6 +255,23 @@ RSpec.describe Datadog::AppSec::Processor::Context do
         context.run(input, timeout)
       end
     end
+
+    context 'run failed with libddwaf low-level exception' do
+      before do
+        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, timeout)
+          .and_raise(Datadog::AppSec::WAF::LibDDWAF::Error, 'Could not convert persistent data')
+      end
+
+      let(:result) { context.run(input, timeout) }
+
+      it 'sends telemetry report' do
+        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_internal/)
+        expect(telemetry).to receive(:report)
+          .with(kind_of(Datadog::AppSec::WAF::LibDDWAF::Error), description: 'libddwaf internal low-level error')
+
+        expect(result.status).to eq(:err_internal)
+      end
+    end
   end
 
   describe '#extract_schema' do
