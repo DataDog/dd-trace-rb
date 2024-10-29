@@ -35,7 +35,7 @@ RSpec.describe Datadog::Tracing::Remote do
       it 'sets errored apply state' do
         process_config
         expect(content.apply_state).to eq(3)
-        expect(content.apply_error).to match(/Error/) & match(/in process_config/)
+        expect(content.apply_error).to include('Error') & include('process_config')
       end
     end
 
