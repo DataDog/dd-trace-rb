@@ -68,7 +68,7 @@ PATH
   remote: ..
   specs:
     datadog (2.4.0)
-      datadog-ruby_core_source (= 3.3.6)
+      datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
       libddwaf (~> 1.14.0.0.0)
       msgpack

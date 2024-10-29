@@ -1,0 +1,61 @@
+module Datadog
+  module DI
+    class ProbeNotifierWorker
+    
+      MIN_SEND_INTERVAL: 1
+      
+      @settings: untyped
+
+      @status_queue: Array[Hash[String, untyped]]
+
+      @snapshot_queue: Array[Hash[String, untyped]]
+
+      @transport: Transport
+
+      @lock: Mutex
+
+      @wake: Core::Semaphore
+
+      @io_in_progress: bool
+
+      @thread: Thread
+
+      @stop_requested: bool
+      
+      @logger: Core::Logger
+
+      def initialize: (untyped settings, Transport transport, Core::Logger logger) -> void
+
+      attr_reader settings: untyped
+      
+      attr_reader logger: Core::Logger
+
+      def start: () -> void
+      def stop: (?::Integer timeout) -> void
+      def flush: () -> void
+
+      private
+      
+      def last_sent: () -> Numeric
+      
+      def set_sleep_remaining: () -> Numeric
+
+      def status_queue: () -> Array[Hash[String, untyped]]
+
+      def snapshot_queue: () -> Array[Hash[String, untyped]]
+
+      attr_reader transport: Transport
+
+      attr_reader wake: Core::Semaphore
+
+      attr_reader thread: Thread
+      def io_in_progress?: () -> bool
+
+      def maybe_send: () -> bool
+
+      def maybe_send_status: () -> bool
+
+      def maybe_send_snapshot: () -> bool
+    end
+  end
+end

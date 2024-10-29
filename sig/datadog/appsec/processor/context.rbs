@@ -2,24 +2,46 @@ module Datadog
   module AppSec
     class Processor
       class Context
-        type event = untyped
-        type data = WAF::data
-
-        attr_reader time_ns: ::Float
-        attr_reader time_ext_ns: ::Float
-        attr_reader timeouts: ::Integer
-        attr_reader events: ::Array[event]
-
         @context: WAF::Context
+
+        @telemetry: Core::Telemetry::Component
+
+        @time_ns: ::Float
+
+        @time_ext_ns: ::Float
+
+        @timeouts: ::Integer
+
+        @events: ::Array[untyped]
 
         @run_mutex: ::Thread::Mutex
 
-        def initialize: (Processor processor) -> void
+        @libddwaf_debug_tag: ::String
+
+        LIBDDWAF_SUCCESSFUL_EXECUTION_CODES: ::Array[::Symbol]
+
+        attr_reader time_ns: ::Float
+
+        attr_reader time_ext_ns: ::Float
+
+        attr_reader timeouts: ::Integer
+
+        attr_reader events: ::Array[untyped]
+
+        def initialize: (WAF::Handle handle, telemetry: Core::Telemetry::Component) -> void
+
         def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
+
         def extract_schema: () -> WAF::Result?
+
         def finalize: () -> void
 
         private
+
+        def try_run: (Hash[untyped, untyped] input, ::Integer timeout) -> [::Symbol, WAF::Result]
+
+        def report_execution: (WAF::Result result) -> void
+
         def extract_schema?: () -> bool
       end
     end
