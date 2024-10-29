@@ -63,6 +63,10 @@ end
 
 puts gem_version_mapping
 
+ffi_version = gem_version_mapping.fetch('ffi')
+puts "=== ffi version ==="
+puts ffi_version
+
 env = {
   'GEM_HOME' => versioned_path.to_s,
   # Install `datadog` gem locally without its profiling native extension
@@ -119,6 +123,7 @@ cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
 FileUtils.rm_r(
   [
     *cached_gems,
+    versioned_path.join("gems/ffi-#{ffi_version}/ext"),
   ],
   verbose: true
 )
