@@ -114,6 +114,15 @@ unless File.exist?("#{datadog_gem_path}/lib/#{libdatadog_so_file}")
   raise "Missing #{libdatadog_so_file} in #{datadog_gem_path}."
 end
 
+cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
+
+FileUtils.rm_r(
+  [
+    *cached_gems,
+  ],
+  verbose: true
+)
+
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries
   FileUtils.ln_sf Gem.extension_api_version, ruby_api_version
