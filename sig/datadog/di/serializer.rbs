@@ -13,9 +13,9 @@ module Datadog
       
       def serialize_args: (untyped args, untyped kwargs) -> untyped
       def serialize_vars: (untyped vars) -> untyped
+      def serialize_value: (untyped value, ?name: String, ?depth: Integer) -> untyped
 
       private
-      def serialize_value: (untyped value, ?name: String, ?depth: untyped) -> ({ type: untyped, notCapturedReason: "redactedType" } | { type: untyped, notCapturedReason: "redactedIdent" } | untyped)
       def class_name: (untyped cls) -> untyped
     end
   end

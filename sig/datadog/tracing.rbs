@@ -1,5 +1,8 @@
 module Datadog
   module Tracing
     def self.continue_trace!: (TraceDigest) ? { (untyped) -> untyped } -> untyped
+    
+    def self.active_trace: -> TraceSegment?
+    def self.active_span: -> SpanOperation?
   end
 end

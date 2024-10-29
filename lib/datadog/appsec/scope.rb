@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative 'processor/context'
-
 module Datadog
   module AppSec
     # Capture context essential to consistently call processor and report via traces
@@ -22,8 +20,7 @@ module Datadog
         def activate_scope(trace, service_entry_span, processor)
           raise ActiveScopeError, 'another scope is active, nested scopes are not supported' if active_scope
 
-          context = Datadog::AppSec::Processor::Context.new(processor)
-
+          context = processor.new_context
           self.active_scope = new(trace, service_entry_span, context)
         end
 

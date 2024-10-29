@@ -1,29 +1,39 @@
 module Datadog
   module AppSec
     class Processor
-      def self.active_context: () -> Context
+      type rule = bool | ::Integer | ::String | ::Hash[::String, rule] | ::Array[rule]
+      type ruleset = ::Hash[::String, rule]
 
-      private
+      @telemetry: Core::Telemetry::Component
 
-      attr_reader diagnostics: WAF::LibDDWAF::Object?
-      attr_reader addresses: ::Array[::String]
+      @diagnostics: WAF::LibDDWAF::Object?
 
-      @handle: WAF::Handle
-      @ruleset: ::Hash[::String, untyped]
       @addresses: ::Array[::String]
 
-      def initialize: (ruleset: ::Hash[untyped, untyped], telemetry: Core::Telemetry::Component) -> void
+      @handle: WAF::Handle
+
+      attr_reader diagnostics: WAF::LibDDWAF::Object?
+
+      attr_reader addresses: ::Array[::String]
+
+      def initialize: (ruleset: ruleset, telemetry: Core::Telemetry::Component) -> void
+
       def ready?: () -> bool
+
       def finalize: () -> void
 
-      attr_reader handle: untyped
+      def new_context: () -> Context
 
       private
 
       def require_libddwaf: () -> bool
+
       def libddwaf_provides_waf?: () -> bool
-      def create_waf_handle: (Core::Configuration::Settings::_AppSec settings, ::Hash[String, untyped] ruleset) -> bool
+
+      def create_waf_handle: (Core::Configuration::Settings::_AppSec settings, ruleset ruleset) -> bool
+
       def libddwaf_platform: () -> ::String
+
       def ruby_platforms: () -> ::Array[::String]
     end
   end
