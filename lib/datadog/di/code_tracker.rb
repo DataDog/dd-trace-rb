@@ -109,25 +109,15 @@ module Datadog
       # to be an absolute path), only the exactly matching path is returned.
       # Otherwise all known paths that end in the suffix are returned.
       # If no paths match, an empty array is returned.
-      def iseqs_for_path(suffix)
+      def iseqs_for_path_suffix(suffix)
         registry_lock.synchronize do
           exact = registry[suffix]
           return [exact] if exact
 
           inexact = []
           registry.each do |path, iseq|
-            # Exact match is not possible here, meaning any matching path
-            # has to be longer than the suffix. Require full component matches,
-            # meaning either the first character of the suffix is a slash
-            # or the previous character in the path is a slash.
-            # For now only check for forward slashes for Unix-like OSes;
-            # backslash is a legitimate character of a file name in Unix
-            # therefore simply permitting forward or back slash is not
-            # sufficient, we need to perform an OS check to know which
-            # path separator to use.
-            if path.length > suffix.length && path.end_with?(suffix)
-              previous_char = path[path.length - suffix.length - 1]
-              inexact << iseq if previous_char == "/" || suffix[0] == "/"
+            if Utils.path_matches_suffix?(path, suffix)
+              inexact << iseq
             end
           end
           inexact
@@ -150,6 +140,14 @@ module Datadog
           # reinstated in the future.
           @compiled_trace_point = nil
         end
+        clear
+      end
+
+      # Clears the stored mapping from paths to compiled code.
+      #
+      # This method should normally never be called. It is meant to be
+      # used only by the test suite.
+      def clear
         registry_lock.synchronize do
           registry.clear
         end

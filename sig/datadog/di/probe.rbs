@@ -44,6 +44,10 @@ module Datadog
       def method?: () -> bool
       def line_no!: () -> Integer
       def location: () -> ::String
+      def file_matches?: (String path) -> bool
+      
+      attr_accessor instrumentation_module: Module?
+      attr_accessor instrumentation_trace_point: TracePoint?
     end
   end
 end
