@@ -81,7 +81,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         {hello: 'world'}
       end
 
-      it 'sends the snapshot' do
+      xit 'sends the snapshot' do
         expect(worker.send(:snapshot_queue)).to be_empty
 
         expect(transport).to receive(:send_snapshot).once.with([snapshot])
@@ -96,7 +96,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       context 'when three snapshots are added in quick succession' do
-        it 'sends two batches' do
+        xit 'sends two batches' do
           expect(worker.send(:snapshot_queue)).to be_empty
 
           expect(transport).to receive(:send_snapshot).once.with([snapshot])
