@@ -6,12 +6,12 @@
       {
         "arch": "x86",
         "supported": true,
-        "min": "2.28"
+        "min": "2.27"
       },
       {
         "arch": "arm64",
         "supported": true,
-        "min": "2.28"
+        "min": "2.27"
       }
     ]
   },
