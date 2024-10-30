@@ -94,6 +94,10 @@ RSpec.describe 'Grape instrumentation' do
             'OK'
           end
         end
+
+        get '/path/with/leading/slash' do
+          'leading-slash'
+        end
       end
     )
   end
@@ -125,6 +129,10 @@ RSpec.describe 'Grape instrumentation' do
           get :span_resource do
             'OK'
           end
+        end
+
+        get '/path/with/leading/slash' do
+          'leading-slash'
         end
       end
     )
@@ -719,6 +727,19 @@ RSpec.describe 'Grape instrumentation' do
       end
     end
 
+    context 'when the path has a leading slash' do
+      subject(:response) { get '/path/with/leading/slash' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the resource correctly' do
+        expect(trace.name).to eq('grape.endpoint_run')
+        expect(trace.resource).to eq('TestingAPI GET /path/with/leading/slash')
+      end
+    end
+
     context 'when tracing is disabled' do
       subject(:response) { get '/base/success' }
 
@@ -909,6 +930,18 @@ RSpec.describe 'Grape instrumentation' do
 
       it 'sets the trace resource before calling the endpoint' do
         expect(trace.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
+      end
+    end
+
+    context 'when the path has a leading slash' do
+      subject(:response) { get '/api/path/with/leading/slash' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the resource correctly' do
+        expect(trace.resource).to eq('RackTestingAPI GET /path/with/leading/slash')
       end
     end
   end
