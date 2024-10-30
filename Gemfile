@@ -44,12 +44,8 @@ gem 'webmock', '>= 3.10.0'
 
 gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
 
-if RUBY_VERSION.start_with?('3.4.')
-  # ruby 3.4 breaks stable webrick; we need this fix until a version later than 1.8.1 comes out
-  gem 'webrick', git: 'https://github.com/ruby/webrick.git', ref: '0c600e169bd4ae267cb5eeb6197277c848323bbe'
-elsif RUBY_VERSION >= '3.0.0' # No longer bundled by default since Ruby 3.0
-  gem 'webrick', '>= 1.7.0'
-end
+# No longer bundled by default since Ruby 3.0
+gem 'webrick', '>= 1.8.2' if RUBY_VERSION >= '3.0.0'
 
 if RUBY_VERSION >= '2.6.0'
   # 1.50 is the last version to support Ruby 2.6
