@@ -55,6 +55,9 @@ namespace :test do
         end
       end
 
+      sh("gem list")
+      sh("bundle show")
+
       candidates.each do |appraisal_group, _|
         command = if appraisal_group.empty?
                     "bundle exec rake #{spec_task}"
