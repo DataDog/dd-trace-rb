@@ -115,6 +115,13 @@ package-oci:
     - build-gem
     - install-dependencies
 
+requirements_json_test:
+  rules:
+    - when: on_success
+  variables:
+    REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
+    REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
+
 onboarding_tests_installer:
   parallel:
     matrix:

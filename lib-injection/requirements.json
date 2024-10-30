@@ -1,0 +1,33 @@
+{
+  "$schema": "https://raw.githubusercontent.com/DataDog/auto_inject/refs/heads/main/preload_go/cmd/library_requirements_tester/testdata/requirements_schema.json",
+  "version": 1,
+  "native_deps": {
+    "glibc": [
+      {
+        "arch": "x86",
+        "supported": true,
+        "min": "2.27",
+        "description": "libffi needs memfd_create"
+      },
+      {
+        "arch": "arm64",
+        "supported": true,
+        "min": "2.27",
+        "description": "libffi needs memfd_create"
+      }
+    ],
+    "musl": [
+      {
+        "arch": "x86",
+        "supported": false,
+        "description": "no musl build"
+      },
+      {
+        "arch": "arm64",
+        "supported": false,
+        "description": "no musl build"
+      }
+    ]
+  },
+  "deny": []
+}

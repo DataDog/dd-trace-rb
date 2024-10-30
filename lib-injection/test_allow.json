@@ -1,0 +1,4 @@
+[
+  {"name": "✅ 2.27 glibc x86"  ,"filepath":  "/some/path", "args": [], "envars":  [], "host": {"os": "linux", "arch": "x86"  , "libc":  "glibc:2.27"}},
+  {"name": "✅ 2.27 glibc arm64","filepath":  "/some/path", "args": [], "envars":  [], "host": {"os": "linux", "arch": "arm64", "libc":  "glibc:2.27"}}
+]
