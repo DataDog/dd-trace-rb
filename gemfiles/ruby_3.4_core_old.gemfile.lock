@@ -8,13 +8,6 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
-GIT
-  remote: https://github.com/ruby/webrick.git
-  revision: 0c600e169bd4ae267cb5eeb6197277c848323bbe
-  ref: 0c600e169bd4ae267cb5eeb6197277c848323bbe
-  specs:
-    webrick (1.8.1)
-
 PATH
   remote: ..
   specs:
@@ -149,6 +142,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
+    webrick (1.8.2)
 
 PLATFORMS
   aarch64-linux
@@ -187,7 +181,7 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick!
+  webrick (>= 1.8.2)
 
 BUNDLED WITH
    2.3.26
