@@ -6,12 +6,26 @@
       {
         "arch": "x86",
         "supported": true,
-        "min": "2.27"
+        "min": "2.27",
+        "description": "libffi needs memfd_create"
       },
       {
         "arch": "arm64",
         "supported": true,
-        "min": "2.27"
+        "min": "2.27",
+        "description": "libffi needs memfd_create"
+      }
+    ],
+    "musl": [
+      {
+        "arch": "x86",
+        "supported": false,
+        "description": "no musl build"
+      },
+      {
+        "arch": "arm64",
+        "supported": false,
+        "description": "no musl build"
       }
     ]
   },
