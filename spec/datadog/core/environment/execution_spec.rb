@@ -191,7 +191,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 Open3.capture3('ruby', stdin_data: script)
               end
 
-              skip('DEBUG')
+              # Ruby 3.4 outputs an exception instead of the information to be asserted because of the forked process.
+              pending('Pending for Ruby 3.4.') if RUBY_VERSION.start_with?('3.4.')
               expect(err).to include('ACTUAL:true')
             end
           end
