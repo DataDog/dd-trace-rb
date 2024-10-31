@@ -306,6 +306,9 @@ orbs:
               host: "testagent"
               port: 9126
           - *step_run_all_tests
+          - run:
+              # Test agent uses `jq` to check results
+              command: apt update && apt install jq -y
           - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec
