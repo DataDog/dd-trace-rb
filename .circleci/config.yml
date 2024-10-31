@@ -59,54 +59,6 @@ test_containers:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
-  - &container_presto
-    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
-    image: starburstdata/presto:332-e.9
-  - &container_mysql
-    image: mysql:8.0
-    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
-    # rather than mysql_native_password which was the default in previous versions.
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_PASSWORD=mysql
-      - MYSQL_USER=mysql
-  - &container_opensearch
-    image: opensearchproject/opensearch:2.8.0
-    name: opensearch
-    environment:
-      - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
-      # Make sure it works on nearly full disk.
-      - cluster.routing.allocation.disk.threshold_enabled=true
-      - cluster.routing.allocation.disk.watermark.low=3gb
-      - cluster.routing.allocation.disk.watermark.high=2gb
-      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
-      - cluster.routing.allocation.disk.threshold_enabled=false
-  - &container_elasticsearch
-    image: elasticsearch:8.1.3
-    environment:
-      # Ensure production cluster requirements are not enforced
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms750m -Xmx750m
-  - &container_redis
-    image: redis:6.2
-  - &container_mongo
-    image: mongo:3.5
-  - &container_memcached
-    image: memcached:1.5-alpine
-  - &container_testagent
-    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
-    name: testagent
-    environment:
-      - LOG_LEVEL=DEBUG
-      - TRACE_LANGUAGE=ruby
-      - PORT=9126
-      - DD_POOL_TRACE_CHECK_FAILURES=true
-      - DD_DISABLE_ERROR_RESPONSES=true
-      - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
@@ -298,15 +250,50 @@ orbs:
         <<: *test_job_default
         docker:
           - <<: *container_base
-          - *container_postgres
-          - *container_presto
-          - *container_mysql
-          - *container_opensearch
-          - *container_elasticsearch
-          - *container_redis
-          - *container_mongo
-          - *container_memcached
-          - *container_testagent
+          - image: postgres:9.6
+            environment:
+              - POSTGRES_PASSWORD=postgres
+              - POSTGRES_USER=postgres
+              - POSTGRES_DB=postgres
+          - image: starburstdata/presto:332-e.9 # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+          - image: mysql:8.0
+            # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+            # rather than mysql_native_password which was the default in previous versions.
+            command: --default-authentication-plugin=mysql_native_password
+            environment:
+              - MYSQL_ROOT_PASSWORD=root
+              - MYSQL_PASSWORD=mysql
+              - MYSQL_USER=mysql
+          - image: opensearchproject/opensearch:2.8.0
+            name: opensearch
+            environment:
+              - discovery.type=single-node
+              - DISABLE_SECURITY_PLUGIN=true
+              - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+              # Make sure it works on nearly full disk.
+              - cluster.routing.allocation.disk.threshold_enabled=true
+              - cluster.routing.allocation.disk.watermark.low=3gb
+              - cluster.routing.allocation.disk.watermark.high=2gb
+              - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+              - cluster.routing.allocation.disk.threshold_enabled=false
+          - image: elasticsearch:8.1.3
+            environment:
+              # Ensure production cluster requirements are not enforced
+              - discovery.type=single-node
+              - xpack.security.enabled=false
+              - ES_JAVA_OPTS=-Xms750m -Xmx750m
+          - image: redis:6.2
+          - image: mongo:3.5
+          - image: memcached:1.5-alpine
+          - image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+            name: testagent
+            environment:
+              - LOG_LEVEL=DEBUG
+              - TRACE_LANGUAGE=ruby
+              - PORT=9126
+              - DD_POOL_TRACE_CHECK_FAILURES=true
+              - DD_DISABLE_ERROR_RESPONSES=true
+              - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
         parallelism: 22
         steps:
           - restore_cache:
