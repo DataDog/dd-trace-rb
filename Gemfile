@@ -92,3 +92,8 @@ end
 #
 # TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
 gem 'ffi', '~> 1.16.3', require: false
+
+# Ruby 3.4 should be supported by strscan v3.1.1. However, the latest release of strscan is v3.1.0.
+#
+# TODO: Remove this once v3.1.1 is released.
+gem 'strscan', git: 'https://github.com/ruby/strscan' if RUBY_VERSION.start_with?('3.4.')
