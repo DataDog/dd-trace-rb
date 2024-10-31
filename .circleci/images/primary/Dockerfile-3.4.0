@@ -22,8 +22,8 @@ RUN set -ex; \
 # Set timezone to UTC by default
 RUN ln -sf /usr/share/zoneinfo/Etc/UTC /etc/localtime
 
-# Set language
-RUN locale-gen en_US.UTF-8
+# Ensure sane locale (Uncomment `en_US.UTF-8` from `/etc/locale.gen` before running `locale-gen`)
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
 ENV LANG en_US.UTF-8
 ENV LANGUAGE en_US:en
 
@@ -56,7 +56,9 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
 
 # Install RubyGems
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
-
+# Install a pinned RubyGems and Bundler
+RUN gem update --system 3.3.26
+RUN gem install bundler:2.3.26
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 RUN mkdir /app
