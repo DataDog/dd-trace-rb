@@ -162,7 +162,6 @@ orbs:
     jobs:
       build:
         <<: *test_job_default
-        resource_class: <<parameters.resource_class_to_use>>
         steps:
           - checkout
           - restore_cache:
@@ -385,17 +384,17 @@ job_configuration:
   - &config-2_5
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-2.5.9'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.5.9-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.5
     resource_class_to_use: medium+
   - &config-2_6
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-2.6.10'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.6.10-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.6
     resource_class_to_use: medium+
   - &config-2_7
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-2.7.6'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:2.7.6-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:2.7
     resource_class_to_use: medium+
   - &config-2_7-small
     <<: *config-2_7
@@ -403,38 +402,38 @@ job_configuration:
   - &config-3_0
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-3.0.4'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.0.4-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.0
     resource_class_to_use: medium+
   - &config-3_1
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-3.1.2'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.1.2-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.1
     resource_class_to_use: medium+
   - &config-3_2
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-3.2.0'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.2.0-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     resource_class_to_use: medium+
   - &config-3_3
     <<: *filters_all_branches_and_tags
     ruby_version: 'ruby-3.3.0'
-    image: ghcr.io/datadog/dd-trace-rb/ruby:3.3.0-dd
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.2.21.0'
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.2.21.0-dd
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.2
     resource_class_to_use: large
   - &config-jruby-9_3
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.3.9.0'
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.3.9.0-dd
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.3
     resource_class_to_use: large
   - &config-jruby-9_4
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.4.7.0'
-    image: ghcr.io/datadog/dd-trace-rb/jruby:9.4.7.0-dd
+    image: ghcr.io/datadog/images-rb/engines/jruby:9.4
     resource_class_to_use: large
 
 workflows:
