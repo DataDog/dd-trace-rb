@@ -31,13 +31,13 @@ module Datadog
                 body = values[0]
                 path_params = values[1]
 
-                waf_persistent_data = {
+                persistent_data = {
                   'server.request.body' => body,
                   'server.request.path_params' => path_params,
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_persistent_data, {}, waf_timeout)
+                result = waf_context.run(persistent_data, {}, waf_timeout)
 
                 next if result.status != :match
 

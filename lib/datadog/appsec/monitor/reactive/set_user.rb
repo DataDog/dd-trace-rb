@@ -25,12 +25,12 @@ module Datadog
 
               user_id = values[0]
 
-              waf_persistent_data = {
+              persistent_data = {
                 'usr.id' => user_id,
               }
 
               waf_timeout = Datadog.configuration.appsec.waf_timeout
-              result = waf_context.run(waf_persistent_data, {}, waf_timeout)
+              result = waf_context.run(persistent_data, {}, waf_timeout)
 
               next if result.status != :match
 

@@ -27,12 +27,12 @@ module Datadog
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 path_params = values[0]
 
-                waf_persistent_data = {
+                persistent_data = {
                   'server.request.path_params' => path_params,
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_persistent_data, {}, waf_timeout)
+                result = waf_context.run(persistent_data, {}, waf_timeout)
 
                 next if result.status != :match
 
