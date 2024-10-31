@@ -4,7 +4,7 @@
   "native_deps": {
     "glibc": [
       {
-        "arch": "x86",
+        "arch": "x64",
         "supported": true,
         "min": "2.27",
         "description": "libffi needs memfd_create"
@@ -18,7 +18,7 @@
     ],
     "musl": [
       {
-        "arch": "x86",
+        "arch": "x64",
         "supported": false,
         "description": "no musl build"
       },
