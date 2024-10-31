@@ -24,18 +24,24 @@ module Datadog
           @libddwaf_debug_tag = "libddwaf:#{WAF::VERSION::STRING}"
         end
 
-        def run(input, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
           @run_mutex.lock
 
           start_ns = Core::Utils::Time.get_time(:nanosecond)
 
-          input.reject! do |_, v|
+          persistent_data.reject! do |_, v|
             next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
 
             v.nil? ? true : v.empty?
           end
 
-          _code, result = try_run(input, timeout)
+          ephemeral_data.reject! do |_, v|
+            next false if v.is_a?(TrueClass) || v.is_a?(FalseClass)
+
+            v.nil? ? true : v.empty?
+          end
+
+          _code, result = try_run(persistent_data, ephemeral_data, timeout)
 
           stop_ns = Core::Utils::Time.get_time(:nanosecond)
 
@@ -59,7 +65,7 @@ module Datadog
             }
           }
 
-          _code, result = try_run(input, WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+          _code, result = try_run(input, {}, WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
 
           report_execution(result)
           result
@@ -71,8 +77,8 @@ module Datadog
 
         private
 
-        def try_run(input, timeout)
-          @context.run(input, timeout)
+        def try_run(persistent_data, ephemeral_data, timeout)
+          @context.run(persistent_data, ephemeral_data, timeout)
         rescue WAF::LibDDWAF::Error => e
           Datadog.logger.debug { "#{@libddwaf_debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
           @telemetry.report(e, description: 'libddwaf internal low-level error')

@@ -14,7 +14,7 @@ PATH
     datadog (2.4.0)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.14.0.0.0)
+      libddwaf (~> 1.15.0.0.0)
       msgpack
 
 GEM
@@ -118,7 +118,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (13.1.0.1.0)
-    libddwaf (1.14.0.0.0-java)
+    libddwaf (1.15.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -302,7 +302,6 @@ DEPENDENCIES
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
-  ffi (~> 1.16.3)
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
