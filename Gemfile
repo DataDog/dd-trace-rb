@@ -90,9 +90,3 @@ end
 group :dev do
   gem 'ruby-lsp', require: false if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
 end
-
-# `1.17.0` provides broken RBS type definitions
-# https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
-#
-# TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
-gem 'ffi', '~> 1.16.3', require: false

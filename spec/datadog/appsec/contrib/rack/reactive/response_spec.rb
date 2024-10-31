@@ -70,6 +70,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
         it 'does call the waf context with the right arguments' do
           expect(processor_context).to receive(:run).with(
             expected_waf_arguments,
+            {},
             Datadog.configuration.appsec.waf_timeout
           ).and_return(waf_result)
           described_class.subscribe(operation, processor_context)

@@ -32,11 +32,12 @@ RSpec.describe Datadog::AppSec::Monitor::Reactive::SetUser do
       it 'does call the waf context with the right arguments' do
         expect(operation).to receive(:subscribe).and_call_original
 
-        expected_waf_arguments = { 'usr.id' => 1 }
+        expected_waf_persisted_data = { 'usr.id' => 1 }
 
         waf_result = double(:waf_result, status: :ok, timeout: false)
         expect(waf_context).to receive(:run).with(
-          expected_waf_arguments,
+          expected_waf_persisted_data,
+          {},
           Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
         described_class.subscribe(operation, waf_context)

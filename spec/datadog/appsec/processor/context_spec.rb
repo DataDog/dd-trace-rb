@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
   let(:run_count) { 1 }
   let(:timeout) { 10_000_000_000 }
 
-  let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
+  let(:runs) { Array.new(run_count) { context.run(input, {}, timeout) } }
   let(:results) { runs }
   let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
 
@@ -91,10 +91,11 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           {
             'string_value' => 'hello'
           },
+          {},
           timeout
         ).and_call_original
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
 
       it 'do not removes boolean values' do
@@ -103,10 +104,10 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           'true_value' => true
         }
         expect(context.instance_variable_get(:@context)).to receive(:run).with(
-          input, timeout
+          input, {}, timeout
         ).and_call_original
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
 
       it 'removes empty string values' do
@@ -118,10 +119,11 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           {
             'string_value' => 'hello'
           },
+          {},
           timeout
         ).and_call_original
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
 
       it 'removes empty arrays values' do
@@ -133,10 +135,11 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           {
             'non_empty_array_value' => [1, 2]
           },
+          {},
           timeout
         ).and_call_original
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
 
       it 'removes empty hash values' do
@@ -148,10 +151,11 @@ RSpec.describe Datadog::AppSec::Processor::Context do
           {
             'non_empty_hash_value' => { 'hello' => 'world' }
           },
+          {},
           timeout
         ).and_call_original
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
     end
 
@@ -184,8 +188,8 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       context 'same attack' do
         let(:runs) do
           [
-            context.run(input_scanner, timeout),
-            context.run(input_scanner, timeout)
+            context.run(input_scanner, {}, timeout),
+            context.run(input_scanner, {}, timeout)
           ]
         end
 
@@ -201,8 +205,8 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       context 'different attacks' do
         let(:runs) do
           [
-            context.run(input_sqli, timeout),
-            context.run(input_scanner, timeout)
+            context.run(input_sqli, {}, timeout),
+            context.run(input_scanner, {}, timeout)
           ]
         end
 
@@ -236,7 +240,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
     context 'run failed with libddwaf error result' do
       before do
-        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, timeout)
+        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, {}, timeout)
           .and_return([result.status, result])
       end
 
@@ -252,17 +256,17 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it 'sends telemetry error' do
         expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_invalid_object/)
 
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
       end
     end
 
     context 'run failed with libddwaf low-level exception' do
       before do
-        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, timeout)
+        allow(context.instance_variable_get(:@context)).to receive(:run).with(input, {}, timeout)
           .and_raise(Datadog::AppSec::WAF::LibDDWAF::Error, 'Could not convert persistent data')
       end
 
-      let(:result) { context.run(input, timeout) }
+      let(:result) { context.run(input, {}, timeout) }
 
       it 'sends telemetry report' do
         expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_internal/)
@@ -296,6 +300,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         expect(context.instance_variable_get(:@context)).to receive(:run).with(
           input,
+          {},
           Datadog::AppSec::WAF::LibDDWAF::DDWAF_RUN_TIMEOUT
         ).and_return([result.status, result])
 
@@ -304,7 +309,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
       it 'returns schema extraction information' do
         input = { 'server.request.query' => { 'vin' => '4Y1SL65848Z411439' } }
-        context.run(input, timeout)
+        context.run(input, {}, timeout)
 
         results = context.extract_schema
         derivatives = results.derivatives

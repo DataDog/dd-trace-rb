@@ -552,7 +552,6 @@ target :datadog do
 
   repo_path 'vendor/rbs'
   library 'cucumber'
-  library 'ffi'
   library 'jruby'
   library 'gem'
   library 'rails'
@@ -575,7 +574,8 @@ target :datadog do
   library 'graphql'
   library 'datadog-ci'
 
-  # TODO: gem 'libddwaf'
-  library 'libddwaf'
+  # ffi version 1.17 was shipped with invalid rbs types:
+  # https://github.com/ffi/ffi/issues/1107
+  library 'libddwaf-stub'
   library 'libdatadog'
 end

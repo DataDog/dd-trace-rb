@@ -30,14 +30,14 @@ module Datadog
                 response_headers = values[1]
                 response_headers_no_cookies = response_headers.dup.tap { |h| h.delete('set-cookie') }
 
-                waf_args = {
+                waf_persistent_data = {
                   'server.response.status' => response_status.to_s,
                   'server.response.headers' => response_headers,
                   'server.response.headers.no_cookies' => response_headers_no_cookies,
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_args, waf_timeout)
+                result = waf_context.run(waf_persistent_data, {}, waf_timeout)
 
                 next if result.status != :match
 

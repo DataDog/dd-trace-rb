@@ -14,7 +14,7 @@ PATH
     datadog (2.4.0)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.14.0.0.0)
+      libddwaf (= 1.15.0.0.0)
       msgpack
 
 GEM
@@ -60,9 +60,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (13.1.0.1.0-aarch64-linux)
     libdatadog (13.1.0.1.0-x86_64-linux)
-    libddwaf (1.14.0.0.0-aarch64-linux)
+    libddwaf (1.15.0.0.0)
       ffi (~> 1.0)
-    libddwaf (1.14.0.0.0-x86_64-linux)
+    libddwaf (1.15.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     logger (1.6.1)
     memory_profiler (0.9.14)
@@ -164,7 +164,6 @@ DEPENDENCIES
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
-  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
@@ -191,4 +190,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27

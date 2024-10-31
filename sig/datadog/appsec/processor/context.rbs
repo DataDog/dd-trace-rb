@@ -30,7 +30,7 @@ module Datadog
 
         def initialize: (WAF::Handle handle, telemetry: Core::Telemetry::Component) -> void
 
-        def run: (Hash[untyped, untyped] input, ?::Integer timeout) -> WAF::Result
+        def run: (Hash[untyped, untyped] persistent_data, Hash[untyped, untyped] ephemeral_data, ?::Integer timeout) -> WAF::Result
 
         def extract_schema: () -> WAF::Result?
 
@@ -38,7 +38,7 @@ module Datadog
 
         private
 
-        def try_run: (Hash[untyped, untyped] input, ::Integer timeout) -> [::Symbol, WAF::Result]
+        def try_run: (Hash[untyped, untyped] persistent_data, Hash[untyped, untyped] ephemeral_data, ::Integer timeout) -> [::Symbol, WAF::Result]
 
         def report_execution: (WAF::Result result) -> void
 

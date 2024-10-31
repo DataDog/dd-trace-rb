@@ -42,7 +42,7 @@ module Datadog
                 client_ip = values[4]
                 request_method = values[5]
 
-                waf_args = {
+                waf_persistent_data = {
                   'server.request.cookies' => cookies,
                   'server.request.query' => query,
                   'server.request.uri.raw' => uri_raw,
@@ -53,7 +53,7 @@ module Datadog
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_args, waf_timeout)
+                result = waf_context.run(waf_persistent_data, {}, waf_timeout)
 
                 next if result.status != :match
 
