@@ -94,9 +94,9 @@ RUN DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17
 # Install RubyGems
 RUN mkdir -p "$GEM_HOME" && chmod -R 777 "$GEM_HOME"
 
-# Upgrade RubyGems and Bundler
+# Install a pinned RubyGems and Bundler
 RUN gem update --system 3.3.26
-RUN gem install bundler -v '~> 2.3.26'
+RUN gem install bundler:2.3.26
 ENV BUNDLE_SILENCE_ROOT_WARNING 1
 
 # Ensure JRuby is available when running "bash --login"
