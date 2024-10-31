@@ -53,12 +53,6 @@ test_containers:
     <<: *job_parameters
     docker:
       - *container_base
-  - &container_postgres
-    image: postgres:9.6
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
