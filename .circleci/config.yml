@@ -59,11 +59,9 @@ test_containers:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_USER=postgres
       - POSTGRES_DB=postgres
-  - &postgres_port 5432
   - &container_presto
     # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
     image: starburstdata/presto:332-e.9
-  - &presto_port 8080
   - &container_mysql
     image: mysql:8.0
     # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
@@ -73,11 +71,9 @@ test_containers:
       - MYSQL_ROOT_PASSWORD=root
       - MYSQL_PASSWORD=mysql
       - MYSQL_USER=mysql
-  - &mysql_port 3306
-  - &opensearch_host opensearch
   - &container_opensearch
     image: opensearchproject/opensearch:2.8.0
-    name: *opensearch_host
+    name: opensearch
     environment:
       - discovery.type=single-node
       - DISABLE_SECURITY_PLUGIN=true
@@ -88,7 +84,6 @@ test_containers:
       - cluster.routing.allocation.disk.watermark.high=2gb
       - cluster.routing.allocation.disk.watermark.flood_stage=1gb
       - cluster.routing.allocation.disk.threshold_enabled=false
-  - &opensearch_port 9200
   - &container_elasticsearch
     image: elasticsearch:8.1.3
     environment:
@@ -96,16 +91,12 @@ test_containers:
       - discovery.type=single-node
       - xpack.security.enabled=false
       - ES_JAVA_OPTS=-Xms750m -Xmx750m
-  - &elasticsearch_port 9200
   - &container_redis
     image: redis:6.2
-  - &redis_port 6379
   - &container_mongo
     image: mongo:3.5
-  - &mongo_port 27017
   - &container_memcached
     image: memcached:1.5-alpine
-  - &memcached_port 11211
   - &container_testagent
     image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
     name: testagent
@@ -116,7 +107,6 @@ test_containers:
       - DD_POOL_TRACE_CHECK_FAILURES=true
       - DD_DISABLE_ERROR_RESPONSES=true
       - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
-  - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
@@ -332,25 +322,25 @@ orbs:
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
           # Wait for containers to start
           - docker-wait:
-              port: *postgres_port
+              port: 5432
           - docker-wait:
-              port: *presto_port
+              port: 8080
           - docker-wait:
-              port: *mysql_port
+              port: 3306
           - docker-wait:
-              host: *opensearch_host
-              port: *opensearch_port
+              host: opensearch
+              port: 9200
           - docker-wait:
-              port: *elasticsearch_port
+              port: 9200
           - docker-wait:
-              port: *redis_port
+              port: 6379
           - docker-wait:
-              port: *mongo_port
+              port: 27017
           - docker-wait:
-              port: *memcached_port
+              port: 11211
           - docker-wait:
               host: "testagent"
-              port: *testagent_port
+              port: 9126
           - *step_run_all_tests
           - *step_get_test_agent_trace_check_results
           - store_test_results:
