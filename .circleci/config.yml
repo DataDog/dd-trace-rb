@@ -1,15 +1,31 @@
 version: 2.1
 
-# Common variables, containers, jobs and steps.
-job_defaults: &job_defaults
-  # TODO: We should move away from using a directory
-  # TODO: that requires root permission to be created.
-  # TODO: Changing this requires rebuilding all docker images.
-  working_directory: /app
-  shell: /bin/bash --login
-
 test_containers:
-  - &job_parameters
+  - &container_base
+    image: <<parameters.image>>
+    environment:
+      BUNDLE_GEMFILE: /app/Gemfile
+      JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+      # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
+      # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
+      # issue when you connect to the testing container via ssh, then try lowering this file a notch.
+      GRPC_RUBY_BUILD_PROCS: 6
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
+      TEST_OPENSEARCH_HOST: opensearch
+      TEST_OPENSEARCH_PORT: 9200
+      DD_AGENT_HOST: testagent
+      DD_TRACE_AGENT_PORT: 9126
+      DATADOG_GEM_CI: true
+      TEST_DATADOG_INTEGRATION: 1
+      COVERAGE_BASE_DIR: coverage
+  - &test_job_default
+    # TODO: We should move away from using a directory
+    # TODO: that requires root permission to be created.
+    # TODO: Changing this requires rebuilding all docker images.
+    working_directory: /app
+    shell: /bin/bash --login
+    resource_class: <<parameters.resource_class_to_use>>
     parameters:
       ruby_version:
         description: Ruby version
@@ -25,32 +41,6 @@ test_containers:
         description: Use latest version of dependencies during testing
         type: boolean
         default: false
-    resource_class: <<parameters.resource_class_to_use>>
-  - &container_base_environment
-    BUNDLE_GEMFILE: /app/Gemfile
-    JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
-    # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
-    # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
-    # issue when you connect to the testing container via ssh, then try lowering this file a notch.
-    GRPC_RUBY_BUILD_PROCS: 6
-    DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
-    DD_REMOTE_CONFIGURATION_ENABLED: false
-    TEST_OPENSEARCH_HOST: opensearch
-    TEST_OPENSEARCH_PORT: 9200
-    DD_AGENT_HOST: testagent
-    DD_TRACE_AGENT_PORT: 9126
-    DATADOG_GEM_CI: true
-  - &container_parameters_environment
-    - *container_base_environment
-    - TEST_DATADOG_INTEGRATION: 1
-    - COVERAGE_BASE_DIR: coverage
-  - &container_base
-    image: <<parameters.image>>
-    environment:
-      *container_parameters_environment
-  - &test_job_default
-    <<: *job_defaults
-    <<: *job_parameters
     docker:
       - *container_base
 
