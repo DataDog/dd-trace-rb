@@ -14,7 +14,7 @@ PATH
     datadog (2.4.0)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.14.0.0.0)
+      libddwaf (~> 1.15.0.0.0)
       msgpack
 
 GEM
@@ -74,9 +74,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (13.1.0.1.0-aarch64-linux)
     libdatadog (13.1.0.1.0-x86_64-linux)
-    libddwaf (1.14.0.0.0-aarch64-linux)
+    libddwaf (1.15.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.14.0.0.0-x86_64-linux)
+    libddwaf (1.15.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     llhttp-ffi (0.3.1)
       ffi-compiler (~> 1.0)
@@ -194,7 +194,6 @@ DEPENDENCIES
   excon
   extlz4 (~> 0.3, >= 0.3.3)
   faraday
-  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   http
   httpclient
