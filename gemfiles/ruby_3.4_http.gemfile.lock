@@ -104,6 +104,7 @@ GEM
     mime-types-data (3.2024.0604)
     mini_portile2 (2.8.7)
     msgpack (1.7.2)
+    mutex_m (0.2.0)
     net-http (0.4.1)
       uri
     netrc (0.11.0)
@@ -217,6 +218,7 @@ DEPENDENCIES
   httpclient
   json-schema (< 3)
   memory_profiler (~> 0.9)
+  mutex_m
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry

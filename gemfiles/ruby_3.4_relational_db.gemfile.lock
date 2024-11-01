@@ -216,6 +216,7 @@ DEPENDENCIES
   json-schema (< 3)
   makara (>= 0.6.0.pre)
   memory_profiler (~> 0.9)
+  mutex_m
   mysql2 (>= 0.5.3)
   os (~> 1.1)
   pg

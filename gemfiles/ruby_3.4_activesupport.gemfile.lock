@@ -309,6 +309,7 @@ DEPENDENCIES
   json-schema (< 3)
   lograge
   memory_profiler (~> 0.9)
+  mutex_m
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry

@@ -159,6 +159,7 @@ GEM
     mini_portile2 (2.8.7)
     minitest (5.24.0)
     msgpack (1.7.2)
+    mutex_m (0.2.0)
     net-imap (0.4.14)
       date
       net-protocol
@@ -316,6 +317,7 @@ DEPENDENCIES
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
+  mutex_m
   net-smtp
   os (~> 1.1)
   pg (>= 1.1)

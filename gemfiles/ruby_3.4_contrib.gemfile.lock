@@ -94,6 +94,7 @@ GEM
     multi_json (1.15.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
+    mutex_m (0.2.0)
     nokogiri (1.16.7)
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
@@ -247,6 +248,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
+  mutex_m
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
