@@ -90,11 +90,11 @@ RSpec.describe Datadog::Core::Error do
 
           # Outer-most error first, inner-most last
           wrapper_error_message = /in.*wrapper': wrapper layer \(RuntimeError\)/
-          wrapper_caller = /from.*in `call'/
+          wrapper_caller = /from.*in ['`]call'/
           middle_error_message = /in.*middle': middle cause \(RuntimeError\)/
-          middle_caller = /from.*in `wrapper'/
-          root_error_message = /in `root': root cause \(RuntimeError\)/
-          root_caller = /from.*in `middle'/
+          middle_caller = /from.*in ['`]wrapper'/
+          root_error_message = /in ['`]root': root cause \(RuntimeError\)/
+          root_caller = /from.*in ['`]middle'/
 
           expect(error.backtrace)
             .to match(
