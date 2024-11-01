@@ -60,7 +60,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
-    ffi (1.16.3)
+    ffi (1.17.0)
     google-protobuf (3.25.3)
     googleapis-common-protos-types (1.15.0)
       google-protobuf (>= 3.18, < 5.a)

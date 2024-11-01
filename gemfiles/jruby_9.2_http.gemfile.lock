@@ -65,7 +65,7 @@ GEM
     faraday-patron (1.0.0)
     faraday-rack (1.0.0)
     faraday-retry (1.0.3)
-    ffi (1.16.3-java)
+    ffi (1.17.0-java)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
