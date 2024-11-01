@@ -55,6 +55,7 @@ namespace :test do
         end
       end
 
+      sh("bundle -v")
       sh("gem list")
       sh("bundle show")
 
