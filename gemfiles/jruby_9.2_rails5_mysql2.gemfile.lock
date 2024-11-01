@@ -87,7 +87,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     erubi (1.12.0)
-    ffi (1.16.3-java)
+    ffi (1.17.0-java)
     globalid (1.0.0)
       activesupport (>= 5.0)
     hashdiff (1.0.1)

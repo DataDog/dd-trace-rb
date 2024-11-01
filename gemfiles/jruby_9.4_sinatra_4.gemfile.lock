@@ -42,7 +42,7 @@ GEM
     diff-lcs (1.5.1)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    ffi (1.16.3-java)
+    ffi (1.17.0-java)
     hashdiff (1.1.0)
     json (2.7.2-java)
     json-schema (2.8.1)

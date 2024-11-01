@@ -66,7 +66,7 @@ GEM
       logger
     faraday-net_http (3.3.0)
       net-http
-    ffi (1.16.3)
+    ffi (1.17.0)
     google-protobuf (3.25.4)
     hashdiff (1.1.1)
     json (2.7.4)
