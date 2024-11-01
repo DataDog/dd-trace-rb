@@ -335,6 +335,11 @@ orbs:
           - *container_testagent
         parallelism: 22
         steps:
+          - run:
+              name: To Debug ENV
+              command: |
+                env
+                echo $TEST_DATADOG_INTEGRATION
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
