@@ -260,6 +260,8 @@ orbs:
         <<: *test_job_default
         resource_class: <<parameters.resource_class_to_use>>
         steps:
+          - run:
+              command: gem update --system 3.5.21
           - checkout
           - restore_cache:
               keys:
@@ -340,6 +342,8 @@ orbs:
               command: |
                 env
                 echo $TEST_DATADOG_INTEGRATION
+          - run:
+              command: gem update --system 3.5.21
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
