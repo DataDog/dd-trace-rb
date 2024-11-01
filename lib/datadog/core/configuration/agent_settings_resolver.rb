@@ -232,7 +232,32 @@ module Datadog
         end
 
         def should_use_uds?
-          can_use_uds? && !mixed_http_and_uds?
+          # When we have mixed settings for http/https and uds, we print a warning
+          # and use the uds settings.
+          mixed_http_and_uds
+          can_use_uds?
+        end
+
+        def mixed_http_and_uds
+          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
+
+          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
+          if @mixed_http_and_uds
+            warn_if_configuration_mismatch(
+              [
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration for unix domain socket',
+                  value: parsed_url.to_s,
+                ),
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration of hostname/port for http/https use',
+                  value: "hostname: '#{hostname}', port: '#{port}'",
+                ),
+              ]
+            )
+          end
+
+          @mixed_http_and_uds
         end
 
         def can_use_uds?
@@ -305,30 +330,6 @@ module Datadog
 
         def unix_scheme?(uri)
           uri.scheme == 'unix'
-        end
-
-        # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
-        def mixed_http_and_uds?
-          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
-
-          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
-
-          if @mixed_http_and_uds
-            warn_if_configuration_mismatch(
-              [
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration of hostname/port for http/https use',
-                  value: "hostname: '#{hostname}', port: '#{port}'",
-                ),
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration for unix domain socket',
-                  value: parsed_url.to_s,
-                ),
-              ]
-            )
-          end
-
-          @mixed_http_and_uds
         end
 
         # Represents a given configuration value and where we got it from
