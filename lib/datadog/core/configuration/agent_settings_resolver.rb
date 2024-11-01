@@ -240,7 +240,7 @@ module Datadog
 
         def mixed_http_and_uds
           return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
-          
+
           @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
           if @mixed_http_and_uds
             warn_if_configuration_mismatch(
@@ -256,7 +256,7 @@ module Datadog
               ]
             )
           end
-          
+
           @mixed_http_and_uds
         end
 
