@@ -107,7 +107,7 @@ test_containers:
     image: memcached:1.5-alpine
   - &memcached_port 11211
   - &container_testagent
-    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
     name: testagent
     environment:
       - LOG_LEVEL=DEBUG
