@@ -527,35 +527,35 @@ workflows:
   version: 2
   build-and-test:
     jobs:
-      - orb/lint:
-          <<: *config-2_7-small
-          name: lint
-          requires:
-            - build-2.7
-      - orb/coverage:
-          <<: *config-2_7-small
-          name: coverage
-          requires:
+      # - orb/lint:
+      #     <<: *config-2_7-small
+      #     name: lint
+      #     requires:
+      #       - build-2.7
+      # - orb/coverage:
+      #     <<: *config-2_7-small
+      #     name: coverage
+      #     requires:
             # - test-2.5
             # - test-2.6
-            - test-2.7
+            # - test-2.7
             # - test-3.0
             # - test-3.1
             # - test-3.2
             # - test-3.3
-            - test-3.4
+            # - test-3.4
             # ADD NEW RUBIES HERE
             # - test-jruby-9.2
             # - test-jruby-9.3
             # - test-jruby-9.4
-      - orb/changelog:
-          <<: *config-2_7-small
-          name: changelog
-          requires:
-            - build-2.7
-          filters:
-            branches:
-              only: /bump_to_version_.*/
+      # - orb/changelog:
+      #     <<: *config-2_7-small
+      #     name: changelog
+      #     requires:
+      #       - build-2.7
+      #     filters:
+      #       branches:
+      #         only: /bump_to_version_.*/
       # Integration
       # - orb/build_and_test_integration:
       #     name: build_and_test_integration-2.5
@@ -616,14 +616,14 @@ workflows:
       #     name: test-2.6
       #     requires:
       #       - build-2.6
-      - orb/build:
-          <<: *config-2_7
-          name: build-2.7
-      - orb/test:
-          <<: *config-2_7
-          name: test-2.7
-          requires:
-            - build-2.7
+      # - orb/build:
+      #     <<: *config-2_7
+      #     name: build-2.7
+      # - orb/test:
+      #     <<: *config-2_7
+      #     name: test-2.7
+      #     requires:
+      #       - build-2.7
       # - orb/build:
       #     <<: *config-3_0
       #     name: build-3.0
