@@ -97,4 +97,5 @@ end
 if RUBY_VERSION.start_with?('3.4.')
   gem 'strscan', git: 'https://github.com/ruby/strscan', ref: '041b15df4ccc067deabd85fd489b2c15961d0e2f'
   gem 'mutex_m'
+  gem 'base64'
 end

@@ -1589,6 +1589,7 @@ GEM
     aws-sigv2 (1.2.0)
     aws-sigv4 (1.8.0)
       aws-eventstream (~> 1, >= 1.0.2)
+    base64 (0.2.0)
     benchmark-ips (2.13.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -1717,6 +1718,7 @@ PLATFORMS
 DEPENDENCIES
   appraisal (~> 2.4.0)
   aws-sdk
+  base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

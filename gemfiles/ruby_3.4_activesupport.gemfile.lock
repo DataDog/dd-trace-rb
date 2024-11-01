@@ -297,6 +297,7 @@ DEPENDENCIES
   active_model_serializers (>= 0.10.0)
   activesupport (~> 7)
   appraisal (~> 2.4.0)
+  base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)
