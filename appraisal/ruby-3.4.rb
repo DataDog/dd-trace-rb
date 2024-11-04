@@ -94,7 +94,9 @@ appraise 'relational_db' do
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
-  gem 'sqlite3', '>= 1.4.2', platform: :ruby
+  # ActiveRecord has version constraint on sqlite3 gem
+  # https://github.com/rails/rails/blob/v5.2.2/activerecord/lib/active_record/connection_adapters/sqlite3_adapter.rb#L12
+  gem 'sqlite3', '~> 1.3', '>= 1.3.6', platform: :ruby
   gem 'sequel'
   gem 'trilogy'
 end
