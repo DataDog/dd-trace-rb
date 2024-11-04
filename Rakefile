@@ -64,7 +64,7 @@ namespace :test do
                     "bundle exec rake #{spec_task}"
                   else
                     gemfile = "gemfiles/#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_')
-                    "env BUNDLE_GEMFILE=gemfiles/#{gemfile} rake #{spec_task}"
+                    "env BUNDLE_GEMFILE=#{gemfile} rake #{spec_task}"
                   end
 
         command += "'[#{spec_arguments}]'" if spec_arguments
