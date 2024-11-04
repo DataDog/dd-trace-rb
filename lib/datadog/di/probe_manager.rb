@@ -3,7 +3,7 @@
 module Datadog
   module DI
     # Stores probes received from remote config (that we can parse, in other
-    # wordrs, whose type/attributes we support), requests needed instrumentation
+    # words, whose type/attributes we support), requests needed instrumentation
     # for the probes via Instrumenter, and stores pending probes (those which
     # haven't yet been instrumented successfully due to their targets not
     # existing) and failed probes (where we are certain the target will not
