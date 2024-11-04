@@ -15,6 +15,12 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     capabilities
   end
 
+  shared_examples 'matches tracing capabilities only' do
+    it 'matches tracing capabilities only' do
+      expect(capabilities.base64_capabilities).to eq('IABwAA==')
+    end
+  end
+
   context 'AppSec component' do
     context 'when disabled' do
       let(:settings) do
@@ -34,9 +40,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IABwAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -52,9 +56,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IABwAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -101,9 +103,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -118,9 +118,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IAAAAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -141,9 +139,8 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'returns binary capabilities' do
-          expect(capabilities.base64_capabilities).to_not be_empty
-        end
+        # DI does not contain any additional capabilities at this time
+        include_examples 'matches tracing capabilities only'
       end
     end
   end
