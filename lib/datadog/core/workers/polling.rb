@@ -23,6 +23,15 @@ module Datadog
           end
         end
 
+        # Stops the worker thread.
+        #
+        # Signals the worker loop to stop and waits up to the timeout value
+        # (in seconds) for the thread to end.
+        # Then, if force_stop is true, terminates the thread by calling
+        # Thread#terminate.
+        #
+        # Returns true if the thread was terminated, false if the
+        # thread continues to run.
         def stop(force_stop = false, timeout = DEFAULT_SHUTDOWN_TIMEOUT)
           if running?
             # Attempt graceful stop and wait
@@ -34,12 +43,9 @@ module Datadog
                 "Timeout while waiting for worker to finish gracefully, forcing termination for: #{self}"
               end
               terminate
-            else
-              graceful
             end
-          else
-            false
           end
+          !running?
         end
 
         def enabled?

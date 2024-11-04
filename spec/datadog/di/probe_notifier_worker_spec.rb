@@ -4,16 +4,11 @@ require "datadog/di/probe_notifier_worker"
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
 
-  let(:settings) do
-    double('settings').tap do |settings|
-      allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
-    end
-  end
-
-  let(:di_settings) do
-    double('di settings').tap do |settings|
-      allow(settings).to receive(:propagate_all_exceptions).and_return(false)
-    end
+  mock_settings_for_di do |settings|
+    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
+    allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    # Reduce to 1 to have the test run faster
+    allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(1)
   end
 
   let(:transport) do
@@ -81,22 +76,20 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
         {hello: 'world'}
       end
 
-      xit 'sends the snapshot' do
+      it 'sends the snapshot' do
         expect(worker.send(:snapshot_queue)).to be_empty
 
         expect(transport).to receive(:send_snapshot).once.with([snapshot])
 
         worker.add_snapshot(snapshot)
 
-        # Since sending is asynchronous, we need to relinquish execution
-        # for the sending thread to run.
-        sleep(0.1)
+        worker.flush
 
         expect(worker.send(:snapshot_queue)).to eq([])
       end
 
       context 'when three snapshots are added in quick succession' do
-        xit 'sends two batches' do
+        it 'sends two batches' do
           expect(worker.send(:snapshot_queue)).to be_empty
 
           expect(transport).to receive(:send_snapshot).once.with([snapshot])
@@ -106,22 +99,15 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
           worker.add_snapshot(snapshot)
           sleep 0.1
           worker.add_snapshot(snapshot)
-
-          # Since sending is asynchronous, we need to relinquish execution
-          # for the sending thread to run.
           sleep(0.1)
 
           # At this point the first snapshot should have been sent,
           # with the remaining two in the queue
           expect(worker.send(:snapshot_queue)).to eq([snapshot, snapshot])
 
-          sleep 0.4
-          # Still within the cooldown period
-          expect(worker.send(:snapshot_queue)).to eq([snapshot, snapshot])
-
           expect(transport).to receive(:send_snapshot).once.with([snapshot, snapshot])
 
-          sleep 0.5
+          worker.flush
           expect(worker.send(:snapshot_queue)).to eq([])
         end
       end

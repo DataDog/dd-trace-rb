@@ -30,80 +30,7 @@ module Datadog
           response = transport.send_config(payload)
 
           if response.ok?
-            # when response is completely empty, do nothing as in: leave as is
-            if response.empty?
-              Datadog.logger.debug { 'remote: empty response => NOOP' }
-
-              return
-            end
-
-            begin
-              paths = response.client_configs.map do |path|
-                Configuration::Path.parse(path)
-              end
-
-              targets = Configuration::TargetMap.parse(response.targets)
-
-              contents = Configuration::ContentList.parse(response.target_files)
-            rescue Remote::Configuration::Path::ParseError => e
-              raise SyncError, e.message
-            end
-
-            # To make sure steep does not complain
-            return unless paths && targets && contents
-
-            # TODO: sometimes it can strangely be so that paths.empty?
-            # TODO: sometimes it can strangely be so that targets.empty?
-
-            changes = repository.transaction do |current, transaction|
-              # paths to be removed: previously applied paths minus ingress paths
-              (current.paths - paths).each { |p| transaction.delete(p) }
-
-              # go through each ingress path
-              paths.each do |path|
-                # match target with path
-                target = targets[path]
-
-                # abort entirely if matching target not found
-                raise SyncError, "no target for path '#{path}'" if target.nil?
-
-                # new paths are not in previously applied paths
-                new = !current.paths.include?(path)
-
-                # updated paths are in previously applied paths
-                # but the content hash changed
-                changed = current.paths.include?(path) && !current.contents.find_content(path, target)
-
-                # skip if unchanged
-                same = !new && !changed
-
-                next if same
-
-                # match content with path and target
-                content = contents.find_content(path, target)
-
-                # abort entirely if matching content not found
-                raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
-
-                # to be added or updated << config
-                # TODO: metadata (hash, version, etc...)
-                transaction.insert(path, target, content) if new
-                transaction.update(path, target, content) if changed
-              end
-
-              # save backend opaque backend state
-              transaction.set(opaque_backend_state: targets.opaque_backend_state)
-              transaction.set(targets_version: targets.version)
-
-              # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
-              # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
-            end
-
-            if changes.empty?
-              Datadog.logger.debug { 'remote: no changes' }
-            else
-              dispatcher.dispatch(changes, repository)
-            end
+            process_response(response)
           elsif response.internal_error?
             raise TransportError, response.to_s
           end
@@ -111,6 +38,88 @@ module Datadog
         # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
 
         private
+
+        def process_response(response)
+          # when response is completely empty, do nothing as in: leave as is
+          if response.empty?
+            Datadog.logger.debug { 'remote: empty response => NOOP' }
+
+            return
+          end
+
+          begin
+            paths = response.client_configs.map do |path|
+              Configuration::Path.parse(path)
+            end
+
+            targets = Configuration::TargetMap.parse(response.targets)
+
+            contents = Configuration::ContentList.parse(response.target_files)
+          rescue Remote::Configuration::Path::ParseError => e
+            raise SyncError, e.message
+          end
+
+          # To make sure steep does not complain
+          return unless paths && targets && contents
+
+          # TODO: sometimes it can strangely be so that paths.empty?
+          # TODO: sometimes it can strangely be so that targets.empty?
+
+          apply_config(paths, targets, contents)
+        end
+
+        def apply_config(paths, targets, contents)
+
+          changes = repository.transaction do |current, transaction|
+            # paths to be removed: previously applied paths minus ingress paths
+            (current.paths - paths).each { |p| transaction.delete(p) }
+
+            # go through each ingress path
+            paths.each do |path|
+              # match target with path
+              target = targets[path]
+
+              # abort entirely if matching target not found
+              raise SyncError, "no target for path '#{path}'" if target.nil?
+
+              # new paths are not in previously applied paths
+              new = !current.paths.include?(path)
+
+              # updated paths are in previously applied paths
+              # but the content hash changed
+              changed = current.paths.include?(path) && !current.contents.find_content(path, target)
+
+              # skip if unchanged
+              same = !new && !changed
+
+              next if same
+
+              # match content with path and target
+              content = contents.find_content(path, target)
+
+              # abort entirely if matching content not found
+              raise SyncError, "no valid content for target at path '#{path}'" if content.nil?
+
+              # to be added or updated << config
+              # TODO: metadata (hash, version, etc...)
+              transaction.insert(path, target, content) if new
+              transaction.update(path, target, content) if changed
+            end
+
+            # save backend opaque backend state
+            transaction.set(opaque_backend_state: targets.opaque_backend_state)
+            transaction.set(targets_version: targets.version)
+
+            # upon transaction end, new list of applied config + metadata (add, change, remove) will be saved
+            # TODO: also remove stale config (matching removed) from cache (client configs is exhaustive list of paths)
+          end
+
+          if changes.empty?
+            Datadog.logger.debug { 'remote: no changes' }
+          else
+            dispatcher.dispatch(changes, repository)
+          end
+        end
 
         def payload # rubocop:disable Metrics/MethodLength
           state = repository.state

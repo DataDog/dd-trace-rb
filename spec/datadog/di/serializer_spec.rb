@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/serializer"
+require_relative 'serializer_helper'
 
 class DISerializerSpecSensitiveType
 end
@@ -29,30 +30,14 @@ end
 # Should have no instance variables
 class DISerializerSpecTestClass; end
 
+class DISerializerCustomExceptionTestClass; end
+
 RSpec.describe Datadog::DI::Serializer do
   di_test
 
-  let(:settings) do
-    double("settings").tap do |settings|
-      allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
-    end
-  end
+  extend SerializerHelper
 
-  let(:di_settings) do
-    double("di settings").tap do |settings|
-      allow(settings).to receive(:enabled).and_return(true)
-      allow(settings).to receive(:propagate_all_exceptions).and_return(false)
-      allow(settings).to receive(:redacted_identifiers).and_return([])
-      allow(settings).to receive(:redacted_type_names).and_return(%w[
-        DISerializerSpecSensitiveType DISerializerSpecWildCard*
-      ])
-      allow(settings).to receive(:max_capture_collection_size).and_return(10)
-      allow(settings).to receive(:max_capture_attribute_count).and_return(10)
-      # Reduce max capture depth to 2 from default of 3
-      allow(settings).to receive(:max_capture_depth).and_return(2)
-      allow(settings).to receive(:max_capture_string_length).and_return(100)
-    end
-  end
+  default_settings
 
   let(:redactor) do
     Datadog::DI::Redactor.new(settings)
@@ -65,26 +50,6 @@ RSpec.describe Datadog::DI::Serializer do
   describe "#serialize_value" do
     let(:serialized) do
       serializer.serialize_value(value, **options)
-    end
-
-    def self.define_cases(cases)
-      cases.each do |c|
-        value = c.fetch(:input)
-        expected = c.fetch(:expected)
-        var_name = c[:var_name]
-
-        context c.fetch(:name) do
-          let(:value) { value }
-
-          let(:options) do
-            {name: var_name}
-          end
-
-          it "serializes as expected" do
-            expect(serialized).to eq(expected)
-          end
-        end
-      end
     end
 
     cases = [
@@ -100,9 +65,15 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "String", notCapturedReason: "redactedIdent"}},
       {name: "variable name given and is not a redacted identifier", input: "123", var_name: "normal",
        expected: {type: "String", value: "123"}},
+      {name: 'Time value', input: Time.utc(2020, 1, 2, 3, 4, 5),
+        expected: {type: 'Time', value: '2020-01-02T03:04:05Z'}},
+      {name: 'Date value', input: Date.new(2020, 1, 2),
+        expected: {type: 'Date', value: '2020-01-02'}},
+      {name: 'DateTime value', input: DateTime.new(2020, 1, 2, 3, 4, 5),
+        expected: {type: 'DateTime', value: '2020-01-02T03:04:05+00:00'}},
     ]
 
-    define_cases(cases)
+    define_serialize_value_cases(cases)
   end
 
   describe "#serialize_vars" do
@@ -393,6 +364,50 @@ RSpec.describe Datadog::DI::Serializer do
 
         expect(serialized[:foo][:value]).to be frozen_string
       end
+    end
+  end
+
+  describe '.register' do
+    context 'with condition' do
+      before do
+        described_class.register(condition: lambda { |value| String === value && value =~ /serializer spec hello/ }) do |serializer, value, name:, depth:|
+          serializer.serialize_value('replacement value')
+        end
+      end
+
+      let(:expected) do
+        {type: 'String', value: 'replacement value'}
+      end
+
+      it 'invokes custom serializer' do
+        serialized = serializer.serialize_value('serializer spec hello world')
+        expect(serialized).to eq(expected)
+      end
+    end
+  end
+
+  context 'when serialization raises an exception' do
+    before do
+      # Register a custom serializer that will raise an exception
+      Datadog::DI::Serializer.register(condition: lambda { |value| DISerializerCustomExceptionTestClass === value }) do |*args|
+        raise "Test exception"
+      end
+    end
+
+    describe "#serialize_value" do
+      let(:serialized) do
+        serializer.serialize_value(value, **options)
+      end
+
+      cases = [
+        {name: "serializes other values", input: {a: DISerializerCustomExceptionTestClass.new, b: 1},
+          expected: {type: "Hash", entries: [
+            [{type: 'Symbol', value: 'a'}, {type: 'DISerializerCustomExceptionTestClass', notSerializedReason: 'Test exception'}],
+            [{type: 'Symbol', value: 'b'}, {type: 'Integer', value: '1'}],
+          ]}},
+      ]
+
+      define_serialize_value_cases(cases)
     end
   end
 end

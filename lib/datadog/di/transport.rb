@@ -43,6 +43,12 @@ module Datadog
           headers: {'content-type' => 'application/json'},)
       end
 
+      # TODO status should use either input or diagnostics endpoints
+      # depending on agent version.
+      alias send_status send_diagnostics
+
+      alias send_snapshot send_input
+
       private
 
       attr_reader :client
@@ -59,7 +65,13 @@ module Datadog
         unless response.ok?
           raise Error::AgentCommunicationError, "#{desc} failed: #{response.code}: #{response.payload}"
         end
-      rescue IOError, SystemCallError => exc
+      # Datadog::Core::Transport does not perform any exception mapping,
+      # therefore we could have any exception here from failure to parse
+      # agent URI for example.
+      # If we ever implement retries for network errors, we should distinguish
+      # actual network errors from non-network errors that are raised by
+      # transport code.
+      rescue => exc
         raise Error::AgentCommunicationError, "#{desc} failed: #{exc.class}: #{exc}"
       end
     end

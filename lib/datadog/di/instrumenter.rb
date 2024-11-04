@@ -54,10 +54,11 @@ module Datadog
     #
     # @api private
     class Instrumenter
-      def initialize(settings, serializer, logger, code_tracker: nil)
+      def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
         @logger = logger
+        @telemetry = telemetry
         @code_tracker = code_tracker
 
         @lock = Mutex.new
@@ -66,6 +67,7 @@ module Datadog
       attr_reader :settings
       attr_reader :serializer
       attr_reader :logger
+      attr_reader :telemetry
       attr_reader :code_tracker
 
       # This is a substitute for Thread::Backtrace::Location
@@ -172,12 +174,12 @@ module Datadog
         # we use mock objects and the methods may be mocked with
         # individual invocations, yielding different return values on
         # different calls to the same method.
-        permit_untargeted_trace_points = settings.dynamic_instrumentation.untargeted_trace_points
+        permit_untargeted_trace_points = settings.dynamic_instrumentation.internal.untargeted_trace_points
 
         iseq = nil
         if code_tracker
-          iseq = code_tracker.iseqs_for_path_suffix(probe.file).first # steep:ignore
-          unless iseq
+          ret = code_tracker.iseqs_for_path_suffix(probe.file) # steep:ignore
+          unless ret
             if permit_untargeted_trace_points
               # Continue withoout targeting the trace point.
               # This is going to cause a serious performance penalty for
@@ -204,6 +206,10 @@ module Datadog
           raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
         end
 
+        if ret
+          actual_path, iseq = ret
+        end
+
         # If trace point is not targeted, we only need one trace point per file.
         # Creating a trace point for each probe does work but the performance
         # penalty will be taken for each trace point defined in the file.
@@ -217,18 +223,26 @@ module Datadog
         # this optimization just yet and create a trace point for each probe.
 
         tp = TracePoint.new(:line) do |tp|
-          # If trace point is not targeted, we must verify that the invocation
-          # is the file & line that we want, because untargeted trace points
-          # are invoked for *each* line of Ruby executed.
-          if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
-            if rate_limiter.nil? || rate_limiter.allow?
-              # & is to stop steep complaints, block is always present here.
-              block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
+          begin
+            # If trace point is not targeted, we must verify that the invocation
+            # is the file & line that we want, because untargeted trace points
+            # are invoked for *each* line of Ruby executed.
+            if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
+              if rate_limiter.nil? || rate_limiter.allow?
+                # & is to stop steep complaints, block is always present here.
+                block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
+              end
             end
+          rescue => exc
+            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+            logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+            telemetry&.report(exc, description: "Unhandled exception in line trace point")
+            # TODO test this path
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.propagate_all_exceptions
           logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+          telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
 
@@ -244,6 +258,8 @@ module Datadog
           end
 
           probe.instrumentation_trace_point = tp
+          # actual_path could be nil if we don't use targeted trace points.
+          probe.instrumented_path = actual_path
 
           if iseq
             tp.enable(target: iseq, target_line: line_no)
