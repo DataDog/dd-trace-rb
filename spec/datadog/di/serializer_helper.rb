@@ -2,7 +2,6 @@ module SerializerHelper
   def define_serialize_value_cases(cases)
     cases.each do |c|
       value = c.fetch(:input)
-      expected = c.fetch(:expected)
       var_name = c[:var_name]
 
       context c.fetch(:name) do
@@ -18,8 +17,15 @@ module SerializerHelper
           {name: var_name}
         end
 
-        it "serializes as expected" do
-          expect(serialized).to eq(expected)
+        if expected_matches = c[:expected_matches]
+          it "serialization matches expectation" do
+            expect(serialized).to match(expected_matches)
+          end
+        else
+          expected = c.fetch(:expected)
+          it "serializes exactly as specified" do
+            expect(serialized).to eq(expected)
+          end
         end
       end
     end

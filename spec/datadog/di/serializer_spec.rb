@@ -65,8 +65,12 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "String", notCapturedReason: "redactedIdent"}},
       {name: "variable name given and is not a redacted identifier", input: "123", var_name: "normal",
        expected: {type: "String", value: "123"}},
-      {name: 'Time value', input: Time.utc(2020, 1, 2, 3, 4, 5),
+      # We can assert exact value when the time zone is UTC,
+      # since we don't know the local time zone ahead of time.
+      {name: 'Time value in UTC', input: Time.utc(2020, 1, 2, 3, 4, 5),
         expected: {type: 'Time', value: '2020-01-02T03:04:05Z'}},
+      {name: 'Time value in local time zone', input: Time.local(2020, 1, 2, 3, 4, 5),
+        expected_matches: {type: 'Time', value: %r,\A2020-01-02T03:04:05[-+]\d\d:\d\d\z, }},
       {name: 'Date value', input: Date.new(2020, 1, 2),
         expected: {type: 'Date', value: '2020-01-02'}},
       {name: 'DateTime value', input: DateTime.new(2020, 1, 2, 3, 4, 5),
