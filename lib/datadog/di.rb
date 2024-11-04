@@ -15,6 +15,7 @@ require_relative 'di/redactor'
 require_relative 'di/remote'
 require_relative 'di/serializer'
 require_relative 'di/transport'
+require_relative 'di/utils'
 
 if defined?(ActiveRecord::Base)
   # The third-party library integrations need to be loaded after the
