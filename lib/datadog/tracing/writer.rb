@@ -68,21 +68,6 @@ module Datadog
         end
       end
 
-      # spawns a worker for spans; they share the same transport which is thread-safe
-      # @!visibility private
-      def start_worker
-        @trace_handler = ->(items, transport) { send_spans(items, transport) }
-        @worker = Workers::AsyncTransport.new(
-          transport: @transport,
-          buffer_size: @buff_size,
-          on_trace: @trace_handler,
-          interval: @flush_interval,
-          shutdown_timeout: @shutdown_timeout
-        )
-
-        @worker.start
-      end
-
       # Gracefully shuts down this writer.
       #
       # Once stopped methods calls won't fail, but
@@ -92,19 +77,6 @@ module Datadog
       def stop
         @mutex_after_fork.synchronize { stop_worker }
       end
-
-      def stop_worker
-        @stopped = true
-
-        return if @worker.nil?
-
-        @worker.stop
-        @worker = nil
-
-        true
-      end
-
-      private :start_worker, :stop_worker
 
       # flush spans to the trace-agent, handles spans only
       # @!visibility private
@@ -178,6 +150,32 @@ module Datadog
       end
 
       private
+
+      # spawns a worker for spans; they share the same transport which is thread-safe
+      # @!visibility private
+      def start_worker
+        @trace_handler = ->(items, transport) { send_spans(items, transport) }
+        @worker = Workers::AsyncTransport.new(
+          transport: @transport,
+          buffer_size: @buff_size,
+          on_trace: @trace_handler,
+          interval: @flush_interval,
+          shutdown_timeout: @shutdown_timeout
+        )
+
+        @worker.start
+      end
+
+      def stop_worker
+        @stopped = true
+
+        return if @worker.nil?
+
+        @worker.stop
+        @worker = nil
+
+        true
+      end
 
       def reset_stats!
         @traces_flushed = 0
