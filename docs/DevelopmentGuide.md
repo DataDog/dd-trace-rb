@@ -105,6 +105,24 @@ TEST_METADATA = {
 }
 ```
 
+**Using appraisal**
+
+`appraisal` command should only be used to update gemfiles in `gemfiles/`
+and install dependencies. It should not be used to run tests, since it does not
+work in all configurations. To run the tests, use:
+
+```sh
+env BUNDLE_GEMFILE=gemfiles/#{ruby_runtime}_#{appraisal_group}.gemfile rake #{spec_task}
+```
+
+Note that the file names use underscores while appraisal group and
+configuration definitions use dashes. The conversion could be performed as
+follows:
+
+```sh
+env BUNDLE_GEMFILE=gemfiles/#{ruby_runtime.tr('-', '_')}_#{appraisal_group.tr('-', '_')}.gemfile rake #{spec_task}
+```
+
 **Working with appraisal groups**
 
 Checkout [Apppraisal](https://github.com/thoughtbot/appraisal) to learn the basics.
