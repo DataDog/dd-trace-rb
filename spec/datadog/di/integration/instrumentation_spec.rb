@@ -16,6 +16,8 @@ class InstrumentationSpecTestClass
 end
 
 RSpec.describe 'Instrumentation integration' do
+  di_test
+
   before(:all) do
     Datadog::DI.activate_tracking!
     require_relative 'instrumentation_integration_test_class'

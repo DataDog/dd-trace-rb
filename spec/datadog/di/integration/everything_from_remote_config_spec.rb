@@ -7,6 +7,8 @@ class EverythingFromRemoteConfigSpecTestClass
 end
 
 RSpec.describe 'DI integration from remote config' do
+  di_test
+
   let(:remote) { Datadog::DI::Remote }
   let(:path) { 'datadog/2/LIVE_DEBUGGING/logProbe_uuid/hash' }
 
