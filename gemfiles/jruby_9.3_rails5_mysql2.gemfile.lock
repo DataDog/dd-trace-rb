@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.4.0)
-      datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+    datadog (2.3.0)
+      debase-ruby_core_source (= 3.3.1)
+      libdatadog (~> 12.0.0.1.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -83,13 +83,13 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.6)
     date (3.3.3-java)
+    debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     erubi (1.12.0)
-    ffi (1.17.0-java)
+    ffi (1.16.3-java)
     globalid (1.0.1)
       activesupport (>= 5.0)
     hashdiff (1.0.1)
@@ -99,8 +99,8 @@ GEM
     json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (13.1.0.1.0)
-    libddwaf (1.15.0.0.0-java)
+    libdatadog (12.0.0.1.0)
+    libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -264,10 +264,12 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
@@ -294,4 +296,4 @@ DEPENDENCIES
   webmock (>= 3.10.0)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27
