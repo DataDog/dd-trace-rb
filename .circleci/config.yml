@@ -286,6 +286,7 @@ orbs:
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
           # Install dockerize
           - run:
+              name: Install dockerize
               command: |
                 DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')"
                 DOCKERIZE_URL: $DOCKERIZE_URL
@@ -316,6 +317,7 @@ orbs:
           - *step_run_all_tests
           - run:
               # Test agent uses `jq` to check results
+              name: Install jq
               command: apt update && apt install jq -y
           - *step_get_test_agent_trace_check_results
           - store_test_results:
