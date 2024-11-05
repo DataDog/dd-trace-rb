@@ -284,6 +284,14 @@ orbs:
               command: |
                 # Create a unique coverage directory for this job, to avoid conflicts when merging all results
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
+          # Install dockerize
+          - run:
+              command: |
+                DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')"
+                DOCKERIZE_URL: $DOCKERIZE_URL
+                curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL
+                chmod +x /usr/local/bin/dockerize
+                dockerize --version
           # Wait for containers to start
           - docker-wait:
               port: 5432
