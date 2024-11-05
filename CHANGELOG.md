@@ -4434,7 +4434,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3888]: https://github.com/DataDog/dd-trace-rb/issues/3888
 [#3929]: https://github.com/DataDog/dd-trace-rb/issues/3929
 [#3956]: https://github.com/DataDog/dd-trace-rb/issues/3956
-[#3965]: https://github.com/DataDog/dd-trace-rb/issues/3965
 [#3969]: https://github.com/DataDog/dd-trace-rb/issues/3969
 [#3970]: https://github.com/DataDog/dd-trace-rb/issues/3970
 [#3984]: https://github.com/DataDog/dd-trace-rb/issues/3984
