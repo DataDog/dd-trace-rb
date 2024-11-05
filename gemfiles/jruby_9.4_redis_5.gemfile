@@ -5,6 +5,7 @@ source "https://rubygems.org"
 gem "appraisal", "~> 2.4.0"
 gem "benchmark-ips", "~> 2.8"
 gem "benchmark-memory", "< 0.2"
+gem "builder"
 gem "climate_control", "~> 0.2.0"
 gem "concurrent-ruby"
 gem "json-schema", "< 3"
@@ -30,6 +31,7 @@ gem "rubocop-packaging", "~> 0.5.2", require: false
 gem "rubocop-performance", "~> 1.9", require: false
 gem "rubocop-rspec", ["~> 2.20", "< 2.21"], require: false
 gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
+gem "ffi", "~> 1.16.3", require: false
 gem "redis", "~> 5"
 
 group :check do

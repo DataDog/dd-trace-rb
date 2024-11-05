@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.4.0)
-      datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+    datadog (2.3.0)
+      debase-ruby_core_source (= 3.3.1)
+      libdatadog (~> 12.0.0.1.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -27,39 +27,37 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    base64 (0.1.1)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
+    builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.3.6)
+    debase-ruby_core_source (3.3.1)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    faraday (2.12.0)
-      faraday-net_http (>= 2.0, < 3.4)
-      json
-      logger
-    faraday-net_http (3.3.0)
-      net-http
-    ffi (1.17.0-java)
+    faraday (2.7.11)
+      base64
+      faraday-net_http (>= 2.0, < 3.1)
+      ruby2_keywords (>= 0.0.4)
+    faraday-net_http (3.0.2)
+    ffi (1.16.3-java)
     hashdiff (1.0.1)
-    json (2.7.5-java)
+    json (2.6.3-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (13.1.0.1.0)
-    libddwaf (1.15.0.0.0-java)
+    libdatadog (12.0.0.1.0)
+    libddwaf (1.14.0.0.0-java)
       ffi (~> 1.0)
-    logger (1.6.1)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.7.2-java)
     multi_json (1.15.0)
-    net-http (0.4.1)
-      uri
     opensearch-api (2.2.0)
       multi_json
     opensearch-ruby (2.1.0)
@@ -133,6 +131,7 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-debug-base (0.11.0-java)
     ruby-progressbar (1.13.0)
+    ruby2_keywords (0.0.5)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -143,7 +142,6 @@ GEM
     strscan (3.1.0-java)
     thor (1.2.2)
     unicode-display_width (2.5.0)
-    uri (0.13.1)
     warning (1.3.0)
     webmock (3.19.1)
       addressable (>= 2.8.0)
@@ -158,10 +156,12 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   opensearch-ruby (~> 2)
@@ -187,4 +187,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.26
+   2.3.27

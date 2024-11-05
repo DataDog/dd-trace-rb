@@ -11,10 +11,10 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.4.0)
-      datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 13.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+    datadog (2.3.0)
+      debase-ruby_core_source (= 3.3.1)
+      libdatadog (~> 12.0.0.1.0)
+      libddwaf (~> 1.14.0.0.0)
       msgpack
 
 GEM
@@ -43,12 +43,13 @@ GEM
     bigdecimal (3.1.8)
     binding_of_caller (0.8.0)
       debug_inspector (>= 0.0.1)
+    builder (3.2.4)
     climate_control (0.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.3.6)
+    debase-ruby_core_source (3.3.1)
     debug_inspector (1.1.0)
     delayed_job (4.1.11)
       activesupport (>= 3.0, < 8.0)
@@ -59,8 +60,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
-    ffi (1.17.0-aarch64-linux-gnu)
-    ffi (1.17.0-x86_64-linux-gnu)
+    ffi (1.16.3)
     google-protobuf (3.19.1)
     google-protobuf (3.19.1-x86_64-linux)
     hashdiff (1.0.1)
@@ -68,11 +68,11 @@ GEM
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (13.1.0.1.0-aarch64-linux)
-    libdatadog (13.1.0.1.0-x86_64-linux)
-    libddwaf (1.15.0.0.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-aarch64-linux)
+    libdatadog (12.0.0.1.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.15.0.0.0-x86_64-linux)
+    libddwaf (1.14.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     makara (0.5.1)
       activerecord (>= 5.2.0)
@@ -144,6 +144,7 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  builder
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
@@ -151,6 +152,7 @@ DEPENDENCIES
   delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
+  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, < 3.19.2, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   makara
