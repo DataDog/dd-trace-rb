@@ -97,6 +97,36 @@ RSpec.describe Datadog::Tracing::Contrib::Elasticsearch::Patcher do
     end
   end
 
+  describe 'get request' do
+    context 'when requesting a document that does not exist' do
+      let(:index_name) { 'some_index' }
+      let(:document_id) { 999 }
+      let(:exception_class) do
+        if defined?(Elastic::Transport) # version >= 8
+          Elastic::Transport::Transport::Errors::NotFound
+        else # version < 8
+          Elasticsearch::Transport::Transport::Errors::NotFound
+        end
+      end
+
+      subject(:request) { client.perform_request 'GET', "#{index_name}/_doc/#{document_id}" }
+
+      it 'marks span with error' do
+        expect { request }.to raise_error(exception_class)
+        expect(span).to have_error
+      end
+
+      context 'when configured_with `on_error`' do
+        let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
+
+        it 'does not mark span with error' do
+          expect { request }.to raise_error(exception_class)
+          expect(span).not_to have_error
+        end
+      end
+    end
+  end
+
   describe 'indexing request' do
     let(:document_body) do
       {
