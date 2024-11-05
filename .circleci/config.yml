@@ -1,15 +1,31 @@
 version: 2.1
 
-# Common variables, containers, jobs and steps.
-job_defaults: &job_defaults
-  # TODO: We should move away from using a directory
-  # TODO: that requires root permission to be created.
-  # TODO: Changing this requires rebuilding all docker images.
-  working_directory: /app
-  shell: /bin/bash --login
-
 test_containers:
-  - &job_parameters
+  - &container_base
+    image: <<parameters.image>>
+    environment:
+      BUNDLE_GEMFILE: /app/Gemfile
+      JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+      # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
+      # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
+      # issue when you connect to the testing container via ssh, then try lowering this file a notch.
+      GRPC_RUBY_BUILD_PROCS: 6
+      DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
+      DD_REMOTE_CONFIGURATION_ENABLED: false
+      TEST_OPENSEARCH_HOST: opensearch
+      TEST_OPENSEARCH_PORT: 9200
+      DD_AGENT_HOST: testagent
+      DD_TRACE_AGENT_PORT: 9126
+      DATADOG_GEM_CI: true
+      TEST_DATADOG_INTEGRATION: 1
+      COVERAGE_BASE_DIR: coverage
+  - &test_job_default
+    # TODO: We should move away from using a directory
+    # TODO: that requires root permission to be created.
+    # TODO: Changing this requires rebuilding all docker images.
+    working_directory: /app
+    shell: /bin/bash --login
+    resource_class: <<parameters.resource_class_to_use>>
     parameters:
       ruby_version:
         description: Ruby version
@@ -25,98 +41,8 @@ test_containers:
         description: Use latest version of dependencies during testing
         type: boolean
         default: false
-    resource_class: <<parameters.resource_class_to_use>>
-  - &container_base_environment
-    BUNDLE_GEMFILE: /app/Gemfile
-    JRUBY_OPTS: --dev # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
-    # Override number of concurrent compiles in grpc gem, see https://github.com/grpc/grpc/pull/28250 and https://github.com/DataDog/dd-trace-rb/issues/1791
-    # If you see gem installation failing with "Killed" on CircleCI and `gem install --platform ruby grpc` reproduces the
-    # issue when you connect to the testing container via ssh, then try lowering this file a notch.
-    GRPC_RUBY_BUILD_PROCS: 6
-    DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
-    DD_REMOTE_CONFIGURATION_ENABLED: false
-    TEST_OPENSEARCH_HOST: opensearch
-    TEST_OPENSEARCH_PORT: 9200
-    DD_AGENT_HOST: testagent
-    DD_TRACE_AGENT_PORT: 9126
-    DATADOG_GEM_CI: true
-  - &container_parameters_environment
-    - *container_base_environment
-    - TEST_DATADOG_INTEGRATION: 1
-    - COVERAGE_BASE_DIR: coverage
-  - &container_base
-    image: <<parameters.image>>
-    environment:
-      *container_parameters_environment
-  - &test_job_default
-    <<: *job_defaults
-    <<: *job_parameters
     docker:
       - *container_base
-  - &container_postgres
-    image: postgres:9.6
-    environment:
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-  - &postgres_port 5432
-  - &container_presto
-    # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
-    image: starburstdata/presto:332-e.9
-  - &presto_port 8080
-  - &container_mysql
-    image: mysql:8.0
-    # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
-    # rather than mysql_native_password which was the default in previous versions.
-    command: --default-authentication-plugin=mysql_native_password
-    environment:
-      - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_PASSWORD=mysql
-      - MYSQL_USER=mysql
-  - &mysql_port 3306
-  - &opensearch_host opensearch
-  - &container_opensearch
-    image: opensearchproject/opensearch:2.8.0
-    name: *opensearch_host
-    environment:
-      - discovery.type=single-node
-      - DISABLE_SECURITY_PLUGIN=true
-      - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
-      # Make sure it works on nearly full disk.
-      - cluster.routing.allocation.disk.threshold_enabled=true
-      - cluster.routing.allocation.disk.watermark.low=3gb
-      - cluster.routing.allocation.disk.watermark.high=2gb
-      - cluster.routing.allocation.disk.watermark.flood_stage=1gb
-      - cluster.routing.allocation.disk.threshold_enabled=false
-  - &opensearch_port 9200
-  - &container_elasticsearch
-    image: elasticsearch:8.1.3
-    environment:
-      # Ensure production cluster requirements are not enforced
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms750m -Xmx750m
-  - &elasticsearch_port 9200
-  - &container_redis
-    image: redis:6.2
-  - &redis_port 6379
-  - &container_mongo
-    image: mongo:3.5
-  - &mongo_port 27017
-  - &container_memcached
-    image: memcached:1.5-alpine
-  - &memcached_port 11211
-  - &container_testagent
-    image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.12.0
-    name: testagent
-    environment:
-      - LOG_LEVEL=DEBUG
-      - TRACE_LANGUAGE=ruby
-      - PORT=9126
-      - DD_POOL_TRACE_CHECK_FAILURES=true
-      - DD_DISABLE_ERROR_RESPONSES=true
-      - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
-  - &testagent_port 9126
 
 check_exact_bundle_cache_hit: &check_exact_bundle_cache_hit
   run:
@@ -228,12 +154,6 @@ filters_all_branches_and_tags: &filters_all_branches_and_tags
   filters:
     tags:
       only: /.*/
-filters_only_release_tags: &filters_only_release_tags
-  filters:
-    branches:
-      ignore: /.*/
-    tags:
-      only: /^v\d+(\.\d+){0,3}(\.(alpha|beta|rc)\d+)?$/
 
 orbs:
   orb:
@@ -308,15 +228,50 @@ orbs:
         <<: *test_job_default
         docker:
           - <<: *container_base
-          - *container_postgres
-          - *container_presto
-          - *container_mysql
-          - *container_opensearch
-          - *container_elasticsearch
-          - *container_redis
-          - *container_mongo
-          - *container_memcached
-          - *container_testagent
+          - image: postgres:9.6
+            environment:
+              - POSTGRES_PASSWORD=postgres
+              - POSTGRES_USER=postgres
+              - POSTGRES_DB=postgres
+          - image: starburstdata/presto:332-e.9 # Move to trinodb/trino after https://github.com/treasure-data/presto-client-ruby/issues/64 is resolved.
+          - image: mysql:8.0
+            # As of MySQL 8.0, caching_sha2_password is now the default authentication plugin
+            # rather than mysql_native_password which was the default in previous versions.
+            command: --default-authentication-plugin=mysql_native_password
+            environment:
+              - MYSQL_ROOT_PASSWORD=root
+              - MYSQL_PASSWORD=mysql
+              - MYSQL_USER=mysql
+          - image: opensearchproject/opensearch:2.8.0
+            name: opensearch
+            environment:
+              - discovery.type=single-node
+              - DISABLE_SECURITY_PLUGIN=true
+              - DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI=true
+              # Make sure it works on nearly full disk.
+              - cluster.routing.allocation.disk.threshold_enabled=true
+              - cluster.routing.allocation.disk.watermark.low=3gb
+              - cluster.routing.allocation.disk.watermark.high=2gb
+              - cluster.routing.allocation.disk.watermark.flood_stage=1gb
+              - cluster.routing.allocation.disk.threshold_enabled=false
+          - image: elasticsearch:8.1.3
+            environment:
+              # Ensure production cluster requirements are not enforced
+              - discovery.type=single-node
+              - xpack.security.enabled=false
+              - ES_JAVA_OPTS=-Xms750m -Xmx750m
+          - image: redis:6.2
+          - image: mongo:3.5
+          - image: memcached:1.5-alpine
+          - image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+            name: testagent
+            environment:
+              - LOG_LEVEL=DEBUG
+              - TRACE_LANGUAGE=ruby
+              - PORT=9126
+              - DD_POOL_TRACE_CHECK_FAILURES=true
+              - DD_DISABLE_ERROR_RESPONSES=true
+              - ENABLED_CHECKS=trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
         parallelism: 22
         steps:
           - restore_cache:
@@ -332,25 +287,25 @@ orbs:
                 echo 'export COVERAGE_DIR="$COVERAGE_BASE_DIR/versions/$CIRCLE_JOB/$CIRCLE_NODE_INDEX"' >> $BASH_ENV
           # Wait for containers to start
           - docker-wait:
-              port: *postgres_port
+              port: 5432
           - docker-wait:
-              port: *presto_port
+              port: 8080
           - docker-wait:
-              port: *mysql_port
+              port: 3306
           - docker-wait:
-              host: *opensearch_host
-              port: *opensearch_port
+              host: opensearch
+              port: 9200
           - docker-wait:
-              port: *elasticsearch_port
+              port: 9200
           - docker-wait:
-              port: *redis_port
+              port: 6379
           - docker-wait:
-              port: *mongo_port
+              port: 27017
           - docker-wait:
-              port: *memcached_port
+              port: 11211
           - docker-wait:
               host: "testagent"
-              port: *testagent_port
+              port: 9126
           - *step_run_all_tests
           - *step_get_test_agent_trace_check_results
           - store_test_results:
