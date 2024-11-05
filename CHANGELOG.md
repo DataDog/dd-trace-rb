@@ -18,6 +18,7 @@
 * Fix `undefined method` error for Rails runner ([#3996][])
 * Apply version tag only to spans that use the global/default service name ([#4027][])
 * Ensure UDS takes precedence over HTTP when both Agent configurations defined ([#4024][])
+* Remove duplicate leading slash in resource name for Grape routes ([#4033][])
 
 ## [2.4.0] - 2024-10-11
 
@@ -4443,6 +4444,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4020]: https://github.com/DataDog/dd-trace-rb/issues/4020
 [#4024]: https://github.com/DataDog/dd-trace-rb/issues/4024
 [#4027]: https://github.com/DataDog/dd-trace-rb/issues/4027
+[#4033]: https://github.com/DataDog/dd-trace-rb/issues/4033
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
