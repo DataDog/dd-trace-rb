@@ -19,10 +19,6 @@
 * Apply version tag only to spans that use the global/default service name ([#4027][])
 * Ensure UDS takes precedence over HTTP when both Agent configurations defined ([#4024][])
 
-### Added
-
-* AppSec: Add Experimental Standalone AppSec Threats billing ([#3965][])
-
 ## [2.4.0] - 2024-10-11
 
 ### Added
