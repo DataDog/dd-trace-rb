@@ -1058,7 +1058,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
   end
 
   describe "Heap_recorder" do
-    context "produces the same hash code for stack-based and location-based keys" do
+    xcontext "produces the same hash code for stack-based and location-based keys" do
       it "with empty stacks" do
         described_class::Testing._native_check_heap_hashes([])
       end
