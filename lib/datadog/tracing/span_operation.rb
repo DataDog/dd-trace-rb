@@ -271,6 +271,10 @@ module Datadog
         set_error_tags(e)
       end
 
+      def has_error?
+        @status == Metadata::Ext::Errors::STATUS
+      end
+
       # Return a string representation of the span.
       def to_s
         "SpanOperation(name:#{@name},sid:#{@id},tid:#{@trace_id},pid:#{@parent_id})"

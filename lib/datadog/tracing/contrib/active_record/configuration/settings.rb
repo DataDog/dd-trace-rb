@@ -31,6 +31,8 @@ module Datadog
               o.default 1.0
             end
 
+            option :report_bullet, default: false
+
             option :service_name do |o|
               o.type :string, nilable: true
               o.default do

@@ -90,3 +90,9 @@ end
 group :dev do
   gem 'ruby-lsp', require: false if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
 end
+
+
+gem 'activerecord'
+gem 'bullet'
+gem 'sqlite3'
+gem 'mysql2'
