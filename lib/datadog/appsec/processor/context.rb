@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'libddwaf'
-
 module Datadog
   module AppSec
     class Processor
