@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+## [2.6.0] - 2024-11-06
+
+### Changed
+
+* Core: Upgrade to libdatadog 14.0 ([#4065][])
+
+### Fixed
+
+* AppSec: Remove unintentional libddwaf require ([#4078][])
+
 ## [2.5.0] - 2024-11-05
 
 ### Added
@@ -3003,7 +3013,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.5.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.6.0...master
+[2.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.2.0...v2.3.0
@@ -4445,6 +4456,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4024]: https://github.com/DataDog/dd-trace-rb/issues/4024
 [#4027]: https://github.com/DataDog/dd-trace-rb/issues/4027
 [#4033]: https://github.com/DataDog/dd-trace-rb/issues/4033
+[#4065]: https://github.com/DataDog/dd-trace-rb/issues/4065
+[#4078]: https://github.com/DataDog/dd-trace-rb/issues/4078
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
