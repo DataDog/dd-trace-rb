@@ -1,20 +1,27 @@
 name: Check
 on:
   push:
-    branches: [ '**' ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ '**' ]
+
 jobs:
-  check:
-    name: Check types
-    runs-on: ubuntu-22.04
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
       - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: '3.2'
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+      - name: Install dependencies
+        run: bundle install
+      - run: bundle exec rake rubocop standard
+
+  check:
+    name: Check types
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: bundle install
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
       - name: Check for missing signature files

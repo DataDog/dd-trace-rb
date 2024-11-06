@@ -59,7 +59,8 @@ namespace :test do
         command = if appraisal_group.empty?
                     "bundle exec rake #{spec_task}"
                   else
-                    "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake #{spec_task}"
+                    gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
+                    "env BUNDLE_GEMFILE=#{gemfile} bundle exec rake #{spec_task}"
                   end
 
         command += "'[#{spec_arguments}]'" if spec_arguments

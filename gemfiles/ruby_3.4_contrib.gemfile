@@ -43,6 +43,7 @@ gem "sidekiq", "~> 7"
 gem "sneakers", ">= 2.12.0"
 gem "sucker_punch"
 gem "que", ">= 1.0.0"
+gem "rackup"
 
 group :check do
   gem "ruby_memcheck", ">= 3"
