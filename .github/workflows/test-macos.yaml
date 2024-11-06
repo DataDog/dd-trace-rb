@@ -41,11 +41,9 @@ jobs:
           ruby-version: ${{ matrix.ruby }}
           rubygems: 3.3.26
           bundler: 2.3.26 # needed to fix issue with steep on Ruby 3.0/3.1
-      - if: ${{ matrix.ruby == '3.3' }}
+      # Specify gem version for 3.4 because default version (3.6.0.dev)
+      # leads to an incorrect gem root path
+      - if: ${{ matrix.ruby == '3.3' || matrix.ruby == '3.4' }}
         run: gem update --system 3.5.21
-      - run: |
-          ruby -v
-          gem -v
-          bundler -v
       - run: bundle install
       - run: bundle exec rake spec:main
