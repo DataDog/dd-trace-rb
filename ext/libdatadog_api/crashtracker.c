@@ -67,7 +67,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     // The Ruby crash handler also seems to get confused when this option is enabled and
     // "Process.kill('SEGV', Process.pid)" gets run.
     .create_alt_stack = false,
-    .use_alt_stack = false,
+    .use_alt_stack = true, // NOTE: This is a no-op in libdatadog 14.0; should be fixed in a future version
     .endpoint = endpoint,
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
