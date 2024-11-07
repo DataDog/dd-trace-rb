@@ -929,6 +929,7 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     context "when there is a failure during serialization" do
       before do
         allow(Datadog.logger).to receive(:error)
+        allow(Datadog::Core::Telemetry::Logger).to receive(:error)
 
         # Real failures in serialization are hard to trigger, so we're using a mock failure instead
         expect(described_class).to receive(:_native_serialize).and_return([:error, "test error message"])
