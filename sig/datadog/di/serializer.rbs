@@ -4,16 +4,22 @@ module Datadog
       @settings: untyped
 
       @redactor: untyped
+      
+      @telemetry: Core::Telemetry::Component
 
-      def initialize: (untyped settings, untyped redactor) -> void
+      def initialize: (untyped settings, untyped redactor, ?telemetry: Core::Telemetry::Component) -> void
 
       attr_reader settings: Datadog::Core::Configuration::Settings
 
       attr_reader redactor: Datadog::DI::Redactor
       
+      attr_reader telemetry: Core::Telemetry::Component
+      
       def serialize_args: (untyped args, untyped kwargs) -> untyped
       def serialize_vars: (untyped vars) -> untyped
       def serialize_value: (untyped value, ?name: String, ?depth: Integer) -> untyped
+      
+      def self.register: (?condition: Proc) -> void
 
       private
       def class_name: (untyped cls) -> untyped
