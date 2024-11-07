@@ -80,7 +80,9 @@ module Datadog
               end
             end
           rescue => exc
-            if component = DI.component
+            # TODO we do not have DI.component defined yet, remove steep:ignore
+            # before release.
+            if component = DI.component # steep:ignore
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
               component.logger.warn("Unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
