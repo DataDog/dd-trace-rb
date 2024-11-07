@@ -142,7 +142,6 @@ module Datadog
             if probe.type_name == cls.name
               # TODO is it OK to hook from trace point handler?
               # TODO the class is now defined, but can hooking still fail?
-              # TODO pass rate_limiter here, need to get it from somewhere
               hook_method(probe.type_name, probe.method_name,
                 rate_limiter: probe.rate_limiter, &instance_method(:probe_executed_callback))
               pending_probes.delete(probe.id)
