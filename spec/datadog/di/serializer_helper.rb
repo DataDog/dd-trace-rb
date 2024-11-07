@@ -1,3 +1,5 @@
+# rubocop:disable Lint/AssignmentInCondition
+
 module SerializerHelper
   def define_serialize_value_cases(cases)
     cases.each do |c|
@@ -55,3 +57,5 @@ module SerializerHelper
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition
