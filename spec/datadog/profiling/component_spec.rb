@@ -649,6 +649,8 @@ RSpec.describe Datadog::Profiling::Component do
           before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "does not enable GVL profiling" do
+            allow(Datadog.logger).to receive(:warn)
+
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
               .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
 

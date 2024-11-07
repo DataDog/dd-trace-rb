@@ -27,7 +27,7 @@ else
 end
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
-gem 'rspec', '~> 3.12'
+gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
 
