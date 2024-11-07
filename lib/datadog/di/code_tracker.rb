@@ -79,6 +79,9 @@ module Datadog
                 registry[path] = tp.instruction_sequence
               end
             end
+          # Since this method normally is called from customer applications,
+          # rescue any exceptions that might not be handled to not break said
+          # customer applications.
           rescue => exc
             # TODO we do not have DI.component defined yet, remove steep:ignore
             # before release.
