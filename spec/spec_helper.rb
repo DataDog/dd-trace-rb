@@ -108,7 +108,6 @@ RSpec.configure do |config|
     end
   end
 
-
   # Check for leaky test resources.
   #
   # Execute this after the test has finished
