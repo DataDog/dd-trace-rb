@@ -932,7 +932,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           context 'is not defined' do
             let(:environment) { nil }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
 
           [true, false].each do |value|
@@ -947,10 +947,10 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
       describe '#heap_clean_after_gc_enabled=' do
         it 'updates the #heap_clean_after_gc_enabled setting' do
-          expect { settings.profiling.advanced.heap_clean_after_gc_enabled = true }
+          expect { settings.profiling.advanced.heap_clean_after_gc_enabled = false }
             .to change { settings.profiling.advanced.heap_clean_after_gc_enabled }
-            .from(false)
-            .to(true)
+            .from(true)
+            .to(false)
         end
       end
 
