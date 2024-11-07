@@ -222,6 +222,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:ok, 500])
           allow(Datadog.logger).to receive(:error)
+          allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
@@ -248,6 +249,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         before do
           expect(described_class).to receive(:_native_do_export).and_return([:error, "Some error message"])
           allow(Datadog.logger).to receive(:error)
+          allow(Datadog::Core::Telemetry::Logger).to receive(:error)
         end
 
         it "logs an error message" do
@@ -440,6 +442,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it "logs an error" do
         expect(Datadog.logger).to receive(:error).with(/error trying to connect/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
       end
@@ -451,6 +454,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it "logs an error" do
         expect(Datadog.logger).to receive(:error).with(/timed out/)
+        expect(Datadog::Core::Telemetry::Logger).to receive(:error).with("Failed to report profiling data")
 
         http_transport.export(flush)
       end
@@ -461,6 +465,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it "logs an error" do
         expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 418/)
+        expect(Datadog::Core::Telemetry::Logger)
+          .to receive(:error).with("Failed to report profiling data: unexpected HTTP 418 status code")
 
         http_transport.export(flush)
       end
@@ -471,6 +477,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
       it "logs an error" do
         expect(Datadog.logger).to receive(:error).with(/unexpected HTTP 503/)
+        expect(Datadog::Core::Telemetry::Logger)
+          .to receive(:error).with("Failed to report profiling data: unexpected HTTP 503 status code")
 
         http_transport.export(flush)
       end

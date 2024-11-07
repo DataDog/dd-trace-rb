@@ -13,9 +13,9 @@
 /lib/datadog/opentelemetry/ @DataDog/tracing-ruby
 /lib/datadog/opentelemetry.rb @DataDog/tracing-ruby
 /lib-injection/ @DataDog/tracing-ruby
-/lib/datadog/profiling/ @DataDog/profiling-rb
-/lib/datadog/profiling.rb @DataDog/profiling-rb
-/ext/ @DataDog/profiling-rb
+/lib/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
+/lib/datadog/profiling.rb @DataDog/profiling-rb @DataDog/ruby-guild
+/ext/ @DataDog/profiling-rb @DataDog/ruby-guild
 
 # RBS signatures
 /sig/datadog/appsec/ @DataDog/asm-ruby
@@ -25,8 +25,8 @@
 /sig/datadog/tracing.rbs @DataDog/tracing-ruby
 /sig/datadog/opentelemetry/ @DataDog/tracing-ruby
 /sig/datadog/opentelemetry.rbs @DataDog/tracing-ruby
-/sig/datadog/profiling/ @DataDog/profiling-rb
-/sig/datadog/profiling.rbs @DataDog/profiling-rb
+/sig/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
+/sig/datadog/profiling.rbs @DataDog/profiling-rb @DataDog/ruby-guild
 
 # Specs
 /spec/datadog/appsec/ @DataDog/asm-ruby
@@ -35,5 +35,5 @@
 /spec/datadog/tracing_spec.rb @DataDog/tracing-ruby
 /spec/datadog/opentelemetry/ @DataDog/tracing-ruby
 /spec/datadog/opentelemetry_spec.rb @DataDog/tracing-ruby
-/spec/datadog/profiling/ @DataDog/profiling-rb
-/spec/datadog/profiling_spec.rb @DataDog/profiling-rb
+/spec/datadog/profiling/ @DataDog/profiling-rb @DataDog/ruby-guild
+/spec/datadog/profiling_spec.rb @DataDog/profiling-rb @DataDog/ruby-guild

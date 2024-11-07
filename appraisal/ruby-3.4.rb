@@ -125,6 +125,9 @@ appraise 'contrib' do
   gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
+
+  # When Rack 3+ is used, we need rackup.
+  gem 'rackup'
 end
 
 [

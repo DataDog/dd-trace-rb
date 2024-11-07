@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.4.0)
+    datadog (2.6.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 13.1.0.1.0)
+      libdatadog (~> 14.1.0.1.0)
       libddwaf (~> 1.15.0.0.0)
       msgpack
 
@@ -44,7 +44,7 @@ GEM
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (13.1.0.1.0)
+    libdatadog (14.1.0.1.0)
     libddwaf (1.15.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -91,7 +91,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (13.0.2)
+    stripe (13.1.0)
     thor (1.2.2)
     warning (1.4.0)
     webmock (3.23.1)
@@ -119,7 +119,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rexml (>= 3.2.7)
-  rspec (~> 3.12)
+  rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
