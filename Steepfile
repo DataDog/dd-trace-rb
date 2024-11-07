@@ -105,6 +105,7 @@ target :datadog do
   ignore 'lib/datadog/core/workers/queue.rb'
   ignore 'lib/datadog/core/workers/runtime_metrics.rb'
   ignore 'lib/datadog/di/configuration/settings.rb'
+  ignore 'lib/datadog/di/contrib/active_record.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'
