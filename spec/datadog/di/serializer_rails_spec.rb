@@ -1,5 +1,5 @@
 if defined?(ActiveRecord::Base)
-raise 'ok to run tests'
+  raise 'ok to run tests'
   require "datadog/di/spec_helper"
   require "datadog/di/serializer"
   require_relative 'serializer_helper'
@@ -35,12 +35,11 @@ raise 'ok to run tests'
         end
 
         create_table 'serializer_rails_spec_test_basic_models', force: :cascade do |t|
-          t.string   'title'
+          t.string 'title'
           t.datetime 'created_at', null: false
           t.datetime 'updated_at', null: false
         end
       end
-
     end
 
     after(:all) do
@@ -64,35 +63,38 @@ raise 'ok to run tests'
 
       cases = [
         {name: "AR model with no attributes",
-          input: -> { SerializerRailsSpecTestEmptyModel.new },
-          expected: {type: "SerializerRailsSpecTestEmptyModel", entries: [[
-            {type: 'Symbol', value: 'attributes'},
-            {type: 'Hash', entries: [[{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}]]},
-          ]]}},
+         input: -> { SerializerRailsSpecTestEmptyModel.new },
+         expected: {type: "SerializerRailsSpecTestEmptyModel", entries: [[
+           {type: 'Symbol', value: 'attributes'},
+           {type: 'Hash', entries: [[{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}]]},
+         ]]}},
         {name: "AR model with empty attributes",
-          input: -> { SerializerRailsSpecTestBasicModel.new },
-          expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
-            {type: 'Symbol', value: 'attributes'},
-            {type: 'Hash', entries: [
-              [{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}],
-              [{type: 'String', value: 'title'}, {type: 'NilClass', isNull: true}],
-              [{type: 'String', value: 'created_at'}, {type: 'NilClass', isNull: true}],
-              [{type: 'String', value: 'updated_at'}, {type: 'NilClass', isNull: true}],
-            ]},
-          ]]}},
+         input: -> { SerializerRailsSpecTestBasicModel.new },
+         expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
+           {type: 'Symbol', value: 'attributes'},
+           {type: 'Hash', entries: [
+             [{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}],
+             [{type: 'String', value: 'title'}, {type: 'NilClass', isNull: true}],
+             [{type: 'String', value: 'created_at'}, {type: 'NilClass', isNull: true}],
+             [{type: 'String', value: 'updated_at'}, {type: 'NilClass', isNull: true}],
+           ]},
+         ]]}},
         {name: "AR model with filled out attributes",
-          input: -> { SerializerRailsSpecTestBasicModel.new(
-            title: 'Hello, world!', created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)) },
-          expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
-            {type: 'Symbol', value: 'attributes'},
-            {type: 'Hash', entries: [
-              [{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}],
-              [{type: 'String', value: 'title'}, {type: 'String', value: 'Hello, world!'}],
-              # TODO serialize Time, Date, DateTime types
-              [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
-              [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
-            ]},
-          ]]}},
+         input: -> {
+                  SerializerRailsSpecTestBasicModel.new(
+                    title: 'Hello, world!', created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                  )
+                },
+         expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
+           {type: 'Symbol', value: 'attributes'},
+           {type: 'Hash', entries: [
+             [{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}],
+             [{type: 'String', value: 'title'}, {type: 'String', value: 'Hello, world!'}],
+             # TODO serialize Time, Date, DateTime types
+             [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
+             [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
+           ]},
+         ]]}},
       ]
 
       define_serialize_value_cases(cases)
