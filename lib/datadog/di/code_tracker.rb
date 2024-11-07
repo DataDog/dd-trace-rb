@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 module Datadog
   module DI
     # Tracks loaded Ruby code by source file and maintains a map from
@@ -179,3 +181,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition
