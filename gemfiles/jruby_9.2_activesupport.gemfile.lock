@@ -13,7 +13,7 @@ PATH
   specs:
     datadog (2.6.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 14.0.0.1.0)
+      libdatadog (~> 14.1.0.1.0)
       libddwaf (~> 1.15.0.0.0)
       msgpack
 
@@ -102,7 +102,7 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (14.0.0.1.0)
+    libdatadog (14.1.0.1.0)
     libddwaf (1.15.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.13.0)
