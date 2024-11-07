@@ -35,11 +35,16 @@ module Datadog
           StringIO.new(JSON.dump(payload)), 'application/json', 'event.json'
         )
         payload = {'event' => event_payload}
-        send_request('Probe status submission', DIAGNOSTICS_PATH, payload)
+        # Core transport unconditionally specifies headers to underlying
+        # Net::HTTP client, ends up passing 'nil' as headers if none are
+        # specified by us, which then causes Net::HTTP to die with an exception.
+        send_request('Probe status submission',
+          path: DIAGNOSTICS_PATH, form: payload, headers: {})
       end
 
       def send_input(payload)
-        send_request('Probe snapshot submission', INPUT_PATH, payload,
+        send_request('Probe snapshot submission',
+          path: INPUT_PATH, body: payload.to_s,
           headers: {'content-type' => 'application/json'},)
       end
 
@@ -53,13 +58,9 @@ module Datadog
 
       attr_reader :client
 
-      def send_request(desc, path, payload, headers: {})
+      def send_request(desc, **options)
         # steep:ignore:start
-        env = OpenStruct.new(
-          path: path,
-          form: payload,
-          headers: headers,
-        )
+        env = OpenStruct.new(**options)
         # steep:ignore:end
         response = client.post(env)
         unless response.ok?
