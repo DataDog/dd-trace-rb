@@ -69,7 +69,7 @@ Gem::Specification.new do |spec|
 
   # When updating the version here, please also update the version in `libdatadog_extconf_helpers.rb`
   # (and yes we have a test for it)
-  spec.add_dependency 'libdatadog', '~> 14.0.0.1.0'
+  spec.add_dependency 'libdatadog', '~> 14.1.0.1.0'
 
   spec.extensions = [
     'ext/datadog_profiling_native_extension/extconf.rb',

@@ -58,16 +58,18 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 
   ddog_crasht_Config config = {
     .additional_files = {},
-    // The Ruby VM already uses an alt stack to detect stack overflows so the crash handler must not overwrite it.
+    // @ivoanjo: The Ruby VM already uses an alt stack to detect stack overflows.
     //
-    // @ivoanjo: Specifically, with `create_alt_stack = true` I saw a segfault, such as Ruby 2.6's bug with
+    // In libdatadog < 14 with `create_alt_stack = true` I saw a segfault, such as Ruby 2.6's bug with
     // "Process.detach(fork { exit! }).instance_variable_get(:@foo)" being turned into a
     // "-e:1:in `instance_variable_get': stack level too deep (SystemStackError)" by Ruby.
-    //
     // The Ruby crash handler also seems to get confused when this option is enabled and
     // "Process.kill('SEGV', Process.pid)" gets run.
+    //
+    // This actually changed in libdatadog 14, so I could see no issues with `create_alt_stack = true`, but not
+    // overridding what Ruby set up seems a saner default to keep anyway.
     .create_alt_stack = false,
-    .use_alt_stack = true, // NOTE: This is a no-op in libdatadog 14.0; should be fixed in a future version
+    .use_alt_stack = true,
     .endpoint = endpoint,
     .resolve_frames = DDOG_CRASHT_STACKTRACE_COLLECTION_ENABLED_WITH_SYMBOLS_IN_RECEIVER,
     .timeout_ms = FIX2INT(upload_timeout_seconds) * 1000,
