@@ -111,6 +111,9 @@ module Datadog
                 o.default 20
               end
 
+              # Settings in the 'internal' group are for internal Datadog
+              # use only, and are needed to test dynamic instrumentation or
+              # experiment with features not released to customers.
               settings :internal do
                 # This option instructs dynamic instrumentation to use
                 # untargeted trace points when installing line probes and
