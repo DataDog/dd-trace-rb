@@ -89,11 +89,17 @@ RSpec.configure do |config|
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
   config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
 
+  # This hides the list of skipped/pending specs by default
+  config.pending_failure_output = :skip
+
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
     # unless a formatter has already been configured
     # (e.g. via a command-line flag).
     config.default_formatter = 'doc'
+
+    # List skipped/pending specs
+    config.pending_failure_output = :full
   end
 
   config.before(:example, ractors: true) do
@@ -101,6 +107,7 @@ RSpec.configure do |config|
       skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
     end
   end
+
 
   # Check for leaky test resources.
   #
