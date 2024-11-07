@@ -81,7 +81,7 @@ RSpec.describe Datadog::DI::Transport do
         let(:payload) do
           {
             service: 'rspec',
-            'debugger.snapshot': {
+            "debugger.snapshot": {
               id: '1234',
             },
           }
