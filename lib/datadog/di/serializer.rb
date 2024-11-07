@@ -127,7 +127,7 @@ module Datadog
           end
 
           @@flat_registry.each do |entry|
-            if condition = entry[:condition] and condition.call(value)
+            if (condition = entry[:condition]) && condition.call(value)
               serializer_proc = entry.fetch(:proc)
               return serializer_proc.call(self, value, name: nil, depth: depth)
             end
@@ -242,7 +242,7 @@ module Datadog
           serialized
         rescue => exc
           telemetry&.report(exc, description: "Error serializing")
-          {type: class_name(cls), notSerializedReason: "#{exc}"}
+          {type: class_name(cls), notSerializedReason: exc.to_s}
         end
       end
 
