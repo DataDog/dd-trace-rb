@@ -1,3 +1,0 @@
-use_dogstatsd: true
-dogstatsd_port: 8125
-dogstatsd_non_local_traffic: true
