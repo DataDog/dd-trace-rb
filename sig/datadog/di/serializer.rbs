@@ -19,7 +19,8 @@ module Datadog
       def serialize_vars: (untyped vars) -> untyped
       def serialize_value: (untyped value, ?name: String, ?depth: Integer) -> untyped
       
-      def self.register: (?condition: Proc) -> void
+      def self.register: (?condition: Proc) { 
+        (serializer: Serializer, value: untyped, name: Symbol, depth: Integer) -> untyped } -> void
 
       private
       def class_name: (untyped cls) -> untyped
