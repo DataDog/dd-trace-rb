@@ -44,37 +44,52 @@ module Datadog
 
           # Note: .trace enables the trace point.
           @compiled_trace_point = TracePoint.trace(:script_compiled) do |tp|
-            # Useful attributes of the trace point object here:
-            # .instruction_sequence
-            # .instruction_sequence.path (either absolute file path for
-            #   loaded or required code, or for eval'd code, if filename
-            #   is specified as argument to eval, then this is the provided
-            #   filename, otherwise this is a synthesized
-            #   "(eval at <definition-file>:<line>)" string)
-            # .instruction_sequence.absolute_path (absolute file path when
-            #   load or require are used to load code, nil for eval'd code
-            #   regardless of whether filename was specified as an argument
-            #   to eval on ruby 3.1+, same as path for eval'd code on ruby 3.0
-            #   and lower)
-            # .method_id
-            # .path (refers to the code location that called the require/eval/etc.,
-            #   not where the loaded code is; use .path on the instruction sequence
-            #   to obtain the location of the compiled code)
-            # .eval_script
-            #
-            # For now just map the path to the instruction sequence.
-            path = tp.instruction_sequence.absolute_path
-            # Do not store mapping for eval'd code, since there is no way
-            # to target such code from dynamic instrumentation UI.
-            # eval'd code always sets tp.eval_script.
-            # When tp.eval_script is nil, code is either 'load'ed or 'require'd.
-            # steep, of course, complains about indexing with +path+
-            # without checking that it is not nil, so here, maybe there is
-            # some situation where path would in fact be nil and
-            # steep would end up saving the day.
-            if path && !tp.eval_script
-              registry_lock.synchronize do
-                registry[path] = tp.instruction_sequence
+            begin
+              # Useful attributes of the trace point object here:
+              # .instruction_sequence
+              # .instruction_sequence.path (either absolute file path for
+              #   loaded or required code, or for eval'd code, if filename
+              #   is specified as argument to eval, then this is the provided
+              #   filename, otherwise this is a synthesized
+              #   "(eval at <definition-file>:<line>)" string)
+              # .instruction_sequence.absolute_path (absolute file path when
+              #   load or require are used to load code, nil for eval'd code
+              #   regardless of whether filename was specified as an argument
+              #   to eval on ruby 3.1+, same as path for eval'd code on ruby 3.0
+              #   and lower)
+              # .method_id
+              # .path (refers to the code location that called the require/eval/etc.,
+              #   not where the loaded code is; use .path on the instruction sequence
+              #   to obtain the location of the compiled code)
+              # .eval_script
+              #
+              # For now just map the path to the instruction sequence.
+              path = tp.instruction_sequence.absolute_path
+              # Do not store mapping for eval'd code, since there is no way
+              # to target such code from dynamic instrumentation UI.
+              # eval'd code always sets tp.eval_script.
+              # When tp.eval_script is nil, code is either 'load'ed or 'require'd.
+              # steep, of course, complains about indexing with +path+
+              # without checking that it is not nil, so here, maybe there is
+              # some situation where path would in fact be nil and
+              # steep would end up saving the day.
+              if path && !tp.eval_script
+                registry_lock.synchronize do
+                  registry[path] = tp.instruction_sequence
+                end
+              end
+
+            rescue => exc
+              if component = DI.component
+                raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
+                component.logger.warn("Unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
+                component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
+                # TODO test this path
+              else
+                # If we don't have a component, we cannot log anything properly.
+                # Do not just print a warning to avoid spamming customer logs.
+                # Don't reraise the exception either.
+                # TODO test this path
               end
             end
           end
@@ -112,15 +127,18 @@ module Datadog
       def iseqs_for_path_suffix(suffix)
         registry_lock.synchronize do
           exact = registry[suffix]
-          return [exact] if exact
+          return [suffix, exact] if exact
 
           inexact = []
           registry.each do |path, iseq|
             if Utils.path_matches_suffix?(path, suffix)
-              inexact << iseq
+              inexact << [path, iseq]
             end
           end
-          inexact
+          if inexact.length > 1
+            raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
+          end
+          inexact.first
         end
       end
 

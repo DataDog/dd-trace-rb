@@ -142,11 +142,11 @@ RSpec.describe Datadog::DI::CodeTracker do
       end
 
       it "returns the exact match only" do
-        expect(tracker.iseqs_for_path_suffix(path)).to eq([path])
+        expect(tracker.iseqs_for_path_suffix(path)).to eq([path, path])
       end
     end
 
-    context "basename match" do
+    context "basename matches two paths" do
       let(:expected) do
         [
           File.join(File.dirname(__FILE__), "code_tracker_test_class_1.rb"),
@@ -154,14 +154,16 @@ RSpec.describe Datadog::DI::CodeTracker do
         ]
       end
 
-      it "returns the exact match only" do
-        expect(tracker.iseqs_for_path_suffix("code_tracker_test_class_1.rb")).to eq(expected)
+      it "raises exception" do
+        expect do
+          tracker.iseqs_for_path_suffix("code_tracker_test_class_1.rb")
+        end.to raise_error(Datadog::DI::Error::MultiplePathsMatch)
       end
     end
 
     context "match not on path component boundary" do
-      it "returns no matches" do
-        expect(tracker.iseqs_for_path_suffix("1.rb")).to eq([])
+      it "returns nil" do
+        expect(tracker.iseqs_for_path_suffix("1.rb")).to be nil
       end
     end
   end
