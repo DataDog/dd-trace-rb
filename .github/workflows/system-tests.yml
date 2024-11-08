@@ -11,9 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  ST_REF: main
-  FORCE_TESTS:
-  FORCE_TESTS_SCENARIO:
+  ST_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
   build-harness:
@@ -111,6 +109,8 @@ jobs:
     name: Build (${{ matrix.app }})
     permissions:
       packages: write
+    outputs:
+      FORCED_TESTS_LIST_JSON: ${{steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST_JSON}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -125,6 +125,12 @@ jobs:
           path: 'binaries/${{ matrix.library.path }}'
           fetch-depth: 2
           persist-credentials: false
+      - name: Read forced-tests-list.json file
+        id: read_forced_tests_list
+        run: |
+          echo "FORCED_TESTS_LIST_JSON<<EOF" >> $GITHUB_OUTPUT
+          echo "$(cat binaries/dd-trace-rb/.github/forced-tests-list.json)" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest; then
@@ -299,12 +305,17 @@ jobs:
         run: |
           docker image list
       - name: Run scenario
+        # The last escape sequence check if the JSON string exists,
+        # then check if the current scenario is contained in it, then create a string by chaining -F and forced tests.
+        # A potential error might come from an empty array in a scenario in the json file.
         run: |
-          ./run.sh ++docker ${{ matrix.scenario }} ${{matrix.scenario == env.FORCE_TESTS_SCENARIO && env.FORCE_TESTS || ''}}
+          ./run.sh ++docker ${{ matrix.scenario }} \
+            ${{ env.FORCED_TESTS_LIST && fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario] && format('-F {0}', join(fromJSON(env.FORCED_TESTS_LIST)[matrix.scenario], ' -F ')) || ''}}
         env:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
+          FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST_JSON }}
       - name: Archive logs
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
