@@ -55,7 +55,7 @@ GEM
       logger
     faraday-net_http (3.3.0)
       net-http
-    ffi (1.17.0-java)
+    ffi (1.16.3-java)
     hashdiff (1.0.1)
     json (2.7.5-java)
     json-schema (2.8.1)
@@ -151,7 +151,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.8.1)
+    webrick (1.9.0)
 
 PLATFORMS
   universal-java-11
@@ -165,6 +165,7 @@ DEPENDENCIES
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch (~> 7)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
@@ -186,7 +187,7 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick (>= 1.7.0)
+  webrick (>= 1.8.2)
 
 BUNDLED WITH
    2.3.26

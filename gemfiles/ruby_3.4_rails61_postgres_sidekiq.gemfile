@@ -34,6 +34,9 @@ gem "dogstatsd-ruby", ">= 3.3.0", "!= 5.0.0", "!= 5.0.1", "!= 5.1.0"
 gem "google-protobuf", ["~> 3.0", "!= 3.7.0", "!= 3.7.1"]
 gem "ffi", "~> 1.16.3", require: false
 gem "strscan", git: "https://github.com/ruby/strscan", ref: "041b15df4ccc067deabd85fd489b2c15961d0e2f"
+gem "base64"
+gem "bigdecimal"
+gem "mutex_m"
 gem "rails", "~> 6.1.0"
 gem "pg", ">= 1.1", platform: :ruby
 gem "sidekiq", ">= 6.1.2"

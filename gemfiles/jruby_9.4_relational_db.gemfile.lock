@@ -65,7 +65,7 @@ GEM
     diff-lcs (1.5.1)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    ffi (1.17.0-java)
+    ffi (1.16.3-java)
     hashdiff (1.1.0)
     i18n (1.14.5)
       concurrent-ruby (~> 1.0)
@@ -168,7 +168,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.8.1)
+    webrick (1.9.0)
     zeitwerk (2.6.16)
 
 PLATFORMS
@@ -187,6 +187,7 @@ DEPENDENCIES
   delayed_job
   delayed_job_active_record
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   jdbc-sqlite3 (>= 3.28)
   json-schema (< 3)
   makara (>= 0.6.0.pre)
@@ -211,7 +212,7 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick (>= 1.7.0)
+  webrick (>= 1.8.2)
 
 BUNDLED WITH
    2.3.26
