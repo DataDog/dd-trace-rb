@@ -12,7 +12,7 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 # This benchmark measures the performance of sampling + serializing memory profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time.
 #
-METRIC_VALUES = { 'cpu-time' => 0, 'cpu-samples' => 0, 'wall-time' => 0, 'alloc-samples' => 1, 'timeline' => 0 }.freeze
+METRIC_VALUES = { 'cpu-time' => 0, 'cpu-samples' => 0, 'wall-time' => 0, 'alloc-samples' => 1, 'timeline' => 0, 'heap_sample' => true }.freeze
 OBJECT_CLASS = 'object'.freeze
 
 def sample_object(recorder, depth = 0)
