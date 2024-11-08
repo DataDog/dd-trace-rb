@@ -132,7 +132,7 @@ namespace :spec do
 
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:rails) do |t, args|
-    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb,spec/datadog/di/contrib/rails/**/*_spec.rb'
+    t.pattern = 'spec/datadog/tracing/contrib/rails/**/*_spec.rb'
     t.exclude_pattern = 'spec/datadog/tracing/contrib/rails/**/*{active_job,disable_env,redis_cache,auto_instrument,'\
                         'semantic_logger}*_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
@@ -279,7 +279,7 @@ namespace :spec do
   ].each do |contrib|
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
-      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
+      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb,spec/datadog/di/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
