@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-Datadog::DI::Serializer.register(condition: lambda { |value| ActiveRecord::Base === value } # steep:ignore
-) do |serializer, value, name:, depth:|
+Datadog::DI::Serializer.register(condition: lambda { |value| ActiveRecord::Base === value }) do |serializer, value, name:, depth:| # steep:ignore
   # steep thinks all of the arguments are nil here
   # steep:ignore:start
   value_to_serialize = {
