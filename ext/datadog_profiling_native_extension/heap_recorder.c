@@ -944,7 +944,7 @@ static u_int32_t intern_or_raise(heap_recorder *recorder, const ddog_CharSlice *
 
 static void unintern_or_raise(heap_recorder *recorder, u_int32_t id) {
   ddog_prof_ManagedStringStorageResult intern_result = ddog_prof_ManagedStringStorage_unintern(*recorder->string_storage, id);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
+  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
   }
 }
