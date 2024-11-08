@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 require "datadog/di/spec_helper"
 require "datadog/di/serializer"
-require_relative '../serializer_helper'
+require_relative '../../serializer_helper'
 require 'active_record'
 require "datadog/di/contrib/active_record"
 
