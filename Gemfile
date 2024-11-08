@@ -88,3 +88,23 @@ group :dev do
 end
 
 gem 'uri', '~> 0.13.1' if RUBY_VERSION.start_with? '3'
+
+# `1.17.0` provides broken RBS type definitions
+# https://github.com/ffi/ffi/blob/master/CHANGELOG.md#1170rc1--2024-04-08
+#
+# TODO: Remove this once the issue is resolved: https://github.com/ffi/ffi/issues/1107
+gem 'ffi', '~> 1.16.3', require: false
+
+# Ruby 3.4 should be supported by strscan v3.1.1. However, the latest release of strscan is v3.1.0.
+# Pin strscan to the latest commit sha.
+#
+# TODO: Remove strscan specification once v3.1.1 is released.
+if RUBY_VERSION.start_with?('3.4.')
+  gem 'strscan',
+    git: 'https://github.com/ruby/strscan',
+    ref: '041b15df4ccc067deabd85fd489b2c15961d0e2f'
+  # No longer bundled by default since Ruby 3.4
+  gem 'base64'
+  gem 'bigdecimal'
+  gem 'mutex_m'
+end
