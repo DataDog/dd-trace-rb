@@ -258,8 +258,12 @@ module Datadog
       def replace_components!(settings, old)
         components = Components.new(settings)
 
+        old_state = {
+          remote: old.remote&.started?,
+        }
+
         old.shutdown!(components)
-        components.startup!(settings)
+        components.startup!(settings, old_state: old_state)
         components
       end
 
