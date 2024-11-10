@@ -26,7 +26,7 @@ RSpec.describe Datadog::DI::Serializer do
     rescue ActiveRecord::ConnectionNotEstablished
     end
 
-    ActiveRecord::Base.establish_connection('sqlite3::memory:')
+    ActiveRecord::Base.establish_connection(mysql_connection_string)
 
     ActiveRecord::Schema.define(version: 20161003090450) do
       create_table 'serializer_rails_spec_test_empty_models', force: :cascade do |t|
@@ -38,6 +38,19 @@ RSpec.describe Datadog::DI::Serializer do
         t.datetime 'updated_at', null: false
       end
     end
+  end
+
+  def mysql
+    {
+      database: ENV.fetch('TEST_MYSQL_DB', 'mysql'),
+      host: ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'),
+      password: ENV.fetch('TEST_MYSQL_ROOT_PASSWORD', 'root'),
+      port: ENV.fetch('TEST_MYSQL_PORT', '3306')
+    }
+  end
+
+  def mysql_connection_string
+    "mysql2://root:#{mysql[:password]}@#{mysql[:host]}:#{mysql[:port]}/#{mysql[:database]}"
   end
 
   after(:all) do
