@@ -1,5 +1,7 @@
 module Datadog
   module DI
     def self.code_tracker: () -> CodeTracker?
+    
+    def self.component: () -> Component?
   end
 end
