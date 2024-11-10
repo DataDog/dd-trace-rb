@@ -6,6 +6,8 @@ require 'datadog/di'
 # For Instrumenter-only tests, use instrumenter_spec.rb in the parent
 # directory.
 
+# rubocop:disable Style/RescueModifier
+
 class InstrumentationSpecTestClass
   def test_method(a = 1)
     42
@@ -50,34 +52,34 @@ RSpec.describe 'Instrumentation integration' do
 
   let(:expected_installed_payload) do
     {ddsource: 'dd_debugger',
-      debugger: {
-        diagnostics: {
-          parentId: nil,
-          probeId: String,
-          probeVersion: 0,
-          runtimeId: String,
-          status: 'INSTALLED',
-        }},
-      message: String,
-      service: 'rspec',
-      timestamp: Integer,
-    }
+     debugger: {
+       diagnostics: {
+         parentId: nil,
+         probeId: String,
+         probeVersion: 0,
+         runtimeId: String,
+         status: 'INSTALLED',
+       }
+     },
+     message: String,
+     service: 'rspec',
+     timestamp: Integer,}
   end
 
   let(:expected_emitting_payload) do
     {ddsource: 'dd_debugger',
-      debugger: {
-        diagnostics: {
-          parentId: nil,
-          probeId: String,
-          probeVersion: 0,
-          runtimeId: String,
-          status: 'EMITTING',
-        }},
-      message: String,
-      service: 'rspec',
-      timestamp: Integer,
-    }
+     debugger: {
+       diagnostics: {
+         parentId: nil,
+         probeId: String,
+         probeVersion: 0,
+         runtimeId: String,
+         status: 'EMITTING',
+       }
+     },
+     message: String,
+     service: 'rspec',
+     timestamp: Integer,}
   end
 
   context 'log probe' do
@@ -115,8 +117,8 @@ RSpec.describe 'Instrumentation integration' do
           expect(component.transport).to receive(:send_request).at_least(:once)
           probe_manager.add_probe(probe)
           payload = nil
-          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |_payload|
-            payload = _payload
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
           end
 
           yield
@@ -228,8 +230,8 @@ RSpec.describe 'Instrumentation integration' do
           let(:payload) do
             probe_manager.add_probe(probe)
             payload = nil
-            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |_payload|
-              payload = _payload
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
             end
             expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
@@ -296,8 +298,8 @@ RSpec.describe 'Instrumentation integration' do
           expect(component.transport).to receive(:send_request).at_least(:once)
           probe_manager.add_probe(probe)
           payload = nil
-          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |_payload|
-            payload = _payload
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
           end
           expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
           component.probe_notifier_worker.flush
@@ -459,3 +461,5 @@ RSpec.describe 'Instrumentation integration' do
     end
   end
 end
+
+# rubocop:enable Style/RescueModifier

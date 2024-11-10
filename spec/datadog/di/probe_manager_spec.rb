@@ -304,7 +304,7 @@ RSpec.describe Datadog::DI::ProbeManager do
           expect(cls.name).to eq 'ProbeManagerSpecTestClass'
         end
 
-        class ProbeManagerSpecTestClass; end
+        class ProbeManagerSpecTestClass; end # rubocop:disable Lint/ConstantDefinitionInBlock
       end
     end
   end

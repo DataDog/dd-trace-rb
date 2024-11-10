@@ -50,9 +50,9 @@ module Datadog
 
       # TODO status should use either input or diagnostics endpoints
       # depending on agent version.
-      alias send_status send_diagnostics
+      alias_method :send_status, :send_diagnostics
 
-      alias send_snapshot send_input
+      alias_method :send_snapshot, :send_input
 
       private
 

@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 module Datadog
   module DI
     # Stores probes received from remote config (that we can parse, in other
@@ -24,14 +26,12 @@ module Datadog
         @failed_probes = {}
 
         @definition_trace_point = TracePoint.trace(:end) do |tp|
-          begin
-            install_pending_method_probes(tp.self)
-          rescue => exc
-            raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.warn("Unhandled exception in definition trace point: #{exc.class}: #{exc}")
-            telemetry&.report(exc, description: "Unhandled exception in definition trace point")
-            # TODO test this path
-          end
+          install_pending_method_probes(tp.self)
+        rescue => exc
+          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+          logger.warn("Unhandled exception in definition trace point: #{exc.class}: #{exc}")
+          telemetry&.report(exc, description: "Unhandled exception in definition trace point")
+          # TODO test this path
         end
       end
 
@@ -86,7 +86,7 @@ module Datadog
           # API smaller and shouldn't cause any actual problems.
           pending_probes.delete(probe.id)
           true
-        rescue Error::DITargetNotDefined => exc
+        rescue Error::DITargetNotDefined
           pending_probes[probe.id] = probe
           false
         end
@@ -178,3 +178,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition
