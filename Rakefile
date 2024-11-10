@@ -314,6 +314,14 @@ namespace :spec do
 
   task appsec: [:'appsec:all']
 
+  namespace :di do
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:active_record) do |t, args|
+      t.pattern = 'spec/datadog/di/contrib/active_record/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
+
   namespace :profiling do
     task all: [:main, :ractors]
 
