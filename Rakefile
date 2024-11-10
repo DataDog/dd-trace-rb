@@ -279,7 +279,7 @@ namespace :spec do
   ].each do |contrib|
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
-      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb,spec/datadog/di/contrib/#{contrib}/**/*_spec.rb"
+      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end
