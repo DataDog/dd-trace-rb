@@ -65,6 +65,14 @@ module Datadog
       # to instrument them every time remote configuration is processed.
       attr_reader :failed_probes
 
+      # Requests to install the specified probe.
+      #
+      # If the target of the probe does not exist, assume the relevant
+      # code is not loaded yet (rather than that it will never be loaded),
+      # and store the probe in a pending probe list. When classes are
+      # defined, or files loaded, the probe will be checked against the
+      # newly defined classes/loaded files, and will be installed if it
+      # matches.
       def add_probe(probe)
         # TODO lock here?
 
@@ -105,6 +113,12 @@ module Datadog
         raise
       end
 
+      # Removes probes with ids other than in the specified list.
+      #
+      # This method is meant to be invoked from remote config processor.
+      # Remote config contains the list of currently defined probes; any
+      # probes not in that list have been removed by user and should be
+      # de-instrumented from the application.
       def remove_other_probes(probe_ids)
         pending_probes.values.each do |probe|
           unless probe_ids.include?(probe.id)
@@ -133,6 +147,10 @@ module Datadog
         end
       end
 
+      # Installs pending method probes, if any, for the specified class.
+      #
+      # This method is meant to be called from the "end" trace point,
+      # which is invoked for each class definition.
       private def install_pending_method_probes(cls)
         # TODO search more efficiently than linearly
         pending_probes.each do |probe_id, probe|
@@ -158,16 +176,29 @@ module Datadog
         end
       end
 
-      def install_pending_line_probes(file)
+      # Installs pending line probes, if any, for the file of the specified
+      # absolute path.
+      #
+      # This method is meant to be called from the script_compiled trace
+      # point, which is invoked for each required or loaded file
+      # (and also for eval'd code, but those invocations are filtered out).
+      def install_pending_line_probes(path)
         pending_probes.values.each do |probe|
           if probe.line?
-            if probe.file_matches?(file)
+            if probe.file_matches?(path)
               add_probe(probe)
             end
           end
         end
       end
 
+      # Entry point invoked from the instrumentation when the specfied probe
+      # is invoked (that is, either its target method is invoked, or
+      # execution reached its target file/line).
+      #
+      # This method is responsible for queueing probe status to be sent to the
+      # backend (once per the probe's lifetime) and a snapshot corresponding
+      # to the current invocation.
       def probe_executed_callback(probe:, **opts)
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
