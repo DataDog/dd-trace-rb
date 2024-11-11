@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'datadog/di/spec_helper'
 
 class EverythingFromRemoteConfigSpecTestClass
   def target_method
@@ -81,8 +82,7 @@ RSpec.describe 'DI integration from remote config' do
   end
 
   after do
-    probe_manager.clear_hooks
-    probe_manager.close
+    component.shutdown!
   end
 
   let(:agent_settings) do
@@ -217,8 +217,9 @@ RSpec.describe 'DI integration from remote config' do
       notify_payload = if env.path == '/debugger/v1/diagnostics'
         JSON.parse(env.form.fetch('event').io.read, symbolize_names: true)
       else
-        env.form
+        JSON.parse(env.body)
       end
+      expect(notify_payload).to be_a(Array)
       notify_payload.each do |payload|
         payloads << payload.merge(path: env.path)
       end
@@ -242,7 +243,7 @@ RSpec.describe 'DI integration from remote config' do
       expect(payloads.length).to eq 1
 
       received_payload = payloads.first
-      expect(received_payload).to match(expected_received_payload)
+      expect(order_hash_keys(received_payload)).to match(order_hash_keys(expected_received_payload))
 
       expect(probe_manager.pending_probes.length).to eq 1
     end
@@ -295,7 +296,7 @@ RSpec.describe 'DI integration from remote config' do
         expect(emitting_payload).to match(expected_emitting_payload)
 
         snapshot_payload = payloads.shift
-        expect(snapshot_payload).to match(expected_snapshot_payload)
+        expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
       end
     end
   end
