@@ -139,12 +139,20 @@ module Datadog
           if probe.method?
             # TODO move this stringification elsewhere
             if probe.type_name == cls.name
-              # TODO is it OK to hook from trace point handler?
-              # TODO the class is now defined, but can hooking still fail?
-              hook_method(probe.type_name, probe.method_name,
-                rate_limiter: probe.rate_limiter, &instance_method(:probe_executed_callback)) # steep:ignore
-              pending_probes.delete(probe.id)
-              break
+              begin
+                # TODO is it OK to hook from trace point handler?
+                # TODO the class is now defined, but can hooking still fail?
+                instrumenter.hook(probe, &method(:probe_executed_callback))
+                pending_probes.delete(probe.id)
+                break
+              rescue Error::DITargetNotDefined
+                # This should not happen... try installing again later?
+              rescue => exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                logger.warn("Error installing probe after class is defined: #{exc.class}: #{exc}")
+                telemetry&.report(exc, description: "Error installing probe after class is defined")
+              end
             end
           end
         end

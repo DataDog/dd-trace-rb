@@ -130,6 +130,46 @@ RSpec.describe 'Instrumentation integration' do
             expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
           end
         end
+
+        context 'when method is defined after probe is added to probe manager' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationDelayedTestClass', method_name: 'test_method',
+              capture_snapshot: false,)
+          end
+
+          it 'invokes probe and creates expected snapshot' do
+            expect(component.transport).to receive(:send_request).at_least(:once)
+            expect(probe_manager.add_probe(probe)).to be false
+
+            class InstrumentationDelayedTestClass
+              def test_method
+                43
+              end
+            end
+
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationDelayedTestClass.new.test_method).to eq(43)
+            component.probe_notifier_worker.flush
+
+            snapshot = payload.fetch(:"debugger.snapshot")
+            expect(snapshot).to match(
+              id: String,
+              timestamp: Integer,
+              evaluationErrors: [],
+              probe: {id: '1234', version: 0, location: {
+                method: 'test_method', type: 'InstrumentationDelayedTestClass',
+              }},
+              language: 'ruby',
+              stack: Array,
+              captures: nil,
+            )
+          end
+        end
       end
 
       context 'enriched probe' do
