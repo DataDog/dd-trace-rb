@@ -71,9 +71,9 @@ namespace :test do
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
           @execution_count += 1
-          sh(command) if @execution_count % total_executors == current_executor
+          Bundler.with_unbundled_env { sh(command) } if @execution_count % total_executors == current_executor
         else
-          sh(command)
+          Bundler.with_unbundled_env { sh(command) }
         end
       end
     end
