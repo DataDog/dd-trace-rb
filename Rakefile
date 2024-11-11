@@ -22,6 +22,7 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
@@ -57,11 +58,11 @@ namespace :test do
 
       candidates.each do |appraisal_group, _|
         env = if appraisal_group.empty?
-          {}
-        else
-          gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
-          { 'BUNDLE_GEMFILE' => gemfile }
-        end
+                {}
+              else
+                gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
+                { 'BUNDLE_GEMFILE' => gemfile }
+              end
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
@@ -81,7 +82,6 @@ namespace :test do
 end
 
 desc 'Run RSpec'
-# rubocop:disable Metrics/BlockLength
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark,
