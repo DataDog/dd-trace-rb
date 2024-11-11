@@ -24,6 +24,7 @@ module Datadog
         @installed_probes = {}
         @pending_probes = {}
         @failed_probes = {}
+        @lock = Mutex.new
 
         @definition_trace_point = TracePoint.trace(:end) do |tp|
           install_pending_method_probes(tp.self)
@@ -46,24 +47,40 @@ module Datadog
       end
 
       def clear_hooks
-        pending_probes.clear
-        installed_probes.each do |probe_id, probe|
-          instrumenter.unhook(probe)
+        @lock.synchronize do
+          @pending_probes.clear
+          @installed_probes.each do |probe_id, probe|
+            instrumenter.unhook(probe)
+          end
+          @installed_probes.clear
         end
-        installed_probes.clear
       end
 
       attr_reader :settings
       attr_reader :instrumenter
       attr_reader :probe_notification_builder
       attr_reader :probe_notifier_worker
-      attr_reader :installed_probes
-      attr_reader :pending_probes
+
+      def installed_probes
+        @lock.synchronize do
+          @installed_probes
+        end
+      end
+
+      def pending_probes
+        @lock.synchronize do
+          @pending_probes
+        end
+      end
 
       # Probes that failed to instrument for reasons other than the target is
       # not yet loaded are added to this collection, so that we do not try
       # to instrument them every time remote configuration is processed.
-      attr_reader :failed_probes
+      def failed_probes
+        @lock.synchronize do
+          @failed_probes
+        end
+      end
 
       # Requests to install the specified probe.
       #
@@ -74,10 +91,15 @@ module Datadog
       # newly defined classes/loaded files, and will be installed if it
       # matches.
       def add_probe(probe)
-        # TODO lock here?
+        @lock.synchronize do
+          do_add_probe(probe)
+        end
+      end
 
+      # Same as add_probe but without locking.
+      private def do_add_probe(probe)
         # Probe failed to install previously, do not try to install it again.
-        if msg = failed_probes[probe.id]
+        if msg = @failed_probes[probe.id]
           # TODO test this path
           raise Error::ProbePreviouslyFailed, msg
         end
@@ -85,17 +107,17 @@ module Datadog
         begin
           instrumenter.hook(probe, &method(:probe_executed_callback))
 
-          installed_probes[probe.id] = probe
+          @installed_probes[probe.id] = probe
           payload = probe_notification_builder.build_installed(probe)
           probe_notifier_worker.add_status(payload)
           # The probe would only be in the pending probes list if it was
           # previously attempted to be installed and the target was not loaded.
           # Always remove from pending list here because it makes the
           # API smaller and shouldn't cause any actual problems.
-          pending_probes.delete(probe.id)
+          @pending_probes.delete(probe.id)
           true
         rescue Error::DITargetNotDefined
-          pending_probes[probe.id] = probe
+          @pending_probes[probe.id] = probe
           false
         end
       rescue => exc
@@ -108,7 +130,7 @@ module Datadog
         # install it again.
 
         # TODO add top stack frame to message
-        failed_probes[probe.id] = "#{exc.class}: #{exc}"
+        @failed_probes[probe.id] = "#{exc.class}: #{exc}"
 
         raise
       end
@@ -120,28 +142,30 @@ module Datadog
       # probes not in that list have been removed by user and should be
       # de-instrumented from the application.
       def remove_other_probes(probe_ids)
-        pending_probes.values.each do |probe|
-          unless probe_ids.include?(probe.id)
-            pending_probes.delete(probe.id)
+        @lock.synchronize do
+          @pending_probes.values.each do |probe|
+            unless probe_ids.include?(probe.id)
+              @pending_probes.delete(probe.id)
+            end
           end
-        end
-        installed_probes.values.each do |probe|
-          unless probe_ids.include?(probe.id)
-            begin
-              instrumenter.unhook(probe)
-              # Only remove the probe from installed list if it was
-              # successfully de-instrumented. Active probes do incur overhead
-              # for the running application, and if the error is ephemeral
-              # we want to try removing the probe again at the next opportunity.
-              #
-              # TODO give up after some time?
-              installed_probes.delete(probe.id)
-            rescue => exc
-              raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              # Silence all exceptions?
-              # TODO should we propagate here and rescue upstream?
-              logger.warn("Error removing probe #{probe.id}: #{exc.class}: #{exc}")
-              telemetry&.report(exc, description: "Error removing probe #{probe.id}")
+          @installed_probes.values.each do |probe|
+            unless probe_ids.include?(probe.id)
+              begin
+                instrumenter.unhook(probe)
+                # Only remove the probe from installed list if it was
+                # successfully de-instrumented. Active probes do incur overhead
+                # for the running application, and if the error is ephemeral
+                # we want to try removing the probe again at the next opportunity.
+                #
+                # TODO give up after some time?
+                @installed_probes.delete(probe.id)
+              rescue => exc
+                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+                # Silence all exceptions?
+                # TODO should we propagate here and rescue upstream?
+                logger.warn("Error removing probe #{probe.id}: #{exc.class}: #{exc}")
+                telemetry&.report(exc, description: "Error removing probe #{probe.id}")
+              end
             end
           end
         end
@@ -152,24 +176,26 @@ module Datadog
       # This method is meant to be called from the "end" trace point,
       # which is invoked for each class definition.
       private def install_pending_method_probes(cls)
-        # TODO search more efficiently than linearly
-        pending_probes.each do |probe_id, probe|
-          if probe.method?
-            # TODO move this stringification elsewhere
-            if probe.type_name == cls.name
-              begin
-                # TODO is it OK to hook from trace point handler?
-                # TODO the class is now defined, but can hooking still fail?
-                instrumenter.hook(probe, &method(:probe_executed_callback))
-                pending_probes.delete(probe.id)
-                break
-              rescue Error::DITargetNotDefined
-                # This should not happen... try installing again later?
-              rescue => exc
-                raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+        @lock.synchronize do
+          # TODO search more efficiently than linearly
+          @pending_probes.each do |probe_id, probe|
+            if probe.method?
+              # TODO move this stringification elsewhere
+              if probe.type_name == cls.name
+                begin
+                  # TODO is it OK to hook from trace point handler?
+                  # TODO the class is now defined, but can hooking still fail?
+                  instrumenter.hook(probe, &method(:probe_executed_callback))
+                  @pending_probes.delete(probe.id)
+                  break
+                rescue Error::DITargetNotDefined
+                  # This should not happen... try installing again later?
+                rescue => exc
+                  raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                logger.warn("Error installing probe after class is defined: #{exc.class}: #{exc}")
-                telemetry&.report(exc, description: "Error installing probe after class is defined")
+                  logger.warn("Error installing probe after class is defined: #{exc.class}: #{exc}")
+                  telemetry&.report(exc, description: "Error installing probe after class is defined")
+                end
               end
             end
           end
@@ -183,10 +209,12 @@ module Datadog
       # point, which is invoked for each required or loaded file
       # (and also for eval'd code, but those invocations are filtered out).
       def install_pending_line_probes(path)
-        pending_probes.values.each do |probe|
-          if probe.line?
-            if probe.file_matches?(path)
-              add_probe(probe)
+        @lock.synchronize do
+          @pending_probes.values.each do |probe|
+            if probe.line?
+              if probe.file_matches?(path)
+                do_add_probe(probe)
+              end
             end
           end
         end
