@@ -164,6 +164,12 @@ orbs:
         <<: *test_job_default
         steps:
           - checkout
+          - run:
+              name: Know the environment
+              command: |
+                ruby -v
+                gem -v
+                bundle -v
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
