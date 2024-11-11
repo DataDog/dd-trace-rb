@@ -93,6 +93,45 @@ RSpec.describe 'Instrumentation integration' do
     end
 
     context 'method probe' do
+      context 'basic probe' do
+        let(:probe) do
+          Datadog::DI::Probe.new(id: "1234", type: :log,
+            type_name: 'InstrumentationSpecTestClass', method_name: 'test_method',
+            capture_snapshot: false,)
+        end
+
+        it 'invokes probe' do
+          expect(component.transport).to receive(:send_request).at_least(:once)
+          probe_manager.add_probe(probe)
+          expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
+          expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+          component.probe_notifier_worker.flush
+        end
+
+        def run_test
+          expect(component.transport).to receive(:send_request).at_least(:once)
+          probe_manager.add_probe(probe)
+          payload = nil
+          expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+            payload = payload_
+          end
+
+          yield
+
+          component.probe_notifier_worker.flush
+
+          expect(payload).to be_a(Hash)
+          snapshot = payload.fetch(:"debugger.snapshot")
+          expect(snapshot[:captures]).to be nil
+        end
+
+        it 'assembles expected notification payload which does not include captures' do
+          run_test do
+            expect(InstrumentationSpecTestClass.new.test_method).to eq(42)
+          end
+        end
+      end
+
       context 'enriched probe' do
         let(:probe) do
           Datadog::DI::Probe.new(id: "1234", type: :log,
