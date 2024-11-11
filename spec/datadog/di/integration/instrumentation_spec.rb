@@ -142,7 +142,7 @@ RSpec.describe 'Instrumentation integration' do
             expect(component.transport).to receive(:send_request).at_least(:once)
             expect(probe_manager.add_probe(probe)).to be false
 
-            class InstrumentationDelayedTestClass
+            class InstrumentationDelayedTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
               def test_method
                 43
               end
