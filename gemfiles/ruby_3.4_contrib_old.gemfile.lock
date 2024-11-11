@@ -195,6 +195,7 @@ GEM
     thor (0.19.4)
     tilt (2.4.0)
     unicode-display_width (2.5.0)
+    uri (0.13.1)
     vegas (0.1.11)
       rack (>= 1.0.0)
     warning (1.4.0)
@@ -241,6 +242,7 @@ DEPENDENCIES
   ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
+  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick!
