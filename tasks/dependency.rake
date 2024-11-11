@@ -16,7 +16,7 @@ namespace :dependency do
     puts gemfiles
     puts "========================================\n"
 
-    puts "You can do a bunch of cool stuff by assign it to the BUNDLE_GEMFILE environment variable, like:\n"
+    puts "You can do a bunch of cool stuff by assigning a gemfile path to the BUNDLE_GEMFILE environment variable, like:\n"
     puts "`BUNDLE_GEMFILE=#{gemfiles.sample} bundle install`\n\n"
   end
 
