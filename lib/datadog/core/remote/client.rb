@@ -24,7 +24,6 @@ module Datadog
           @dispatcher = Dispatcher.new(@capabilities.receivers)
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
         def sync
           # TODO: Skip sync if no capabilities are registered
           response = transport.send_config(payload)
@@ -35,7 +34,6 @@ module Datadog
             raise TransportError, response.to_s
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/MethodLength,Metrics/CyclomaticComplexity
 
         private
 
@@ -69,7 +67,6 @@ module Datadog
         end
 
         def apply_config(paths, targets, contents)
-
           changes = repository.transaction do |current, transaction|
             # paths to be removed: previously applied paths minus ingress paths
             (current.paths - paths).each { |p| transaction.delete(p) }

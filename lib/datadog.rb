@@ -9,7 +9,5 @@ require_relative 'datadog/profiling'
 require_relative 'datadog/appsec'
 # Line probes will not work on Ruby < 2.6 because of lack of :script_compiled
 # trace point. Only load DI on supported Ruby versions.
-if RUBY_VERSION >= '2.6'
-  require_relative 'datadog/di'
-end
+require_relative 'datadog/di' if RUBY_VERSION >= '2.6'
 require_relative 'datadog/kit'
