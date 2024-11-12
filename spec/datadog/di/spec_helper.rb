@@ -33,6 +33,20 @@ module DIHelpers
         double('di internal settings')
       end
     end
+
+    def with_code_tracking
+      around do |example|
+        Datadog::DI.activate_tracking!
+        example.run
+        Datadog::DI.deactivate_tracking!
+      end
+    end
+
+    def without_code_tracking
+      before do
+        Datadog::DI.deactivate_tracking!
+      end
+    end
   end
 
   module InstanceMethods

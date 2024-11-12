@@ -165,6 +165,9 @@ module Datadog
       # For untargeted line trace points instrumented path will be nil.
       attr_accessor :instrumented_path
 
+      # TODO emitting_notified reads and writes should in theory be locked,
+      # however since DI is only implemented for MRI in practice the missing
+      # locking should not cause issues.
       attr_writer :emitting_notified
       def emitting_notified?
         !!@emitting_notified

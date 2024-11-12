@@ -1,8 +1,11 @@
+require "datadog/di/spec_helper"
 require 'datadog/di/serializer'
 require 'datadog/di/probe'
 require 'datadog/di/probe_notification_builder'
 
 RSpec.describe Datadog::DI::ProbeNotificationBuilder do
+  di_test
+
   describe 'log probe' do
     let(:redactor) { Datadog::DI::Redactor.new(settings) }
     let(:serializer) { Datadog::DI::Serializer.new(settings, redactor) }

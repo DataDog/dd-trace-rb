@@ -93,6 +93,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         instance_double(TracePoint).tap do |tp|
           # Returns an empty binding
           expect(tp).to receive(:binding).and_return(binding)
+          expect(tp).to receive(:path).and_return('/foo.rb')
         end
       end
 

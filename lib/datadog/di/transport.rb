@@ -48,6 +48,12 @@ module Datadog
           headers: {'content-type' => 'application/json'},)
       end
 
+      # TODO status should use either input or diagnostics endpoints
+      # depending on agent version.
+      alias_method :send_status, :send_diagnostics
+
+      alias_method :send_snapshot, :send_input
+
       private
 
       attr_reader :client
