@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Lint/AssignmentInCondition
+
 module Datadog
   module DI
     # Tracks loaded Ruby code by source file and maintains a map from
@@ -77,6 +79,23 @@ module Datadog
                 registry[path] = tp.instruction_sequence
               end
             end
+          # Since this method normally is called from customer applications,
+          # rescue any exceptions that might not be handled to not break said
+          # customer applications.
+          rescue => exc
+            # TODO we do not have DI.component defined yet, remove steep:ignore
+            # before release.
+            if component = DI.component # steep:ignore
+              raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
+              component.logger.warn("Unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
+              component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
+              # TODO test this path
+            else
+              # If we don't have a component, we cannot log anything properly.
+              # Do not just print a warning to avoid spamming customer logs.
+              # Don't reraise the exception either.
+              # TODO test this path
+            end
           end
         end
       end
@@ -112,15 +131,18 @@ module Datadog
       def iseqs_for_path_suffix(suffix)
         registry_lock.synchronize do
           exact = registry[suffix]
-          return [exact] if exact
+          return [suffix, exact] if exact
 
           inexact = []
           registry.each do |path, iseq|
             if Utils.path_matches_suffix?(path, suffix)
-              inexact << iseq
+              inexact << [path, iseq]
             end
           end
-          inexact
+          if inexact.length > 1
+            raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
+          end
+          inexact.first
         end
       end
 
@@ -164,3 +186,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Lint/AssignmentInCondition

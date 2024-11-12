@@ -8,20 +8,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   let(:observed_calls) { [] }
 
-  let(:settings) do
-    double('settings').tap do |settings|
-      allow(settings).to receive(:dynamic_instrumentation).and_return(di_settings)
-    end
-  end
-
-  let(:di_settings) do
-    double('di settings').tap do |settings|
-      allow(settings).to receive(:enabled).and_return(true)
-      allow(settings).to receive(:untargeted_trace_points).and_return(false)
-      allow(settings).to receive(:max_capture_depth).and_return(2)
-      allow(settings).to receive(:redacted_type_names).and_return([])
-      allow(settings).to receive(:redacted_identifiers).and_return([])
-    end
+  mock_settings_for_di do |settings|
+    allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
+    allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
+    allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
+    allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
   end
 
   let(:redactor) do
@@ -321,7 +313,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         before do
           # We need untargeted trace points for this test since the line
           # being instrumented has already been loaded.
-          expect(di_settings).to receive(:untargeted_trace_points).and_return(true)
+          expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
         end
 
         let(:code_tracker) { nil }
@@ -359,7 +351,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         let(:code_tracker) { Datadog::DI.code_tracker }
 
         before do
-          expect(di_settings).to receive(:untargeted_trace_points).and_return(false)
+          expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(false)
           Datadog::DI.activate_tracking!
           code_tracker.clear
         end
@@ -389,7 +381,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       before do
         # We need untargeted trace points for this test since the line
         # being instrumented has already been loaded.
-        expect(di_settings).to receive(:untargeted_trace_points).and_return(true)
+        expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
       end
 
       let(:probe) do
@@ -416,7 +408,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       before do
         # We need untargeted trace points for this test since the line
         # being instrumented has already been loaded.
-        expect(di_settings).to receive(:untargeted_trace_points).and_return(true)
+        expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(true)
       end
 
       let(:probe) do
@@ -472,7 +464,7 @@ RSpec.describe Datadog::DI::Instrumenter do
       let(:code_tracker) { nil }
 
       before do
-        expect(di_settings).to receive(:untargeted_trace_points).at_least(:once).and_return(true)
+        expect(di_internal_settings).to receive(:untargeted_trace_points).at_least(:once).and_return(true)
       end
 
       # We do not currently de-duplicate.

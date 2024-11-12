@@ -48,6 +48,7 @@ module Datadog
       
       attr_accessor instrumentation_module: Module?
       attr_accessor instrumentation_trace_point: TracePoint?
+      attr_accessor instrumented_path: String?
     end
   end
 end
