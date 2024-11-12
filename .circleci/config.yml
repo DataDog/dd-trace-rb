@@ -285,6 +285,10 @@ orbs:
                 curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL
                 chmod +x /usr/local/bin/dockerize
                 dockerize --version
+          # Test agent uses `jq` to check results
+          - run:
+              name: Install jq
+              command: apt update && apt install jq -y
           # Wait for containers to start
           - docker-wait:
               port: 5432
@@ -307,10 +311,6 @@ orbs:
               host: "testagent"
               port: 9126
           - *step_run_all_tests
-          - run:
-              # Test agent uses `jq` to check results
-              name: Install jq
-              command: apt update && apt install jq -y
           - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec
