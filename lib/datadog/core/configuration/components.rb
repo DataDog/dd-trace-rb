@@ -129,9 +129,9 @@ module Datadog
             end
           end
 
-          if settings.remote.enabled && old_state&.[](:remote)
+          if settings.remote.enabled && old_state&.[](:remote_started)
             # remote should be defined here
-            remote.start
+            remote&.start
           end
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)

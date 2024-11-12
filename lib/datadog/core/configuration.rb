@@ -259,7 +259,7 @@ module Datadog
         components = Components.new(settings)
 
         old_state = {
-          remote: old.remote&.started?,
+          remote_started: old.remote&.started?,
         }
 
         old.shutdown!(components)
