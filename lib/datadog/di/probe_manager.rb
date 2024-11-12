@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require 'monitor'
+
 module Datadog
   module DI
     # Stores probes received from remote config (that we can parse, in other
@@ -24,7 +26,7 @@ module Datadog
         @installed_probes = {}
         @pending_probes = {}
         @failed_probes = {}
-        @lock = Mutex.new
+        @lock = Monitor.new
 
         @definition_trace_point = TracePoint.trace(:end) do |tp|
           install_pending_method_probes(tp.self)
@@ -92,47 +94,42 @@ module Datadog
       # matches.
       def add_probe(probe)
         @lock.synchronize do
-          do_add_probe(probe)
+          # Probe failed to install previously, do not try to install it again.
+          if msg = @failed_probes[probe.id]
+            # TODO test this path
+            raise Error::ProbePreviouslyFailed, msg
+          end
+
+          begin
+            instrumenter.hook(probe, &method(:probe_executed_callback))
+
+            @installed_probes[probe.id] = probe
+            payload = probe_notification_builder.build_installed(probe)
+            probe_notifier_worker.add_status(payload)
+            # The probe would only be in the pending probes list if it was
+            # previously attempted to be installed and the target was not loaded.
+            # Always remove from pending list here because it makes the
+            # API smaller and shouldn't cause any actual problems.
+            @pending_probes.delete(probe.id)
+            true
+          rescue Error::DITargetNotDefined
+            @pending_probes[probe.id] = probe
+            false
+          end
+        rescue => exc
+          # In "propagate all exceptions" mode we will try to instrument again.
+          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+          logger.warn("Error processing probe configuration: #{exc.class}: #{exc}")
+          telemetry&.report(exc, description: "Error processing probe configuration")
+          # TODO report probe as failed to agent since we won't attempt to
+          # install it again.
+
+          # TODO add top stack frame to message
+          @failed_probes[probe.id] = "#{exc.class}: #{exc}"
+
+          raise
         end
-      end
-
-      # Same as add_probe but without locking.
-      private def do_add_probe(probe)
-        # Probe failed to install previously, do not try to install it again.
-        if msg = @failed_probes[probe.id]
-          # TODO test this path
-          raise Error::ProbePreviouslyFailed, msg
-        end
-
-        begin
-          instrumenter.hook(probe, &method(:probe_executed_callback))
-
-          @installed_probes[probe.id] = probe
-          payload = probe_notification_builder.build_installed(probe)
-          probe_notifier_worker.add_status(payload)
-          # The probe would only be in the pending probes list if it was
-          # previously attempted to be installed and the target was not loaded.
-          # Always remove from pending list here because it makes the
-          # API smaller and shouldn't cause any actual problems.
-          @pending_probes.delete(probe.id)
-          true
-        rescue Error::DITargetNotDefined
-          @pending_probes[probe.id] = probe
-          false
-        end
-      rescue => exc
-        # In "propagate all exceptions" mode we will try to instrument again.
-        raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-
-        logger.warn("Error processing probe configuration: #{exc.class}: #{exc}")
-        telemetry&.report(exc, description: "Error processing probe configuration")
-        # TODO report probe as failed to agent since we won't attempt to
-        # install it again.
-
-        # TODO add top stack frame to message
-        @failed_probes[probe.id] = "#{exc.class}: #{exc}"
-
-        raise
       end
 
       # Removes probes with ids other than in the specified list.
@@ -213,7 +210,7 @@ module Datadog
           @pending_probes.values.each do |probe|
             if probe.line?
               if probe.file_matches?(path)
-                do_add_probe(probe)
+                add_probe(probe)
               end
             end
           end
