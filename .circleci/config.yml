@@ -65,7 +65,7 @@ save_bundle_checksum: &save_bundle_checksum
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         # Recompute gemfiles/*.lock checksum, as those files might have changed
-        cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+        cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
       fi
       cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
@@ -96,7 +96,7 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
     # updating the gemset lock files produces extremely large commits.
     command: |
       bundle lock # Create Gemfile.lock
-      cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
