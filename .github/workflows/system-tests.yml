@@ -110,7 +110,7 @@ jobs:
     permissions:
       packages: write
     outputs:
-      FORCED_TESTS_LIST_JSON: ${{steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST_JSON}}
+      FORCED_TESTS_LIST: ${{steps.read_forced_tests_list.outputs.FORCED_TESTS_LIST}}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -128,7 +128,7 @@ jobs:
       - name: Read forced-tests-list.json file
         id: read_forced_tests_list
         run: |
-          echo "FORCED_TESTS_LIST_JSON<<EOF" >> $GITHUB_OUTPUT
+          echo "FORCED_TESTS_LIST<<EOF" >> $GITHUB_OUTPUT
           echo "$(cat binaries/dd-trace-rb/.github/forced-tests-list.json)" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       - name: Pull released image
@@ -315,7 +315,7 @@ jobs:
           DD_API_KEY: ${{ secrets.DD_APPSEC_SYSTEM_TESTS_API_KEY }}
           SYSTEM_TESTS_AWS_ACCESS_KEY_ID: ${{ secrets.SYSTEM_TESTS_IDM_AWS_ACCESS_KEY_ID }}
           SYSTEM_TESTS_AWS_SECRET_ACCESS_KEY: ${{ secrets.SYSTEM_TESTS_IDM_AWS_SECRET_ACCESS_KEY }}
-          FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST_JSON }}
+          FORCED_TESTS_LIST: ${{ needs.build-apps.outputs.FORCED_TESTS_LIST }}
       - name: Archive logs
         uses: actions/upload-artifact@v4
         if: ${{ always() }}
