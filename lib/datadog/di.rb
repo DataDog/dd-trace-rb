@@ -78,8 +78,7 @@ module Datadog
       end
 
       def component
-        # TODO uncomment when remote is merged
-        #Datadog.send(:components).dynamic_instrumentation
+        Datadog.send(:components).dynamic_instrumentation
       end
     end
   end
