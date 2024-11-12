@@ -1,5 +1,3 @@
-require 'open3'
-
 require_relative 'appraisal_conversion'
 
 namespace :dependency do
@@ -31,9 +29,7 @@ namespace :dependency do
       Bundler.with_unbundled_env do
         command = +'bundle lock'
         command << ' --add-platform x86_64-linux aarch64-linux' unless RUBY_PLATFORM == 'java'
-        output, = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile.to_s }, command)
-
-        puts output
+        sh({ 'BUNDLE_GEMFILE' => gemfile.to_s }, command)
       end
     end
   end
@@ -47,9 +43,7 @@ namespace :dependency do
 
     gemfiles.each do |gemfile|
       Bundler.with_unbundled_env do
-        output, = Open3.capture2e({ 'BUNDLE_GEMFILE' => gemfile.to_s }, "bundle check || bundle install")
-
-        puts output
+        sh({ 'BUNDLE_GEMFILE' => gemfile.to_s }, 'bundle check || bundle install')
       end
     end
   end
