@@ -65,7 +65,7 @@ save_bundle_checksum: &save_bundle_checksum
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
         # Recompute gemfiles/*.lock checksum, as those files might have changed
-        cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+        cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
       fi
       cp .circleci/bundle_checksum /usr/local/bundle/bundle_checksum
 step_bundle_install: &step_bundle_install
@@ -82,16 +82,12 @@ step_appraisal_install: &step_appraisal_install
     name: Install Appraisal gems
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
-        bundle exec appraisal install
+        bundle exec appraisal generate
+        bundle exec rake dependency:install
       else
-        bundle exec appraisal generate # Generate the appraisal files to match the lockfiles in the tree
+        bundle exec appraisal generate
         echo "All required gems were found in cache."
       fi
-step_appraisal_update: &step_appraisal_update
-  run:
-    name: Update Appraisal gems
-    command: | # Remove all generated gemfiles and lockfiles, resolve, and install dependencies again
-      bundle exec appraisal update
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
@@ -100,7 +96,7 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
     # updating the gemset lock files produces extremely large commits.
     command: |
       bundle lock # Create Gemfile.lock
-      cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
+      cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
 step_run_all_tests: &step_run_all_tests
   run:
     name: Run tests
@@ -164,6 +160,12 @@ orbs:
         <<: *test_job_default
         steps:
           - checkout
+          - run:
+              name: Know the environment
+              command: |
+                ruby -v
+                gem -v
+                bundle -v
           - restore_cache:
               keys:
                 - '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
@@ -175,17 +177,7 @@ orbs:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}
           - *check_exact_bundle_cache_hit
           - *step_bundle_install
-          - when:
-              condition:
-                equal: [ << parameters.edge >>, true ]
-              steps:
-                - *step_appraisal_update # Run on latest version of all gems we integrate with
-          - when:
-              condition:
-                not:
-                  equal: [ << parameters.edge >>, true ]
-              steps:
-                - *step_appraisal_install # Run on a stable set of gems we integrate with
+          - *step_appraisal_install # Run on a stable set of gems we integrate with
           - *save_bundle_checksum
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
@@ -293,6 +285,10 @@ orbs:
                 curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL
                 chmod +x /usr/local/bin/dockerize
                 dockerize --version
+          # Test agent uses `jq` to check results
+          - run:
+              name: Install jq
+              command: apt update && apt install jq -y
           # Wait for containers to start
           - docker-wait:
               port: 5432
@@ -315,10 +311,6 @@ orbs:
               host: "testagent"
               port: 9126
           - *step_run_all_tests
-          - run:
-              # Test agent uses `jq` to check results
-              name: Install jq
-              command: apt update && apt install jq -y
           - *step_get_test_agent_trace_check_results
           - store_test_results:
               path: /tmp/rspec

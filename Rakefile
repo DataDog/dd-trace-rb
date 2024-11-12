@@ -22,6 +22,7 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
@@ -56,13 +57,13 @@ namespace :test do
       end
 
       candidates.each do |appraisal_group, _|
-        command = if appraisal_group.empty?
-                    "bundle exec rake #{spec_task}"
-                  else
-                    gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
-                    "env BUNDLE_GEMFILE=#{gemfile} bundle exec rake #{spec_task}"
-                  end
-
+        env = if appraisal_group.empty?
+                {}
+              else
+                gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
+                { 'BUNDLE_GEMFILE' => gemfile }
+              end
+        command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
         total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
@@ -71,9 +72,9 @@ namespace :test do
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
           @execution_count += 1
-          sh(command) if @execution_count % total_executors == current_executor
+          Bundler.with_unbundled_env { sh(env, command) } if @execution_count % total_executors == current_executor
         else
-          sh(command)
+          Bundler.with_unbundled_env { sh(env, command) }
         end
       end
     end
@@ -81,7 +82,6 @@ namespace :test do
 end
 
 desc 'Run RSpec'
-# rubocop:disable Metrics/BlockLength
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark,
