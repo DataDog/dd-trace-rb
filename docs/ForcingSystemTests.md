@@ -22,7 +22,7 @@ To do so, you can complete the `.github/forced-tests-list.json` file by followin
 ## Example
 
 ```json
-  {
+{
   "DEFAULT":
     [
       "tests/appsec/waf/test_miscs.py::Test_CorrectOptionProcessing",
@@ -38,3 +38,7 @@ To do so, you can complete the `.github/forced-tests-list.json` file by followin
 ## Cleanup
 
 You can leave other force-executed tests added by other developers and append yours to the .json file, there is a cleanup task in the release process.
+
+## Reference
+
+System-tests documentation on [force-executing tests](https://github.com/DataDog/system-tests/blob/main/docs/execute/force-execute.md)
