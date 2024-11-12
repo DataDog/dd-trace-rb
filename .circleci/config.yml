@@ -87,11 +87,6 @@ step_appraisal_install: &step_appraisal_install
         bundle exec appraisal generate # Generate the appraisal files to match the lockfiles in the tree
         echo "All required gems were found in cache."
       fi
-step_appraisal_update: &step_appraisal_update
-  run:
-    name: Update Appraisal gems
-    command: | # Remove all generated gemfiles and lockfiles, resolve, and install dependencies again
-      bundle exec appraisal update
 step_compute_bundle_checksum: &step_compute_bundle_checksum
   run:
     name: Compute bundle checksum
@@ -181,17 +176,7 @@ orbs:
                 - bundle-{{ .Environment.CIRCLE_CACHE_VERSION }}-{{ checksum ".circleci/images/primary/binary_version" }}-<<parameters.ruby_version>>-{{ checksum "lib/datadog/version.rb" }}
           - *check_exact_bundle_cache_hit
           - *step_bundle_install
-          - when:
-              condition:
-                equal: [ << parameters.edge >>, true ]
-              steps:
-                - *step_appraisal_update # Run on latest version of all gems we integrate with
-          - when:
-              condition:
-                not:
-                  equal: [ << parameters.edge >>, true ]
-              steps:
-                - *step_appraisal_install # Run on a stable set of gems we integrate with
+          - *step_appraisal_install # Run on a stable set of gems we integrate with
           - *save_bundle_checksum
           - save_cache:
               key: '{{ .Environment.CIRCLE_CACHE_VERSION }}-bundled-repo-<<parameters.ruby_version>>-{{ .Environment.CIRCLE_SHA1 }}'
