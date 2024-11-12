@@ -14,6 +14,12 @@
   {"name": "❌ gem install",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/gem", "install"  ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
 
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "_2.4.0_", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "--verbose", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "--verbose", "--no-color", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "--verbose", "--no-color", "--retry", "3", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+
+  {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "update"    ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "cache"     ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "config"    ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},

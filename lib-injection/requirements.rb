@@ -78,16 +78,18 @@ def requirements
       plugin
       version
     ].each do |command|
-      reqs['deny'] << {
-        'id' => "#{exe}_#{command}",
-        'description' => "Ignore #{exe} #{command}",
-        'os' => nil,
-        'cmds' => [
-          '**/ruby'
-        ],
-        'args' => [{ 'args' => ["*/#{exe}", command], 'position' => 1 }],
-        'envars' => nil,
-      }
+      [[], ['*'], ['*', '*'], ['*', '*', '*'], ['*', '*', '*', '*']].each do |varargs|
+        reqs['deny'] << {
+          'id' => "#{exe}_#{command}",
+          'description' => "Ignore #{exe} #{command}",
+          'os' => nil,
+          'cmds' => [
+            '**/ruby'
+          ],
+          'args' => [{ 'args' => ["*/#{exe}", *varargs, command], 'position' => 1 }],
+          'envars' => nil,
+        }
+      end
     end
   end
 
