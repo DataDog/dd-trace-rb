@@ -47,6 +47,10 @@ module Datadog
           raise ArgumentError, "Probe contains both line number and method name: #{id}"
         end
 
+        if line_no && !file
+          raise ArgumentError, "Probe contains line number but not file: #{id}"
+        end
+
         if type_name && !method_name || method_name && !type_name
           raise ArgumentError, "Partial method probe definition: #{id}"
         end
@@ -103,7 +107,10 @@ module Datadog
       # method or for stack traversal purposes?), therefore we do not check
       # for file name/path presence here and just consider the line number.
       def line?
-        !line_no.nil?
+        # Constructor checks that file is given if line number is given,
+        # but for safety, check again here since we somehow got a probe with
+        # a line number but no file in the wild.
+        !!(file && line_no)
       end
 
       # Returns whether the probe is a method probe.
