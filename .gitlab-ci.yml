@@ -139,14 +139,15 @@ onboarding_tests_installer:
     - when: on_success
   parallel:
     matrix:
-      - ONBOARDING_FILTER_WEBLOG: [test-app-ruby-container]
+      - ONBOARDING_FILTER_WEBLOG: [test-app-ruby, test-app-ruby-container]
   script:
     - export TEST_LIBRARY="ruby"
     - git clone https://git@github.com/DataDog/system-tests.git system-tests
     - cd system-tests
     - git checkout robertomonteromiguel/onboarding_rb_amazonlinux2022
     - ./build.sh -i runner # TODO replace with prebuilt image eventually
-    - timeout 2700s ./run.sh $SCENARIO --vm-weblog ${ONBOARDING_FILTER_WEBLOG} --vm-env prod --vm-library ${TEST_LIBRARY} --vm-provider aws --vm-default-vms ${USE_DEFAULT_VMS} --vm-only-branch amazon_linux2022
+    - timeout 2700s ./run.sh $SCENARIO --vm-weblog ${ONBOARDING_FILTER_WEBLOG} --vm-env prod --vm-library ${TEST_LIBRARY} --vm-provider aws --vm-default-vms ${USE_DEFAULT_VMS}
+
 onboarding_tests_k8s_injection:
   parallel:
     matrix:
