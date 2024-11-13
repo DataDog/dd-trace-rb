@@ -13,6 +13,14 @@
   {"name": "❌ gem",          "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/gem"             ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ gem install",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/gem", "install"  ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
 
+  {"name": "❌ ruby disable gems",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "--disable-gems"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ ruby disable gems",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "-w", "--disable-gems"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ ruby disable gems",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "-w", "-w", "--disable-gems"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ ruby disable gems",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "-w", "-w", "-w", "--disable-gems"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+  {"name": "❌ ruby disable gems",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "-w", "-w", "-w", "-w", "--disable-gems"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+
+  {"name": "❌ ruby rubygems-update setup.rb",  "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "--disable-gems", "setup.rb", "--no-document", "--previous-version", "3.3.26"], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
+
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "_2.4.0_", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
   {"name": "❌ bundle" , "filepath": "/path/to/ruby", "args": ["/path/to/ruby", "/path/to/bundle",  "--verbose", "install"   ], "envars": [], "host": {"os": "linux", "arch": "x64", "libc": "glibc:2.40"}},
