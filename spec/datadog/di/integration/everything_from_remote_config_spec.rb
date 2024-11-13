@@ -7,6 +7,8 @@ class EverythingFromRemoteConfigSpecTestClass
   end
 end
 
+LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
+
 RSpec.describe 'DI integration from remote config' do
   di_test
 
@@ -103,8 +105,6 @@ RSpec.describe 'DI integration from remote config' do
   before do
     expect(Datadog::DI).to receive(:component).at_least(:once).and_return(component)
   end
-
-  LOWERCASE_UUID_REGEXP = /\A[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}\z/
 
   let(:mock_response) do
     instance_double(Datadog::Core::Transport::HTTP::Response).tap do |response|
