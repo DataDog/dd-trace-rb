@@ -51,16 +51,16 @@ module DIHelpers
 
   module InstanceMethods
     def order_hash_keys(hash)
-      Hash[hash.keys.map do |key|
+      hash.keys.map do |key|
         [key.to_s, hash[key]]
-      end]
+      end.to_h
     end
 
     def deep_stringify_keys(hash)
       if Hash === hash
-        Hash[hash.map do |key, value|
+        hash.map do |key, value|
           [key.to_s, deep_stringify_keys(value)]
-        end]
+        end.to_h
       else
         hash
       end

@@ -303,7 +303,6 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     context 'unknown type probe followed by method probe' do
-
       # If exceptions are propagated, remote config processing will stop
       # at the first, failing, probe specification.
       let(:propagate_all_exceptions) { false }
@@ -314,7 +313,7 @@ RSpec.describe 'DI integration from remote config' do
 
       let(:probe_configs) do
         {'datadog/2/LIVE_DEBUGGING/foo1/bar1' => unknown_probe_spec,
-        'datadog/2/LIVE_DEBUGGING/foo2/bar2' => probe_spec}
+         'datadog/2/LIVE_DEBUGGING/foo2/bar2' => probe_spec}
       end
 
       it 'installs the second, known, probe' do
