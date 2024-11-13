@@ -9,4 +9,6 @@ class InstrumentationIntegrationTestClass
     # padding
     a * 2 # line 10
   end # line 11
-end
+end # line 12
+
+# Comment - line 14

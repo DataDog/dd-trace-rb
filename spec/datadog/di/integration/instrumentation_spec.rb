@@ -354,6 +354,20 @@ RSpec.describe 'Instrumentation integration' do
 
           include_examples 'simple log probe'
         end
+
+        context 'target line contains a comment (no executable code)' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 14,
+              capture_snapshot: false,)
+          end
+
+          # We currently are not told that the line is not executable.
+          it 'installs probe' do
+            expect(probe_manager.add_probe(probe)).to be true
+            expect(probe_manager.installed_probes.length).to eq 1
+          end
+        end
       end
 
       context 'enriched probe' do

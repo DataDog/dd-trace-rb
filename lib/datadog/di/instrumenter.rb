@@ -223,7 +223,10 @@ module Datadog
         # this optimization just yet and create a trace point for each probe.
 
         types = if iseq
-          # When targeting trace points we can target the 'end' line of a method
+          # When targeting trace points we can target the 'end' line of a method.
+          # However, by adding the :return trace point we lose diagnostics
+          # for lines that contain no executable code (e.g. comments only)
+          # and thus cannot actually be instrumented.
           [:line, :return]
         else
           [:line]
