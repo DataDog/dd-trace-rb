@@ -131,7 +131,7 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'when method is defined after probe is added to probe manager' do
+        context 'when class with target method is defined after probe is added to probe manager' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: 'InstrumentationDelayedTestClass', method_name: 'test_method',
@@ -165,6 +165,94 @@ RSpec.describe 'Instrumentation integration' do
                 method: 'test_method', type: 'InstrumentationDelayedTestClass',
               }},
               language: 'ruby',
+              stack: Array,
+              captures: nil,
+            )
+          end
+        end
+
+        context 'when class exists without target method and method is defined after probe is added to probe manager' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationDelayedPartialTestClass', method_name: 'test_method',
+              capture_snapshot: false,)
+          end
+
+          it 'invokes probe and creates expected snapshot' do
+            class InstrumentationDelayedPartialTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              # test_method should not be defined here
+            end
+
+            expect(component.transport).to receive(:send_request).at_least(:once)
+            expect(probe_manager.add_probe(probe)).to be true
+
+            class InstrumentationDelayedPartialTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              def test_method
+                43
+              end
+            end
+
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationDelayedPartialTestClass.new.test_method).to eq(43)
+            component.probe_notifier_worker.flush
+
+            snapshot = payload.fetch(:"debugger.snapshot")
+            expect(snapshot).to match(
+              id: String,
+              timestamp: Integer,
+              evaluationErrors: [],
+              probe: {id: '1234', version: 0, location: {
+                method: 'test_method', type: 'InstrumentationDelayedPartialTestClass',
+              }},
+              language: 'ruby',
+              # TODO the stack trace here does not contain the target method
+              # as the first frame - see the comment in Instrumenter.
+              stack: Array,
+              captures: nil,
+            )
+          end
+        end
+
+        context 'when class exists and target method virtual' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              type_name: 'InstrumentationVirtualTestClass', method_name: 'test_method',
+              capture_snapshot: false,)
+          end
+
+          it 'invokes probe and creates expected snapshot' do
+            class InstrumentationVirtualTestClass # rubocop:disable Lint/ConstantDefinitionInBlock
+              def method_missing(name) # rubocop:disable Style/MissingRespondToMissing
+                name
+              end
+            end
+
+            expect(component.transport).to receive(:send_request).at_least(:once)
+            expect(probe_manager.add_probe(probe)).to be true
+
+            payload = nil
+            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+              payload = payload_
+            end
+
+            expect(InstrumentationVirtualTestClass.new.test_method).to eq(:test_method)
+            component.probe_notifier_worker.flush
+
+            snapshot = payload.fetch(:"debugger.snapshot")
+            expect(snapshot).to match(
+              id: String,
+              timestamp: Integer,
+              evaluationErrors: [],
+              probe: {id: '1234', version: 0, location: {
+                method: 'test_method', type: 'InstrumentationVirtualTestClass',
+              }},
+              language: 'ruby',
+              # TODO the stack trace here does not contain the target method
+              # as the first frame - see the comment in Instrumenter.
               stack: Array,
               captures: nil,
             )
