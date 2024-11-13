@@ -17,6 +17,15 @@ class InstrumentationIntegrationTestClass
     end # line 17
   end
 
-end # line 20
+  def test_method_with_conditional
+    if false
+      a = 1
+    else # line 23
+      a = 2
+    end # line 25
+    a
+  end
 
-# Comment - line 22
+end # line 29
+
+# Comment - line 31

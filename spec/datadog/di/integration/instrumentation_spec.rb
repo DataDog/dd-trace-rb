@@ -408,10 +408,49 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
+        shared_examples 'installs but does not invoke probe' do
+          it 'installs but does not invoke probe' do
+            expect(component.transport).to receive(:send_request).once
+            probe_manager.add_probe(probe)
+            component.probe_notifier_worker.flush
+            expect(probe_manager.installed_probes.length).to eq 1
+            expect(component.probe_notifier_worker).not_to receive(:add_snapshot)
+            call_target
+          end
+        end
+
+        context 'target line is else of a conditional' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 23,
+              capture_snapshot: false,)
+          end
+
+          let(:call_target) do
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+          end
+
+          include_examples 'installs but does not invoke probe'
+        end
+
+        context 'target line is end of a conditional' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 25,
+              capture_snapshot: false,)
+          end
+
+          let(:call_target) do
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
+          end
+
+          include_examples 'installs but does not invoke probe'
+        end
+
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              file: 'instrumentation_integration_test_class.rb', line_no: 31,
               capture_snapshot: false,)
           end
 
