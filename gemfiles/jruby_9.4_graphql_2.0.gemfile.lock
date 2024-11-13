@@ -103,7 +103,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     erubi (1.13.0)
-    ffi (1.17.0-java)
+    ffi (1.16.3-java)
     globalid (1.2.1)
       activesupport (>= 6.1)
     graphql (2.0.28)
@@ -272,7 +272,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
-    webrick (1.8.1)
+    webrick (1.9.0)
     websocket-driver (0.7.6-java)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
@@ -289,6 +289,7 @@ DEPENDENCIES
   concurrent-ruby
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
+  ffi (~> 1.16.3)
   graphql (~> 2.0.0)
   json-schema (< 3)
   lograge (~> 0.11)
@@ -315,7 +316,7 @@ DEPENDENCIES
   uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick (>= 1.7.0)
+  webrick (>= 1.8.2)
 
 BUNDLED WITH
    2.3.26
