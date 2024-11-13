@@ -3,5 +3,9 @@ module Datadog
     def self.code_tracker: () -> CodeTracker?
     
     def self.component: () -> Component?
+    
+    def self.activate_tracking!: () -> void
+    
+    def self.deactivate_tracking!: () -> void
   end
 end
