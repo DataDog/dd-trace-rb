@@ -48,6 +48,40 @@
       "envars": null
     },
     {
+      "id": "ruby_disable_gems",
+      "description": "Rubygems is required for injection to function",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "--disable-gems"
+          ],
+          "position": null
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "gem_update_system",
+      "description": "Ignore the rubygems update setup.rb",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "setup.rb"
+          ],
+          "position": null
+        }
+      ],
+      "envars": null
+    },
+    {
       "id": "bundle_install",
       "description": "Ignore bundle install",
       "os": null,
