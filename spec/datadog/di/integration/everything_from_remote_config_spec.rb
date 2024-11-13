@@ -60,12 +60,14 @@ RSpec.describe 'DI integration from remote config' do
     Datadog::DI::Component.build!(settings, agent_settings)
   end
 
+  let(:propagate_all_exceptions) { true }
+
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.remote.enabled = true
       settings.dynamic_instrumentation.enabled = true
       settings.dynamic_instrumentation.internal.development = true
-      settings.dynamic_instrumentation.internal.propagate_all_exceptions = true
+      settings.dynamic_instrumentation.internal.propagate_all_exceptions = propagate_all_exceptions
     end
   end
 
@@ -297,6 +299,29 @@ RSpec.describe 'DI integration from remote config' do
 
         snapshot_payload = payloads.shift
         expect(order_hash_keys(snapshot_payload)).to match(deep_stringify_keys(order_hash_keys(expected_snapshot_payload)))
+      end
+    end
+
+    context 'unknown type probe followed by method probe' do
+
+      # If exceptions are propagated, remote config processing will stop
+      # at the first, failing, probe specification.
+      let(:propagate_all_exceptions) { false }
+
+      let(:unknown_probe_spec) do
+        {id: '12', name: 'foo', type: 'UNKNOWN_PROBE'}
+      end
+
+      let(:probe_configs) do
+        {'datadog/2/LIVE_DEBUGGING/foo1/bar1' => unknown_probe_spec,
+        'datadog/2/LIVE_DEBUGGING/foo2/bar2' => probe_spec}
+      end
+
+      it 'installs the second, known, probe' do
+        do_rc
+        assert_received_and_installed
+
+        expect(probe_manager.installed_probes.length).to eq 1
       end
     end
   end

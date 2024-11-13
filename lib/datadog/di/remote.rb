@@ -44,37 +44,46 @@ module Datadog
               repository.contents.each do |content|
                 case content.path.product
                 when PRODUCT
-                  probe_spec = parse_content(content)
-                  probe = ProbeBuilder.build_from_remote_config(probe_spec)
-                  payload = component.probe_notification_builder.build_received(probe)
-                  component.probe_notifier_worker.add_status(payload)
-                  component.logger.info("Received probe from RC: #{probe.type} #{probe.location}")
-
                   begin
-                    # TODO test exception capture
-                    probe_manager.add_probe(probe)
-                    content.applied
+                    probe_spec = parse_content(content)
+                    probe = ProbeBuilder.build_from_remote_config(probe_spec)
+                    payload = component.probe_notification_builder.build_received(probe)
+                    component.probe_notifier_worker.add_status(payload)
+                    component.logger.info("Received probe from RC: #{probe.type} #{probe.location}")
+
+                    begin
+                      # TODO test exception capture
+                      probe_manager.add_probe(probe)
+                      content.applied
+                    rescue => exc
+                      raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
+
+                      component.logger.warn("Unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}")
+                      component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
+
+                      # If a probe fails to install, we will mark the content
+                      # as errored. On subsequent remote configuration application
+                      # attemps, probe manager will raise the "previously errored"
+                      # exception and we'll rescue it here, again marking the
+                      # content as errored but with a somewhat different exception
+                      # message.
+                      # TODO stack trace must be redacted or not sent at all
+                      content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}: #{Array(exc.backtrace).join("\n")}")
+                    end
+
+                    # Important: even if processing fails for this probe config,
+                    # we need to note it as being current so that we do not
+                    # try to remove instrumentation that is still supposed to be
+                    # active.
+                    current_probe_ids[probe_spec.fetch('id')] = true
                   rescue => exc
                     raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    component.logger.warn("Unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}")
-                    component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
+                    component.logger.warn("Unhandled exception handling probe in DI remote receiver: #{exc.class}: #{exc}")
+                    component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
-                    # If a probe fails to install, we will mark the content
-                    # as errored. On subsequent remote configuration application
-                    # attemps, probe manager will raise the "previously errored"
-                    # exception and we'll rescue it here, again marking the
-                    # content as errored but with a somewhat different exception
-                    # message.
-                    # TODO stack trace must be redacted or not sent at all
                     content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}: #{Array(exc.backtrace).join("\n")}")
                   end
-
-                  # Important: even if processing fails for this probe config,
-                  # we need to note it as being current so that we do not
-                  # try to remove instrumentation that is still supposed to be
-                  # active.
-                  current_probe_ids[probe_spec.fetch('id')] = true
                 end
               end
 
