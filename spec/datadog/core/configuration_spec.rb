@@ -57,7 +57,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration)
+              .with(test_class.configuration, old_state: {remote_started: nil})
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)
