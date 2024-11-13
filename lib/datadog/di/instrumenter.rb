@@ -222,7 +222,13 @@ module Datadog
         # overhead of targeted trace points is minimal, don't worry about
         # this optimization just yet and create a trace point for each probe.
 
-        tp = TracePoint.new(:line) do |tp|
+        types = if iseq
+          # When targeting trace points we can target the 'end' line of a method
+          [:line, :return]
+        else
+          [:line]
+        end
+        tp = TracePoint.new(*types) do |tp|
           begin
             # If trace point is not targeted, we must verify that the invocation
             # is the file & line that we want, because untargeted trace points

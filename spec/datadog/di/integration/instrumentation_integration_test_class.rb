@@ -8,5 +8,5 @@ class InstrumentationIntegrationTestClass
     # padding
     # padding
     a * 2 # line 10
-  end
+  end # line 11
 end
