@@ -38,7 +38,7 @@ GEM
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (4.8.3)
-    ffi (1.17.0-java)
+    ffi (1.16.3-java)
     hashdiff (1.0.1)
     json (2.6.3-java)
     json-schema (2.8.1)
@@ -140,6 +140,7 @@ DEPENDENCIES
   concurrent-ruby
   datadog!
   dogstatsd-ruby (~> 4)
+  ffi (~> 1.16.3)
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
