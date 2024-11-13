@@ -135,8 +135,8 @@ module Datadog
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": Datadog::Tracing.active_trace&.id,
-          "dd.span_id": Datadog::Tracing.active_span&.id,
+          "dd.trace_id": Datadog::Tracing.active_trace&.id&.to_s,
+          "dd.span_id": Datadog::Tracing.active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
             duration: duration ? duration * 1000 : nil),
