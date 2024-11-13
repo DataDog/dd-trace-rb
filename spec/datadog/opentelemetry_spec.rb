@@ -630,11 +630,11 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(span.events[0].attributes['exception.message']).to eq('Error')
             expect(span.events[0].attributes['exception.type']).to eq('StandardError')
             expect(span.events[0].attributes['exception.stacktrace']).to include(
-              ":in `full_message': Error (StandardError)"
+              "full_message': Error (StandardError)"
             )
             expect(span).to_not have_error
             expect(span).to have_error_message('Error')
-            expect(span).to have_error_stack(include(":in `full_message': Error (StandardError)"))
+            expect(span).to have_error_stack(include("full_message': Error (StandardError)"))
             expect(span).to have_error_type('StandardError')
           end
         end
@@ -649,7 +649,7 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(span.events[0].attributes).to eq({})
           expect(span).to_not have_error
           expect(span).to have_error_message('Error')
-          expect(span).to have_error_stack(include(":in `full_message': Error (StandardError)"))
+          expect(span).to have_error_stack(include("full_message': Error (StandardError)"))
           expect(span).to have_error_type('StandardError')
         end
       end
