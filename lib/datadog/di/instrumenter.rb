@@ -227,7 +227,7 @@ module Datadog
           # However, by adding the :return trace point we lose diagnostics
           # for lines that contain no executable code (e.g. comments only)
           # and thus cannot actually be instrumented.
-          [:line, :return]
+          [:line, :return, :b_return]
         else
           [:line]
         end
@@ -249,7 +249,7 @@ module Datadog
             # TODO test this path
           end
         rescue => exc
-          raise if settings.dynamic_instrumentation.propagate_all_exceptions
+          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
