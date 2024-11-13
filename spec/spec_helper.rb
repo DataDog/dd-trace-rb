@@ -306,4 +306,4 @@ Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thr
 # Code tracking calls out to the current DI component, which may reference
 # mock objects in the test suite. Disable it and tests that need code tracking
 # will enable it back for themselves.
-Datadog::DI.deactivate_tracking!
+Datadog::DI.deactivate_tracking! if Datadog::DI.respond_to?(:deactivate_tracking!)
