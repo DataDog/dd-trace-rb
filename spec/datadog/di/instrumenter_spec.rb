@@ -102,19 +102,36 @@ RSpec.describe Datadog::DI::Instrumenter do
            capture_snapshot: true}
         end
 
-        it 'invokes callback and captures parameters' do
-          instrumenter.hook_method(probe) do |payload|
-            observed_calls << payload
+        let(:target_call) do
+          expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
+        end
+
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 2
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+          end
+        end
+
+        include_examples 'invokes callback and captures parameters'
+
+        context 'when passed via a splat' do
+
+          let(:target_call) do
+            expect(HookTestClass.new.hook_test_method_with_arg(*[2])).to eq 2
           end
 
-          expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
-
-          expect(observed_calls.length).to eq 1
-          expect(observed_calls.first.keys.sort).to eq call_keys
-          expect(observed_calls.first[:rv]).to eq 2
-          expect(observed_calls.first[:duration]).to be_a(Float)
-
-          expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+          include_examples 'invokes callback and captures parameters'
         end
       end
     end
