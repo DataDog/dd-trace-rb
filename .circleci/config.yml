@@ -82,10 +82,10 @@ step_appraisal_install: &step_appraisal_install
     name: Install Appraisal gems
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate
         bundle exec rake dependency:install
       else
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate # Generate the appraisal files to match the lockfiles in the tree
         echo "All required gems were found in cache."
       fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum

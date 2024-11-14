@@ -28,7 +28,7 @@ RSpec.describe 'gem release process' do
            |Appraisals
            |CONTRIBUTING.md
            |Gemfile
-           |Gemfile-.*
+           |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile
            |Matrixfile
            |Steepfile
