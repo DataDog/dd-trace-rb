@@ -90,16 +90,18 @@ build_coverage_matrix('elasticsearch', 7..8)
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
   # All existing relational_db configurations use ActiveRecord 7.0. ActiveRecord 7.1 is tested as a part of rails71
-  # appraisal configurations.
+  # appraisal configurations. The latest version of sqlite3 (i.e. 2+) requires ActiveRecord 7.1, so sqlite3 version
+  # has been locked as well.
   #
   # TODO: Repair the failures with ActiveRecord 7.1 in this configuration and remove the locked version.
+  # TODO: After ActiveRecord is upgraded to 7.1+, sqlite3 can be unlocked as well.
   gem 'activerecord', '~> 7.0.0'
   gem 'delayed_job'
   gem 'delayed_job_active_record'
   gem 'makara', '>= 0.6.0.pre' # Ruby 3 requires >= 0.6.0, which is currently in pre-release: https://rubygems.org/gems/makara/versions
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
-  gem 'sqlite3', '>= 1.4.2', platform: :ruby
+  gem 'sqlite3', '~> 1.4', platform: :ruby
   gem 'sequel'
   gem 'trilogy'
 end
