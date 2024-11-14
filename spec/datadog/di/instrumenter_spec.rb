@@ -136,6 +136,57 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'keyword args' do
+      context 'with snapshot capture' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_kwarg',
+           capture_snapshot: true}
+        end
+
+        let(:target_call) do
+          expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
+        end
+
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 42
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(kwarg: {type: 'Integer', value: '42'})
+          end
+        end
+
+        include_examples 'invokes callback and captures parameters'
+
+        context 'when passed via a splat' do
+
+          let(:target_call) do
+            expect(HookTestClass.new.hook_test_method_with_kwarg(**{kwarg: 42})).to eq 42
+          end
+
+          include_examples 'invokes callback and captures parameters'
+        end
+
+        context 'when passed via a splat with string keys' do
+
+          let(:target_call) do
+            pending '2.x only?'
+            expect(HookTestClass.new.hook_test_method_with_kwarg(**{'kwarg' => 42})).to eq 42
+          end
+
+          include_examples 'invokes callback and captures parameters'
+        end
+      end
+    end
+
     context 'when hooking two identical but different probes' do
       let(:probe) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
