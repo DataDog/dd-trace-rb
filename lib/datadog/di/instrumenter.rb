@@ -222,7 +222,16 @@ module Datadog
         # overhead of targeted trace points is minimal, don't worry about
         # this optimization just yet and create a trace point for each probe.
 
-        tp = TracePoint.new(:line) do |tp|
+        types = if iseq
+          # When targeting trace points we can target the 'end' line of a method.
+          # However, by adding the :return trace point we lose diagnostics
+          # for lines that contain no executable code (e.g. comments only)
+          # and thus cannot actually be instrumented.
+          [:line, :return, :b_return]
+        else
+          [:line]
+        end
+        tp = TracePoint.new(*types) do |tp|
           begin
             # If trace point is not targeted, we must verify that the invocation
             # is the file & line that we want, because untargeted trace points
@@ -240,7 +249,7 @@ module Datadog
             # TODO test this path
           end
         rescue => exc
-          raise if settings.dynamic_instrumentation.propagate_all_exceptions
+          raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
           logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path

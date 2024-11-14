@@ -296,48 +296,168 @@ RSpec.describe 'Instrumentation integration' do
           load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
         end
 
-        it 'invokes probe' do
-          expect(component.transport).to receive(:send_request).at_least(:once)
-          probe_manager.add_probe(probe)
-          component.probe_notifier_worker.flush
-          expect(probe_manager.installed_probes.length).to eq 1
-          expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
-          expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+        shared_examples 'simple log probe' do
+          it 'invokes probe' do
+            expect(component.transport).to receive(:send_request).at_least(:once)
+            probe_manager.add_probe(probe)
+            component.probe_notifier_worker.flush
+            expect(probe_manager.installed_probes.length).to eq 1
+            expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
+            expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+          end
+
+          describe 'payload' do
+            let(:payload) do
+              probe_manager.add_probe(probe)
+              payload = nil
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+                payload = payload_
+              end
+              expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
+              component.probe_notifier_worker.flush
+              expect(payload).to be_a(Hash)
+              payload
+            end
+
+            let(:snapshot) do
+              payload.fetch(:"debugger.snapshot")
+            end
+
+            it 'does not have captures' do
+              expect(component.transport).to receive(:send_request).at_least(:once)
+              expect(snapshot.fetch(:captures)).to be nil
+            end
+
+            let(:stack) do
+              snapshot.fetch(:stack)
+            end
+
+            let(:top_stack_frame) do
+              stack.first
+            end
+
+            it 'has instrumented location as top stack frame' do
+              expect(component.transport).to receive(:send_request).at_least(:once)
+              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq 'instrumentation_integration_test_class.rb'
+            end
+          end
         end
 
-        describe 'payload' do
-          let(:payload) do
+        include_examples 'simple log probe'
+
+        context 'target line is the end line of a method' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 11,
+              capture_snapshot: false,)
+          end
+
+          include_examples 'simple log probe'
+        end
+
+        context 'target line is the end line of a block' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 17,
+              capture_snapshot: false,)
+          end
+
+          it 'invokes probe' do
+            expect(component.transport).to receive(:send_request).at_least(:once)
             probe_manager.add_probe(probe)
-            payload = nil
-            expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
-              payload = payload_
-            end
-            expect(InstrumentationIntegrationTestClass.new.test_method).to eq(42)
             component.probe_notifier_worker.flush
-            expect(payload).to be_a(Hash)
-            payload
+            expect(probe_manager.installed_probes.length).to eq 1
+            expect(component.probe_notifier_worker).to receive(:add_snapshot).once.and_call_original
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_block).to eq([1])
           end
 
-          let(:snapshot) do
-            payload.fetch(:"debugger.snapshot")
+          describe 'payload' do
+            let(:payload) do
+              probe_manager.add_probe(probe)
+              payload = nil
+              expect(component.probe_notifier_worker).to receive(:add_snapshot) do |payload_|
+                payload = payload_
+              end
+              expect(InstrumentationIntegrationTestClass.new.test_method_with_block).to eq([1])
+              component.probe_notifier_worker.flush
+              expect(payload).to be_a(Hash)
+              payload
+            end
+
+            let(:snapshot) do
+              payload.fetch(:"debugger.snapshot")
+            end
+
+            it 'does not have captures' do
+              expect(component.transport).to receive(:send_request).at_least(:once)
+              expect(snapshot.fetch(:captures)).to be nil
+            end
+
+            let(:stack) do
+              snapshot.fetch(:stack)
+            end
+
+            let(:top_stack_frame) do
+              stack.first
+            end
+
+            it 'has instrumented location as top stack frame' do
+              expect(component.transport).to receive(:send_request).at_least(:once)
+              expect(File.basename(top_stack_frame.fetch(:fileName))).to eq 'instrumentation_integration_test_class.rb'
+            end
+          end
+        end
+
+        shared_examples 'installs but does not invoke probe' do
+          it 'installs but does not invoke probe' do
+            expect(component.transport).to receive(:send_request).once
+            probe_manager.add_probe(probe)
+            component.probe_notifier_worker.flush
+            expect(probe_manager.installed_probes.length).to eq 1
+            expect(component.probe_notifier_worker).not_to receive(:add_snapshot)
+            call_target
+          end
+        end
+
+        context 'target line is else of a conditional' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 23,
+              capture_snapshot: false,)
           end
 
-          it 'does not have captures' do
-            expect(component.transport).to receive(:send_request).at_least(:once)
-            expect(snapshot.fetch(:captures)).to be nil
+          let(:call_target) do
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
           end
 
-          let(:stack) do
-            snapshot.fetch(:stack)
+          include_examples 'installs but does not invoke probe'
+        end
+
+        context 'target line is end of a conditional' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 25,
+              capture_snapshot: false,)
           end
 
-          let(:top_stack_frame) do
-            stack.first
+          let(:call_target) do
+            expect(InstrumentationIntegrationTestClass.new.test_method_with_conditional).to eq(2)
           end
 
-          it 'has instrumented location as top stack frame' do
-            expect(component.transport).to receive(:send_request).at_least(:once)
-            expect(File.basename(top_stack_frame.fetch(:fileName))).to eq 'instrumentation_integration_test_class.rb'
+          include_examples 'installs but does not invoke probe'
+        end
+
+        context 'target line contains a comment (no executable code)' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 31,
+              capture_snapshot: false,)
+          end
+
+          # We currently are not told that the line is not executable.
+          it 'installs probe' do
+            expect(probe_manager.add_probe(probe)).to be true
+            expect(probe_manager.installed_probes.length).to eq 1
           end
         end
       end
