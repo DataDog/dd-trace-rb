@@ -98,9 +98,7 @@ jobs:
           gem -v
           bundler -v
       - run: bundle install
-
-      # TODO: Migrate away from `appraisal`
-      - run: bundle exec appraisal generate
+      - run: bundle exec rake dependency:generate
       - run: bundle exec rake dependency:lock
       - uses: actions/upload-artifact@v4
         with:
