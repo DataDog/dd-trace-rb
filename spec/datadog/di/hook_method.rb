@@ -11,6 +11,10 @@ class HookTestClass
     kwarg
   end
 
+  def hook_test_method_with_pos_and_kwarg(arg, kwarg:)
+    [arg, kwarg]
+  end
+
   def recursive(depth)
     if depth > 0
       recursive(depth - 1) + '-'
