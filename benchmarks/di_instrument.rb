@@ -73,7 +73,11 @@ class DIInstrumentBenchmark
     settings = Datadog.configuration
     # We benchmark untargeted and targeted trace points; untargeted ones
     # are prohibited by default, permit them.
-    settings.dynamic_instrumentation.untargeted_trace_points = true
+    begin
+      settings.dynamic_instrumentation.internal.untargeted_trace_points = true
+    rescue NoMethodError
+      settings.dynamic_instrumentation.untargeted_trace_points = true
+    end
     redactor = Datadog::DI::Redactor.new(settings)
     serializer = Datadog::DI::Serializer.new(settings, redactor)
     logger = Logger.new(STDERR)
