@@ -15,6 +15,10 @@ jobs:
       - run: gem update --system 3.5.23 # TODO: This is a workaround for a buggy rubygems in 3.4.0-preview2; remove once stable version 3.4 is out
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
+    # Temporarily ruby-asan builds changes
+    # from: `ruby 3.4.0dev (2024-11-07T14:35:19Z :detached: fca07d73e3) +PRISM [x86_64-linux]`
+    # To:   `ruby 3.4.0dev (2024-11-11T18:38:40Z :detached: 8672e88cd2) +PRISM [x86_64-linux]`
+    if: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
