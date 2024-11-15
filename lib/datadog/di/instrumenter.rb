@@ -105,7 +105,7 @@ module Datadog
                 serializer.serialize_args(args, kwargs)
               end
               rv = nil
-              # Under Ruby 2.x we cannot just call super(*args, **kwargs)
+              # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
               duration = Benchmark.realtime do # steep:ignore
                 rv = if args.any?
                   if kwargs.any?
