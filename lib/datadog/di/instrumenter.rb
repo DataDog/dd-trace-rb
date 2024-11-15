@@ -105,8 +105,19 @@ module Datadog
                 serializer.serialize_args(args, kwargs)
               end
               rv = nil
+              # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
               duration = Benchmark.realtime do # steep:ignore
-                rv = super(*args, **kwargs)
+                rv = if args.any?
+                  if kwargs.any?
+                    super(*args, **kwargs)
+                  else
+                    super(*args)
+                  end
+                elsif kwargs.any?
+                  super(**kwargs)
+                else
+                  super()
+                end
               end
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
