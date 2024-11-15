@@ -92,8 +92,16 @@ module Datadog
         cls = symbolize_class_name(probe.type_name)
         serializer = self.serializer
         method_name = probe.method_name
-        target_method = cls.instance_method(method_name)
-        loc = target_method.source_location
+        loc = begin
+          cls.instance_method(method_name).source_location
+        rescue NameError
+          # The target method is not defined.
+          # This could be because it will be explicitly defined later
+          # (since classes can be reopened in Ruby)
+          # or the method is virtual (provided by a method_missing handler).
+          # In these cases we do not have a source location for the
+          # target method here.
+        end
         rate_limiter = probe.rate_limiter
 
         mod = Module.new do
@@ -122,8 +130,19 @@ module Datadog
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
-              method_frame = Location.new(loc.first, loc.last, method_name)
-              caller_locs = [method_frame] + caller_locations # steep:ignore
+              method_frame = if loc
+                [Location.new(loc.first, loc.last, method_name)]
+              else
+                # For virtual and lazily-defined methods, we do not have
+                # the original source location here, and they won't be
+                # included in the stack trace currently.
+                # TODO when begin/end trace points are added for local
+                # variable capture in method probes, we should be able
+                # to obtain actual method execution location and use
+                # that location here.
+                []
+              end
+              caller_locs = method_frame + caller_locations # steep:ignore
               # TODO capture arguments at exit
               # & is to stop steep complaints, block is always present here.
               block&.call(probe: probe, rv: rv, duration: duration, caller_locations: caller_locs,
