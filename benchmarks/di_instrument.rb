@@ -131,7 +131,6 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
-=begin Line probes require more of DI code to be merged
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1)
@@ -207,7 +206,6 @@ class DIInstrumentBenchmark
     # target code is approximately what it was prior to hook installation.
 
     instrumenter.unhook(probe)
-=end
 
     calls = 0
 
