@@ -126,9 +126,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         include_examples 'invokes callback and captures parameters'
 
         context 'when passed via a splat' do
-
           let(:target_call) do
-            expect(HookTestClass.new.hook_test_method_with_arg(*[2])).to eq 2
+            args = [2]
+            expect(HookTestClass.new.hook_test_method_with_arg(*args)).to eq 2
           end
 
           include_examples 'invokes callback and captures parameters'
@@ -167,9 +167,9 @@ RSpec.describe Datadog::DI::Instrumenter do
         include_examples 'invokes callback and captures parameters'
 
         context 'when passed via a splat' do
-
           let(:target_call) do
-            expect(HookTestClass.new.hook_test_method_with_kwarg(**{kwarg: 42})).to eq 42
+            kwargs = {kwarg: 42}
+            expect(HookTestClass.new.hook_test_method_with_kwarg(**kwargs)).to eq 42
           end
 
           include_examples 'invokes callback and captures parameters'
@@ -205,16 +205,18 @@ RSpec.describe Datadog::DI::Instrumenter do
               # TODO actual argument name not captured yet,
               # requires method call trace point.
               arg1: {type: 'Integer', value: '41'},
-              kwarg: {type: 'Integer', value: '42'})
+              kwarg: {type: 'Integer', value: '42'}
+            )
           end
         end
 
         include_examples 'invokes callback and captures parameters'
 
         context 'when passed via a splat' do
-
           let(:target_call) do
-            expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*[41], **{kwarg: 42})).to eq [41, 42]
+            args = [41]
+            kwargs = {kwarg: 42}
+            expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*args, **kwargs)).to eq [41, 42]
           end
 
           include_examples 'invokes callback and captures parameters'
