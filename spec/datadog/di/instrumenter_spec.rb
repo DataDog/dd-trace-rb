@@ -102,19 +102,124 @@ RSpec.describe Datadog::DI::Instrumenter do
            capture_snapshot: true}
         end
 
-        it 'invokes callback and captures parameters' do
-          instrumenter.hook_method(probe) do |payload|
-            observed_calls << payload
+        let(:target_call) do
+          expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
+        end
+
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 2
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+          end
+        end
+
+        include_examples 'invokes callback and captures parameters'
+
+        context 'when passed via a splat' do
+          let(:target_call) do
+            args = [2]
+            expect(HookTestClass.new.hook_test_method_with_arg(*args)).to eq 2
           end
 
-          expect(HookTestClass.new.hook_test_method_with_arg(2)).to eq 2
+          include_examples 'invokes callback and captures parameters'
+        end
+      end
+    end
 
-          expect(observed_calls.length).to eq 1
-          expect(observed_calls.first.keys.sort).to eq call_keys
-          expect(observed_calls.first[:rv]).to eq 2
-          expect(observed_calls.first[:duration]).to be_a(Float)
+    context 'keyword args' do
+      context 'with snapshot capture' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_kwarg',
+           capture_snapshot: true}
+        end
 
-          expect(observed_calls.first[:serialized_entry_args]).to eq(arg1: {type: 'Integer', value: '2'})
+        let(:target_call) do
+          expect(HookTestClass.new.hook_test_method_with_kwarg(kwarg: 42)).to eq 42
+        end
+
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq 42
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(kwarg: {type: 'Integer', value: '42'})
+          end
+        end
+
+        include_examples 'invokes callback and captures parameters'
+
+        context 'when passed via a splat' do
+          let(:target_call) do
+            kwargs = {kwarg: 42}
+            expect(HookTestClass.new.hook_test_method_with_kwarg(**kwargs)).to eq 42
+          end
+
+          include_examples 'invokes callback and captures parameters'
+        end
+      end
+    end
+
+    context 'positional and keyword args' do
+      context 'with snapshot capture' do
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'hook_test_method_with_pos_and_kwarg',
+           capture_snapshot: true}
+        end
+
+        let(:target_call) do
+          expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(41, kwarg: 42)).to eq [41, 42]
+        end
+
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq [41, 42]
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              # TODO actual argument name not captured yet,
+              # requires method call trace point.
+              arg1: {type: 'Integer', value: '41'},
+              kwarg: {type: 'Integer', value: '42'}
+            )
+          end
+        end
+
+        include_examples 'invokes callback and captures parameters'
+
+        context 'when passed via a splat' do
+          let(:target_call) do
+            args = [41]
+            kwargs = {kwarg: 42}
+            expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*args, **kwargs)).to eq [41, 42]
+          end
+
+          include_examples 'invokes callback and captures parameters'
         end
       end
     end

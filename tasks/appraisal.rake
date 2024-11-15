@@ -58,7 +58,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
-      cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
+      cmd << [*bundle(ruby_version), 'exec', 'ruby', 'appraisal/generate.rb']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
 
@@ -75,7 +75,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
-      cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
+      cmd << [*bundle(ruby_version), 'exec', 'ruby', 'appraisal/generate.rb']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'bundle lock']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
@@ -95,7 +95,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
-      cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
+      cmd << [*bundle(ruby_version), 'exec', 'ruby', 'appraisal/generate.rb']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'install']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)
@@ -115,7 +115,7 @@ namespace :appraisal do # rubocop:disable Metrics/BlockLength
       cmd << ['gem', 'install', 'bundler', '-v', bundler_version(ruby_version)] if bundler_version(ruby_version)
       cmd << [*bundle(ruby_version), 'config', 'without', 'check']
       cmd << [*bundle(ruby_version), 'install']
-      cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'generate']
+      cmd << [*bundle(ruby_version), 'exec', 'ruby', 'appraisal/generate.rb']
       cmd << [*bundle(ruby_version), 'exec', 'appraisal', 'update']
 
       cmd = cmd.map { |c| c << '&&' }.flatten.tap(&:pop)

@@ -18,6 +18,12 @@ namespace :dependency do
     puts "`BUNDLE_GEMFILE=#{gemfiles.sample} bundle install`\n\n"
   end
 
+  # Replacement for `bundle exec appraisal generate`
+  desc "Generate dependencies for #{AppraisalConversion.runtime_identifier}"
+  task :generate do |t, args|
+    sh 'bundle exec ruby appraisal/generate.rb'
+  end
+
   # Replacement for `bundle exec appraisal bundle lock`
   desc "Lock dependencies for #{AppraisalConversion.runtime_identifier}"
   task :lock do |t, args|

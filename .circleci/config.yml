@@ -82,10 +82,10 @@ step_appraisal_install: &step_appraisal_install
     name: Install Appraisal gems
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate
         bundle exec rake dependency:install
       else
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate # Generate the appraisal files to match the lockfiles in the tree
         echo "All required gems were found in cache."
       fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum
@@ -424,6 +424,11 @@ job_configuration:
     ruby_version: 'ruby-3.3.0'
     image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     resource_class_to_use: medium+
+  - &config-3_4
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.4.0'
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+    resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
@@ -456,6 +461,7 @@ workflows:
             - test-3.1
             - test-3.2
             - test-3.3
+            - test-3.4
             # ADD NEW RUBIES HERE
             - test-jruby-9.2
             - test-jruby-9.3
@@ -503,6 +509,11 @@ workflows:
           name: build_and_test_integration-3.3
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
           ruby_version: '3.3'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.4
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.4'
           <<: *filters_all_branches_and_tags
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
@@ -563,6 +574,14 @@ workflows:
           name: test-3.3
           requires:
             - build-3.3
+      - orb/build:
+          <<: *config-3_4
+          name: build-3.4
+      - orb/test:
+          <<: *config-3_4
+          name: test-3.4
+          requires:
+            - build-3.4
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2
