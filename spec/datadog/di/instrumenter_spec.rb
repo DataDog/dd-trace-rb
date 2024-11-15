@@ -174,16 +174,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           include_examples 'invokes callback and captures parameters'
         end
-
-        context 'when passed via a splat with string keys' do
-
-          let(:target_call) do
-            pending '2.x only?'
-            expect(HookTestClass.new.hook_test_method_with_kwarg(**{'kwarg' => 42})).to eq 42
-          end
-
-          include_examples 'invokes callback and captures parameters'
-        end
       end
     end
 
@@ -225,16 +215,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
           let(:target_call) do
             expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*[41], **{kwarg: 42})).to eq [41, 42]
-          end
-
-          include_examples 'invokes callback and captures parameters'
-        end
-
-        context 'when passed via a splat with string keys' do
-
-          let(:target_call) do
-            pending '2.x only?'
-            expect(HookTestClass.new.hook_test_method_with_kwarg(**{'kwarg' => 42})).to eq 42
           end
 
           include_examples 'invokes callback and captures parameters'
