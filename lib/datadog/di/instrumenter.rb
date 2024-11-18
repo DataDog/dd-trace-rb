@@ -305,7 +305,9 @@ module Datadog
           else
             tp.enable
           end
+          # TracePoint#enable returns false when it succeeds.
         end
+        true
       end
 
       def unhook_line(probe)
