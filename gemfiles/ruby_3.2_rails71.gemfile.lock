@@ -295,7 +295,6 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
-    uri (0.13.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -341,7 +340,6 @@ DEPENDENCIES
   rubocop-rspec (~> 2.20, < 2.21)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
-  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)

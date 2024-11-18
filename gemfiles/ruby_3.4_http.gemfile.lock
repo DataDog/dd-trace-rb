@@ -183,7 +183,7 @@ GEM
     typhoeus (1.4.1)
       ethon (>= 0.9.0)
     unicode-display_width (2.5.0)
-    uri (0.13.1)
+    uri (1.0.2)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -237,7 +237,6 @@ DEPENDENCIES
   simplecov-cobertura (~> 2.1.0)
   strscan!
   typhoeus
-  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)
