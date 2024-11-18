@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'ostruct'
-
 require 'spec_helper'
 
 require 'ostruct'
