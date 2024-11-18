@@ -236,7 +236,6 @@ DEPENDENCIES
   rake (>= 12.3)
   rake-compiler (~> 1.1, >= 1.1.1)
   resque
-  rexml (>= 3.2.7)
   roda (>= 2.0.0)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
