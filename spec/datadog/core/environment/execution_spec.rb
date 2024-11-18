@@ -201,6 +201,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 end
 
                 expect(err).to include('ACTUAL:true')
+                puts "OUTPUT::"
+                puts _
+                puts "ERROR::"
                 puts err
                 fail 'check logs for load path'
               end
