@@ -1,11 +1,11 @@
 stages:
+  - benchmarks
   - manual-images
   - package
   - shared-pipeline
   - vaccine
   - macrobenchmarks
   - microbenchmarks
-  - benchmarks
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/libdatadog/include/one-pipeline.yml
