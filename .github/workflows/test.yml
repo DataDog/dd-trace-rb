@@ -32,7 +32,7 @@ jobs:
       ruby-30-matrix: "${{ steps.set-matrix.outputs.ruby-30 }}"
     steps:
     - uses: actions/checkout@v4
-    - run: apt update && apt install jq -y
+    - run: apt-get update && apt-get install jq -y
     - run: bundle install
     - id: set-matrix
       run: |
@@ -42,8 +42,16 @@ jobs:
         echo "$matrix_json"
         # Set the output
         echo "${{ matrix.engine.alias }}=$(echo "$matrix_json" | jq -c .)" >> $GITHUB_OUTPUT
+    - run: bundle cache
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-${{ matrix.engine.alias }}
+        retention-days: 1
+        path: |
+          Gemfile.lock
+          vendor/
   test-ruby-33:
-    name: Test on ruby 3.3
+    name: "${{ matrix.task }} (${{ matrix.group }})"
     needs:
     - compute_tasks
     runs-on: ubuntu-22.04
@@ -55,13 +63,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
     - uses: actions/checkout@v4
-    - run: bundle install
-    - name: "${{ matrix.task }} spec with ${{ matrix.gemfile }}"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-ruby-33
+    - run: bundle install --local
+    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
         BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
       run: bundle install && bundle exec rake spec:${{ matrix.task }}
   test-ruby-32:
-    name: Test on ruby 3.2
+    name: "${{ matrix.task }} (${{ matrix.group }})"
     needs:
     - compute_tasks
     runs-on: ubuntu-22.04
@@ -73,13 +84,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
     - uses: actions/checkout@v4
-    - run: bundle install
-    - name: "${{ matrix.task }} spec with ${{ matrix.gemfile }}"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-ruby-32
+    - run: bundle install --local
+    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
         BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
       run: bundle install && bundle exec rake spec:${{ matrix.task }}
   test-ruby-31:
-    name: Test on ruby 3.1
+    name: "${{ matrix.task }} (${{ matrix.group }})"
     needs:
     - compute_tasks
     runs-on: ubuntu-22.04
@@ -91,13 +105,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.1
     steps:
     - uses: actions/checkout@v4
-    - run: bundle install
-    - name: "${{ matrix.task }} spec with ${{ matrix.gemfile }}"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-ruby-31
+    - run: bundle install --local
+    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
         BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
       run: bundle install && bundle exec rake spec:${{ matrix.task }}
   test-ruby-30:
-    name: Test on ruby 3.0
+    name: "${{ matrix.task }} (${{ matrix.group }})"
     needs:
     - compute_tasks
     runs-on: ubuntu-22.04
@@ -109,8 +126,11 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.0
     steps:
     - uses: actions/checkout@v4
-    - run: bundle install
-    - name: "${{ matrix.task }} spec with ${{ matrix.gemfile }}"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-ruby-30
+    - run: bundle install --local
+    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
         BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
       run: bundle install && bundle exec rake spec:${{ matrix.task }}
