@@ -7,6 +7,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+      env:
+        BUNDLE_GEMFILE: tools/lint.gemfile
+
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
