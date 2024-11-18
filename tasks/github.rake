@@ -10,9 +10,9 @@ namespace :github do
       ubuntu = "ubuntu-22.04"
       runtimes = [
         "ruby:3.3",
-        "ruby:3.2",
-        "ruby:3.1",
-        "ruby:3.0",
+        # "ruby:3.2",
+        # "ruby:3.1",
+        # "ruby:3.0",
       ].map do |runtime|
         engine, version = runtime.split(':')
         runtime_alias = "#{engine}-#{version.gsub('.', '')}"
@@ -126,7 +126,11 @@ namespace :github do
   task :generate_matrix do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    matrix = matrix.slice("stripe")
+    candidates = [
+      'main',
+      'stripe'
+    ]
+    matrix = matrix.slice(*candidates)
 
     ruby_version = RUBY_VERSION[0..2]
     major, minor, = Gem::Version.new(RUBY_ENGINE_VERSION).segments
@@ -141,7 +145,8 @@ namespace :github do
         end
 
         if matched
-          gemfile = AppraisalConversion.to_bundle_gemfile(group)
+          gemfile = AppraisalConversion.to_bundle_gemfile(group) rescue "Gemfile"
+
           array << {
             group: group,
             gemfile: gemfile,

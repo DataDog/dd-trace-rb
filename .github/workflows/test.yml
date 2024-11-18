@@ -14,22 +14,10 @@ jobs:
         - name: ruby
           version: '3.3'
           alias: ruby-33
-        - name: ruby
-          version: '3.2'
-          alias: ruby-32
-        - name: ruby
-          version: '3.1'
-          alias: ruby-31
-        - name: ruby
-          version: '3.0'
-          alias: ruby-30
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
     outputs:
       ruby-33-matrix: "${{ steps.set-matrix.outputs.ruby-33 }}"
-      ruby-32-matrix: "${{ steps.set-matrix.outputs.ruby-32 }}"
-      ruby-31-matrix: "${{ steps.set-matrix.outputs.ruby-31 }}"
-      ruby-30-matrix: "${{ steps.set-matrix.outputs.ruby-30 }}"
     steps:
     - uses: actions/checkout@v4
     - run: apt-get update && apt-get install jq -y
@@ -66,69 +54,6 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-dependencies-${{ github.run_id }}-ruby-33
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
-      env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
-  test-ruby-32:
-    name: "${{ matrix.task }} (${{ matrix.group }})"
-    needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-32-matrix) }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-32
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
-      env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
-  test-ruby-31:
-    name: "${{ matrix.task }} (${{ matrix.group }})"
-    needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-31-matrix) }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.1
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-31
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
-      env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
-  test-ruby-30:
-    name: "${{ matrix.task }} (${{ matrix.group }})"
-    needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-30-matrix) }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.0
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/download-artifact@v4
-      with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-30
     - run: bundle install --local
     - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
