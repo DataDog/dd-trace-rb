@@ -1,8 +1,5 @@
 require "datadog/di/spec_helper"
 
-# rubocop:disable Style/BlockComments
-
-=begin benchmarks require DI code to be merged
 RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
   di_test
 
@@ -29,6 +26,3 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
     expect(benchmarks_to_validate).to contain_exactly(*all_benchmarks)
   end
 end
-=end
-
-# rubocop:enable Style/BlockComments

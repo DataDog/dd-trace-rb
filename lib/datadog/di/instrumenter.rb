@@ -266,7 +266,11 @@ module Datadog
             # If trace point is not targeted, we must verify that the invocation
             # is the file & line that we want, because untargeted trace points
             # are invoked for *each* line of Ruby executed.
-            if iseq || tp.lineno == probe.line_no && probe.file_matches?(tp.path)
+            # TODO find out exactly when the path in trace point is relative.
+            # Looks like this is the case when line trace point is not targeted?
+            if iseq || tp.lineno == probe.line_no && (
+              probe.file == tp.path || probe.file_matches?(tp.path)
+            )
               if rate_limiter.nil? || rate_limiter.allow?
                 # & is to stop steep complaints, block is always present here.
                 block&.call(probe: probe, trace_point: tp, caller_locations: caller_locations)
@@ -305,7 +309,9 @@ module Datadog
           else
             tp.enable
           end
+          # TracePoint#enable returns false when it succeeds.
         end
+        true
       end
 
       def unhook_line(probe)
