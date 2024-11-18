@@ -189,18 +189,18 @@ RSpec.describe Datadog::Core::Environment::Execution do
         it 'returns true' do
           Dir.mktmpdir do |dir|
             Dir.chdir(dir) do
-              FileUtils.mkdir_p('features/support')
+              Bundler.with_unbundled_env do
+                FileUtils.mkdir_p('features/support')
 
-              # Add our script to `env.rb`, which is always run before any feature is executed.
-              File.write('features/support/env.rb', repl_script)
+                # Add our script to `env.rb`, which is always run before any feature is executed.
+                File.write('features/support/env.rb', repl_script)
 
-              _, err, = Bundler.with_unbundled_env do
-                Open3.capture3('ruby', stdin_data: script)
+                _, err, = Bundler.with_unbundled_env do
+                  Open3.capture3('ruby', stdin_data: script)
+                end
+
+                expect(err).to include('ACTUAL:true')
               end
-
-              # Ruby 3.4 outputs an exception instead of the information to be asserted because of the forked process.
-              pending('Pending for Ruby 3.4.') if RUBY_VERSION.start_with?('3.4.')
-              expect(err).to include('ACTUAL:true')
             end
           end
         end
