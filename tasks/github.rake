@@ -75,7 +75,12 @@ namespace :github do
         end,
         "steps" => [
           { "uses" => "actions/checkout@v4" },
-          { "run" => "apt-get update && apt-get install jq -y" },
+          {
+            "run" => <<~BASH
+              curl -L --retry 3 -f --retry-all-errors --retry-delay 1 -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64
+              chmod +x /usr/local/bin/jq
+            BASH
+          },
           { "run" => "bundle install" },
           {
             "id" => "set-matrix",
