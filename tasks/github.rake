@@ -41,6 +41,10 @@ namespace :github do
             "steps" => [
               { "uses" => "actions/checkout@v4" },
               {
+                "name" => "Configure Git",
+                "run" => 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
+              },
+              {
                 "uses" => "actions/download-artifact@v4",
                 "with" => {
                   "name" => "bundled-dependencies-${{ github.run_id }}-#{runtime.alias}",
