@@ -143,7 +143,7 @@ GEM
       ffi
     thor (1.3.2)
     unicode-display_width (2.6.0)
-    uri (1.0.1)
+    uri (0.13.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -188,4 +188,4 @@ DEPENDENCIES
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.26
+   2.5.21
