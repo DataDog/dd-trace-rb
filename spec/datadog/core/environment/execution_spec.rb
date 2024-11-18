@@ -48,6 +48,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
           require 'datadog/core/environment/execution'
 
           # Print actual value to STDERR, as STDOUT tends to have more noise in REPL sessions.
+          pp $LOAD_PATH
           STDERR.print "ACTUAL:\#{Datadog::Core::Environment::Execution.development?}"
         RUBY
       end
@@ -200,6 +201,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 end
 
                 expect(err).to include('ACTUAL:true')
+                fail 'check logs for load path'
               end
             end
           end
