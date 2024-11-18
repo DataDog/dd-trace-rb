@@ -1,5 +1,8 @@
 require 'json'
 require "psych"
+require 'ostruct'
+require_relative 'appraisal_conversion'
+
 # rubocop:disable Metrics/BlockLength
 namespace :github do
   namespace :actions do
@@ -37,7 +40,11 @@ namespace :github do
             "steps" => [
               { "uses" => "actions/checkout@v4" },
               { "run" => "bundle install" },
-              { "run" => "bundle exec rake test:${{ matrix.task }}" }
+              {
+                "name" => "${{ matrix.task }} spec with ${{ matrix.gemfile }}",
+                "env" => { "BUNDLE_GEMFILE" => "${{ matrix.gemfile }}" },
+                "run" => "bundle install && bundle exec rake spec:${{ matrix.task }}"
+              }
             ]
           }
         }
@@ -107,17 +114,21 @@ namespace :github do
     ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
     array = []
     matrix.each do |key, spec_metadata|
-      matched = spec_metadata.any? do |appraisal_group, rubies|
-        if RUBY_PLATFORM == 'java'
+      spec_metadata.each do |group, rubies|
+        matched = if RUBY_PLATFORM == 'java'
           rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
         else
           rubies.include?("✅ #{ruby_version}")
         end
+
+        if matched
+          array << {
+            gemfile: AppraisalConversion.to_bundle_gemfile(group),
+            task: key
+          }
+        end
       end
 
-      if matched
-        array << { task: key }
-      end
     end
 
     puts JSON.pretty_generate(array)
