@@ -143,7 +143,6 @@ DEPENDENCIES
   rake-compiler (~> 1.1, >= 1.1.1)
   redis (>= 4.0)
   resque (>= 2.0)
-  rexml (>= 3.2.7)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
