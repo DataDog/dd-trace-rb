@@ -7,6 +7,7 @@ require_relative 'appraisal_conversion'
 namespace :github do
   namespace :actions do
     task :test_template do |t|
+      ubuntu = "ubuntu-22.04"
       runtimes = [
         "ruby:3.3",
         "ruby:3.2",
@@ -27,9 +28,9 @@ namespace :github do
       test_jobs = runtimes.map do |runtime|
         {
           "test-#{runtime.alias}" => {
-            "name" => "Test on #{runtime.engine} #{runtime.version}",
+            "name" => "${{ matrix.task }} (${{ matrix.group }})",
             "needs" => ["compute_tasks"],
-            "runs-on" => "ubuntu-22.04",
+            "runs-on" => ubuntu,
             "strategy" => {
               "fail-fast" => false,
               "matrix" => {
@@ -39,9 +40,15 @@ namespace :github do
             "container" => { "image" => runtime.image },
             "steps" => [
               { "uses" => "actions/checkout@v4" },
-              { "run" => "bundle install" },
               {
-                "name" => "${{ matrix.task }} spec with ${{ matrix.gemfile }}",
+                "uses" => "actions/download-artifact@v4",
+                "with" => {
+                  "name" => "bundled-dependencies-${{ github.run_id }}-#{runtime.alias}",
+                }
+              },
+              { "run" => "bundle install --local" },
+              {
+                "name" => "Test ${{ matrix.task }} with ${{ matrix.gemfile }}",
                 "env" => { "BUNDLE_GEMFILE" => "${{ matrix.gemfile }}" },
                 "run" => "bundle install && bundle exec rake spec:${{ matrix.task }}"
               }
@@ -51,7 +58,7 @@ namespace :github do
       end
 
       compute_tasks = {
-        "runs-on" => "ubuntu-22.04",
+        "runs-on" => ubuntu,
         "strategy" => {
           "fail-fast" => false,
           "matrix" => {
@@ -68,7 +75,7 @@ namespace :github do
         end,
         "steps" => [
           { "uses" => "actions/checkout@v4" },
-          { "run" => "apt update && apt install jq -y" },
+          { "run" => "apt-get update && apt-get install jq -y" },
           { "run" => "bundle install" },
           {
             "id" => "set-matrix",
@@ -80,6 +87,18 @@ namespace :github do
               # Set the output
               echo "${{ matrix.engine.alias }}=$(echo "$matrix_json" | jq -c .)" >> $GITHUB_OUTPUT
             BASH
+          },
+          { "run" => "bundle cache" },
+          {
+            "uses" => "actions/upload-artifact@v4",
+            "with" => {
+              "name" => "bundled-dependencies-${{ github.run_id }}-${{ matrix.engine.alias }}",
+              "retention-days" => 1,
+              "path" => <<~STRING
+                Gemfile.lock
+                vendor/
+              STRING
+            }
           },
         ]
       }
@@ -122,8 +141,10 @@ namespace :github do
         end
 
         if matched
+          gemfile = AppraisalConversion.to_bundle_gemfile(group)
           array << {
-            gemfile: AppraisalConversion.to_bundle_gemfile(group),
+            group: group,
+            gemfile: gemfile,
             task: key
           }
         end
