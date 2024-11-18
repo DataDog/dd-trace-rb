@@ -42,8 +42,6 @@ gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 
-gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
-
 if RUBY_VERSION.start_with?('3.4.')
   # ruby 3.4 breaks stable webrick; we need this fix until a version later than 1.8.1 comes out
   gem 'webrick', git: 'https://github.com/ruby/webrick.git', ref: '0c600e169bd4ae267cb5eeb6197277c848323bbe'

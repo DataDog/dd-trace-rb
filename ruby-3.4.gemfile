@@ -42,8 +42,6 @@ gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 
-gem 'rexml', '>= 3.2.7' # https://www.ruby-lang.org/en/news/2024/05/16/dos-rexml-cve-2024-35176/
-
 # No longer bundled by default since Ruby 3.0
 gem 'webrick', '>= 1.8.2' if RUBY_VERSION >= '3.0.0'
 
