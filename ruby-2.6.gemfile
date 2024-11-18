@@ -90,5 +90,3 @@ end
 group :dev do
   gem 'ruby-lsp', require: false if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
 end
-
-gem 'uri', '~> 0.13.1' if RUBY_VERSION.start_with? '3'

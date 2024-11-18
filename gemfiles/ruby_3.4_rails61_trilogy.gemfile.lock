@@ -285,7 +285,6 @@ GEM
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
     unicode-display_width (2.5.0)
-    uri (0.13.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -342,10 +341,9 @@ DEPENDENCIES
   sprockets (< 4)
   strscan!
   trilogy
-  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)
 
 BUNDLED WITH
-   2.3.26
+   2.5.21
