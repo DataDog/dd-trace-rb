@@ -109,6 +109,8 @@ jobs:
           - rails61
           - rails70
           - rails71
+          - rails72
+          - rails80
           - graphql23
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
@@ -210,6 +212,8 @@ jobs:
           - rails61
           - rails70
           - rails71
+          - rails72
+          - rails80
         scenario:
           - DEFAULT
           - APPSEC_DISABLED
@@ -362,6 +366,8 @@ jobs:
           - rails61
           - rails70
           - rails71
+          - rails72
+          - rails80
           - graphql23
     runs-on: ubuntu-latest
     needs:
@@ -415,6 +421,9 @@ jobs:
           - weblog-rails60
           - weblog-rails61
           - weblog-rails70
+          - weblog-rails71
+          - weblog-rails72
+          - weblog-rails80
           - weblog-graphql23
     runs-on: ubuntu-latest
     needs:
