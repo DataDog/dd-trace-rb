@@ -175,6 +175,7 @@ namespace :github do
       'pg',
       'rack',
       'redis',
+      'sinatra',
       'stripe'
     ]
 
