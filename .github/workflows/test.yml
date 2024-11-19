@@ -17,14 +17,18 @@ jobs:
         - name: ruby
           version: '3.3'
           alias: ruby-33
+        - name: ruby
+          version: '3.2'
+          alias: ruby-32
     container:
       image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
     outputs:
       ruby-33-matrix: "${{ steps.set-matrix.outputs.ruby-33 }}"
+      ruby-32-matrix: "${{ steps.set-matrix.outputs.ruby-32 }}"
     steps:
     - uses: actions/checkout@v4
     - run: |
-        curl -L --retry 3 -f --retry-all-errors --retry-delay 1 -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64
+        curl -L --retry 3 -f --retry-delay 1 -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64
         chmod +x /usr/local/bin/jq
     - run: bundle install
     - id: set-matrix
@@ -79,6 +83,47 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-dependencies-${{ github.run_id }}-ruby-33
+    - run: bundle install --local
+    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
+      env:
+        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
+      run: bundle install && bundle exec rake spec:${{ matrix.task }}
+  test-ruby-32:
+    name: 'ruby-3.2: ${{ matrix.task }} (${{ matrix.group }})'
+    needs:
+    - compute_tasks
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-32-matrix) }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+      env:
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+    services:
+      postgres:
+        image: postgres:9.6
+        credentials:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: redis:6.2
+        credentials:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-${{ github.run_id }}-ruby-32
     - run: bundle install --local
     - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
       env:
