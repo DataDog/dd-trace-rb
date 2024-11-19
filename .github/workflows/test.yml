@@ -41,7 +41,7 @@ jobs:
           Gemfile.lock
           vendor/
   test-ruby-33:
-    name: "${{ matrix.task }} (${{ matrix.group }})"
+    name: 'ruby-3.3: ${{ matrix.task }} (${{ matrix.group }})'
     needs:
     - compute_tasks
     runs-on: ubuntu-22.04
