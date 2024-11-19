@@ -169,9 +169,17 @@ namespace :github do
     candidates = [
       'main',
       'pg',
+      'rack',
       'redis',
       'stripe'
     ]
+
+    remainders = matrix.keys - candidates
+
+    if remainders.empty?
+      raise "No remainder found. Use the matrix directly (without candidate filtering)."
+    end
+
     matrix = matrix.slice(*candidates)
 
     ruby_version = RUBY_VERSION[0..2]
