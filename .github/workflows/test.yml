@@ -51,6 +51,18 @@ jobs:
         include: "${{ fromJson(needs.compute_tasks.outputs.ruby-33-matrix) }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
+      env:
+        TEST_POSTGRES_HOST: postgres
+    services:
+      postgres:
+        image: postgres:9.6
+        credentials:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
     steps:
     - uses: actions/checkout@v4
     - name: Configure Git

@@ -37,7 +37,26 @@ namespace :github do
                 "include" => "${{ fromJson(needs.compute_tasks.outputs.#{runtime.alias}-matrix) }}"
               }
             },
-            "container" => { "image" => runtime.image },
+            "container" => {
+              "image" => runtime.image,
+              "env" => {
+                "TEST_POSTGRES_HOST" => "postgres",
+              }
+            },
+            "services" => {
+              "postgres" => {
+                "image" => "postgres:9.6",
+                "credentials" => {
+                  "username" => '${{ secrets.DOCKERHUB_USERNAME }}',
+                  "password" => '${{ secrets.DOCKERHUB_TOKEN }}'
+                },
+                "env" => {
+                  "POSTGRES_PASSWORD" => "postgres",
+                  "POSTGRES_USER" => "postgres",
+                  "POSTGRES_DB" => "postgres",
+                }
+              },
+            },
             "steps" => [
               { "uses" => "actions/checkout@v4" },
               {
@@ -137,6 +156,7 @@ namespace :github do
 
     candidates = [
       'main',
+      'pg',
       'stripe'
     ]
     matrix = matrix.slice(*candidates)
