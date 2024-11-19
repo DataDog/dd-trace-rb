@@ -28,7 +28,7 @@ namespace :github do
       test_jobs = runtimes.map do |runtime|
         {
           "test-#{runtime.alias}" => {
-            "name" => "${{ matrix.task }} (${{ matrix.group }})",
+            "name" => "#{runtime.engine}-#{runtime.version}: ${{ matrix.task }} (${{ matrix.group }})",
             "needs" => ["compute_tasks"],
             "runs-on" => ubuntu,
             "strategy" => {
