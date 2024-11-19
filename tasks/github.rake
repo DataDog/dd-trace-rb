@@ -8,6 +8,27 @@ namespace :github do
   namespace :actions do
     task :test_template do |t|
       ubuntu = "ubuntu-22.04"
+
+      docker_login_credentials = {
+        "username" => '${{ secrets.DOCKERHUB_USERNAME }}',
+        "password" => '${{ secrets.DOCKERHUB_TOKEN }}'
+      }
+
+      postgres = {
+        "image" => "postgres:9.6",
+        "credentials" => docker_login_credentials.dup,
+        "env" => {
+          "POSTGRES_PASSWORD" => "postgres",
+          "POSTGRES_USER" => "postgres",
+          "POSTGRES_DB" => "postgres",
+        }
+      }
+
+      redis = {
+        "image" => "redis:6.2",
+        "credentials" => docker_login_credentials.dup,
+      }
+
       runtimes = [
         "ruby:3.3",
         # "ruby:3.2",
@@ -41,21 +62,12 @@ namespace :github do
               "image" => runtime.image,
               "env" => {
                 "TEST_POSTGRES_HOST" => "postgres",
+                "TEST_REDIS_HOST" => "redis",
               }
             },
             "services" => {
-              "postgres" => {
-                "image" => "postgres:9.6",
-                "credentials" => {
-                  "username" => '${{ secrets.DOCKERHUB_USERNAME }}',
-                  "password" => '${{ secrets.DOCKERHUB_TOKEN }}'
-                },
-                "env" => {
-                  "POSTGRES_PASSWORD" => "postgres",
-                  "POSTGRES_USER" => "postgres",
-                  "POSTGRES_DB" => "postgres",
-                }
-              },
+              "postgres" => postgres,
+              "redis" => redis
             },
             "steps" => [
               { "uses" => "actions/checkout@v4" },
@@ -157,6 +169,7 @@ namespace :github do
     candidates = [
       'main',
       'pg',
+      'redis',
       'stripe'
     ]
     matrix = matrix.slice(*candidates)
