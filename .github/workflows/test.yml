@@ -53,6 +53,7 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
       env:
         TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
     services:
       postgres:
         image: postgres:9.6
@@ -63,6 +64,11 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
+      redis:
+        image: redis:6.2
+        credentials:
+          username: "${{ secrets.DOCKERHUB_USERNAME }}"
+          password: "${{ secrets.DOCKERHUB_TOKEN }}"
     steps:
     - uses: actions/checkout@v4
     - name: Configure Git
