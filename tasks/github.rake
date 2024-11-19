@@ -146,6 +146,10 @@ namespace :github do
       base = {
         "name" => 'Test',
         "on" => ['push'],
+        "concurrency" => {
+          "group" => '${{ github.workflow }}-${{ github.ref }}',
+          "cancel-in-progress" => '${{ github.ref != \'refs/heads/master\' }}'
+        },
         "jobs" => {
           "compute_tasks" => compute_tasks,
           **test_jobs.reduce(&:merge)
