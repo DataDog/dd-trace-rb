@@ -117,12 +117,6 @@ namespace :github do
         end,
         "steps" => [
           { "uses" => "actions/checkout@v4" },
-          {
-            "run" => <<~BASH
-              curl -L --retry 3 -f --retry-delay 1 -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64
-              chmod +x /usr/local/bin/jq
-            BASH
-          },
           { "run" => "bundle install" },
           {
             "id" => "set-matrix",
@@ -132,7 +126,7 @@ namespace :github do
               echo "Generated JSON:"
               echo "$matrix_json"
               # Set the output
-              echo "${{ matrix.engine.alias }}=$(echo "$matrix_json" | jq -c .)" >> $GITHUB_OUTPUT
+              echo "${{ matrix.engine.alias }}=$(echo "$matrix_json")" >> $GITHUB_OUTPUT
             BASH
           },
           { "run" => "bundle cache" },
@@ -220,10 +214,9 @@ namespace :github do
           }
         end
       end
-
     end
 
-    puts JSON.pretty_generate(array)
+    puts JSON.dump(array)
   end
 end
 # rubocop:enable Metrics/BlockLength

@@ -27,9 +27,6 @@ jobs:
       ruby-32-matrix: "${{ steps.set-matrix.outputs.ruby-32 }}"
     steps:
     - uses: actions/checkout@v4
-    - run: |
-        curl -L --retry 3 -f --retry-delay 1 -o /usr/local/bin/jq https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux64
-        chmod +x /usr/local/bin/jq
     - run: bundle install
     - id: set-matrix
       run: |
@@ -38,7 +35,7 @@ jobs:
         echo "Generated JSON:"
         echo "$matrix_json"
         # Set the output
-        echo "${{ matrix.engine.alias }}=$(echo "$matrix_json" | jq -c .)" >> $GITHUB_OUTPUT
+        echo "${{ matrix.engine.alias }}=$(echo "$matrix_json")" >> $GITHUB_OUTPUT
     - run: bundle cache
     - uses: actions/upload-artifact@v4
       with:
