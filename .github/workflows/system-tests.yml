@@ -42,11 +42,11 @@ jobs:
           python-version: "3.12"
       - name: Compute workflow parameters
         id: main
-        run: |
+        run: | # We should probably use something cached here instead
           pip install --upgrade virtualenv
           virtualenv -p python venv
           source venv/bin/activate
-          pip install -r requirements.txt
+          pip install -r requirements.txt 
           python utils/scripts/compute-workflow-parameters.py ruby -g "all" >> $GITHUB_OUTPUT
         env:
           PYTHONPATH: "."
@@ -216,8 +216,10 @@ jobs:
       matrix:
         library:
           - ruby
-        app: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}        # This will generate a LOT of jobs, we might want to run all the scenarios for a single weblog in a single job
-        scenario: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_scenarios) }} # But is it possible without hardcoding them ? Even system-tests is hardcoding them. Maybe naming steps with matrix
+        app:
+          - ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}        # This will generate a LOT of jobs, we might want to run all the scenarios for a single weblog in a single job
+        scenario:
+          - ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_scenarios) }} # But is it possible without hardcoding them ? Even system-tests is hardcoding them. Maybe naming steps with matrix
     runs-on: ubuntu-latest
     needs:
       - build-harness
