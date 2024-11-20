@@ -115,7 +115,10 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
-      def serialize_value(value, name: nil, depth: settings.dynamic_instrumentation.max_capture_depth, type: nil)
+      def serialize_value(value, name: nil,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        type: nil)
         cls = type || value.class
         begin
           if redactor.redact_type?(value)
@@ -203,7 +206,6 @@ module Datadog
               serialized.update(notCapturedReason: "depth")
             else
               fields = {}
-              max = settings.dynamic_instrumentation.max_capture_attribute_count
               cur = 0
 
               # MRI and JRuby 9.4.5+ preserve instance variable definition
@@ -229,7 +231,7 @@ module Datadog
               ivars = value.instance_variables
 
               ivars.each do |ivar|
-                if cur >= max
+                if cur >= attribute_count
                   serialized.update(notCapturedReason: "fieldCount", fields: fields)
                   break
                 end
