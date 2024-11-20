@@ -1,7 +1,7 @@
 c = File.read('/usr/local/lib/ruby/site_ruby/3.0.0/rubygems.rb')
 lines = c.split("\n")
 lines[593] = "puts 'XXX'; puts defined?(Psych); puts defined?(YAML); puts'YYY';pp $LOAD_PATH; puts'YYY';pp Gem.loaded_specs.keys;puts'YYYYYY'" + lines[593]
-File.open('/usr/local/lib/ruby/site_ruby/3.0.0/rubygems.rb','w') {|f|f<<c.join("\n")}
+File.open('/usr/local/lib/ruby/site_ruby/3.0.0/rubygems.rb','w') {|f|f<<lines.join("\n")}
 
 
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
