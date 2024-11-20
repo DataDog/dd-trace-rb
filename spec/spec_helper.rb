@@ -1,3 +1,9 @@
+c = File.read('/usr/local/lib/ruby/site_ruby/3.0.0/rubygems.rb')
+lines = c.split("\n")
+lines[593] = "puts 'XXX'; puts defined?(Psych); puts defined?(YAML); " + lines[593]
+File.open('/usr/local/lib/ruby/site_ruby/3.0.0/rubygems.rb','w') {|f|f<<c.join("\n")}
+
+
 $LOAD_PATH.unshift File.expand_path('..', __dir__)
 $LOAD_PATH.unshift File.expand_path('../lib', __dir__)
 
