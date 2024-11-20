@@ -42,7 +42,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   describe '#build_received' do
-
     let(:payload) do
       builder.build_received(probe)
     end
@@ -72,7 +71,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   describe '#build_installed' do
-
     let(:payload) do
       builder.build_installed(probe)
     end
@@ -102,7 +100,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   describe '#build_emitting' do
-
     let(:payload) do
       builder.build_emitting(probe)
     end
@@ -132,7 +129,6 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
   end
 
   describe '#build_executed' do
-
     let(:payload) { builder.build_executed(probe) }
 
     context 'with template' do
@@ -144,9 +140,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:expected) do
         {
           ddsource: 'dd_debugger',
-          'dd.span_id': nil,
-          'dd.trace_id': nil,
-          'debugger.snapshot': {
+          "dd.span_id": nil,
+          "dd.trace_id": nil,
+          "debugger.snapshot": {
             captures: nil,
             evaluationErrors: [],
             id: String,
@@ -192,9 +188,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:expected) do
         {
           ddsource: 'dd_debugger',
-          'dd.span_id': nil,
-          'dd.trace_id': nil,
-          'debugger.snapshot': {
+          "dd.span_id": nil,
+          "dd.trace_id": nil,
+          "debugger.snapshot": {
             captures: nil,
             evaluationErrors: [],
             id: String,
@@ -257,9 +253,9 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
       let(:expected) do
         {
           ddsource: 'dd_debugger',
-          'dd.span_id': nil,
-          'dd.trace_id': nil,
-          'debugger.snapshot': {
+          "dd.span_id": nil,
+          "dd.trace_id": nil,
+          "debugger.snapshot": {
             captures: {
               lines: {
                 1 => {
