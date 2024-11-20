@@ -43,6 +43,8 @@ jobs:
       - name: Compute workflow parameters
         id: main
         run: |
+          pip install --upgrade virtualenv
+          virtualenv -p python venv
           source venv/bin/activate
           python utils/scripts/compute-workflow-parameters.py ruby -g "all" >> $GITHUB_OUTPUT
         env:
