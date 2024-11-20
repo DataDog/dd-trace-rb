@@ -46,6 +46,7 @@ jobs:
           pip install --upgrade virtualenv
           virtualenv -p python venv
           source venv/bin/activate
+          pip install -r requirements.txt
           python utils/scripts/compute-workflow-parameters.py ruby -g "all" >> $GITHUB_OUTPUT
         env:
           PYTHONPATH: "."
