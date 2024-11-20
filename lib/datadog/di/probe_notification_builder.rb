@@ -121,7 +121,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: duration ? (duration * 10**9).to_i : nil,
+          duration: duration ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -139,7 +139,7 @@ module Datadog
           "dd.span_id": Datadog::Tracing.active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
-            duration: duration ? duration * 1000 : nil),
+            duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end
