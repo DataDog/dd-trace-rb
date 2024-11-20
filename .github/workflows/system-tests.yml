@@ -14,6 +14,36 @@ env:
   SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
+  compute-workflow-parameters:
+    runs-on: ubuntu-latest
+    outputs:
+      endtoend_scenarios: ${{ steps.main.outputs.endtoend_scenarios }}
+      endtoend_weblogs: ${{ steps.main.outputs.endtoend_weblogs }}
+      graphql_scenarios: ${{ steps.main.outputs.graphql_scenarios }}
+      graphql_weblogs: ${{ steps.main.outputs.graphql_weblogs }}
+      libinjection_scenarios: ${{ steps.main.outputs.libinjection_scenarios }}
+      opentelemetry_scenarios: ${{ steps.main.outputs.opentelemetry_scenarios }}
+      opentelemetry_weblogs: ${{ steps.main.outputs.opentelemetry_weblogs }}
+      parametric_scenarios: ${{ steps.main.outputs.parametric_scenarios }}
+      _experimental_parametric_job_matrix: ${{ steps.main.outputs._experimental_parametric_job_matrix }}
+    strategy:
+      fail-fast: false
+    name: Compute workflow parameters
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: 'DataDog/system-tests'
+          ref: ${{ env.SYSTEM_TESTS_REF }}
+          persist-credentials: false
+      - name: Compute workflow parameters
+        id: main
+        run: |
+          source venv/bin/activate
+          python utils/scripts/compute-workflow-parameters.py ruby -g "all" >> $GITHUB_OUTPUT
+        env:
+          PYTHONPATH: "."
+  
   build-harness:
     strategy:
       fail-fast: false
@@ -82,6 +112,8 @@ jobs:
           docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest
 
   build-apps:
+    needs:
+      - compute-workflow-parameters
     strategy:
       fail-fast: false
       matrix:
@@ -92,26 +124,9 @@ jobs:
             repository: DataDog/dd-trace-rb
             path: dd-trace-rb
         app:
-          - rack
-          - sinatra14
-          - sinatra20
-          - sinatra21
-          - sinatra22
-          - sinatra30
-          - sinatra31
-          - sinatra32
-          - sinatra40
-          - rails42
-          - rails50
-          - rails51
-          - rails52
-          - rails60
-          - rails61
-          - rails70
-          - rails71
-          - rails72
-          - rails80
-          - graphql23
+          - ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}
+          - ${{ fromJson(needs.compute-workflow-parameters.outputs.graphql_weblogs) }}
+          - ${{ fromJson(needs.compute-workflow-parameters.outputs.opentelemetry_weblogs) }}
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
     permissions:
@@ -188,109 +203,19 @@ jobs:
         run: |
           docker push ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:latest
 
-  test:
+  end-to-end-tests:
     strategy:
       fail-fast: false
       matrix:
         library:
           - ruby
-        app:
-          - rack
-          - sinatra14
-          - sinatra20
-          - sinatra21
-          - sinatra22
-          - sinatra30
-          - sinatra31
-          - sinatra32
-          - sinatra40
-          - rails42
-          - rails50
-          - rails51
-          - rails52
-          - rails60
-          - rails61
-          - rails70
-          - rails71
-          - rails72
-          - rails80
-        scenario:
-          - DEFAULT
-          - APPSEC_DISABLED
-          - APPSEC_BLOCKING_FULL_DENYLIST
-          - APPSEC_REQUEST_BLOCKING
-          - APPSEC_STANDALONE
-        include:
-          - library: ruby
-            app: rack
-            scenario: INTEGRATIONS
-          - library: ruby
-            app: rack
-            scenario: CROSSED_TRACING_LIBRARIES
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_FEATURES_NOCACHE
-          - library: ruby
-            app: rack
-            scenario: REMOTE_CONFIG_MOCKED_BACKEND_ASM_DD_NOCACHE
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CUSTOM_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_MISSING_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CORRUPTED_RULES
-          - library: ruby
-            app: rack
-            scenario: APPSEC_LOW_WAF_TIMEOUT
-          - library: ruby
-            app: rack
-            scenario: APPSEC_CUSTOM_OBFUSCATION
-          - library: ruby
-            app: rack
-            scenario: APPSEC_RATE_LIMITER
-          - library: ruby
-            app: rails70
-            scenario: APPSEC_AUTO_EVENTS_EXTENDED
-          - library: ruby
-            app: rails70
-            scenario: APPSEC_API_SECURITY
-          - library: ruby
-            app: rack
-            scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
-          - library: ruby
-            app: rack
-            scenario: SAMPLING
-          - library: ruby
-            app: rack
-            scenario: PROFILING
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_APP_STARTED_PRODUCTS_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_DEPENDENCY_LOADED_TEST_FOR_DEPENDENCY_COLLECTION_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_LOG_GENERATION_DISABLED
-          - library: ruby
-            app: rack
-            scenario: TELEMETRY_METRIC_GENERATION_DISABLED
-          - library: ruby
-            app: graphql23
-            scenario: GRAPHQL_APPSEC
+        app: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}        # This will generate a LOT of jobs, we might want to run all the scenarios for a single weblog in a single job
+        scenario: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_scenarios) }} # But is it possible without hardcoding them ? Even system-tests is hardcoding them. Maybe naming steps with matrix
     runs-on: ubuntu-latest
     needs:
       - build-harness
       - build-apps
+      - compute-workflow-parameters
     name: Test (${{ matrix.app }}, ${{ matrix.scenario }})
     steps:
       - name: Checkout
@@ -342,38 +267,21 @@ jobs:
           name: system-tests-${{ matrix.library }}-${{ matrix.app }}-${{ matrix.scenario }}-logs-gha${{ github.run_id }}-g${{ github.sha }}
           path: logs*
 
+# TODO: Add libinjection_scenarios, opentelemetry_scenarios, graphql_scenarios and maybe parametric (or in a different workflow)
+
   aggregate:
     strategy:
       fail-fast: false
       matrix:
         library:
           - ruby
-        app:
-          - rack
-          - sinatra14
-          - sinatra20
-          - sinatra21
-          - sinatra22
-          - sinatra30
-          - sinatra31
-          - sinatra32
-          - sinatra40
-          - rails42
-          - rails50
-          - rails51
-          - rails52
-          - rails60
-          - rails61
-          - rails70
-          - rails71
-          - rails72
-          - rails80
-          - graphql23
+        app: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}
     runs-on: ubuntu-latest
     needs:
       - build-harness
       - build-apps
-      - test
+      - end-to-end-tests
+      - compute-workflow-parameters
     if: ${{ always() }}
     name: Aggregate (${{ matrix.app }})
     steps:
@@ -398,36 +306,16 @@ jobs:
           find logs*
           python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
 
-  cleanup:
+  cleanup-harness:
     strategy:
       fail-fast: false
       matrix:
         image:
           - runner
           - agent
-          - weblog-rack
-          - weblog-sinatra14
-          - weblog-sinatra20
-          - weblog-sinatra21
-          - weblog-sinatra22
-          - weblog-sinatra30
-          - weblog-sinatra31
-          - weblog-sinatra32
-          - weblog-sinatra40
-          - weblog-rails42
-          - weblog-rails50
-          - weblog-rails51
-          - weblog-rails52
-          - weblog-rails60
-          - weblog-rails61
-          - weblog-rails70
-          - weblog-rails71
-          - weblog-rails72
-          - weblog-rails80
-          - weblog-graphql23
     runs-on: ubuntu-latest
     needs:
-      - test
+      - end-to-end-tests
     if: ${{ always() }}
     name: Cleanup (${{ matrix.image }})
     steps:
@@ -438,5 +326,27 @@ jobs:
         with:
           package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
           package-name: 'system-tests/${{ matrix.image }}'
+          package-type: 'container'
+        continue-on-error: true
+
+  cleanup-apps:
+    strategy:
+      fail-fast: false
+      matrix:
+        image: ${{ fromJson(needs.compute-workflow-parameters.outputs.endtoend_weblogs) }}
+    runs-on: ubuntu-latest
+    needs:
+      - end-to-end-tests
+      - compute-workflow-parameters
+    if: ${{ always() }}
+    name: Cleanup (${{ matrix.image }})
+    steps:
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - uses: actions/delete-package-versions@v5
+        with:
+          package-version-ids: 'gha${{ github.run_id }}-g${{ github.sha }}'
+          package-name: 'system-tests/weblog-${{ matrix.image }}'
           package-type: 'container'
         continue-on-error: true
