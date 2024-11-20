@@ -65,14 +65,18 @@ module Datadog
                 arguments: if serialized_entry_args
                   serialized_entry_args
                 else
-                  (args || kwargs) && serializer.serialize_args(args, kwargs)
+                  (args || kwargs) && serializer.serialize_args(args, kwargs,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
                 end,
                 throwable: nil,
                 # standard:enable all
               },
               return: {
                 arguments: {
-                  "@return": serializer.serialize_value(rv),
+                  "@return": serializer.serialize_value(rv,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
                 },
                 throwable: nil,
               },
@@ -80,7 +84,9 @@ module Datadog
           elsif probe.line?
             {
               lines: snapshot && {
-                probe.line_no => {locals: serializer.serialize_vars(snapshot)},
+                probe.line_no => {locals: serializer.serialize_vars(snapshot,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)},
               },
             }
           end

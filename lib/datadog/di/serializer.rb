@@ -82,7 +82,9 @@ module Datadog
       # between positional and keyword arguments. We convert positional
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
-      def serialize_args(args, kwargs)
+      def serialize_args(args, kwargs,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         counter = 0
         combined = args.each_with_object({}) do |value, c|
           counter += 1
@@ -90,16 +92,18 @@ module Datadog
           # kwargs when they are merged below.
           c[:"arg#{counter}"] = value
         end.update(kwargs)
-        serialize_vars(combined)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
       end
 
       # Serializes variables captured by a line probe.
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
-      def serialize_vars(vars)
+      def serialize_vars(vars,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
         end
       end
 
