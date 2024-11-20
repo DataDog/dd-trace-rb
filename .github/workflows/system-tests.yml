@@ -36,6 +36,10 @@ jobs:
           repository: 'DataDog/system-tests'
           ref: ${{ env.SYSTEM_TESTS_REF }}
           persist-credentials: false
+      - name: Install Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Compute workflow parameters
         id: main
         run: |
