@@ -108,10 +108,27 @@ module Datadog
         code_tracker&.active? || false
       end
 
+      # This method is called from DI Remote handler to issue DI operations
+      # to the probe manager (add or remove probes).
+      #
+      # When DI Remote is executing, Datadog.components should be initialized
+      # and we should be able to reference it to get to the DI component.
+      #
+      # Given that we need the current_component anyway for code tracker,
+      # perhaps we should delete the +component+ method and just use
+      # +current_component+ in all cases.
       def component
         Datadog.send(:components).dynamic_instrumentation
       end
 
+      # DI code tracker is instantiated globally before the regular set of
+      # components is created, but the code tracker needs to call out to the
+      # "current" DI component to perform instrumentation when application
+      # code is loaded. Because this call may happen prior to Datadog
+      # components having been initialized, we maintain the "current component"
+      # which contains a reference to the most recently instantiated
+      # DI::Component. This way, if a DI component hasn't been instantiated,
+      # we do not try to reference Datadog.components.
       def current_component
         LOCK.synchronize do
           @current_components&.last
