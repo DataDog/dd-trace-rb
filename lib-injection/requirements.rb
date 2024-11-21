@@ -11,13 +11,13 @@ def requirements
         {
           'arch' => 'x64',
           'supported' => true,
-          'min' => '2.27',
+          'min' => '2.17',
           'description' => 'libffi needs memfd_create',
         },
         {
           'arch' => 'arm64',
           'supported' => true,
-          'min' => '2.27',
+          'min' => '2.17',
           'description' => 'libffi needs memfd_create',
         },
       ],
