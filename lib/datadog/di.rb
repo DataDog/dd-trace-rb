@@ -26,6 +26,9 @@ if defined?(ActiveRecord::Base)
   # and AR should be loaded before any application code is loaded, being
   # part of Rails, therefore for now we should be OK to just require the
   # AR integration from here.
+  #
+  # TODO this require might need to be delayed via Rails post-initialization
+  # logic?
   require_relative 'di/contrib/active_record'
 end
 
@@ -111,7 +114,6 @@ module Datadog
 
       def current_component
         LOCK.synchronize do
-        p @current_components
           @current_components&.last
         end
       end
@@ -132,4 +134,13 @@ module Datadog
   end
 end
 
-Datadog::DI.activate_tracking
+if ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'] == 'true'
+  # For initial release of Dynamic Instrumentation, activate code tracking
+  # only if DI is explicitly requested in the environment.
+  # Code tracking is required for line probes to work; see the comments
+  # above for the implementation of the method.
+  #
+  # If DI is enabled programmatically, the application can (and must,
+  # for line probes to work) activate tracking in an initializer.
+  Datadog::DI.activate_tracking
+end
