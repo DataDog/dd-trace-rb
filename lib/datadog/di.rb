@@ -43,6 +43,8 @@ module Datadog
     # Expose DI to global shared objects
     Extensions.activate!
 
+    LOCK = Mutex.new
+
     class << self
       attr_reader :code_tracker
 
@@ -105,6 +107,26 @@ module Datadog
 
       def component
         Datadog.send(:components).dynamic_instrumentation
+      end
+
+      def current_component
+        LOCK.synchronize do
+        p @current_components
+          @current_components&.last
+        end
+      end
+
+      def add_current_component(component)
+        LOCK.synchronize do
+          @current_components ||= []
+          @current_components << component
+        end
+      end
+
+      def remove_current_component(component)
+        LOCK.synchronize do
+          @current_components&.delete(component)
+        end
       end
     end
   end
