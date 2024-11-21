@@ -15,5 +15,7 @@ module Datadog
     def self.activate_tracking!: () -> void
     
     def self.deactivate_tracking!: () -> void
+    
+    LOCK: Mutex
   end
 end
