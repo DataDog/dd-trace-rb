@@ -121,8 +121,9 @@ module Datadog
       # Respects string length, collection size and traversal depth limits.
       def serialize_value(value, name: nil,
         depth: settings.dynamic_instrumentation.max_capture_depth,
-        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count,
+        attribute_count: nil,
         type: nil)
+        attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
         begin
           if redactor.redact_type?(value)
