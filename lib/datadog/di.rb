@@ -59,6 +59,32 @@ module Datadog
         (@code_tracker ||= CodeTracker.new).start
       end
 
+      # Activates code tracking if possible.
+      #
+      # This method does nothing if invoked in an environment that does not
+      # implement required trace points for code tracking (MRI Ruby < 2.6,
+      # JRuby) and rescues any exceptions that may be raised by downstream
+      # DI code.
+      def activate_tracking
+        # :script_compiled trace point was added in Ruby 2.6.
+        if RUBY_VERSION >= '2.6'
+          begin
+            # Activate code tracking by default because line trace points will not work
+            # without it.
+            Datadog::DI.activate_tracking!
+          rescue => exc
+            if defined?(Datadog.logger)
+              Datadog.logger.warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            else
+              # We do not have Datadog logger potentially because DI code tracker is
+              # being loaded early in application boot process and the rest of datadog
+              # wasn't loaded yet. Output to standard error.
+              warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            end
+          end
+        end
+      end
+
       # Deactivates code tracking. In normal usage of DI this method should
       # never be called, however it is used by DI's test suite to reset
       # state for individual tests.
@@ -84,20 +110,4 @@ module Datadog
   end
 end
 
-# :script_compiled trace point was added in Ruby 2.6.
-if RUBY_VERSION >= '2.6'
-  begin
-    # Activate code tracking by default because line trace points will not work
-    # without it.
-    Datadog::DI.activate_tracking!
-  rescue => exc
-    if defined?(Datadog.logger)
-      Datadog.logger.warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
-    else
-      # We do not have Datadog logger potentially because DI code tracker is
-      # being loaded early in application boot process and the rest of datadog
-      # wasn't loaded yet. Output to standard error.
-      warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
-    end
-  end
-end
+Datadog::DI.activate_tracking
