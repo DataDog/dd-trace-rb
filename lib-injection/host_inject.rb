@@ -87,7 +87,7 @@ else
           major, minor, = RUBY_VERSION.split('.')
           ruby_api_version = "#{major}.#{minor}.0"
 
-          supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0'].freeze
+          supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0', '3.3.0'].freeze
 
           RUBY_ENGINE == 'ruby' && supported_ruby_api_versions.any? { |v| ruby_api_version == v }
         end

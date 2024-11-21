@@ -103,6 +103,7 @@ module Datadog
           # target method here.
         end
         rate_limiter = probe.rate_limiter
+        settings = self.settings
 
         mod = Module.new do
           define_method(method_name) do |*args, **kwargs| # steep:ignore
@@ -110,7 +111,9 @@ module Datadog
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
               entry_args = if probe.capture_snapshot?
-                serializer.serialize_args(args, kwargs)
+                serializer.serialize_args(args, kwargs,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
               rv = nil
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)

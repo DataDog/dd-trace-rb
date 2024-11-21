@@ -22,7 +22,7 @@ module Datadog
       @rate_limiter: Datadog::Core::RateLimiter
 
       def initialize: (id: String, type: Symbol, ?file: String?, ?line_no: Integer?, ?type_name: String?, ?method_name: String?, ?template: String?, ?capture_snapshot: bool,
-	?max_capture_depth: Integer, ?rate_limit: Integer) -> void
+	?max_capture_depth: Integer, ?max_capture_attribute_count: Integer?, ?rate_limit: Integer) -> void
 
       attr_reader id: String
 
@@ -35,6 +35,10 @@ module Datadog
       attr_reader type_name: String?
 
       attr_reader method_name: String?
+      
+      attr_reader max_capture_depth: Integer?
+      
+      attr_reader max_capture_attribute_count: Integer?
 
       attr_reader template: String
       attr_reader rate_limiter: Datadog::Core::RateLimiter
