@@ -283,6 +283,9 @@ jobs:
             app: rails70
             scenario: DEBUGGER_PII_REDACTION
           - library: ruby
+            app: rails70            
+            scenario: SCA_STANDALONE
+          - library: ruby
             app: rack
             scenario: SAMPLING
           - library: ruby
