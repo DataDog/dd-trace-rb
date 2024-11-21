@@ -4,6 +4,12 @@ module Datadog
     
     def self.component: () -> Component?
     
+    def self.current_component: () -> Component?
+    
+    def self.add_current_component: (Component) -> void
+    
+    def self.remove_current_component: (Component) -> void
+    
     def self.activate_tracking: () -> void
     
     def self.activate_tracking!: () -> void
