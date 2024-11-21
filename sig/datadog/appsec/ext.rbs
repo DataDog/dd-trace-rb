@@ -5,7 +5,6 @@ module Datadog
       SCOPE_KEY: String
 
       TAG_APPSEC_ENABLED: String
-      TAG_APM_ENABLED: String
       TAG_DISTRIBUTED_APPSEC_EVENT: String
     end
   end
