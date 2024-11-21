@@ -195,7 +195,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 # Add our script to `env.rb`, which is always run before any feature is executed.
                 File.write('features/support/env.rb', repl_script)
 
-                _, err, = Bundler.with_unbundled_env do
+                out, err, = Bundler.with_unbundled_env do
                   Open3.capture3('ruby', stdin_data: script)
                 end
 
