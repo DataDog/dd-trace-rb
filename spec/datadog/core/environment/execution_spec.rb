@@ -169,6 +169,23 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         let(:script) do
           <<-'RUBY'
+          p "cucumber launcher"
+          p $$
+
+          module Diag
+            def load_yaml
+              puts "** loading yaml **"
+              p defined?(YAML)
+              p defined?(Psych)
+
+              super
+            end
+          end
+
+          class << Gem
+            prepend Diag
+          end
+
             require 'bundler/inline'
 
             gemfile(true) do
@@ -181,6 +198,13 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 gem 'cucumber', '>= 3'
               end
             end
+
+            p 'cucumber launcher after gemfile'
+            p $LOAD_PATH
+            p '--'
+            p Gem.loaded_specs.keys
+            p '--done'
+
 
             load Gem.bin_path('cucumber', 'cucumber')
           RUBY
