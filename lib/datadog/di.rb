@@ -135,6 +135,12 @@ module Datadog
         end
       end
 
+      # To avoid potential races with DI::Component being added and removed,
+      # we maintain a list of the components. Normally the list should contain
+      # either zero or one component depending on whether DI is enabled in
+      # Datadog configuration. However, if a new instance of DI::Component
+      # is created while the previous instance is still running, we are
+      # guaranteed to not end up with no component when one is running.
       def add_current_component(component)
         LOCK.synchronize do
           @current_components ||= []
