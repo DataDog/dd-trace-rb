@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/reactive/operation'
 require 'datadog/appsec/contrib/sinatra/reactive/routed'
 require 'datadog/appsec/contrib/rack/gateway/request'
 require 'datadog/appsec/contrib/sinatra/gateway/route_params'
+require 'datadog/appsec/reactive/engine'
 require 'datadog/appsec/reactive/shared_examples'
 
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Sinatra::Reactive::Routed do
-  let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
+  let(:engine) { Datadog::AppSec::Reactive::Engine.new }
   let(:request) do
     Datadog::AppSec::Contrib::Rack::Gateway::Request.new(
       Rack::MockRequest.env_for(
@@ -22,10 +22,10 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Reactive::Routed do
   let(:routed_params) { Datadog::AppSec::Contrib::Sinatra::Gateway::RouteParams.new({ id: '1234' }) }
 
   describe '.publish' do
-    it 'propagates routed params attributes to the operation' do
-      expect(operation).to receive(:publish).with('sinatra.request.route_params', { id: '1234' })
+    it 'propagates routed params attributes to the engine' do
+      expect(engine).to receive(:publish).with('sinatra.request.route_params', { id: '1234' })
 
-      described_class.publish(operation, [request, routed_params])
+      described_class.publish(engine, [request, routed_params])
     end
   end
 
@@ -34,15 +34,15 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Reactive::Routed do
 
     context 'not all addresses have been published' do
       it 'does not call the waf context' do
-        expect(operation).to receive(:subscribe).with('sinatra.request.route_params').and_call_original
+        expect(engine).to receive(:subscribe).with('sinatra.request.route_params').and_call_original
         expect(waf_context).to_not receive(:run)
-        described_class.subscribe(operation, waf_context)
+        described_class.subscribe(engine, waf_context)
       end
     end
 
     context 'all addresses have been published' do
       it 'does call the waf context with the right arguments' do
-        expect(operation).to receive(:subscribe).and_call_original
+        expect(engine).to receive(:subscribe).and_call_original
 
         expected_waf_arguments = {
           'server.request.path_params' => { id: '1234' }
@@ -54,8 +54,8 @@ RSpec.describe Datadog::AppSec::Contrib::Sinatra::Reactive::Routed do
           {},
           Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
-        described_class.subscribe(operation, waf_context)
-        result = described_class.publish(operation, [request, routed_params])
+        described_class.subscribe(engine, waf_context)
+        result = described_class.publish(engine, [request, routed_params])
         expect(result).to be_nil
       end
     end

@@ -39,7 +39,6 @@ RSpec.shared_context 'with GraphQL schema' do
     TestGraphQL.send(:remove_const, :UserType) if defined?(TestGraphQL::UserType)
     load 'spec/datadog/tracing/contrib/graphql/support/application_schema.rb'
   end
-  let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
   let(:schema) { TestGraphQL::Schema }
 end
 
