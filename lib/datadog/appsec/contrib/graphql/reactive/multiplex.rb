@@ -12,16 +12,16 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, gateway_multiplex)
+            def self.publish(engine, gateway_multiplex)
               catch(:block) do
-                op.publish('graphql.server.all_resolvers', gateway_multiplex.arguments)
+                engine.publish('graphql.server.all_resolvers', gateway_multiplex.arguments)
 
                 nil
               end
             end
 
-            def self.subscribe(op, waf_context)
-              op.subscribe(*ADDRESSES) do |*values|
+            def self.subscribe(engine, waf_context)
+              engine.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 arguments = values[0]
 

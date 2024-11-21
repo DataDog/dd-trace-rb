@@ -15,18 +15,18 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, gateway_request)
+            def self.publish(engine, gateway_request)
               catch(:block) do
                 # params have been parsed from the request body
-                op.publish('rails.request.body', gateway_request.parsed_body)
-                op.publish('rails.request.route_params', gateway_request.route_params)
+                engine.publish('rails.request.body', gateway_request.parsed_body)
+                engine.publish('rails.request.route_params', gateway_request.route_params)
 
                 nil
               end
             end
 
-            def self.subscribe(op, waf_context)
-              op.subscribe(*ADDRESSES) do |*values|
+            def self.subscribe(engine, waf_context)
+              engine.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 body = values[0]
                 path_params = values[1]
