@@ -134,6 +134,11 @@ module Datadog
             # Otherwise, the getter method would delegate to its root span
             trace.resource = request_span.resource unless trace.resource_override?
 
+            # We add this metric when ASM standalone is enabled to make sure we don't bill APM
+            if Datadog.configuration.appsec.standalone.enabled
+              request_span.set_metric(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
+            end
+
             request_span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_REQUEST)
             request_span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)

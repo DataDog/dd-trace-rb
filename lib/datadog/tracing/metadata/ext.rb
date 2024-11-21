@@ -31,6 +31,10 @@ module Datadog
         # See Datadog-internal "RFC: Identifying which spans have profiling enabled " for details
         TAG_PROFILING_ENABLED = '_dd.profiling.enabled'
 
+        # Set to '0' if Standalone AppSec is enabled, not present otherwise.
+        # Although this tag is only used by Standalone AppSec for now, it acts on APM and belongs in this file
+        TAG_APM_ENABLED = '_dd.apm.enabled'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
