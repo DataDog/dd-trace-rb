@@ -162,7 +162,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
       context 'for Cucumber' do
         before do
-          unless PlatformHelpers.ci? || Gem.loaded_specs['cucumber']
+          if PlatformHelpers.ci? && Gem.loaded_specs['cucumber']
+            system('gem uninstall psych')
+          else
             skip('cucumber gem not present. In CI, this test is never skipped.')
           end
         end
