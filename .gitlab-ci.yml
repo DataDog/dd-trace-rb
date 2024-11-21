@@ -92,7 +92,8 @@ install-dependencies:
   tags: [ "arch:$ARCH" ]
   parallel:
     matrix:
-      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7"]
+      # Promote again when adding 3.4 support
+      - RUBY_VERSION: ["3.3", "3.2", "3.1", "3.0", "2.7"]
         ARCH: [ "amd64", "arm64" ]
   stage: package
   needs:
