@@ -4,6 +4,8 @@ module Datadog
     
     def self.component: () -> Component?
     
+    def self.activate_tracking: () -> void
+    
     def self.activate_tracking!: () -> void
     
     def self.deactivate_tracking!: () -> void
