@@ -32,10 +32,12 @@ module Datadog
             # DEV: Apply this refactor to AppSec as well if implemented.
 
             component = DI.component
-            # TODO when would this happen? Do we request DI RC when DI is not on?
-            # Or we always get RC even if DI is not turned on?
-            # -- in dev. env when component is not built but config is still requested?
-            # TODO log something?
+            # We should always have a non-nil DI component here, because we
+            # only add DI product to remote config request if DI is enabled.
+            # Ideally, we should be injected with the DI component here
+            # rather than having to retrieve it from global state.
+            # If the component is nil for some reason, we also don't have a
+            # logger instance to report the issue.
             if component
 
               probe_manager = component.probe_manager
