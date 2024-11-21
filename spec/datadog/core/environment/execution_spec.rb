@@ -199,7 +199,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
                   Open3.capture3('ruby', stdin_data: script)
                 end
 
-                expect("--OUT\n#{out}\nERR\n#{err}").to include('ACTUAL:true')
+                expect("--OUT\n#{out}\n--ERR\n#{err}").to include('ACTUAL:true')
               end
             end
           end
