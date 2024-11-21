@@ -112,6 +112,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         let(:script) do
           <<-RUBY
+            # Under Ruby 3.0 through 3.2 there is a weird error that occurs
+            # in CI where two copies of psych get loaded in the same process,
+            # and even more strangely the first version is a newer one from
+            # gem and the second one is the older one from Ruby standard
+            # library. Try to work around this situation by forcing psych
+            # to be loaded from (some) gem.
+            # We still don't know exactly what is causing the original issue.
+            gem 'psych'
+
             require 'bundler/inline'
 
             gemfile(true) do
@@ -189,18 +198,16 @@ RSpec.describe Datadog::Core::Environment::Execution do
         it 'returns true' do
           Dir.mktmpdir do |dir|
             Dir.chdir(dir) do
-              Bundler.with_unbundled_env do
-                FileUtils.mkdir_p('features/support')
+              FileUtils.mkdir_p('features/support')
 
-                # Add our script to `env.rb`, which is always run before any feature is executed.
-                File.write('features/support/env.rb', repl_script)
+              # Add our script to `env.rb`, which is always run before any feature is executed.
+              File.write('features/support/env.rb', repl_script)
 
-                _, err, = Bundler.with_unbundled_env do
-                  Open3.capture3('ruby', stdin_data: script)
-                end
-
-                expect(err).to include('ACTUAL:true')
+              _, err, = Bundler.with_unbundled_env do
+                Open3.capture3('ruby', stdin_data: script)
               end
+
+              expect(err).to include('ACTUAL:true')
             end
           end
         end
