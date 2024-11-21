@@ -82,7 +82,9 @@ module Datadog
       # between positional and keyword arguments. We convert positional
       # arguments to keyword arguments ("arg1", "arg2", ...) and ensure
       # the positional arguments are listed first.
-      def serialize_args(args, kwargs)
+      def serialize_args(args, kwargs,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         counter = 0
         combined = args.each_with_object({}) do |value, c|
           counter += 1
@@ -90,16 +92,18 @@ module Datadog
           # kwargs when they are merged below.
           c[:"arg#{counter}"] = value
         end.update(kwargs)
-        serialize_vars(combined)
+        serialize_vars(combined, depth: depth, attribute_count: attribute_count)
       end
 
       # Serializes variables captured by a line probe.
       #
       # These are normally local variables that exist on a particular line
       # of executed code.
-      def serialize_vars(vars)
+      def serialize_vars(vars,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: settings.dynamic_instrumentation.max_capture_attribute_count)
         vars.each_with_object({}) do |(k, v), agg|
-          agg[k] = serialize_value(v, name: k)
+          agg[k] = serialize_value(v, name: k, depth: depth, attribute_count: attribute_count)
         end
       end
 
@@ -115,7 +119,11 @@ module Datadog
       # (integers, strings, arrays, hashes).
       #
       # Respects string length, collection size and traversal depth limits.
-      def serialize_value(value, name: nil, depth: settings.dynamic_instrumentation.max_capture_depth, type: nil)
+      def serialize_value(value, name: nil,
+        depth: settings.dynamic_instrumentation.max_capture_depth,
+        attribute_count: nil,
+        type: nil)
+        attribute_count ||= settings.dynamic_instrumentation.max_capture_attribute_count
         cls = type || value.class
         begin
           if redactor.redact_type?(value)
@@ -203,7 +211,6 @@ module Datadog
               serialized.update(notCapturedReason: "depth")
             else
               fields = {}
-              max = settings.dynamic_instrumentation.max_capture_attribute_count
               cur = 0
 
               # MRI and JRuby 9.4.5+ preserve instance variable definition
@@ -229,7 +236,7 @@ module Datadog
               ivars = value.instance_variables
 
               ivars.each do |ivar|
-                if cur >= max
+                if cur >= attribute_count
                   serialized.update(notCapturedReason: "fieldCount", fields: fields)
                   break
                 end

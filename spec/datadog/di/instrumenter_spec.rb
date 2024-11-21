@@ -12,6 +12,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
   end
