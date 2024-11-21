@@ -149,7 +149,7 @@ module Datadog
           # Shutdown remote configuration
           remote.shutdown! if remote
 
-          # Shutdown DI after remote.
+          # Shutdown DI after remote, since remote config triggers DI operations.
           dynamic_instrumentation&.shutdown!
 
           # Decommission AppSec
