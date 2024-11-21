@@ -89,7 +89,6 @@ RSpec.describe 'Instrumentation integration' do
       allow(agent_settings).to receive(:timeout_seconds).and_return(1)
       allow(agent_settings).to receive(:ssl)
 
-      #allow(Datadog::DI).to receive(:component).and_return(component)
       allow(Datadog::DI).to receive(:current_component).and_return(component)
     end
 
