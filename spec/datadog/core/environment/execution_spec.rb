@@ -207,7 +207,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
     end
 
-    context 'when webmock has enabled net-http adapter111' do
+    context 'when webmock has enabled net-http adapter1111' do
       before do
         allow(described_class).to receive(:repl?).and_return(false)
         allow(described_class).to receive(:test?).and_return(false)
