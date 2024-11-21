@@ -173,6 +173,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
             gemfile(true) do
               source 'https://rubygems.org'
+              gem 'psych'
               if RUBY_VERSION >= '3.4'
                 # Cucumber is broken on Ruby 3.4, requires the fix in
                 # https://github.com/cucumber/cucumber-ruby/pull/1757
@@ -182,6 +183,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
               end
             end
 
+            load Gem.bin_path('psych', 'psych')
             load Gem.bin_path('cucumber', 'cucumber')
           RUBY
         end
