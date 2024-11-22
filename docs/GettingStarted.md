@@ -1097,6 +1097,27 @@ end
 | --------- | ------------------------------- | ------ | -------------------------------------------- | ------- |
 | `enabled` | `DD_TRACE_KAFKA_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
+### Karafka
+
+The karafka integration provides tracing of the `karafka` gem:
+You can enable it through `Datadog.configure`:
+
+```ruby
+require 'karafka'
+require 'datadog'
+
+Datadog.configure do |c|
+  c.tracing.instrument :karafka, **options
+end
+
+```
+`options` are the following keyword arguments:
+
+| Key                   | Env Var                  | Type   | Description                                         | Default |
+| --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Whether the integration should create spans.        | `true`  |
+| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing) | `false` |
+
 ### MongoDB
 
 The integration traces any `Command` that is sent from the [MongoDB Ruby Driver](https://github.com/mongodb/mongo-ruby-driver) to a MongoDB cluster. By extension, Object Document Mappers (ODM) such as Mongoid are automatically instrumented if they use the official Ruby driver. To activate the integration, simply:
