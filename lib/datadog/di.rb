@@ -157,7 +157,7 @@ module Datadog
   end
 end
 
-if %w(1 true).include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED'])
+if %w(1 true).include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
   # For initial release of Dynamic Instrumentation, activate code tracking
   # only if DI is explicitly requested in the environment.
   # Code tracking is required for line probes to work; see the comments
