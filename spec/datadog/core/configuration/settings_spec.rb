@@ -1766,6 +1766,39 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
 
+    describe '#log_collection_enabled' do
+      subject(:log_collection_enabled) { settings.telemetry.log_collection_enabled }
+      let(:env_var_name) { 'DD_TELEMETRY_LOG_COLLECTION_ENABLED' }
+
+      context 'when DD_TELEMETRY_LOG_COLLECTION_ENABLED' do
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to be true }
+        end
+
+        [true, false].each do |value|
+          context "is defined as #{value}" do
+            let(:env_var_value) { value.to_s }
+
+            it { is_expected.to be value }
+          end
+        end
+      end
+    end
+
+    describe '#log_collection_enabled=' do
+      let(:env_var_name) { 'DD_TELEMETRY_LOG_COLLECTION_ENABLED' }
+      let(:env_var_value) { 'true' }
+
+      it 'updates the #log_collection_enabled setting' do
+        expect { settings.telemetry.log_collection_enabled = false }
+          .to change { settings.telemetry.log_collection_enabled }
+          .from(true)
+          .to(false)
+      end
+    end
+
     describe '#heartbeat_interval' do
       subject(:heartbeat_interval_seconds) { settings.telemetry.heartbeat_interval_seconds }
       let(:env_var_name) { 'DD_TELEMETRY_HEARTBEAT_INTERVAL' }

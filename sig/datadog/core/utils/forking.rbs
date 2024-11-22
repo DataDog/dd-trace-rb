@@ -2,17 +2,19 @@ module Datadog
   module Core
     module Utils
       module Forking
+        @fork_pid: Integer
+
         def self.included: (untyped base) -> untyped
 
         def self.extended: (untyped base) -> untyped
 
-        def after_fork!: () { () -> untyped } -> untyped
+        def after_fork!: () { () -> untyped } -> bool
 
-        def forked?: () -> untyped
+        def forked?: () -> bool
 
-        def update_fork_pid!: () -> untyped
+        def update_fork_pid!: () -> void
 
-        def fork_pid: () -> untyped
+        def fork_pid: () -> Integer
 
         module ClassExtensions
           def initialize: (*untyped args) { () -> untyped } -> untyped

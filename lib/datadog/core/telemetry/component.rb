@@ -52,6 +52,7 @@ module Datadog
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             dependency_collection: settings.telemetry.dependency_collection,
             shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
+            log_collection_enabled: settings.telemetry.log_collection_enabled
           )
         end
 
@@ -67,10 +68,11 @@ module Datadog
           http_transport:,
           shutdown_timeout_seconds:,
           enabled: true,
-          metrics_enabled: true
+          metrics_enabled: true,
+          log_collection_enabled: true
         )
           @enabled = enabled
-          @stopped = false
+          @log_collection_enabled = log_collection_enabled
 
           @metrics_manager = MetricsManager.new(
             enabled: enabled && metrics_enabled,
@@ -86,6 +88,9 @@ module Datadog
             dependency_collection: dependency_collection,
             shutdown_timeout: shutdown_timeout_seconds
           )
+
+          @stopped = false
+
           @worker.start
         end
 
@@ -114,7 +119,7 @@ module Datadog
         end
 
         def log!(event)
-          return unless @enabled || forked?
+          return if !@enabled || forked? || !@log_collection_enabled
 
           @worker.enqueue(event)
         end
