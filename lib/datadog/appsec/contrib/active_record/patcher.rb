@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../patcher'
-require_relative 'sqlite3_adapter_patch'
-require_relative 'postgresql_adapter_patch'
-require_relative 'mysql2_adapter_patch'
+require_relative 'instrumentation'
 
 module Datadog
   module AppSec
@@ -26,16 +24,26 @@ module Datadog
           def patch
             ActiveSupport.on_load :active_record do
               if defined? ::ActiveRecord::ConnectionAdapters::SQLite3Adapter
-                ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(SQLite3AdapterPatch)
+                ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(Patcher.prepended_class_name(:sqlite3))
               end
 
               if defined? ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter
-                ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(PostgreSQLAdapterPatch)
+                ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(Patcher.prepended_class_name(:postgresql))
               end
 
               if defined? ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-                ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(Mysql2AdapterPatch)
+                ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(Patcher.prepended_class_name(:mysql2))
               end
+            end
+          end
+
+          def prepended_class_name(adapter_name)
+            if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+              Instrumentation::InternalExecQueryAdapterPatch
+            elsif adapter_name == :postgresql
+              Instrumentation::ExecuteAndClearAdapterPatch
+            else
+              Instrumentation::ExecQueryAdapterPatch
             end
           end
         end
