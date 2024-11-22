@@ -354,21 +354,6 @@ orbs:
 
 job_configuration:
   # MRI
-  - &config-2_5
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.5.9'
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.5
-    resource_class_to_use: medium+
-  - &config-2_6
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.6.10'
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.6
-    resource_class_to_use: medium+
-  - &config-2_7
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'ruby-2.7.6'
-    image: ghcr.io/datadog/images-rb/engines/ruby:2.7
-    resource_class_to_use: medium+
   - &config-2_7-small
     <<: *config-2_7
     resource_class_to_use: small
@@ -398,16 +383,6 @@ job_configuration:
     image: ghcr.io/datadog/images-rb/engines/ruby:3.4
     resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
-  - &config-jruby-9_2 # More recent release of 9.2
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'jruby-9.2.21.0'
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.2
-    resource_class_to_use: large
-  - &config-jruby-9_3
-    <<: *filters_all_branches_and_tags
-    ruby_version: 'jruby-9.3.9.0'
-    image: ghcr.io/datadog/images-rb/engines/jruby:9.3
-    resource_class_to_use: large
   - &config-jruby-9_4
     <<: *filters_all_branches_and_tags
     ruby_version: 'jruby-9.4.7.0'
@@ -422,17 +397,12 @@ workflows:
           <<: *config-2_7-small
           name: coverage
           requires:
-            - test-2.5
-            - test-2.6
-            - test-2.7
             - test-3.0
             - test-3.1
             - test-3.2
             - test-3.3
             - test-3.4
             # ADD NEW RUBIES HERE
-            - test-jruby-9.2
-            - test-jruby-9.3
             - test-jruby-9.4
       - orb/changelog:
           <<: *config-2_7-small
@@ -443,21 +413,6 @@ workflows:
             branches:
               only: /bump_to_version_.*/
       # Integration
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.5
-          integration_apps: 'rack rails-five rails-six'
-          ruby_version: '2.5'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.6
-          integration_apps: 'rack rails-five rails-six sinatra2-classic sinatra2-modular hanami'
-          ruby_version: '2.6'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.7
-          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular hanami'
-          ruby_version: '2.7'
-          <<: *filters_all_branches_and_tags
       - orb/build_and_test_integration:
           name: build_and_test_integration-3.0
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
@@ -486,30 +441,6 @@ workflows:
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
       # ADD NEW RUBIES HERE
-      - orb/build:
-          <<: *config-2_5
-          name: build-2.5
-      - orb/test:
-          <<: *config-2_5
-          name: test-2.5
-          requires:
-            - build-2.5
-      - orb/build:
-          <<: *config-2_6
-          name: build-2.6
-      - orb/test:
-          <<: *config-2_6
-          name: test-2.6
-          requires:
-            - build-2.6
-      - orb/build:
-          <<: *config-2_7
-          name: build-2.7
-      - orb/test:
-          <<: *config-2_7
-          name: test-2.7
-          requires:
-            - build-2.7
       - orb/build:
           <<: *config-3_0
           name: build-3.0
@@ -551,22 +482,6 @@ workflows:
           requires:
             - build-3.4
       # ADD NEW RUBIES HERE
-      - orb/build:
-          <<: *config-jruby-9_2
-          name: build-jruby-9.2
-      - orb/test:
-          <<: *config-jruby-9_2
-          name: test-jruby-9.2
-          requires:
-            - build-jruby-9.2
-      - orb/build:
-          <<: *config-jruby-9_3
-          name: build-jruby-9.3
-      - orb/test:
-          <<: *config-jruby-9_3
-          name: test-jruby-9.3
-          requires:
-            - build-jruby-9.3
       - orb/build:
           <<: *config-jruby-9_4
           name: build-jruby-9.4
