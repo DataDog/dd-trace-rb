@@ -27,8 +27,6 @@ namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
 
-  ruby_version = RUBY_VERSION[0..2]
-
   major, minor, = if defined?(RUBY_ENGINE_VERSION)
                     Gem::Version.new(RUBY_ENGINE_VERSION).segments
                   else
