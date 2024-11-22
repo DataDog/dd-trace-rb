@@ -28,6 +28,7 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
         allow(settings).to receive(:enabled).and_return(true)
         allow(settings).to receive(:untargeted_trace_points).and_return(false)
         allow(settings).to receive(:max_capture_depth).and_return(2)
+        allow(settings).to receive(:max_capture_attribute_count).and_return(2)
         allow(settings).to receive(:max_capture_string_length).and_return(20)
         allow(settings).to receive(:max_capture_collection_size).and_return(20)
         allow(settings).to receive(:redacted_type_names).and_return([])

@@ -112,6 +112,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         let(:script) do
           <<-RUBY
+            # Under Ruby 3.0 through 3.2 there is a weird error that occurs
+            # in CI where two copies of psych get loaded in the same process,
+            # and even more strangely the first version is a newer one from
+            # gem and the second one is the older one from Ruby standard
+            # library. Try to work around this situation by forcing psych
+            # to be loaded from (some) gem.
+            # We still don't know exactly what is causing the original issue.
+            gem 'psych'
+
             require 'bundler/inline'
 
             gemfile(true) do
@@ -173,7 +182,13 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
             gemfile(true) do
               source 'https://rubygems.org'
-              gem 'cucumber', '>= 3'
+              if RUBY_VERSION >= '3.4'
+                # Cucumber is broken on Ruby 3.4, requires the fix in
+                # https://github.com/cucumber/cucumber-ruby/pull/1757
+                gem 'cucumber', '>= 3', git: 'https://github.com/cucumber/cucumber-ruby'
+              else
+                gem 'cucumber', '>= 3'
+              end
             end
 
             load Gem.bin_path('cucumber', 'cucumber')
@@ -192,8 +207,6 @@ RSpec.describe Datadog::Core::Environment::Execution do
                 Open3.capture3('ruby', stdin_data: script)
               end
 
-              # Ruby 3.4 outputs an exception instead of the information to be asserted because of the forked process.
-              pending('Pending for Ruby 3.4.') if RUBY_VERSION.start_with?('3.4.')
               expect(err).to include('ACTUAL:true')
             end
           end
