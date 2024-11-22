@@ -72,20 +72,20 @@ module Datadog
       # DI code.
       def activate_tracking
         # :script_compiled trace point was added in Ruby 2.6.
-        if RUBY_VERSION >= '2.6'
-          begin
-            # Activate code tracking by default because line trace points will not work
-            # without it.
-            Datadog::DI.activate_tracking!
-          rescue => exc
-            if defined?(Datadog.logger)
-              Datadog.logger.warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
-            else
-              # We do not have Datadog logger potentially because DI code tracker is
-              # being loaded early in application boot process and the rest of datadog
-              # wasn't loaded yet. Output to standard error.
-              warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
-            end
+        return unless RUBY_VERSION >= '2.6'
+
+        begin
+          # Activate code tracking by default because line trace points will not work
+          # without it.
+          Datadog::DI.activate_tracking!
+        rescue => exc
+          if defined?(Datadog.logger)
+            Datadog.logger.warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+          else
+            # We do not have Datadog logger potentially because DI code tracker is
+            # being loaded early in application boot process and the rest of datadog
+            # wasn't loaded yet. Output to standard error.
+            warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
           end
         end
       end
