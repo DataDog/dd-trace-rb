@@ -418,37 +418,6 @@ workflows:
           filters:
             branches:
               only: /bump_to_version_.*/
-      # Integration
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-2.7
-          integration_apps: 'rack rails-five rails-six rails-seven sinatra2-classic sinatra2-modular hanami'
-          ruby_version: '2.7'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.0
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.0'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.1
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.1'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.2
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.2'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.3
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.3'
-          <<: *filters_all_branches_and_tags
-      - orb/build_and_test_integration:
-          name: build_and_test_integration-3.4
-          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
-          ruby_version: '3.4'
-          <<: *filters_all_branches_and_tags
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
       # ADD NEW RUBIES HERE
