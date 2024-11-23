@@ -233,6 +233,32 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             try_wait_until { received_metrics }
           end
         end
+
+        context 'when logs are flushed' do
+          it 'deduplicates repeated log entries' do
+            events_received = []
+            expect(emitter).to receive(:request).with(
+              an_instance_of(Datadog::Core::Telemetry::Event::MessageBatch)
+            ) do |event|
+              events_received += event.events
+              response
+            end
+
+            worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
+            worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error))
+
+            worker.start
+            try_wait_until { !events_received.empty? }
+
+            expect(events_received).to contain_exactly(
+                                         Datadog::Core::Telemetry::Event::AppClosing.new,
+                                         Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn, count: 2),
+                                         Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error)
+                                       )
+          end
+        end
       end
 
       context 'when internal error returned by emitter' do

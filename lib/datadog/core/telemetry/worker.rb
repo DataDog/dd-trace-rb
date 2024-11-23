@@ -97,6 +97,8 @@ module Datadog
           return if events.empty?
           return if !enabled? || !sent_started_event?
 
+          events = deduplicate_logs(events)
+
           Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
           send_event(Event::MessageBatch.new(events))
         end
@@ -166,6 +168,35 @@ module Datadog
 
           Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
           disable!
+        end
+
+        private
+
+        def deduplicate_logs(events)
+          return if events.empty?
+
+          logs = []
+          other_events = events.reject do |event|
+            if event.is_a?(Event::Log)
+              logs << event
+              true
+            else
+              false
+            end
+          end
+
+          return if logs.empty?
+
+          logs = logs.group_by(&:hash).map do |_, logs|
+            log = logs.first
+            if logs.size > 1
+              Event::Log.new(message: log.message, level: log.level, stack_trace: log.stack_trace, count: logs.size)
+            else
+              log
+            end
+          end
+
+          other_events + logs
         end
       end
     end

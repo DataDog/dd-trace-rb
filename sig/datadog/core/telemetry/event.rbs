@@ -70,6 +70,7 @@ module Datadog
         class Log < Base
           LEVELS: Hash[Symbol, String]
 
+          @count: Integer
           @message: String
           @level: "ERROR" | "DEBUG" | "WARN"
           @stack_trace: String?

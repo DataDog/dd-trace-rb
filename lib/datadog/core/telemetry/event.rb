@@ -315,6 +315,16 @@ module Datadog
           def type
             'app-closing'
           end
+
+          def ==(other)
+            other.is_a?(AppClosing)
+          end
+
+          alias eql? ==
+
+          def hash
+            self.class.hash
+          end
         end
 
         # Telemetry class for the 'generate-metrics' event
@@ -344,15 +354,28 @@ module Datadog
             warn: 'WARN',
           }.freeze
 
+          LEVELS_STRING = LEVELS.values.freeze
+
+          attr_reader :message, :level, :stack_trace, :count
+
           def type
             'logs'
           end
 
-          def initialize(message:, level:, stack_trace: nil)
+          def initialize(message:, level:, stack_trace: nil, count: 1)
             super()
             @message = message
             @stack_trace = stack_trace
-            @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
+
+            if LEVELS_STRING.include?(level)
+              @level = level
+            elsif level.is_a?(Symbol)
+              @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
+            else
+              raise ArgumentError, "Invalid log level #{level}"
+            end
+
+            @count = count
           end
 
           def payload
@@ -362,9 +385,21 @@ module Datadog
                   message: @message,
                   level: @level,
                   stack_trace: @stack_trace,
+                  count: @count,
                 }.compact
               ]
             }
+          end
+
+          # override equality to allow for deduplication
+          def ==(other)
+            other.is_a?(Log) && other.message == @message && other.level == @level && other.stack_trace == @stack_trace && other.count == @count
+          end
+
+          alias eql? ==
+
+          def hash
+            [@message, @level, @stack_trace, @count].hash
           end
         end
 
