@@ -138,7 +138,9 @@ RSpec.describe Datadog::Core::Environment::Execution do
         end
 
         it 'returns true' do
-          _, err, = Open3.capture3('ruby', stdin_data: script)
+          _, err, = Bundler.with_unbundled_env do
+            Open3.capture3('ruby', stdin_data: script)
+          end
           expect(err).to end_with('ACTUAL:true')
         end
       end
