@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     permissions:
-        contents: read
+      contents: read
     strategy:
         fail-fast: false
         matrix:
@@ -80,6 +80,7 @@ jobs:
       - run: git diff
 
       - name: Create Pull Request
+        id: cpr
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GHA_PAT }}
@@ -93,3 +94,10 @@ jobs:
             _This is an auto-generated PR from [here](https://github.com/DataDog/dd-trace-rb/blob/master/.github/workflows/update-latest-dependency.yml), which creates a pull request that will be continually updated with new changes until it is merged or closed)_
 
             The PR updates latest versions of defined dependencies. Please review the changes and merge when ready.
+
+      - name: Enable Pull Request Automerge
+        if: steps.cpr.outputs.pull-request-operation == 'created'
+        uses: peter-evans/enable-pull-request-automerge@v3
+        with:
+          token: ${{ secrets.GHA_PAT }}
+          pull-request-number: ${{ steps.cpr.outputs.pull-request-number }}
