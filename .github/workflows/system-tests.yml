@@ -267,6 +267,21 @@ jobs:
             app: rack
             scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
           - library: ruby
+            app: rails70
+            scenario: DEBUGGER_PROBES_STATUS
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_METHOD_PROBES_SNAPSHOT
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_LINE_PROBES_SNAPSHOT
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_MIX_LOG_PROBE
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_PII_REDACTION
+          - library: ruby
             app: rack
             scenario: SAMPLING
           - library: ruby
