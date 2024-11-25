@@ -13,6 +13,7 @@ RSpec.describe Datadog::DI::Instrumenter do
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
+    allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)
     allow(settings.dynamic_instrumentation).to receive(:redacted_type_names).and_return([])
     allow(settings.dynamic_instrumentation).to receive(:redacted_identifiers).and_return([])
   end
@@ -243,6 +244,95 @@ RSpec.describe Datadog::DI::Instrumenter do
             args = [41]
             kwargs = {kwarg: 42}
             expect(HookTestClass.new.hook_test_method_with_pos_and_kwarg(*args, **kwargs)).to eq [41, 42]
+          end
+
+          include_examples 'invokes callback and captures parameters'
+        end
+      end
+    end
+
+    context 'keyword arguments squashed into a hash' do
+      ruby_2_only
+
+      shared_examples 'invokes callback and captures parameters' do
+        it 'invokes callback and captures parameters' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          target_call
+
+          expect(observed_calls.length).to eq 1
+          expect(observed_calls.first.keys.sort).to eq call_keys
+          expect(observed_calls.first[:rv]).to eq(kwarg: 42)
+          expect(observed_calls.first[:duration]).to be_a(Float)
+
+          expect(observed_calls.first[:serialized_entry_args]).to eq(
+            kwarg: {type: 'Integer', value: '42'}
+          )
+        end
+      end
+
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'squashed',
+         capture_snapshot: true}
+      end
+
+      context 'call with keyword arguments' do
+        let(:target_call) do
+          expect(HookTestClass.new.squashed(kwarg: 42)).to eq(kwarg: 42)
+        end
+
+        include_examples 'invokes callback and captures parameters'
+      end
+
+      context 'call with positional argument' do
+        let(:target_call) do
+          arg = {kwarg: 42}
+          expect(HookTestClass.new.squashed(arg)).to eq(kwarg: 42)
+        end
+
+        include_examples 'invokes callback and captures parameters'
+      end
+
+      context 'when there is also a positional argument' do
+        shared_examples 'invokes callback and captures parameters' do
+          it 'invokes callback and captures parameters' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            target_call
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq(['hello', {kwarg: 42}])
+            expect(observed_calls.first[:duration]).to be_a(Float)
+
+            expect(observed_calls.first[:serialized_entry_args]).to eq(
+              arg1: {type: 'String', value: 'hello'},
+              kwarg: {type: 'Integer', value: '42'},
+            )
+          end
+        end
+
+        let(:probe_args) do
+          {type_name: 'HookTestClass', method_name: 'positional_and_squashed',
+           capture_snapshot: true}
+        end
+
+        context 'call with positional and keyword arguments' do
+          let(:target_call) do
+            expect(HookTestClass.new.positional_and_squashed('hello', kwarg: 42)).to eq(['hello', {kwarg: 42}])
+          end
+
+          include_examples 'invokes callback and captures parameters'
+        end
+
+        context 'call with a splat' do
+          let(:target_call) do
+            args = ['hello', {kwarg: 42}]
+            expect(HookTestClass.new.positional_and_squashed(*args)).to eq(['hello', {kwarg: 42}])
           end
 
           include_examples 'invokes callback and captures parameters'
