@@ -1,5 +1,13 @@
 module DIHelpers
   module ClassMethods
+    def ruby_2_only
+      if RUBY_VERSION >= '3'
+        before(:all) do
+          skip "Test is only for Ruby 2"
+        end
+      end
+    end
+
     def di_test
       if PlatformHelpers.jruby?
         before(:all) do
