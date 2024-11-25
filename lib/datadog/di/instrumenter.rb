@@ -106,7 +106,7 @@ module Datadog
         settings = self.settings
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs| # steep:ignore
+          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
             if rate_limiter.nil? || rate_limiter.allow?
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
@@ -120,14 +120,14 @@ module Datadog
               duration = Benchmark.realtime do # steep:ignore
                 rv = if args.any?
                   if kwargs.any?
-                    super(*args, **kwargs)
+                    super(*args, **kwargs, &target_block)
                   else
-                    super(*args)
+                    super(*args, &target_block)
                   end
                 elsif kwargs.any?
-                  super(**kwargs)
+                  super(**kwargs, &target_block)
                 else
-                  super()
+                  super(&target_block)
                 end
               end
               # The method itself is not part of the stack trace because
