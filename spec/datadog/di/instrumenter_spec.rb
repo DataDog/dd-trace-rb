@@ -76,6 +76,31 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
     end
 
+    context 'when target method yields to a block' do
+      let(:probe_args) do
+        {type_name: 'HookTestClass', method_name: 'yielding'}
+      end
+
+      it 'invokes callback' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        yielded_value = nil
+        expect(HookTestClass.new.yielding('hello') do |value|
+          yielded_value = value
+          [value]
+        end).to eq ['hello']
+
+        expect(yielded_value).to eq('hello')
+
+        expect(observed_calls.length).to eq 1
+        expect(observed_calls.first.keys.sort).to eq call_keys
+        expect(observed_calls.first[:rv]).to eq ['hello']
+        expect(observed_calls.first[:duration]).to be_a(Float)
+      end
+    end
+
     context 'positional args' do
       context 'without snapshot capture' do
         let(:probe_args) do

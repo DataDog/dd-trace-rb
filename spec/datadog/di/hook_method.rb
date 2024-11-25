@@ -15,6 +15,10 @@ class HookTestClass
     [arg, kwarg]
   end
 
+  def yielding(arg)
+    yield arg
+  end
+
   def recursive(depth)
     if depth > 0
       recursive(depth - 1) + '-'
