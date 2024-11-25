@@ -271,7 +271,6 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context 'when there is also a positional argument' do
-
         shared_examples 'invokes callback and captures parameters' do
           it 'invokes callback and captures parameters' do
             instrumenter.hook_method(probe) do |payload|
