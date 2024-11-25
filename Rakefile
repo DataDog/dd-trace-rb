@@ -27,8 +27,6 @@ namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
 
-  ruby_version = RUBY_VERSION[0..2]
-
   major, minor, = if defined?(RUBY_ENGINE_VERSION)
                     Gem::Version.new(RUBY_ENGINE_VERSION).segments
                   else
@@ -46,14 +44,11 @@ namespace :test do
       spec_arguments = args.task_args
 
       candidates = spec_metadata.select do |appraisal_group, rubies|
-        if RUBY_PLATFORM == 'java'
-          # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
-          next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
+        # Exceptions:
+        # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
+        next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
 
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
+        RuntimeMatcher.match?(rubies)
       end
 
       candidates.each do |appraisal_group, _|
