@@ -233,8 +233,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-          log_collection_enabled: log_collection_enabled,
-        }
+          log_collection_enabled: log_collection_enabled, }
       end
       let(:enabled) { true }
       let(:agentless_enabled) { false }
@@ -266,8 +265,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              log_collection_enabled: true,
-            }
+              log_collection_enabled: true, }
           end
           let(:agent_settings) do
             instance_double(
@@ -293,8 +291,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-            log_collection_enabled: log_collection_enabled,
-          }
+            log_collection_enabled: log_collection_enabled, }
         end
 
         before do
@@ -314,8 +311,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
-              log_collection_enabled: true,
-            }
+              log_collection_enabled: true, }
           end
 
           it 'does not enable telemetry when agentless mode requested but api key is not present' do
