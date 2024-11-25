@@ -91,7 +91,7 @@ GEM
     simplecov_json_formatter (0.1.4)
     spoon (0.0.6)
       ffi
-    stripe (13.1.1)
+    stripe (13.2.0)
     thor (1.2.2)
     warning (1.4.0)
     webmock (3.23.1)
