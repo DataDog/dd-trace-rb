@@ -267,7 +267,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :rack, :rails, :sinatra, :devise, :graphql]
+    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -280,6 +280,7 @@ namespace :spec do
 
     # Datadog AppSec integrations
     [
+      :active_record,
       :rack,
       :sinatra,
       :rails,
