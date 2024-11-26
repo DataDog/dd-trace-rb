@@ -167,6 +167,19 @@ module Datadog
                   o.env Tracing::Configuration::Ext::ENV_APM_ENABLED
                   o.default true
                   o.type :bool
+                  o.env_parser do |value|
+                    # While the naming RFC is not approved, we are using the previous env var, which is reversed.
+                    # When it is approved, we can delete that block
+                    value = value&.downcase
+                    if ['false', '0'].include?(value)
+                      true
+                    elsif ['true', '1'].include?(value)
+                      false
+                    else
+                      Datadog.logger.warn("Unsupported value for 'non-billing' mode: #{value}. Traces will be sent to Datadog.")
+                      nil
+                    end
+                  end
                 end
               end
 
