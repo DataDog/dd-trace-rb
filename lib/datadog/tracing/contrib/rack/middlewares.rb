@@ -134,8 +134,8 @@ module Datadog
             # Otherwise, the getter method would delegate to its root span
             trace.resource = request_span.resource unless trace.resource_override?
 
-            # We add this metric when ASM standalone is enabled to make sure we don't bill APM
-            if Datadog.configuration.appsec.standalone.enabled
+            # We add this metric when we are running in 'non-billing' mode to tell the backend not to bill these traces
+            unless Datadog.configuration.tracing.apm.enabled
               request_span.set_metric(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
             end
 

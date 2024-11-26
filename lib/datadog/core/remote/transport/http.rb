@@ -122,7 +122,7 @@ module Datadog
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
               # by pretending it has already been done on the library side.
-              if Datadog.configuration.appsec.standalone.enabled
+              unless Datadog.configuration.tracing.apm.enabled
                 headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'
               end
             end

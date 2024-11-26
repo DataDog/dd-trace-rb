@@ -9,18 +9,18 @@ RSpec.describe Datadog::AppSec::Utils::TraceOperation do
 
     let(:trace_op) { Datadog::Tracing::TraceOperation.new(**options) }
     let(:options) { {} }
-    let(:appsec_standalone) { false }
+    let(:tracing_apm_enabled) { true }
     let(:distributed_appsec_event) { '0' }
 
     before do
-      allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(appsec_standalone)
+      allow(Datadog.configuration.tracing.apm).to receive(:enabled).and_return(tracing_apm_enabled)
       trace_op.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, distributed_appsec_event) if trace_op
     end
 
     it { is_expected.to be false }
 
     context 'when AppSec standalone is enabled' do
-      let(:appsec_standalone) { true }
+      let(:tracing_apm_enabled) { false }
 
       it { is_expected.to be true }
 

@@ -150,6 +150,26 @@ module Datadog
                 end
               end
 
+              # Configures tracing non-billing mode configuration
+              #
+              # This rate-limit traces to 1 per minute, to keep the service alive without billing it.
+              # The RFC defines the environment variable as DD_TRACE_APM_ENABLED, we are fallowing a similar name.
+              # As of late November, the RFC is not approved yet but should be soon, hence why we are still
+              # using DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED
+              #
+              # @public_api
+              settings :apm do
+                # When set to false, sets the rate limit to 1 trace per minute, and prevents billing by adding tags
+                #
+                # @default `DD_TRACE_APM_ENABLED` environment variable, otherwise `true`
+                # @return [Boolean]
+                option :enabled do |o|
+                  o.env Tracing::Configuration::Ext::ENV_APM_ENABLED
+                  o.default true
+                  o.type :bool
+                end
+              end
+
               # Comma-separated, case-insensitive list of header names that are reported in incoming and outgoing HTTP requests.
               #
               # Each header in the list can either be:
