@@ -116,7 +116,7 @@ GEM
     dogstatsd-ruby (5.6.1)
     erubi (1.13.0)
     extlz4 (0.3.4)
-    ffi (1.16.3)
+    ffi (1.17.0)
     globalid (1.2.1)
       activesupport (>= 6.1)
     google-protobuf (3.25.3)
@@ -151,7 +151,7 @@ GEM
     mini_mime (1.1.5)
     mini_portile2 (2.8.7)
     minitest (5.24.0)
-    msgpack (1.7.2)
+    msgpack (1.7.5)
     mutex_m (0.2.0)
     net-imap (0.4.14)
       date
@@ -308,7 +308,6 @@ DEPENDENCIES
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   extlz4 (~> 0.3, >= 0.3.3)
-  ffi (~> 1.16.3)
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   lograge (~> 0.11)

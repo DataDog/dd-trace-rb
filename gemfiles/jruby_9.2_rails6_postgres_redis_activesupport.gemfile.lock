@@ -132,7 +132,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.2)
     minitest (5.15.0)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     net-imap (0.2.2)
       digest
       net-protocol
