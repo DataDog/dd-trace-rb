@@ -16,10 +16,12 @@ module Datadog
       @code_tracker: CodeTracker
       
       @logger: Core::Logger
+      
+      @telemetry: Core::Telemetry::Component?
 
       @lock: Mutex
 
-      def initialize: (untyped settings, Serializer serializer, Core::Logger logger, ?code_tracker: CodeTracker?) -> void
+      def initialize: (untyped settings, Serializer serializer, Core::Logger logger, ?code_tracker: CodeTracker?, ?telemetry: Core::Telemetry::Component) -> void
 
       attr_reader settings: untyped
 
@@ -28,6 +30,8 @@ module Datadog
       attr_reader code_tracker: CodeTracker
       
       attr_reader logger: Core::Logger
+      
+      attr_reader telemetry: Core::Telemetry::Component?
 
       def hook_method: (Probe probe) ?{ (?) -> untyped } -> void
 

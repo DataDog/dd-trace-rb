@@ -24,8 +24,8 @@ To start a development environment, choose a target Ruby version then run the fo
 # In the root directory of the project...
 cd ~/dd-trace-rb
 
-# Create and start a Ruby 3.0 test environment with its dependencies
-docker-compose run --rm tracer-3.0 /bin/bash
+# Create and start a Ruby 3.3 test environment with its dependencies
+docker compose run --rm tracer-3.3 /bin/bash
 
 # Then inside the container (e.g. `root@2a73c6d8673e:/app`)...
 # Install the library dependencies
@@ -64,10 +64,9 @@ All tests should run in CI. When adding new `_spec.rb` files, you may need to ad
 ```ruby
   {
     'foo' => {
-      # Without any appraisal group dependencies
+      # With default dependencies for each Ruby runtime
       ''    => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
-
-      # or with appraisal group definition `foo-on-rails`, that includes additional gems
+      # or with dependency group definition `foo-on-rails`, that includes additional gems
       'foo-on-rails' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby'
     },
   }
@@ -75,7 +74,7 @@ All tests should run in CI. When adding new `_spec.rb` files, you may need to ad
 
 ### Running tests
 
-Simplest way to run tests is to run `bundle exec rake ci`, which will run the entire test suite, just as CI does.
+`bundle exec rake ci` will run the entire test suite with any given Ruby runtime, just as CI does. However, this is not recommended because it is going take a long time.
 
 **For the core library**
 
@@ -89,14 +88,15 @@ $ bundle exec rake test:main
 
 Integrations which interact with dependencies not listed in the `datadog` gemspec will need to load these dependencies to run their tests. Each test task could consist of multiple spec tasks which are executed with different groups of dependencies (likely against different versions or variations).
 
-To get a list of the test tasks, run `bundle exec rake -T test`
+To get a list of the test tasks, run `bundle exec rake -T test:`
 
 To run test, run `bundle exec rake test:<spec_name>`
 
-Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different groups are tested.
+Take `bundle exec rake test:redis` as example, multiple versions of `redis` from different dependency definitions are being tested (from `Matrixfile`).
+
 
 ```ruby
-TEST_METADATA = {
+{
   'redis' => {
     'redis-3' => '✅ 2.1 / ✅ 2.2 / ✅ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
     'redis-4' => '❌ 2.1 / ❌ 2.2 / ❌ 2.3 / ✅ 2.4 / ✅ 2.5 / ✅ 2.6 / ✅ 2.7 / ✅ 3.0 / ✅ 3.1 / ✅ 3.2 / ✅ 3.3 / ✅ jruby',
@@ -105,23 +105,48 @@ TEST_METADATA = {
 }
 ```
 
-**Working with appraisal groups**
+If the dependency groups are prepared (with up-to-date gemfile and lockfile), the test task would install them before running the test.
 
-Checkout [Apppraisal](https://github.com/thoughtbot/appraisal) to learn the basics.
+**Working with different dependencies**
 
-Groups are defined under `appraisal/` directory and their names are prefixed with Ruby runtime based on the environment. `*.gemfile` and `*.gemfile.lock` from `gemfiles/` directory are generated from those definitions.
+We are actively developing tools to make it easier to manage dependencies. Currently, we are using rake tasks defined in `tasks/dependency.rake`.
 
-To find out existing groups in your environment, run `bundle exec appraisal list`
+You can find them by running the following command:
 
-After introducing a new group definition or changing existing one, run `bundle exec appraisal generate` to propagate the changes.
-
-To install dependencies, run `bundle exec appraisal install`.
-
-In addition, if you already know which appraisal group definition to work with, you can target a specific group operation with environment variable `APPRAISAL_GROUP`, instead of all the groups from your environment. For example:
-
+```bash
+bundle exec rake -T dependency:
 ```
-# This would only install dependencies for `aws` group definition
-APPRAISAL_GROUP=aws bundle exec appraisal install
+
+Dependency group definitions are located under `appraisal/` directory using the same DSL provided by [Appraisal](https://github.com/thoughtbot/appraisal). These definitions are used to generate `gemfiles/*.gemfile` and then `gemfiles/*.lock`. All the files are underscored and prefixed with Ruby runtime.
+
+> [!IMPORTANT]
+> Do NOT manually edit `gemfiles/*.gemfile` or `gemfiles/*.lock`. Instead, make changes to `appraisal/*.rb` and propagates your changes programmatically
+
+To find out existing gemfiles in your environment, run
+
+```bash
+bundle exec rake dependency:list
+```
+
+`dependency:list` is convenient to look for a specific gemfile path before assigning it to the environment variable `BUNDLE_GEMFILE` for doing all kinds of stuff.
+
+```bash
+env BUNDLE_GEMFILE=/app/gemfiles/ruby_3.3_stripe_latest.gemfile bundle update stripe
+```
+
+After introducing a new dependency group or changing existing one, run `bundle exec rake dependency:generate` to propagate the changes to the gemfile. `dependency:generate` is idempotent and only changes `gemfiles/*.gemfile` but not `gemfiles/*.lock`.
+
+To keep lockfile up-to-date with the gemfile, run `bundle exec rake dependency:lock`.
+
+To install, run `bundle exec rake dependency:install`.
+
+Both `dependency:lock` and `dependency:install` can be provided with a specific gemfile path (from `dependency:list`) or pattern to target specific groups. For example:
+
+```bash
+# Generates lockfiles for all the stripe groups with `stripe_*` pattern
+bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_*.gemfile']
+# or only generate lockfile for `stripe_latest` group
+bundle exec rake dependency:lock['/app/gemfiles/ruby_3.3_stripe_latest.gemfile']
 ```
 
 **Passing arguments to tests**

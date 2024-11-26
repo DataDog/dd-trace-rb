@@ -26,6 +26,23 @@ module Datadog
       # that does not in fact exist anywhere (e.g. due to a misspelling).
       class DITargetNotDefined < Error
       end
+
+      # Raised when trying to install a probe whose installation failed
+      # earlier in the same process. This exception should contain the
+      # original exception report from initial installation attempt.
+      class ProbePreviouslyFailed < Error
+      end
+
+      # Raised when installing a line probe and multiple files match the
+      # specified path suffix.
+      # A probe must be installed into one file only, since UI only
+      # supports one instrumented location for a probe.
+      # If multiple files match, UI cannot properly render the data from
+      # all of them, and arbitrarily choosing one file may be not what the
+      # user intended. Instrumentation will fail when multiple files match
+      # and the user will need to make their suffix more precise.
+      class MultiplePathsMatch < Error
+      end
     end
   end
 end

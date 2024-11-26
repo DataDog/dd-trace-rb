@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require 'libddwaf'
-
 module Datadog
   module AppSec
     class Processor
@@ -21,7 +19,7 @@ module Datadog
           @events = []
           @run_mutex = Mutex.new
 
-          @libddwaf_debug_tag = "libddwaf:#{WAF::VERSION::STRING}"
+          @libddwaf_debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
 
         def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
@@ -81,7 +79,7 @@ module Datadog
           @context.run(persistent_data, ephemeral_data, timeout)
         rescue WAF::LibDDWAF::Error => e
           Datadog.logger.debug { "#{@libddwaf_debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
-          @telemetry.report(e, description: 'libddwaf internal low-level error')
+          @telemetry.report(e, description: 'libddwaf-rb internal low-level error')
 
           [:err_internal, WAF::Result.new(:err_internal, [], 0.0, false, [], [])]
         end

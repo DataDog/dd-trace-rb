@@ -14,20 +14,14 @@ jobs:
       - run: sudo apt-get update && (sudo apt-get install -y valgrind || sleep 5 && sudo apt-get install -y valgrind) && valgrind --version
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
-    # Temporarily disabled on 2024-09-17 until ruby-asan builds are available again on
-    # https://github.com/ruby/ruby-dev-builder/releases
+    # Temporarily ruby-asan builds changes
+    # from: `ruby 3.4.0dev (2024-11-07T14:35:19Z :detached: fca07d73e3) +PRISM [x86_64-linux]`
+    # To:   `ruby 3.4.0dev (2024-11-11T18:38:40Z :detached: 8672e88cd2) +PRISM [x86_64-linux]`
     if: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      # We're using a fork of ruby/setup-ruby because the "asan" tool is built into the clang compiler toolchain, and
-      # needs Ruby to be built with a special configuration.
-      #
-      # The special configuration is not yet available in the upstream `ruby/setup-ruby` github action, so I needed to
-      # fork it and push a small tweak to make it available.
-      #
-      # (The Ruby builds were added in https://github.com/ruby/ruby-dev-builder/pull/10 ).
-      - uses: datadog/setup-ruby@0c7206d6db81faf999795ceebfac00d164298bd5
+      - uses: ruby/setup-ruby@v1
         with:
           ruby-version: asan
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically

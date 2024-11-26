@@ -36,7 +36,9 @@ module Datadog
 
       def initialize(id:, type:,
         file: nil, line_no: nil, type_name: nil, method_name: nil,
-        template: nil, capture_snapshot: false, max_capture_depth: nil, rate_limit: nil)
+        template: nil, capture_snapshot: false, max_capture_depth: nil,
+        max_capture_attribute_count: nil,
+        rate_limit: nil)
         # Perform some sanity checks here to detect unexpected attribute
         # combinations, in order to not do them in subsequent code.
         unless KNOWN_TYPES.include?(type)
@@ -45,6 +47,10 @@ module Datadog
 
         if line_no && method_name
           raise ArgumentError, "Probe contains both line number and method name: #{id}"
+        end
+
+        if line_no && !file
+          raise ArgumentError, "Probe contains line number but not file: #{id}"
         end
 
         if type_name && !method_name || method_name && !type_name
@@ -60,6 +66,7 @@ module Datadog
         @template = template
         @capture_snapshot = !!capture_snapshot
         @max_capture_depth = max_capture_depth
+        @max_capture_attribute_count = max_capture_attribute_count
 
         # These checks use instance methods that have more complex logic
         # than checking a single argument value. To avoid duplicating
@@ -71,6 +78,8 @@ module Datadog
 
         @rate_limit = rate_limit || (@capture_snapshot ? 1 : 5000)
         @rate_limiter = Datadog::Core::TokenBucket.new(@rate_limit)
+
+        @emitting_notified = false
       end
 
       attr_reader :id
@@ -84,6 +93,10 @@ module Datadog
       # Configured maximum capture depth. Can be nil in which case
       # the global default will be used.
       attr_reader :max_capture_depth
+
+      # Configured maximum capture attribute count. Can be nil in which case
+      # the global default will be used.
+      attr_reader :max_capture_attribute_count
 
       # Rate limit in effect, in invocations per second. Always present.
       attr_reader :rate_limit
@@ -101,7 +114,10 @@ module Datadog
       # method or for stack traversal purposes?), therefore we do not check
       # for file name/path presence here and just consider the line number.
       def line?
-        !line_no.nil?
+        # Constructor checks that file is given if line number is given,
+        # but for safety, check again here since we somehow got a probe with
+        # a line number but no file in the wild.
+        !!(file && line_no)
       end
 
       # Returns whether the probe is a method probe.
@@ -157,6 +173,19 @@ module Datadog
       # Line trace point for line probes. Normally this would be a targeted
       # trace point.
       attr_accessor :instrumentation_trace_point
+
+      # Actual path to the file instrumented by the probe, for line probes,
+      # when code tracking is available and line trace point is targeted.
+      # For untargeted line trace points instrumented path will be nil.
+      attr_accessor :instrumented_path
+
+      # TODO emitting_notified reads and writes should in theory be locked,
+      # however since DI is only implemented for MRI in practice the missing
+      # locking should not cause issues.
+      attr_writer :emitting_notified
+      def emitting_notified?
+        !!@emitting_notified
+      end
     end
   end
 end

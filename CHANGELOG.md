@@ -2,9 +2,48 @@
 
 ## [Unreleased]
 
+## [2.7.0] - 2024-11-13
+
 ### Added
 
-* AppSec: Add Experimental Standalone AppSec Threats billing ([#3965][])
+* Profiling: Enable "heap clean after GC" profiler optimization by default ([#4085][])
+
+### Changed
+
+* Enable crashtracking by default ([#4083][])
+* Upgrade to `libdatadog` 14.1 ([#4082][])
+
+### Fixed
+
+* Fix `Process.waitall` hanging and stack overflow when crashtracking enabled ([#4082][])
+
+## [2.6.0] - 2024-11-06
+
+### Changed
+
+* Core: Upgrade to libdatadog 14.0 ([#4065][])
+
+### Fixed
+
+* AppSec: Remove unintentional libddwaf require ([#4078][])
+
+## [2.5.0] - 2024-11-05
+
+### Added
+
+* Performance: Profiling: Add setting to lower heap profiling memory use/latency by cleaning up young objects after Ruby GC ([#4020][])
+
+### Changed
+
+* Core: Replace the `debase-ruby_core_source` gem with the `datadog-ruby_core_source` ([#4014][])
+* Core: Upgrade to `libdatadog` 13.1 ([#3997][])
+
+### Fixed
+
+* Fix `undefined method` error for Rails runner ([#3996][])
+* Apply version tag only to spans that use the global/default service name ([#4027][])
+* Ensure UDS takes precedence over HTTP when both Agent configurations defined ([#4024][])
+* Remove duplicate leading slash in resource name for Grape routes ([#4033][])
 
 ## [2.4.0] - 2024-10-11
 
@@ -2989,7 +3028,10 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.4.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.7.0...master
+[2.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.6.0...v2.7.0
+[2.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.1.0...v2.2.0
@@ -4423,6 +4465,18 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#3969]: https://github.com/DataDog/dd-trace-rb/issues/3969
 [#3970]: https://github.com/DataDog/dd-trace-rb/issues/3970
 [#3984]: https://github.com/DataDog/dd-trace-rb/issues/3984
+[#3996]: https://github.com/DataDog/dd-trace-rb/issues/3996
+[#3997]: https://github.com/DataDog/dd-trace-rb/issues/3997
+[#4014]: https://github.com/DataDog/dd-trace-rb/issues/4014
+[#4020]: https://github.com/DataDog/dd-trace-rb/issues/4020
+[#4024]: https://github.com/DataDog/dd-trace-rb/issues/4024
+[#4027]: https://github.com/DataDog/dd-trace-rb/issues/4027
+[#4033]: https://github.com/DataDog/dd-trace-rb/issues/4033
+[#4065]: https://github.com/DataDog/dd-trace-rb/issues/4065
+[#4078]: https://github.com/DataDog/dd-trace-rb/issues/4078
+[#4082]: https://github.com/DataDog/dd-trace-rb/issues/4082
+[#4083]: https://github.com/DataDog/dd-trace-rb/issues/4083
+[#4085]: https://github.com/DataDog/dd-trace-rb/issues/4085
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

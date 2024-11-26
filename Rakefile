@@ -22,20 +22,10 @@ Dir.glob('tasks/*.rake').each { |r| import r }
 
 TEST_METADATA = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
+# rubocop:disable Metrics/BlockLength
 namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
-
-  ruby_version = RUBY_VERSION[0..2]
-
-  major, minor, = if defined?(RUBY_ENGINE_VERSION)
-                    Gem::Version.new(RUBY_ENGINE_VERSION).segments
-                  else
-                    # For Ruby < 2.3
-                    Gem::Version.new(RUBY_VERSION).segments
-                  end
-
-  ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
 
   TEST_METADATA.each do |key, spec_metadata|
     spec_task = "spec:#{key}"
@@ -44,24 +34,18 @@ namespace :test do
     task key, [:task_args] do |_, args|
       spec_arguments = args.task_args
 
-      candidates = spec_metadata.select do |appraisal_group, rubies|
-        if RUBY_PLATFORM == 'java'
-          # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
-          next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
-
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
+      candidates = spec_metadata.select do |_group, rubies|
+        RuntimeMatcher.match?(rubies)
       end
 
-      candidates.each do |appraisal_group, _|
-        command = if appraisal_group.empty?
-                    "bundle exec rake #{spec_task}"
-                  else
-                    "bundle exec appraisal #{ruby_runtime}-#{appraisal_group} rake #{spec_task}"
-                  end
-
+      candidates.each do |group, _|
+        env = if group.empty?
+                {}
+              else
+                gemfile = AppraisalConversion.to_bundle_gemfile(group)
+                { 'BUNDLE_GEMFILE' => gemfile }
+              end
+        command = "bundle check || bundle install && bundle exec rake #{spec_task}"
         command += "'[#{spec_arguments}]'" if spec_arguments
 
         total_executors = ENV.key?('CIRCLE_NODE_TOTAL') ? ENV['CIRCLE_NODE_TOTAL'].to_i : nil
@@ -70,9 +54,9 @@ namespace :test do
         if total_executors && current_executor && total_executors > 1
           @execution_count ||= 0
           @execution_count += 1
-          sh(command) if @execution_count % total_executors == current_executor
+          Bundler.with_unbundled_env { sh(env, command) } if @execution_count % total_executors == current_executor
         else
-          sh(command)
+          Bundler.with_unbundled_env { sh(env, command) }
         end
       end
     end
@@ -80,7 +64,6 @@ namespace :test do
 end
 
 desc 'Run RSpec'
-# rubocop:disable Metrics/BlockLength
 namespace :spec do
   # REMINDER: If adding a new task here, make sure also add it to the `Matrixfile`
   task all: [:main, :benchmark,
@@ -312,6 +295,14 @@ namespace :spec do
   end
 
   task appsec: [:'appsec:all']
+
+  namespace :di do
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:active_record) do |t, args|
+      t.pattern = 'spec/datadog/di/contrib/active_record/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+  end
 
   namespace :profiling do
     task all: [:main, :ractors]

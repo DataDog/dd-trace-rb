@@ -9,18 +9,18 @@ GIT
       simplecov_json_formatter (~> 0.1)
 
 GIT
-  remote: https://github.com/ruby/webrick.git
-  revision: 0c600e169bd4ae267cb5eeb6197277c848323bbe
-  ref: 0c600e169bd4ae267cb5eeb6197277c848323bbe
+  remote: https://github.com/ruby/strscan
+  revision: 041b15df4ccc067deabd85fd489b2c15961d0e2f
+  ref: 041b15df4ccc067deabd85fd489b2c15961d0e2f
   specs:
-    webrick (1.8.1)
+    strscan (3.1.1)
 
 PATH
   remote: ..
   specs:
-    datadog (2.4.0)
+    datadog (2.7.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 13.1.0.1.0)
+      libdatadog (~> 14.1.0.1.0)
       libddwaf (~> 1.15.0.0.0)
       msgpack
 
@@ -34,6 +34,7 @@ GEM
       rake
       thor (>= 0.14.0)
     ast (2.4.2)
+    base64 (0.2.0)
     benchmark-ips (2.13.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -59,8 +60,8 @@ GEM
     json (2.7.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (13.1.0.1.0-aarch64-linux)
-    libdatadog (13.1.0.1.0-x86_64-linux)
+    libdatadog (14.1.0.1.0-aarch64-linux)
+    libdatadog (14.1.0.1.0-x86_64-linux)
     libddwaf (1.15.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.15.0.0.0-x86_64-linux)
@@ -68,7 +69,8 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mini_portile2 (2.8.7)
-    msgpack (1.7.2)
+    msgpack (1.7.5)
+    mutex_m (0.2.0)
     nokogiri (1.16.7)
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
@@ -146,7 +148,6 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
-    strscan (3.1.1)
     thor (1.3.1)
     unicode-display_width (2.5.0)
     warning (1.4.0)
@@ -154,6 +155,7 @@ GEM
       addressable (>= 2.8.0)
       crack (>= 0.3.2)
       hashdiff (>= 0.4.0, < 2.0.0)
+    webrick (1.9.0)
 
 PLATFORMS
   aarch64-linux
@@ -161,8 +163,10 @@ PLATFORMS
 
 DEPENDENCIES
   appraisal (~> 2.4.0)
+  base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  bigdecimal
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
@@ -171,6 +175,7 @@ DEPENDENCIES
   google-protobuf (~> 3.0, != 3.7.1, != 3.7.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
+  mutex_m
   os (~> 1.1)
   pimpmychangelog (>= 0.1.2)
   pry
@@ -178,8 +183,7 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redis (~> 5)
-  rexml (>= 3.2.7)
-  rspec (~> 3.12)
+  rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
@@ -190,9 +194,10 @@ DEPENDENCIES
   ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
+  strscan!
   warning (~> 1)
   webmock (>= 3.10.0)
-  webrick!
+  webrick (>= 1.8.2)
 
 BUNDLED WITH
-   2.3.26
+   2.5.21

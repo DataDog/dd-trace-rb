@@ -518,13 +518,13 @@ module Datadog
             # Controls if the heap profiler should attempt to clean young objects after GC, rather than just at
             # serialization time. This lowers memory usage and high percentile latency.
             #
-            # Only takes effect when used together with `gc_enabled: true` and `experimental_heap_enabled: true`.
+            # Only has effect when used together with `gc_enabled: true` and `experimental_heap_enabled: true`.
             #
-            # @default false
+            # @default true
             option :heap_clean_after_gc_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED'
-              o.default false
+              o.default true
             end
           end
 
@@ -927,7 +927,7 @@ module Datadog
           # Enables reporting of information when Ruby VM crashes.
           option :enabled do |o|
             o.type :bool
-            o.default false
+            o.default true
             o.env 'DD_CRASHTRACKING_ENABLED'
           end
         end

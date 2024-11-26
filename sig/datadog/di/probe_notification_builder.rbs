@@ -16,7 +16,7 @@ module Datadog
 
       def build_executed: (Probe probe, ?trace_point: TracePoint, ?rv: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
-      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
+      def build_snapshot: (Probe probe, ?rv: untyped?, ?snapshot: untyped?, ?path: String?, ?duration: Float, ?caller_locations: Array[untyped], ?args: untyped?, ?kwargs: untyped?, ?serialized_entry_args: untyped?) -> Hash[Symbol,untyped]
 
       def build_status: (Probe probe, message: untyped, status: untyped) -> Hash[Symbol,untyped]
 
