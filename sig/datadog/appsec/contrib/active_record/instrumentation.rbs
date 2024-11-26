@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module ActiveRecord
+        module Instrumentation
+          def self?.detect_sqli: (String sql, String adapter_name) -> void
+
+          module InternalExecQueryAdapterPatch
+            def internal_exec_query: (String sql, *untyped args, **untyped rest) -> untyped
+          end
+
+          module ExecuteAndClearAdapterPatch
+            def execute_and_clear: (String sql, *untyped args, **untyped rest) -> untyped
+          end
+
+          module ExecQueryAdapterPatch
+            def exec_query: (String sql, *untyped args, **untyped rest) -> untyped
+          end
+        end
+      end
+    end
+  end
+end

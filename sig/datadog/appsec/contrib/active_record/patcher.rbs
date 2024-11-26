@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module ActiveRecord
+        module Patcher
+          include Datadog::AppSec::Contrib::Patcher
+
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> Gem::Version?
+
+          def self?.patch: () -> void
+
+          def self?.prepended_class_name: (Symbol adapter_name) -> class
+        end
+      end
+    end
+  end
+end
