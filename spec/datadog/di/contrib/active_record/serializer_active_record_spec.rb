@@ -107,7 +107,6 @@ RSpec.describe Datadog::DI::Serializer do
          {type: 'Hash', entries: [
            [{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}],
            [{type: 'String', value: 'title'}, {type: 'String', value: 'Hello, world!'}],
-           # TODO serialize Time, Date, DateTime types
            [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
            [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
          ]},
@@ -126,7 +125,6 @@ RSpec.describe Datadog::DI::Serializer do
          {type: 'Hash', entries: [
            [{type: 'String', value: 'id'}, {type: 'Integer', value: '1'}],
            [{type: 'String', value: 'title'}, {type: 'String', value: 'Hello, world!'}],
-           # TODO serialize Time, Date, DateTime types
            [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
            [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
          ]},
