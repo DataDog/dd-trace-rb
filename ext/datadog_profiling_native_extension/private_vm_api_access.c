@@ -587,15 +587,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2007 Koichi Sasada
 // to support our custom rb_profile_frames (see above)
-// Modifications: None
+// Modifications:
+// * Removed debug checks (they were ifdef'd out anyway)
 static rb_callable_method_entry_t *
 check_method_entry(VALUE obj, int can_be_svar)
 {
     if (obj == Qfalse) return NULL;
-
-#if VM_CHECK_MODE > 0
-    if (!RB_TYPE_P(obj, T_IMEMO)) rb_bug("check_method_entry: unknown type: %s", rb_obj_info(obj));
-#endif
 
     switch (imemo_type(obj)) {
       case imemo_ment:
@@ -608,9 +605,6 @@ check_method_entry(VALUE obj, int can_be_svar)
         }
         // fallthrough
       default:
-#if VM_CHECK_MODE > 0
-        rb_bug("check_method_entry: svar should not be there:");
-#endif
         return NULL;
     }
 }
