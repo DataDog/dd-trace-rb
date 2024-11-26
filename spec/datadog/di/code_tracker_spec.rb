@@ -135,6 +135,9 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       context 'when a file is required' do
         it 'requests to install pending line probes' do
+          # Matchers can be lazily loaded, force all code to be loaded here.
+          expect(4).to eq(4)
+
           expect(Datadog::DI).to receive(:current_component).and_return(component)
           expect(probe_manager).to receive(:install_pending_line_probes) do |path|
             # Should be an absolute path
@@ -147,6 +150,9 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       context 'when a file is loaded' do
         it 'requests to install pending line probes' do
+          # Matchers can be lazily loaded, force all code to be loaded here.
+          expect(4).to eq(4)
+
           expect(Datadog::DI).to receive(:current_component).and_return(component)
           expect(probe_manager).to receive(:install_pending_line_probes) do |path|
             # Should be an absolute path
