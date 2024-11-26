@@ -4,6 +4,10 @@ require "datadog/di/code_tracker"
 RSpec.describe Datadog::DI::CodeTracker do
   di_test
 
+  before(:all) do
+    Datadog::DI.deactivate_tracking!
+  end
+
   let(:tracker) do
     described_class.new
   end
