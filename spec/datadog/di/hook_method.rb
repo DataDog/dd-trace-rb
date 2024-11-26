@@ -15,6 +15,10 @@ class HookTestClass
     [arg, kwarg]
   end
 
+  def yielding(arg)
+    yield arg
+  end
+
   def recursive(depth)
     if depth > 0
       recursive(depth - 1) + '-'
@@ -25,5 +29,13 @@ class HookTestClass
 
   def infinitely_recursive(depth = 0)
     infinitely_recursive(depth + 1)
+  end
+
+  def squashed(options)
+    options
+  end
+
+  def positional_and_squashed(arg, options)
+    [arg, options]
   end
 end

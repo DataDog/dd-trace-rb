@@ -72,7 +72,7 @@ GEM
       atomic (~> 1.0)
       avl_tree (~> 1.2.0)
       hitimes (~> 1.1)
-    msgpack (1.7.0)
+    msgpack (1.7.5)
     multipart-post (2.3.0)
     mustermann (1.1.2)
       ruby2_keywords (~> 0.0.1)

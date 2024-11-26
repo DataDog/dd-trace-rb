@@ -3,6 +3,8 @@ require 'shellwords'
 REQUIRES = {
   'datadog/appsec' => 'Datadog::AppSec',
   'datadog/core' => 'Datadog::Core',
+  'datadog/di' => 'Datadog::DI',
+  'datadog/di/init' => 'Datadog::DI::CodeTracker',
   'datadog/kit' => 'Datadog::Kit',
   'datadog/profiling' => 'Datadog::Profiling',
   'datadog/tracing' => 'Datadog::Tracing',

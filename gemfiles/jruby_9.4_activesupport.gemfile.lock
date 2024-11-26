@@ -115,7 +115,7 @@ GEM
     method_source (1.0.0)
     mini_portile2 (2.8.4)
     minitest (5.20.0)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)

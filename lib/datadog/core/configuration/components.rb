@@ -13,6 +13,7 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../../di/component'
 require_relative '../crashtracking/component'
 
 module Datadog
@@ -83,6 +84,7 @@ module Datadog
           :telemetry,
           :tracer,
           :crashtracker,
+          :dynamic_instrumentation,
           :appsec
 
         def initialize(settings)
@@ -110,12 +112,13 @@ module Datadog
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, telemetry: telemetry)
 
           self.class.configure_tracing(settings)
         end
 
         # Starts up components
-        def startup!(settings)
+        def startup!(settings, old_state: nil)
           if settings.profiling.enabled
             if profiler
               profiler.start
@@ -124,6 +127,16 @@ module Datadog
               unsupported_reason = Profiling.unsupported_reason
               logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
             end
+          end
+
+          if settings.remote.enabled && old_state&.[](:remote_started)
+            # The library was reconfigured and previously it already started
+            # the remote component (i.e., it received at least one request
+            # through the installed Rack middleware which started the remote).
+            # If the new configuration also has remote enabled, start the
+            # new remote right away.
+            # remote should always be not nil here but steep doesn't know this.
+            remote&.start
           end
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
@@ -135,6 +148,9 @@ module Datadog
         def shutdown!(replacement = nil)
           # Shutdown remote configuration
           remote.shutdown! if remote
+
+          # Shutdown DI after remote, since remote config triggers DI operations.
+          dynamic_instrumentation&.shutdown!
 
           # Decommission AppSec
           appsec.shutdown! if appsec
