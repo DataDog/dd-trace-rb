@@ -3,7 +3,6 @@
 require_relative '../patcher'
 require_relative 'ext'
 require_relative 'distributed/propagation'
-require_relative 'monitor'
 
 module Datadog
   module Tracing
@@ -49,6 +48,8 @@ module Datadog
           end
 
           def patch
+            require_relative 'monitor'
+
             ::Karafka::App.config.monitor = Monitor.new
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
           end
