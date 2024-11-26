@@ -7,7 +7,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.4.0-preview1 # TODO: Use stable version once 3.4 is out
+          ruby-version: 3.4.0-preview2 # TODO: Use stable version once 3.4 is out
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
