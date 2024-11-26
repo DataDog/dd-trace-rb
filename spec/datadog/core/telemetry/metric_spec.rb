@@ -68,6 +68,35 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         )
       end
     end
+
+    it 'all metrics to be the same' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+      ]
+
+      expect(metrics.uniq).to eq([metrics.first])
+    end
+
+    it 'all metrics to be the different' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name1', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val1' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag1: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(2) },
+      ]
+
+      allow(Time).to receive(:now).and_return(double(to_i: 456))
+
+      metrics << described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) }
+
+      expect(metrics.uniq).to eq(metrics)
+    end
   end
 
   describe Datadog::Core::Telemetry::Metric::Gauge do
@@ -134,6 +163,36 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           interval: interval
         )
       end
+    end
+
+    it 'all metrics to be the same' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+      ]
+
+      expect(metrics.uniq).to eq([metrics.first])
+    end
+
+    it 'all metrics to be the different' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name1', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val1' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag1: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(2) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 3).tap { |m| m.track(1) },
+      ]
+
+      allow(Time).to receive(:now).and_return(double(to_i: 456))
+
+      metrics << described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) }
+
+      expect(metrics.uniq).to eq(metrics)
     end
   end
 
@@ -212,6 +271,36 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
         )
       end
     end
+
+    it 'all metrics to be the same' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+      ]
+
+      expect(metrics.uniq).to eq([metrics.first])
+    end
+
+    it 'all metrics to be the different' do
+      allow(Time).to receive(:now).and_return(double(to_i: 123))
+
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name1', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val1' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag1: 'val' }, interval: 2).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(2) },
+        described_class.new('name', tags: { tag: 'val' }, interval: 3).tap { |m| m.track(1) },
+      ]
+
+      allow(Time).to receive(:now).and_return(double(to_i: 456))
+
+      metrics << described_class.new('name', tags: { tag: 'val' }, interval: 2).tap { |m| m.track(1) }
+
+      expect(metrics.uniq).to eq(metrics)
+    end
   end
 
   describe Datadog::Core::Telemetry::Metric::Distribution do
@@ -274,6 +363,27 @@ RSpec.describe Datadog::Core::Telemetry::Metric do
           common: true
         )
       end
+    end
+
+    it 'all metrics to be the same' do
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+      ]
+
+      expect(metrics.uniq).to eq([metrics.first])
+    end
+
+    it 'all metrics to be the different' do
+      metrics = [
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name1', tags: { tag: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val1' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag1: 'val' }).tap { |m| m.track(1) },
+        described_class.new('name', tags: { tag: 'val' }).tap { |m| m.track(2) },
+      ]
+
+      expect(metrics.uniq).to eq(metrics)
     end
   end
 end

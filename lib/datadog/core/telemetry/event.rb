@@ -29,6 +29,22 @@ module Datadog
           def payload
             {}
           end
+
+          # Override equality to allow for deduplication
+          # The basic implementation is to check if the other object is an instance of the same class.
+          # This works for events that have no attributes.
+          # For events with attributes, you should override this method to compare the attributes.
+          def ==(other)
+            other.is_a?(self.class)
+          end
+
+          # @see #==
+          alias eql? ==
+
+          # @see #==
+          def hash
+            self.class.hash
+          end
         end
 
         # Telemetry class for the 'app-started' event
@@ -263,6 +279,8 @@ module Datadog
 
         # Telemetry class for the 'app-client-configuration-change' event
         class AppClientConfigurationChange < Base
+          attr_reader :changes, :origin
+
           def type
             'app-client-configuration-change'
           end
@@ -301,6 +319,16 @@ module Datadog
 
             res
           end
+
+          def ==(other)
+            other.is_a?(AppClientConfigurationChange) && other.changes == @changes && other.origin == @origin
+          end
+
+          alias eql? ==
+
+          def hash
+            [self.class, @changes, @origin].hash
+          end
         end
 
         # Telemetry class for the 'app-heartbeat' event
@@ -315,20 +343,12 @@ module Datadog
           def type
             'app-closing'
           end
-
-          def ==(other)
-            other.is_a?(AppClosing)
-          end
-
-          alias eql? ==
-
-          def hash
-            self.class.hash
-          end
         end
 
         # Telemetry class for the 'generate-metrics' event
         class GenerateMetrics < Base
+          attr_reader :namespace, :metric_series
+
           def type
             'generate-metrics'
           end
@@ -345,9 +365,20 @@ module Datadog
               series: @metric_series.map(&:to_h)
             }
           end
+
+          def ==(other)
+            other.is_a?(GenerateMetrics) && other.namespace == @namespace && other.metric_series == @metric_series
+          end
+
+          alias eql? ==
+
+          def hash
+            [self.class, @namespace, @metric_series].hash
+          end
         end
 
-        # Telemetry class for the 'logs' event
+        # Telemetry class for the 'logs' event.
+        # Logs with the same contend are deduplicated at flush time.
         class Log < Base
           LEVELS = {
             error: 'ERROR',
@@ -367,7 +398,7 @@ module Datadog
             @message = message
             @stack_trace = stack_trace
 
-            if LEVELS_STRING.include?(level)
+            if level.is_a?(String) && LEVELS_STRING.include?(level)
               @level = level
             elsif level.is_a?(Symbol)
               @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
@@ -393,13 +424,15 @@ module Datadog
 
           # override equality to allow for deduplication
           def ==(other)
-            other.is_a?(Log) && other.message == @message && other.level == @level && other.stack_trace == @stack_trace && other.count == @count
+            other.is_a?(Log) &&
+              other.message == @message &&
+              other.level == @level && other.stack_trace == @stack_trace && other.count == @count
           end
 
           alias eql? ==
 
           def hash
-            [@message, @level, @stack_trace, @count].hash
+            [self.class, @message, @level, @stack_trace, @count].hash
           end
         end
 
@@ -429,6 +462,16 @@ module Datadog
                 payload: event.payload,
               }
             end
+          end
+
+          def ==(other)
+            other.is_a?(MessageBatch) && other.events == @events
+          end
+
+          alias eql? ==
+
+          def hash
+            [self.class, @events].hash
           end
         end
       end

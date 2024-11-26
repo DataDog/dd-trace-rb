@@ -46,10 +46,10 @@ module Datadog
         end
 
         class AppClientConfigurationChange < Base
-          @changes: Enumerable[[String, Numeric | bool | String | int]]
-          @origin: String
+          attr_reader changes: Array[[String, Numeric | bool | String | int]]
+          attr_reader origin: String
 
-          def initialize: (Enumerable[[String, Numeric | bool | String]] changes, String origin) -> void
+          def initialize: (Array[[String, Numeric | bool | String]] changes, String origin) -> void
 
           def configuration: () -> Array[Hash[Symbol, untyped]]
         end
@@ -61,23 +61,25 @@ module Datadog
         end
 
         class GenerateMetrics < Base
-          @namespace: String
-          @metric_series: Enumerable[Datadog::Core::Telemetry::Metric::Base]
+          attr_reader namespace: String
+          attr_reader metric_series: Array[Metric::Base]
 
-          def initialize: (String namespace, Enumerable[Datadog::Core::Telemetry::Metric::Base] metric_series) -> void
+          def initialize: (String namespace, Array[Metric::Base] metric_series) -> void
         end
 
         class Log < Base
           LEVELS: Hash[Symbol, String]
 
-          @count: Integer
-          @message: String
-          @level: "ERROR" | "DEBUG" | "WARN"
-          @stack_trace: String?
+          LEVELS_STRING: Array[String]
 
-          def initialize: (message: String, level: Symbol, ?stack_trace: String?) -> void
+          attr_reader count: Integer
+          attr_reader message: String
+          attr_reader level: String
+          attr_reader stack_trace: String?
 
-          def payload: () -> { logs: [Hash[Symbol, String]] }
+          def initialize: (message: String, level: (Symbol|String), ?stack_trace: String?, ?count: Integer) -> void
+
+          def payload: () -> { logs: [Hash[Symbol, (String|Integer)]] }
         end
 
         class Distributions < GenerateMetrics

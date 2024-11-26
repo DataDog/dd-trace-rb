@@ -244,19 +244,21 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               response
             end
 
-            worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
+            worker.enqueue(Datadog::Core::Telemetry::Event::AppHeartbeat.new)
             worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
             worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn))
             worker.enqueue(Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error))
+            worker.enqueue(Datadog::Core::Telemetry::Event::AppClosing.new)
 
             worker.start
             try_wait_until { !events_received.empty? }
 
             expect(events_received).to contain_exactly(
-                                         Datadog::Core::Telemetry::Event::AppClosing.new,
-                                         Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn, count: 2),
-                                         Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error)
-                                       )
+              Datadog::Core::Telemetry::Event::AppHeartbeat.new,
+              Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :warn, count: 2),
+              Datadog::Core::Telemetry::Event::Log.new(message: 'test', level: :error),
+              Datadog::Core::Telemetry::Event::AppClosing.new
+            )
           end
         end
       end

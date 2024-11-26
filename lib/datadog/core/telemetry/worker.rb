@@ -170,33 +170,35 @@ module Datadog
           disable!
         end
 
-        private
-
+        # Deduplicate all_logs by counting the number of occurrences of each log
+        # entry and replacing them with a single entry with the count.
+        # Other events are passed through unchanged.
         def deduplicate_logs(events)
-          return if events.empty?
+          return events if events.empty?
 
-          logs = []
+          all_logs = []
           other_events = events.reject do |event|
             if event.is_a?(Event::Log)
-              logs << event
+              all_logs << event
               true
             else
               false
             end
           end
 
-          return if logs.empty?
+          return events if all_logs.empty?
 
-          logs = logs.group_by(&:hash).map do |_, logs|
+          uniq_logs = all_logs.group_by(&:itself).map do |_, logs|
             log = logs.first
             if logs.size > 1
+              # New log event with a count of repeated occurrences
               Event::Log.new(message: log.message, level: log.level, stack_trace: log.stack_trace, count: logs.size)
             else
               log
             end
           end
 
-          other_events + logs
+          other_events + uniq_logs
         end
       end
     end
