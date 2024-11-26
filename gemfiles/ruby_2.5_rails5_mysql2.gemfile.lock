@@ -119,7 +119,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.6.1)
     minitest (5.15.0)
-    msgpack (1.7.2)
+    msgpack (1.7.5)
     mysql2 (0.5.5)
     nio4r (2.5.8)
     nokogiri (1.12.5)

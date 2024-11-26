@@ -41,10 +41,10 @@ GEM
     elastic-transport (8.3.5)
       faraday (< 3)
       multi_json
-    elasticsearch (8.15.0)
+    elasticsearch (8.16.0)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.15.0)
-    elasticsearch-api (8.15.0)
+      elasticsearch-api (= 8.16.0)
+    elasticsearch-api (8.16.0)
       multi_json
     faraday (1.10.4)
       faraday-em_http (~> 1.0)
@@ -78,7 +78,7 @@ GEM
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     multi_json (1.15.0)
     multipart-post (2.4.1)
     os (1.1.4)

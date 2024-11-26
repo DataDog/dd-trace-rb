@@ -7,11 +7,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.4.0-preview1 # TODO: Use stable version once 3.4 is out
+          ruby-version: 3.4.0-preview2 # TODO: Use stable version once 3.4 is out
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v1 # bump this to invalidate cache
       - run: sudo apt-get update && (sudo apt-get install -y valgrind || sleep 5 && sudo apt-get install -y valgrind) && valgrind --version
+      - run: gem update --system 3.5.23 # TODO: This is a workaround for a buggy rubygems in 3.4.0-preview2; remove once stable version 3.4 is out
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
     # Temporarily ruby-asan builds changes

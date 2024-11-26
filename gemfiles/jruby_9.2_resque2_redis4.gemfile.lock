@@ -48,7 +48,7 @@ GEM
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mono_logger (1.1.1)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     multi_json (1.15.0)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
