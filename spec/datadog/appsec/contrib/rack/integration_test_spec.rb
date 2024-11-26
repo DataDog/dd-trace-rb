@@ -46,7 +46,7 @@ RSpec.describe 'Rack integration tests' do
   let(:tracing_enabled) { true }
   let(:appsec_enabled) { true }
 
-  let(:appsec_standalone_enabled) { false }
+  let(:tracing_apm_enabled) { true }
   let(:remote_enabled) { false }
   let(:appsec_ip_passlist) { [] }
   let(:appsec_ip_denylist) { [] }
@@ -194,7 +194,7 @@ RSpec.describe 'Rack integration tests' do
 
         c.appsec.instrument :rack
 
-        c.appsec.standalone.enabled = appsec_standalone_enabled
+        c.tracing.apm.enabled = tracing_apm_enabled
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist

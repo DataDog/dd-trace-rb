@@ -29,10 +29,11 @@ module Datadog
           end
 
           def should_skip_distributed_tracing?(client_config)
-            if Datadog.configuration.appsec.standalone.enabled
-              # Skip distributed tracing so that we don't bill distributed traces in case of absence of
-              # upstream ASM event (_dd.p.appsec:1) and no local security event (which sets _dd.p.appsec:1 locally).
-              # If there is an ASM event, we still have to check if distributed tracing is enabled or not
+            unless Datadog.configuration.tracing.apm.enabled
+              # When APM is running in 'non-billing' mode, we should skip distributed tracing
+              # unless specific distributed tags are present. These tags can come from upstream
+              # services, or from the service itself.
+              # For now, only '_dd.p.appsec=1' is supported.
               return true unless Tracing.active_trace
 
               return true if Tracing.active_trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1'

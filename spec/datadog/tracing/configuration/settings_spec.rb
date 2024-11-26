@@ -351,6 +351,49 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe 'apm' do
+      describe '#enabled' do
+        subject(:enabled) { settings.tracing.apm.enabled }
+
+        it { is_expected.to be true }
+
+        context 'when DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' => appsec_standalone_enabled) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:appsec_standalone_enabled) { nil }
+
+            it { is_expected.to eq true }
+          end
+
+          context 'is set to true' do
+            let(:appsec_standalone_enabled) { 'true' }
+  
+            it { is_expected.to be true }
+          end
+  
+          context 'is set to false' do
+            let(:appsec_standalone_enabled) { 'false' }
+  
+            it { is_expected.to be false }
+          end
+        end
+      end
+
+      describe '#enabled=' do
+        it 'updates the #enabled setting' do
+          expect { settings.tracing.apm.enabled = false }
+            .to change { settings.tracing.apm.enabled }
+            .from(true)
+            .to(false)
+        end
+      end
+    end
+
     describe '#header_tags' do
       subject(:header_tags) { settings.tracing.header_tags }
 

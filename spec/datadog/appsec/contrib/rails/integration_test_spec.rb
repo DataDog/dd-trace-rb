@@ -62,7 +62,7 @@ RSpec.describe 'Rails integration tests' do
 
   let(:appsec_instrument_rack) { false }
 
-  let(:appsec_standalone_enabled) { false }
+  let(:tracing_apm_enabled) { true }
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
@@ -154,7 +154,7 @@ RSpec.describe 'Rails integration tests' do
       c.appsec.instrument :rails
       c.appsec.instrument :rack if appsec_instrument_rack
 
-      c.appsec.standalone.enabled = appsec_standalone_enabled
+      c.tracing.apm.enabled = tracing_apm_enabled
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
