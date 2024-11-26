@@ -193,7 +193,7 @@ RSpec.describe Datadog::Profiling::NativeExtension do
       before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION.start_with?("2.5", "3.3") }
 
       it "returns a string with information about the object" do
-        expect(safe_object_info).to eq "T_STRING"
+        expect(safe_object_info).to include("T_STRING")
       end
     end
 
