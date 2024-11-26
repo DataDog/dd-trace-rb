@@ -78,6 +78,9 @@ RSpec.describe Datadog::DI::Serializer do
        expected: {type: "SerializerRailsSpecTestEmptyModel", entries: [[
          {type: 'Symbol', value: 'attributes'},
          {type: 'Hash', entries: [[{type: 'String', value: 'id'}, {type: 'NilClass', isNull: true}]]},
+       ], [
+        {type: 'Symbol', value: 'new_record'},
+        {type: 'TrueClass', value: 'true'},
        ]]}},
       {name: "AR model with empty attributes",
        input: -> { SerializerRailsSpecTestBasicModel.new },
@@ -89,6 +92,9 @@ RSpec.describe Datadog::DI::Serializer do
            [{type: 'String', value: 'created_at'}, {type: 'NilClass', isNull: true}],
            [{type: 'String', value: 'updated_at'}, {type: 'NilClass', isNull: true}],
          ]},
+       ], [
+        {type: 'Symbol', value: 'new_record'},
+        {type: 'TrueClass', value: 'true'},
        ]]}},
       {name: "AR model with filled out attributes",
        input: -> {
@@ -105,6 +111,28 @@ RSpec.describe Datadog::DI::Serializer do
            [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
            [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
          ]},
+       ], [
+        {type: 'Symbol', value: 'new_record'},
+        {type: 'TrueClass', value: 'true'},
+       ]]}},
+      {name: "AR model with filled out attributes and persisted",
+       input: -> {
+                SerializerRailsSpecTestBasicModel.create!(
+                  title: 'Hello, world!', created_at: Time.utc(2020, 1, 2), updated_at: Time.utc(2020, 1, 3)
+                )
+              },
+       expected: {type: "SerializerRailsSpecTestBasicModel", entries: [[
+         {type: 'Symbol', value: 'attributes'},
+         {type: 'Hash', entries: [
+           [{type: 'String', value: 'id'}, {type: 'Integer', value: '1'}],
+           [{type: 'String', value: 'title'}, {type: 'String', value: 'Hello, world!'}],
+           # TODO serialize Time, Date, DateTime types
+           [{type: 'String', value: 'created_at'}, {type: 'Time', value: '2020-01-02T00:00:00Z'}],
+           [{type: 'String', value: 'updated_at'}, {type: 'Time', value: '2020-01-03T00:00:00Z'}],
+         ]},
+       ], [
+        {type: 'Symbol', value: 'new_record'},
+        {type: 'FalseClass', value: 'false'},
        ]]}},
     ]
 
