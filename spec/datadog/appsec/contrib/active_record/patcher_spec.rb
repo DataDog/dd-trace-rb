@@ -5,12 +5,17 @@ require 'datadog/appsec/contrib/active_record/patcher'
 
 RSpec.describe Datadog::AppSec::Contrib::ActiveRecord::Patcher do
   describe '#prepended_class_name' do
-    before do
-      stub_const('::ActiveRecord', Struct.new(:gem_version).new(Gem::Version.new(active_record_version)))
-    end
-
     context 'when ActiveRecord version is 7.1 or higher' do
-      let(:active_record_version) { Gem::Version.new('7.1') }
+      before do
+        stub_const(
+          '::ActiveRecord',
+          Module.new do
+            module_function def gem_version
+              Gem::Version.new('7.1')
+            end
+          end
+        )
+      end
 
       it 'returns Instrumentation::InternalExecQueryAdapterPatch' do
         expect(described_class.prepended_class_name(:postgresql)).to eq(
@@ -20,9 +25,30 @@ RSpec.describe Datadog::AppSec::Contrib::ActiveRecord::Patcher do
     end
 
     context 'when ActiveRecord version is lower than 7.1' do
-      let(:active_record_version) { Gem::Version.new('7.0') }
+      before do
+        stub_const(
+          '::ActiveRecord',
+          Module.new do
+            module_function def gem_version
+              Gem::Version.new('7.0')
+            end
+          end
+        )
+      end
 
       context 'for postgresql adapter' do
+        context 'when ActiveRecord::ConnectionAdapters::JdbcAdapter is defined' do
+          before do
+            stub_const('::ActiveRecord::ConnectionAdapters::JdbcAdapter', Class.new)
+          end
+
+          it 'returns Instrumentation::ExecQueryAdapterPatch' do
+            expect(described_class.prepended_class_name(:postgresql)).to eq(
+              Datadog::AppSec::Contrib::ActiveRecord::Instrumentation::ExecQueryAdapterPatch
+            )
+          end
+        end
+
         it 'returns Instrumentation::ExecuteAndClearAdapterPatch' do
           expect(described_class.prepended_class_name(:postgresql)).to eq(
             Datadog::AppSec::Contrib::ActiveRecord::Instrumentation::ExecuteAndClearAdapterPatch

@@ -40,7 +40,7 @@ module Datadog
           def prepended_class_name(adapter_name)
             if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
               Instrumentation::InternalExecQueryAdapterPatch
-            elsif adapter_name == :postgresql
+            elsif adapter_name == :postgresql && !defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
               Instrumentation::ExecuteAndClearAdapterPatch
             else
               Instrumentation::ExecQueryAdapterPatch

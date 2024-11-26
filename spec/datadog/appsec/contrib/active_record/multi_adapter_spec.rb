@@ -3,9 +3,13 @@ require 'active_record'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 
-require 'mysql2'
-require 'sqlite3'
-require 'pg'
+if PlatformHelpers.jruby?
+  require 'activerecord-jdbc-adapter'
+else
+  require 'mysql2'
+  require 'sqlite3'
+  require 'pg'
+end
 
 RSpec.describe 'AppSec ActiveRecord integration' do
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
@@ -28,6 +32,7 @@ RSpec.describe 'AppSec ActiveRecord integration' do
 
       # prevent internal sql requests from showing up
       klass.count
+      klass.first
     end
   end
 
@@ -110,7 +115,13 @@ RSpec.describe 'AppSec ActiveRecord integration' do
 
     context 'when using .where' do
       let(:active_record_scope) { User.where(name: 'Bob') }
-      let(:expected_db_statement) { 'SELECT "users".* FROM "users" WHERE "users"."name" = $1' }
+      let(:expected_db_statement) do
+        if PlatformHelpers.jruby?
+          'SELECT "users".* FROM "users" WHERE "users"."name" = ?'
+        else
+          'SELECT "users".* FROM "users" WHERE "users"."name" = $1'
+        end
+      end
 
       include_examples 'calls_waf_with_correct_arguments'
     end

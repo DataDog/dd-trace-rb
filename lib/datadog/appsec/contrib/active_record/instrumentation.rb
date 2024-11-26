@@ -53,6 +53,7 @@ module Datadog
           end
 
           # patch for mysql2 and sqlite3 adapters in ActiveRecord < 7.1
+          # this patch is also used when using JDBC adapter
           module ExecQueryAdapterPatch
             def exec_query(sql, *args, **rest)
               Instrumentation.detect_sqli(sql, adapter_name)
