@@ -1115,8 +1115,8 @@ end
 
 | Key                   | Env Var                  | Type   | Description                                         | Default |
 | --------------------- | ------------------------ | ------ | --------------------------------------------------- | ------- |
-| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Whether the integration should create spans.        | `true`  |
-| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing) | `false` |
+| `enabled`             | `DD_TRACE_KARAFKA_ENABLED` | `Bool` | Specifies whether the integration should create spans.        | `true`  |
+| `distributed_tracing` |                          | `Bool` | Enables [distributed tracing](#distributed-tracing). | `false` |
 
 ### MongoDB
 

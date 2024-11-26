@@ -28,9 +28,7 @@ RSpec.describe 'Karafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_MESSAGE_CONSUME }
 
     it 'is expected to send a span' do
-      deserializer = ->(_) { 1 }
       metadata = ::Karafka::Messages::Metadata.new.tap do |metadata|
-        metadata['deserializer'] = deserializer
         metadata['offset'] = 412
       end
       raw_payload = rand.to_s
@@ -56,13 +54,11 @@ RSpec.describe 'Karafka patcher' do
     end
   end
 
-  describe 'worker.process' do
+  describe 'worker.processed' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_WORKER_PROCESS }
 
     it 'is expected to send a span' do
-      deserializer = ->(_) { 1 }
       metadata = ::Karafka::Messages::Metadata.new.tap do |metadata|
-        metadata['deserializer'] = deserializer
         metadata['offset'] = 412
       end
       raw_payload = rand.to_s
@@ -70,12 +66,8 @@ RSpec.describe 'Karafka patcher' do
       message = Karafka::Messages::Message.new(raw_payload, metadata)
       job = double(executor: double(topic: double(name: 'topic_a', consumer: 'ABC'), partition: 0), messages: [message])
 
-      Karafka.monitor.instrument('worker.process', { job: job }) do
-        puts "ac"
-      end
-
-      Karafka.monitor.instrument('worker.completed', { job: job }) do
-        puts "ac"
+      Karafka.monitor.instrument('worker.processed', { job: job }) do
+        # Noop
       end
 
       expect(spans).to have(1).items

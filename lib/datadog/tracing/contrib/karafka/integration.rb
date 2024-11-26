@@ -11,7 +11,9 @@ module Datadog
         class Integration
           include Contrib::Integration
 
-          MINIMUM_VERSION = Gem::Version.new('2.1.0')
+          # Minimum version of the Karafka library that we support
+          # https://karafka.io/docs/Versions-Lifecycle-and-EOL/#versioning-strategy
+          MINIMUM_VERSION = Gem::Version.new('2.2.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :karafka, auto_patch: false

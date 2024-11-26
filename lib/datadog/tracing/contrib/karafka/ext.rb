@@ -10,6 +10,7 @@ module Datadog
           SPAN_MESSAGE_CONSUME = 'karafka.consume'
           SPAN_WORKER_PROCESS = 'worker.process'
 
+          TAG_CONSUMER = 'kafka.consumer'
           TAG_TOPIC = 'kafka.topic'
           TAG_PARTITION = 'kafka.partition'
           TAG_OFFSET = 'kafka.offset'

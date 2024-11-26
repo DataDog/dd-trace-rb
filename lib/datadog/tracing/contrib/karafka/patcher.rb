@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
 require_relative '../patcher'
-require_relative 'events'
 require_relative 'ext'
 require_relative 'distributed/propagation'
+require_relative 'monitor'
 
 module Datadog
   module Tracing
     module Contrib
       module Karafka
+        # Patch to add tracing to Karafka::Messages::Messages
         module MessagesPatch
           def configuration
             Datadog.configuration.tracing[:sidekiq]
@@ -48,8 +49,7 @@ module Datadog
           end
 
           def patch
-            Events.subscribe!
-
+            ::Karafka::App.config.monitor = Monitor.new
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
           end
         end
