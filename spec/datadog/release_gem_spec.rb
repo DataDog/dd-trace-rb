@@ -41,6 +41,7 @@ RSpec.describe 'gem release process' do
            |static-analysis\.datadog\.yml
            |\.standard\.yml
            |\.standard_todo\.yml
+           |.rspec-local.example
           )
           $
         }x
