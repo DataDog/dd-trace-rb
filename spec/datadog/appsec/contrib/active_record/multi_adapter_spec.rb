@@ -69,6 +69,16 @@ RSpec.describe 'AppSec ActiveRecord integration' do
 
       active_record_scope.to_a
     end
+
+    it 'adds an event to processor context if waf status is :match' do
+      expect(Datadog::AppSec.active_scope.processor_context).to(
+        receive(:run).and_return(double(status: :match, actions: {}))
+      )
+
+      expect(Datadog::AppSec.active_scope.processor_context.events).to receive(:<<).and_call_original
+
+      active_record_scope.to_a
+    end
   end
 
   context 'mysql2 adapter' do
