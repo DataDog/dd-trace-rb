@@ -35,9 +35,7 @@ module Datadog
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if trace.non_billing_reject?
-                  trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
-                end
+                trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
 
                 if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config, trace)
                   Contrib::HTTP.inject(trace, req)

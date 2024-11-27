@@ -29,9 +29,7 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
-              if trace.non_billing_reject?
-                trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
-              end
+              trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
               propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
             end

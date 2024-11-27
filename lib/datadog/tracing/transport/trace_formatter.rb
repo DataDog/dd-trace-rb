@@ -198,7 +198,7 @@ module Datadog
         end
 
         def tag_non_billing_enabled!
-          return if !trace.non_billing_enabled
+          return unless trace.non_billing_enabled
 
           root_span.set_metric(
             Tracing::Metadata::Ext::TAG_APM_ENABLED, 0
