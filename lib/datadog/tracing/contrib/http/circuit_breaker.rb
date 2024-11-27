@@ -28,8 +28,8 @@ module Datadog
               request[Datadog::Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
           end
 
-          def should_skip_distributed_tracing?(client_config)
-            return true if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(Tracing.active_trace)
+          def should_skip_distributed_tracing?(client_config, trace)
+            return true if trace && trace.non_billing_reject?
 
             return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
 

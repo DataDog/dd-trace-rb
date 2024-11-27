@@ -110,7 +110,7 @@ module Datadog
 
               datadog_tag_request
 
-              if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(datadog_trace)
+              if datadog_trace.non_billing_reject?
                 datadog_trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
               end
 

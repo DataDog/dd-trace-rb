@@ -81,6 +81,10 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+              if trace.non_billing_reject?
+                trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+              end
+
               GRPC.inject(trace, metadata) if distributed_tracing?
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue StandardError => e
