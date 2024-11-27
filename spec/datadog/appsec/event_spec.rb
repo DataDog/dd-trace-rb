@@ -366,7 +366,7 @@ RSpec.describe Datadog::AppSec::Event do
     let(:with_trace) { true }
     let(:with_span) { true }
 
-    let(:waf_actions) { [] }
+    let(:waf_actions) { {} }
     let(:waf_result) do
       dbl = double
 
@@ -410,7 +410,9 @@ RSpec.describe Datadog::AppSec::Event do
     end
 
     context 'with block action' do
-      let(:waf_actions) { ['block'] }
+      let(:waf_actions) do
+        { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+      end
 
       it 'adds appsec.blocked tag to span' do
         expect(scope.service_entry_span.send(:meta)['appsec.blocked']).to eq('true')
@@ -442,7 +444,9 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       context 'with block action' do
-        let(:waf_actions) { ['block'] }
+        let(:waf_actions) do
+          { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+        end
 
         it 'does not add distributed tags but still add appsec span tags' do
           expect(scope.trace).to be nil
