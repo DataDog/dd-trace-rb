@@ -8,7 +8,7 @@ module Datadog
         module Instrumentation
           module_function
 
-          def detect_sqli(sql, adapter_name)
+          def detect_sql_injection(sql, adapter_name)
             scope = AppSec.active_scope
             return unless scope
 
@@ -37,7 +37,7 @@ module Datadog
           # patch for all adapters in ActiveRecord >= 7.1
           module InternalExecQueryAdapterPatch
             def internal_exec_query(sql, *args, **rest)
-              Instrumentation.detect_sqli(sql, adapter_name)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
             end
@@ -46,7 +46,7 @@ module Datadog
           # patch for postgres adapter in ActiveRecord < 7.1
           module ExecuteAndClearAdapterPatch
             def execute_and_clear(sql, *args, **rest)
-              Instrumentation.detect_sqli(sql, adapter_name)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
             end
@@ -56,7 +56,7 @@ module Datadog
           # this patch is also used when using JDBC adapter
           module ExecQueryAdapterPatch
             def exec_query(sql, *args, **rest)
-              Instrumentation.detect_sqli(sql, adapter_name)
+              Instrumentation.detect_sql_injection(sql, adapter_name)
 
               super
             end
