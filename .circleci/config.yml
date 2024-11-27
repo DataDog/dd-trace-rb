@@ -97,20 +97,6 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
     command: |
       bundle lock # Create Gemfile.lock
       cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
-step_run_all_tests: &step_run_all_tests
-  run:
-    name: Run tests
-    command: |
-        # Ensures it's possible to debug hung tests in CI
-        echo "--format=documentation" >> .rspec-local
-
-        # Configure RSpec metadata exporter
-        echo "
-        --format=RspecJunitFormatter
-        --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
-        " >> .rspec-local
-
-        bundle exec rake ci
 step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
   run:
     name: Get APM Test Agent Trace Check Results
@@ -278,10 +264,26 @@ orbs:
           - docker-wait:
               host: "testagent"
               port: 9126
-          - *step_run_all_tests
+          - run:
+              name: Run tests
+              command: |
+                  ln -s .rspec-local.example .rspec-local
+
+                  bundle exec rake ci
           - *step_get_test_agent_trace_check_results
+          - run:
+              name: Upload JUnit reports to Datadog
+              when: always
+              command: |
+                ls -l tmp/rspec/*.xml
+
+                curl -L --fail --retry 3 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
+
+                datadog-ci version
+
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --service dd-trace-rb tmp/rspec/
           - store_test_results:
-              path: /tmp/rspec
+              path: tmp/rspec
           - persist_to_workspace:
               root: .
               paths:
