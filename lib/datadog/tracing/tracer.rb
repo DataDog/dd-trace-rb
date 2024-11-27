@@ -333,6 +333,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            non_billing_enabled: non_billing_enabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
@@ -348,6 +349,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            non_billing_enabled: non_billing_enabled,
             remote_parent: false,
             tracer: self
           )
@@ -540,6 +542,10 @@ module Datadog
       def profiling_enabled
         @profiling_enabled ||=
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
+      end
+
+      def non_billing_enabled
+        @non_billing_enabled ||= !Datadog.configuration.tracing.apm.enabled
       end
     end
   end

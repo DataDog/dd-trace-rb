@@ -41,6 +41,10 @@ module Datadog
         def tag_sampling_priority!: () -> (nil | untyped)
 
         def tag_high_order_trace_id!: () -> (nil | untyped)
+                                    
+        def tag_profiling_enabled!: () -> (nil | untyped)
+                                    
+        def tag_non_billing_enabled!: () -> (nil | untyped)
 
         def tag_git_repository_url!: () -> (nil | untyped)
 

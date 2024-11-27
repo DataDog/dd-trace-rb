@@ -23,7 +23,7 @@ module Datadog
       attr_writer sampled: untyped
       attr_writer service: untyped
 
-      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
+      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?profiling_enabled: bool?,  ?non_billing_enabled: bool?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped
@@ -40,6 +40,7 @@ module Datadog
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
       def fork_clone: () -> untyped
+      def non_billing_reject?: () -> bool
 
       class Events
         include Tracing::Events
