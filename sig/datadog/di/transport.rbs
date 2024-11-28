@@ -17,7 +17,7 @@ module Datadog
 
       attr_reader client: untyped
 
-      def send_request: (String desc, String path, Hash[untyped,untyped] payload, ?headers: ::Hash[untyped, untyped]) -> void
+      def send_request: (String desc, path: String, ?body: String, ?form: Hash[untyped,untyped], ?headers: ::Hash[untyped, untyped]) -> void
     end
   end
 end

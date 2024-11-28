@@ -37,6 +37,7 @@ module Datadog
           template: config["template"],
           capture_snapshot: !!config["captureSnapshot"],
           max_capture_depth: config["capture"]&.[]("maxReferenceDepth"),
+          max_capture_attribute_count: config["capture"]&.[]("maxFieldCount"),
           rate_limit: config["sampling"]&.[]("snapshotsPerSecond"),
         )
       rescue KeyError => exc

@@ -12,6 +12,13 @@ module Datadog
       # If suffix is not an absolute path, the path matches if its suffix is
       # the provided suffix, at a path component boundary.
       module_function def path_matches_suffix?(path, suffix)
+        if path.nil?
+          raise ArgumentError, "nil path passed"
+        end
+        if suffix.nil?
+          raise ArgumentError, "nil suffix passed"
+        end
+
         if suffix.start_with?('/')
           path == suffix
         else

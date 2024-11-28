@@ -1141,6 +1141,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         expect(components.tracer).to receive(:shutdown!)
         expect(components.remote).to receive(:shutdown!) unless components.remote.nil?
         expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
+        expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
         expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
         expect(components.runtime_metrics).to receive(:stop)
           .with(true, close_metrics: false)
@@ -1160,6 +1161,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:profiler) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Profiler) : nil }
         let(:remote) { instance_double(Datadog::Core::Remote::Component) }
         let(:appsec) { instance_double(Datadog::AppSec::Component) }
+        let(:dynamic_instrumentation) { instance_double(Datadog::DI::Component) }
         let(:runtime_metrics_worker) { instance_double(Datadog::Core::Workers::RuntimeMetrics, metrics: runtime_metrics) }
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics, statsd: statsd) }
         let(:health_metrics) { instance_double(Datadog::Core::Diagnostics::Health::Metrics, statsd: statsd) }
@@ -1170,6 +1172,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           allow(replacement).to receive(:tracer).and_return(tracer)
           allow(replacement).to receive(:profiler).and_return(profiler)
           allow(replacement).to receive(:appsec).and_return(appsec)
+          allow(replacement).to receive(:dynamic_instrumentation).and_return(dynamic_instrumentation)
           allow(replacement).to receive(:remote).and_return(remote)
           allow(replacement).to receive(:runtime_metrics).and_return(runtime_metrics_worker)
           allow(replacement).to receive(:health_metrics).and_return(health_metrics)
@@ -1184,6 +1187,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(components.tracer).to receive(:shutdown!)
           expect(components.profiler).to receive(:shutdown!) unless components.profiler.nil?
           expect(components.appsec).to receive(:shutdown!) unless components.appsec.nil?
+          expect(components.dynamic_instrumentation).to receive(:shutdown!) unless components.dynamic_instrumentation.nil?
           expect(components.runtime_metrics).to receive(:stop)
             .with(true, close_metrics: false)
           expect(components.runtime_metrics.metrics.statsd).to receive(:close)

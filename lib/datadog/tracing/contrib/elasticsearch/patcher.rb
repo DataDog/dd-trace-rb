@@ -40,6 +40,7 @@ module Datadog
               # `Client#transport` is the most convenient object both for this integration and the library
               # as users have shared access to it across all `elasticsearch` versions.
               service ||= Datadog.configuration_for(transport, :service_name) || datadog_configuration[:service_name]
+              on_error = Datadog.configuration_for(transport, :on_error) || datadog_configuration[:on_error]
 
               method = args[0]
               path = args[1]
@@ -49,7 +50,11 @@ module Datadog
               url = full_url.path
               response = nil
 
-              Tracing.trace(Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_QUERY, service: service) do |span|
+              Tracing.trace(
+                Datadog::Tracing::Contrib::Elasticsearch::Ext::SPAN_QUERY,
+                service: service,
+                on_error: on_error
+              ) do |span|
                 begin
                   connection = transport.connections.first
                   host = connection.host[:host] if connection

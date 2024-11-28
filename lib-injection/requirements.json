@@ -6,13 +6,13 @@
       {
         "arch": "x64",
         "supported": true,
-        "min": "2.27",
+        "min": "2.17",
         "description": "libffi needs memfd_create"
       },
       {
         "arch": "arm64",
         "supported": true,
-        "min": "2.27",
+        "min": "2.17",
         "description": "libffi needs memfd_create"
       }
     ],
@@ -29,5 +29,4940 @@
       }
     ]
   },
-  "deny": []
+  "deny": [
+    {
+      "id": "gem",
+      "description": "Ignore the rubygems CLI",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_disable_gems",
+      "description": "Rubygems is required for injection to function",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "--disable-gems"
+          ],
+          "position": null
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "gem_update_system",
+      "description": "Ignore the rubygems update setup.rb",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "setup.rb"
+          ],
+          "position": null
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_install",
+      "description": "Ignore bundle install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_install",
+      "description": "Ignore bundle install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_install",
+      "description": "Ignore bundle install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_install",
+      "description": "Ignore bundle install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_install",
+      "description": "Ignore bundle install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_update",
+      "description": "Ignore bundle update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_update",
+      "description": "Ignore bundle update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_update",
+      "description": "Ignore bundle update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_update",
+      "description": "Ignore bundle update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_update",
+      "description": "Ignore bundle update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_cache",
+      "description": "Ignore bundle cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_cache",
+      "description": "Ignore bundle cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_cache",
+      "description": "Ignore bundle cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_cache",
+      "description": "Ignore bundle cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_cache",
+      "description": "Ignore bundle cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_config",
+      "description": "Ignore bundle config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_config",
+      "description": "Ignore bundle config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_config",
+      "description": "Ignore bundle config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_config",
+      "description": "Ignore bundle config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_config",
+      "description": "Ignore bundle config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_help",
+      "description": "Ignore bundle help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_help",
+      "description": "Ignore bundle help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_help",
+      "description": "Ignore bundle help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_help",
+      "description": "Ignore bundle help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_help",
+      "description": "Ignore bundle help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_add",
+      "description": "Ignore bundle add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_add",
+      "description": "Ignore bundle add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_add",
+      "description": "Ignore bundle add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_add",
+      "description": "Ignore bundle add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_add",
+      "description": "Ignore bundle add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_binstubs",
+      "description": "Ignore bundle binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_binstubs",
+      "description": "Ignore bundle binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_binstubs",
+      "description": "Ignore bundle binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_binstubs",
+      "description": "Ignore bundle binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_binstubs",
+      "description": "Ignore bundle binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_check",
+      "description": "Ignore bundle check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_check",
+      "description": "Ignore bundle check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_check",
+      "description": "Ignore bundle check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_check",
+      "description": "Ignore bundle check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_check",
+      "description": "Ignore bundle check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_show",
+      "description": "Ignore bundle show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_show",
+      "description": "Ignore bundle show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_show",
+      "description": "Ignore bundle show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_show",
+      "description": "Ignore bundle show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_show",
+      "description": "Ignore bundle show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_outdated",
+      "description": "Ignore bundle outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_outdated",
+      "description": "Ignore bundle outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_outdated",
+      "description": "Ignore bundle outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_outdated",
+      "description": "Ignore bundle outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_outdated",
+      "description": "Ignore bundle outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_console",
+      "description": "Ignore bundle console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_console",
+      "description": "Ignore bundle console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_console",
+      "description": "Ignore bundle console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_console",
+      "description": "Ignore bundle console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_console",
+      "description": "Ignore bundle console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_open",
+      "description": "Ignore bundle open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_open",
+      "description": "Ignore bundle open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_open",
+      "description": "Ignore bundle open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_open",
+      "description": "Ignore bundle open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_open",
+      "description": "Ignore bundle open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_lock",
+      "description": "Ignore bundle lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_lock",
+      "description": "Ignore bundle lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_lock",
+      "description": "Ignore bundle lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_lock",
+      "description": "Ignore bundle lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_lock",
+      "description": "Ignore bundle lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_viz",
+      "description": "Ignore bundle viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_viz",
+      "description": "Ignore bundle viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_viz",
+      "description": "Ignore bundle viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_viz",
+      "description": "Ignore bundle viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_viz",
+      "description": "Ignore bundle viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_init",
+      "description": "Ignore bundle init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_init",
+      "description": "Ignore bundle init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_init",
+      "description": "Ignore bundle init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_init",
+      "description": "Ignore bundle init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_init",
+      "description": "Ignore bundle init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_gem",
+      "description": "Ignore bundle gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_gem",
+      "description": "Ignore bundle gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_gem",
+      "description": "Ignore bundle gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_gem",
+      "description": "Ignore bundle gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_gem",
+      "description": "Ignore bundle gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_platform",
+      "description": "Ignore bundle platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_platform",
+      "description": "Ignore bundle platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_platform",
+      "description": "Ignore bundle platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_platform",
+      "description": "Ignore bundle platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_platform",
+      "description": "Ignore bundle platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_clean",
+      "description": "Ignore bundle clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_clean",
+      "description": "Ignore bundle clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_clean",
+      "description": "Ignore bundle clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_clean",
+      "description": "Ignore bundle clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_clean",
+      "description": "Ignore bundle clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_doctor",
+      "description": "Ignore bundle doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_doctor",
+      "description": "Ignore bundle doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_doctor",
+      "description": "Ignore bundle doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_doctor",
+      "description": "Ignore bundle doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_doctor",
+      "description": "Ignore bundle doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_remove",
+      "description": "Ignore bundle remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_remove",
+      "description": "Ignore bundle remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_remove",
+      "description": "Ignore bundle remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_remove",
+      "description": "Ignore bundle remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_remove",
+      "description": "Ignore bundle remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_plugin",
+      "description": "Ignore bundle plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_plugin",
+      "description": "Ignore bundle plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_plugin",
+      "description": "Ignore bundle plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_plugin",
+      "description": "Ignore bundle plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_plugin",
+      "description": "Ignore bundle plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_version",
+      "description": "Ignore bundle version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_version",
+      "description": "Ignore bundle version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_version",
+      "description": "Ignore bundle version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_version",
+      "description": "Ignore bundle version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundle_version",
+      "description": "Ignore bundle version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundle",
+            "*",
+            "*",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_install",
+      "description": "Ignore bundler install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_install",
+      "description": "Ignore bundler install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_install",
+      "description": "Ignore bundler install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_install",
+      "description": "Ignore bundler install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_install",
+      "description": "Ignore bundler install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_update",
+      "description": "Ignore bundler update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_update",
+      "description": "Ignore bundler update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_update",
+      "description": "Ignore bundler update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_update",
+      "description": "Ignore bundler update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_update",
+      "description": "Ignore bundler update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_cache",
+      "description": "Ignore bundler cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_cache",
+      "description": "Ignore bundler cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_cache",
+      "description": "Ignore bundler cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_cache",
+      "description": "Ignore bundler cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_cache",
+      "description": "Ignore bundler cache",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "cache"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_config",
+      "description": "Ignore bundler config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_config",
+      "description": "Ignore bundler config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_config",
+      "description": "Ignore bundler config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_config",
+      "description": "Ignore bundler config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_config",
+      "description": "Ignore bundler config",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "config"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_help",
+      "description": "Ignore bundler help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_help",
+      "description": "Ignore bundler help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_help",
+      "description": "Ignore bundler help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_help",
+      "description": "Ignore bundler help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_help",
+      "description": "Ignore bundler help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_add",
+      "description": "Ignore bundler add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_add",
+      "description": "Ignore bundler add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_add",
+      "description": "Ignore bundler add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_add",
+      "description": "Ignore bundler add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_add",
+      "description": "Ignore bundler add",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "add"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_binstubs",
+      "description": "Ignore bundler binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_binstubs",
+      "description": "Ignore bundler binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_binstubs",
+      "description": "Ignore bundler binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_binstubs",
+      "description": "Ignore bundler binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_binstubs",
+      "description": "Ignore bundler binstubs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "binstubs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_check",
+      "description": "Ignore bundler check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_check",
+      "description": "Ignore bundler check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_check",
+      "description": "Ignore bundler check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_check",
+      "description": "Ignore bundler check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_check",
+      "description": "Ignore bundler check",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "check"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_show",
+      "description": "Ignore bundler show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_show",
+      "description": "Ignore bundler show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_show",
+      "description": "Ignore bundler show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_show",
+      "description": "Ignore bundler show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_show",
+      "description": "Ignore bundler show",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "show"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_outdated",
+      "description": "Ignore bundler outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_outdated",
+      "description": "Ignore bundler outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_outdated",
+      "description": "Ignore bundler outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_outdated",
+      "description": "Ignore bundler outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_outdated",
+      "description": "Ignore bundler outdated",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "outdated"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_console",
+      "description": "Ignore bundler console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_console",
+      "description": "Ignore bundler console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_console",
+      "description": "Ignore bundler console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_console",
+      "description": "Ignore bundler console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_console",
+      "description": "Ignore bundler console",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "console"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_open",
+      "description": "Ignore bundler open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_open",
+      "description": "Ignore bundler open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_open",
+      "description": "Ignore bundler open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_open",
+      "description": "Ignore bundler open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_open",
+      "description": "Ignore bundler open",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "open"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_lock",
+      "description": "Ignore bundler lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_lock",
+      "description": "Ignore bundler lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_lock",
+      "description": "Ignore bundler lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_lock",
+      "description": "Ignore bundler lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_lock",
+      "description": "Ignore bundler lock",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "lock"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_viz",
+      "description": "Ignore bundler viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_viz",
+      "description": "Ignore bundler viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_viz",
+      "description": "Ignore bundler viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_viz",
+      "description": "Ignore bundler viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_viz",
+      "description": "Ignore bundler viz",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "viz"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_init",
+      "description": "Ignore bundler init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_init",
+      "description": "Ignore bundler init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_init",
+      "description": "Ignore bundler init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_init",
+      "description": "Ignore bundler init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_init",
+      "description": "Ignore bundler init",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "init"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_gem",
+      "description": "Ignore bundler gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_gem",
+      "description": "Ignore bundler gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_gem",
+      "description": "Ignore bundler gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_gem",
+      "description": "Ignore bundler gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_gem",
+      "description": "Ignore bundler gem",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "gem"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_platform",
+      "description": "Ignore bundler platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_platform",
+      "description": "Ignore bundler platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_platform",
+      "description": "Ignore bundler platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_platform",
+      "description": "Ignore bundler platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_platform",
+      "description": "Ignore bundler platform",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "platform"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_clean",
+      "description": "Ignore bundler clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_clean",
+      "description": "Ignore bundler clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_clean",
+      "description": "Ignore bundler clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_clean",
+      "description": "Ignore bundler clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_clean",
+      "description": "Ignore bundler clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_doctor",
+      "description": "Ignore bundler doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_doctor",
+      "description": "Ignore bundler doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_doctor",
+      "description": "Ignore bundler doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_doctor",
+      "description": "Ignore bundler doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_doctor",
+      "description": "Ignore bundler doctor",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "doctor"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_remove",
+      "description": "Ignore bundler remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_remove",
+      "description": "Ignore bundler remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_remove",
+      "description": "Ignore bundler remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_remove",
+      "description": "Ignore bundler remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_remove",
+      "description": "Ignore bundler remove",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "remove"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_plugin",
+      "description": "Ignore bundler plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_plugin",
+      "description": "Ignore bundler plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_plugin",
+      "description": "Ignore bundler plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_plugin",
+      "description": "Ignore bundler plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_plugin",
+      "description": "Ignore bundler plugin",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "plugin"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_version",
+      "description": "Ignore bundler version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_version",
+      "description": "Ignore bundler version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_version",
+      "description": "Ignore bundler version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_version",
+      "description": "Ignore bundler version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "bundler_version",
+      "description": "Ignore bundler version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/bundler",
+            "*",
+            "*",
+            "*",
+            "*",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_ri",
+      "description": "Ignore ruby's ri",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/ri"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_rdoc",
+      "description": "Ignore ruby's rdoc",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/rdoc"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_racc",
+      "description": "Ignore ruby's racc",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/racc"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_erb",
+      "description": "Ignore ruby's erb",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/erb"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_rdbg",
+      "description": "Ignore ruby's rdbg",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/rdbg"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_rbs",
+      "description": "Ignore ruby's rbs",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/rbs"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "ruby_typeprof",
+      "description": "Ignore ruby's typeprof",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "**/typeprof"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef",
+      "description": "Ignore chef's chef",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_apply",
+      "description": "Ignore chef's chef-apply",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-apply"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_client",
+      "description": "Ignore chef's chef-client",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-client"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_resource_inspector",
+      "description": "Ignore chef's chef-resource-inspector",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-resource-inspector"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_service_manager",
+      "description": "Ignore chef's chef-service-manager",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-service-manager"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_shell",
+      "description": "Ignore chef's chef-shell",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-shell"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_solo",
+      "description": "Ignore chef's chef-solo",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-solo"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_chef_windows_service",
+      "description": "Ignore chef's chef-windows-service",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/chef-windows-service"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "chef_knife",
+      "description": "Ignore chef's knife",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/knife"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "omnibus_omnibus",
+      "description": "Ignore omnibus's omnibus",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/omnibus"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "omnibus_kitchen",
+      "description": "Ignore omnibus's kitchen",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/kitchen"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_clean",
+      "description": "Ignore appraisal clean",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "clean"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_generate",
+      "description": "Ignore appraisal generate",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "generate"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_help",
+      "description": "Ignore appraisal help",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "help"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_install",
+      "description": "Ignore appraisal install",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "install"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_list",
+      "description": "Ignore appraisal list",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "list"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_update",
+      "description": "Ignore appraisal update",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "update"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "appraisal_version",
+      "description": "Ignore appraisal version",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/appraisal",
+            "version"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "vagrant_vagrant",
+      "description": "Ignore vagrant's vagrant",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/vagrant"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "puppet_puppet",
+      "description": "Ignore puppet's puppet",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/puppet"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    },
+    {
+      "id": "homebrew_brew",
+      "description": "Ignore Homebrew's brew",
+      "os": null,
+      "cmds": [
+        "**/ruby"
+      ],
+      "args": [
+        {
+          "args": [
+            "*/brew"
+          ],
+          "position": 1
+        }
+      ],
+      "envars": null
+    }
+  ]
 }

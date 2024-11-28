@@ -90,3 +90,7 @@ size_t ruby_obj_memsize_of(VALUE obj);
 // return a string with the result of that call. Elsif the object responds to
 // 'to_s', return a string with the result of that call. Otherwise, return Qnil.
 VALUE ruby_safe_inspect(VALUE obj);
+
+// You probably want ruby_safe_inspect instead; this is a lower-level dependency
+// of it, that's being exposed here just to facilitate testing.
+const char* safe_object_info(VALUE obj);

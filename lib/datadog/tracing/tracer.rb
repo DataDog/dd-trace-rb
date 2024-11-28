@@ -442,7 +442,7 @@ module Datadog
                         tags || @tags.dup
                       end
         # Remove version tag if service is not the default service
-        if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service != @default_service
+        if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
           merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
         end
         merged_tags

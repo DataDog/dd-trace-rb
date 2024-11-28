@@ -65,14 +65,33 @@ RSpec.describe Datadog::DI::Transport do
     end
 
     describe '.send_input' do
-      let(:payload) do
-        {}
+      context 'empty payload' do
+        let(:payload) do
+          {}
+        end
+
+        it 'does not raise exceptions' do
+          expect do
+            client.send_input(payload)
+          end.not_to raise_exception
+        end
       end
 
-      it 'does not raise exceptions' do
-        expect do
-          client.send_input(payload)
-        end.not_to raise_exception
+      context 'partial DI payload' do
+        let(:payload) do
+          {
+            service: 'rspec',
+            "debugger.snapshot": {
+              id: '1234',
+            },
+          }
+        end
+
+        it 'does not raise exceptions' do
+          expect do
+            client.send_input(payload)
+          end.not_to raise_exception
+        end
       end
     end
 

@@ -38,6 +38,7 @@ ignore:
 - spec/datadog/appsec/**/**
 - spec/datadog/benchmark/**/**
 - spec/datadog/core/**/**
+- spec/datadog/di/integration/*_test_class*.rb
 - spec/datadog/kit/**/**
 - spec/datadog/tracing/**/**
 - spec/support/**/**

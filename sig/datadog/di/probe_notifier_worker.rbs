@@ -23,12 +23,16 @@ module Datadog
       @stop_requested: bool
       
       @logger: Core::Logger
+      
+      @telemetry: Core::Telemetry::Component?
 
-      def initialize: (untyped settings, Transport transport, Core::Logger logger) -> void
+      def initialize: (untyped settings, Transport transport, Core::Logger logger, ?telemetry: Core::Telemetry::Component) -> void
 
       attr_reader settings: untyped
       
       attr_reader logger: Core::Logger
+      
+      attr_reader telemetry: Core::Telemetry::Component?
 
       def start: () -> void
       def stop: (?::Integer timeout) -> void
@@ -56,6 +60,8 @@ module Datadog
       def maybe_send_status: () -> bool
 
       def maybe_send_snapshot: () -> bool
+      
+      def min_send_interval: () -> Float
     end
   end
 end

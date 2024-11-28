@@ -46,11 +46,13 @@ module Datadog
         # this should be all frames for enriched probes and no frames for
         # non-enriched probes?
         build_snapshot(probe, rv: rv, snapshot: snapshot,
+          # Actual path of the instrumented file.
+          path: trace_point&.path,
           duration: duration, caller_locations: caller_locations, args: args, kwargs: kwargs,
           serialized_entry_args: serialized_entry_args)
       end
 
-      def build_snapshot(probe, rv: nil, snapshot: nil,
+      def build_snapshot(probe, rv: nil, snapshot: nil, path: nil,
         duration: nil, caller_locations: nil, args: nil, kwargs: nil,
         serialized_entry_args: nil)
         # TODO also verify that non-capturing probe does not pass
@@ -63,14 +65,18 @@ module Datadog
                 arguments: if serialized_entry_args
                   serialized_entry_args
                 else
-                  (args || kwargs) && serializer.serialize_args(args, kwargs)
+                  (args || kwargs) && serializer.serialize_args(args, kwargs,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
                 end,
                 throwable: nil,
                 # standard:enable all
               },
               return: {
                 arguments: {
-                  "@return": serializer.serialize_value(rv),
+                  "@return": serializer.serialize_value(rv,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
                 },
                 throwable: nil,
               },
@@ -78,25 +84,17 @@ module Datadog
           elsif probe.line?
             {
               lines: snapshot && {
-                probe.line_no => {locals: serializer.serialize_vars(snapshot)},
+                probe.line_no => {locals: serializer.serialize_vars(snapshot,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)},
               },
             }
           end
         end
 
         location = if probe.line?
-          actual_file = if probe.file
-            # Normally caller_locations should always be filled for a line probe
-            # but in the test suite we don't always provide all arguments.
-            actual_file_basename = File.basename(probe.file)
-            caller_locations&.detect do |loc|
-              # TODO record actual path that probe was installed into,
-              # perform exact match here against that path.
-              File.basename(loc.path) == actual_file_basename
-            end&.path || probe.file
-          end
           {
-            file: actual_file,
+            file: path,
             lines: [probe.line_no],
           }
         elsif probe.method?
@@ -129,7 +127,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: duration ? (duration * 10**9).to_i : nil,
+          duration: duration ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -143,11 +141,11 @@ module Datadog
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": Datadog::Tracing.active_trace&.id,
-          "dd.span_id": Datadog::Tracing.active_span&.id,
+          "dd.trace_id": Datadog::Tracing.active_trace&.id&.to_s,
+          "dd.span_id": Datadog::Tracing.active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
-            duration: duration ? duration * 1000 : nil),
+            duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end

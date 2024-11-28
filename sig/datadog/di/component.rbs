@@ -1,0 +1,57 @@
+module Datadog
+  module DI
+    class Component
+      @settings: untyped
+
+      @agent_settings: untyped
+
+      @logger: untyped
+
+      @telemetry: untyped
+
+      @redactor: untyped
+
+      @serializer: untyped
+
+      @instrumenter: untyped
+
+      @transport: untyped
+
+      @probe_notifier_worker: untyped
+
+      @probe_notification_builder: untyped
+
+      @probe_manager: untyped
+
+      def self.build: (untyped settings, untyped agent_settings, ?telemetry: untyped?) -> (nil | untyped)
+
+      def self.build!: (untyped settings, untyped agent_settings, ?telemetry: untyped?) -> untyped
+      def self.environment_supported?: (untyped settings) -> (false | true)
+
+      def initialize: (untyped settings, untyped agent_settings, untyped logger, ?code_tracker: untyped?, ?telemetry: untyped?) -> void
+
+      attr_reader settings: untyped
+
+      attr_reader agent_settings: untyped
+
+      attr_reader logger: untyped
+
+      attr_reader telemetry: untyped
+
+      attr_reader instrumenter: untyped
+
+      attr_reader transport: untyped
+
+      attr_reader probe_notifier_worker: untyped
+
+      attr_reader probe_notification_builder: untyped
+
+      attr_reader probe_manager: untyped
+
+      attr_reader redactor: untyped
+
+      attr_reader serializer: untyped
+      def shutdown!: (?untyped? replacement) -> untyped
+    end
+  end
+end

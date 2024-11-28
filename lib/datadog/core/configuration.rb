@@ -258,8 +258,16 @@ module Datadog
       def replace_components!(settings, old)
         components = Components.new(settings)
 
+        # Carry over state from existing components to the new ones.
+        # Currently, if we already started the remote component (which
+        # happens after a request goes through installed Rack middleware),
+        # we will start the new remote component as well.
+        old_state = {
+          remote_started: old.remote&.started?,
+        }
+
         old.shutdown!(components)
-        components.startup!(settings)
+        components.startup!(settings, old_state: old_state)
         components
       end
 

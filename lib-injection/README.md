@@ -41,9 +41,9 @@ Currently, we support
 
 | Environment| version |
 |---|---|
-| Ruby  | `2.7`, `3.0`, `3.1`, `3.2`|
+| Ruby  | `2.7`, `3.0`, `3.1`, `3.2`, `3.3`|
 | Arch  | `amd64`, `arm64` |
-| glibc |  2.28+ |
+| glibc |  2.17+ |
 
 In order to ship `datadog` and its dependencies as a pre-install package, we need a few tweaks in our build pipeline.
 

@@ -6,33 +6,45 @@ RSpec.describe Datadog::DI::Configuration::Settings do
   describe "dynamic_instrumentation" do
     context "programmatic configuration" do
       [
-        ["enabled", true],
-        ["enabled", false],
-        ["untargeted_trace_points", true],
-        ["untargeted_trace_points", false],
-        ["propagate_all_exceptions", true],
-        ["propagate_all_exceptions", false],
-        ["redacted_identifiers", ["foo"]],
-        ["redacted_identifiers", []],
-        ["redacted_type_names", ["foo*", "bar"]],
-        ["redacted_type_names", []],
-        ["max_capture_depth", 5],
-        ["max_capture_collection_size", 10],
-        ["max_capture_string_length", 20],
-        ["max_capture_attribute_count", 4],
-      ].each do |(name_, value_)|
+        [nil, "enabled", true],
+        [nil, "enabled", false],
+        ["internal", "untargeted_trace_points", true],
+        ["internal", "untargeted_trace_points", false],
+        ["internal", "propagate_all_exceptions", true],
+        ["internal", "propagate_all_exceptions", false],
+        ['internal', 'min_send_interval', 5],
+        ['internal', 'development', true],
+        ['internal', 'development', false],
+        [nil, "redacted_identifiers", ["foo"]],
+        [nil, "redacted_identifiers", []],
+        [nil, "redacted_type_names", ["foo*", "bar"]],
+        [nil, "redacted_type_names", []],
+        [nil, "max_capture_depth", 5],
+        [nil, "max_capture_collection_size", 10],
+        [nil, "max_capture_string_length", 20],
+        [nil, "max_capture_attribute_count", 4],
+      ].each do |(scope_name_, name_, value_)|
         name = name_
+        scope_name = scope_name_
         value = value_.freeze
 
         context "when #{name} set to #{value}" do
           let(:value) { _value }
 
+          let(:scope) do
+            if scope_name
+              settings.dynamic_instrumentation.public_send(scope_name)
+            else
+              settings.dynamic_instrumentation
+            end
+          end
+
           before do
-            settings.dynamic_instrumentation.public_send("#{name}=", value)
+            scope.public_send("#{name}=", value)
           end
 
           it "returns the value back" do
-            expect(settings.dynamic_instrumentation.public_send(name)).to eq(value)
+            expect(scope.public_send(name)).to eq(value)
           end
         end
       end

@@ -44,6 +44,7 @@ ext/**/skipped_reason.txt
 # lock files
 Gemfile.lock
 Gemfile-*.lock
+*.gemfile.lock
 
 # bundle config
 gemfiles/.bundle

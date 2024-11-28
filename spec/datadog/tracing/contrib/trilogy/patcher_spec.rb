@@ -138,7 +138,7 @@ RSpec.describe 'Trlogy::Client patcher' do
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.message'))
-            .to eq("1054: Unknown column 'INVALID' in 'field list'")
+            .to include("1054: Unknown column 'INVALID' in 'field list'")
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'trilogy.query', error: Trilogy::Error

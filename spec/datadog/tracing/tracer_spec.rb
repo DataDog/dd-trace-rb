@@ -126,15 +126,45 @@ RSpec.describe Datadog::Tracing::Tracer do
             expect(span.get_tag('my')).to eq('tag')
           end
 
-          context 'contains version and span.service is not equal to the default tracer service' do
-            let(:tracer_options) { { default_service: 'global-service', tags: { version: '1.1.0' } } }
-            let(:service) { 'my-service' }
-            it 'does not set version on the span' do
-              expect(tracer.default_service).to eq('global-service')
-              expect(span.service).not_to eq('my-service')
+          context 'contains version and the span service name' do
+            let(:tracer_options) do
+              { default_service: 'global-service', tags: { Datadog::Core::Environment::Ext::TAG_VERSION => '1.1.0' } }
+            end
+            let(:options) { { service: service } }
 
-              expect(tracer.tags).to include(version: '1.1.0')
-              expect(span.tags).not_to include(:version)
+            context 'is nil' do
+              let(:service) { nil }
+
+              it 'sets version' do
+                expect(tracer.default_service).to eq('global-service')
+                expect(span.service).to eq('global-service')
+
+                expect(tracer.tags).to include('version' => '1.1.0')
+                expect(span.tags).to include('version' => '1.1.0')
+              end
+            end
+
+            context 'is equal to the default tracer service' do
+              let(:service) { 'global-service' }
+
+              it 'sets version' do
+                expect(tracer.default_service).to eq('global-service')
+                expect(span.service).to eq('global-service')
+
+                expect(tracer.tags).to include('version' => '1.1.0')
+                expect(span.tags).to include('version' => '1.1.0')
+              end
+            end
+
+            context 'is not equal to the default tracer service' do
+              let(:service) { 'local-service' }
+              it 'does not set version' do
+                expect(tracer.default_service).to eq('global-service')
+                expect(span.service).to eq('local-service')
+
+                expect(tracer.tags).to include('version' => '1.1.0')
+                expect(span.tags).not_to include('version' => '1.1.0')
+              end
             end
           end
 
