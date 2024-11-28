@@ -31,19 +31,16 @@ module Datadog
         def negotiate(env, actions)
           # @type var configured_response: Response?
           configured_response = nil
-          actions.each do |action|
+          actions.each do |type, parameters|
             # Need to use next to make steep happy :(
             # I rather use break to stop the execution
             next if configured_response
 
-            action_configuration = AppSec::Processor::Actions.fetch_configuration(action)
-            next unless action_configuration
-
-            configured_response = case action_configuration['type']
+            configured_response = case type
                                   when 'block_request'
-                                    block_response(env, action_configuration['parameters'])
+                                    block_response(env, parameters)
                                   when 'redirect_request'
-                                    redirect_response(env, action_configuration['parameters'])
+                                    redirect_response(env, parameters)
                                   end
           end
 
