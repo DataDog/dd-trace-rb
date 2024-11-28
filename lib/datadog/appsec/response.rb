@@ -87,7 +87,7 @@ module Datadog
           body << content(content_type)
 
           Response.new(
-            status: (options['status_code'] ? options['status_code'].to_i : 403),
+            status: options['status_code']&.to_i || 403,
             headers: { 'Content-Type' => content_type },
             body: body,
           )
