@@ -15,7 +15,7 @@ module Datadog
           end
 
           def propagation
-            @propagation ||= Contrib::Sidekiq::Distributed::Propagation.new
+            @propagation ||= Contrib::Karafka::Distributed::Propagation.new
           end
 
           def each(&block)
