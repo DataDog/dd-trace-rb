@@ -30,8 +30,8 @@
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
-  u_int32_t name;
-  u_int32_t filename;
+  ddog_prof_ManagedStringId name;
+  ddog_prof_ManagedStringId filename;
   int32_t line;
 } heap_frame;
 static st_index_t heap_frame_hash(heap_frame*, st_index_t seed);
@@ -185,9 +185,9 @@ static void commit_recording(heap_recorder*, heap_record*, recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
-static u_int32_t intern_or_raise(heap_recorder*, const ddog_CharSlice*);
-static void unintern_or_raise(heap_recorder *, u_int32_t);
-static VALUE get_ruby_string_or_raise(heap_recorder*, u_int32_t);
+static ddog_prof_ManagedStringId intern_or_raise(heap_recorder*, const ddog_CharSlice*);
+static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
+static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
 // ==========================
 // Heap Recorder External API
@@ -346,7 +346,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     }
   #endif
 
-  uint32_t alloc_class_id = intern_or_raise(heap_recorder, alloc_class);
+  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(heap_recorder, alloc_class);
 
   heap_recorder->active_recording = (recording) {
     .object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
@@ -924,7 +924,7 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
       record->obj_id, object_data.weight, object_data.size, filename,
       (int) top_frame.line, object_data.alloc_gen, object_data.gen_age, object_data.is_frozen);
 
-  if (record->object_data.class > 0) {
+  if (record->object_data.class.value > 0) {
     VALUE class = get_ruby_string_or_raise(recorder, record->object_data.class);
 
     rb_str_catf(inspect, "class=%"PRIsVALUE" ", class);
@@ -954,11 +954,11 @@ int heap_frame_cmp(heap_frame *f1, heap_frame *f2) {
   if (line_diff != 0) {
     return line_diff;
   }
-  int name_diff = (int) (f1->name - f2->name);
+  int name_diff = (int) (f1->name.value - f2->name.value);
   if (name_diff != 0) {
     return name_diff;
   }
-  return (int) (f1->filename - f2->filename);
+  return (int) (f1->filename.value - f2->filename.value);
 }
 
 st_index_t heap_frame_hash(heap_frame *frame, st_index_t seed) {
@@ -1025,12 +1025,12 @@ int heap_stack_cmp_st(st_data_t key1, st_data_t key2) {
     heap_frame* frame1 = &stack1->frames[i];
     heap_frame* frame2 = &stack2->frames[i];
 
-    if (frame1->name != frame2->name) {
-      return ((int) frame1->name) - ((int) frame2->name);
+    if (frame1->name.value != frame2->name.value) {
+      return ((int) frame1->name.value) - ((int) frame2->name.value);
     }
 
-    if (frame1->filename != frame2->filename) {
-      return ((int) frame1->filename) - ((int) frame2->filename);
+    if (frame1->filename.value != frame2->filename.value) {
+      return ((int) frame1->filename.value) - ((int) frame2->filename.value);
     }
 
     if (frame1->line != frame2->line) {
@@ -1050,25 +1050,25 @@ st_index_t heap_stack_hash_st(st_data_t key) {
   return heap_stack_hash(stack, FNV1_32A_INIT);
 }
 
-static u_int32_t intern_or_raise(heap_recorder *recorder, const ddog_CharSlice *char_slice) {
+static ddog_prof_ManagedStringId intern_or_raise(heap_recorder *recorder, const ddog_CharSlice *char_slice) {
   if (char_slice == NULL) {
-    return 0;
+    return (ddog_prof_ManagedStringId) { 0 };
   }
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(*recorder->string_storage, char_slice);
+  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(*recorder->string_storage, *char_slice);
   if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to intern char slice: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
   }
   return intern_result.ok;
 }
 
-static void unintern_or_raise(heap_recorder *recorder, u_int32_t id) {
-  ddog_prof_ManagedStringStorageResult intern_result = ddog_prof_ManagedStringStorage_unintern(*recorder->string_storage, id);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
+static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(*recorder->string_storage, id);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 }
 
-static VALUE get_ruby_string_or_raise(heap_recorder *recorder, u_int32_t id) {
+static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
   ddog_prof_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(*recorder->string_storage, id);
   if (get_string_result.tag == DDOG_PROF_STRING_WRAPPER_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
