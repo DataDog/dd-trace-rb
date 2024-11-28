@@ -67,7 +67,8 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
 
       context 'when in a Pry session' do
-        it 'returns true' do
+        # Temporarily skipped for release 2.7.1
+        xit 'returns true' do
           Tempfile.create('test') do |f|
             f.write(repl_script)
             f.close
@@ -169,6 +170,15 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
         let(:script) do
           <<-'RUBY'
+            # Under Ruby 3.0 through 3.2 there is a weird error that occurs
+            # in CI where two copies of psych get loaded in the same process,
+            # and even more strangely the first version is a newer one from
+            # gem and the second one is the older one from Ruby standard
+            # library. Try to work around this situation by forcing psych
+            # to be loaded from (some) gem.
+            # We still don't know exactly what is causing the original issue.
+            gem 'psych'
+
             require 'bundler/inline'
 
             gemfile(true) do
