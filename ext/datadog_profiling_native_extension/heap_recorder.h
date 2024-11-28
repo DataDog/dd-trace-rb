@@ -34,7 +34,7 @@ typedef struct {
 
   // The class of the object that we're tracking.
   // NOTE: This is optional and will be set to NULL if not set.
-  u_int32_t class;
+  ddog_prof_ManagedStringId class;
 
   // The GC allocation gen in which we saw this object being allocated.
   //

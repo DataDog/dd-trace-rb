@@ -195,8 +195,8 @@ typedef struct {
   profile_slot profile_slot_two;
 
   ddog_prof_ManagedStringStorage string_storage;
-  uint32_t label_key_allocation_class;
-  uint32_t label_key_gc_gen_age;
+  ddog_prof_ManagedStringId label_key_allocation_class;
+  ddog_prof_ManagedStringId label_key_gc_gen_age;
 
   short active_slot; // MUST NEVER BE ACCESSED FROM record_sample; this is NOT for the sampler thread to use.
 
@@ -266,7 +266,7 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
-static u_int32_t intern_or_raise(struct stack_recorder_state *state, const char *str);
+static ddog_prof_ManagedStringId intern_or_raise(struct stack_recorder_state *state, const char *str);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -340,7 +340,13 @@ static VALUE _native_new(VALUE klass) {
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  state->string_storage = ddog_prof_ManagedStringStorage_new();
+  ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
+
+  if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+  }
+
+  state->string_storage = string_storage.ok;
   initialize_profiles(state, sample_types);
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
@@ -364,7 +370,7 @@ static void initialize_slot_concurrency_control(stack_recorder_state *state) {
 
 static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_ValueType sample_types) {
   ddog_prof_Profile_NewResult slot_one_profile_result =
-    ddog_prof_Profile_new_with_string_storage(sample_types, NULL /* period is optional */, NULL /* start_time is optional */, state->string_storage);
+    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, NULL /* start_time is optional */, state->string_storage);
 
   if (slot_one_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
@@ -373,7 +379,7 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
   state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok };
 
   ddog_prof_Profile_NewResult slot_two_profile_result =
-    ddog_prof_Profile_new_with_string_storage(sample_types, NULL /* period is optional */, NULL /* start_time is optional */, state->string_storage);
+    ddog_prof_Profile_with_string_storage(sample_types, NULL /* period is optional */, NULL /* start_time is optional */, state->string_storage);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
     // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
@@ -552,9 +558,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
   heap_recorder_finish_iteration(state->heap_recorder);
 
-  ddog_prof_ManagedStringStorageResult result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
-  if (result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 
   // NOTE: We are focusing on the serialization time outside of the GVL in this stat here. This doesn't
@@ -710,7 +716,7 @@ static bool add_heap_sample_to_active_profile_without_gvl(heap_recorder_iteratio
   ddog_prof_Label labels[2];
   size_t label_offset = 0;
 
-  if (object_data->class > 0) {
+  if (object_data->class.value > 0) {
     labels[label_offset++] = (ddog_prof_Label) {
       .key_id = context->state->label_key_allocation_class,
       .str_id = object_data->class,
@@ -1006,6 +1012,20 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
   return stats_as_hash;
 }
 
+static ddog_prof_ManagedStringId intern_or_raise(struct stack_recorder_state *state, const char *str) {
+  if (str == NULL) {
+    return (ddog_prof_ManagedStringId) { 0 };
+  }
+  ddog_CharSlice char_slice;
+  char_slice.len = strlen(str);
+  char_slice.ptr = str;
+  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(state->string_storage, char_slice);
+  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to intern char slice: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
+  }
+  return intern_result.ok;
+}
+
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj_id) {
   ENFORCE_TYPE(obj_id, T_FIXNUM);
 
@@ -1027,18 +1047,4 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   recorder_after_gc_step(recorder_instance);
   return Qtrue;
-}
-
-static u_int32_t intern_or_raise(struct stack_recorder_state *state, const char *str) {
-  if (str == NULL) {
-    return 0;
-  }
-  ddog_CharSlice char_slice;
-  char_slice.len = strlen(str);
-  char_slice.ptr = str;
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(state->string_storage, &char_slice);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern char slice: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
-  }
-  return intern_result.ok;
 }
