@@ -98,7 +98,7 @@ module Datadog
             content_type = content_type(env)
             status_code = options['status_code'].to_i
 
-            status = status_code >= 300 && status_code < 400 ? status_code : 303
+            status = (300...400).cover?(status_code) ? status_code : 303
 
             headers = {
               'Content-Type' => content_type,
