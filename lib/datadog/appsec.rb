@@ -24,12 +24,12 @@ module Datadog
         appsec_component.processor if appsec_component
       end
 
-      def reconfigure(ruleset:, actions:, telemetry:)
+      def reconfigure(ruleset:, telemetry:)
         appsec_component = components.appsec
 
         return unless appsec_component
 
-        appsec_component.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
+        appsec_component.reconfigure(ruleset: ruleset, telemetry: telemetry)
       end
 
       def reconfigure_lock(&block)
