@@ -21,7 +21,7 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         let(:type) { 'html' }
-        let(:status_code) { 100 }
+        let(:status_code) { '100' }
 
         context 'status_code' do
           subject(:status) { described_class.negotiate(env, actions).status }
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         let(:location) { 'foo' }
-        let(:status_code) { 303 }
+        let(:status_code) { '303' }
 
         context 'status_code' do
           subject(:status) { described_class.negotiate(env, actions).status }
@@ -100,7 +100,7 @@ RSpec.describe Datadog::AppSec::Response do
           it { is_expected.to eq 303 }
 
           context 'when status code do not starts with 3' do
-            let(:status_code) { 202 }
+            let(:status_code) { '202' }
 
             it { is_expected.to eq 303 }
           end
