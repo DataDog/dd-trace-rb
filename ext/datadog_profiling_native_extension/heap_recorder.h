@@ -59,7 +59,7 @@ typedef struct {
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
-heap_recorder* heap_recorder_new(const ddog_prof_ManagedStringStorage *string_storage);
+heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);

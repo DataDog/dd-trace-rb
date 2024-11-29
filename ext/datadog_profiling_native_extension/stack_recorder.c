@@ -352,7 +352,7 @@ static VALUE _native_new(VALUE klass) {
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
   //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
   //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
-  state->heap_recorder = heap_recorder_new(&state->string_storage);
+  state->heap_recorder = heap_recorder_new(state->string_storage);
 
   return stack_recorder;
 }
