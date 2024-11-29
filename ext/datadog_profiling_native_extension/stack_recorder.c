@@ -266,7 +266,6 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
-static ddog_prof_ManagedStringId intern_or_raise(struct stack_recorder_state *state, const char *str);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -530,8 +529,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // happen while holding on to the GVL.
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
-  state->label_key_allocation_class = intern_or_raise(state, "allocation class");
-  state->label_key_gc_gen_age = intern_or_raise(state, "gc gen age");
+  state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
+  state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
@@ -1015,16 +1014,12 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
   return stats_as_hash;
 }
 
-static ddog_prof_ManagedStringId intern_or_raise(struct stack_recorder_state *state, const char *str) {
-  if (str == NULL) {
-    return (ddog_prof_ManagedStringId) { 0 };
-  }
-  ddog_CharSlice char_slice;
-  char_slice.len = strlen(str);
-  char_slice.ptr = str;
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(state->string_storage, char_slice);
+ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string) {
+  if (string.len == 0) return (ddog_prof_ManagedStringId) { 0 }; // Id 0 is always an empty string, no need to ask
+
+  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(string_storage, string);
   if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern char slice: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
+    rb_raise(rb_eRuntimeError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
   }
   return intern_result.ok;
 }

@@ -169,7 +169,6 @@ static void commit_recording(heap_recorder *, heap_record *, object_record *acti
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
-static ddog_prof_ManagedStringId intern_or_raise(heap_recorder*, const ddog_CharSlice*);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
@@ -296,7 +295,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(heap_recorder, &alloc_class);
+  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(*heap_recorder->string_storage, alloc_class);
 
   heap_recorder->active_recording = object_record_new(
     FIX2LONG(ruby_obj_id),
@@ -865,8 +864,8 @@ heap_stack* heap_stack_new(heap_recorder *recorder, ddog_prof_Slice_Location loc
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const ddog_prof_Location *location = &locations.ptr[i];
     stack->frames[i] = (heap_frame) {
-      .name = intern_or_raise(recorder, &location->function.name),
-      .filename = intern_or_raise(recorder, &location->function.filename),
+      .name = intern_or_raise(*recorder->string_storage, location->function.name),
+      .filename = intern_or_raise(*recorder->string_storage, location->function.filename),
       // ddog_prof_Location is a int64_t. We don't expect to have to profile files with more than
       // 2M lines so this cast should be fairly safe?
       .line = (int32_t) location->line,
@@ -931,18 +930,9 @@ st_index_t heap_stack_hash_st(st_data_t key) {
   return heap_stack_hash(stack, FNV1_32A_INIT);
 }
 
-static ddog_prof_ManagedStringId intern_or_raise(heap_recorder *recorder, const ddog_CharSlice *char_slice) {
-  if (char_slice == NULL) {
-    return (ddog_prof_ManagedStringId) { 0 };
-  }
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(*recorder->string_storage, *char_slice);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern char slice: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
-  }
-  return intern_result.ok;
-}
-
 static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
+  if (id.value == 0) return; // Empty string, nothing to do
+
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(*recorder->string_storage, id);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
     rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
