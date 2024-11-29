@@ -78,17 +78,18 @@ module Datadog
               registry_lock.synchronize do
                 registry[path] = tp.instruction_sequence
               end
+
+              # Also, pending line probes should only be installed for
+              # non-eval'd code.
+              DI.current_component&.probe_manager&.install_pending_line_probes(path)
             end
-
-            DI.component&.probe_manager&.install_pending_line_probes(path)
-
           # Since this method normally is called from customer applications,
           # rescue any exceptions that might not be handled to not break said
           # customer applications.
           rescue => exc
             # TODO we do not have DI.component defined yet, remove steep:ignore
             # before release.
-            if component = DI.component # steep:ignore
+            if component = DI.current_component # steep:ignore
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
               component.logger.warn("Unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")

@@ -14,7 +14,7 @@ PATH
     datadog (2.7.1)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 14.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+      libddwaf (~> 1.18.0.0.0)
       msgpack
 
 GEM
@@ -55,13 +55,13 @@ GEM
       addressable (>= 2.4)
     libdatadog (14.1.0.1.0-aarch64-linux)
     libdatadog (14.1.0.1.0-x86_64-linux)
-    libddwaf (1.15.0.0.0-aarch64-linux)
+    libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.15.0.0.0-x86_64-linux)
+    libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.7.2)
+    msgpack (1.7.5)
     os (1.1.4)
     parallel (1.26.3)
     parser (3.3.5.0)
@@ -132,7 +132,6 @@ GEM
     stripe (5.15.0)
     thor (1.3.2)
     unicode-display_width (2.6.0)
-    uri (0.13.1)
     warning (1.4.0)
     webmock (3.23.1)
       addressable (>= 2.8.0)
@@ -162,7 +161,6 @@ DEPENDENCIES
   pry-stack_explorer
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  rexml (>= 3.2.7)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
@@ -174,10 +172,9 @@ DEPENDENCIES
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   stripe (= 5.15.0)
-  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.26
+   2.5.21

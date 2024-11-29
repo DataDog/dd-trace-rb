@@ -14,7 +14,7 @@ PATH
     datadog (2.7.1)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 14.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+      libddwaf (~> 1.18.0.0.0)
       msgpack
 
 GEM
@@ -68,14 +68,14 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (14.1.0.1.0)
-    libddwaf (1.15.0.0.0-java)
+    libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     mime-types (3.5.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0808)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     netrc (0.11.0)
     os (1.1.4)
     parallel (1.23.0)
@@ -160,7 +160,6 @@ GEM
       ethon (>= 0.9.0)
     unf (0.1.4-java)
     unicode-display_width (2.4.2)
-    uri (0.13.1)
     warning (1.3.0)
     webmock (3.13.0)
       addressable (>= 2.3.6)
@@ -193,7 +192,6 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rest-client
-  rexml (>= 3.2.7)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)
@@ -205,10 +203,9 @@ DEPENDENCIES
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   typhoeus
-  uri (~> 0.13.1)
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.7.0)
 
 BUNDLED WITH
-   2.3.26
+   2.5.21

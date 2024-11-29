@@ -82,10 +82,10 @@ step_appraisal_install: &step_appraisal_install
     name: Install Appraisal gems
     command: |
       if [ "$CI_BUNDLE_CACHE_HIT" != 1 ]; then
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate
         bundle exec rake dependency:install
       else
-        bundle exec appraisal generate
+        bundle exec rake dependency:generate # Generate the appraisal files to match the lockfiles in the tree
         echo "All required gems were found in cache."
       fi
 step_compute_bundle_checksum: &step_compute_bundle_checksum
@@ -97,53 +97,11 @@ step_compute_bundle_checksum: &step_compute_bundle_checksum
     command: |
       bundle lock # Create Gemfile.lock
       cat Gemfile Gemfile.lock Appraisals gemfiles/*.gemfile gemfiles/*.gemfile.lock | md5sum > .circleci/bundle_checksum
-step_run_all_tests: &step_run_all_tests
-  run:
-    name: Run tests
-    command: |
-        # Ensures it's possible to debug hung tests in CI
-        echo "--format=documentation" >> .rspec-local
-
-        # Configure RSpec metadata exporter
-        echo "
-        --format=RspecJunitFormatter
-        --out='/tmp/rspec/-<%= ARGV.join.gsub('/', '-') %>.xml'
-        " >> .rspec-local
-
-        bundle exec rake ci
 step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_results
   run:
     name: Get APM Test Agent Trace Check Results
     command: |
-      set +e  # Disable exiting from testagent response failure
-      SUMMARY_RESPONSE=$(curl -s -w "\n%{http_code}" -o summary_response.txt http://testagent:9126/test/trace_check/summary)
-      set -e
-      SUMMARY_RESPONSE_CODE=$(echo "$SUMMARY_RESPONSE" | awk 'END {print $NF}')
-
-      if [[ SUMMARY_RESPONSE_CODE -eq 200 ]]; then
-        echo "APM Test Agent is running. (HTTP 200)"
-      else
-        echo "APM Test Agent is not running and was not used for testing. No checks failed."
-        exit 0
-      fi
-
-      RESPONSE=$(curl -s -w "\n%{http_code}" -o response.txt http://testagent:9126/test/trace_check/failures)
-      RESPONSE_CODE=$(echo "$RESPONSE" | awk 'END {print $NF}')
-
-      if [[ $RESPONSE_CODE -eq 200 ]]; then
-        echo "All APM Test Agent Check Traces returned successful! (HTTP 200)"
-        echo "APM Test Agent Check Traces Summary Results:"
-        cat summary_response.txt | jq '.'
-      elif [[ $RESPONSE_CODE -eq 404 ]]; then
-        echo "Real APM Agent running in place of TestAgent, no checks to validate!"
-      else
-        echo "APM Test Agent Check Traces failed with response code: $RESPONSE_CODE"
-        echo "Failures:"
-        cat response.txt
-        echo "APM Test Agent Check Traces Summary Results:"
-        cat summary_response.txt | jq '.'
-        exit 1
-      fi
+      ruby .circleci/test_agent_check.rb
     when: always
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
@@ -285,10 +243,6 @@ orbs:
                 curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL
                 chmod +x /usr/local/bin/dockerize
                 dockerize --version
-          # Test agent uses `jq` to check results
-          - run:
-              name: Install jq
-              command: apt update && apt install jq -y
           # Wait for containers to start
           - docker-wait:
               port: 5432
@@ -310,10 +264,26 @@ orbs:
           - docker-wait:
               host: "testagent"
               port: 9126
-          - *step_run_all_tests
+          - run:
+              name: Run tests
+              command: |
+                  ln -s .rspec-local.example .rspec-local
+
+                  bundle exec rake ci
           - *step_get_test_agent_trace_check_results
+          - run:
+              name: Upload JUnit reports to Datadog
+              when: always
+              command: |
+                ls -l tmp/rspec/*.xml
+
+                curl -L --fail --retry 3 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
+
+                datadog-ci version
+
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --service dd-trace-rb tmp/rspec/
           - store_test_results:
-              path: /tmp/rspec
+              path: tmp/rspec
           - persist_to_workspace:
               root: .
               paths:
@@ -424,6 +394,11 @@ job_configuration:
     ruby_version: 'ruby-3.3.0'
     image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     resource_class_to_use: medium+
+  - &config-3_4
+    <<: *filters_all_branches_and_tags
+    ruby_version: 'ruby-3.4.0'
+    image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+    resource_class_to_use: medium+
     # ADD NEW RUBIES HERE
   - &config-jruby-9_2 # More recent release of 9.2
     <<: *filters_all_branches_and_tags
@@ -456,6 +431,7 @@ workflows:
             - test-3.1
             - test-3.2
             - test-3.3
+            - test-3.4
             # ADD NEW RUBIES HERE
             - test-jruby-9.2
             - test-jruby-9.3
@@ -503,6 +479,11 @@ workflows:
           name: build_and_test_integration-3.3
           integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
           ruby_version: '3.3'
+          <<: *filters_all_branches_and_tags
+      - orb/build_and_test_integration:
+          name: build_and_test_integration-3.4
+          integration_apps: 'rack rails-six rails-seven sinatra2-classic sinatra2-modular'
+          ruby_version: '3.4'
           <<: *filters_all_branches_and_tags
       # ⬆️ **Note**: If add/remove test apps above, remember to also copy-paste the changes to the "edge" workflow further down the file.
       #
@@ -563,6 +544,14 @@ workflows:
           name: test-3.3
           requires:
             - build-3.3
+      - orb/build:
+          <<: *config-3_4
+          name: build-3.4
+      - orb/test:
+          <<: *config-3_4
+          name: test-3.4
+          requires:
+            - build-3.4
       # ADD NEW RUBIES HERE
       - orb/build:
           <<: *config-jruby-9_2

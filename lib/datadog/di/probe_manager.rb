@@ -206,6 +206,9 @@ module Datadog
       # point, which is invoked for each required or loaded file
       # (and also for eval'd code, but those invocations are filtered out).
       def install_pending_line_probes(path)
+        if path.nil?
+          raise ArgumentError, "path must not be nil"
+        end
         @lock.synchronize do
           @pending_probes.values.each do |probe|
             if probe.line?

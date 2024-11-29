@@ -35,6 +35,9 @@ module Datadog
         def tracer_version: () -> ::String
         def native_platform: () -> ::String
         def ruby_engine_version: () -> ::String
+	
+	def process_response: (untyped response) -> untyped
+	def apply_config: (untyped paths, untyped targets, untyped contents) -> untyped
 
         class GemSpecificationFallback
           def initialize: (::String?, ::String?) -> void

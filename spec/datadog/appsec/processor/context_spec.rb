@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it { expect(telemetry).not_to receive(:error) }
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
-      it { expect(actions).to eq [[]] }
+      it { expect(actions).to eq [{}] }
     end
 
     context 'multiple attacks per run' do
@@ -181,7 +181,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 2) }
-      it { expect(actions).to eq [[]] }
+      it { expect(actions).to eq [{}] }
     end
 
     context 'multiple runs' do
@@ -199,7 +199,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         it { expect(matches).to have_attributes(count: 1) }
         it { expect(events).to have_attributes(count: 1) }
-        it { expect(actions).to eq [[]] }
+        it { expect(actions).to eq [{}] }
       end
 
       context 'different attacks' do
@@ -215,7 +215,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         it { expect(matches).to have_attributes(count: 2) }
         it { expect(events).to have_attributes(count: 2) }
-        it { expect(actions).to eq [[], []] }
+        it { expect(actions).to eq [{}, {}] }
       end
     end
 
@@ -235,7 +235,12 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
-      it { expect(actions).to eq [['block']] }
+
+      it do
+        expect(actions).to(
+          eq([{ 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }])
+        )
+      end
     end
 
     context 'run failed with libddwaf error result' do
@@ -254,7 +259,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       end
 
       it 'sends telemetry error' do
-        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_invalid_object/)
+        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_invalid_object/)
 
         context.run(input, {}, timeout)
       end
@@ -269,9 +274,9 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       let(:result) { context.run(input, {}, timeout) }
 
       it 'sends telemetry report' do
-        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ execution error: :err_internal/)
+        expect(telemetry).to receive(:error).with(/libddwaf:[\d.]+ method:ddwaf_run execution error: :err_internal/)
         expect(telemetry).to receive(:report)
-          .with(kind_of(Datadog::AppSec::WAF::LibDDWAF::Error), description: 'libddwaf internal low-level error')
+          .with(kind_of(Datadog::AppSec::WAF::LibDDWAF::Error), description: 'libddwaf-rb internal low-level error')
 
         expect(result.status).to eq(:err_internal)
       end

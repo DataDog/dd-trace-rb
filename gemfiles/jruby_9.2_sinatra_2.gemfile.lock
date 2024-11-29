@@ -14,7 +14,7 @@ PATH
     datadog (2.7.1)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 14.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+      libddwaf (~> 1.18.0.0.0)
       msgpack
 
 GEM
@@ -45,11 +45,11 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (14.1.0.1.0)
-    libddwaf (1.15.0.0.0-java)
+    libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.7.2-java)
+    msgpack (1.7.5-java)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
@@ -137,7 +137,6 @@ DEPENDENCIES
   rack-test
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  rexml (>= 3.2.7)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

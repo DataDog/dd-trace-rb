@@ -1,5 +1,13 @@
 module DIHelpers
   module ClassMethods
+    def ruby_2_only
+      if RUBY_VERSION >= '3'
+        before(:all) do
+          skip "Test is only for Ruby 2"
+        end
+      end
+    end
+
     def di_test
       if PlatformHelpers.jruby?
         before(:all) do
@@ -50,6 +58,21 @@ module DIHelpers
   end
 
   module InstanceMethods
+    def order_hash_keys(hash)
+      hash.keys.map do |key|
+        [key.to_s, hash[key]]
+      end.to_h
+    end
+
+    def deep_stringify_keys(hash)
+      if Hash === hash
+        hash.map do |key, value|
+          [key.to_s, deep_stringify_keys(value)]
+        end.to_h
+      else
+        hash
+      end
+    end
   end
 end
 

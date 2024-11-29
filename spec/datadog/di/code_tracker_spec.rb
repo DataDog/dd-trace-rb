@@ -4,8 +4,22 @@ require "datadog/di/code_tracker"
 RSpec.describe Datadog::DI::CodeTracker do
   di_test
 
+  before(:all) do
+    Datadog::DI.deactivate_tracking!
+  end
+
   let(:tracker) do
     described_class.new
+  end
+
+  shared_context 'when code tracker is running' do
+    before do
+      tracker.start
+    end
+
+    after do
+      tracker.stop
+    end
   end
 
   describe "#start" do
@@ -90,13 +104,7 @@ RSpec.describe Datadog::DI::CodeTracker do
 
   describe "#active?" do
     context "when started" do
-      before do
-        tracker.start
-      end
-
-      after do
-        tracker.stop
-      end
+      include_context 'when code tracker is running'
 
       it "is true" do
         expect(tracker.active?).to be true
@@ -111,6 +119,57 @@ RSpec.describe Datadog::DI::CodeTracker do
 
       it "is false" do
         expect(tracker.active?).to be false
+      end
+    end
+  end
+
+  describe 'line probe installation' do
+    let(:component) do
+      instance_double(Datadog::DI::Component).tap do |component|
+        expect(component).to receive(:probe_manager).and_return(probe_manager)
+      end
+    end
+
+    let(:probe_manager) do
+      instance_double(Datadog::DI::ProbeManager)
+    end
+
+    context 'when started' do
+      include_context 'when code tracker is running'
+
+      context 'when a file is required' do
+        it 'requests to install pending line probes' do
+          expect(Datadog::DI).to receive(:current_component).and_return(component)
+          expect(probe_manager).to receive(:install_pending_line_probes) do |path|
+            # Should be an absolute path
+            expect(path).to start_with('/')
+            expect(File.basename(path)).to eq('code_tracker_pending_require.rb')
+          end
+          require_relative 'code_tracker_pending_require'
+        end
+      end
+
+      context 'when a file is loaded' do
+        it 'requests to install pending line probes' do
+          expect(Datadog::DI).to receive(:current_component).and_return(component)
+          expect(probe_manager).to receive(:install_pending_line_probes) do |path|
+            # Should be an absolute path
+            expect(path).to start_with('/')
+            expect(File.basename(path)).to eq('code_tracker_pending_load.rb')
+          end
+          load File.join(File.dirname(__FILE__), 'code_tracker_pending_load.rb')
+        end
+      end
+
+      context "when Ruby code is eval'd" do
+        it 'requests to install pending line probes' do
+          # Matchers can be lazily loaded, force all code to be loaded here.
+          expect(4).to eq(4)
+
+          expect(Datadog::DI).not_to receive(:current_component)
+          expect(probe_manager).not_to receive(:install_pending_line_probes)
+          expect(eval('2 + 2')).to eq(4) # rubocop:disable Style/EvalWithLocation
+        end
       end
     end
   end

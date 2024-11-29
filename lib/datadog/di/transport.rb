@@ -45,7 +45,7 @@ module Datadog
 
       def send_input(payload)
         send_request('Probe snapshot submission',
-          path: INPUT_PATH, body: payload.to_s,
+          path: INPUT_PATH, body: payload.to_json,
           headers: {'content-type' => 'application/json'},)
       end
 

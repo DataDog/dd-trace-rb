@@ -14,7 +14,7 @@ PATH
     datadog (2.7.1)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 14.1.0.1.0)
-      libddwaf (~> 1.15.0.0.0)
+      libddwaf (~> 1.18.0.0.0)
       msgpack
 
 GEM
@@ -119,9 +119,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (14.1.0.1.0-aarch64-linux)
     libdatadog (14.1.0.1.0-x86_64-linux)
-    libddwaf (1.15.0.0.0-aarch64-linux)
+    libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.15.0.0.0-x86_64-linux)
+    libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     lograge (0.12.0)
       actionpack (>= 4)
@@ -142,7 +142,7 @@ GEM
     mini_mime (1.1.2)
     mini_portile2 (2.6.1)
     minitest (5.15.0)
-    msgpack (1.7.2)
+    msgpack (1.7.5)
     net-imap (0.2.2)
       digest
       net-protocol
@@ -287,7 +287,6 @@ DEPENDENCIES
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   redis (>= 4.2.5)
-  rexml (>= 3.2.7)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

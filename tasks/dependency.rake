@@ -18,6 +18,24 @@ namespace :dependency do
     puts "`BUNDLE_GEMFILE=#{gemfiles.sample} bundle install`\n\n"
   end
 
+  # Replacement for `bundle exec appraisal generate`
+  desc "Generate dependencies for #{AppraisalConversion.runtime_identifier}"
+  task :generate do |t, args|
+    sh 'bundle exec ruby appraisal/generate.rb'
+  end
+
+  task :exec do |t, args|
+    command = args.extras.any? ? args.extras.first : 'bundle version'
+
+    gemfiles = Dir.glob(AppraisalConversion.gemfile_pattern, base: AppraisalConversion.root_path)
+
+    gemfiles.each do |gemfile|
+      Bundler.with_unbundled_env do
+        sh({ 'BUNDLE_GEMFILE' => gemfile.to_s }, command)
+      end
+    end
+  end
+
   # Replacement for `bundle exec appraisal bundle lock`
   desc "Lock dependencies for #{AppraisalConversion.runtime_identifier}"
   task :lock do |t, args|

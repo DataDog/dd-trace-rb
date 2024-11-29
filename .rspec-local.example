@@ -1,0 +1,5 @@
+<% require 'digest' %>
+--require spec_helper
+--format documentation
+--format RspecJunitFormatter
+--out <%= "tmp/rspec/" + Digest::MD5.hexdigest(ENV['BUNDLE_GEMFILE'] + ARGV.join) + ".xml" %>

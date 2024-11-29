@@ -69,19 +69,24 @@ class DIInstrumentBenchmark
     end
   end
 
-  def run_benchmark
+  attr_reader :instrumenter
+
+  def logger
+    @logger ||= Logger.new(STDERR)
+  end
+
+  def configure
     settings = Datadog.configuration
-    # We benchmark untargeted and targeted trace points; untargeted ones
-    # are prohibited by default, permit them.
-    begin
-      settings.dynamic_instrumentation.internal.untargeted_trace_points = true
-    rescue NoMethodError
-      settings.dynamic_instrumentation.untargeted_trace_points = true
-    end
+    yield settings if block_given?
+
     redactor = Datadog::DI::Redactor.new(settings)
     serializer = Datadog::DI::Serializer.new(settings, redactor)
-    logger = Logger.new(STDERR)
-    instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, logger)
+    @instrumenter = Datadog::DI::Instrumenter.new(settings, serializer, logger,
+      code_tracker: Datadog::DI.code_tracker)
+  end
+
+  def run_benchmark
+    configure
 
     m = Target.instance_method(:test_method_for_line_probe)
     file, line = m.source_location
@@ -103,8 +108,11 @@ class DIInstrumentBenchmark
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       type_name: 'DIInstrumentBenchmark::Target', method_name: 'test_method')
-    instrumenter.hook_method(probe) do
+    rv = instrumenter.hook_method(probe) do
       calls += 1
+    end
+    unless rv
+      raise "Method probe was not successfully installed"
     end
 
     Benchmark.ips do |x|
@@ -131,12 +139,23 @@ class DIInstrumentBenchmark
 
     instrumenter.unhook(probe)
 
-=begin Line probes require more of DI code to be merged
+    # We benchmark untargeted and targeted trace points; untargeted ones
+    # are prohibited by default, permit them.
+    # In order to install untargeted trace point, we currently need to
+    # disable code tracking.
+    Datadog::DI.deactivate_tracking!
+    configure do |c|
+      c.dynamic_instrumentation.internal.untargeted_trace_points = true
+    end
+
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: file, line_no: line + 1)
-    instrumenter.hook_line(probe) do
+    rv = instrumenter.hook_line(probe) do
       calls += 1
+    end
+    unless rv
+      raise "Line probe (in method) was not successfully installed"
     end
 
     Benchmark.ips do |x|
@@ -144,8 +163,7 @@ class DIInstrumentBenchmark
       x.config(
         **benchmark_time,
       )
-
-      x.report('line instrumentation') do
+      x.report('line instrumentation - untargeted') do
         Target.new.test_method_for_line_probe
       end
 
@@ -161,7 +179,13 @@ class DIInstrumentBenchmark
       raise "Expected at least 1000 calls to the method, got #{calls}"
     end
 
+    instrumenter.unhook(probe)
+
     Datadog::DI.activate_tracking!
+    configure do |c|
+      c.dynamic_instrumentation.internal.untargeted_trace_points = false
+    end
+
     if defined?(DITarget)
       raise "DITarget is already defined, this should not happen"
     end
@@ -173,12 +197,14 @@ class DIInstrumentBenchmark
     m = DITarget.instance_method(:test_method_for_line_probe)
     targeted_file, targeted_line = m.source_location
 
-    instrumenter.unhook(probe)
     calls = 0
     probe = Datadog::DI::Probe.new(id: 1, type: :log,
       file: targeted_file, line_no: targeted_line + 1)
-    instrumenter.hook_line(probe) do
+    rv = instrumenter.hook_line(probe) do
       calls += 1
+    end
+    unless rv
+      raise "Line probe (targeted) was not successfully installed"
     end
 
     Benchmark.ips do |x|
@@ -207,7 +233,6 @@ class DIInstrumentBenchmark
     # target code is approximately what it was prior to hook installation.
 
     instrumenter.unhook(probe)
-=end
 
     calls = 0
 

@@ -65,14 +65,18 @@ module Datadog
                 arguments: if serialized_entry_args
                   serialized_entry_args
                 else
-                  (args || kwargs) && serializer.serialize_args(args, kwargs)
+                  (args || kwargs) && serializer.serialize_args(args, kwargs,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
                 end,
                 throwable: nil,
                 # standard:enable all
               },
               return: {
                 arguments: {
-                  "@return": serializer.serialize_value(rv),
+                  "@return": serializer.serialize_value(rv,
+                    depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                    attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count),
                 },
                 throwable: nil,
               },
@@ -80,7 +84,9 @@ module Datadog
           elsif probe.line?
             {
               lines: snapshot && {
-                probe.line_no => {locals: serializer.serialize_vars(snapshot)},
+                probe.line_no => {locals: serializer.serialize_vars(snapshot,
+                  depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
+                  attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count,)},
               },
             }
           end
@@ -121,7 +127,7 @@ module Datadog
           },
           # In python tracer duration is under debugger.snapshot,
           # but UI appears to expect it here at top level.
-          duration: duration ? (duration * 10**9).to_i : nil,
+          duration: duration ? (duration * 10**9).to_i : 0,
           host: nil,
           logger: {
             name: probe.file,
@@ -135,11 +141,11 @@ module Datadog
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": Datadog::Tracing.active_trace&.id,
-          "dd.span_id": Datadog::Tracing.active_span&.id,
+          "dd.trace_id": Datadog::Tracing.active_trace&.id&.to_s,
+          "dd.span_id": Datadog::Tracing.active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
-            duration: duration ? duration * 1000 : nil),
+            duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end

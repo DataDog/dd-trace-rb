@@ -3,39 +3,28 @@ require 'datadog/appsec/response'
 RSpec.describe Datadog::AppSec::Response do
   describe '.negotiate' do
     let(:env) { double }
-    let(:actions) { [] }
 
     before do
       allow(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
       allow(env).to receive(:[]).with('HTTP_ACCEPT').and_return('text/html')
-      Datadog::AppSec::Processor::Actions.merge(actions)
-    end
-
-    after do
-      Datadog::AppSec::Processor::Actions.send(:reset)
     end
 
     describe 'configured actions' do
       describe 'block' do
         let(:actions) do
-          [
-            {
-              'id' => 'block',
-              'type' => 'block_request',
-              'parameters' => {
-                'type' => type,
-                'status_code' => status_code,
-
-              }
+          {
+            'block_request' => {
+              'type' => type,
+              'status_code' => status_code
             }
-          ]
+          }
         end
 
         let(:type) { 'html' }
         let(:status_code) { 100 }
 
         context 'status_code' do
-          subject(:status) { described_class.negotiate(env, ['block']).status }
+          subject(:status) { described_class.negotiate(env, actions).status }
 
           it { is_expected.to eq 100 }
 
@@ -47,7 +36,7 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'body' do
-          subject(:body) { described_class.negotiate(env, ['block']).body }
+          subject(:body) { described_class.negotiate(env, actions).body }
 
           it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
 
@@ -64,7 +53,7 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'headers' do
-          subject(:header) { described_class.negotiate(env, ['block']).headers['Content-Type'] }
+          subject(:header) { described_class.negotiate(env, actions).headers['Content-Type'] }
 
           it { is_expected.to eq 'text/html' }
 
@@ -80,19 +69,9 @@ RSpec.describe Datadog::AppSec::Response do
           end
         end
 
-        context 'no specify action' do
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
         context 'no configured actions' do
-          let(:actions) { [] }
-          subject(:response) { described_class.negotiate(env, []) }
+          let(:actions) { {} }
+          subject(:response) { described_class.negotiate(env, actions) }
 
           it 'uses default response' do
             expect(response.status).to eq 403
@@ -104,24 +83,19 @@ RSpec.describe Datadog::AppSec::Response do
 
       describe 'redirect_request' do
         let(:actions) do
-          [
-            {
-              'id' => 'redirect_request',
-              'type' => 'redirect_request',
-              'parameters' => {
-                'location' => location,
-                'status_code' => status_code,
-
-              }
+          {
+            'redirect_request' => {
+              'location' => location,
+              'status_code' => status_code
             }
-          ]
+          }
         end
 
         let(:location) { 'foo' }
         let(:status_code) { 303 }
 
         context 'status_code' do
-          subject(:status) { described_class.negotiate(env, ['redirect_request']).status }
+          subject(:status) { described_class.negotiate(env, actions).status }
 
           it { is_expected.to eq 303 }
 
@@ -133,13 +107,13 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'body' do
-          subject(:body) { described_class.negotiate(env, ['redirect_request']).body }
+          subject(:body) { described_class.negotiate(env, actions).body }
 
           it { is_expected.to eq [] }
         end
 
         context 'headers' do
-          subject(:headers) { described_class.negotiate(env, ['redirect_request']).headers }
+          subject(:headers) { described_class.negotiate(env, actions).headers }
 
           context 'Content-Type' do
             before do
@@ -159,31 +133,10 @@ RSpec.describe Datadog::AppSec::Response do
           end
         end
 
-        context 'no specify action' do
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
         context 'location is empty' do
           let(:location) { '' }
 
-          subject(:response) { described_class.negotiate(env, []) }
-
-          it 'uses default response' do
-            expect(response.status).to eq 403
-            expect(response.body).to eq [Datadog::AppSec::Assets.blocked(format: :html)]
-            expect(response.headers['Content-Type']).to eq 'text/html'
-          end
-        end
-
-        context 'no configured actions' do
-          let(:actions) { [] }
-          subject(:response) { described_class.negotiate(env, []) }
+          subject(:response) { described_class.negotiate(env, actions) }
 
           it 'uses default response' do
             expect(response.status).to eq 403
@@ -195,13 +148,13 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe '.status' do
-      subject(:status) { described_class.negotiate(env, []).status }
+      subject(:status) { described_class.negotiate(env, {}).status }
 
       it { is_expected.to eq 403 }
     end
 
     describe '.body' do
-      subject(:body) { described_class.negotiate(env, []).body }
+      subject(:body) { described_class.negotiate(env, {}).body }
 
       before do
         expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(true)
@@ -254,7 +207,7 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe ".headers['Content-Type']" do
-      subject(:content_type) { described_class.negotiate(env, []).headers['Content-Type'] }
+      subject(:content_type) { described_class.negotiate(env, {}).headers['Content-Type'] }
 
       before do
         expect(env).to receive(:key?).with('HTTP_ACCEPT').and_return(respond_to?(:accept))
