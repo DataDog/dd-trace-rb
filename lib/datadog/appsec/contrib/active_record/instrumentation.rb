@@ -12,9 +12,14 @@ module Datadog
             scope = AppSec.active_scope
             return unless scope
 
+            # libddwaf expects db system to be lowercase,
+            # in case of sqlite adapter, libddwaf expects 'sqlite' as db system
+            db_system = adapter_name.downcase
+            db_system = 'sqlite' if db_system == 'sqlite3'
+
             ephemeral_data = {
               'server.db.statement' => sql,
-              'server.db.system' => adapter_name.downcase.gsub(/\d{1}\z/, '')
+              'server.db.system' => db_system
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout

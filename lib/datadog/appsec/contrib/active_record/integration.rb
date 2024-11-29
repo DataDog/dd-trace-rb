@@ -7,7 +7,7 @@ module Datadog
   module AppSec
     module Contrib
       module ActiveRecord
-        # Description of ActiveRecord integration
+        # This class provides helper methods that are used when patching ActiveRecord
         class Integration
           include Datadog::AppSec::Contrib::Integration
 

@@ -10,8 +10,6 @@ module Datadog
           def self?.target_version: () -> Gem::Version?
 
           def self?.patch: () -> void
-
-          def self?.prepended_class_name: (Symbol adapter_name) -> class
         end
       end
     end

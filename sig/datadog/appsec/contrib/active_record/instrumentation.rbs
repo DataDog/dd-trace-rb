@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module ActiveRecord
         module Instrumentation
-          def self?.detect_sqli: (String sql, String adapter_name) -> void
+          def self?.detect_sql_injection: (String sql, String adapter_name) -> void
 
           module InternalExecQueryAdapterPatch
             def internal_exec_query: (String sql, *untyped args, **untyped rest) -> untyped

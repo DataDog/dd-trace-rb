@@ -23,27 +23,27 @@ module Datadog
 
           def patch
             ActiveSupport.on_load :active_record do
-              if defined? ::ActiveRecord::ConnectionAdapters::SQLite3Adapter
-                ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(Patcher.prepended_class_name(:sqlite3))
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+                                         Instrumentation::InternalExecQueryAdapterPatch
+                                       else
+                                         Instrumentation::ExecQueryAdapterPatch
+                                       end
+
+              if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
+                ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(instrumentation_module)
               end
 
-              if defined? ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter
-                ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(Patcher.prepended_class_name(:postgresql))
+              if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
+                ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(instrumentation_module)
               end
 
-              if defined? ::ActiveRecord::ConnectionAdapters::Mysql2Adapter
-                ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(Patcher.prepended_class_name(:mysql2))
-              end
-            end
-          end
+              if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+                unless defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
+                  instrumentation_module = Instrumentation::ExecuteAndClearAdapterPatch
+                end
 
-          def prepended_class_name(adapter_name)
-            if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
-              Instrumentation::InternalExecQueryAdapterPatch
-            elsif adapter_name == :postgresql && !defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-              Instrumentation::ExecuteAndClearAdapterPatch
-            else
-              Instrumentation::ExecQueryAdapterPatch
+                ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
+              end
             end
           end
         end
