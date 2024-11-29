@@ -313,7 +313,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   heap_recorder->stats_lifetime = (struct stats_lifetime) {0};
 }
 
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class) {
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class) {
   if (heap_recorder == NULL) {
     return;
   }
@@ -338,7 +338,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
   heap_recorder->active_recording = (recording) {
     .object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
         .weight =  weight * heap_recorder->sample_rate,
-        .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
+        .class = string_from_char_slice(alloc_class),
         .alloc_gen = rb_gc_count(),
     }),
   };
