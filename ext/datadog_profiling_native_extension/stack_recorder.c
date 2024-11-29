@@ -558,11 +558,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // Cleanup after heap recorder iteration. This needs to happen while holding on to the GVL.
   heap_recorder_finish_iteration(state->heap_recorder);
 
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
-
   // NOTE: We are focusing on the serialization time outside of the GVL in this stat here. This doesn't
   //       really cover the full serialization process but it gives a more useful number since it bypasses
   //       the noise of acquiring GVLs and dealing with interruptions which is highly specific to runtime
@@ -582,6 +577,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
   }
 
+  // Note: Don't raise exceptions until `ddog_prof_EncodedProfile_drop` gets called, as otherwise the memory will leak.
+
   state->stats_lifetime.serialization_successes++;
 
   VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
@@ -590,6 +587,13 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   ddog_Timespec ddprof_finish = serialized_profile.ok.end;
 
   ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
+
+  // It's now OK to again do things that can trigger exceptions
+
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  }
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
