@@ -87,7 +87,7 @@ module Datadog
           body << content(content_type)
 
           Response.new(
-            status: options['status_code']&.to_i || 403,
+            status: options.fetch('status_code', 403).to_i,
             headers: { 'Content-Type' => content_type },
             body: body,
           )
@@ -96,17 +96,15 @@ module Datadog
         def redirect_response(env, options)
           if options['location'] && !options['location'].empty?
             content_type = content_type(env)
-            status_code = options['status_code'].to_i
-
-            status = (300...400).cover?(status_code) ? status_code : 303
 
             headers = {
               'Content-Type' => content_type,
               'Location' => options['location']
             }
 
+            status_code = options['status_code'].to_i
             Response.new(
-              status: status,
+              status: (status_code >= 300 && status_code < 400 ? status_code : 303),
               headers: headers,
               body: [],
             )
