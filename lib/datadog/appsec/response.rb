@@ -87,7 +87,7 @@ module Datadog
           body << content(content_type)
 
           Response.new(
-            status: options.fetch('status_code', 403).to_i,
+            status: options['status_code']&.to_i || 403,
             headers: { 'Content-Type' => content_type },
             body: body,
           )
