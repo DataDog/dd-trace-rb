@@ -296,7 +296,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(heap_recorder, alloc_class);
+  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(heap_recorder, &alloc_class);
 
   heap_recorder->active_recording = object_record_new(
     FIX2LONG(ruby_obj_id),

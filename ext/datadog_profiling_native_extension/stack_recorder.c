@@ -939,7 +939,6 @@ static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_ins
   return Qtrue;
 }
 
-
 static void reset_profile_slot(profile_slot *slot, ddog_Timespec *start_time /* Can be null */) {
   ddog_prof_Profile_Result reset_result = ddog_prof_Profile_reset(&slot->profile, start_time);
   if (reset_result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
