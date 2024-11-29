@@ -128,4 +128,14 @@ module SpanHelpers
         end
     end
   end
+
+  RSpec::Matchers.define :a_span_event_with do |expected|
+    match do |actual|
+      values_match? Datadog::Tracing::SpanEvent, actual
+
+      expected.all? do |key, value|
+        values_match? value, actual.__send__(key)
+      end
+    end
+  end
 end
