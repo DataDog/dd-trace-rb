@@ -11,7 +11,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: unskip-waf-blocking-tests-for-ruby # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
   build-harness:
