@@ -220,6 +220,7 @@ jobs:
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
           - APPSEC_STANDALONE
+          - APPSEC_BLOCKING
         include:
           - library: ruby
             app: rack
@@ -266,6 +267,21 @@ jobs:
           - library: ruby
             app: rack
             scenario: APPSEC_RULES_MONITORING_WITH_ERRORS
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_PROBES_STATUS
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_METHOD_PROBES_SNAPSHOT
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_LINE_PROBES_SNAPSHOT
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_MIX_LOG_PROBE
+          - library: ruby
+            app: rails70
+            scenario: DEBUGGER_PII_REDACTION
           - library: ruby
             app: rack
             scenario: SAMPLING
@@ -440,3 +456,29 @@ jobs:
           package-name: 'system-tests/${{ matrix.image }}'
           package-type: 'container'
         continue-on-error: true
+
+  build-artifacts:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - run: mkdir binaries/
+      - uses: actions/checkout@v4
+        with:
+          path: binaries/dd-trace-rb/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: system_tests_binaries
+          path: binaries/
+
+  parametric:
+    needs:
+      - build-artifacts
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    secrets: inherit
+    with:
+      library: ruby
+      binaries_artifact: system_tests_binaries
+      _experimental_job_count: 8
+      _experimental_job_matrix: '[1,2,3,4,5,6,7,8]'

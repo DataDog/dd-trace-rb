@@ -167,7 +167,7 @@ RSpec.describe Datadog::AppSec::Remote do
           }
 
           expect(Datadog::AppSec).to receive(:reconfigure).with(
-            ruleset: expected_ruleset, actions: [], telemetry: telemetry
+            ruleset: expected_ruleset, telemetry: telemetry
           ).and_return(nil)
           changes = transaction
           receiver.call(repository, changes)
@@ -288,19 +288,6 @@ RSpec.describe Datadog::AppSec::Remote do
             ]
           end
 
-          let(:actions) do
-            [
-              {
-                'id' => 'block',
-                'type' => 'block_request',
-                'parameters' => {
-                  'status_code' => 418,
-                  'type' => 'auto'
-                }
-              }
-            ]
-          end
-
           context 'ASM' do
             let(:path) { 'datadog/603646/ASM/whatevername/config' }
 
@@ -364,28 +351,6 @@ RSpec.describe Datadog::AppSec::Remote do
                   custom_rules: [custom_rules],
                   telemetry: telemetry
                 )
-
-                changes = transaction
-                receiver.call(repository, changes)
-              end
-            end
-
-            context 'actions' do
-              let(:data) do
-                {
-                  'actions' => actions
-                }
-              end
-
-              it 'pass the actions to reconfigure' do
-                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset, telemetry: telemetry)
-
-                expect(Datadog::AppSec).to receive(:reconfigure).with(
-                  ruleset: ruleset,
-                  actions: actions,
-                  telemetry: telemetry
-                )
-                  .and_return(nil)
 
                 changes = transaction
                 receiver.call(repository, changes)
@@ -494,7 +459,7 @@ RSpec.describe Datadog::AppSec::Remote do
                 ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset, telemetry: telemetry)
 
                 changes = transaction
-                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, actions: [], telemetry: telemetry)
+                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, telemetry: telemetry)
                   .and_return(nil)
                 receiver.call(repository, changes)
               end

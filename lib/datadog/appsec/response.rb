@@ -31,19 +31,16 @@ module Datadog
         def negotiate(env, actions)
           # @type var configured_response: Response?
           configured_response = nil
-          actions.each do |action|
+          actions.each do |type, parameters|
             # Need to use next to make steep happy :(
             # I rather use break to stop the execution
             next if configured_response
 
-            action_configuration = AppSec::Processor::Actions.fetch_configuration(action)
-            next unless action_configuration
-
-            configured_response = case action_configuration['type']
+            configured_response = case type
                                   when 'block_request'
-                                    block_response(env, action_configuration['parameters'])
+                                    block_response(env, parameters)
                                   when 'redirect_request'
-                                    redirect_response(env, action_configuration['parameters'])
+                                    redirect_response(env, parameters)
                                   end
           end
 
@@ -90,7 +87,7 @@ module Datadog
           body << content(content_type)
 
           Response.new(
-            status: options['status_code'] || 403,
+            status: options['status_code']&.to_i || 403,
             headers: { 'Content-Type' => content_type },
             body: body,
           )
@@ -100,15 +97,14 @@ module Datadog
           if options['location'] && !options['location'].empty?
             content_type = content_type(env)
 
-            status = options['status_code'] >= 300 && options['status_code'] < 400 ? options['status_code'] : 303
-
             headers = {
               'Content-Type' => content_type,
               'Location' => options['location']
             }
 
+            status_code = options['status_code'].to_i
             Response.new(
-              status: status,
+              status: (status_code >= 300 && status_code < 400 ? status_code : 303),
               headers: headers,
               body: [],
             )

@@ -67,7 +67,6 @@ module Datadog
             data = []
             overrides = []
             exclusions = []
-            actions = []
 
             repository.contents.each do |content|
               parsed_content = parse_content(content)
@@ -81,7 +80,6 @@ module Datadog
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
-                actions.concat(parsed_content['actions']) if parsed_content['actions']
               end
             end
 
@@ -105,7 +103,7 @@ module Datadog
               telemetry: telemetry
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions, telemetry: telemetry)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
           end
 
           [receiver]

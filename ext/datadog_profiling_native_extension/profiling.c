@@ -37,6 +37,7 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE with_gvl);
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
+static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -72,6 +73,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_trigger_holding_the_gvl_signal_handler_on", _native_trigger_holding_the_gvl_signal_handler_on, 1);
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
+  rb_define_singleton_method(testing_module, "_native_safe_object_info", _native_safe_object_info, 1);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
@@ -264,4 +266,8 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
   #else
     return Qfalse;
   #endif
+}
+
+static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  return rb_str_new_cstr(safe_object_info(obj));
 }
