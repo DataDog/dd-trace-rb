@@ -11,7 +11,7 @@ module Datadog
         # Patch to add tracing to Karafka::Messages::Messages
         module MessagesPatch
           def configuration
-            Datadog.configuration.tracing[:sidekiq]
+            Datadog.configuration.tracing[:karafka]
           end
 
           def propagation
