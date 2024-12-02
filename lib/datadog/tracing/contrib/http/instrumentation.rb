@@ -37,7 +37,13 @@ module Datadog
 
                 trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
 
-                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config, trace)
+                app_config = Datadog.configuration.tracing[:http]
+                if Tracing.enabled? &&
+                    !Tracing::Distributed::Helpers.should_skip_distributed_tracing?(
+                      app_config,
+                      client_config: client_config,
+                      trace: trace
+                    )
                   Contrib::HTTP.inject(trace, req)
                 end
 
