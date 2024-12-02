@@ -207,28 +207,16 @@ module Datadog
 
         return false unless heap_profiling_enabled
 
-        if RUBY_VERSION.start_with?("2.") && RUBY_VERSION < "2.7"
+        if RUBY_VERSION < "3.1"
           Datadog.logger.warn(
-            "Heap profiling currently relies on features introduced in Ruby 2.7 and will be forcibly disabled. " \
-            "Please upgrade to Ruby >= 2.7 in order to use this feature."
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to VM bugs/limitations. " \
+            "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
           )
           return false
         end
 
-        if RUBY_VERSION < "3.1"
-          Datadog.logger.debug(
-            "Current Ruby version (#{RUBY_VERSION}) supports forced object recycling which has a bug that the " \
-            "heap profiler is forced to work around to remain accurate. This workaround requires force-setting " \
-            "the SEEN_OBJ_ID flag on objects that should have it but don't. Full details can be found in " \
-            "https://github.com/DataDog/dd-trace-rb/pull/3360. This workaround should be safe but can be " \
-            "bypassed by disabling the heap profiler or upgrading to Ruby >= 3.1 where forced object recycling " \
-            "was completely removed (https://bugs.ruby-lang.org/issues/18290)."
-          )
-        end
-
         unless allocation_profiling_enabled
-          raise ArgumentError,
-            "Heap profiling requires allocation profiling to be enabled"
+          raise ArgumentError, "Heap profiling requires allocation profiling to be enabled"
         end
 
         Datadog.logger.warn(
