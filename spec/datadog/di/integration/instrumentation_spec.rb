@@ -21,6 +21,19 @@ end
 RSpec.describe 'Instrumentation integration' do
   di_test
 
+  before do
+    # We do not have any configurations in CI that have an agent
+    # implementing debugger endpoints that are used by DI transport
+    # (besides system tests which use an actual agent).
+    # Therefore, if we attempt to actually put payloads on the network,
+    # the requests will fail.
+    # Since this test enables propagation of all exceptions through DI
+    # for early detection of problems, these failing requests would
+    # manifest in the test suite rather than being ignored as they would be
+    # in customer applications.
+    allow_any_instance_of(Datadog::DI::Transport).to receive(:send_request)
+  end
+
   after do
     component.shutdown!
   end
