@@ -52,6 +52,8 @@ RSpec.describe Datadog::Profiling::Component do
         skip_if_profiling_not_supported(self)
 
         settings.profiling.enabled = true
+        # Disabled to avoid warnings on Rubies where it's not supported; there's separate specs that test it when enabled
+        settings.profiling.advanced.gc_enabled = false
         allow(profiler_setup_task).to receive(:run)
       end
 
