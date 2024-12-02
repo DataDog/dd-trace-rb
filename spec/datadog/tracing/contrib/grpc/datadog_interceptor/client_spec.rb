@@ -17,12 +17,19 @@ RSpec.describe 'tracing on the client connection' do
   let(:peer) { "#{host}:#{port}" }
   let(:host) { 'host.name' }
   let(:port) { 0 }
-  let(:non_billing_mode) { false }
+  let(:tracing_apm_enabled) { true }
+  let(:force_execute_distributed_tracing) { false }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :grpc, configuration_options
-      c.tracing.apm.enabled = !non_billing_mode
+      c.tracing.apm.enabled = tracing_apm_enabled
+    end
+
+    if force_execute_distributed_tracing
+      # This cannot happen in actual apps but we do this to
+      # verify that sampling priority is set to 0 through distributed tracing without mocking an agent
+      allow(Datadog::Tracing::Distributed::Helpers).to receive(:should_skip_distributed_tracing?).and_return(false)
     end
   end
 
@@ -121,7 +128,9 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with non-billing mode' do
-        let(:non_billing_mode) { true }
+        # Not sure why, putting a before block here has no effect
+        let(:tracing_apm_enabled) { false }
+        let(:force_execute_distributed_tracing) { true }
 
         it {
           expect(keywords[:metadata].keys).to include('x-datadog-sampling-priority')
