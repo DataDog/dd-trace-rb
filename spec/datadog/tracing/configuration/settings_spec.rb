@@ -373,13 +373,13 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is set to true' do
             let(:appsec_standalone_enabled) { 'true' }
 
-            it { is_expected.to be true }
+            it { is_expected.to be false }
           end
 
           context 'is set to false' do
             let(:appsec_standalone_enabled) { 'false' }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
         end
       end
