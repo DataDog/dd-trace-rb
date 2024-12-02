@@ -17,10 +17,12 @@ RSpec.describe 'tracing on the client connection' do
   let(:peer) { "#{host}:#{port}" }
   let(:host) { 'host.name' }
   let(:port) { 0 }
+  let(:non_billing_mode) { false }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :grpc, configuration_options
+      c.tracing.apm.enabled = !non_billing_mode
     end
   end
 
@@ -116,6 +118,15 @@ RSpec.describe 'tracing on the client connection' do
 
       it 'injects distribution data in gRPC metadata' do
         expect(keywords[:metadata].keys).to include('x-datadog-trace-id', 'x-datadog-parent-id', 'x-datadog-tags')
+      end
+
+      context 'with non-billing mode' do
+        let(:non_billing_mode) { true }
+
+        it {
+          expect(keywords[:metadata].keys).to include('x-datadog-sampling-priority')
+          expect(keywords[:metadata]['x-datadog-sampling-priority']).to eq('0')
+        }
       end
     end
   end

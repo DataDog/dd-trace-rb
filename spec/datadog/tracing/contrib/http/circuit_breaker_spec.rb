@@ -93,19 +93,21 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
   end
 
   describe '#should_skip_distributed_tracing?' do
-    subject(:should_skip_distributed_tracing?) { circuit_breaker.should_skip_distributed_tracing?(client_config) }
+    subject(:should_skip_distributed_tracing?) do
+      circuit_breaker.should_skip_distributed_tracing?(client_config, active_trace)
+    end
 
     let(:client_config) { nil }
     let(:distributed_tracing) { true }
-    let(:tracing_apm_enabled) { false }
+    let(:tracing_apm_enabled) { true }
     let(:active_trace) { nil }
-    let(:distributed_appsec_event) { nil }
+    let(:non_billing_reject) { true }
 
     before do
       allow(Datadog.configuration.tracing[:http]).to receive(:[]).with(:distributed_tracing).and_return(distributed_tracing)
       allow(Datadog.configuration.tracing.apm).to receive(:enabled).and_return(tracing_apm_enabled)
       allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
-      allow(active_trace).to receive(:get_tag).with('_dd.p.appsec').and_return(distributed_appsec_event) if active_trace
+      allow(active_trace).to receive(:non_billing_reject?).and_return(non_billing_reject) if active_trace
     end
 
     context 'when distributed tracing is enabled' do
@@ -118,7 +120,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       it { is_expected.to be true }
     end
 
-    context 'when appsec standalone is enabled' do
+    context 'when non billing mode is enabled' do
       let(:tracing_apm_enabled) { false }
 
       context 'when there is no active trace' do
@@ -128,15 +130,15 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       context 'when there is an active trace' do
         let(:active_trace) { instance_double(Datadog::Tracing::TraceOperation) }
 
-        context 'when the active trace has no distributed appsec event' do
+        context 'when the active trace must be rejected' do
           it { is_expected.to be true }
         end
 
-        context 'when the active trace has a distributed appsec event' do
-          # This should act like standalone appsec is disabled, as it does not return in the
+        context 'when the active trace must not be rejected' do
+          # This should act like non-billing mode is disabled, as it does not return in the
           # `if Datadog.configuration.tracing.apm.enabled` block
           # so we're only testing the "no client config, distributed tracing enabled" case here
-          let(:distributed_appsec_event) { '1' }
+          let(:non_billing_reject) { false }
 
           it { is_expected.to be false }
         end

@@ -328,6 +328,22 @@ RSpec.describe Datadog::Tracing::Contrib::RestClient::RequestPatch do
             .to have_been_made
         end
       end
+
+      context 'with non-billing mode' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.apm.enabled = false
+          end
+          # This cannot happen in actual apps but we do this to
+          # verify that sampling priority is set to 0 through distributed tracing without mocking an agent
+          allow(Datadog::Tracing::Distributed::Helpers).to receive(:should_skip_distributed_tracing?).and_return(false)
+        end
+
+        it 'propagates sampling priority with value 0' do
+          request
+          expect(a_request(:get, url).with(headers: { 'X-Datadog-Sampling-Priority' => '0' })).to have_been_made
+        end
+      end
     end
 
     context 'distributed tracing disabled' do
