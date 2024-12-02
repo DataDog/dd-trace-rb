@@ -115,6 +115,17 @@ RSpec.describe Datadog::Tracing::Contrib::Ethon::EasyPatch do
     it_behaves_like 'environment service name', 'DD_TRACE_ETHON_SERVICE_NAME' do
       let(:span) { span_op }
     end
+
+    context 'with non-billing mode' do
+      before do
+        allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:non_billing_reject?).and_return(true)
+      end
+
+      it do
+        subject
+        expect(Datadog::Tracing.active_trace.sampling_priority).to eq(0)
+      end
+    end
   end
 
   describe '#complete' do

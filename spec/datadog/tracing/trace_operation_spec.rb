@@ -2579,6 +2579,35 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
+  describe '#non_billing_reject?' do
+    subject(:non_billing_reject?) do
+      trace_op.non_billing_reject?
+    end
+
+    let(:trace_op) { described_class.new(**options) }
+    let(:options) { { non_billing_enabled: !tracing_apm_enabled } }
+    let(:tracing_apm_enabled) { true }
+    let(:distributed_appsec_event) { '0' }
+
+    before do
+      trace_op.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, distributed_appsec_event)
+    end
+
+    it { is_expected.to be false }
+
+    context 'when non-billing is enabled' do
+      let(:tracing_apm_enabled) { false }
+
+      it { is_expected.to be true }
+
+      context 'with a distributed AppSec event' do
+        let(:distributed_appsec_event) { '1' }
+
+        it { is_expected.to be false }
+      end
+    end
+  end
+
   describe 'integration tests' do
     context 'service_entry attributes' do
       context 'when service not given' do

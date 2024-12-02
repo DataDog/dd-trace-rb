@@ -63,6 +63,25 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(job['x-datadog-tags']).to eq("_dd.p.dm=-0,_dd.p.tid=#{high_order_hex_trace_id(span.trace_id)}")
         expect(job).not_to include 'x-datadog-origin'
       end
+
+      context 'with non-billing mode' do
+        before do
+          Datadog.configure do |c|
+            c.tracing.apm.enabled = false
+          end
+          # This cannot happen in actual apps but we do this to
+          # verify that sampling priority is set to 0 through distributed tracing without mocking an agent
+          allow(Datadog::Tracing::Distributed::Helpers).to receive(:should_skip_distributed_tracing?).and_return(false)
+        end
+
+        it 'propagates sampling priority with value 0' do
+          EmptyWorker.perform_async
+
+          job = EmptyWorker.jobs.first
+
+          expect(job['x-datadog-sampling-priority']).to eq('0')
+        end
+      end
     end
 
     context 'when receiving' do

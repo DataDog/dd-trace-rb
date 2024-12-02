@@ -364,6 +364,31 @@ RSpec.describe Datadog::Tracing::Contrib::Excon::Middleware do
     end
   end
 
+  context 'with non-billing mode' do
+    subject!(:response) do
+      expect_any_instance_of(described_class).to receive(:request_call)
+        .and_wrap_original do |m, *args|
+          allow_any_instance_of(Datadog::Tracing::TraceOperation).to receive(:non_billing_reject?).and_return(true)
+          m.call(*args).tap do |datum|
+            # Assert request headers
+            span = datum[:datadog_span]
+            headers = datum[:headers]
+            expect(headers).to include(
+              'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
+              'x-datadog-parent-id' => span.id.to_s,
+              'x-datadog-sampling-priority' => '0'
+            )
+          end
+        end
+
+      connection.get(path: '/success')
+    end
+
+    it do
+      subject
+    end
+  end
+
   context 'global service name' do
     subject(:get) { connection.get(path: '/success') }
 

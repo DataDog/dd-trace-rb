@@ -28,10 +28,12 @@ RSpec.describe 'Faraday middleware' do
   let(:middleware_options) { {} }
   let(:configuration_options) { {} }
   let(:response_headers) { {} }
+  let(:non_billing_mode) { false }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :faraday, configuration_options
+      c.tracing.apm.enabled = !non_billing_mode
     end
   end
 
@@ -407,6 +409,21 @@ RSpec.describe 'Faraday middleware' do
     it do
       expect(headers).to_not include('x-datadog-trace-id')
       expect(headers).to_not include('x-datadog-parent-id')
+    end
+  end
+
+  context 'when non-billing mode is enabled' do
+    subject(:response) { client.get('/success') }
+
+    let(:non_billing_mode) { true }
+    let(:headers) { response.env.request_headers }
+
+    it do
+      expect(headers).to include(
+        'x-datadog-trace-id' => low_order_trace_id(span.trace_id).to_s,
+        'x-datadog-parent-id' => span.id.to_s,
+        'x-datadog-sampling-priority' => '0'
+      )
     end
   end
 
