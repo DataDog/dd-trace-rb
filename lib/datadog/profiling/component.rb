@@ -209,7 +209,7 @@ module Datadog
 
         if RUBY_VERSION < "3.1"
           Datadog.logger.warn(
-            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to VM bugs/limitations. " \
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to VM limitations. " \
             "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
           )
           return false
