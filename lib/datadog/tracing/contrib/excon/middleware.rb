@@ -31,7 +31,10 @@ module Datadog
                 datum[:datadog_span] = span
                 annotate!(span, datum)
                 trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
-                propagate!(trace, span, datum) if distributed_tracing?
+                if Tracing.enabled? &&
+                    !Tracing::Distributed::Helpers.should_skip_distributed_tracing?(@options, trace: trace)
+                  propagate!(trace, span, datum)
+                end
 
                 span
               end

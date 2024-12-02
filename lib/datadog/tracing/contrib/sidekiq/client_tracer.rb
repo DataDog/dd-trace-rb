@@ -26,7 +26,10 @@ module Datadog
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
               trace_op.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace_op.non_billing_reject?
 
-              Sidekiq.inject(trace_op, job) if configuration[:distributed_tracing]
+              if Tracing.enabled? &&
+                  !Tracing::Distributed::Helpers.should_skip_distributed_tracing?(configuration, trace: trace_op)
+                Sidekiq.inject(trace_op, job)
+              end
 
               span.resource = resource
 

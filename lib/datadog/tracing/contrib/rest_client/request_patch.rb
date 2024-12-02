@@ -27,7 +27,9 @@ module Datadog
               datadog_trace_request(uri) do |_span, trace|
                 trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
 
-                Contrib::HTTP.inject(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+                unless Tracing::Distributed::Helpers.should_skip_distributed_tracing?(datadog_configuration, trace: trace)
+                  Contrib::HTTP.inject(trace, processed_headers)
+                end
 
                 super(&block)
               end

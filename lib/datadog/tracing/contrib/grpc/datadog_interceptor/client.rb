@@ -83,7 +83,12 @@ module Datadog
 
               trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT if trace.non_billing_reject?
 
-              GRPC.inject(trace, metadata) if distributed_tracing?
+              unless Tracing::Distributed::Helpers.should_skip_distributed_tracing?(
+                datadog_configuration,
+                client_config: Datadog.configuration_for(self)
+              )
+                GRPC.inject(trace, metadata)
+              end
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")

@@ -114,7 +114,7 @@ module Datadog
                 datadog_trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
               end
 
-              if datadog_configuration[:distributed_tracing]
+              unless Tracing::Distributed::Helpers.should_skip_distributed_tracing?(datadog_configuration, trace: trace)
                 @datadog_original_headers ||= {}
                 Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)
                 self.headers = @datadog_original_headers
