@@ -43,6 +43,7 @@ GEM
     bigdecimal (3.1.8)
     binding_of_caller (0.8.0)
       debug_inspector (>= 0.0.1)
+    byebug (11.1.3)
     climate_control (0.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
@@ -144,6 +145,7 @@ DEPENDENCIES
   appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!

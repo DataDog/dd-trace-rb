@@ -1575,6 +1575,7 @@ DEPENDENCIES
   aws-sdk
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
