@@ -67,8 +67,7 @@ RSpec.describe Datadog::Core::Environment::Execution do
       end
 
       context 'when in a Pry session' do
-        # Temporarily skipped for release 2.7.1
-        xit 'returns true' do
+        it 'returns true' do
           Tempfile.create('test') do |f|
             f.write(repl_script)
             f.close
