@@ -2636,9 +2636,9 @@ or `c.agent.port`.
 
 #### Transporting in Test Mode
 
-The test mode can be used for testing distributed tracing behavior. Enabling this setting will mean every
-span will be sent (no sampling is applied) and the transport will send data synchronously.
-It is configured by setting `c.tracing.test_mode.enabled` to true.
+Use the test mode for testing distributed tracing behavior. Enabling this setting causes every
+span to be sent (no sampling is applied) and causes the transport to send data synchronously.
+To configure test mode, set `c.tracing.test_mode.enabled` to `true`.
 
 If you're looking to disable tracing while your test suite is running, consider using the `tracing.enabled` setting
 to disable sending of traces.
