@@ -161,7 +161,7 @@ module Datadog
                 # Silence all exceptions?
                 # TODO should we propagate here and rescue upstream?
                 logger.warn("Error removing probe #{probe.id}: #{exc.class}: #{exc}")
-                telemetry&.report(exc, description: "Error removing probe #{probe.id}")
+                telemetry&.report(exc, description: "Error removing probe")
               end
             end
           end
