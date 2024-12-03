@@ -23,8 +23,6 @@ module Datadog
 
             def logger: () -> untyped
 
-            def should_skip_distributed_tracing?: (untyped client_config, Datadog::Tracing::TraceOperation trace) -> bool
-
             def set_analytics_sample_rate: (untyped span, untyped request_options) -> (nil | untyped)
           end
         end

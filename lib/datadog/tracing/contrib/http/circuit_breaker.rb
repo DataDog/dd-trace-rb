@@ -27,17 +27,6 @@ module Datadog
             !!(request[Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION] ||
               request[Datadog::Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
           end
-
-          def should_skip_distributed_tracing?(client_config, trace)
-            unless Datadog.configuration.tracing.apm.enabled
-              return true unless trace
-              return true if trace.non_billing_reject?
-            end
-
-            return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-            !Datadog.configuration.tracing[:http][:distributed_tracing]
-          end
         end
       end
     end
