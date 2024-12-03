@@ -15,6 +15,7 @@ gem 'memory_profiler', '~> 0.9'
 
 gem 'os', '~> 1.1'
 gem 'pimpmychangelog', '>= 0.1.2'
+gem 'byebug'
 gem 'pry'
 if RUBY_PLATFORM != 'java'
   # There's a few incompatibilities between pry/pry-byebug on older Rubies
