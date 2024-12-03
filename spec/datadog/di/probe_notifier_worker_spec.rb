@@ -12,7 +12,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   let(:transport) do
-    double('transport')
+    instance_double(Datadog::DI::Transport)
   end
 
   let(:logger) do

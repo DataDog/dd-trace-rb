@@ -43,7 +43,7 @@ RSpec.describe 'Instrumentation integration' do
   end
 
   let(:agent_settings) do
-    double('agent settings')
+    instance_double_agent_settings
   end
 
   let(:component) do
