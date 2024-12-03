@@ -128,6 +128,9 @@ RSpec.describe 'tracing on the client connection' do
       end
 
       context 'with non-billing mode' do
+        # We cannot get the trace as it is sent and flushed.
+        # But we can verify non-billing mode through distributed tracing
+
         # Not sure why, putting a before block here has no effect
         let(:tracing_apm_enabled) { false }
         let(:force_execute_distributed_tracing) { true }
