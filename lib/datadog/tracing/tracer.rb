@@ -362,6 +362,11 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
+        events.propagate.subscribe do |event_span, event_trace_op|
+          sample_span(event_trace_op, event_span)
+          sample_trace(event_trace_op) unless event_trace_op.sampling_priority
+        end
+
         events.span_finished.subscribe do |event_span, event_trace_op|
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
