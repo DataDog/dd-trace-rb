@@ -145,8 +145,18 @@ namespace :github do
       }
 
       base = {
-        "name" => 'Test',
-        "on" => ['push'],
+        "name" => 'Unit Tests',
+        "on" => {
+          "push" => {
+            "branches" => [
+              "master",
+              "poc/**",
+            ]
+          },
+          "schedule" => [
+            { "cron" => '0 7 * * *' }
+          ]
+        },
         "concurrency" => {
           "group" => '${{ github.workflow }}-${{ github.ref }}',
           "cancel-in-progress" => '${{ github.ref != \'refs/heads/master\' }}'
