@@ -108,7 +108,7 @@ OR
 
 #### Other Ruby applications
 
-If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
+If your application does not use the above mentioned gems (Rails or Hanami), you can set it up as follows:
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -2021,7 +2021,6 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
      c.env = ENV['RACK_ENV']
 
      c.tracing.report_hostname = true
-     c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
    end
    ```
 
@@ -2067,7 +2066,7 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables "test mode", used for testing distributed tracing behavior. Note that traces will still be sent; consider using `tracing.enabled` instead to disable sending of traces entirely. |
 | `tracing.test_mode.trace_flush`                        |                                                         | `Datadog::Tracing::TraceFlush`        | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 #### Custom logging
@@ -2637,15 +2636,12 @@ or `c.agent.port`.
 
 #### Transporting in Test Mode
 
-When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
-test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
-This mode only works for tracing.
+The test mode can be used for testing distributed tracing behavior. Enabling this setting will mean every
+span will be sent (no sampling is applied) and the transport will send data synchronously.
+It is configured by setting `c.tracing.test_mode.enabled` to true.
 
-```ruby
-Datadog.configure do |c|
-  c.tracing.test_mode.enabled = true
-end
-```
+If you're looking to disable tracing while your test suite is running, consider using the `tracing.enabled` setting
+to disable sending of traces.
 
 ### Setting the time provider
 
