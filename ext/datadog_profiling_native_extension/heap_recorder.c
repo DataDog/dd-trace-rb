@@ -656,6 +656,10 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
   }
 
+  // Ensure that ref is kept on the stack so the Ruby garbage collector does not try to clean up the object before this
+  // point.
+  RB_GC_GUARD(ref);
+
   recorder->stats_last_update.objects_alive++;
   if (record->object_data.is_frozen) {
     recorder->stats_last_update.objects_frozen++;

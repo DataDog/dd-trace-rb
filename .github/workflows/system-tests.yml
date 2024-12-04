@@ -25,7 +25,7 @@ jobs:
             internal: system_tests/agent:latest
           - name: proxy
             internal: datadog/system-tests:proxy-v1
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       packages: write
     name: Build (${{ matrix.image.name }})
@@ -112,7 +112,7 @@ jobs:
           - rails72
           - rails80
           - graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build (${{ matrix.app }})
     permissions:
       packages: write
@@ -303,7 +303,7 @@ jobs:
           - library: ruby
             app: graphql23
             scenario: GRAPHQL_APPSEC
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - build-harness
       - build-apps
@@ -385,7 +385,7 @@ jobs:
           - rails72
           - rails80
           - graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - build-harness
       - build-apps
@@ -441,7 +441,7 @@ jobs:
           - weblog-rails72
           - weblog-rails80
           - weblog-graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - test
     if: ${{ always() }}
@@ -458,7 +458,7 @@ jobs:
         continue-on-error: true
 
   build-artifacts:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       packages: write
     steps:
