@@ -162,6 +162,7 @@ ddprof-benchmark:
 benchmarks:
   stage: benchmarks
   when: always
+  needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   interruptible: true

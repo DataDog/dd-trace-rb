@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [2.7.1] - 2024-11-28
+
+### Fixed
+
+* Tracing: Fix missing version tag ([#4075][])
+* Profiling: Fix profiling not loading in certain situations on Ruby 2.5 and 3.3 ([#4161][])
+
 ## [2.7.0] - 2024-11-13
 
 ### Added
@@ -4473,10 +4480,12 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4027]: https://github.com/DataDog/dd-trace-rb/issues/4027
 [#4033]: https://github.com/DataDog/dd-trace-rb/issues/4033
 [#4065]: https://github.com/DataDog/dd-trace-rb/issues/4065
+[#4075]: https://github.com/DataDog/dd-trace-rb/issues/4075
 [#4078]: https://github.com/DataDog/dd-trace-rb/issues/4078
 [#4082]: https://github.com/DataDog/dd-trace-rb/issues/4082
 [#4083]: https://github.com/DataDog/dd-trace-rb/issues/4083
 [#4085]: https://github.com/DataDog/dd-trace-rb/issues/4085
+[#4161]: https://github.com/DataDog/dd-trace-rb/issues/4161
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

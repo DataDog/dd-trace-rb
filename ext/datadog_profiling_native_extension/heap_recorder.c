@@ -7,10 +7,6 @@
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
 
-#if (defined(HAVE_WORKING_RB_GC_FORCE_RECYCLE) && ! defined(NO_SEEN_OBJ_ID_FLAG))
-  #define CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
-#endif
-
 // Minimum age (in GC generations) of heap objects we want to include in heap
 // recorder iterations. Object with age 0 represent objects that have yet to undergo
 // a GC and, thus, may just be noise/trash at instant of iteration and are usually not
@@ -123,9 +119,6 @@ typedef struct {
   // Pointer to the (potentially partial) object_record containing metadata about an ongoing recording.
   // When NULL, this symbolizes an unstarted/invalid recording.
   object_record *object_record;
-  // A flag to track whether we had to force set the RUBY_FL_SEEN_OBJ_ID flag on this object
-  // as part of our workaround around rb_gc_force_recycle issues.
-  bool did_recycle_workaround;
 } recording;
 
 struct heap_recorder {
@@ -342,46 +335,12 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  bool did_recycle_workaround = false;
-
-  #ifdef CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
-    // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
-    // its usage may lead to an object being re-used outside of the typical GC cycle.
-    //
-    // This re-use is in theory invisible to us unless we're lucky enough to sample both
-    // the original object and the replacement that uses the recycled slot.
-    //
-    // In practice, we've observed (https://github.com/DataDog/dd-trace-rb/pull/3366)
-    // that non-noop implementations of rb_gc_force_recycle have an implementation bug
-    // which results in the object that re-used the recycled slot inheriting the same
-    // object id without setting the FL_SEEN_OBJ_ID flag. We rely on this knowledge to
-    // "observe" implicit frees when an object we are tracking is force-recycled.
-    //
-    // However, it may happen that we start tracking a new object and that object was
-    // allocated on a recycled slot. Due to the bug, this object would be missing the
-    // FL_SEEN_OBJ_ID flag even though it was not recycled itself. If we left it be,
-    // when we're doing our liveness check, the absence of the flag would trigger our
-    // implicit free workaround and the object would be inferred as recycled even though
-    // it might still be alive.
-    //
-    // Thus, if we detect that this new allocation is already missing the flag at the start
-    // of the heap allocation recording, we force-set it. This should be safe since we
-    // just called rb_obj_id on it above and the expectation is that any flaggable object
-    // that goes through it ends up with the flag set (as evidenced by the GC_ASSERT
-    // lines in https://github.com/ruby/ruby/blob/4a8d7246d15b2054eacb20f8ab3d29d39a3e7856/gc.c#L4050C14-L4050C14).
-    if (RB_FL_ABLE(new_obj) && !RB_FL_TEST(new_obj, RUBY_FL_SEEN_OBJ_ID)) {
-      RB_FL_SET(new_obj, RUBY_FL_SEEN_OBJ_ID);
-      did_recycle_workaround = true;
-    }
-  #endif
-
   heap_recorder->active_recording = (recording) {
     .object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
         .weight =  weight * heap_recorder->sample_rate,
         .class = alloc_class != NULL ? string_from_char_slice(*alloc_class) : NULL,
         .alloc_gen = rb_gc_count(),
-        }),
-    .did_recycle_workaround = did_recycle_workaround,
+    }),
   };
 }
 
@@ -685,41 +644,6 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 
   // If we got this far, then we found a valid live object for the tracked id.
 
-  #ifdef CAN_APPLY_GC_FORCE_RECYCLE_BUG_WORKAROUND
-    // If we are in a ruby version that has a working rb_gc_force_recycle implementation,
-    // its usage may lead to an object being re-used outside of the typical GC cycle.
-    //
-    // This re-use is in theory invisible to us and would mean that the ref from which we
-    // collected the object_record metadata may not be the same as the current ref and
-    // thus any further reporting would be innacurately attributed to stale metadata.
-    //
-    // In practice, there is a way for us to notice that this happened because of a bug
-    // in the implementation of rb_gc_force_recycle. Our heap profiler relies on object
-    // ids and id2ref to detect whether objects are still alive. Turns out that when an
-    // object with an id is re-used via rb_gc_force_recycle, it will "inherit" the ID
-    // of the old object but it will NOT have the FL_SEEN_OBJ_ID as per the experiment
-    // in https://github.com/DataDog/dd-trace-rb/pull/3360#discussion_r1442823517
-    //
-    // Thus, if we detect that the ref we just resolved above is missing this flag, we can
-    // safely say re-use happened and thus treat it as an implicit free of the object
-    // we were tracking (the original one which got recycled).
-    if (RB_FL_ABLE(ref) && !RB_FL_TEST(ref, RUBY_FL_SEEN_OBJ_ID)) {
-
-      // NOTE: We don't really need to set this flag for heap recorder to work correctly
-      // but doing so partially mitigates a bug in runtimes with working rb_gc_force_recycle
-      // which leads to broken invariants and leaking of entries in obj_to_id and id_to_obj
-      // tables in objspace. We already do the same thing when we sample a recycled object,
-      // here we apply it as well to objects that replace recycled objects that were being
-      // tracked. More details in https://github.com/DataDog/dd-trace-rb/pull/3366
-      RB_FL_SET(ref, RUBY_FL_SEEN_OBJ_ID);
-
-      on_committed_object_record_cleanup(recorder, record);
-      recorder->stats_last_update.objects_dead++;
-      return ST_DELETE;
-    }
-
-  #endif
-
   if (
     recorder->size_enabled &&
     recorder->update_include_old && // We only update sizes when doing a full update
@@ -731,6 +655,10 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
     // Check if it's now frozen so we skip a size update next time
     record->object_data.is_frozen = RB_OBJ_FROZEN(ref);
   }
+
+  // Ensure that ref is kept on the stack so the Ruby garbage collector does not try to clean up the object before this
+  // point.
+  RB_GC_GUARD(ref);
 
   recorder->stats_last_update.objects_alive++;
   if (record->object_data.is_frozen) {
@@ -803,18 +731,12 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   object_record *new_object_record = recording.object_record;
   if (existing) {
     object_record *existing_record = (object_record*) (*value);
-    if (recording.did_recycle_workaround) {
-      // In this case, it's possible for an object id to be re-used and we were lucky enough to have
-      // sampled both the original object and the replacement so cleanup the old one and replace it with
-      // the new object_record (i.e. treat this as a combined free+allocation).
-      on_committed_object_record_cleanup(update_data->heap_recorder, existing_record);
-    } else {
-      // This is not supposed to happen, raising...
-      VALUE existing_inspect = object_record_inspect(existing_record);
-      VALUE new_inspect = object_record_inspect(new_object_record);
-      rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
-        "the same id. previous=%"PRIsVALUE" new=%"PRIsVALUE, existing_inspect, new_inspect);
-    }
+
+    // This is not supposed to happen, raising...
+    VALUE existing_inspect = object_record_inspect(existing_record);
+    VALUE new_inspect = object_record_inspect(new_object_record);
+    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+      "the same id. previous=%"PRIsVALUE" new=%"PRIsVALUE, existing_inspect, new_inspect);
   }
   // Always carry on with the update, we want the new record to be there at the end
   (*value) = (st_data_t) new_object_record;

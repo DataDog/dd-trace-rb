@@ -25,7 +25,7 @@ jobs:
             internal: system_tests/agent:latest
           - name: proxy
             internal: datadog/system-tests:proxy-v1
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     permissions:
       packages: write
     name: Build (${{ matrix.image.name }})
@@ -112,7 +112,7 @@ jobs:
           - rails72
           - rails80
           - graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build (${{ matrix.app }})
     permissions:
       packages: write
@@ -220,6 +220,7 @@ jobs:
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
           - APPSEC_STANDALONE
+          - APPSEC_BLOCKING
         include:
           - library: ruby
             app: rack
@@ -302,7 +303,7 @@ jobs:
           - library: ruby
             app: graphql23
             scenario: GRAPHQL_APPSEC
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - build-harness
       - build-apps
@@ -384,7 +385,7 @@ jobs:
           - rails72
           - rails80
           - graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - build-harness
       - build-apps
@@ -440,7 +441,7 @@ jobs:
           - weblog-rails72
           - weblog-rails80
           - weblog-graphql23
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - test
     if: ${{ always() }}
@@ -455,3 +456,29 @@ jobs:
           package-name: 'system-tests/${{ matrix.image }}'
           package-type: 'container'
         continue-on-error: true
+
+  build-artifacts:
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - run: mkdir binaries/
+      - uses: actions/checkout@v4
+        with:
+          path: binaries/dd-trace-rb/
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: system_tests_binaries
+          path: binaries/
+
+  parametric:
+    needs:
+      - build-artifacts
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    secrets: inherit
+    with:
+      library: ruby
+      binaries_artifact: system_tests_binaries
+      _experimental_job_count: 8
+      _experimental_job_matrix: '[1,2,3,4,5,6,7,8]'

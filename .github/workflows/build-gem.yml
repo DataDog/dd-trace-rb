@@ -23,7 +23,7 @@ jobs:
         type:
           - final
           - dev
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build gem (${{ matrix.type }})
     steps:
       - name: Checkout
@@ -71,7 +71,7 @@ jobs:
         type:
           - final
           - dev
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Test gem
     needs:
       - build
@@ -96,7 +96,7 @@ jobs:
       matrix:
         type:
           - dev
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Push gem
     needs:
       - test

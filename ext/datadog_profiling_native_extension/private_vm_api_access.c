@@ -158,7 +158,7 @@ bool is_current_thread_holding_the_gvl(void) {
     //
     // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
     //
-    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 by default, and we print a
+    // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
     // warning when customers force-enable it.
     bool gvl_acquired = vm->gvl.acquired != 0;
     rb_thread_t *current_owner = vm->running_thread;

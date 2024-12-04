@@ -6,7 +6,6 @@ module Datadog
 
     def self.reconfigure: (
       ruleset: ::Hash[untyped, untyped],
-      actions: Array[Hash[String, untyped]],
       telemetry: Datadog::Core::Telemetry::Component
     ) -> void
 

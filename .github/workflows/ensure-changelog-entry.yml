@@ -1,0 +1,131 @@
+name: Check change log entry
+on:
+  pull_request:
+    types: [opened, reopened, edited]
+
+jobs:
+  check:
+    permissions:
+      pull-requests: write
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check membership
+        id: membership
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            // Is author of the PR a member of the DataDog Org.
+            // NOTE: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#check-organization-membership-for-a-user
+            try {
+              response = await github.rest.orgs.checkMembershipForUser({
+                org: context.repo.owner,
+                username: context.payload.sender.login
+              })
+
+              isMember = response.status == 204
+            } catch (e) {
+              core.warning("An error occured on membership check, see console output");
+              console.log(e)
+
+              isMember = false
+            }
+
+            return isMember
+
+      - name: Find existing comment
+        id: comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const options = github.rest.issues.listComments.endpoint.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+            });
+            const comments = await github.paginate(options)
+            const comment = comments.find((cmnt) => {
+              return cmnt.body.startsWith("<!-- CHANGELOG_HIDDEN_MARKER -->")
+            })
+
+            return undefined === comment ? null : comment
+
+      - name: Check change log entry
+        id: condition
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const isMember = ${{steps.membership.outputs.result}}
+            const regex = /\*\*Change log entry\*\*\s+(?:(?<answer_yes>yes|yep|yeah)(?:\.\s*(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?)\s*/mi
+            const entry = context.payload.pull_request.body.match(regex)
+
+            const isWriteComment =
+              !isMember
+                || null === entry
+                || (undefined === entry.groups.answer_yes && undefined === entry.groups.answer_no)
+                || (undefined !== entry.groups.answer_yes && undefined === entry.groups.yes_message)
+                || (undefined !== entry.groups.answer_yes && "" === entry.groups.yes_message.trim())
+              ? true : false
+
+            return isWriteComment
+
+      - name: Write comment
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const isMember = ${{steps.membership.outputs.result}}
+            const username = !isMember ? "@DataDog/ruby-guild" : `@${context.payload.sender.login}`
+
+            const thankYouMessage = "Thank you for updating **Change log entry** section :clap:"
+            const warningMessage = `:wave: Hey ${username}, please fill "Change log entry" section in the pull request description.
+
+            If changes need to be present in [CHANGELOG.md](https://github.com/DataDog/dd-trace-rb/blob/master/CHANGELOG.md) you can state it this way
+
+            \`\`\`md
+            **Change log entry**
+
+            Yes. A brief summary to be placed into the CHANGELOG.md
+            \`\`\`
+            _(possible answers Yes/Yep/Yeah)_
+
+            Or you can opt out like that
+
+            \`\`\`md
+            **Change log entry**
+
+            None.
+            \`\`\`
+            _(possible answers No/Nope/None)_`
+
+            const comment = ${{steps.comment.outputs.result}}
+            const isWriteWarningComment = ${{steps.condition.outputs.result}}
+            const isWriteThankYouComment =
+              !isWriteWarningComment
+                && null !== comment
+                && comment.body.startsWith("<!-- CHANGELOG_HIDDEN_MARKER -->\n:wave: Hey")
+
+            if (isWriteWarningComment || isWriteThankYouComment) {
+              // NOTE: An easy way to get formatted Date in UTC
+              await exec.exec("date", ["-u", "+'%Y-%m-%d %H:%M:%S %Z'"], {
+                listeners: {
+                  stdout: (data) => time = data.toString().split("'").join("").trim()
+                }
+              })
+
+              const message = isWriteThankYouComment ? thankYouMessage : warningMessage
+              const options = {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: `<!-- CHANGELOG_HIDDEN_MARKER -->\n${message}\n\n<sup>Visited at: ${time}</sup>`
+              }
+
+              if (null === comment) {
+                await github.rest.issues.createComment(options)
+              } else {
+                await github.rest.issues.updateComment({...options, comment_id: comment.id})
+              }
+            }
