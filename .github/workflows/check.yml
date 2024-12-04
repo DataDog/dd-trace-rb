@@ -4,7 +4,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
@@ -15,7 +15,7 @@ jobs:
 
   check:
     name: Check types
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
