@@ -362,12 +362,12 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
-        events.propagate.subscribe do |event_span, event_trace_op|
-          sample_span(event_trace_op, event_span)
+        events.propagate.subscribe do |_event_span, event_trace_op|
           sample_trace(event_trace_op) unless event_trace_op.sampling_priority
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
+          sample_trace(trace_op) unless trace_op.sampling_priority
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end
@@ -503,7 +503,6 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
-        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?
