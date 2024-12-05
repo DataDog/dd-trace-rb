@@ -2066,8 +2066,6 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables "test mode", used for testing distributed tracing behavior. Note that traces will still be sent; consider using `tracing.enabled` instead to disable sending of traces entirely. |
-| `tracing.test_mode.trace_flush`                        |                                                         | `Datadog::Tracing::TraceFlush`        | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 #### Custom logging
 
@@ -2633,15 +2631,6 @@ DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 
 Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
 or `c.agent.port`.
-
-#### Transporting in Test Mode
-
-Use the test mode for testing distributed tracing behavior. Enabling this setting causes every
-span to be sent (no sampling is applied) and causes the transport to send data synchronously.
-To configure test mode, set `c.tracing.test_mode.enabled` to `true`.
-
-If you're looking to disable tracing while your test suite is running, consider using the `tracing.enabled` setting
-to disable sending of traces.
 
 ### Setting the time provider
 
