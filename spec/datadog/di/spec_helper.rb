@@ -73,6 +73,10 @@ module DIHelpers
         hash
       end
     end
+
+    def instance_double_agent_settings
+      instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
+    end
   end
 end
 
