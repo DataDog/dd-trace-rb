@@ -368,22 +368,18 @@ module Datadog
                 end
               end
 
-              # [Continuous Integration Visibility](https://docs.datadoghq.com/continuous_integration/) configuration.
+              # This is only for internal Datadog use via https://github.com/DataDog/datadog-ci-rb . It should not be
+              # used directly.
+              #
+              # DEV-3.0: Make this a non-public API in the next release.
               # @public_api
               settings :test_mode do
-                # Enable test mode. This allows the tracer to collect spans from test runs.
-                #
-                # It also prevents the tracer from collecting spans in a production environment. Only use in a test environment.
-                #
-                # @default `DD_TRACE_TEST_MODE_ENABLED` environment variable, otherwise `false`
-                # @return [Boolean]
                 option :enabled do |o|
                   o.type :bool
                   o.default false
                   o.env Tracing::Configuration::Ext::Test::ENV_MODE_ENABLED
                 end
 
-                # Use async writer in test mode
                 option :async do |o|
                   o.type :bool
                   o.default false
