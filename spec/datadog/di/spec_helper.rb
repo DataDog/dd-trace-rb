@@ -80,7 +80,49 @@ module DIHelpers
   end
 end
 
+module ProbeNotifierWorkerLeakDetector
+  class << self
+    attr_accessor :installed
+    attr_accessor :workers
+
+    def verify!
+      ProbeNotifierWorkerLeakDetector.workers.each do |(worker, example)|
+        warn "Leaked ProbeNotifierWorkerLeakDetector #{worker} from #{example.file_path}: #{example.full_description}"
+      end
+    end
+  end
+
+  ProbeNotifierWorkerLeakDetector.workers = []
+
+  def start
+    ProbeNotifierWorkerLeakDetector.workers << [self, RSpec.current_example]
+    super
+  end
+
+  def stop(*args)
+    ProbeNotifierWorkerLeakDetector.workers.delete_if do |(worker, example)|
+      worker == self
+    end
+    super
+  end
+end
+
 RSpec.configure do |config|
   config.extend DIHelpers::ClassMethods
   config.include DIHelpers::InstanceMethods
+
+  # DI does not do anything on Ruby < 2.6 therefore there is no need
+  # to install a leak detector on lower Ruby versions.
+  if RUBY_VERSION >= '2.6'
+    config.before do
+      if defined?(Datadog::DI::ProbeNotifierWorker) && !ProbeNotifierWorkerLeakDetector.installed
+        Datadog::DI::ProbeNotifierWorker.send(:prepend, ProbeNotifierWorkerLeakDetector)
+        ProbeNotifierWorkerLeakDetector.installed = true
+      end
+    end
+
+    config.after do |example|
+      ProbeNotifierWorkerLeakDetector.verify!
+    end
+  end
 end
