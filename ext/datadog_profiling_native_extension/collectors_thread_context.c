@@ -1534,6 +1534,7 @@ static VALUE get_otel_current_span_key(struct thread_context_collector_state *st
     // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
     // gets refactored, we should not fall on our face)
     VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
+    rb_set_errinfo(Qnil); // **Clear any pending exception after ignoring it**
 
     // Note that this gets set to Qnil if we failed to extract the correct value, and thus we won't try to extract it again
     state->otel_current_span_key = span_key;
