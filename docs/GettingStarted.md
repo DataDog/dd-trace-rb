@@ -167,6 +167,24 @@ If your Agent runs on a different host or container than your application, or yo
 
 After setting up, your services will appear on the [APM services page](https://app.datadoghq.com/apm/services) within a few minutes. Learn more about [using the APM UI][visualization docs].
 
+### Disabling during testing/specs and test optimization for Ruby
+
+Tracing is enabled by default; this includes:
+
+* When loading using `datadog/auto_instrument`
+* When activating integrations using `tracing.instrument` in the `Datadog.configure` block
+* When calling the `Datadog::Tracing.trace` method
+
+If you'd like to disable tracing when running your tests/specs, you can set the `DD_TRACE_ENABLED` environment variable to `false` or via code:
+
+```ruby
+Datadog.configure do |c|
+  c.tracing.enabled = false
+end
+```
+
+Furthermore, if you're trying to get more visibility into your tests or you're struggling with slow or flaky test suites, consider looking at Datadog's [Test optimization](https://docs.datadoghq.com/tests/) via the [`datadog-ci`](https://github.com/DataDog/datadog-ci-rb?tab=readme-ov-file#datadog-test-optimization-for-ruby) gem.
+
 ## Manual Instrumentation
 
 If you aren't using a supported framework instrumentation, you may want to manually instrument your code.
@@ -294,10 +312,6 @@ end
 For a list of available integrations and their supported versions, see [Ruby Integration Compatibility][2].
 
 For a list of configuration options for the available integrations, refer to the following:
-
-#### CI Visibility
-
-Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
