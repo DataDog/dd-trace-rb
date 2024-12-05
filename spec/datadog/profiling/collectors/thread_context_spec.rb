@@ -774,7 +774,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 stub_const(
                   "OpenTelemetry::Trace",
                   Module.new do
-                    define_singleton_method(:const_missing) do |value|
+                    define_singleton_method(:const_missing) do |_value|
                       log << :ran_code
                       raise "Simulated failure"
                     end
@@ -803,7 +803,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 it 'does not try to read the CURRENT_SPAN_KEY' do
                   allow(OpenTelemetry.logger).to receive(:error)
 
-                  otel_tracer.in_span("profiler.test") do |span|
+                  otel_tracer.in_span("profiler.test") do |_span|
                     setup_failure
 
                     sample_allocation(weight: 1)
