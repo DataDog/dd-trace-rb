@@ -798,6 +798,20 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                   expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
                 end
               end
+
+              context 'during allocation sampling' do
+                it 'does not try to read the CURRENT_SPAN_KEY' do
+                  allow(OpenTelemetry.logger).to receive(:error)
+
+                  otel_tracer.in_span("profiler.test") do |span|
+                    setup_failure
+
+                    sample_allocation(weight: 1)
+                  end
+
+                  expect(ran_log).to eq []
+                end
+              end
             end
 
             context 'when otel_context_enabled is false' do

@@ -226,7 +226,8 @@ static void trigger_sample_for_thread(
   long current_monotonic_wall_time_ns,
   ddog_CharSlice *ruby_vm_type,
   ddog_CharSlice *class_name,
-  bool is_gvl_waiting_state
+  bool is_gvl_waiting_state,
+  bool is_safe_to_allocate_objects
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -246,7 +247,12 @@ static long cpu_time_now_ns(struct per_thread_context *thread_context);
 static long thread_id_for(VALUE thread);
 static VALUE _native_stats(VALUE self, VALUE collector_instance);
 static VALUE _native_gc_tracking(VALUE self, VALUE collector_instance);
-static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result);
+static void trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result,
+  bool is_safe_to_allocate_objects
+);
 static bool should_collect_resource(VALUE root_span);
 static VALUE _native_reset_after_fork(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 static VALUE thread_list(struct thread_context_collector_state *state);
@@ -259,7 +265,8 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE *root_span,
   VALUE *numeric_span_id,
   VALUE active_span,
-  VALUE otel_values
+  VALUE otel_values,
+  bool is_safe_to_allocate_objects
 );
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples);
 static bool handle_gvl_waiting(
@@ -278,7 +285,8 @@ static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSE
 static void otel_without_ddtrace_trace_identifiers_for(
   struct thread_context_collector_state *state,
   VALUE thread,
-  struct trace_identifiers *trace_identifiers_result
+  struct trace_identifiers *trace_identifiers_result,
+  bool is_safe_to_allocate_objects
 );
 static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
@@ -647,7 +655,8 @@ static void update_metrics_and_sample(
     current_monotonic_wall_time_ns,
     NULL,
     NULL,
-    is_gvl_waiting_state
+    is_gvl_waiting_state,
+    /* is_safe_to_allocate_objects: */ true // We called from a context that's safe to run any regular code, including allocations
   );
 }
 
@@ -833,7 +842,10 @@ static void trigger_sample_for_thread(
   // These two labels are only used for allocation profiling; @ivoanjo: may want to refactor this at some point?
   ddog_CharSlice *ruby_vm_type,
   ddog_CharSlice *class_name,
-  bool is_gvl_waiting_state
+  bool is_gvl_waiting_state,
+  // If the Ruby VM is at a state that can allocate objects safely, or not. Added for allocation profiling: we're not
+  // allowed to allocate objects (or raise exceptions) when inside the NEWOBJ tracepoint.
+  bool is_safe_to_allocate_objects
 ) {
   int max_label_count =
     1 + // thread id
@@ -872,11 +884,11 @@ static void trigger_sample_for_thread(
   }
 
   struct trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
-  trace_identifiers_for(state, thread, &trace_identifiers_result);
+  trace_identifiers_for(state, thread, &trace_identifiers_result, is_safe_to_allocate_objects);
 
   if (!trace_identifiers_result.valid && state->otel_context_enabled != OTEL_CONTEXT_ENABLED_FALSE) {
     // If we couldn't get something with ddtrace, let's see if we can get some trace identifiers from opentelemetry directly
-    otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result);
+    otel_without_ddtrace_trace_identifiers_for(state, thread, &trace_identifiers_result, is_safe_to_allocate_objects);
   }
 
   if (trace_identifiers_result.valid) {
@@ -1289,7 +1301,12 @@ static VALUE _native_gc_tracking(DDTRACE_UNUSED VALUE _self, VALUE collector_ins
 }
 
 // Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
-static void trace_identifiers_for(struct thread_context_collector_state *state, VALUE thread, struct trace_identifiers *trace_identifiers_result) {
+static void trace_identifiers_for(
+  struct thread_context_collector_state *state,
+  VALUE thread,
+  struct trace_identifiers *trace_identifiers_result,
+  bool is_safe_to_allocate_objects
+) {
   if (state->otel_context_enabled == OTEL_CONTEXT_ENABLED_ONLY) return;
   if (state->tracer_context_key == MISSING_TRACER_CONTEXT_KEY) return;
 
@@ -1308,7 +1325,9 @@ static void trace_identifiers_for(struct thread_context_collector_state *state, 
 
   VALUE numeric_span_id = Qnil;
 
-  if (otel_values != Qnil) ddtrace_otel_trace_identifiers_for(state, &active_trace, &root_span, &numeric_span_id, active_span, otel_values);
+  if (otel_values != Qnil) {
+    ddtrace_otel_trace_identifiers_for(state, &active_trace, &root_span, &numeric_span_id, active_span, otel_values, is_safe_to_allocate_objects);
+  }
 
   if (root_span == Qnil || (active_span == Qnil && numeric_span_id == Qnil)) return;
 
@@ -1474,7 +1493,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
     optional_class_name,
-    false
+    /* is_gvl_waiting_state: */ false,
+    /* is_safe_to_allocate_objects: */ false // Not safe to allocate further inside the NEWOBJ tracepoint
   );
 }
 
@@ -1529,8 +1549,14 @@ static VALUE read_otel_current_span_key_const(DDTRACE_UNUSED VALUE _unused) {
   return rb_const_get(trace_module, rb_intern("CURRENT_SPAN_KEY"));
 }
 
-static VALUE get_otel_current_span_key(struct thread_context_collector_state *state) {
+static VALUE get_otel_current_span_key(struct thread_context_collector_state *state, bool is_safe_to_allocate_objects) {
   if (state->otel_current_span_key == Qtrue) { // Qtrue means we haven't tried to extract it yet
+    if (!is_safe_to_allocate_objects) {
+      // Calling read_otel_current_span_key_const below can trigger exceptions and arbitrary Ruby code running (e.g.
+      // `const_missing`, etc). Not safe to call in this situation, so we just skip otel info for this sample.
+      return Qnil;
+    }
+
     // If this fails, we want to fail gracefully, rather than raise an exception (e.g. if the opentelemetry gem
     // gets refactored, we should not fall on our face)
     VALUE span_key = rb_protect(read_otel_current_span_key_const, Qnil, NULL);
@@ -1551,7 +1577,8 @@ static void ddtrace_otel_trace_identifiers_for(
   VALUE *root_span,
   VALUE *numeric_span_id,
   VALUE active_span,
-  VALUE otel_values
+  VALUE otel_values,
+  bool is_safe_to_allocate_objects
 ) {
   VALUE resolved_numeric_span_id =
     active_span == Qnil ?
@@ -1562,7 +1589,7 @@ static void ddtrace_otel_trace_identifiers_for(
 
   if (resolved_numeric_span_id == Qnil) return;
 
-  VALUE otel_current_span_key = get_otel_current_span_key(state);
+  VALUE otel_current_span_key = get_otel_current_span_key(state, is_safe_to_allocate_objects);
   if (otel_current_span_key == Qnil) return;
   VALUE current_trace = *active_trace;
 
@@ -1641,14 +1668,15 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
 static void otel_without_ddtrace_trace_identifiers_for(
   struct thread_context_collector_state *state,
   VALUE thread,
-  struct trace_identifiers *trace_identifiers_result
+  struct trace_identifiers *trace_identifiers_result,
+  bool is_safe_to_allocate_objects
 ) {
   VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
 
   // If it exists, context_storage is expected to be an Array[OpenTelemetry::Context]
   if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
 
-  VALUE otel_current_span_key = get_otel_current_span_key(state);
+  VALUE otel_current_span_key = get_otel_current_span_key(state, is_safe_to_allocate_objects);
   if (otel_current_span_key == Qnil) return;
 
   int active_context_index = RARRAY_LEN(context_storage) - 1;
