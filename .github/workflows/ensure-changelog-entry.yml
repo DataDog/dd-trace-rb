@@ -57,13 +57,11 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const isMember = ${{steps.membership.outputs.result}}
             const regex = /\*\*Change log entry\*\*\s+(?:(?<answer_yes>yes|yep|yeah)(?:\.\s*(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?)\s*/mi
             const entry = context.payload.pull_request.body.match(regex)
 
             const isWriteComment =
-              !isMember
-                || null === entry
+              null === entry
                 || (undefined === entry.groups.answer_yes && undefined === entry.groups.answer_no)
                 || (undefined !== entry.groups.answer_yes && undefined === entry.groups.yes_message)
                 || (undefined !== entry.groups.answer_yes && "" === entry.groups.yes_message.trim())
