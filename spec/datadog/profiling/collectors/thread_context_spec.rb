@@ -765,6 +765,55 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
             end
 
+            context 'reading CURRENT_SPAN_KEY' do
+              let!(:ran_log) { [] }
+
+              let(:setup_failure) do
+                log = ran_log
+
+                stub_const(
+                  "OpenTelemetry::Trace",
+                  Module.new do
+                    define_singleton_method(:const_missing) do |_value|
+                      log << :ran_code
+                      raise "Simulated failure"
+                    end
+                  end
+                )
+              end
+
+              context 'raises an exception' do
+                before { setup_failure }
+                after { expect(ran_log).to eq [:ran_code] }
+
+                it 'does not leave the exception pending' do
+                  sample
+
+                  expect($!).to be nil
+                end
+
+                it 'omits the "local root span id" and "span id" labels in the sample' do
+                  sample
+
+                  expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
+                end
+              end
+
+              context 'during allocation sampling' do
+                it 'does not try to read the CURRENT_SPAN_KEY' do
+                  allow(OpenTelemetry.logger).to receive(:error)
+
+                  otel_tracer.in_span("profiler.test") do |_span|
+                    setup_failure
+
+                    sample_allocation(weight: 1)
+                  end
+
+                  expect(ran_log).to eq []
+                end
+              end
+            end
+
             context 'when otel_context_enabled is false' do
               let(:otel_context_enabled) { false }
 
