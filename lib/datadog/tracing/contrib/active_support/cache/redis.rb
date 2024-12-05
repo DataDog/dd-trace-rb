@@ -22,17 +22,29 @@ module Datadog
               # For Rails >= 5.2 w/o redis-activesupport...
               # ActiveSupport includes a Redis cache store internally, and does not require these overrides.
               # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/cache/redis_cache_store.rb
-              def patch_redis?(meth)
+              def patch_redis_activesupport?(meth)
                 !Gem.loaded_specs['redis-activesupport'].nil? \
                   && defined?(::ActiveSupport::Cache::RedisStore) \
                   && ::ActiveSupport::Cache::RedisStore.instance_methods(false).include?(meth)
               end
 
+              # Patches the Rails built-in Redis cache backend `redis_cache_store`, added in Rails 5.2.
+              # We avoid loading the RedisCacheStore class, as it invokes the statement `gem "redis", ">= 4.0.1"` which
+              # fails if the application is using an old version of Redis, or not using Redis at all.
+              # @see https://github.com/rails/rails/blob/d0dcb8fa6073a0c4d42600c15e82e3bb386b27d3/activesupport/lib/active_support/cache/redis_cache_store.rb#L4
+              def patch_redis_cache_store?(meth)
+                Gem.loaded_specs['redis'] &&
+                  # Autoload constants return `constant` for `defined?`, but that doesn't mean they are loaded...
+                  defined?(::ActiveSupport::Cache::RedisCacheStore) &&
+                  # ... to check that we need to call `autoload?` and check if it returns `nil`, meaning it's loaded.
+                  ::ActiveSupport::Cache.autoload?(:RedisCacheStore).nil? &&
+                  ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
+              end
+
               def cache_store_class(meth)
-                if patch_redis?(meth)
+                if patch_redis_activesupport?(meth)
                   [::ActiveSupport::Cache::RedisStore, ::ActiveSupport::Cache::Store]
-                elsif Gem.loaded_specs['redis'] && defined?(::ActiveSupport::Cache::RedisCacheStore) \
-                    && ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
+                elsif patch_redis_cache_store?(meth)
                   [::ActiveSupport::Cache::RedisCacheStore, ::ActiveSupport::Cache::Store]
                 else
                   super
