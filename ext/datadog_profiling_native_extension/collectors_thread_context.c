@@ -1968,7 +1968,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
         gvl_waiting_started_wall_time_ns,
         NULL,
         NULL,
-        false // This is the extra sample before the wait begun; only the next sample will be in the gvl waiting state
+        /* is_gvl_waiting_state: */ false, // This is the extra sample before the wait begun; only the next sample will be in the gvl waiting state
+        /* is_safe_to_allocate_objects: */ true // This is similar to a regular cpu/wall sample, so it's also safe
       );
     }
 
