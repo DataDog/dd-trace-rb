@@ -39,7 +39,7 @@ gem "opentelemetry-sdk", "~> 1.1"
 gem "opentelemetry-exporter-otlp"
 
 group :check do
-  gem "ruby_memcheck", ">= 3"
+
 end
 
 group :dev do
