@@ -86,10 +86,6 @@ GEM
       zeitwerk (~> 2.3)
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     base64 (0.2.0)
     benchmark-ips (2.13.0)
@@ -289,7 +285,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-jdbcmysql-adapter (~> 61.0)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

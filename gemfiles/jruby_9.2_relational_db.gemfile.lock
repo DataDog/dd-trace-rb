@@ -43,10 +43,6 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     arel (9.0.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
@@ -128,7 +124,6 @@ GEM
     spoon (0.0.6)
       ffi
     strscan (3.1.0-java)
-    thor (1.2.2)
     thread_safe (0.3.6-java)
     tzinfo (1.2.11)
       thread_safe (~> 0.1)
@@ -146,7 +141,6 @@ DEPENDENCIES
   activerecord-jdbcmysql-adapter (>= 52)
   activerecord-jdbcpostgresql-adapter (>= 52)
   activerecord-jdbcsqlite3-adapter (>= 52)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

@@ -78,10 +78,6 @@ GEM
       globalid (>= 0.3.0)
     addressable (2.8.6)
       public_suffix (>= 2.0.2, < 6.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     arel (6.0.4)
     benchmark-ips (2.13.0)
     benchmark-memory (0.1.2)
@@ -247,7 +243,6 @@ PLATFORMS
 
 DEPENDENCIES
   activejob
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)
