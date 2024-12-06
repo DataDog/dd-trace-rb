@@ -3,6 +3,7 @@ module Datadog
     module Telemetry
       class Component
         @enabled: bool
+        @log_collection_enabled: bool
         @stopped: bool
         @metrics_manager: Datadog::Core::Telemetry::MetricsManager
         @worker: Datadog::Core::Telemetry::Worker
@@ -15,7 +16,7 @@ module Datadog
 
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
 
-        def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer) -> void
+        def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer, ?log_collection_enabled: bool) -> void
 
         def disable!: () -> void
 

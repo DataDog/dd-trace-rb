@@ -8,6 +8,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       enabled: enabled,
       http_transport: http_transport,
       metrics_enabled: metrics_enabled,
+      log_collection_enabled: log_collection_enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
@@ -17,6 +18,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
   let(:enabled) { true }
   let(:metrics_enabled) { true }
+  let(:log_collection_enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
   let(:metrics_aggregation_interval_seconds) { 1 }
   let(:shutdown_timeout_seconds) { 1 }
@@ -232,8 +234,10 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       telemetry.stop!
     end
 
-    describe 'when enabled' do
+    describe 'when enabled and log_collection_enabled is enabled' do
       let(:enabled) { true }
+      let(:log_collection_enabled) { true }
+
       it do
         event = instance_double(Datadog::Core::Telemetry::Event::Log)
         telemetry.log!(event)
@@ -243,11 +247,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
       context 'when in fork', skip: !Process.respond_to?(:fork) do
         it do
+          telemetry
           expect_in_fork do
             event = instance_double(Datadog::Core::Telemetry::Event::Log)
             telemetry.log!(event)
 
-            expect(worker).to have_received(:enqueue).with(event)
+            expect(worker).not_to have_received(:enqueue)
           end
         end
       end
@@ -262,16 +267,16 @@ RSpec.describe Datadog::Core::Telemetry::Component do
 
         expect(worker).not_to have_received(:enqueue)
       end
+    end
 
-      context 'when in fork', skip: !Process.respond_to?(:fork) do
-        it do
-          expect_in_fork do
-            event = instance_double(Datadog::Core::Telemetry::Event::Log)
-            telemetry.log!(event)
+    describe 'when log_collection_enabled is disabled' do
+      let(:log_collection_enabled) { false }
 
-            expect(worker).not_to have_received(:enqueue)
-          end
-        end
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).not_to have_received(:enqueue)
       end
     end
   end
