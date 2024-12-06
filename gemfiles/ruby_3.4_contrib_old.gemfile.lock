@@ -29,10 +29,6 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     atomic (1.1.101)
     avl_tree (1.2.1)
@@ -204,7 +200,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

@@ -30,10 +30,6 @@ GEM
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
     amq-protocol (2.3.2)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     base64 (0.2.0)
     benchmark-ips (2.13.0)
@@ -224,7 +220,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)

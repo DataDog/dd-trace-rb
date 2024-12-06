@@ -2,7 +2,6 @@ source 'https://rubygems.org'
 
 gemspec
 
-gem 'appraisal', '~> 2.4.0'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 
@@ -83,6 +82,7 @@ end
 
 group :dev do
   gem 'ruby-lsp', require: false if RUBY_VERSION >= '3.0.0' && RUBY_PLATFORM != 'java'
+  gem 'appraisal', '~> 2.4.0', require: false
 end
 
 # Ruby 3.4 should be supported by strscan v3.1.1. However, the latest release of strscan is v3.1.0.

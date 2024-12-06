@@ -21,10 +21,6 @@ GEM
   remote: https://rubygems.org/
   specs:
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
@@ -166,7 +162,6 @@ GEM
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
     strscan (3.1.0)
-    thor (1.2.2)
     typhoeus (1.4.0)
       ethon (>= 0.9.0)
     unf (0.1.4)
@@ -184,7 +179,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)
