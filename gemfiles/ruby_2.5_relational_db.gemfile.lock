@@ -32,10 +32,6 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     arel (9.0.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
@@ -125,7 +121,6 @@ GEM
     simplecov_json_formatter (0.1.4)
     sqlite3 (1.4.4)
     strscan (3.1.0)
-    thor (1.2.2)
     thread_safe (0.3.6)
     tzinfo (1.2.11)
       thread_safe (~> 0.1)
@@ -141,7 +136,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord (~> 5)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

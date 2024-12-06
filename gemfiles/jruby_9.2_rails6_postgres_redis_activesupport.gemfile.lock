@@ -81,10 +81,6 @@ GEM
       tzinfo (~> 1.1)
       zeitwerk (~> 2.2, >= 2.2.2)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -267,7 +263,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-jdbcpostgresql-adapter (>= 60)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

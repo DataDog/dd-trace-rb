@@ -46,10 +46,6 @@ GEM
       minitest (~> 5.1)
       tzinfo (~> 1.1)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -226,7 +222,6 @@ DEPENDENCIES
   actionview
   active_model_serializers (>= 0.10.0)
   activesupport (~> 5)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

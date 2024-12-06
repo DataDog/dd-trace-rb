@@ -76,10 +76,6 @@ GEM
       tzinfo (~> 1.1)
       zeitwerk (~> 2.2, >= 2.2.2)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
@@ -282,7 +278,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

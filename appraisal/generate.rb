@@ -12,6 +12,7 @@
 #
 # Usage: `bundle exec ruby appraisal/generate.rb`
 
+require 'bundler'
 require "appraisal/appraisal"
 
 require_relative "../tasks/appraisal_conversion"
@@ -19,33 +20,30 @@ require_relative "../tasks/appraisal_conversion"
 gemfile = Appraisal::Gemfile.new.tap do |g|
   # Support `eval_gemfile` for `Bundler::DSL`
   g.define_singleton_method(:eval_gemfile) {|file| load(file) }
-  g.load(ENV["BUNDLE_GEMFILE"] || "Gemfile")
+  g.load(Bundler.default_gemfile)
 end
 
 appraisals = []
 
-REMOVED_GEMS = {
-  :check => [
-    'rbs',
-    'steep',
-    'standard',
-  ],
-  :dev => [
-    'ruby-lsp',
-  ],
-}
+definition = Bundler.definition
+to_remove = Hash.new { |hash, key| hash[key] = definition.dependencies_for([key]).map(&:name) }
+
+# Register groups to be removed
+[:dev, :check].each { |g| to_remove[g] }
 
 define_singleton_method(:appraise) do |name, &block|
   # Customize name
   name = "#{AppraisalConversion.runtime_identifier}_#{name}"
   appraisal = Appraisal::Appraisal.new(name, gemfile)
   appraisal.instance_eval(&block)
+
   # Customize callback for removal
-  REMOVED_GEMS.each do |group_name, gems|
+  to_remove.each do |group_name, gems|
     appraisal.group(group_name) do
       gems.each { |gem_name| remove_gem gem_name }
     end
   end
+
   appraisals << appraisal
 end
 
