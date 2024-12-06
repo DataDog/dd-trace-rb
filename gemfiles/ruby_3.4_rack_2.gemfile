@@ -40,7 +40,7 @@ gem "rack-contrib"
 gem "rack-test"
 
 group :check do
-  gem "ruby_memcheck", ">= 3"
+
 end
 
 group :dev do

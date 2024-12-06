@@ -263,8 +263,6 @@ GEM
       rubocop (~> 1.33)
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
-    ruby_memcheck (3.0.0)
-      nokogiri
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -330,7 +328,6 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   sprockets (< 4)

@@ -261,8 +261,6 @@ GEM
       digest-crc
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    ruby_memcheck (3.0.0)
-      nokogiri
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
@@ -322,7 +320,6 @@ DEPENDENCIES
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
   ruby-kafka (>= 0.7.10)
-  ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   strscan!

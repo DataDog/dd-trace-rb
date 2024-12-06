@@ -39,7 +39,7 @@ gem "aws-sdk"
 gem "shoryuken"
 
 group :check do
-  gem "ruby_memcheck", ">= 3"
+
 end
 
 group :dev do
