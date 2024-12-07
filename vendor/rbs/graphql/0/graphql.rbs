@@ -38,4 +38,8 @@ module GraphQL
     class Multiplex
     end
   end
+
+  class Error
+    def to_h: -> Hash[String, untyped]
+  end
 end
