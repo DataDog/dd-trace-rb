@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/reactive/operation'
+require 'datadog/appsec/reactive/engine'
 require 'datadog/appsec/contrib/rack/gateway/request'
 require 'datadog/appsec/contrib/rack/reactive/request'
 require 'datadog/appsec/reactive/shared_examples'
@@ -9,7 +9,7 @@ require 'datadog/appsec/reactive/shared_examples'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
-  let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
+  let(:engine) { Datadog::AppSec::Reactive::Engine.new }
   let(:request) do
     Datadog::AppSec::Contrib::Rack::Gateway::Request.new(
       Rack::MockRequest.env_for(
@@ -34,15 +34,15 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
   end
 
   describe '.publish' do
-    it 'propagates request attributes to the operation' do
-      expect(operation).to receive(:publish).with('server.request.method', 'GET')
-      expect(operation).to receive(:publish).with('request.query', { 'a' => ['foo'] })
-      expect(operation).to receive(:publish).with('request.headers', expected_headers_with_cookies)
-      expect(operation).to receive(:publish).with('request.uri.raw', '/?a=foo')
-      expect(operation).to receive(:publish).with('request.cookies', { 'foo' => 'bar' })
-      expect(operation).to receive(:publish).with('request.client_ip', '10.10.10.10')
+    it 'propagates request attributes to the engine' do
+      expect(engine).to receive(:publish).with('server.request.method', 'GET')
+      expect(engine).to receive(:publish).with('request.query', { 'a' => ['foo'] })
+      expect(engine).to receive(:publish).with('request.headers', expected_headers_with_cookies)
+      expect(engine).to receive(:publish).with('request.uri.raw', '/?a=foo')
+      expect(engine).to receive(:publish).with('request.cookies', { 'foo' => 'bar' })
+      expect(engine).to receive(:publish).with('request.client_ip', '10.10.10.10')
 
-      described_class.publish(operation, request)
+      described_class.publish(engine, request)
     end
   end
 
@@ -51,7 +51,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
 
     context 'not all addresses have been published' do
       it 'does not call the waf context' do
-        expect(operation).to receive(:subscribe).with(
+        expect(engine).to receive(:subscribe).with(
           'request.headers',
           'request.uri.raw',
           'request.query',
@@ -60,13 +60,13 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
           'server.request.method',
         ).and_call_original
         expect(waf_context).to_not receive(:run)
-        described_class.subscribe(operation, waf_context)
+        described_class.subscribe(engine, waf_context)
       end
     end
 
     context 'all addresses have been published' do
       it 'does call the waf context with the right arguments' do
-        expect(operation).to receive(:subscribe).and_call_original
+        expect(engine).to receive(:subscribe).and_call_original
 
         expected_waf_arguments = {
           'server.request.cookies' => { 'foo' => 'bar' },
@@ -84,8 +84,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
           {},
           Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
-        described_class.subscribe(operation, waf_context)
-        result = described_class.publish(operation, request)
+        described_class.subscribe(engine, waf_context)
+        result = described_class.publish(engine, request)
         expect(result).to be_nil
       end
     end
