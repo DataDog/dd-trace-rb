@@ -236,6 +236,21 @@ RSpec.describe Datadog::Tracing::Contrib::Httprb::Instrumentation do
           it 'propagates the trace id header' do
             expect(http_response.headers['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
           end
+
+          context 'with non-billing mode' do
+            before do
+              Datadog.configure do |c|
+                c.tracing.apm.enabled = false
+              end
+              # This cannot happen in actual apps but we do this to
+              # verify that sampling priority is set to 0 without mocking an agent
+              allow(Datadog::Tracing::Distributed::Helpers).to receive(:should_skip_distributed_tracing?).and_return(false)
+            end
+
+            it 'propagates sampling priority with value 0' do
+              expect(response.headers['X-Datadog-Sampling-Priority']).to eq('0')
+            end
+          end
         end
 
         context 'distributed tracing disabled' do
