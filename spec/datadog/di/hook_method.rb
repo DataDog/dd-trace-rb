@@ -27,6 +27,10 @@ class HookTestClass
     yield [[pos], kw: kw]
   end
 
+  def yielding_squashed(pos, options)
+    yield [[pos], options]
+  end
+
   def recursive(depth)
     if depth > 0
       recursive(depth - 1) + '-'

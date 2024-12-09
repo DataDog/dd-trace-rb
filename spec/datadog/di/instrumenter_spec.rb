@@ -214,6 +214,49 @@ RSpec.describe Datadog::DI::Instrumenter do
             end
           end
         end
+
+        context 'when method takes both positional and keyword arguments squashed into a positional argument' do
+          let(:probe_args) do
+            {type_name: type.name, method_name: 'yielding_squashed'}
+          end
+
+          it 'invokes callback' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            yielded_value = nil
+            expect(type.new.yielding_squashed('hello', kw: 'world') do |value|
+              yielded_value = value
+            end).to eq [['hello'], {kw: 'world'}]
+
+            expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first[:duration]).to be_a(Float)
+          end
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            it 'does not invoke callback but invokes target method with block' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              yielded_value = nil
+              expect(type.new.yielding_squashed('hello', kw: 'world') do |value|
+                yielded_value = value
+              end).to eq [['hello'], {kw: 'world'}]
+
+              expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+
+              expect(observed_calls.length).to eq 0
+            end
+          end
+        end
       end
 
       context 'when method is explicitly defined' do
