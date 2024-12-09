@@ -48,6 +48,7 @@ module Datadog
 
       attr_reader lock: untyped
       def symbolize_class_name: (untyped cls_name) -> untyped
+      def raise_if_probe_in_loaded_features: (Probe probe) -> void
     end
   end
 end
