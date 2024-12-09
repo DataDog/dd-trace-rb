@@ -183,8 +183,7 @@ module Datadog
         define_method("add_#{event_type}") do |event|
           @lock.synchronize do
             queue = send("#{event_type}_queue")
-            # TODO determine a suitable limit via testing/benchmarking
-            if queue.length > 100
+            if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
               logger.warn("#{self.class.name}: dropping #{event_type} because queue is full")
             else
               queue << event

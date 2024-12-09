@@ -10,12 +10,19 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
   end
 
   benchmarks_to_validate = [
-    "di_instrument",
+    "di_instrument", "di_snapshot",
   ].freeze
 
   benchmarks_to_validate.each do |benchmark|
     describe benchmark do
-      it("runs without raising errors") { expect_in_fork { load "./benchmarks/#{benchmark}.rb" } }
+      timeout = if benchmark == 'di_snapshot'
+        20
+      else
+        10
+      end
+      it("runs without raising errors") do
+        expect_in_fork(timeout_seconds: timeout) { load "./benchmarks/#{benchmark}.rb" }
+      end
     end
   end
 
