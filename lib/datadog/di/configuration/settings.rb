@@ -170,6 +170,16 @@ module Datadog
                   o.default 3
                 end
 
+                # Number of snapshots that can be stored in the probe
+                # notifier worker queue. Larger capacity runs the risk of
+                # creating snapshots that exceed the agent's request size
+                # limit. Smaller capacity increases the risk of dropping
+                # snapshots.
+                option :snapshot_queue_capacity do |o|
+                  o.type :int
+                  o.default 100
+                end
+
                 # Enable dynamic instrumentation in development environments.
                 # Currently DI does not fully implement support for code
                 # unloading and reloading, and is not supported in

@@ -38,6 +38,7 @@ class DISnapshotBenchmark
       c.remote.enabled = true
       c.dynamic_instrumentation.enabled = true
       c.dynamic_instrumentation.internal.development = true
+      c.dynamic_instrumentation.internal.snapshot_queue_capacity = 10000
     end
 
     Thread.new do
