@@ -42,8 +42,10 @@ RSpec.describe Datadog::DI::Instrumenter do
   end
 
   let(:base_probe_args) do
-    {id: '1234', type: :log}
+    {id: '1234', type: :log, rate_limit: rate_limit}
   end
+
+  let(:rate_limit) { nil }
 
   let(:probe) do
     Datadog::DI::Probe.new(**base_probe_args.merge(probe_args))
@@ -100,6 +102,38 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(observed_calls.first[:rv]).to eq ['hello']
         expect(observed_calls.first[:duration]).to be_a(Float)
       end
+
+      context 'when rate limited' do
+        let(:rate_limit) { 0 }
+
+        it 'does not invoke callback but invokes target method with block' do
+          instrumenter.hook_method(probe) do |payload|
+            observed_calls << payload
+          end
+
+          yielded_value = nil
+          expect(HookTestClass.new.yielding('hello') do |value|
+            yielded_value = value
+            [value]
+          end).to eq ['hello']
+
+          expect(yielded_value).to eq('hello')
+
+          expect(observed_calls.length).to eq 0
+        end
+      end
+    end
+
+    shared_examples 'does not invoke callback but invokes target method' do
+      it 'does not invoke callback but invokes target method' do
+        instrumenter.hook_method(probe) do |payload|
+          observed_calls << payload
+        end
+
+        target_call
+
+        expect(observed_calls.length).to eq 0
+      end
     end
 
     context 'positional args' do
@@ -152,6 +186,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         include_examples 'invokes callback and captures parameters'
 
+        context 'when rate limited' do
+          let(:rate_limit) { 0 }
+
+          include_examples 'does not invoke callback but invokes target method'
+        end
+
         context 'when passed via a splat' do
           let(:target_call) do
             args = [2]
@@ -159,6 +199,12 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples 'invokes callback and captures parameters'
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            include_examples 'does not invoke callback but invokes target method'
+          end
         end
       end
     end
@@ -193,6 +239,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         include_examples 'invokes callback and captures parameters'
 
+        context 'when rate limited' do
+          let(:rate_limit) { 0 }
+
+          include_examples 'does not invoke callback but invokes target method'
+        end
+
         context 'when passed via a splat' do
           let(:target_call) do
             kwargs = {kwarg: 42}
@@ -200,6 +252,12 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples 'invokes callback and captures parameters'
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            include_examples 'does not invoke callback but invokes target method'
+          end
         end
       end
     end
@@ -239,6 +297,12 @@ RSpec.describe Datadog::DI::Instrumenter do
 
         include_examples 'invokes callback and captures parameters'
 
+        context 'when rate limited' do
+          let(:rate_limit) { 0 }
+
+          include_examples 'does not invoke callback but invokes target method'
+        end
+
         context 'when passed via a splat' do
           let(:target_call) do
             args = [41]
@@ -247,6 +311,12 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples 'invokes callback and captures parameters'
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            include_examples 'does not invoke callback but invokes target method'
+          end
         end
       end
     end
@@ -284,6 +354,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         include_examples 'invokes callback and captures parameters'
+
+        context 'when rate limited' do
+          let(:rate_limit) { 0 }
+
+          include_examples 'does not invoke callback but invokes target method'
+        end
       end
 
       context 'call with positional argument' do
@@ -293,6 +369,12 @@ RSpec.describe Datadog::DI::Instrumenter do
         end
 
         include_examples 'invokes callback and captures parameters'
+
+        context 'when rate limited' do
+          let(:rate_limit) { 0 }
+
+          include_examples 'does not invoke callback but invokes target method'
+        end
       end
 
       context 'when there is also a positional argument' do
@@ -327,6 +409,12 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples 'invokes callback and captures parameters'
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            include_examples 'does not invoke callback but invokes target method'
+          end
         end
 
         context 'call with a splat' do
@@ -336,6 +424,12 @@ RSpec.describe Datadog::DI::Instrumenter do
           end
 
           include_examples 'invokes callback and captures parameters'
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            include_examples 'does not invoke callback but invokes target method'
+          end
         end
       end
     end

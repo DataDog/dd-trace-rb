@@ -117,6 +117,7 @@ module Datadog
               end
               rv = nil
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+              # for methods defined via method_missing.
               duration = Benchmark.realtime do # steep:ignore
                 rv = if args.any?
                   if kwargs.any?
@@ -152,7 +153,7 @@ module Datadog
                 serialized_entry_args: entry_args)
               rv
             else
-              super(*args, **kwargs)
+              super(*args, **kwargs, &target_block)
             end
           end
         end
