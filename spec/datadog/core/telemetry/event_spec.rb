@@ -5,14 +5,24 @@ require 'datadog/core/telemetry/metric'
 
 RSpec.describe Datadog::Core::Telemetry::Event do
   let(:id) { double('seq_id') }
+  let(:event) { event_class.new }
+
   subject(:payload) { event.payload }
 
+  shared_examples 'event with no attributes' do
+    it 'all event instances to the same' do
+      event1 = event_class.new
+      event2 = event_class.new
+      expect(event1).to eq(event2)
+      expect(event1.hash).to eq(event2.hash)
+    end
+  end
+
   context 'AppStarted' do
-    let(:event) { described_class::AppStarted.new }
     let(:logger) do
       stub_const('MyLogger', Class.new(::Logger)).new(nil)
     end
-
+    let(:event_class) { described_class::AppStarted }
     before do
       allow_any_instance_of(Datadog::Core::Utils::Sequence).to receive(:next).and_return(id)
 
@@ -30,6 +40,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         c.appsec.sca_enabled = false
       end
     end
+    it_behaves_like 'event with no attributes'
 
     it do
       # Helper to make configuration matching table easier to read
@@ -94,7 +105,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'AppDependenciesLoaded' do
-    let(:event) { described_class::AppDependenciesLoaded.new }
+    let(:event_class) { described_class::AppDependenciesLoaded }
+    it_behaves_like 'event with no attributes'
 
     it 'all have name and Ruby gem version' do
       is_expected.to match(dependencies: all(match(name: kind_of(String), version: kind_of(String))))
@@ -108,7 +120,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'AppIntegrationsChange' do
-    let(:event) { described_class::AppIntegrationsChange.new }
+    let(:event_class) { described_class::AppIntegrationsChange }
+    it_behaves_like 'event with no attributes'
 
     it 'all have name and compatibility' do
       is_expected.to match(integrations: all(include(name: kind_of(String), compatible: boolean)))
@@ -157,7 +170,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'AppClientConfigurationChange' do
-    let(:event) { described_class::AppClientConfigurationChange.new(changes, origin) }
+    let(:event_class) { described_class::AppClientConfigurationChange }
+    let(:event) { event_class.new(changes, origin) }
     let(:changes) { { name => value } }
     let(:origin) { double('origin') }
     let(:name) { 'key' }
@@ -195,10 +209,32 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         )
       end
     end
+
+    it 'all events to be the same' do
+      events =     [
+        event_class.new({ 'key' => 'value' }, 'origin'),
+        event_class.new({ 'key' => 'value' }, 'origin'),
+      ]
+
+      expect(events.uniq).to have(1).item
+    end
+
+    it 'all events to be different' do
+      events =     [
+        event_class.new({ 'key' => 'value' }, 'origin'),
+        event_class.new({ 'key' => 'value' }, 'origin2'),
+        event_class.new({ 'key' => 'value2' }, 'origin'),
+        event_class.new({ 'key2' => 'value' }, 'origin'),
+        event_class.new({}, 'origin'),
+      ]
+
+      expect(events.uniq).to eq(events)
+    end
   end
 
   context 'AppHeartbeat' do
-    let(:event) { described_class::AppHeartbeat.new }
+    let(:event_class) { described_class::AppHeartbeat }
+    it_behaves_like 'event with no attributes'
 
     it 'has no payload' do
       is_expected.to eq({})
@@ -206,7 +242,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'AppClosing' do
-    let(:event) { described_class::AppClosing.new }
+    let(:event_class) { described_class::AppClosing }
+    it_behaves_like 'event with no attributes'
 
     it 'has no payload' do
       is_expected.to eq({})
@@ -214,6 +251,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'Logs' do
+    let(:event_class) { described_class::Log }
+
     it do
       event = Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :error)
       expect(event.type).to eq('logs')
@@ -221,7 +260,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         {
           logs: [{
             message: 'Hi',
-            level: 'ERROR'
+            level: 'ERROR',
+            count: 1
           }]
         }
       )
@@ -234,7 +274,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         {
           logs: [{
             message: 'Hi',
-            level: 'WARN'
+            level: 'WARN',
+            count: 1
           }]
         }
       )
@@ -245,10 +286,32 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         Datadog::Core::Telemetry::Event::Log.new(message: 'Hi', level: :unknown)
       end.to raise_error(ArgumentError, /Invalid log level/)
     end
+
+    it 'all events to be the same' do
+      events =     [
+        event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+        event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+      ]
+
+      expect(events.uniq).to have(1).item
+    end
+
+    it 'all events to be different' do
+      events =     [
+        event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 1),
+        event_class.new(message: 'Yo', level: :warn, stack_trace: 'stack trace', count: 1),
+        event_class.new(message: 'Hi', level: :error, stack_trace: 'stack trace', count: 1),
+        event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack&trace', count: 1),
+        event_class.new(message: 'Hi', level: :warn, stack_trace: 'stack trace', count: 2),
+      ]
+
+      expect(events.uniq).to eq(events)
+    end
   end
 
   context 'GenerateMetrics' do
-    let(:event) { described_class::GenerateMetrics.new(namespace, metrics) }
+    let(:event_class) { described_class::GenerateMetrics }
+    let(:event) { event_class.new(namespace, metrics) }
 
     let(:namespace) { 'general' }
     let(:metric_name) { 'request_count' }
@@ -267,10 +330,32 @@ RSpec.describe Datadog::Core::Telemetry::Event do
         }
       )
     end
+
+    it 'all events to be the same' do
+      events =     [
+        event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+        event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+      ]
+
+      expect(events.uniq).to have(1).item
+    end
+
+    it 'all events to be different' do
+      events =     [
+        event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+        event_class.new('nospace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '1' })]),
+        event_class.new('namespace', [Datadog::Core::Telemetry::Metric::Count.new('name', tags: { val: '2' })]),
+        event_class.new('namespace', []),
+
+      ]
+
+      expect(events.uniq).to eq(events)
+    end
   end
 
   context 'Distributions' do
-    let(:event) { described_class::Distributions.new(namespace, metrics) }
+    let(:event_class) { described_class::Distributions }
+    let(:event) { event_class.new(namespace, metrics) }
 
     let(:namespace) { 'general' }
     let(:metric_name) { 'request_duration' }
@@ -292,7 +377,8 @@ RSpec.describe Datadog::Core::Telemetry::Event do
   end
 
   context 'MessageBatch' do
-    let(:event) { described_class::MessageBatch.new(events) }
+    let(:event_class) { described_class::MessageBatch }
+    let(:event) { event_class.new(events) }
 
     let(:events) { [described_class::AppClosing.new, described_class::AppHeartbeat.new] }
 
