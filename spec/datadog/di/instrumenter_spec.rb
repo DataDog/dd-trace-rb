@@ -80,7 +80,6 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when target method yields to a block' do
-
       shared_examples 'yields to the block' do
         context 'when method takes a positional argument' do
           let(:probe_args) do

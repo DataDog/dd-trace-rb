@@ -53,6 +53,11 @@ class HookTestClass
 end
 
 class YieldingMethodMissingHookTestClass
+  # only here to stop standard complaints
+  def respond_to_missing?(name)
+    true
+  end
+
   def method_missing(name, *args, **kwargs)
     yield [args, kwargs]
     [args, kwargs]

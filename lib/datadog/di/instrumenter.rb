@@ -153,6 +153,9 @@ module Datadog
                 serialized_entry_args: entry_args)
               rv
             else
+              # stop standard from trying to mess up my code
+              _ = 42
+
               # The necessity to invoke super in each of these specific
               # ways is very difficult to test.
               # Existing tests, even though I wrote many, still don't
