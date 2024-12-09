@@ -6,9 +6,9 @@ module Datadog
           module RequestBody
             ADDRESSES: ::Array[::String]
 
-            def self.publish: (untyped op, Datadog::AppSec::Contrib::Rack::Gateway::Response request) -> untyped
+            def self.publish: (AppSec::Reactive::Engine engine, AppSec::Contrib::Rack::Gateway::Response request) -> untyped
 
-            def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
+            def self.subscribe: (AppSec::Reactive::Engine engine, untyped waf_context) { (untyped) -> untyped } -> untyped
           end
         end
       end
