@@ -21,8 +21,10 @@ module Datadog
       attr_reader sampling_decision_maker: untyped
       attr_reader sampling_priority: untyped
       attr_reader service: untyped
+      attr_reader profiling_enabled: bool
+      attr_reader non_billing_enabled: bool
 
-      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?) -> void
+      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?profiling_enabled: bool?, ?non_billing_enabled: bool?) -> void
       def any?: () -> untyped
       def count: () -> untyped
       def empty?: () -> untyped

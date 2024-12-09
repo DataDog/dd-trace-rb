@@ -410,6 +410,25 @@ RSpec.describe 'Faraday middleware' do
     end
   end
 
+  context 'when non-billing mode is enabled' do
+    subject(:response) { client.get('/success') }
+
+    before do
+      Datadog.configure do |c|
+        c.tracing.apm.enabled = false
+      end
+      # This cannot happen in actual apps but we do this to
+      # verify that sampling priority is set to 0 through distributed tracing without mocking an agent
+      allow(Datadog::Tracing::Distributed::Helpers).to receive(:should_skip_distributed_tracing?).and_return(false)
+    end
+
+    let(:headers) { response.env.request_headers }
+
+    it do
+      expect(headers).to include('x-datadog-sampling-priority' => '0')
+    end
+  end
+
   context 'global service name' do
     let(:service_name) { 'faraday-global' }
 
