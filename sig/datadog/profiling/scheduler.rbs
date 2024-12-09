@@ -7,13 +7,14 @@ module Datadog
         exporter: Datadog::Profiling::Exporter,
         transport: Datadog::Profiling::HttpTransport,
         ?fork_policy: untyped,
-        ?interval: ::Integer,
+        ?interval: ::Numeric,
         ?enabled: bool,
       ) -> void
 
-      def start: () -> void
+      def start: (?on_failure_proc: ::Proc?) -> void
 
       def reset_after_fork: () -> void
+      def mark_profiler_failed: () -> true
     end
   end
 end

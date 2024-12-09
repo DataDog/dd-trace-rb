@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rack
+        module TraceProxyMiddleware
+          def self?.call: (untyped env, untyped configuration) { () -> untyped } -> untyped
+        end
+      end
+    end
+  end
+end

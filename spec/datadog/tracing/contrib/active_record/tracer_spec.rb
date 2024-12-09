@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
-require 'ddtrace'
+require 'datadog'
 
 require 'spec/datadog/tracing/contrib/rails/support/deprecation'
 
@@ -45,9 +45,10 @@ RSpec.describe 'ActiveRecord instrumentation' do
     it 'calls the instrumentation when is used standalone' do
       expect(span.service).to eq('mysql2')
       expect(span.name).to eq('mysql2.query')
-      expect(span.span_type).to eq('sql')
+      expect(span.type).to eq('sql')
       expect(span.resource.strip).to eq('SELECT COUNT(*) FROM `articles`')
       expect(span.get_tag('active_record.db.vendor')).to eq('mysql2')
+      expect(span.get_tag('db.instance')).to eq('mysql')
       expect(span.get_tag('active_record.db.name')).to eq('mysql')
       expect(span.get_tag('active_record.db.cached')).to eq(nil)
       expect(span.get_tag('out.host')).to eq(ENV.fetch('TEST_MYSQL_HOST', '127.0.0.1'))
@@ -73,7 +74,7 @@ RSpec.describe 'ActiveRecord instrumentation' do
       end
 
       context 'with a custom configuration' do
-        context 'with the maraka gem' do
+        context 'with the makara gem' do
           before do
             if PlatformHelpers.jruby?
               skip("JRuby doesn't support ObjectSpace._id2ref, which is required for makara connection lookup.")

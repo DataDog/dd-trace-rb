@@ -15,7 +15,7 @@ module Datadog
 
         def start: () -> (nil | true)
 
-        def stop: (*untyped _unused) -> void
+        def stop: () -> void
 
         def self._native_stop: (Datadog::Profiling::Collectors::IdleSamplingHelper self_instance) -> true
 

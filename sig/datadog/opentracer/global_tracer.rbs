@@ -1,7 +1,0 @@
-module Datadog
-  module OpenTracer
-    module GlobalTracer
-      def global_tracer=: (untyped tracer) -> untyped
-    end
-  end
-end

@@ -33,6 +33,18 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
         it { is_expected.to eq('http://example.com/path?categories[]') }
       end
 
+      context 'default behavior for an array with indices' do
+        let(:url) { 'http://example.com/path?categories[0]=1&categories[1]=2' }
+
+        it { is_expected.to eq('http://example.com/path?categories[0]&categories[1]') }
+      end
+
+      context 'default behavior for a hash' do
+        let(:url) { 'http://example.com/path?categories[foo]=1&categories[bar]=2' }
+
+        it { is_expected.to eq('http://example.com/path?categories[foo]&categories[bar]') }
+      end
+
       context 'with query: show: value' do
         let(:options) { { query: { show: ['category_id'] } } }
 
@@ -496,6 +508,13 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       public_key_id
       access_key_id
       secret_key_id
+      api-key
+      api-key-id
+      private-key
+      private-key-id
+      public-key-id
+      access-key-id
+      secret-key-id
       token
       consumerid
       consumerkey
@@ -503,6 +522,9 @@ RSpec.describe Datadog::Tracing::Contrib::Utils::Quantization::HTTP do
       consumer_id
       consumer_key
       consumer_secret
+      consumer-id
+      consumer-key
+      consumer-secret
       sign
       signed
       signature

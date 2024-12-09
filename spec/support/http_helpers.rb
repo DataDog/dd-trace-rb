@@ -3,7 +3,7 @@ require 'net/http'
 require 'spec/support/synchronization_helpers'
 
 module HttpHelpers
-  def wait_http_server(server, delay)
+  def self.wait_http_server(server, delay)
     SynchronizationHelpers.try_wait_until(attempts: delay, backoff: 1) do |attempts_left|
       uri = URI("#{server}/")
       begin

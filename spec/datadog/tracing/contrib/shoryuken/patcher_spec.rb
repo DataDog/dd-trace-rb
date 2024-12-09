@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'shoryuken'
 
 RSpec.describe Datadog::Tracing::Contrib::Shoryuken::Patcher do

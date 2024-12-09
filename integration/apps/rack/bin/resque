@@ -2,7 +2,7 @@
 
 puts "\n== Starting resque process =="
 
-command = "QUEUE=resque_testing bundle exec ddtracerb exec rake resque:work"
+command = "QUEUE=resque_testing bundle exec ddprofrb exec rake resque:work"
 
 puts "Run: #{command}"
 Kernel.exec(command)

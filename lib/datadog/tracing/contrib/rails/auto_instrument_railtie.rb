@@ -1,4 +1,4 @@
-require_relative '../auto_instrument'
+# frozen_string_literal: true
 
 # Railtie to include AutoInstrumentation in rails loading
 class DatadogAutoInstrumentRailtie < Rails::Railtie

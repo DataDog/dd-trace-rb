@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'faraday'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/faraday/patcher'
 
 RSpec.describe 'Faraday instrumentation' do

@@ -30,35 +30,19 @@ module Datadog
                 response_headers = values[1]
                 response_headers_no_cookies = response_headers.dup.tap { |h| h.delete('set-cookie') }
 
-                waf_args = {
+                persistent_data = {
                   'server.response.status' => response_status.to_s,
                   'server.response.headers' => response_headers,
                   'server.response.headers.no_cookies' => response_headers_no_cookies,
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_args, waf_timeout)
+                result = waf_context.run(persistent_data, {}, waf_timeout)
 
-                Datadog.logger.debug { "WAF TIMEOUT: #{result.inspect}" } if result.timeout
+                next if result.status != :match
 
-                case result.status
-                when :match
-                  Datadog.logger.debug { "WAF: #{result.inspect}" }
-
-                  block = result.actions.include?('block')
-
-                  yield [result, block]
-
-                  throw(:block, [result, true]) if block
-                when :ok
-                  Datadog.logger.debug { "WAF OK: #{result.inspect}" }
-                when :invalid_call
-                  Datadog.logger.debug { "WAF CALL ERROR: #{result.inspect}" }
-                when :invalid_rule, :invalid_flow, :no_rule
-                  Datadog.logger.debug { "WAF RULE ERROR: #{result.inspect}" }
-                else
-                  Datadog.logger.debug { "WAF UNKNOWN: #{result.status.inspect} #{result.inspect}" }
-                end
+                yield result
+                throw(:block, true) unless result.actions.empty?
               end
             end
           end

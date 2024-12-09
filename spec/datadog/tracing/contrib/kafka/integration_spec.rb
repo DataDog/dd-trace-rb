@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/kafka/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Kafka::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:kafka) }
 
   describe '.version' do

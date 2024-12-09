@@ -1,5 +1,5 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::Configuration::Resolvers::PatternResolver do
   subject(:resolver) { described_class.new }

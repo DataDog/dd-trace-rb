@@ -5,8 +5,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/roda/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Roda::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:roda) }
 
   describe '.version' do

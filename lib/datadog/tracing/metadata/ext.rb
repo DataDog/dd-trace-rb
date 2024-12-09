@@ -14,6 +14,10 @@ module Datadog
         # Type of operation being performed (e.g. )
         TAG_OPERATION = 'operation'
         # Hostname of external service interacted with
+        #
+        # This tag also doesn't strictly need to be a “hostname”. It can be a raw IP address and in some cases it
+        # can even be a unix domain socket (i.e. postgres client setting host=/var/run/postgres).
+        # It should be whatever the client uses to point at the server it’s trying to talk to.
         TAG_PEER_HOSTNAME = 'peer.hostname'
         # Name of external service that performed the work
         TAG_PEER_SERVICE = 'peer.service'
@@ -54,6 +58,9 @@ module Datadog
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
 
+          TAG_DD_PARENT_ID = '_dd.parent_id'
+          DD_PARENT_ID_DEFAULT = '0000000000000000'
+
           # Trace tags with this prefix will propagate from a trace through distributed tracing.
           # Distributed headers tags with this prefix will be injected into the active trace.
           TAGS_PREFIX = '_dd.p.'
@@ -80,6 +87,8 @@ module Datadog
           TAG_STATUS_CODE = 'http.status_code'
           TAG_USER_AGENT = 'http.useragent'
           TAG_URL = 'http.url'
+          TAG_ROUTE = 'http.route'
+          TAG_ROUTE_PATH = 'http.route.path'
           TYPE_INBOUND = AppTypes::TYPE_WEB.freeze
           TYPE_OUTBOUND = 'http'
           TYPE_PROXY = 'proxy'

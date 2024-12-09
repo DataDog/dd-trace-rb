@@ -5,8 +5,10 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
+require_relative 'shared_examples'
+
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'tracing on the client connection' do
   subject(:client) { Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new }
@@ -66,7 +68,7 @@ RSpec.describe 'tracing on the client connection' do
 
   shared_examples 'span data contents' do
     it { expect(span.name).to eq 'grpc.client' }
-    it { expect(span.span_type).to eq 'http' }
+    it { expect(span.type).to eq 'http' }
     it { expect(span.service).to eq 'rspec' }
     it { expect(span.resource).to eq 'ruby.test.testing.basic' }
     it { expect(span.get_tag('grpc.client.deadline')).to be_nil }
@@ -128,20 +130,64 @@ RSpec.describe 'tracing on the client connection' do
 
     let(:original_metadata) { { some: 'datum' } }
 
-    let(:request_response) do
-      subject.request_response(**keywords) { :returned_object }
+    context 'without an error' do
+      let(:request_response) do
+        subject.request_response(**keywords) { :returned_object }
+      end
+
+      before { request_response }
+
+      it_behaves_like 'span data contents'
+
+      it_behaves_like 'inject distributed tracing metadata'
+
+      it 'actually returns the client response' do
+        expect(request_response).to be(:returned_object)
+      end
     end
 
-    before do
-      request_response
-    end
+    context 'with an error' do
+      let(:request_response) do
+        subject.request_response(**keywords) { raise error_class, 'test error' }
+      end
 
-    it_behaves_like 'span data contents'
+      let(:error_class) { stub_const('TestError', Class.new(StandardError)) }
+      let(:span_kind) { 'client' }
 
-    it_behaves_like 'inject distributed tracing metadata'
+      context 'without an error handler' do
+        it do
+          expect { request_response }.to raise_error('test error')
 
-    it 'actually returns the client response' do
-      expect(request_response).to be(:returned_object)
+          expect(span).to have_error
+          expect(span).to have_error_message('test error')
+          expect(span).to have_error_type('TestError')
+          expect(span).to have_error_stack(include('client_spec.rb'))
+          expect(span.get_tag('rpc.system')).to eq('grpc')
+          expect(span.get_tag('span.kind')).to eq('client')
+        end
+      end
+
+      context 'with an error handler' do
+        subject(:client) do
+          Datadog::Tracing::Contrib::GRPC::DatadogInterceptor::Client.new { |c| c.on_error = on_error }
+        end
+
+        let(:on_error) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from interceptor") }
+        end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from interceptor'
+      end
+
+      context 'with an error handler defined in the configuration options' do
+        let(:configuration_options) { { on_error: on_error } }
+
+        let(:on_error) do
+          ->(span, error) { span.set_tag('custom.handler', "Got error #{error}, but ignored it from configuration") }
+        end
+
+        it_behaves_like 'it handles the error', 'Got error test error, but ignored it from configuration'
+      end
     end
   end
 

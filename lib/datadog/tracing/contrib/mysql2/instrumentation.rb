@@ -21,16 +21,22 @@ module Datadog
           module InstanceMethods
             def query(sql, options = {})
               service = Datadog.configuration_for(self, :service_name) || datadog_configuration[:service_name]
+              on_error = Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
 
-              Tracing.trace(Ext::SPAN_QUERY, service: service) do |span, trace_op|
+              Tracing.trace(Ext::SPAN_QUERY, service: service, on_error: on_error) do |span, trace_op|
                 span.resource = sql
-                span.span_type = Tracing::Metadata::Ext::SQL::TYPE
+                span.type = Tracing::Metadata::Ext::SQL::TYPE
 
                 if datadog_configuration[:peer_service]
                   span.set_tag(
                     Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                     datadog_configuration[:peer_service]
                   )
+                end
+
+                # Tag original global service name if not used
+                if span.service != Datadog.configuration.service
+                  span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
                 end
 
                 span.set_tag(Contrib::Ext::DB::TAG_SYSTEM, Ext::TAG_SYSTEM)
@@ -44,22 +50,35 @@ module Datadog
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, query_options[:database])
                 span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
-
-                Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(sql, span, trace_op, propagation_mode)
-
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+
+                sql = inject_propagation(span, sql, trace_op)
 
                 super(sql, options)
               end
             end
 
             private
+
+            def inject_propagation(span, sql, trace_op)
+              propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
+                datadog_configuration[:comment_propagation],
+                datadog_configuration[:append_comment]
+              )
+
+              Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
+              Contrib::Propagation::SqlComment.prepend_comment(
+                sql,
+                span,
+                trace_op,
+                propagation_mode
+              )
+            end
 
             def datadog_configuration
               Datadog.configuration.tracing[:mysql2]
@@ -71,10 +90,6 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
-            end
-
-            def comment_propagation
-              datadog_configuration[:comment_propagation]
             end
           end
         end

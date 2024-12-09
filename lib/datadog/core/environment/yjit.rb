@@ -47,6 +47,16 @@ module Datadog
           ::RubyVM::YJIT.runtime_stats[:object_shape_count]
         end
 
+        # Size of memory Rust allocated for metadata
+        def yjit_alloc_size
+          ::RubyVM::YJIT.runtime_stats[:yjit_alloc_size]
+        end
+
+        # Ratio of YJIT-executed instructions
+        def ratio_in_yjit
+          ::RubyVM::YJIT.runtime_stats[:ratio_in_yjit]
+        end
+
         def available?
           defined?(::RubyVM::YJIT) \
             && ::RubyVM::YJIT.enabled? \

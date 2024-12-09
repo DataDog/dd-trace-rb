@@ -1,8 +1,0 @@
-module Datadog
-  module OpenTracer
-    module Propagator
-      def inject: (untyped span_context, untyped carrier) -> untyped
-      def extract: (untyped carrier) -> untyped
-    end
-  end
-end

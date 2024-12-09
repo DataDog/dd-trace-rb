@@ -89,12 +89,14 @@ RSpec.describe Datadog::Core::Error do
           expect(error.message).to eq('wrapper layer')
 
           # Outer-most error first, inner-most last
+          # Ruby 3.4 adjusts the format of error messages and Hash#inspect renderings
+          # https://www.ruby-lang.org/en/news/2024/10/07/ruby-3-4-0-preview2-released/
           wrapper_error_message = /in.*wrapper': wrapper layer \(RuntimeError\)/
-          wrapper_caller = /from.*in `call'/
+          wrapper_caller = /from.*in ['`]call'/
           middle_error_message = /in.*middle': middle cause \(RuntimeError\)/
-          middle_caller = /from.*in `wrapper'/
-          root_error_message = /in `root': root cause \(RuntimeError\)/
-          root_caller = /from.*in `middle'/
+          middle_caller = /from.*in ['`]wrapper'/
+          root_error_message = /in ['`]root': root cause \(RuntimeError\)/
+          root_caller = /from.*in ['`]middle'/
 
           expect(error.backtrace)
             .to match(
@@ -224,6 +226,16 @@ RSpec.describe Datadog::Core::Error do
       it do
         expect(error.type).to eq('Test::CustomMessage')
         expect(error.message).to eq('custom msg')
+        expect(error.backtrace).to be_empty
+      end
+    end
+
+    context 'with a string' do
+      let(:value) { 'my-message' }
+
+      it 'records it as the message' do
+        expect(error.type).to be_empty
+        expect(error.message).to eq('my-message')
         expect(error.backtrace).to be_empty
       end
     end

@@ -26,9 +26,6 @@ module Datadog
             module Write
               def write: (*untyped args) ?{ () -> untyped } -> untyped
             end
-            module WriteMulti
-              def write_multi: (untyped hash, ?untyped? options) -> untyped
-            end
             module Delete
               def delete: (*untyped args) ?{ () -> untyped } -> untyped
             end

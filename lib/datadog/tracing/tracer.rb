@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../core/environment/ext'
 require_relative '../core/environment/socket'
 
@@ -112,13 +114,13 @@ module Datadog
       # @param [Time] start_time time which the span should have started.
       # @param [Hash<String,String>] tags extra tags which should be added to the span.
       # @param [String] type the type of the span. See {Datadog::Tracing::Metadata::Ext::AppTypes}.
+      # @param [Integer] the id of the new span.
       # @return [Object] If a block is provided, returns the result of the block execution.
       # @return [Datadog::Tracing::SpanOperation] If no block is provided, returns the active,
       #         unfinished {Datadog::Tracing::SpanOperation}.
       # @yield Optional block where new newly created {Datadog::Tracing::SpanOperation} captures the execution.
       # @yieldparam [Datadog::Tracing::SpanOperation] span_op the newly created and active [Datadog::Tracing::SpanOperation]
       # @yieldparam [Datadog::Tracing::TraceOperation] trace_op the active [Datadog::Tracing::TraceOperation]
-      # rubocop:disable Lint/UnderscorePrefixedVariableName
       # rubocop:disable Metrics/MethodLength
       def trace(
         name,
@@ -129,17 +131,14 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
-        span_type: nil,
-        _context: nil,
+        id: nil,
         &block
       )
         return skip_trace(name, &block) unless enabled
 
-        context, trace = nil
-
         # Resolve the trace
         begin
-          context = _context || call_context
+          context = call_context
           active_trace = context.active_trace
           trace = if continue_from || active_trace.nil?
                     start_trace(continue_from: continue_from)
@@ -163,8 +162,9 @@ module Datadog
               service: service,
               start_time: start_time,
               tags: tags,
-              type: span_type || type,
+              type: type,
               _trace: trace,
+              id: id,
               &block
             )
           end
@@ -180,12 +180,12 @@ module Datadog
             service: service,
             start_time: start_time,
             tags: tags,
-            type: span_type || type,
-            _trace: trace
+            type: type,
+            _trace: trace,
+            id: id
           )
         end
       end
-      # rubocop:enable Lint/UnderscorePrefixedVariableName
       # rubocop:enable Metrics/MethodLength
 
       # Set the given key / value tag pair at the tracer level. These tags will be
@@ -228,9 +228,10 @@ module Datadog
       # @return [Datadog::Tracing::Correlation::Identifier] correlation object
       def active_correlation(key = nil)
         trace = active_trace(key)
-        Correlation.identifier_from_digest(
-          trace && trace.to_digest
-        )
+
+        return Datadog::Tracing::Correlation::Identifier.new unless trace
+
+        trace.to_correlation
       end
 
       # Setup a new trace to continue from where another
@@ -259,6 +260,17 @@ module Datadog
         subscribe_trace_deactivation!(context, trace, original_trace) unless block
 
         context.activate!(trace, &block)
+      end
+
+      # Sample a span, tagging the trace as appropriate.
+      def sample_trace(trace_op)
+        begin
+          @sampler.sample!(trace_op)
+        rescue StandardError => e
+          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
+        end
       end
 
       # @!visibility private
@@ -329,11 +341,15 @@ module Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
+            remote_parent: digest.span_remote,
+            tracer: self
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            remote_parent: false,
+            tracer: self
           )
         end
       end
@@ -344,7 +360,6 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
-          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
@@ -353,6 +368,8 @@ module Datadog
         end
       end
 
+      # Creates a new TraceOperation, with events bounds to this Tracer instance.
+      # @return [TraceOperation]
       def start_trace(continue_from: nil)
         # Build a new trace using digest if provided.
         trace = build_trace(continue_from)
@@ -374,61 +391,61 @@ module Datadog
         tags: nil,
         type: nil,
         _trace: nil,
+        id: nil,
         &block
       )
         trace = _trace || start_trace(continue_from: continue_from)
+
+        events = SpanOperation::Events.new
 
         if block
           # Ignore start time if a block has been given
           trace.measure(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
-            tags: resolve_tags(tags),
+            tags: resolve_tags(tags, service),
             type: type,
+            id: id,
             &block
           )
         else
           # Return the new span
           span = trace.build_span(
             name,
-            events: build_span_events,
+            events: events,
             on_error: on_error,
             resource: resource,
             service: service,
             start_time: start_time,
-            tags: resolve_tags(tags),
-            type: type
+            tags: resolve_tags(tags, service),
+            type: type,
+            id: id
           )
 
           span.start(start_time)
+
           span
         end
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
 
-      def build_span_events(events = nil)
-        case events
-        when SpanOperation::Events
-          events
-        when Hash
-          SpanOperation::Events.build(events)
-        else
-          SpanOperation::Events.new
+      def resolve_tags(tags, service)
+        merged_tags = if @tags.any? && tags
+                        # Combine default tags with provided tags,
+                        # preferring provided tags.
+                        @tags.merge(tags)
+                      else
+                        # Use provided tags or default tags if none.
+                        tags || @tags.dup
+                      end
+        # Remove version tag if service is not the default service
+        if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
+          merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
         end
-      end
-
-      def resolve_tags(tags)
-        if @tags.any? && tags
-          # Combine default tags with provided tags,
-          # preferring provided tags.
-          @tags.merge(tags)
-        else
-          # Use provided tags or default tags if none.
-          tags || @tags.dup
-        end
+        merged_tags
       end
 
       # Manually activate and deactivate the trace, when the span completes.
@@ -463,17 +480,6 @@ module Datadog
         end
       end
 
-      # Sample a span, tagging the trace as appropriate.
-      def sample_trace(trace_op)
-        begin
-          @sampler.sample!(trace_op)
-        rescue StandardError => e
-          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
-        end
-      end
-
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
@@ -492,6 +498,7 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
+        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?

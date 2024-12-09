@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../ddtrace/version'
+require_relative '../../../datadog/version'
 
 module Datadog
   module Core
@@ -18,8 +18,10 @@ module Datadog
         ENV_API_KEY = 'DD_API_KEY'
         ENV_ENVIRONMENT = 'DD_ENV'
         ENV_SERVICE = 'DD_SERVICE'
+        ENV_OTEL_SERVICE = 'OTEL_SERVICE_NAME'
         ENV_SITE = 'DD_SITE'
         ENV_TAGS = 'DD_TAGS'
+        ENV_OTEL_RESOURCE_ATTRIBUTES = 'OTEL_RESOURCE_ATTRIBUTES'
         ENV_VERSION = 'DD_VERSION'
         FALLBACK_SERVICE_NAME =
           begin
@@ -38,8 +40,7 @@ module Datadog
         TAG_SERVICE = 'service'
         TAG_VERSION = 'version'
 
-        # TODO: Migrate to Datadog::Tracing
-        TRACER_VERSION = DDTrace::VERSION::STRING
+        GEM_DATADOG_VERSION = Datadog::VERSION::STRING
       end
     end
   end

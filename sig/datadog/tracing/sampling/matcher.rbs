@@ -2,21 +2,25 @@ module Datadog
   module Tracing
     module Sampling
       class Matcher
+        MATCH_ALL_PATTERN: String
+
+        interface _Matcher
+          def match?: (::String) -> bool
+        end
+
+        MATCH_ALL: _Matcher
+
+        def self.glob_to_regex: (::String) -> _Matcher
+
         def match?: (untyped trace) -> untyped
       end
       class SimpleMatcher < Matcher
-        MATCH_ALL: untyped
+        attr_reader name: Matcher::_Matcher
+        attr_reader service: Matcher::_Matcher
+        attr_reader resource: Matcher::_Matcher
+        attr_reader tags: Matcher::_Matcher
 
-        attr_reader name: untyped
-
-        attr_reader service: untyped
         def initialize: (?name: untyped, ?service: untyped) -> void
-
-        def match?: (untyped trace) -> untyped
-      end
-      class ProcMatcher < Matcher
-        attr_reader block: untyped
-        def initialize: () ?{ () -> untyped } -> void
 
         def match?: (untyped trace) -> untyped
       end

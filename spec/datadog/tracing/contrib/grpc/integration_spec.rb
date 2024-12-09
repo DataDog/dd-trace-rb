@@ -4,8 +4,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/grpc/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::GRPC::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:grpc) }
 
   describe '.version' do

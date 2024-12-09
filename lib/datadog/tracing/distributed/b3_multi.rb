@@ -31,7 +31,7 @@ module Datadog
 
           # DEV: We need these to be hex encoded
           data[@trace_id_key] = format('%032x', digest.trace_id)
-          data[@span_id_key] = format('%016x', digest.span_id)
+          data[@span_id_key] = format('%016x', digest.span_id || 0) # # Fall back to zero (invalid) if not present
 
           if digest.trace_sampling_priority
             sampling_priority = Helpers.clamp_sampling_priority(
@@ -63,7 +63,8 @@ module Datadog
           TraceDigest.new(
             trace_id: trace_id,
             span_id: span_id,
-            trace_sampling_priority: sampling_priority
+            trace_sampling_priority: sampling_priority,
+            span_remote: true,
           )
         end
       end

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/operation'
 require_relative '../../rack/reactive/request_body'
@@ -22,11 +24,12 @@ module Datadog
               def watch_request_dispatch(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   block = false
+
                   event = nil
                   scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.dispatch') do |op|
-                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result, _block|
+                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -37,16 +40,14 @@ module Datadog
                           actions: result.actions
                         }
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
-
+                        # We want to keep the trace in case of security event
+                        scope.trace.keep! if scope.trace
+                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
                         scope.processor_context.events << event
                       end
                     end
 
-                    _result, block = Rack::Reactive::RequestBody.publish(op, gateway_request)
+                    block = Rack::Reactive::RequestBody.publish(op, gateway_request)
                   end
 
                   next [nil, [[:block, event]]] if block
@@ -65,11 +66,12 @@ module Datadog
               def watch_request_routed(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   block = false
+
                   event = nil
                   scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
 
                   AppSec::Reactive::Operation.new('sinatra.request.routed') do |op|
-                    Sinatra::Reactive::Routed.subscribe(op, scope.processor_context) do |result, _block|
+                    Sinatra::Reactive::Routed.subscribe(op, scope.processor_context) do |result|
                       if result.status == :match
                         # TODO: should this hash be an Event instance instead?
                         event = {
@@ -80,16 +82,14 @@ module Datadog
                           actions: result.actions
                         }
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
-
+                        # We want to keep the trace in case of security event
+                        scope.trace.keep! if scope.trace
+                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
                         scope.processor_context.events << event
                       end
                     end
 
-                    _result, block = Sinatra::Reactive::Routed.publish(op, [gateway_request, gateway_route_params])
+                    block = Sinatra::Reactive::Routed.publish(op, [gateway_request, gateway_route_params])
                   end
 
                   next [nil, [[:block, event]]] if block

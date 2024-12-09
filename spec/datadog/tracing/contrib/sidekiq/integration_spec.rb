@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/sidekiq/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Sidekiq::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:sidekiq) }
 
   describe '.version' do

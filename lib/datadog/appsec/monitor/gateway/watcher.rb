@@ -24,7 +24,7 @@ module Datadog
                 scope = Datadog::AppSec.active_scope
 
                 AppSec::Reactive::Operation.new('identity.set_user') do |op|
-                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result, _block|
+                  Monitor::Reactive::SetUser.subscribe(op, scope.processor_context) do |result|
                     if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
@@ -35,19 +35,17 @@ module Datadog
                         actions: result.actions
                       }
 
-                      if scope.service_entry_span
-                        scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                        scope.service_entry_span.set_tag('appsec.event', 'true')
-                      end
-
+                      # We want to keep the trace in case of security event
+                      scope.trace.keep! if scope.trace
+                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
                       scope.processor_context.events << event
                     end
                   end
 
-                  _result, block = Monitor::Reactive::SetUser.publish(op, user)
+                  block = Monitor::Reactive::SetUser.publish(op, user)
                 end
 
-                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [:block, event]]) if block
+                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [[:block, event]]]) if block
 
                 ret, res = stack.call(user)
 

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'os'
 
 module PlatformHelpers
@@ -6,15 +8,15 @@ module PlatformHelpers
   # Ruby runtime engines
 
   def mri?
-    RUBY_ENGINE == 'ruby'.freeze
+    RUBY_ENGINE == 'ruby'
   end
 
   def jruby?
-    RUBY_ENGINE == 'jruby'.freeze
+    RUBY_ENGINE == 'jruby'
   end
 
   def truffleruby?
-    RUBY_ENGINE == 'truffleruby'.freeze
+    RUBY_ENGINE == 'truffleruby'
   end
 
   def engine_version

@@ -3,8 +3,6 @@ require 'spec_helper'
 require 'datadog/tracing/contrib/httpclient/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:httpclient) }
 
   describe '.version' do

@@ -1,0 +1,21 @@
+module Datadog
+  module Core
+    class Semaphore
+      @wake_lock: ::Mutex
+
+      @wake: ::ConditionVariable
+
+      def initialize: () -> void
+
+      def signal: () -> void
+
+      def wait: (Numeric|nil timeout) -> void
+
+      private
+
+      attr_reader wake_lock: ::Mutex
+
+      attr_reader wake: ::ConditionVariable
+    end
+  end
+end

@@ -14,7 +14,7 @@ module Datadog
 
           def initialize: (String name, String env_var, Symbol setting_key) -> void
           def call: (Object value) -> void
-          def configuration_object: () -> untyped
+          def configuration_object: () -> Core::Configuration::Options::InstanceMethods
         end
       end
     end

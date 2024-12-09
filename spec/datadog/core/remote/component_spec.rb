@@ -3,10 +3,11 @@
 require 'spec_helper'
 require 'datadog/core/remote/component'
 
-RSpec.describe Datadog::Core::Remote::Component do
+RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
   let(:component) { described_class.new(settings, capabilities, agent_settings) }
 
   around do |example|
@@ -14,7 +15,7 @@ RSpec.describe Datadog::Core::Remote::Component do
   end
 
   describe '.build' do
-    subject(:build) { described_class.build(settings, agent_settings) }
+    subject(:build) { described_class.build(settings, agent_settings, telemetry: telemetry) }
 
     after { build.shutdown! if build }
 
@@ -37,7 +38,10 @@ RSpec.describe Datadog::Core::Remote::Component do
       let(:component) { double('component', shutdown!: nil) }
 
       it 'initializes component' do
-        expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(settings).and_return(capabilities)
+        expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
+          settings,
+          telemetry
+        ).and_return(capabilities)
         expect(described_class).to receive(:new).with(settings, capabilities, agent_settings).and_return(component)
 
         is_expected.to eq(component)
@@ -59,7 +63,7 @@ RSpec.describe Datadog::Core::Remote::Component do
       let(:negotiation) { double }
 
       before do
-        expect(Datadog::Core::Transport::HTTP).to receive(:v7).and_return(transport_v7)
+        expect(Datadog::Core::Remote::Transport::HTTP).to receive(:v7).and_return(transport_v7)
         expect(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
         allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
@@ -202,7 +206,7 @@ RSpec.describe Datadog::Core::Remote::Component do
 end
 
 RSpec.describe Datadog::Core::Remote::Component::Barrier do
-  let(:delay) { 0.5 }
+  let(:delay) { 1.0 }
   let(:record) { [] }
   let(:timeout) { nil }
   let(:instance_timeout) { nil }
@@ -254,21 +258,19 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     context 'with waiters' do
       it 'unblocks waiters' do
-        waiter_thread_queue = Queue.new
         waiter_thread = Thread.new(record) do |record|
-          waiter_thread_queue << :ready
-          record << :wait
-          barrier.wait_once
-          record << :woke_up
-        end
+          record << :one
+          expect(barrier.wait_once).to eq :lift
+          record << :two
+        end.run
 
-        waiter_thread_queue.pop # Wait for ready
+        sleep delay
 
-        record << :one
+        record << :lift
         barrier.lift
         waiter_thread.join
 
-        expect(record).to eq [:wait, :one, :woke_up]
+        expect(record).to eq [:one, :lift, :two]
       end
     end
   end
@@ -278,7 +280,7 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     it 'blocks once' do
       record << :one
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :lift
       record << :two
 
       expect(record).to eq [:one, :lift, :two]
@@ -286,9 +288,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     it 'blocks only once' do
       record << :one
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :lift
       record << :two
-      barrier.wait_once
+      expect(barrier.wait_once).to eq :pass
       record << :three
 
       expect(record).to eq [:one, :lift, :two, :three]
@@ -300,9 +302,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       context('shorter than lift') do
         it 'unblocks on timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :two, :three]
@@ -310,14 +312,13 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
       end
 
       context('longer than lift') do
-        let(:delay) { 0.2 }
         let(:timeout) { delay * 2 }
 
         it 'unblocks before timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :lift
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :lift, :two, :three]
@@ -329,9 +330,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
         it 'prefers the local timeout' do
           record << :one
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :timeout
           record << :two
-          barrier.wait_once(timeout)
+          expect(barrier.wait_once(timeout)).to eq :pass
           record << :three
 
           expect(record).to eq [:one, :two, :three]
@@ -344,9 +345,9 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
       it 'unblocks on timeout' do
         record << :one
-        barrier.wait_once
+        expect(barrier.wait_once).to eq :timeout
         record << :two
-        barrier.wait_once
+        expect(barrier.wait_once).to eq :pass
         record << :three
 
         expect(record).to eq [:one, :two, :three]

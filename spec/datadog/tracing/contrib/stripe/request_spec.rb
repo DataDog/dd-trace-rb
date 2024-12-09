@@ -1,11 +1,11 @@
 require 'datadog/tracing/contrib/support/spec_helper'
-require 'ddtrace'
+require 'datadog'
 require 'stripe'
 
 RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
   before do
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.enable! options }
-    call_web_mock_function_with_agent_host_exclusions { |options| WebMock.disable_net_connect! options }
+    WebMock.enable!(allow: agent_url)
+    WebMock.disable_net_connect!(allow: agent_url)
 
     Stripe.api_key = 'sk_test_123'
 
@@ -41,7 +41,9 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
     expect(spans).to have(1).items
     expect(span.name).to eq('stripe.request')
     expect(span.resource).to eq('stripe.request')
-    expect(span.get_tag('stripe.request.id')).to eq('abc-123-def-456')
+    if Gem::Version.new(Stripe::VERSION) >= Gem::Version.new('5.38.0')
+      expect(span.get_tag('stripe.request.id')).to eq('abc-123-def-456')
+    end
     expect(span.get_tag('stripe.request.http_status')).to eq('200')
     expect(span.get_tag('stripe.request.method')).to eq('get')
     expect(span.get_tag('stripe.request.path')).to eq('/v1/customers/cus_123')
@@ -69,7 +71,9 @@ RSpec.describe Datadog::Tracing::Contrib::Stripe::Request do
       expect(spans).to have(1).items
       expect(span.name).to eq('stripe.request')
       expect(span.resource).to eq('stripe.customer')
-      expect(span.get_tag('stripe.request.id')).to eq('abc-123-def-456')
+      if Gem::Version.new(Stripe::VERSION) >= Gem::Version.new('5.38.0')
+        expect(span.get_tag('stripe.request.id')).to eq('abc-123-def-456')
+      end
       expect(span.get_tag('stripe.request.http_status')).to eq('200')
       expect(span.get_tag('stripe.request.method')).to eq('get')
       expect(span.get_tag('stripe.request.path')).to eq('/v1/customers/cus_123')

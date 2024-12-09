@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/grape/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Grape::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:grape) }
 
   describe '.version' do

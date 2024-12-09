@@ -1,21 +1,15 @@
-require 'rails/all'
+# Loaded by the `bin/rails` script in a real Rails application
+require 'rails/command'
 
-require 'ddtrace' if ENV['TEST_AUTO_INSTRUMENT'] == true
+# We may not always want to require rails/all, especially when we don't have a database.
+# require is already done where Rails test application is used, manually or through rails_helper.
 
 if ENV['USE_SIDEKIQ']
   require 'sidekiq/testing'
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 end
 
-require 'datadog/tracing/contrib/rails/support/controllers'
-require 'datadog/tracing/contrib/rails/support/middleware'
-require 'datadog/tracing/contrib/rails/support/models'
-
-RSpec.shared_context 'Rails 6 base application' do
-  include_context 'Rails controllers'
-  include_context 'Rails middleware'
-  include_context 'Rails models'
-
+RSpec.shared_context 'Rails 6 test application' do
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
       def config.database_configuration
@@ -33,7 +27,7 @@ RSpec.shared_context 'Rails 6 base application' do
         else
           [:redis_cache_store, { url: ENV['REDIS_URL'] }]
         end
-      file_cache = [:file_store, '/tmp/ddtrace-rb/cache/']
+      file_cache = [:file_store, '/tmp/datadog-rb/cache/']
 
       config.load_defaults '6.0'
       config.secret_key_base = 'f624861242e4ccf20eacb6bb48a886da'
@@ -45,14 +39,16 @@ RSpec.shared_context 'Rails 6 base application' do
 
       instance_eval(&during_init)
 
-      config.active_job.queue_adapter = :inline
-      if ENV['USE_SIDEKIQ']
-        config.active_job.queue_adapter = :sidekiq
-        # add Sidekiq middleware
-        Sidekiq::Testing.server_middleware do |chain|
-          chain.add(
-            Datadog::Tracing::Contrib::Sidekiq::ServerTracer
-          )
+      if config.respond_to?(:active_job)
+        config.active_job.queue_adapter = :inline
+        if ENV['USE_SIDEKIQ']
+          config.active_job.queue_adapter = :sidekiq
+          # add Sidekiq middleware
+          Sidekiq::Testing.server_middleware do |chain|
+            chain.add(
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+            )
+          end
         end
       end
     end
@@ -64,7 +60,7 @@ RSpec.shared_context 'Rails 6 base application' do
       # we want to disable explicit instrumentation
       # when testing auto patching
       if ENV['TEST_AUTO_INSTRUMENT'] == 'true'
-        require 'ddtrace/auto_instrument'
+        require 'datadog/auto_instrument'
       else
         # Enables the auto-instrumentation for the testing application
         Datadog.configure do |c|
@@ -73,11 +69,13 @@ RSpec.shared_context 'Rails 6 base application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                            :sidekiq
-                                                          else
-                                                            :inline
-                                                          end
+      if Rails.application.config.respond_to?(:active_job)
+        Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                              :sidekiq
+                                                            else
+                                                              :inline
+                                                            end
+      end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         # When running in full application mode, Rails tries to monitor
@@ -104,7 +102,7 @@ RSpec.shared_context 'Rails 6 base application' do
       initialize!
       after_test_init.call
     end
-    klass
+    Class.new(klass)
   end
 
   let(:before_test_initialize_block) do
@@ -121,7 +119,7 @@ RSpec.shared_context 'Rails 6 base application' do
       append_controllers!
 
       # Force connection to initialize, and dump some spans
-      application_record.connection
+      application_record.connection unless (defined? no_db) && no_db
 
       # Skip default Rails exception page rendering.
       # This avoid polluting the trace under test
@@ -137,6 +135,19 @@ RSpec.shared_context 'Rails 6 base application' do
         this.send(:render, wrapper.status_code, 'Test error response body', 'text/plain')
       end
     end
+  end
+
+  before do
+    reset_rails_configuration!
+  end
+
+  after do
+    reset_rails_configuration!
+
+    # Push this to base when Rails 3 removed
+    # Reset references stored in the Rails class
+    Rails.app_class = nil
+    Rails.cache = nil
   end
 
   def append_routes!
@@ -174,11 +185,11 @@ RSpec.shared_context 'Rails 6 base application' do
     # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
-    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options) if Module.const_defined?(:ActiveRecord)
 
     # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
     if Rails::VERSION::MINOR < 1
-      ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
+      ActionView::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
     end
 
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)

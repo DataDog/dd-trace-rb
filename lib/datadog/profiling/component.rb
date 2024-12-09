@@ -8,7 +8,7 @@ module Datadog
       # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
-        return unless settings.profiling.enabled
+        return [nil, {profiling_enabled: false}] unless settings.profiling.enabled
 
         # Workaround for weird dependency direction: the Core::Configuration::Components class currently has a
         # dependency on individual products, in this case the Profiler.
@@ -24,104 +24,89 @@ module Datadog
         #
         # ...thus in #1998 we removed such a require.
         #
-        # On the other hand, if datadog/core is loaded by a different product and no general `require 'ddtrace'` is
+        # On the other hand, if datadog/core is loaded by a different product and no general `require 'datadog'` is
         # done, then profiling may not be loaded, and thus to avoid this issue we do a require here (which is a
         # no-op if profiling is already loaded).
-        require_relative '../profiling'
-        return unless Profiling.supported?
+        require_relative "../profiling"
 
-        unless defined?(Profiling::Tasks::Setup)
-          # In #1545 a user reported a NameError due to this constant being uninitialized
-          # I've documented my suspicion on why that happened in
-          # https://github.com/DataDog/dd-trace-rb/issues/1545#issuecomment-856049025
-          #
-          # > Thanks for the info! It seems to feed into my theory: there's two moments in the code where we check if
-          # > profiler is "supported": 1) when loading ddtrace (inside preload) and 2) when starting the profile
-          # > after Datadog.configure gets run.
-          # > The problem is that the code assumes that both checks 1) and 2) will always reach the same conclusion:
-          # > either profiler is supported, or profiler is not supported.
-          # > In the problematic case, it looks like in your case check 1 decides that profiler is not
-          # > supported => doesn't load it, and then check 2 decides that it is => assumes it is loaded and tries to
-          # > start it.
-          #
-          # I was never able to validate if this was the issue or why exactly .supported? would change its mind BUT
-          # just in case it happens again, I've left this check which avoids breaking the user's application AND
-          # would instead direct them to report it to us instead, so that we can investigate what's wrong.
-          #
-          # TODO: As of June 2021, most checks in .supported? are related to the google-protobuf gem; so it's
-          # very likely that it was the origin of the issue we saw. Thus, if, as planned we end up moving away from
-          # protobuf OR enough time has passed and no users saw the issue again, we can remove this check altogether.
-          Datadog.logger.error(
-            'Profiling was marked as supported and enabled, but setup task was not loaded properly. ' \
-            'Please report this at https://github.com/DataDog/dd-trace-rb/blob/master/CONTRIBUTING.md#found-a-bug'
-          )
+        return [nil, {profiling_enabled: false}] unless Profiling.supported?
 
-          return
-        end
-
-        # Load extensions needed to support some of the Profiling features
+        # Activate forking extensions
         Profiling::Tasks::Setup.new.run
 
         # NOTE: Please update the Initialization section of ProfilingDevelopment.md with any changes to this method
 
-        no_signals_workaround_enabled = false
+        no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+        timeline_enabled = settings.profiling.advanced.timeline_enabled
+        allocation_profiling_enabled = enable_allocation_profiling?(settings)
+        heap_sample_every = get_heap_sample_every(settings)
+        heap_profiling_enabled = enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_every)
+        heap_size_profiling_enabled = enable_heap_size_profiling?(settings, heap_profiling_enabled)
 
-        if enable_new_profiler?(settings)
-          no_signals_workaround_enabled = no_signals_workaround_enabled?(settings)
+        overhead_target_percentage = valid_overhead_target(settings.profiling.advanced.overhead_target_percentage)
+        upload_period_seconds = [60, settings.profiling.advanced.upload_period_seconds].max
 
-          recorder = Datadog::Profiling::StackRecorder.new(
-            cpu_time_enabled: RUBY_PLATFORM.include?('linux'), # Only supported on Linux currently
-            alloc_samples_enabled: false, # Always disabled for now -- work in progress
-          )
-          collector = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
-            recorder: recorder,
-            max_frames: settings.profiling.advanced.max_frames,
-            tracer: optional_tracer,
-            endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
-            gc_profiling_enabled: enable_gc_profiling?(settings),
-            allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
-            no_signals_workaround_enabled: no_signals_workaround_enabled,
-            timeline_enabled: settings.profiling.advanced.experimental_timeline_enabled,
-          )
-        else
-          load_pprof_support
+        recorder = Datadog::Profiling::StackRecorder.new(
+          cpu_time_enabled: RUBY_PLATFORM.include?("linux"), # Only supported on Linux currently
+          alloc_samples_enabled: allocation_profiling_enabled,
+          heap_samples_enabled: heap_profiling_enabled,
+          heap_size_enabled: heap_size_profiling_enabled,
+          heap_sample_every: heap_sample_every,
+          timeline_enabled: timeline_enabled,
+          heap_clean_after_gc_enabled: settings.profiling.advanced.heap_clean_after_gc_enabled,
+        )
+        thread_context_collector = build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        worker = Datadog::Profiling::Collectors::CpuAndWallTimeWorker.new(
+          gc_profiling_enabled: enable_gc_profiling?(settings),
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          thread_context_collector: thread_context_collector,
+          dynamic_sampling_rate_overhead_target_percentage: overhead_target_percentage,
+          allocation_profiling_enabled: allocation_profiling_enabled,
+          allocation_counting_enabled: settings.profiling.advanced.allocation_counting_enabled,
+          gvl_profiling_enabled: enable_gvl_profiling?(settings),
+        )
 
-          recorder = build_profiler_old_recorder(settings)
-          collector = build_profiler_oldstack_collector(settings, recorder, optional_tracer)
+        internal_metadata = {
+          no_signals_workaround_enabled: no_signals_workaround_enabled,
+          timeline_enabled: timeline_enabled,
+          heap_sample_every: heap_sample_every,
+        }.freeze
+
+        exporter = build_profiler_exporter(settings, recorder, worker, internal_metadata: internal_metadata)
+        transport = build_profiler_transport(settings, agent_settings)
+        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport, interval: upload_period_seconds)
+        profiler = Profiling::Profiler.new(worker: worker, scheduler: scheduler)
+
+        if dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
+          Datadog::Profiling::Ext::DirMonkeyPatches.apply!
         end
 
-        exporter = build_profiler_exporter(settings, recorder, no_signals_workaround_enabled: no_signals_workaround_enabled)
-        transport = build_profiler_transport(settings, agent_settings)
-        scheduler = Profiling::Scheduler.new(exporter: exporter, transport: transport)
-
-        Profiling::Profiler.new([collector], scheduler)
+        [profiler, {profiling_enabled: true}]
       end
 
-      private_class_method def self.build_profiler_old_recorder(settings)
-        Profiling::OldRecorder.new([Profiling::Events::StackSample], settings.profiling.advanced.max_events)
+      private_class_method def self.build_thread_context_collector(settings, recorder, optional_tracer, timeline_enabled)
+        Datadog::Profiling::Collectors::ThreadContext.new(
+          recorder: recorder,
+          max_frames: settings.profiling.advanced.max_frames,
+          tracer: optional_tracer,
+          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled,
+          timeline_enabled: timeline_enabled,
+          waiting_for_gvl_threshold_ns: settings.profiling.advanced.waiting_for_gvl_threshold_ns,
+          otel_context_enabled: settings.profiling.advanced.preview_otel_context_enabled,
+        )
       end
 
-      private_class_method def self.build_profiler_exporter(settings, recorder, no_signals_workaround_enabled:)
+      private_class_method def self.build_profiler_exporter(settings, recorder, worker, internal_metadata:)
+        info_collector = Profiling::Collectors::Info.new(settings)
         code_provenance_collector =
           (Profiling::Collectors::CodeProvenance.new if settings.profiling.advanced.code_provenance_enabled)
 
         Profiling::Exporter.new(
           pprof_recorder: recorder,
+          worker: worker,
+          info_collector: info_collector,
           code_provenance_collector: code_provenance_collector,
-          no_signals_workaround_enabled: no_signals_workaround_enabled,
-        )
-      end
-
-      private_class_method def self.build_profiler_oldstack_collector(settings, old_recorder, tracer)
-        trace_identifiers_helper = Profiling::TraceIdentifiers::Helper.new(
-          tracer: tracer,
-          endpoint_collection_enabled: settings.profiling.advanced.endpoint.collection.enabled
-        )
-
-        Profiling::Collectors::OldStack.new(
-          old_recorder,
-          trace_identifiers_helper: trace_identifiers_helper,
-          max_frames: settings.profiling.advanced.max_frames
+          internal_metadata: internal_metadata,
         )
       end
 
@@ -136,40 +121,133 @@ module Datadog
       end
 
       private_class_method def self.enable_gc_profiling?(settings)
-        # See comments on the setting definition for more context on why it exists.
-        if settings.profiling.advanced.force_enable_gc_profiling
-          if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3')
-            Datadog.logger.debug(
-              'Profiling time/resources spent in Garbage Collection force enabled. Do not use Ractors in combination ' \
-              'with this option as profiles will be incomplete.'
-            )
-          end
+        return false unless settings.profiling.advanced.gc_enabled
 
-          true
-        else
-          false
+        # SEVERE - Only with Ractors
+        # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 gc profiling can trigger a VM bug
+        # that causes a segmentation fault during garbage collection of Ractors
+        # (https://bugs.ruby-lang.org/issues/18464). We don't allow enabling gc profiling on such Rubies.
+        # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?("3.0.") ||
+            (RUBY_VERSION.start_with?("3.1.") && RUBY_VERSION < "3.1.4") ||
+            (RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3")
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling GC profiling would cause " \
+            "crashes (https://bugs.ruby-lang.org/issues/18464). GC profiling has been disabled."
+          )
+          return false
+        elsif RUBY_VERSION.start_with?("3.")
+          Datadog.logger.debug(
+            "In all known versions of Ruby 3.x, using Ractors may result in GC profiling unexpectedly " \
+            "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
+            "application stability or performance. This does not happen if Ractors are not used."
+          )
         end
+
+        true
       end
 
-      private_class_method def self.enable_new_profiler?(settings)
-        if settings.profiling.advanced.force_enable_legacy_profiler
+      private_class_method def self.get_heap_sample_every(settings)
+        heap_sample_rate = settings.profiling.advanced.experimental_heap_sample_rate
+
+        raise ArgumentError, "Heap sample rate must be a positive integer. Was #{heap_sample_rate}" if heap_sample_rate <= 0
+
+        heap_sample_rate
+      end
+
+      private_class_method def self.enable_allocation_profiling?(settings)
+        return false unless settings.profiling.allocation_enabled
+
+        # Allocation sampling is safe and supported on Ruby 2.x, but has a few caveats on Ruby 3.x.
+
+        # SEVERE - All configurations
+        # Ruby 3.2.0 to 3.2.2 have a bug in the newobj tracepoint (https://bugs.ruby-lang.org/issues/19482,
+        # https://github.com/ruby/ruby/pull/7464) that makes this crash in any configuration. This bug is
+        # fixed on Ruby versions 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3"
           Datadog.logger.warn(
-            'Legacy profiler has been force-enabled via configuration. Do not use unless instructed to by support.'
+            "Allocation profiling is not supported in Ruby versions 3.2.0, 3.2.1 and 3.2.2 and will be forcibly " \
+            "disabled. This is due to a VM bug that can lead to crashes (https://bugs.ruby-lang.org/issues/19482). " \
+            "Other Ruby versions do not suffer from this issue."
           )
           return false
         end
+
+        # SEVERE - Only with Ractors
+        # On Ruby versions 3.0 (all), 3.1.0 to 3.1.3, and 3.2.0 to 3.2.2 allocation profiling can trigger a VM bug
+        # that causes a segmentation fault during garbage collection of Ractors
+        # (https://bugs.ruby-lang.org/issues/18464). We don't recommend using this feature on such Rubies.
+        # This bug is fixed on Ruby versions 3.1.4, 3.2.3 and 3.3.0.
+        if RUBY_VERSION.start_with?("3.0.") ||
+            (RUBY_VERSION.start_with?("3.1.") && RUBY_VERSION < "3.1.4") ||
+            (RUBY_VERSION.start_with?("3.2.") && RUBY_VERSION < "3.2.3")
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) has a VM bug where enabling allocation profiling while using " \
+            "Ractors may cause unexpected issues, including crashes (https://bugs.ruby-lang.org/issues/18464). " \
+            "This does not happen if Ractors are not used."
+          )
+        # ANNOYANCE - Only with Ractors
+        # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
+        # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
+        elsif RUBY_VERSION.start_with?("3.")
+          Datadog.logger.warn(
+            "In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly " \
+            "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
+            "application stability or performance. This does not happen if Ractors are not used."
+          )
+        end
+
+        Datadog.logger.debug("Enabled allocation profiling")
+
+        true
+      end
+
+      private_class_method def self.enable_heap_profiling?(settings, allocation_profiling_enabled, heap_sample_rate)
+        heap_profiling_enabled = settings.profiling.advanced.experimental_heap_enabled
+
+        return false unless heap_profiling_enabled
+
+        if RUBY_VERSION < "3.1"
+          Datadog.logger.warn(
+            "Current Ruby version (#{RUBY_VERSION}) cannot support heap profiling due to VM limitations. " \
+            "Please upgrade to Ruby >= 3.1 in order to use this feature. Heap profiling has been disabled."
+          )
+          return false
+        end
+
+        unless allocation_profiling_enabled
+          raise ArgumentError, "Heap profiling requires allocation profiling to be enabled"
+        end
+
+        Datadog.logger.warn(
+          "Enabled experimental heap profiling: heap_sample_rate=#{heap_sample_rate}. This is experimental, not " \
+          "recommended, and will increase overhead!"
+        )
+
+        true
+      end
+
+      private_class_method def self.enable_heap_size_profiling?(settings, heap_profiling_enabled)
+        heap_size_profiling_enabled = settings.profiling.advanced.experimental_heap_size_enabled
+
+        return false unless heap_profiling_enabled && heap_size_profiling_enabled
+
+        Datadog.logger.warn(
+          "Enabled experimental heap size profiling. This is experimental, not recommended, and will increase overhead!"
+        )
 
         true
       end
 
       private_class_method def self.no_signals_workaround_enabled?(settings) # rubocop:disable Metrics/MethodLength
         setting_value = settings.profiling.advanced.no_signals_workaround_enabled
-        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?('2.3.', '2.4.', '2.5.')
+        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?("2.5.")
 
         unless [true, false, :auto].include?(setting_value)
+          # TODO: Replace with a warning instead.
           Datadog.logger.error(
             "Ignoring invalid value for profiling no_signals_workaround_enabled setting: #{setting_value.inspect}. " \
-            'Valid options are `true`, `false` or (default) `:auto`.'
+            "Valid options are `true`, `false` or (default) `:auto`."
           )
 
           setting_value = :auto
@@ -179,10 +257,10 @@ module Datadog
           if legacy_ruby_that_should_use_workaround
             Datadog.logger.warn(
               'The profiling "no signals" workaround has been disabled via configuration on a legacy Ruby version ' \
-              '(< 2.6). This is not recommended ' \
-              'in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes ' \
-              'in very rare situations. Please report any issues you run into to Datadog support or ' \
-              'via <https://github.com/datadog/dd-trace-rb/issues/new>!'
+              "(< 2.6). This is not recommended " \
+              "in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes " \
+              "in very rare situations. Please report any issues you run into to Datadog support or " \
+              "via <https://github.com/datadog/dd-trace-rb/issues/new>!"
             )
           else
             Datadog.logger.warn('Profiling "no signals" workaround disabled via configuration')
@@ -204,31 +282,30 @@ module Datadog
         # We don't warn users in this situation because "upgrade your Ruby" is not a great warning
         return true if legacy_ruby_that_should_use_workaround
 
-        if Gem.loaded_specs['mysql2'] && incompatible_libmysqlclient_version?(settings)
+        if Gem.loaded_specs["mysql2"] && incompatible_libmysqlclient_version?(settings)
           Datadog.logger.warn(
             'Enabling the profiling "no signals" workaround because an incompatible version of the mysql2 gem is ' \
-            'installed. Profiling data will have lower quality. ' \
-            'To fix this, upgrade the libmysqlclient in your OS image to version 8.0.0 or above.'
+            "installed. Profiling data will have lower quality. " \
+            "To fix this, upgrade the libmysqlclient in your OS image to version 8.0.0 or above."
           )
           return true
         end
 
-        if Gem.loaded_specs['rugged']
+        if Gem.loaded_specs["rugged"]
           Datadog.logger.warn(
             'Enabling the profiling "no signals" workaround because the rugged gem is installed. ' \
-            'This is needed because some operations on this gem are currently incompatible with the normal working mode ' \
-            'of the profiler, as detailed in <https://github.com/datadog/dd-trace-rb/issues/2721>. ' \
-            'Profiling data will have lower quality.'
+            "This is needed because some operations on this gem are currently incompatible with the normal working mode " \
+            "of the profiler, as detailed in <https://github.com/datadog/dd-trace-rb/issues/2721>. " \
+            "Profiling data will have lower quality."
           )
           return true
         end
 
-        if defined?(::PhusionPassenger)
+        if (defined?(::PhusionPassenger) || Gem.loaded_specs["passenger"]) && incompatible_passenger_version?
           Datadog.logger.warn(
-            'Enabling the profiling "no signals" workaround because the passenger web server is in use. ' \
-            'This is needed because passenger is currently incompatible with the normal working mode ' \
-            'of the profiler, as detailed in <https://github.com/DataDog/dd-trace-rb/issues/2976>. ' \
-            'Profiling data will have lower quality.'
+            'Enabling the profiling "no signals" workaround because an incompatible version of the passenger gem is ' \
+            "installed. Profiling data will have lower quality." \
+            "To fix this, upgrade the passenger gem to version 6.0.19 or above."
           )
           return true
         end
@@ -249,11 +326,11 @@ module Datadog
         return true if settings.profiling.advanced.skip_mysql2_check
 
         Datadog.logger.debug(
-          'Requiring `mysql2` to check if the `libmysqlclient` version it uses is compatible with profiling'
+          "Requiring `mysql2` to check if the `libmysqlclient` version it uses is compatible with profiling"
         )
 
         begin
-          require 'mysql2'
+          require "mysql2"
 
           # The mysql2-aurora gem likes to monkey patch itself in replacement of Mysql2::Client, and uses
           # `method_missing` to delegate to the original BUT unfortunately does not implement `respond_to_missing?` and
@@ -270,19 +347,22 @@ module Datadog
 
           return true unless mysql2_client_class && mysql2_client_class.respond_to?(:info)
 
-          libmysqlclient_version = Gem::Version.new(mysql2_client_class.info[:version])
+          info = mysql2_client_class.info
+          libmysqlclient_version = Gem::Version.new(info[:version])
 
-          compatible = libmysqlclient_version >= Gem::Version.new('8.0.0')
+          compatible =
+            libmysqlclient_version >= Gem::Version.new("8.0.0") ||
+            looks_like_mariadb?(info, libmysqlclient_version)
 
           Datadog.logger.debug(
-            "The `mysql2` gem is using #{compatible ? 'a compatible' : 'an incompatible'} version of " \
+            "The `mysql2` gem is using #{compatible ? "a compatible" : "an incompatible"} version of " \
             "the `libmysqlclient` library (#{libmysqlclient_version})"
           )
 
           !compatible
         rescue StandardError, LoadError => e
           Datadog.logger.warn(
-            'Failed to probe `mysql2` gem information. ' \
+            "Failed to probe `mysql2` gem information. " \
             "Cause: #{e.class.name} #{e.message} Location: #{Array(e.backtrace).first}"
           )
 
@@ -290,17 +370,80 @@ module Datadog
         end
       end
 
-      # The old profiler's pprof support conflicts with the ruby-cloud-profiler gem.
+      # See https://github.com/datadog/dd-trace-rb/issues/2976 for details.
+      private_class_method def self.incompatible_passenger_version?
+        first_compatible_version = Gem::Version.new("6.0.19")
+
+        if Gem.loaded_specs["passenger"]
+          Gem.loaded_specs["passenger"].version < first_compatible_version
+        elsif defined?(PhusionPassenger::VERSION_STRING)
+          Gem::Version.new(PhusionPassenger::VERSION_STRING) < first_compatible_version
+        else
+          true
+        end
+      end
+
+      private_class_method def self.valid_overhead_target(overhead_target_percentage)
+        if overhead_target_percentage > 0 && overhead_target_percentage <= 20
+          overhead_target_percentage
+        else
+          # TODO: Replace with a warning instead.
+          Datadog.logger.error(
+            "Ignoring invalid value for profiling overhead_target_percentage setting: " \
+            "#{overhead_target_percentage.inspect}. Falling back to default value."
+          )
+
+          2.0
+        end
+      end
+
+      # To add just a bit more complexity to our detection code, in https://github.com/DataDog/dd-trace-rb/issues/3334
+      # a user reported that our code was incorrectly flagging the mariadb variant of libmysqlclient as being
+      # incompatible. In fact we have no reports of the mariadb variant needing the "no signals" workaround,
+      # so we flag it as compatible when it's in use.
       #
-      # This is not a problem for almost all customers, since we now default everyone to use the new CPU Profiling 2.0
-      # profiler. But the issue was still triggered, because currently we still _load_ both the old and new profiling
-      # code paths.
+      # A problem is that there doesn't seem to be an obvious way to query the mysql2 gem on which kind of
+      # libmysqlclient it's using, so we detect it by looking at the version.
       #
-      # To work around this issue, and because we plan on deleting the old profiler soon, rather than poking at the
-      # pprof support code, we only load the conflicting file when the old profiler is in use. This way customers using
-      # the new profiler will not be affected by the issue any longer.
-      private_class_method def self.load_pprof_support
-        require_relative 'pprof/pprof_pb'
+      # The info method for mysql2 with mariadb looks something like this:
+      # `{:id=>30308, :version=>"3.3.8", :header_version=>"11.2.2"}`
+      #
+      # * The version seems to come from https://github.com/mariadb-corporation/mariadb-connector-c and the latest
+      # one is 3.x.
+      # * The header_version is what people usually see as the "mariadb version"
+      #
+      # As a comparison, for libmysql the info looks like:
+      # * `{:id=>80035, :version=>"8.0.35", :header_version=>"8.0.35"}`
+      #
+      # Thus our detection is version 4 or older, because libmysqlclient 4 is almost 20 years old so it's most probably
+      # not that one + header_version being 10 or newer, since according to https://endoflife.date/mariadb that's a
+      # sane range for modern mariadb releases.
+      private_class_method def self.looks_like_mariadb?(info, libmysqlclient_version)
+        header_version = Gem::Version.new(info[:header_version]) if info[:header_version]
+
+        !!(header_version &&
+          libmysqlclient_version < Gem::Version.new("5.0.0") &&
+          header_version >= Gem::Version.new("10.0.0"))
+      end
+
+      private_class_method def self.dir_interruption_workaround_enabled?(settings, no_signals_workaround_enabled)
+        return false if no_signals_workaround_enabled || RUBY_VERSION >= "3.4"
+
+        settings.profiling.advanced.dir_interruption_workaround_enabled
+      end
+
+      private_class_method def self.enable_gvl_profiling?(settings)
+        if RUBY_VERSION < "3.2"
+          if settings.profiling.advanced.preview_gvl_enabled
+            Datadog.logger.warn("GVL profiling is currently not supported in Ruby < 3.2 and will not be enabled.")
+          end
+
+          return false
+        end
+
+        # GVL profiling only makes sense in the context of timeline. We could emit a warning here, but not sure how
+        # useful it is -- if a customer disables timeline, there's nowhere to look for GVL profiling anyway!
+        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.preview_gvl_enabled
       end
     end
   end

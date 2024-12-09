@@ -5,6 +5,7 @@ require_relative 'flush'
 require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
+require_relative 'diagnostics/environment_logger'
 
 module Datadog
   module Tracing
@@ -21,7 +22,7 @@ module Datadog
         end
       end
 
-      def build_tracer(settings, agent_settings)
+      def build_tracer(settings, agent_settings, logger:)
         # If a custom tracer has been provided, use it instead.
         # Ignore all other options (they should already be configured.)
         tracer = settings.tracing.instance
@@ -66,63 +67,45 @@ module Datadog
         end
       end
 
-      # TODO: Sampler should be a top-level component.
-      # It is currently part of the Tracer initialization
-      # process, but can take a variety of options (including
-      # a fully custom instance) that makes the Tracer
-      # initialization process complex.
       def build_sampler(settings)
+        # A custom sampler is provided
         if (sampler = settings.tracing.sampler)
-          if settings.tracing.priority_sampling == false
-            sampler
-          else
-            ensure_priority_sampling(sampler, settings)
-          end
-        elsif (rules = settings.tracing.sampling.rules)
+          return sampler
+        end
+
+        # AppSec events are sent to the backend using traces.
+        # Standalone ASM billing means that we don't want to charge clients for APM traces,
+        # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
+        # but for features such as API Security, we need to send at least one trace per minute,
+        # to keep the service alive on the backend side.
+        if settings.appsec.standalone.enabled
+          post_sampler = Tracing::Sampling::RuleSampler.new(
+            [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
+            rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0),
+            default_sample_rate: 1.0 / 60
+          )
+        end
+
+        # Sampling rules are provided
+        if (rules = settings.tracing.sampling.rules)
           post_sampler = Tracing::Sampling::RuleSampler.parse(
             rules,
             settings.tracing.sampling.rate_limit,
             settings.tracing.sampling.default_rate
           )
-
-          post_sampler ||= # Fallback RuleSampler in case `rules` parsing fails
-            Tracing::Sampling::RuleSampler.new(
-              rate_limit: settings.tracing.sampling.rate_limit,
-              default_sample_rate: settings.tracing.sampling.default_rate
-            )
-
-          Tracing::Sampling::PrioritySampler.new(
-            base_sampler: Tracing::Sampling::AllSampler.new,
-            post_sampler: post_sampler
-          )
-        elsif settings.tracing.priority_sampling == false
-          Tracing::Sampling::RuleSampler.new(
-            rate_limit: settings.tracing.sampling.rate_limit,
-            default_sample_rate: settings.tracing.sampling.default_rate
-          )
-        else
-          Tracing::Sampling::PrioritySampler.new(
-            base_sampler: Tracing::Sampling::AllSampler.new,
-            post_sampler: Tracing::Sampling::RuleSampler.new(
-              rate_limit: settings.tracing.sampling.rate_limit,
-              default_sample_rate: settings.tracing.sampling.default_rate
-            )
-          )
         end
-      end
 
-      def ensure_priority_sampling(sampler, settings)
-        if sampler.is_a?(Tracing::Sampling::PrioritySampler)
-          sampler
-        else
-          Tracing::Sampling::PrioritySampler.new(
-            base_sampler: sampler,
-            post_sampler: Tracing::Sampling::RuleSampler.new(
-              rate_limit: settings.tracing.sampling.rate_limit,
-              default_sample_rate: settings.tracing.sampling.default_rate
-            )
-          )
-        end
+        # The default sampler.
+        # Used if no custom sampler is provided, or if sampling rule parsing fails.
+        post_sampler ||= Tracing::Sampling::RuleSampler.new(
+          rate_limit: settings.tracing.sampling.rate_limit,
+          default_sample_rate: settings.tracing.sampling.default_rate
+        )
+
+        Tracing::Sampling::PrioritySampler.new(
+          base_sampler: Tracing::Sampling::AllSampler.new,
+          post_sampler: post_sampler
+        )
       end
 
       # TODO: Writer should be a top-level component.
@@ -130,12 +113,12 @@ module Datadog
       # process, but can take a variety of options (including
       # a fully custom instance) that makes the Tracer
       # initialization process complex.
-      def build_writer(settings, agent_settings)
+      def build_writer(settings, agent_settings, options = settings.tracing.writer_options)
         if (writer = settings.tracing.writer)
           return writer
         end
 
-        Tracing::Writer.new(agent_settings: agent_settings, **settings.tracing.writer_options)
+        Tracing::Writer.new(agent_settings: agent_settings, **options)
       end
 
       def subscribe_to_writer_events!(writer, sampler_delegator, test_mode)
@@ -154,8 +137,12 @@ module Datadog
       end
 
       WRITER_RECORD_ENVIRONMENT_INFORMATION_CALLBACK = lambda do |_, responses|
-        Core::Diagnostics::EnvironmentLogger.log!(responses)
+        WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE.run do
+          Tracing::Diagnostics::EnvironmentLogger.collect_and_log!(responses: responses)
+        end
       end
+
+      WRITER_RECORD_ENVIRONMENT_INFORMATION_ONLY_ONCE = Core::Utils::OnlyOnce.new
 
       # Create new lambda for writer callback,
       # capture the current sampler in the callback closure.
@@ -172,6 +159,11 @@ module Datadog
       def build_span_sampler(settings)
         rules = Tracing::Sampling::Span::RuleParser.parse_json(settings.tracing.sampling.span_rules)
         Tracing::Sampling::Span::Sampler.new(rules || [])
+      end
+
+      # Configure non-privileged components.
+      def configure_tracing(settings)
+        Datadog::Tracing::Contrib::Component.configure(settings)
       end
 
       # Sampler wrapper component, to allow for hot-swapping
@@ -219,8 +211,11 @@ module Datadog
       end
 
       def build_test_mode_writer(settings, agent_settings)
-        # Flush traces synchronously, to guarantee they are written.
         writer_options = settings.tracing.test_mode.writer_options || {}
+
+        return build_writer(settings, agent_settings, writer_options) if settings.tracing.test_mode.async
+
+        # Flush traces synchronously, to guarantee they are written.
         Tracing::SyncWriter.new(agent_settings: agent_settings, **writer_options)
       end
     end

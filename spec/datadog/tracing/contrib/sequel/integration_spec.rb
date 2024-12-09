@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/sequel/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Sequel::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:sequel) }
 
   describe '.version' do

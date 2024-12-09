@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../configuration/settings'
 require_relative '../ext'
 
@@ -15,6 +17,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -28,7 +31,10 @@ module Datadog
             end
 
             option :service_name
-            option :template_base_path, default: 'views/'
+            option :template_base_path do |o|
+              o.type :string
+              o.default 'views/'
+            end
           end
         end
       end

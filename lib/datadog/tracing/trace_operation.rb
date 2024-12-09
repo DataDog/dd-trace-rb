@@ -1,11 +1,14 @@
+# frozen_string_literal: true
+
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-
+require_relative 'tracer'
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
 require_relative 'trace_digest'
+require_relative 'correlation'
 require_relative 'trace_segment'
 require_relative 'utils'
 
@@ -33,7 +36,8 @@ module Datadog
         :rate_limiter_rate,
         :rule_sample_rate,
         :sample_rate,
-        :sampling_priority
+        :sampling_priority,
+        :remote_parent
 
       attr_reader \
         :active_span_count,
@@ -70,13 +74,17 @@ module Datadog
         tags: nil,
         metrics: nil,
         trace_state: nil,
-        trace_state_unknown_fields: nil
+        trace_state_unknown_fields: nil,
+        remote_parent: false,
+        tracer: nil
+
       )
         # Attributes
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
         @sampled = sampled.nil? ? true : sampled
+        @remote_parent = remote_parent
 
         # Tags
         @agent_sample_rate = agent_sample_rate
@@ -92,6 +100,7 @@ module Datadog
         @profiling_enabled = profiling_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
+        @tracer = tracer
 
         # Generic tags
         set_tags(tags) if tags
@@ -137,13 +146,12 @@ module Datadog
       end
 
       def keep!
-        self.sampled = true
         self.sampling_priority = Sampling::Ext::Priority::USER_KEEP
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
+        self.sampled = true # Just in case the in-app sampler had decided to drop this span, we revert that decision.
       end
 
       def reject!
-        self.sampled = false
         self.sampling_priority = Sampling::Ext::Priority::USER_REJECT
         set_tag(Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER, Tracing::Sampling::Ext::Decision::MANUAL)
       end
@@ -154,6 +162,23 @@ module Datadog
 
       def resource
         @resource || (root_span && root_span.resource)
+      end
+
+      # When retrieving tags or metrics we need to include root span tags for sampling purposes
+      def get_tag(key)
+        super || (root_span && root_span.get_tag(key))
+      end
+
+      def get_metric(key)
+        super || (root_span && root_span.get_metric(key))
+      end
+
+      def tags
+        all_tags = {}
+        all_tags.merge!(root_span&.tags || {}) if root_span
+        all_tags.merge!(super)
+
+        all_tags
       end
 
       # Returns true if the resource has been explicitly set
@@ -176,6 +201,7 @@ module Datadog
         start_time: nil,
         tags: nil,
         type: nil,
+        id: nil,
         &block
       )
         # Don't allow more span measurements if the
@@ -192,7 +218,8 @@ module Datadog
           service: service,
           start_time: start_time,
           tags: tags,
-          type: type
+          type: type,
+          id: id
         )
 
         # Start span measurement
@@ -207,7 +234,8 @@ module Datadog
         service: nil,
         start_time: nil,
         tags: nil,
-        type: nil
+        type: nil,
+        id: nil
       )
         begin
           # Resolve span options:
@@ -244,7 +272,8 @@ module Datadog
             start_time: start_time,
             tags: tags,
             trace_id: trace_id,
-            type: type
+            type: type,
+            id: id
           )
         rescue StandardError => e
           Datadog.logger.debug { "Failed to build new span: #{e}" }
@@ -275,10 +304,14 @@ module Datadog
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
+      # DEV-3.0: Sampling is a side effect of generating the digest.
+      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
+        # sample the trace_operation with the tracer
+        @tracer&.sample_trace(self) unless sampling_priority
 
         TraceDigest.new(
           span_id: span_id,
@@ -298,7 +331,19 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
+          span_remote: (@remote_parent && @active_span.nil?),
         ).freeze
+      end
+
+      def to_correlation
+        # Resolve current span ID
+        span_id = @active_span && @active_span.id
+        span_id ||= @parent_span_id unless finished?
+
+        Correlation::Identifier.new(
+          trace_id: @id,
+          span_id: span_id
+        )
       end
 
       # Returns a copy of this trace suitable for forks (w/o spans.)
@@ -323,7 +368,8 @@ module Datadog
           trace_state: (@trace_state && @trace_state.dup),
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
-          metrics: metrics.dup
+          metrics: metrics.dup,
+          remote_parent: @remote_parent
         )
       end
 

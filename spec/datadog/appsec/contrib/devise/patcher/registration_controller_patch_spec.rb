@@ -66,6 +66,17 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
       expect(controller.create).to eq(true)
     end
+
+    context 'and a block is given' do
+      let(:canary) { proc { |resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'do not tracks event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+        expect(controller.create(&block)).to eq(true)
+      end
+    end
   end
 
   context 'Automated user tracking is disabled' do
@@ -76,6 +87,17 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
     it 'do not tracks event' do
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
       expect(controller.create).to eq(true)
+    end
+
+    context 'and a block is given' do
+      let(:canary) { proc { |resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'do not tracks event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+        expect(controller.create(&block)).to eq(true)
+      end
     end
   end
 
@@ -89,6 +111,17 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
       expect(controller.create).to eq(true)
     end
+
+    context 'and a block is given' do
+      let(:canary) { proc { |resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'do not tracks event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+        expect(controller.create(&block)).to eq(true)
+      end
+    end
   end
 
   context 'with persisted resource' do
@@ -98,6 +131,41 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
 
     context 'with resource ID' do
       let(:resource) { persited_resource }
+
+      context 'and a block is given' do
+        let(:canary) { proc { |resource| } }
+        let(:block) { proc { |resource| canary.call(resource) } }
+
+        context 'safe mode' do
+          let(:mode) { 'safe' }
+
+          it 'tracks event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
+              appsec_scope.trace,
+              appsec_scope.service_entry_span,
+              user_id: resource.id,
+              **{}
+            )
+            expect(canary).to receive(:call).with(resource)
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+
+        context 'extended mode' do
+          let(:mode) { 'extended' }
+
+          it 'tracks event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
+              appsec_scope.trace,
+              appsec_scope.service_entry_span,
+              user_id: resource.id,
+              **{ email: 'hello@gmail.com', username: 'John' }
+            )
+            expect(canary).to receive(:call).with(resource)
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+      end
 
       context 'safe mode' do
         let(:mode) { 'safe' }
@@ -130,6 +198,41 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
 
     context 'without resource ID' do
       let(:resource) { mock_resource.new(nil, 'hello@gmail.com', 'John', true) }
+
+      context 'and a block is given' do
+        let(:canary) { proc { |resource| } }
+        let(:block) { proc { |resource| canary.call(resource) } }
+
+        context 'safe mode' do
+          let(:mode) { 'safe' }
+
+          it 'tracks event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
+              appsec_scope.trace,
+              appsec_scope.service_entry_span,
+              user_id: nil,
+              **{}
+            )
+            expect(canary).to receive(:call).with(resource)
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+
+        context 'extended mode' do
+          let(:mode) { 'extended' }
+
+          it 'tracks event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
+              appsec_scope.trace,
+              appsec_scope.service_entry_span,
+              user_id: nil,
+              **{ email: 'hello@gmail.com', username: 'John' }
+            )
+            expect(canary).to receive(:call).with(resource)
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+      end
 
       context 'safe mode' do
         let(:mode) { 'safe' }
@@ -174,6 +277,17 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
         expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
         expect(controller.create).to eq(true)
       end
+
+      context 'and a block is given' do
+        let(:canary) { proc { |resource| } }
+        let(:block) { proc { |resource| canary.call(resource) } }
+
+        it 'do not tracks event' do
+          expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+          expect(canary).to receive(:call).with(resource)
+          expect(controller.create(&block)).to eq(true)
+        end
+      end
     end
 
     context 'extended mode' do
@@ -182,6 +296,17 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
       it 'tracks event' do
         expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
         expect(controller.create).to eq(true)
+      end
+
+      context 'and a block is given' do
+        let(:canary) { proc { |resource| } }
+        let(:block) { proc { |resource| canary.call(resource) } }
+
+        it 'do not tracks event' do
+          expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+          expect(canary).to receive(:call).with(resource)
+          expect(controller.create(&block)).to eq(true)
+        end
       end
     end
   end

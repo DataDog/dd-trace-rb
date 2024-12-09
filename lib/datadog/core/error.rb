@@ -15,6 +15,7 @@ module Datadog
           when Array then new(*value)
           when Exception then new(value.class, value.message, full_backtrace(value))
           when ContainsMessage then new(value.class, value.message)
+          when String then new(nil, value)
           else BlankError
           end
         end

@@ -1,0 +1,11 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GraphQL
+        module UnifiedTracePatcher
+          def self?.patch!: (Array[GraphQL::Schema] schemas, Hash[Symbol, bool | Float | String | nil] options) -> void
+        end
+      end
+    end
+  end
+end

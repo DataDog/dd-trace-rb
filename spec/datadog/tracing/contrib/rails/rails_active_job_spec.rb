@@ -45,13 +45,16 @@ RSpec.describe 'ActiveJob' do
       ExampleJob
     end
 
+    let(:logger) do
+      ::ActiveSupport::TaggedLogging.new(super())
+    end
+
     before do
       Datadog.configure do |c|
         c.tracing.instrument :active_job
       end
 
       allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('USE_TAGGED_LOGGING').and_return(true)
 
       # initialize the application
       app
@@ -77,7 +80,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.name).to eq('active_job.enqueue')
       expect(span.resource).to eq('ExampleJob')
       expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('mice')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_job')
@@ -97,7 +100,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.name).to eq('active_job.enqueue')
       expect(span.resource).to eq('ExampleJob')
       expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('mice')
       expect(span.get_tag('active_job.job.scheduled_at').to_time).to be_within(1).of(scheduled_at)
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -117,7 +120,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.name).to eq('active_job.perform')
       expect(span.resource).to eq('ExampleJob')
       expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_job')
@@ -140,7 +143,7 @@ RSpec.describe 'ActiveJob' do
       expect(enqueue_retry_span.name).to eq('active_job.enqueue_retry')
       expect(enqueue_retry_span.resource).to eq('ExampleJob')
       expect(enqueue_retry_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(enqueue_retry_span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(enqueue_retry_span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(enqueue_retry_span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(enqueue_retry_span.get_tag('active_job.job.error')).to eq('JobRetryError')
       expect(enqueue_retry_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -159,7 +162,7 @@ RSpec.describe 'ActiveJob' do
       expect(retry_stopped_span.name).to eq('active_job.retry_stopped')
       expect(retry_stopped_span.resource).to eq('ExampleJob')
       expect(retry_stopped_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(retry_stopped_span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(retry_stopped_span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(retry_stopped_span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(retry_stopped_span.get_tag('active_job.job.error')).to eq('JobRetryError')
       expect(retry_stopped_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -183,7 +186,7 @@ RSpec.describe 'ActiveJob' do
       expect(span.name).to eq('active_job.discard')
       expect(span.resource).to eq('ExampleJob')
       expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
-      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f\-]{32}/)
+      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(span.get_tag('active_job.job.error')).to eq('JobDiscardError')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -207,7 +210,7 @@ RSpec.describe 'ActiveJob' do
         it 'injects trace correlation' do
           perform_later
           expect(output).to include('my-log')
-          expect(output).to include(span.trace_id.to_s)
+          expect(output).to include(low_order_trace_id(span.trace_id).to_s)
         end
       end
 

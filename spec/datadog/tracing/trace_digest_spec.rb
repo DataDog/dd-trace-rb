@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'support/object_helpers'
 
 require 'datadog/core/environment/identity'
 
@@ -91,7 +92,7 @@ RSpec.describe Datadog::Tracing::TraceDigest do
 
       context ':trace_id' do
         let(:options) { { trace_id: trace_id } }
-        let(:trace_id) { Datadog::Tracing::Utils.next_id }
+        let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
 
         it { is_expected.to have_attributes(trace_id: trace_id) }
       end
@@ -173,5 +174,21 @@ RSpec.describe Datadog::Tracing::TraceDigest do
         it { is_expected.to have_attributes(trace_state_unknown_fields: be_a_frozen_copy_of(trace_state_unknown_fields)) }
       end
     end
+  end
+
+  describe '#merge' do
+    let(:merge) { trace_digest.merge(args) }
+    let(:args) { { span_name: 'new span name' } }
+    let(:options) { { trace_name: 'trace name' } }
+
+    it 'overrides the provided field' do
+      expect(merge.span_name).to be_a_frozen_copy_of('new span name')
+    end
+
+    it 'does not modify non provided fields' do
+      expect(merge.trace_name).to eq('trace name')
+    end
+
+    it { is_expected.to be_frozen }
   end
 end

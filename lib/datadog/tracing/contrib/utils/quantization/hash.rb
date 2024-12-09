@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Datadog
   module Tracing
     module Contrib
@@ -5,7 +7,7 @@ module Datadog
         module Quantization
           # Quantization for Hash
           module Hash
-            PLACEHOLDER = '?'.freeze
+            PLACEHOLDER = '?'
             EXCLUDE_KEYS = [].freeze
             SHOW_KEYS = [].freeze
             DEFAULT_OPTIONS = {

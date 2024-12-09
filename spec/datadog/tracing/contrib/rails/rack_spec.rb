@@ -37,11 +37,11 @@ RSpec.describe 'Rails Rack' do
 
         self.view_paths = [ActionView::FixtureResolver.new(
           'layouts/application.html.erb' => '<%= yield %>',
-          'test/full.html.erb' => 'Test template content',
+          'test/full.html.erb' => 'Test template content with type <%= Datadog::Tracing.active_span.type %>',
           'test/template_with_partial.html.erb' => 'Template with <%= render "test/outer_partial" %>',
           'test/partial_does_not_exist.html.erb' => '<%= render "test/no_partial_here" %>',
           'test/_outer_partial.html.erb' => 'a partial inside <%= render "test/inner_partial" %>',
-          'test/_inner_partial.html.erb' => 'a partial',
+          'test/_inner_partial.html.erb' => 'a partial with type <%= Datadog::Tracing.active_span.type %>',
           'test/error_template.html.erb' => '<%= 1/0 %>',
           'test/error_partial.html.erb' => 'Oops <%= render "test/inner_error" %>',
           'test/_inner_error.html.erb' => '<%= 1/0 %>'
@@ -140,7 +140,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#full')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.service).to eq(tracer.default_service)
       expect(request_span.resource).to eq('TestController#full')
       expect(request_span.get_tag('http.url')).to eq('/full')
@@ -151,9 +151,11 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/full')
 
       expect(controller_span.name).to eq('rails.action_controller')
-      expect(controller_span.span_type).to eq('web')
+      expect(controller_span.type).to eq('web')
       expect(controller_span.service).to eq(tracer.default_service)
       expect(controller_span.resource).to eq('TestController#full')
       expect(controller_span.get_tag('rails.route.action')).to eq('full')
@@ -163,7 +165,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span).to be_measured
 
       expect(cache_span.name).to eq('rails.cache')
-      expect(cache_span.span_type).to eq('cache')
+      expect(cache_span.type).to eq('cache')
       expect(cache_span.resource).to eq('SET')
       expect(cache_span.service).to eq('active_support-cache')
       expect(cache_span.get_tag('rails.cache.backend').to_s).to eq('file_store')
@@ -171,7 +173,7 @@ RSpec.describe 'Rails Rack' do
       expect(cache_span).to_not be_measured
 
       expect(render_span.name).to eq('rails.render_template')
-      expect(render_span.span_type).to eq('template')
+      expect(render_span.type).to eq('template')
       expect(render_span.service).to eq(tracer.default_service)
       expect(render_span.resource).to eq('full.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('full.html.erb')
@@ -183,8 +185,8 @@ RSpec.describe 'Rails Rack' do
       expect(render_span).to be_measured
     end
 
-    it 'tracing does not affect response body' do
-      expect(response.body).to eq('Test template content')
+    it 'populate span fields before the template runs' do
+      expect(response.body).to eq('Test template content with type template')
     end
 
     context 'without explicit layout' do
@@ -217,30 +219,30 @@ RSpec.describe 'Rails Rack' do
       _rack_span, _controller_span, inner_partial_span, outer_partial_span, template_span = spans
 
       expect(inner_partial_span.name).to eq('rails.render_partial')
-      expect(inner_partial_span.span_type).to eq('template')
+      expect(inner_partial_span.type).to eq('template')
       expect(inner_partial_span.resource).to eq('_inner_partial.html.erb')
       expect(inner_partial_span.get_tag('rails.template_name')).to eq('_inner_partial.html.erb')
       expect(inner_partial_span).to be_measured
-      expect(inner_partial_span.parent_id).to eq(outer_partial_span.span_id)
+      expect(inner_partial_span.parent_id).to eq(outer_partial_span.id)
       expect(inner_partial_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('action_view')
       expect(inner_partial_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('render_partial')
 
       expect(outer_partial_span.name).to eq('rails.render_partial')
-      expect(outer_partial_span.span_type).to eq('template')
+      expect(outer_partial_span.type).to eq('template')
       expect(outer_partial_span.resource).to eq('_outer_partial.html.erb')
       expect(outer_partial_span.get_tag('rails.template_name')).to eq('_outer_partial.html.erb')
       expect(outer_partial_span).to be_measured
-      expect(outer_partial_span.parent_id).to eq(template_span.span_id)
+      expect(outer_partial_span.parent_id).to eq(template_span.id)
       expect(inner_partial_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('action_view')
       expect(inner_partial_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('render_partial')
     end
 
-    it 'tracing does not affect response body' do
-      expect(response.body).to eq('Template with a partial inside a partial')
+    it 'populate span fields before the partial runs' do
+      expect(response.body).to eq('Template with a partial inside a partial with type template')
     end
   end
 
@@ -282,7 +284,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(template_span.name).to eq('rails.render_template')
       expect(template_span.resource).to eq('rails.render_template') # Fallback value due to missing template
-      expect(template_span.span_type).to eq('template')
+      expect(template_span.type).to eq('template')
       expect(template_span.get_tag('rails.template_name')).to be_nil
       expect(template_span.get_tag('rails.layout')).to be_nil
       expect(template_span).to have_error
@@ -335,7 +337,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(partial_span.name).to eq('rails.render_partial')
       expect(partial_span.resource).to eq('rails.render_partial') # Fallback value due to missing partial
-      expect(partial_span.span_type).to eq('template')
+      expect(partial_span.type).to eq('template')
       expect(partial_span.get_tag('rails.template_name')).to be_nil
       expect(partial_span.get_tag('rails.layout')).to be_nil
       expect(partial_span).to have_error
@@ -349,7 +351,7 @@ RSpec.describe 'Rails Rack' do
 
       expect(template_span.name).to eq('rails.render_template')
       expect(template_span.resource).to eq('partial_does_not_exist.html.erb') # Fallback value due to missing template
-      expect(template_span.span_type).to eq('template')
+      expect(template_span.type).to eq('template')
       expect(template_span.get_tag('rails.template_name')).to eq('partial_does_not_exist.html.erb')
       expect(template_span.get_tag('rails.layout')).to eq('layouts/application')
       expect(template_span).to have_error
@@ -376,7 +378,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#error')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.resource).to eq('TestController#error')
       expect(request_span.get_tag('http.url')).to eq('/error')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -387,6 +389,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -411,7 +415,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#soft_error')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.resource).to eq('TestController#soft_error')
       expect(request_span.get_tag('http.url')).to eq('/soft_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -422,6 +426,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/soft_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -446,7 +452,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#sub_error')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.resource).to eq('TestController#sub_error')
       expect(request_span.get_tag('http.url')).to eq('/sub_error')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -460,6 +466,8 @@ RSpec.describe 'Rails Rack' do
         .to eq('rack')
       expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('request')
+      expect(request_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+        .to eq('/sub_error')
 
       expect(controller_span.name).to eq('rails.action_controller')
       expect(controller_span).to have_error
@@ -484,7 +492,7 @@ RSpec.describe 'Rails Rack' do
       expect(trace.resource).to eq('TestController#error_handled_by_rescue_from')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.get_tag('http.method')).to eq('GET')
       expect(request_span.get_tag('http.status_code')).to eq('200')
       expect(request_span).to_not have_error
@@ -573,9 +581,10 @@ RSpec.describe 'Rails Rack' do
       request_span = spans[0]
 
       expect(trace.resource).to eq('GET 404')
+      expect(trace.send(:meta)).not_to have_key('http.route')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.resource).to eq('GET 404')
       expect(request_span.get_tag('http.url')).to eq('/this_route_does_not_exist')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -599,9 +608,10 @@ RSpec.describe 'Rails Rack' do
       request_span = spans[0]
 
       expect(trace.resource).to eq('TestController#explicitly_not_found')
+      expect(trace.send(:meta).fetch('http.route')).to eq('/explicitly_not_found')
 
       expect(request_span.name).to eq('rack.request')
-      expect(request_span.span_type).to eq('web')
+      expect(request_span.type).to eq('web')
       expect(request_span.resource).to eq('TestController#explicitly_not_found')
       expect(request_span.get_tag('http.url')).to eq('/explicitly_not_found')
       expect(request_span.get_tag('http.method')).to eq('GET')
@@ -650,7 +660,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
 
       expect(render_span.name).to eq('rails.render_template')
-      expect(render_span.span_type).to eq('template')
+      expect(render_span.type).to eq('template')
       expect(render_span.resource).to eq('error_template.html.erb')
       expect(render_span.get_tag('rails.template_name')).to eq('error_template.html.erb')
       expect(render_span.get_tag('rails.layout')).to eq('layouts/application')
@@ -694,7 +704,7 @@ RSpec.describe 'Rails Rack' do
       expect(controller_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION)).to eq('controller')
 
       expect(partial_span.name).to eq('rails.render_partial')
-      expect(partial_span.span_type).to eq('template')
+      expect(partial_span.type).to eq('template')
       expect(partial_span.resource).to eq('_inner_error.html.erb')
       expect(partial_span.get_tag('rails.template_name')).to include('_inner_error.html')
       expect(partial_span.get_tag('rails.layout')).to be_nil

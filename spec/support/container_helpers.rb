@@ -1,7 +1,7 @@
 require 'stringio'
 
 module ContainerHelpers
-  shared_context 'cgroup file' do
+  RSpec.shared_context 'cgroup file' do
     let(:cgroup_file) { StringIO.new }
 
     before do
@@ -21,7 +21,7 @@ module ContainerHelpers
   end
 
   # rubocop:disable Layout/LineLength
-  shared_context 'non-containerized environment' do
+  RSpec.shared_context 'non-containerized environment' do
     include_context 'cgroup file'
 
     let(:platform) { nil }
@@ -45,7 +45,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'non-containerized environment with VTE' do
+  RSpec.shared_context 'non-containerized environment with VTE' do
     include_context 'cgroup file'
 
     let(:platform) { 'user' }
@@ -70,7 +70,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Docker environment' do
+  RSpec.shared_context 'Docker environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'docker' }
@@ -95,7 +95,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Kubernetes environment' do
+  RSpec.shared_context 'Kubernetes environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'kubepods' }
@@ -119,7 +119,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Kubernetes burstable environment' do
+  RSpec.shared_context 'Kubernetes burstable environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'kubepods' }
@@ -143,7 +143,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'ECS environment' do
+  RSpec.shared_context 'ECS environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
@@ -165,7 +165,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate 1.3- environment' do
+  RSpec.shared_context 'Fargate 1.3- environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
@@ -189,7 +189,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate 1.4+ environment' do
+  RSpec.shared_context 'Fargate 1.4+ environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
@@ -213,7 +213,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate 1.4+ (2-part) environment' do
+  RSpec.shared_context 'Fargate 1.4+ (2-part) environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
@@ -237,7 +237,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate 1.4+ (2-part short random) environment' do
+  RSpec.shared_context 'Fargate 1.4+ (2-part short random) environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }
@@ -262,7 +262,7 @@ module ContainerHelpers
     end
   end
 
-  shared_context 'Fargate 1.4+ with ECS+docker environment' do
+  RSpec.shared_context 'Fargate 1.4+ with ECS+docker environment' do
     include_context 'cgroup file'
 
     let(:platform) { 'ecs' }

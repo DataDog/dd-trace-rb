@@ -1,0 +1,13 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module API
+          class Map < Hash[untyped, untyped]
+            include Fallbacks
+          end
+        end
+      end
+    end
+  end
+end

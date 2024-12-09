@@ -1,8 +1,0 @@
-module Datadog
-  module Profiling
-    module TraceIdentifiers
-      class Ddtrace
-      end
-    end
-  end
-end

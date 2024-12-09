@@ -2,12 +2,12 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'time'
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Redis integration test' do
-  before do
-    skip unless ENV['TEST_DATADOG_INTEGRATION']
+  skip_unless_integration_testing_enabled
 
+  before do
     use_real_tracer!
 
     Datadog.configure do |c|

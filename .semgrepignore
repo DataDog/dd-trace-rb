@@ -1,0 +1,9 @@
+# Before adding an exception to a whole file,
+# please try to only ignore a single source code line, with a specific security rule:
+# ```ruby
+# dangerous_code() # nosemgrep: ruby.lang.security.dangerous-exec.dangerous-exec
+# ```
+# Documentation: https://github.com/returntocorp/semgrep-docs/blob/5750a5afe8a06fb268c5fbc573f2a7bf3bf14f31/docs/ignoring-files-folders-code.md#ignoring-code-through-nosemgrep
+#
+# To completely ignore a file or directory, use .gitignore syntax in this file.
+# Documentation: https://github.com/returntocorp/semgrep-docs/blob/5750a5afe8a06fb268c5fbc573f2a7bf3bf14f31/docs/ignoring-files-folders-code.md

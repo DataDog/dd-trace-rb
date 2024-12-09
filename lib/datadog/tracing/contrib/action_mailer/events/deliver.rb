@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../ext'
 require_relative '../event'
@@ -11,7 +13,7 @@ module Datadog
           module Deliver
             include ActionMailer::Event
 
-            EVENT_NAME = 'deliver.action_mailer'.freeze
+            EVENT_NAME = 'deliver.action_mailer'
 
             module_function
 
@@ -28,16 +30,21 @@ module Datadog
               Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               super
 
-              span.span_type = span_type
+              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
+            end
+
+            def on_finish(span, event, _id, payload)
+              super
+
+              span.resource = payload[:mailer] # Mailer is not available at `on_start`
+
               span.set_tag(Ext::TAG_MAILER, payload[:mailer])
               span.set_tag(Ext::TAG_MSG_ID, payload[:message_id])
 
-              span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_DELIVER)
-
-              # Since email date can contain PII we disable by default
+              # Since email data can contain PII we disable by default
               # Some of these fields can be either strings or arrays, so we try to normalize
               # https://github.com/rails/rails/blob/18707ab17fa492eb25ad2e8f9818a320dc20b823/actionmailer/lib/action_mailer/base.rb#L742-L754
               if configuration[:email_data] == true

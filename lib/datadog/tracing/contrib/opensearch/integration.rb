@@ -18,8 +18,8 @@ module Datadog
           register_as :opensearch, auto_patch: true
 
           def self.version
-            Gem.loaded_specs['opensearch-transport'] \
-              && Gem.loaded_specs['opensearch-transport'].version
+            Gem.loaded_specs['opensearch-ruby'] \
+              && Gem.loaded_specs['opensearch-ruby'].version
           end
 
           def self.loaded?

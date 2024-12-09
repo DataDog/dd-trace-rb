@@ -7,17 +7,21 @@ module Datadog
           module InstancePatch
             def self.included: (untyped base) -> untyped
             module InstanceMethods
-              def initialize: (?::Hash[untyped, untyped] options) -> void
+              def datadog_pin=: (untyped pin) -> untyped
             end
           end
           module ClientPatch
             def self.included: (untyped base) -> untyped
             module InstanceMethods
-              def initialize: (?::Hash[untyped, untyped] options) -> void
-
               private
 
               attr_reader redis_instance: untyped
+            end
+          end
+          module NotSupportedNoticePatch
+            def self.included: (untyped base) -> untyped
+            module InstanceMethods
+              def datadog_pin=: (untyped _pin) -> untyped
             end
           end
 

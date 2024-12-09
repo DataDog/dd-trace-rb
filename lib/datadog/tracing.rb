@@ -14,8 +14,31 @@ module Datadog
     class << self
       # (see Datadog::Tracing::Tracer#trace)
       # @public_api
-      def trace(name, continue_from: nil, **span_options, &block)
-        tracer.trace(name, continue_from: continue_from, **span_options, &block)
+      def trace(
+        name,
+        continue_from: nil,
+        on_error: nil,
+        resource: nil,
+        service: nil,
+        start_time: nil,
+        tags: nil,
+        type: nil,
+        id: nil,
+        &block
+      )
+
+        tracer.trace(
+          name,
+          continue_from: continue_from,
+          on_error: on_error,
+          resource: resource,
+          service: service,
+          start_time: start_time,
+          tags: tags,
+          type: type,
+          id: id,
+          &block
+        )
       end
 
       # (see Datadog::Tracing::Tracer#continue_trace!)
@@ -73,8 +96,14 @@ module Datadog
       # (see Datadog::Tracing::Tracer#active_correlation)
       # @public_api
       def correlation
-        current_tracer = tracer
-        return unless current_tracer
+        # We access this in this way as:
+        # * If the components have not been initialized, it doesn't make sense to initialize datadog just to say
+        #   'nil' here
+        # * It prevents recursive initialization attempts, see https://github.com/DataDog/dd-trace-rb/issues/3385
+        components = Datadog.send(:components, allow_initialization: false)
+        current_tracer = components.tracer if components
+
+        return Datadog::Tracing::Correlation::Identifier.new unless current_tracer
 
         current_tracer.active_correlation
       end
@@ -90,9 +119,11 @@ module Datadog
       # # dd.env=prod dd.service=auth dd.version=13.8 dd.trace_id=5458478252992251 dd.span_id=7117552347370098 My message
       # ```
       #
-      # @return [String] correlation information
+      # @return [String] correlation information; or an empty String if Tracing is disabled (`!enabled?`)
       # @public_api
       def log_correlation
+        return '' unless enabled?
+
         correlation.to_log_format
       end
 

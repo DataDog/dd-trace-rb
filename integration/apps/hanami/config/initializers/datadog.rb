@@ -1,4 +1,4 @@
-require 'ddtrace'
+require 'datadog'
 
 Datadog.configure do |c|
   c.env = 'integration'

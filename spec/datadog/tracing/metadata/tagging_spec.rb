@@ -246,7 +246,10 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
       end
 
       it 'does not support it - it sets stringified nested hash as value' do
-        expect { set_tags }.to change { test_object.get_tag('user') }.from(nil).to('{"id"=>123}')
+        expected_tag = ['{"id"=>123}', '{"id" => 123}']
+        expect { set_tags }
+          .to change { test_object.get_tag('user') }
+          .from(nil).to(satisfy { |tag| expected_tag.include?(tag) })
       end
     end
   end
@@ -368,6 +371,24 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
     it 'removes value, instead of setting to nil, to ensure correct deserialization by agent' do
       clear_metric
       expect(test_object.send(:metrics)).to_not have_key(key)
+    end
+  end
+
+  describe '#tags' do
+    it 'returns a hash' do
+      expect(test_object.tags).to eq({})
+    end
+
+    it 'returns a hash contains meta' do
+      test_object.set_tag('foo', 'bar')
+
+      expect(test_object.tags).to eq({ 'foo' => 'bar' })
+    end
+
+    it 'returns a hash contains metric' do
+      test_object.set_metric('count', 1.0)
+
+      expect(test_object.tags).to eq({ 'count' => 1.0 })
     end
   end
 end

@@ -24,25 +24,21 @@ require 'datadog/core/encoding'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
-require 'support/configuration_helpers'
-require 'support/container_helpers'
 require 'support/core_helpers'
 require 'support/faux_transport'
 require 'support/faux_writer'
+require 'support/loaded_gem'
 require 'support/health_metric_helpers'
-require 'support/http_helpers'
 require 'support/log_helpers'
-require 'support/metric_helpers'
 require 'support/network_helpers'
-require 'support/object_helpers'
 require 'support/object_space_helper'
 require 'support/platform_helpers'
-require 'support/rack_support'
 require 'support/span_helpers'
 require 'support/spy_transport'
 require 'support/synchronization_helpers'
 require 'support/test_helpers'
 require 'support/tracer_helpers'
+require 'support/crashtracking_helpers'
 
 begin
   # Ignore interpreter warnings from external libraries
@@ -61,21 +57,16 @@ WebMock.allow_net_connect!
 WebMock.disable!
 
 RSpec.configure do |config|
-  config.include ConfigurationHelpers
-  config.include ContainerHelpers
   config.include CoreHelpers
   config.include HealthMetricHelpers
-  config.include HttpHelpers
   config.include LogHelpers
-  config.include MetricHelpers
   config.include NetworkHelpers
-  config.include ObjectHelpers
-  config.include RackSupport
+  config.include LoadedGem
+  config.extend  LoadedGem::Helpers
+  config.include LoadedGem::Helpers
   config.include SpanHelpers
   config.include SynchronizationHelpers
-  config.include TestHelpers
   config.include TracerHelpers
-
   config.include TestHelpers::RSpec::Integration, :integration
 
   config.expect_with :rspec do |expectations|
@@ -92,16 +83,29 @@ RSpec.configure do |config|
   config.order = :random
   config.filter_run focus: true
   config.run_all_when_everything_filtered = true
+  config.example_status_persistence_file_path = 'tmp/example_status_persistence'
 
   # rspec-wait configuration
   config.wait_timeout = 5 # default timeout for `wait_for(...)`, in seconds
   config.wait_delay = 0.01 # default retry delay for `wait_for(...)`, in seconds
+
+  # This hides the list of skipped/pending specs by default
+  config.pending_failure_output = :skip
 
   if config.files_to_run.one?
     # Use the documentation formatter for detailed output,
     # unless a formatter has already been configured
     # (e.g. via a command-line flag).
     config.default_formatter = 'doc'
+
+    # List skipped/pending specs
+    config.pending_failure_output = :full
+  end
+
+  config.before(:example, ractors: true) do
+    unless config.filter_manager.inclusions[:ractors]
+      skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'
+    end
   end
 
   # Check for leaky test resources.
@@ -165,14 +169,14 @@ RSpec.configure do |config|
       end
 
       unless background_threads.empty?
-        # TODO: Temporarily disabled for `spec/ddtrace/workers`
+        # TODO: Temporarily disabled for `spec/datadog/tracing/workers`
         # was meaningful changes are required to address clean
         # teardown in those tests.
         # They currently flood the output, making our test
         # suite output unreadable.
         if example.file_path.start_with?(
           './spec/datadog/core/workers/',
-          './spec/ddtrace/workers/'
+          './spec/datadog/tracing/workers/'
         )
           puts # Add newline so we get better output when the progress formatter is being used
           RSpec.warning("FIXME: #{example.file_path}:#{example.metadata[:line_number]} is leaking threads")
@@ -290,3 +294,16 @@ end
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+
+# The Ruby Timeout class uses a long-lived class-level thread that is never terminated.
+# Creating it early here ensures tests that tests that check for leaking threads are not
+# triggered by the creation of this thread.
+#
+# This has to be one once for the lifetime of this process, and was introduced in Ruby 3.1.
+# Before 3.1, a thread was created and destroyed on every Timeout#timeout call.
+Timeout.ensure_timeout_thread_created if Timeout.respond_to?(:ensure_timeout_thread_created)
+
+# Code tracking calls out to the current DI component, which may reference
+# mock objects in the test suite. Disable it and tests that need code tracking
+# will enable it back for themselves.
+Datadog::DI.deactivate_tracking! if Datadog::DI.respond_to?(:deactivate_tracking!)

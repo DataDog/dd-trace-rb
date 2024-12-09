@@ -1,0 +1,28 @@
+module Datadog
+  module Core
+    module Environment
+      module Execution
+        def self.development?: () -> bool
+        def self.webmock_enabled?: () -> bool
+
+        private
+        def self.test?: () -> bool
+        def self.repl?: () -> bool
+
+        REPL_PROGRAM_NAMES: ::Array[::String]
+        def self.rspec?: () -> bool
+
+        RSPEC_PROGRAM_NAME: ::String
+        def self.minitest?: () -> bool
+
+        def self.cucumber?: -> bool
+
+        def self.rails_development?: -> bool
+
+        RAILS_ENV_DEVELOPMENT: Set[String]
+
+        def self.rails_env_development?: -> bool
+      end
+    end
+  end
+end

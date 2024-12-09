@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'pathname'
 
 module Datadog
@@ -8,6 +10,14 @@ module Datadog
 
       def waf_rules(kind = :recommended)
         read("waf_rules/#{kind}.json")
+      end
+
+      def waf_processors
+        read('waf_rules/processors.json')
+      end
+
+      def waf_scanners
+        read('waf_rules/scanners.json')
       end
 
       def blocked(format: :html)

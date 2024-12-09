@@ -1,11 +1,12 @@
 require 'grpc'
 require 'spec/support/thread_helpers'
 
-if RUBY_VERSION < '2.3'
-  require_relative './gen/grpc-1.19.0/test_service_services_pb'
-else
-  require_relative './gen/test_service_services_pb'
-end
+# The generated files at `gen` expect that directory to
+# be in the root `require` load path.
+# E.g. it performs a `require 'test_service_pb'`, expecting `gen` to be in the root path.
+gen_dir = File.expand_path('gen', __dir__)
+$LOAD_PATH.unshift(gen_dir)
+require_relative './gen/test_service_services_pb'
 
 module GRPCHelper
   def run_request_reply(address = available_endpoint, client = nil)

@@ -6,7 +6,6 @@ require_relative 'tracer_helpers'
 
 RSpec.configure do |config|
   config.include Contrib::TracerHelpers
-
   # Raise error when patching an integration fails.
   # This can be disabled by unstubbing +CommonMethods#on_patch_error+
   require 'datadog/tracing/contrib/patcher'

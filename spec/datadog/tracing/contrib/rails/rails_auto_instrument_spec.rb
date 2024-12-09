@@ -32,7 +32,7 @@ RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument' do
     it 'sets default database' do
       expect_in_fork do
         app
-        expect(adapter_name).not_to eq('defaultdb')
+        expect(Datadog::Tracing::Contrib::ActiveRecord::Utils.adapter_name).not_to eq('defaultdb')
       end
     end
   end

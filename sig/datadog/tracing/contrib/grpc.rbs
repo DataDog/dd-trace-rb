@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module GRPC
+        self.@propagation: GRPC::Distributed::Propagation
+
+        def self.inject: (TraceDigest digest, Hash[untyped, untyped] data) -> void
+        def self.extract: (Hash[untyped, untyped] data) -> (TraceDigest | nil)
+      end
+    end
+  end
+end

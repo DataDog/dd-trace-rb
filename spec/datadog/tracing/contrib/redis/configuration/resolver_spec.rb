@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'redis'
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Redis configuration resolver' do
   let(:resolver) { Datadog::Tracing::Contrib::Redis::Configuration::Resolver.new }

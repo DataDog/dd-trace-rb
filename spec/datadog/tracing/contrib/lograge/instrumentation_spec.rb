@@ -20,7 +20,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
         version: version,
       )
     end
-    let(:trace_id) { Datadog::Tracing::Utils.next_id }
+    let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
     let(:span_id) { Datadog::Tracing::Utils.next_id }
     let(:env) { 'env' }
     let(:service) { 'service' }
@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
               env: 'env',
               service: 'service',
               span_id: span_id.to_s,
-              trace_id: trace_id.to_s,
+              trace_id: low_order_trace_id(trace_id).to_s,
               version: 'version'
             },
             ddsource: 'ruby' }

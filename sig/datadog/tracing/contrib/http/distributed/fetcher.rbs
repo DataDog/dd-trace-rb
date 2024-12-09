@@ -4,7 +4,7 @@ module Datadog
       module HTTP
         module Distributed
           class Fetcher < Tracing::Distributed::Fetcher
-            def []: (untyped name) -> untyped
+            def []: (String name) -> (String | nil)
           end
         end
       end

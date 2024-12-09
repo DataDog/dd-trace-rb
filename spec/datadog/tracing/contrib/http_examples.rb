@@ -1,9 +1,33 @@
-RSpec.shared_examples 'with error status code configuration' do
+RSpec.shared_examples 'with error status code configuration' do |env:|
   before { subject }
 
   context 'with a custom range' do
     context 'with an Range object' do
       let(:configuration_options) { { error_status_codes: 500..502 } }
+
+      context 'with a status code within the range' do
+        let(:status_code) { 501 }
+
+        it 'marks the span as an error' do
+          expect(span).to have_error
+        end
+      end
+
+      context 'with a status code outside of the range' do
+        let(:status_code) { 503 }
+
+        it 'does not mark the span as an error' do
+          expect(span).to_not have_error
+        end
+      end
+    end
+
+    context 'when custom range from env' do
+      around do |example|
+        ClimateControl.modify(env => '500-502') do
+          example.run
+        end
+      end
 
       context 'with a status code within the range' do
         let(:status_code) { 501 }

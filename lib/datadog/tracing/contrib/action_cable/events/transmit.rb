@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../metadata/ext'
 require_relative '../event'
 require_relative '../ext'
@@ -14,7 +16,7 @@ module Datadog
           module Transmit
             include ActionCable::Event
 
-            EVENT_NAME = 'transmit.action_cable'.freeze
+            EVENT_NAME = 'transmit.action_cable'
 
             module_function
 
@@ -31,12 +33,12 @@ module Datadog
               Tracing::Metadata::Ext::AppTypes::TYPE_WEB
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               channel_class = payload[:channel_class]
 
               span.service = configuration[:service_name] if configuration[:service_name]
               span.resource = channel_class
-              span.span_type = span_type
+              span.type = span_type
 
               # Set analytics sample rate
               if Contrib::Analytics.enabled?(configuration[:analytics_enabled])

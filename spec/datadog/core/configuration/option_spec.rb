@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe Datadog::Core::Configuration::Option do
   subject(:option) { described_class.new(definition, context) }
@@ -10,12 +10,11 @@ RSpec.describe Datadog::Core::Configuration::Option do
       Datadog::Core::Configuration::OptionDefinition,
       name: :test_name,
       default: default,
-      experimental_default_proc: experimental_default_proc,
+      default_proc: default_proc,
       env: env,
       deprecated_env: deprecated_env,
       env_parser: env_parser,
-      delegate_to: delegate,
-      on_set: nil,
+      after_set: nil,
       resetter: nil,
       setter: setter,
       type: type,
@@ -23,8 +22,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
     )
   end
   let(:default) { double('default') }
-  let(:experimental_default_proc) { nil }
-  let(:delegate) { nil }
+  let(:default_proc) { nil }
   let(:env) { nil }
   let(:env_parser) { nil }
   let(:type) { nil }
@@ -54,7 +52,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
     context 'when no value has been set' do
       before do
-        allow(definition).to receive(:on_set).and_return nil
+        allow(definition).to receive(:after_set).and_return nil
         expect(context).to receive(:instance_exec) do |*args, &block|
           expect(args.first).to be(value)
           expect(block).to be setter
@@ -64,17 +62,19 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
       it { is_expected.to be(setter_value) }
 
-      context 'when an :on_set event is defined' do
-        let(:on_set) { proc { on_set_value } }
-        let(:on_set_value) { double('on_set_value') }
+      context 'when an :after_set event is defined' do
+        let(:after_set) { proc { after_set_value } }
+        let(:after_set_value) { double('after_set_value') }
 
         before do
-          allow(definition).to receive(:on_set).and_return(on_set)
+          allow(definition).to receive(:after_set).and_return(after_set)
 
-          expect(context).to receive(:instance_exec) do |*args, &block|
-            expect(args.first).to be(setter_value)
-            expect(block).to be on_set
-            on_set.call
+          expect(context).to receive(:instance_exec) do |value, old_value, precedence, &block|
+            expect(value).to be(setter_value)
+            expect(old_value).to be(nil)
+            expect(precedence).to be(Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
+            expect(block).to be after_set
+            after_set.call
           end
         end
 
@@ -91,10 +91,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
     context 'when a value has already been set' do
       let(:old_value) { double('old value') }
 
-      context 'when an :on_set event is not defined' do
+      context 'when an :after_set event is not defined' do
         before do
           allow(context).to receive(:instance_exec)
-          allow(definition).to receive(:on_set).and_return nil
+          allow(definition).to receive(:after_set).and_return nil
 
           # Set original value
           allow(context).to receive(:instance_exec)
@@ -117,12 +117,12 @@ RSpec.describe Datadog::Core::Configuration::Option do
         end
       end
 
-      context 'when an :on_set event is defined' do
-        let(:on_set) { proc { on_set_value } }
-        let(:on_set_value) { double('on_set_value') }
+      context 'when an :after_set event is defined' do
+        let(:after_set) { proc { after_set_value } }
+        let(:after_set_value) { double('after_set_value') }
 
         before do
-          allow(definition).to receive(:on_set).and_return(on_set)
+          allow(definition).to receive(:after_set).and_return(after_set)
 
           allow(context).to receive(:instance_exec) do |*args, &block|
             if args.first == old_value
@@ -132,11 +132,15 @@ RSpec.describe Datadog::Core::Configuration::Option do
               # Invoked first
               expect(args).to include(value, old_value)
               setter.call
-            elsif block == on_set && args.first == setter_value
+            elsif block == after_set && args.first == setter_value
               # Invoked second
-              expect(args).to include(setter_value, old_value)
-              expect(block).to be on_set
-              on_set.call
+              expect(args).to include(
+                setter_value,
+                old_value,
+                Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+              )
+              expect(block).to be after_set
+              after_set.call
             else
               # Unknown test scenario
               raise ArgumentError
@@ -156,14 +160,30 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence REMOTE_CONFIGURATION' do
+        let(:after_set) { double('after_set block') }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
+          allow(after_set).to receive(:call).with(:override, :original_value, anything)
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
@@ -194,19 +214,39 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence PROGRAMMATIC' do
+        let(:after_set) { double('after_set block') }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           allow(Datadog.logger).to receive(:info)
         end
 
         it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
         end
@@ -218,23 +258,48 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
 
       context 'with precedence DEFAULT' do
+        let(:after_set) { instance_double(Proc) }
         let(:setter) { proc { |value| value } }
 
         before do
+          after_set_double = after_set
+          allow(definition).to receive(:after_set).and_return(proc { |*args| after_set_double.call(*args) })
+
+          expect(after_set).to receive(:call).with(
+            :original_value,
+            nil,
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+          )
+
           option.set(:original_value, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
         end
 
         it 'overrides with value with precedence REMOTE_CONFIGURATION' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::REMOTE_CONFIGURATION)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with precedence PROGRAMMATIC' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::PROGRAMMATIC)
           expect(option.get).to eq(:override)
         end
 
         it 'overrides with value with the same precedence' do
+          expect(after_set).to receive(:call).with(
+            :override,
+            :original_value,
+            Datadog::Core::Configuration::Option::Precedence::DEFAULT
+          )
           option.set(:override, precedence: Datadog::Core::Configuration::Option::Precedence::DEFAULT)
           expect(option.get).to eq(:override)
         end
@@ -257,26 +322,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it 'raise exception' do
             expect { set }.to raise_exception(ArgumentError)
           end
-
-          context 'set DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' do
-            ['1', 'true'].each do |value|
-              context "with #{value}" do
-                it 'does not raise exception' do
-                  ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => '1') do
-                    expect { set }.to_not raise_exception
-                  end
-                end
-              end
-            end
-
-            context 'with something else' do
-              it 'does not raise exception' do
-                ClimateControl.modify('DD_EXPERIMENTAL_SKIP_CONFIGURATION_VALIDATION' => 'esle') do
-                  expect { set }.to raise_exception(ArgumentError)
-                end
-              end
-            end
-          end
         end
 
         context 'Integer' do
@@ -288,14 +333,6 @@ RSpec.describe Datadog::Core::Configuration::Option do
             it 'does not raise exception' do
               expect { set }.not_to raise_exception
             end
-
-            context 'allow floats too' do
-              let(:value) { 10.0 }
-
-              it 'does not raise exception' do
-                expect { set }.not_to raise_exception
-              end
-            end
           end
 
           context 'invalid value' do
@@ -303,6 +340,14 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
             it 'raise exception' do
               expect { set }.to raise_exception(ArgumentError)
+            end
+
+            context 'that is a float' do
+              let(:value) { 10.1 }
+
+              it 'raises exception' do
+                expect { set }.to raise_exception(ArgumentError)
+              end
             end
           end
         end
@@ -317,8 +362,16 @@ RSpec.describe Datadog::Core::Configuration::Option do
               expect { set }.not_to raise_exception
             end
 
-            context 'allow integers too' do
+            context 'that is an integer' do
               let(:value) { 10 }
+
+              it 'does not raise exception' do
+                expect { set }.not_to raise_exception
+              end
+            end
+
+            context 'that is a rational' do
+              let(:value) { 1/3r }
 
               it 'does not raise exception' do
                 expect { set }.not_to raise_exception
@@ -633,6 +686,27 @@ RSpec.describe Datadog::Core::Configuration::Option do
           it 'coerce value' do
             expect(option.get).to eq 1234
           end
+
+          context 'with an octal number' do
+            let(:env_value) { '010' }
+            it 'parses in base 10' do
+              expect(option.get).to eq 10
+            end
+          end
+
+          context 'with a float' do
+            let(:env_value) { '10.1' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
+          end
+
+          context 'with not a number' do
+            let(:env_value) { 'not a number' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
+          end
         end
 
         context ':float' do
@@ -641,6 +715,13 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
           it 'coerce value' do
             expect(option.get).to eq 12.34
+          end
+
+          context 'with not a number' do
+            let(:env_value) { 'not a number' }
+            it 'errors' do
+              expect { option.get }.to raise_exception(ArgumentError)
+            end
           end
         end
 
@@ -697,7 +778,7 @@ RSpec.describe Datadog::Core::Configuration::Option do
           let(:env_value) { '1' }
 
           it 'raise exception' do
-            expect { option.get }.to raise_exception(ArgumentError)
+            expect { option.get }.to raise_exception(Datadog::Core::Configuration::Option::InvalidDefinitionError)
           end
         end
       end
@@ -755,6 +836,35 @@ RSpec.describe Datadog::Core::Configuration::Option do
 
         it_behaves_like 'env coercion'
         it_behaves_like 'with env_parser'
+      end
+    end
+
+    context 'when env is an Array' do
+      let(:env) { ['TEST_ENV_VAR', 'TEST_ENV_VAR2'] }
+      let(:setter) { proc { |value| value } }
+
+      around do |example|
+        ClimateControl.modify(set_envs) { example.run }
+      end
+
+      context 'and the first environmet variable is set' do
+        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1' } }
+        it { is_expected.to eq('val1') }
+      end
+
+      context 'and the second environmet variable is set' do
+        let(:set_envs) { { 'TEST_ENV_VAR2' => 'val2' } }
+        it { is_expected.to eq('val2') }
+      end
+
+      context 'and both environmet variables are set' do
+        let(:set_envs) { { 'TEST_ENV_VAR' => 'val1', 'TEST_ENV_VAR2' => 'val2' } }
+        it { is_expected.to eq('val1') }
+      end
+
+      context 'and environmet variables are not set' do
+        let(:set_envs) { {} }
+        it { is_expected.to be(default) }
       end
     end
 
@@ -1017,10 +1127,10 @@ RSpec.describe Datadog::Core::Configuration::Option do
       end
     end
 
-    context 'when experimental_default_proc is defined' do
-      let(:experimental_default_proc) { proc { 'experimental_default_proc' } }
+    context 'when default_proc is defined' do
+      let(:default_proc) { proc { 'default_proc' } }
 
-      it { is_expected.to be experimental_default_proc }
+      it { is_expected.to be default_proc }
     end
   end
 end

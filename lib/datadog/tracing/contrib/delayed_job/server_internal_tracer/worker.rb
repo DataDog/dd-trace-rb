@@ -11,7 +11,7 @@ module Datadog
               configuration = Datadog.configuration.tracing[:delayed_job]
 
               Datadog::Tracing.trace(Ext::SPAN_RESERVE_JOB, service: configuration[:service_name]) do |span|
-                span.span_type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
+                span.type = Datadog::Tracing::Metadata::Ext::AppTypes::TYPE_WORKER
 
                 span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_COMPONENT)
 

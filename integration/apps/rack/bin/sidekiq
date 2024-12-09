@@ -2,7 +2,7 @@
 
 puts "\n== Starting sidekiq process =="
 
-command = "bundle exec ddtracerb exec sidekiq -r ./app/sidekiq_background_job.rb"
+command = "bundle exec ddprofrb exec sidekiq -r ./app/sidekiq_background_job.rb"
 
 puts "Run: #{command}"
 Kernel.exec(command)

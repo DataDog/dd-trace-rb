@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    class SampleRate
+      attr_reader rate: Numeric
+
+      def initialize: (Numeric rate) -> void
+
+      def sample?: () -> (bool)
+    end
+  end
+end

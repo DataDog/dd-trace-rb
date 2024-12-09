@@ -3,7 +3,6 @@
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/processor'
 require 'datadog/appsec/processor/rule_loader'
-require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Processor do
   before do
@@ -21,73 +20,189 @@ RSpec.describe Datadog::AppSec::Processor do
 
     allow(Datadog).to receive(:logger).and_return(logger)
   end
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
 
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
-
-  context 'self' do
-    it 'detects if the WAF is unavailable' do
-      hide_const('Datadog::AppSec::WAF')
-
-      expect(described_class.libddwaf_provides_waf?).to be false
+  describe '#require_libddwaf' do
+    before do
+      allow_any_instance_of(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
+      allow_any_instance_of(described_class).to receive(:create_waf_handle).and_return(true)
     end
 
-    it 'detects if the WAF is available' do
-      stub_const('Datadog::AppSec::WAF', Module.new)
+    context 'successful' do
+      it do
+        allow_any_instance_of(described_class).to receive(:require).with('libddwaf')
 
-      expect(described_class.libddwaf_provides_waf?).to be true
+        expect(telemetry).not_to receive(:report)
+
+        described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(Datadog.logger).not_to have_received(:warn)
+      end
     end
 
-    it 'reports via return of libddwaf loading failure' do
-      allow(described_class).to receive(:require).with('libddwaf').and_raise(LoadError)
+    context 'when LoadError is raised' do
+      it do
+        allow_any_instance_of(described_class).to receive(:require).with('libddwaf').and_raise(LoadError)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(LoadError),
+          description: 'libddwaf failed to load'
+        ).at_least(:once)
 
-      expect(described_class.require_libddwaf).to be false
-    end
+        described_class.new(ruleset: ruleset, telemetry: telemetry)
 
-    it 'reports via return of libddwaf loading success (first require)' do
-      allow(described_class).to receive(:require).with('libddwaf').and_return(true)
-
-      expect(described_class.require_libddwaf).to be true
-    end
-
-    it 'reports via return of libddwaf loading success (second require)' do
-      allow(described_class).to receive(:require).with('libddwaf').and_return(false)
-
-      expect(described_class.require_libddwaf).to be true
+        expect(Datadog.logger).to have_received(:warn).with(/AppSec is disabled/)
+      end
     end
   end
 
-  describe '#load_libddwaf' do
-    context 'when LoadError is raised' do
-      before do
-        allow(Object).to receive(:require).with('libddwaf').and_raise(LoadError)
-      end
+  describe '#libddwaf_provides_waf?' do
+    before do
+      allow_any_instance_of(described_class).to receive(:require_libddwaf).and_return(true)
+      allow_any_instance_of(described_class).to receive(:create_waf_handle).and_return(true)
+    end
 
-      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be false }
+    context 'when const is present' do
+      it do
+        stub_const('Datadog::AppSec::WAF', Module.new)
+
+        described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(Datadog.logger).not_to have_received(:warn)
+      end
     end
 
     context 'when loaded but missing mandatory const' do
-      before do
-        allow(Object).to receive(:require).with('libddwaf').and_return(true)
+      it do
         hide_const('Datadog::AppSec::WAF')
-      end
 
-      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be false }
+        described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(Datadog.logger).to have_received(:warn).with(/AppSec is disabled/)
+      end
+    end
+  end
+
+  describe '#create_waf_handle' do
+    before do
+      allow_any_instance_of(described_class).to receive(:require_libddwaf).and_return(true)
+      allow_any_instance_of(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
     end
 
-    context 'when loaded successfully' do
-      before do
-        allow(Object).to receive(:require).with('libddwaf').and_return(true)
+    context 'when success' do
+      it do
         stub_const('Datadog::AppSec::WAF', Module.new)
         stub_const('Datadog::AppSec::WAF::LibDDWAF', Module.new)
         stub_const('Datadog::AppSec::WAF::LibDDWAF::Error', Class.new(StandardError))
+        stub_const(
+          'Datadog::AppSec::WAF::Handle',
+          Class.new do
+            def initialize(*); end
+
+            def diagnostics
+              :handle_diagnostics
+            end
+
+            def required_addresses
+              [:required_addresses]
+            end
+          end
+        )
+        expect(telemetry).not_to receive(:report)
+
+        processor = described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(processor).to be_ready
+        expect(processor.diagnostics).to eq(:handle_diagnostics)
+        expect(processor.addresses).to eq([:required_addresses])
+
+        expect(Datadog.logger).not_to have_received(:warn)
+      end
+    end
+
+    context 'when fail' do
+      it do
+        stub_const('Datadog::AppSec::WAF', Module.new)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF', Module.new)
+        stub_const(
+          'Datadog::AppSec::WAF::LibDDWAF::Error',
+          Class.new(StandardError) do
+            def diagnostics
+              :error_diagnostics
+            end
+          end
+        )
+        stub_const(
+          'Datadog::AppSec::WAF::Handle',
+          Class.new do
+            def initialize(*)
+              raise Datadog::AppSec::WAF::LibDDWAF::Error
+            end
+
+            def diagnostics
+              :handle_diagnostics
+            end
+
+            def required_addresses
+              []
+            end
+          end
+        )
+        expect(telemetry).to receive(:report).with(
+          a_kind_of(Datadog::AppSec::WAF::LibDDWAF::Error),
+          description: 'libddwaf failed to initialize'
+        )
+
+        processor = described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(processor).not_to be_ready
+        expect(processor.diagnostics).to eq(:error_diagnostics)
+        expect(processor.addresses).to eq([])
+
+        expect(Datadog.logger).to have_received(:warn).with(/AppSec is disabled/)
       end
 
-      it { expect(described_class.new(ruleset: ruleset).send(:load_libddwaf)).to be true }
+      it do
+        stub_const('Datadog::AppSec::WAF', Module.new)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF', Module.new)
+        stub_const(
+          'Datadog::AppSec::WAF::LibDDWAF::Error',
+          Class.new(StandardError)
+        )
+        stub_const(
+          'Datadog::AppSec::WAF::Handle',
+          Class.new do
+            def initialize(*)
+              raise StandardError
+            end
+
+            def diagnostics
+              :handle_diagnostics
+            end
+
+            def required_addresses
+              []
+            end
+          end
+        )
+        expect(telemetry).to receive(:report).with(
+          a_kind_of(StandardError),
+          description: 'libddwaf failed to initialize'
+        )
+
+        processor = described_class.new(ruleset: ruleset, telemetry: telemetry)
+
+        expect(processor).not_to be_ready
+        expect(processor.diagnostics).to be_nil
+        expect(processor.addresses).to eq([])
+
+        expect(Datadog.logger).to have_received(:warn).with(/AppSec is disabled/)
+      end
     end
   end
 
   describe '#initialize' do
-    subject(:processor) { described_class.new(ruleset: ruleset) }
+    subject(:processor) { described_class.new(ruleset: ruleset, telemetry: telemetry) }
 
     context 'when valid ruleset' do
       it { is_expected.to be_ready }
@@ -95,9 +210,8 @@ RSpec.describe Datadog::AppSec::Processor do
 
     context 'when libddwaf fails to load' do
       before do
-        expect(described_class).to receive(:require_libddwaf).and_return(false)
-
         expect(Datadog.logger).to receive(:warn)
+        expect_any_instance_of(described_class).to receive(:require_libddwaf).and_return(false)
       end
 
       it { is_expected.to_not be_ready }
@@ -105,8 +219,8 @@ RSpec.describe Datadog::AppSec::Processor do
 
     context 'when libddwaf fails to provide WAF' do
       before do
-        expect(described_class).to receive(:require_libddwaf).and_return(true)
-        expect(described_class).to receive(:libddwaf_provides_waf?).and_return(false)
+        expect_any_instance_of(described_class).to receive(:require_libddwaf).and_return(true)
+        expect_any_instance_of(described_class).to receive(:libddwaf_provides_waf?).and_return(false)
 
         expect(Datadog.logger).to receive(:warn)
       end
@@ -117,178 +231,62 @@ RSpec.describe Datadog::AppSec::Processor do
     context 'when ruleset is invalid' do
       let(:ruleset) { { 'not' => 'valid' } }
 
-      before do
+      it do
         expect(Datadog.logger).to receive(:warn)
-      end
-
-      it { is_expected.to_not be_ready }
-    end
-  end
-end
-
-RSpec.describe Datadog::AppSec::Processor::Context do
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended) }
-
-  let(:input_safe) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Ruby' } } }
-  let(:input_sqli) { { 'server.request.query' => { 'q' => '1 OR 1;' } } }
-  let(:input_scanner) { { 'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' } } }
-  let(:input_client_ip) { { 'http.client_ip' => '1.2.3.4' } }
-
-  let(:client_ip) { '1.2.3.4' }
-
-  let(:input) { input_scanner }
-
-  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset) }
-
-  let(:run_count) { 1 }
-  let(:timeout) { 10_000_000_000 }
-
-  let(:runs) { Array.new(run_count) { context.run(input, timeout) } }
-  let(:results) { runs }
-  let(:overall_runtime) { results.reduce(0) { |a, e| a + e.total_runtime } }
-
-  let(:run) do
-    expect(runs).to have_attributes(count: 1)
-
-    runs.first
-  end
-
-  let(:result) do
-    expect(results).to have_attributes(count: 1)
-
-    results.first
-  end
-
-  subject(:context) { described_class.new(processor) }
-
-  before do
-    runs
-  end
-
-  after do
-    context.finalize
-    processor.finalize
-  end
-
-  it { expect(result.status).to eq :match }
-  it { expect(context.time_ns).to be > 0 }
-  it { expect(context.time_ext_ns).to be > 0 }
-  it { expect(context.time_ext_ns).to be > context.time_ns }
-  it { expect(context.time_ns).to eq(overall_runtime) }
-  it { expect(context.timeouts).to eq 0 }
-
-  context 'with timeout' do
-    let(:timeout) { 0 }
-
-    it { expect(result.status).to eq :ok }
-    it { expect(context.time_ns).to eq 0 }
-    it { expect(context.time_ext_ns).to be > 0 }
-    it { expect(context.timeouts).to eq run_count }
-  end
-
-  context 'with multiple runs' do
-    let(:run_count) { 10 }
-
-    it { expect(context.time_ns).to eq(overall_runtime) }
-
-    context 'with timeout' do
-      let(:timeout) { 0 }
-
-      it { expect(results.first.status).to eq :ok }
-      it { expect(context.time_ns).to eq 0 }
-      it { expect(context.time_ext_ns).to be > 0 }
-      it { expect(context.timeouts).to eq run_count }
-    end
-  end
-
-  describe '#run' do
-    let(:matches) do
-      results.reject { |r| r.status == :ok }
-    end
-
-    let(:data) do
-      matches.map(&:data).flatten
-    end
-
-    let(:actions) do
-      matches.map(&:actions)
-    end
-
-    context 'no attack' do
-      let(:input) { input_safe }
-
-      it { expect(matches).to eq [] }
-      it { expect(data).to eq [] }
-      it { expect(actions).to eq [] }
-    end
-
-    context 'one attack' do
-      let(:input) { input_scanner }
-
-      it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 1) }
-      it { expect(actions).to eq [[]] }
-    end
-
-    context 'multiple attacks per run' do
-      let(:input) { input_scanner.merge(input_sqli) }
-
-      it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 2) }
-      it { expect(actions).to eq [[]] }
-    end
-
-    context 'multiple runs' do
-      context 'same attack' do
-        let(:runs) do
-          [
-            context.run(input_scanner, timeout),
-            context.run(input_scanner, timeout)
-          ]
-        end
-
-        # when the same attack is detected twice in the same context, it's
-        # only matching once therefore there's only one match result, thus
-        # one action list returned.
-
-        it { expect(matches).to have_attributes(count: 1) }
-        it { expect(data).to have_attributes(count: 1) }
-        it { expect(actions).to eq [[]] }
-      end
-
-      context 'different attacks' do
-        let(:runs) do
-          [
-            context.run(input_sqli, timeout),
-            context.run(input_scanner, timeout)
-          ]
-        end
-
-        # when two attacks are detected in the same context there are two
-        # match results, thus two action lists, one for each.
-
-        it { expect(matches).to have_attributes(count: 2) }
-        it { expect(data).to have_attributes(count: 2) }
-        it { expect(actions).to eq [[], []] }
-      end
-    end
-
-    context 'one blockable attack' do
-      let(:input) { input_client_ip }
-
-      let(:ruleset) do
-        rules = Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended)
-        data = Datadog::AppSec::Processor::RuleLoader.load_data(ip_denylist: [client_ip])
-
-        Datadog::AppSec::Processor::RuleMerger.merge(
-          rules: [rules],
-          data: data,
+        expect(telemetry).to receive(:report).with(
+          a_kind_of(StandardError),
+          description: 'libddwaf failed to initialize'
         )
+
+        is_expected.to_not be_ready
+      end
+    end
+
+    context 'when reporting errors' do
+      it do
+        stub_const('Datadog::AppSec::WAF::Handle', double)
+        stub_const('Datadog::AppSec::WAF::LibDDWAF::Error', Class.new(StandardError))
+
+        expect_any_instance_of(described_class).to receive(:require_libddwaf).and_return(true)
+        expect_any_instance_of(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
+
+        expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(StandardError)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(StandardError),
+          description: 'libddwaf failed to initialize'
+        )
+
+        expect(processor).to_not be_ready
       end
 
-      it { expect(matches).to have_attributes(count: 1) }
-      it { expect(data).to have_attributes(count: 1) }
-      it { expect(actions).to eq [['block']] }
+      it do
+        stub_const('Datadog::AppSec::WAF::Handle', double)
+        stub_const(
+          'Datadog::AppSec::WAF::LibDDWAF::Error',
+          Class.new(StandardError) do
+            def diagnostics
+              nil
+            end
+          end
+        )
+
+        expect_any_instance_of(described_class).to receive(:require_libddwaf).and_return(true)
+        expect_any_instance_of(described_class).to receive(:libddwaf_provides_waf?).and_return(true)
+
+        expect(Datadog::AppSec::WAF::Handle).to receive(:new).and_raise(Datadog::AppSec::WAF::LibDDWAF::Error)
+        expect(telemetry).to receive(:report).with(
+          an_instance_of(Datadog::AppSec::WAF::LibDDWAF::Error),
+          description: 'libddwaf failed to initialize'
+        )
+
+        expect(processor).to_not be_ready
+      end
     end
+  end
+
+  describe '#new_context' do
+    let(:processor) { described_class.new(ruleset: ruleset, telemetry: telemetry) }
+
+    it { expect(processor.new_context).to be_instance_of(described_class::Context) }
   end
 end

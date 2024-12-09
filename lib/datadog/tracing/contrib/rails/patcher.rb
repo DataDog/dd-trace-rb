@@ -1,8 +1,11 @@
+# frozen_string_literal: true
+
 require_relative '../../../core/utils/only_once'
 require_relative '../rack/middlewares'
 require_relative 'framework'
 require_relative 'log_injection'
 require_relative 'middlewares'
+require_relative 'runner'
 require_relative 'utils'
 require_relative '../semantic_logger/patcher'
 
@@ -26,6 +29,7 @@ module Datadog
           def patch
             patch_before_initialize
             patch_after_initialize
+            patch_rails_runner
           end
 
           def patch_before_initialize
@@ -38,7 +42,6 @@ module Datadog
             BEFORE_INITIALIZE_ONLY_ONCE_PER_APP[app].run do
               # Middleware must be added before the application is initialized.
               # Otherwise the middleware stack will be frozen.
-              # Sometimes we don't want to activate middleware e.g. OpenTracing, etc.
               add_middleware(app) if Datadog.configuration.tracing[:rails][:middleware]
 
               Rails::LogInjection.configure_log_tags(app.config)
@@ -79,6 +82,11 @@ module Datadog
           # Configure Rails tracing with settings
           def setup_tracer
             Contrib::Rails::Framework.setup
+          end
+
+          # Instruments the `bin/rails runner` command.
+          def patch_rails_runner
+            ::Rails::Command.singleton_class.prepend(Command) if defined?(::Rails::Command)
           end
         end
       end

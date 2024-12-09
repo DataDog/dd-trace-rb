@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../distributed/propagation'
@@ -21,10 +23,10 @@ module Datadog
               formatter = GRPC::Formatting::MethodObjectFormatter.new(keywords[:method])
 
               options = {
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_INBOUND,
                 service: service_name, # TODO: Remove server-side service name configuration
                 resource: formatter.resource_name,
-                on_error: error_handler
+                on_error: on_error
               }
               metadata = keywords[:call].metadata
 
@@ -49,7 +51,7 @@ module Datadog
             private
 
             def set_distributed_context!(metadata)
-              Tracing.continue_trace!(Distributed::Propagation::INSTANCE.extract(metadata))
+              Tracing.continue_trace!(GRPC.extract(metadata))
             rescue StandardError => e
               Datadog.logger.debug(
                 "unable to propagate GRPC metadata to context: #{e}"
@@ -62,6 +64,11 @@ module Datadog
                 next if header.to_s.start_with?(Tracing::Distributed::Datadog::TAGS_PREFIX)
 
                 span.set_tag(header, value)
+              end
+
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_SERVER)

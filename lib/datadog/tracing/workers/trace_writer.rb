@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../core/worker'
 require_relative '../../core/workers/async'
 require_relative '../../core/workers/polling'
@@ -7,7 +9,7 @@ require_relative '../buffer'
 require_relative '../pipeline'
 require_relative '../event'
 
-require_relative '../../../ddtrace/transport/http'
+require_relative '../transport/http'
 
 module Datadog
   module Tracing
@@ -24,7 +26,7 @@ module Datadog
           transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
 
           @transport = options.fetch(:transport) do
-            Transport::HTTP.default(**transport_options)
+            Datadog::Tracing::Transport::HTTP.default(**transport_options)
           end
         end
         # rubocop:enable Lint/MissingSuper
@@ -41,7 +43,7 @@ module Datadog
           traces = process_traces(traces)
           flush_traces(traces)
         rescue StandardError => e
-          Datadog.logger.error(
+          Datadog.logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end
@@ -57,7 +59,7 @@ module Datadog
           end
         end
 
-        # TODO: Register `Datadog::Core::Diagnostics::EnvironmentLogger.log!`
+        # TODO: Register `Datadog::Tracing::Diagnostics::EnvironmentLogger.collect_and_log!`
         # TODO: as a flush_completed subscriber when the `TraceWriter`
         # TODO: instantiation code is implemented.
         def flush_completed
@@ -104,6 +106,8 @@ module Datadog
           # Workers::Queue settings
           @buffer_size = options.fetch(:buffer_size, DEFAULT_BUFFER_MAX_SIZE)
           self.buffer = TraceBuffer.new(@buffer_size)
+
+          @shutdown_timeout = options.fetch(:shutdown_timeout, Core::Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT)
         end
 
         # NOTE: #perform is wrapped by other modules:
@@ -119,7 +123,7 @@ module Datadog
           nil
         end
 
-        def stop(*args)
+        def stop(force_stop = false, timeout = @shutdown_timeout)
           buffer.close if running?
           super
         end

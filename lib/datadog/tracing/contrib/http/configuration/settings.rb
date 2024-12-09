@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../configuration/settings'
+require_relative '../../status_range_matcher'
+require_relative '../../status_range_env_parser'
 require_relative '../ext'
 
 module Datadog
@@ -17,6 +19,7 @@ module Datadog
               o.default true
             end
 
+            # @!visibility private
             option :analytics_enabled do |o|
               o.type :bool
               o.env Ext::ENV_ANALYTICS_ENABLED
@@ -32,6 +35,7 @@ module Datadog
             option :distributed_tracing, default: true, type: :bool
 
             option :service_name do |o|
+              o.type :string, nilable: true
               o.default do
                 Contrib::SpanAttributeSchema.fetch_service_name(
                   Ext::ENV_SERVICE_NAME,
@@ -43,20 +47,11 @@ module Datadog
             option :error_status_codes do |o|
               o.env Ext::ENV_ERROR_STATUS_CODES
               o.default 400...600
-              o.env_parser do |value|
-                values = if value.include?(',')
-                           value.split(',')
-                         else
-                           value.split
-                         end
-                values.map! do |v|
-                  v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
-
-                  v.empty? ? nil : v
-                end
-
-                values.compact!
-                values
+              o.setter do |v|
+                Tracing::Contrib::StatusRangeMatcher.new(v) if v
+              end
+              o.env_parser do |v|
+                Tracing::Contrib::StatusRangeEnvParser.call(v) if v
               end
             end
 

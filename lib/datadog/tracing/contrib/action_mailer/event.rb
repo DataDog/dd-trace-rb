@@ -27,9 +27,11 @@ module Datadog
               Datadog.configuration.tracing[:action_mailer]
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
+              super
+
+              span.type = span_type
               span.service = configuration[:service_name] if configuration[:service_name]
-              span.resource = payload[:mailer]
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
 
               # Set analytics sample rate
@@ -39,10 +41,6 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
-
-              report_if_exception(span, payload)
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
             end
           end
         end

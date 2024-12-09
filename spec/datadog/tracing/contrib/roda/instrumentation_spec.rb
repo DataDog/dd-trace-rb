@@ -2,7 +2,7 @@
 
 require_relative './shared_examples'
 require 'roda'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/roda/instrumentation'
 require 'datadog/tracing/contrib/roda/ext'
 require 'datadog/tracing/contrib/support/spec_helper'

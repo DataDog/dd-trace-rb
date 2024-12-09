@@ -8,12 +8,14 @@ RSpec.describe Datadog::Tracing::Remote do
     expect(remote.products).to contain_exactly('APM_TRACING')
   end
 
-  it 'declares no capabilities' do
-    expect(remote.capabilities).to be_empty
+  it 'declares rule sampling capabilities' do
+    expect(remote.capabilities).to contain_exactly(1 << 12, 1 << 13, 1 << 14, 1 << 29)
   end
 
   it 'declares matches that match APM_TRACING' do
-    expect(remote.receivers).to all(
+    telemetry = instance_double(Datadog::Core::Telemetry::Component)
+
+    expect(remote.receivers(telemetry)).to all(
       match(
         lambda do |receiver|
           receiver.match? Datadog::Core::Remote::Configuration::Path.parse(path)
@@ -33,7 +35,7 @@ RSpec.describe Datadog::Tracing::Remote do
       it 'sets errored apply state' do
         process_config
         expect(content.apply_state).to eq(3)
-        expect(content.apply_error).to match(/Error/) & match(/in process_config/)
+        expect(content.apply_error).to include('Error') & include('process_config')
       end
     end
 
@@ -46,7 +48,8 @@ RSpec.describe Datadog::Tracing::Remote do
             .with(contain_exactly(
               ['DD_LOGS_INJECTION', nil],
               ['DD_TRACE_HEADER_TAGS', nil],
-              ['DD_TRACE_SAMPLE_RATE', nil]
+              ['DD_TRACE_SAMPLE_RATE', nil],
+              ['DD_TRACE_SAMPLING_RULES', nil],
             ))
 
           process_config
@@ -64,7 +67,8 @@ RSpec.describe Datadog::Tracing::Remote do
             .with(contain_exactly(
               ['DD_LOGS_INJECTION', false],
               ['DD_TRACE_HEADER_TAGS', nil],
-              ['DD_TRACE_SAMPLE_RATE', nil]
+              ['DD_TRACE_SAMPLE_RATE', nil],
+              ['DD_TRACE_SAMPLING_RULES', nil],
             ))
 
           process_config

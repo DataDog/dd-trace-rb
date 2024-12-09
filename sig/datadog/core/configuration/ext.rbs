@@ -14,8 +14,24 @@ module Datadog
           ENV_DEFAULT_PORT: "DD_METRIC_AGENT_PORT"
         end
 
-        module Transport
-          ENV_DEFAULT_HOST: "DD_AGENT_HOST"
+        module Agent
+          ENV_DEFAULT_PORT: 'DD_TRACE_AGENT_PORT'
+          ENV_DEFAULT_URL: 'DD_TRACE_AGENT_URL'
+          ENV_DEFAULT_TIMEOUT_SECONDS: 'DD_TRACE_AGENT_TIMEOUT_SECONDS'
+
+          module HTTP
+            ADAPTER: :net_http
+            DEFAULT_HOST: '127.0.0.1'
+            DEFAULT_PORT: 8126
+            DEFAULT_USE_SSL: false
+            DEFAULT_TIMEOUT_SECONDS: 30
+          end
+
+          module UnixSocket
+            ADAPTER: :unix
+            DEFAULT_PATH: '/var/run/datadog/apm.socket'
+            DEFAULT_TIMEOUT_SECONDS: 1
+          end
         end
       end
     end

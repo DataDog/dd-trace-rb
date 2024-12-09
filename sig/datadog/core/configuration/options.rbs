@@ -19,13 +19,15 @@ module Datadog
         module InstanceMethods
           def options: () -> untyped
 
-          def set_option: (untyped name, untyped value) -> untyped
+          def set_option: (untyped name, untyped value, precedence: Option::Precedence::Value) -> untyped
 
           def get_option: (untyped name) -> untyped
 
           def reset_option: (untyped name) -> untyped
 
           def option_defined?: (untyped name) -> untyped
+
+          def unset_option: (untyped name, precedence: Option::Precedence::Value) -> void
 
           def using_default?: (Symbol option) -> bool
 

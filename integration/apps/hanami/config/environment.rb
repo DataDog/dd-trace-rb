@@ -1,7 +1,6 @@
 require 'bundler/setup'
 require 'hanami/setup'
 require 'hanami/model'
-require_relative '../lib/hanami'
 require_relative '../apps/acme/application'
 
 Hanami.configure do

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../../analytics'
@@ -13,7 +15,7 @@ module Datadog
           module RenderPartial
             include ActionView::Event
 
-            EVENT_NAME = 'render_partial.action_view'.freeze
+            EVENT_NAME = 'render_partial.action_view'
 
             module_function
 
@@ -25,9 +27,9 @@ module Datadog
               Ext::SPAN_RENDER_PARTIAL
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               span.service = configuration[:service_name] if configuration[:service_name]
-              span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
+              span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_RENDER_PARTIAL)
@@ -39,10 +41,6 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
-
-              record_exception(span, payload)
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
             end
           end
         end

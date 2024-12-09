@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/redis/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Redis::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:redis) }
 
   describe '.version' do

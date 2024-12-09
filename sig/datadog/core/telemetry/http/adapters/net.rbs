@@ -4,21 +4,24 @@ module Datadog
       module Http
         module Adapters
           class Net
-            attr_reader hostname: untyped
+            type response = Datadog::Core::Telemetry::Http::Adapters::Net::Response | ::Datadog::Core::Telemetry::Http::InternalErrorResponse
 
-            attr_reader port: untyped
+            attr_reader hostname: String
 
-            attr_reader timeout: untyped
+            attr_reader port: Integer?
 
-            attr_reader ssl: untyped
+            attr_reader timeout: Float | Integer
 
-            DEFAULT_TIMEOUT: 30
+            attr_reader ssl: bool
 
-            def initialize: (hostname: untyped, ?port: untyped?, ?timeout: untyped, ?ssl: bool) -> void
+            DEFAULT_TIMEOUT: 2
 
-            def open: () ?{ () -> untyped } -> untyped
+            def initialize: (hostname: String, ?port: Integer?, ?timeout: Float | Integer, ?ssl: bool?) -> void
 
-            def post: (untyped env) -> Datadog::Core::Telemetry::Http::Adapters::Net::Response
+            def open: () { (::Net::HTTP http) -> ::Net::HTTPResponse } -> untyped
+
+            def post: (untyped env) -> response
+
             class Response
               include Datadog::Core::Telemetry::Http::Response
 

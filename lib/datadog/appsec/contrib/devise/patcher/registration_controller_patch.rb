@@ -42,6 +42,8 @@ module Datadog
                     **event_information.to_h
                   )
                 end
+
+                yield resource if block_given?
               end
             end
           end

@@ -1,6 +1,0 @@
-module Datadog
-  module Profiling
-    class Event
-    end
-  end
-end

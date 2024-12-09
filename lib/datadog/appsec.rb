@@ -4,6 +4,7 @@ require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
 require_relative 'appsec/scope'
 require_relative 'appsec/ext'
+require_relative 'appsec/utils'
 
 module Datadog
   # Namespace for Datadog AppSec instrumentation
@@ -23,12 +24,12 @@ module Datadog
         appsec_component.processor if appsec_component
       end
 
-      def reconfigure(ruleset:)
+      def reconfigure(ruleset:, telemetry:)
         appsec_component = components.appsec
 
         return unless appsec_component
 
-        appsec_component.reconfigure(ruleset: ruleset)
+        appsec_component.reconfigure(ruleset: ruleset, telemetry: telemetry)
       end
 
       def reconfigure_lock(&block)
@@ -55,6 +56,8 @@ end
 require_relative 'appsec/contrib/rack/integration'
 require_relative 'appsec/contrib/sinatra/integration'
 require_relative 'appsec/contrib/rails/integration'
+require_relative 'appsec/contrib/active_record/integration'
 require_relative 'appsec/contrib/devise/integration'
+require_relative 'appsec/contrib/graphql/integration'
 
 require_relative 'appsec/autoload'

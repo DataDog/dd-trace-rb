@@ -6,6 +6,7 @@ module Datadog
 
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
+        attr_reader healthy: bool
 
         @barrier: Barrier
 
@@ -15,11 +16,17 @@ module Datadog
 
         def started?: -> bool
 
+        def barrier: (Symbol) -> Symbol
+
         def sync: () -> void
 
         def shutdown!: () -> void
 
-        def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> Datadog::Core::Remote::Component?
+        def self.build: (
+          untyped settings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings,
+          telemetry: Datadog::Core::Telemetry::Component
+        ) -> Datadog::Core::Remote::Component?
 
         class Barrier
           type timeout_s = ::Integer | ::Float
@@ -32,8 +39,7 @@ module Datadog
 
           def initialize: (?timeout_s? timeout) -> void
 
-          def wait_once: (?timeout_s? timeout) -> void
-          def wait_next: (?timeout_s? timeout) -> void
+          def wait_once: (?timeout_s? timeout) -> Symbol
           def lift: () -> void
         end
       end

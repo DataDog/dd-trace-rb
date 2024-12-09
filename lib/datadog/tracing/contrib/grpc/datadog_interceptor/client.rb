@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../../../tracing'
 require_relative '../../../metadata/ext'
 require_relative '../distributed/propagation'
@@ -20,9 +22,10 @@ module Datadog
               formatter = GRPC::Formatting::FullMethodStringFormatter.new(keywords[:method])
 
               options = {
-                span_type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
+                type: Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND,
                 service: service_name, # Maintain client-side service name configuration
-                resource: formatter.resource_name
+                resource: formatter.resource_name,
+                on_error: on_error
               }
 
               Tracing.trace(Ext::SPAN_CLIENT, **options) do |span, trace|
@@ -56,6 +59,11 @@ module Datadog
                 )
               end
 
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
+
               span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
               span.set_tag(Tracing::Metadata::Ext::TAG_OPERATION, Ext::TAG_OPERATION_CLIENT)
@@ -73,7 +81,7 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              Distributed::Propagation::INSTANCE.inject!(trace, metadata) if distributed_tracing?
+              GRPC.inject(trace, metadata) if distributed_tracing?
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")

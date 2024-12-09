@@ -38,11 +38,13 @@ ext/**/skipped_reason.txt
 # unless supporting rvm < 1.11.0 or doing something fancy, ignore this:
 .rvmrc
 # Ignore local variables
-.envrc
+/.envrc
+/.direnv
 
 # lock files
 Gemfile.lock
 Gemfile-*.lock
+*.gemfile.lock
 
 # bundle config
 gemfiles/.bundle
@@ -50,3 +52,6 @@ gemfiles/.bundle
 # Native extension binaries
 lib/*.bundle
 lib/*.so
+
+# Benchmark result files
+/benchmarks/*.json

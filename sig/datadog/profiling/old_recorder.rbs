@@ -1,9 +1,0 @@
-module Datadog
-  module Profiling
-    class OldRecorder
-      def initialize: (Array[untyped] event_classes, ::Integer max_size, ?last_flush_time: ::Time) -> void
-
-      def serialize: () -> [::Time, ::Time, ::String]?
-    end
-  end
-end

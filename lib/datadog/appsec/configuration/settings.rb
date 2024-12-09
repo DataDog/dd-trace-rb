@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../core/utils/duration'
+require_relative '../sample_rate'
 
 module Datadog
   module AppSec
@@ -8,20 +9,24 @@ module Datadog
       # Settings
       module Settings
         # rubocop:disable Layout/LineLength
-        DEFAULT_OBFUSCATOR_KEY_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?)key)|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization'
-        DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:_?phrase)?|secret|(?:api_?|private_?|public_?|access_?|secret_?)key(?:_?id)?|token|consumer_?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'
+        DEFAULT_OBFUSCATOR_KEY_REGEX = '(?i)pass|pw(?:or)?d|secret|(?:api|private|public|access)[_-]?key|token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)|bearer|authorization|jsessionid|phpsessid|asp\.net[_-]sessionid|sid|jwt'
+        DEFAULT_OBFUSCATOR_VALUE_REGEX = '(?i)(?:p(?:ass)?w(?:or)?d|pass(?:[_-]?phrase)?|secret(?:[_-]?key)?|(?:(?:api|private|public|access)[_-]?)key(?:[_-]?id)?|(?:(?:auth|access|id|refresh)[_-]?)?token|consumer[_-]?(?:id|key|secret)|sign(?:ed|ature)?|auth(?:entication|orization)?|jsessionid|phpsessid|asp\.net(?:[_-]|-)sessionid|sid|jwt)(?:\s*=[^;]|"\s*:\s*"[^"]+")|bearer\s+[a-z0-9\._\-]+|token:[a-z0-9]{13}|gh[opsu]_[0-9a-zA-Z]{36}|ey[I-L][\w=-]+\.ey[I-L][\w=-]+(?:\.[\w.+\/=-]+)?|[\-]{5}BEGIN[a-z\s]+PRIVATE\sKEY[\-]{5}[^\-]+[\-]{5}END[a-z\s]+PRIVATE\sKEY|ssh-rsa\s*[a-z0-9\/\.+]{100,}'
         # rubocop:enable Layout/LineLength
         APPSEC_VALID_TRACK_USER_EVENTS_MODE = [
           'safe',
           'extended'
         ].freeze
+        APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES = [
+          '1',
+          'true'
+        ].concat(APPSEC_VALID_TRACK_USER_EVENTS_MODE).freeze
 
         def self.extended(base)
           base = base.singleton_class unless base.is_a?(Class)
           add_settings!(base)
         end
 
-        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:disable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
         def self.add_settings!(base)
           base.class_eval do
             settings :appsec do
@@ -47,6 +52,10 @@ module Datadog
               option :ruleset do |o|
                 o.env 'DD_APPSEC_RULES'
                 o.default :recommended
+              end
+
+              option :ip_passlist do |o|
+                o.default []
               end
 
               option :ip_denylist do |o|
@@ -91,6 +100,46 @@ module Datadog
                 o.default DEFAULT_OBFUSCATOR_VALUE_REGEX
               end
 
+              settings :block do
+                settings :templates do
+                  option :html do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_HTML'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.html: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+
+                  option :json do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_JSON'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.json: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+
+                  option :text do |o|
+                    o.env 'DD_APPSEC_HTTP_BLOCKED_TEMPLATE_TEXT'
+                    o.type :string, nilable: true
+                    o.setter do |value|
+                      if value
+                        raise(ArgumentError, "appsec.templates.text: file not found: #{value}") unless File.exist?(value)
+
+                        File.open(value, 'rb', &:read) || ''
+                      end
+                    end
+                  end
+                end
+              end
+
               settings :track_user_events do
                 option :enabled do |o|
                   o.default true
@@ -100,7 +149,7 @@ module Datadog
                     if env_value == 'disabled'
                       false
                     else
-                      ['1', 'true'].include?(env_value.strip.downcase)
+                      APPSEC_VALID_TRACK_USER_EVENTS_ENABLED_VALUES.include?(env_value.strip.downcase)
                     end
                   end
                 end
@@ -112,6 +161,8 @@ module Datadog
                   o.setter do |v|
                     if APPSEC_VALID_TRACK_USER_EVENTS_MODE.include?(v)
                       v
+                    elsif v == 'disabled'
+                      'safe'
                     else
                       Datadog.logger.warn(
                         'The appsec.track_user_events.mode value provided is not supported.' \
@@ -123,10 +174,41 @@ module Datadog
                   end
                 end
               end
+
+              settings :api_security do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_EXPERIMENTAL_API_SECURITY_ENABLED'
+                  o.default false
+                end
+
+                option :sample_rate do |o|
+                  o.type :float
+                  o.env 'DD_API_SECURITY_REQUEST_SAMPLE_RATE'
+                  o.default 0.1
+                  o.setter do |value|
+                    value = 1 if value > 1
+                    SampleRate.new(value)
+                  end
+                end
+              end
+
+              option :sca_enabled do |o|
+                o.type :bool, nilable: true
+                o.env 'DD_APPSEC_SCA_ENABLED'
+              end
+
+              settings :standalone do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED'
+                  o.default false
+                end
+              end
             end
           end
         end
-        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength
+        # rubocop:enable Metrics/AbcSize,Metrics/MethodLength,Metrics/BlockLength,Metrics/CyclomaticComplexity,Metrics/PerceivedComplexity
       end
     end
   end

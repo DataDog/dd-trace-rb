@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../analytics'
 require_relative 'ext'
 require_relative 'configuration/settings'
@@ -58,8 +60,8 @@ module Datadog
               datadog_configuration[:analytics_sample_rate]
             end
 
-            def error_handler
-              datadog_configuration[:error_handler]
+            def on_error
+              Datadog.configuration_for(self, :on_error) || datadog_configuration[:on_error]
             end
 
             # Allows interceptors to define settings using methods instead of `[]`

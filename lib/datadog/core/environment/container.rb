@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'cgroup'
 
 module Datadog
@@ -5,8 +7,8 @@ module Datadog
     module Environment
       # For container environments
       module Container
-        UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'.freeze
-        CONTAINER_PATTERN = '[0-9a-f]{64}'.freeze
+        UUID_PATTERN = '[0-9a-f]{8}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{4}[-_]?[0-9a-f]{12}'
+        CONTAINER_PATTERN = '[0-9a-f]{64}'
 
         PLATFORM_REGEX = /(?<platform>.*?)(?:.slice)?$/.freeze
         POD_REGEX = /(?<pod>(pod)?#{UUID_PATTERN})(?:.slice)?$/.freeze

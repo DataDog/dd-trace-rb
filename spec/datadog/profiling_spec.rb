@@ -2,8 +2,6 @@ require 'spec_helper'
 require 'datadog/profiling'
 
 RSpec.describe Datadog::Profiling do
-  extend ConfigurationHelpers
-
   describe '.start_if_enabled' do
     subject(:start_if_enabled) { described_class.start_if_enabled }
 
@@ -89,6 +87,44 @@ RSpec.describe Datadog::Profiling do
     end
   end
 
+  describe '.wait_until_running' do
+    subject(:wait_until_running) { described_class.wait_until_running }
+
+    before do
+      allow(Datadog.send(:components)).to receive(:profiler).and_return(profiler)
+    end
+
+    context 'when no profiler is available' do
+      let(:profiler) { nil }
+
+      it 'raises an error' do
+        expect { wait_until_running }.to raise_error(/Profiler not enabled or available/)
+      end
+    end
+
+    context 'when a profiler is available' do
+      let(:profiler) { instance_double('Datadog::Profiling::Profiler', worker: worker) }
+      let(:worker) do
+        instance_double('Datadog::Profiling::Collectors::CpuAndWallTimeWorker', wait_until_running: worker_result)
+      end
+
+      context 'when the worker is ready' do
+        let(:worker_result) { true }
+        it { is_expected.to be(true) }
+      end
+
+      context 'when the worker times out' do
+        let(:worker_result) { nil }
+
+        before { expect(worker).to receive(:wait_until_running).and_raise(StandardError.new('Timeout')) }
+
+        it 'raises an error' do
+          expect { wait_until_running }.to raise_error(/Timeout/)
+        end
+      end
+    end
+  end
+
   describe '::supported?' do
     subject(:supported?) { described_class.supported? }
 
@@ -145,107 +181,13 @@ RSpec.describe Datadog::Profiling do
         it { is_expected.to include 'profiling native extension did not load correctly' }
       end
 
-      context "when the profiling native library is available and 'google-protobuf'" do
+      context 'when the profiling native library is available' do
         before do
           expect(described_class).to receive(:try_loading_native_library).and_return([true, nil])
         end
 
-        context 'is not available' do
-          include_context 'loaded gems', :'google-protobuf' => nil
-
-          before do
-            hide_const('::Google::Protobuf')
-          end
-
-          it { is_expected.to include 'Missing google-protobuf' }
-        end
-
-        context 'is available but not yet loaded' do
-          before do
-            hide_const('::Google::Protobuf')
-          end
-
-          context 'but is below the minimum version' do
-            include_context 'loaded gems', :'google-protobuf' => Gem::Version.new('2.9')
-
-            it { is_expected.to include 'google-protobuf >= 3.0' }
-          end
-
-          context 'and meeting the minimum version' do
-            include_context 'loaded gems', :'google-protobuf' => Gem::Version.new('3.0')
-
-            context 'when protobuf does not load correctly' do
-              before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(false) }
-
-              it { is_expected.to include 'error loading' }
-            end
-
-            context 'when protobuf loads successfully' do
-              before { allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(true) }
-
-              it { is_expected.to be nil }
-            end
-          end
-        end
-
-        context 'is already loaded' do
-          before do
-            stub_const('::Google::Protobuf', Module.new)
-            allow(described_class).to receive(:protobuf_loaded_successfully?).and_return(true)
-          end
-
-          it { is_expected.to be nil }
-
-          context "but it's the protobuf/cucumber-protobuf gem instead of google-protobuf" do
-            include_context 'loaded gems', :'google-protobuf' => nil
-
-            before do
-              stub_const('::Protobuf', Module.new)
-            end
-
-            it { is_expected.to include 'Missing google-protobuf' }
-          end
-        end
+        it { is_expected.to be nil }
       end
-    end
-  end
-
-  describe '::protobuf_loaded_successfully?' do
-    subject(:protobuf_loaded_successfully?) { described_class.send(:protobuf_loaded_successfully?) }
-
-    # NOTE: Be careful not to leave leftover state here, as marking protobuf as failed makes Profiling.supported?
-    # return false and may impact other tests.
-
-    before do
-      # Remove any previous state
-      if described_class.instance_variable_defined?(:@protobuf_loaded)
-        described_class.remove_instance_variable(:@protobuf_loaded)
-      end
-
-      allow(Kernel).to receive(:warn)
-    end
-
-    after do
-      # Remove leftover state
-      described_class.remove_instance_variable(:@protobuf_loaded)
-    end
-
-    context 'when there is an issue requiring protobuf' do
-      before { allow(described_class).to receive(:require).and_raise(LoadError.new('Simulated require failure')) }
-
-      it { is_expected.to be false }
-
-      it 'logs a warning' do
-        expect(Kernel).to receive(:warn).with(/Error while loading google-protobuf/)
-
-        protobuf_loaded_successfully?
-      end
-    end
-
-    context 'when requiring protobuf is successful' do
-      before { allow(described_class).to receive(:require).and_return(true) }
-
-      it { is_expected.to be true }
     end
   end
 
@@ -305,7 +247,7 @@ RSpec.describe Datadog::Profiling do
     let(:read) { '' }
 
     it 'tries to read the skipped_reason.txt file in the native extension folder' do
-      expected_path = File.expand_path('../../ext/ddtrace_profiling_native_extension/skipped_reason.txt', __dir__)
+      expected_path = File.expand_path('../../ext/datadog_profiling_native_extension/skipped_reason.txt', __dir__)
 
       expect(file_api).to receive(:exist?) do |path|
         expect(File.expand_path(path)).to eq expected_path

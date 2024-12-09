@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../response'
 
 module Datadog
@@ -13,7 +15,7 @@ module Datadog
               :timeout,
               :ssl
 
-            DEFAULT_TIMEOUT = 30
+            DEFAULT_TIMEOUT = 2
 
             def initialize(hostname:, port: nil, timeout: DEFAULT_TIMEOUT, ssl: true)
               @hostname = hostname
@@ -32,19 +34,17 @@ module Datadog
             end
 
             def post(env)
-              begin
-                post = ::Net::HTTP::Post.new(env.path, env.headers)
-                post.body = env.body
+              post = ::Net::HTTP::Post.new(env.path, env.headers)
+              post.body = env.body
 
-                http_response = open do |http|
-                  http.request(post)
-                end
-
-                Response.new(http_response)
-              rescue StandardError => e
-                Datadog.logger.debug("Unable to send telemetry event to agent: #{e}")
-                Telemetry::Http::InternalErrorResponse.new(e)
+              http_response = open do |http|
+                http.request(post)
               end
+
+              Response.new(http_response)
+            rescue StandardError => e
+              Datadog.logger.debug("Unable to send telemetry event to agent: #{e}")
+              Telemetry::Http::InternalErrorResponse.new(e)
             end
 
             # Data structure for an HTTP Response

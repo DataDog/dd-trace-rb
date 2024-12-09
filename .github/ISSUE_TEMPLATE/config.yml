@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: ℹ️ Datadog Support
+    url: https://www.datadoghq.com/support/
+    about: Get help from the Datadog support team

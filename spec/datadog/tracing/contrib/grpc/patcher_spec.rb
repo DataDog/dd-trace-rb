@@ -1,7 +1,7 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'grpc'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/grpc/patcher'
 
 RSpec.describe 'GRPC instrumentation' do

@@ -26,33 +26,17 @@ module Datadog
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 body = values[0]
 
-                waf_args = {
+                persistent_data = {
                   'server.request.body' => body,
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(waf_args, waf_timeout)
+                result = waf_context.run(persistent_data, {}, waf_timeout)
 
-                Datadog.logger.debug { "WAF TIMEOUT: #{result.inspect}" } if result.timeout
+                next if result.status != :match
 
-                case result.status
-                when :match
-                  Datadog.logger.debug { "WAF: #{result.inspect}" }
-
-                  block = result.actions.include?('block')
-
-                  yield [result, block]
-
-                  throw(:block, [result, true]) if block
-                when :ok
-                  Datadog.logger.debug { "WAF OK: #{result.inspect}" }
-                when :invalid_call
-                  Datadog.logger.debug { "WAF CALL ERROR: #{result.inspect}" }
-                when :invalid_rule, :invalid_flow, :no_rule
-                  Datadog.logger.debug { "WAF RULE ERROR: #{result.inspect}" }
-                else
-                  Datadog.logger.debug { "WAF UNKNOWN: #{result.status.inspect} #{result.inspect}" }
-                end
+                yield result
+                throw(:block, true) unless result.actions.empty?
               end
             end
           end

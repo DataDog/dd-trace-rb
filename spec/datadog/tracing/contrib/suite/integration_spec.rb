@@ -1,28 +1,30 @@
+require 'datadog/core/utils/base64'
 require 'datadog/tracing/contrib/support/spec_helper'
 
-require 'ddtrace'
+require 'datadog'
 
 # For testing dynamic configuration
 require 'semantic_logger'
 
 require 'rack'
 # `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0
-require 'rackup' if Rack::VERSION[0] >= 3
+require 'rackup/handler/webrick' if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
 require 'webrick'
 
-RSpec.describe 'contrib integration testing' do
+RSpec.describe 'contrib integration testing', :integration do
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
   end
 
   describe 'dynamic configuration' do
     subject(:update_config) do
-      stub_rc!
-
       @reconfigured = false
       allow(Datadog::Tracing::Remote).to receive(:process_config).and_wrap_original do |m, *args|
         m.call(*args).tap { @reconfigured = true }
       end
+
+      stub_rc!
+
       try_wait_until { @reconfigured }
     end
 
@@ -71,7 +73,7 @@ RSpec.describe 'contrib integration testing' do
 
         target_files << {
           'path' => target,
-          'raw' => Base64.strict_encode64(raw),
+          'raw' => Datadog::Core::Utils::Base64.strict_encode64(raw),
         }
 
         targets_targets[target] = {
@@ -84,7 +86,7 @@ RSpec.describe 'contrib integration testing' do
 
       {
         'target_files' => target_files,
-        'targets' => Base64.strict_encode64(targets.to_json),
+        'targets' => Datadog::Core::Utils::Base64.strict_encode64(targets.to_json),
         'client_configs' => client_configs,
       }.to_json
     end
@@ -162,7 +164,11 @@ RSpec.describe 'contrib integration testing' do
             end
           end.to_app
 
-          server.mount '/', Rack::Handler::WEBrick, app
+          if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
+            server.mount '/', Rackup::Handler::WEBrick, app
+          else
+            server.mount '/', Rack::Handler::WEBrick, app
+          end
 
           @thread = Thread.new { server.start }
           try_wait_until { started }

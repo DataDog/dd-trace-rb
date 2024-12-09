@@ -1,0 +1,59 @@
+module Datadog
+  module Core
+    module Remote
+      module Transport
+        module HTTP
+          module Negotiation
+            class Response
+              include Datadog::Core::Transport::HTTP::Response
+
+              include Datadog::Core::Remote::Transport::Negotiation::Response
+
+              def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+            end
+
+            module Client : Remote::Transport::HTTP::Client
+              def send_info_payload: (untyped request) -> untyped
+            end
+
+            module API
+              module Spec
+                attr_reader info: untyped
+
+                def info=: (untyped endpoint) -> untyped
+
+                def send_info: (untyped env) ?{ () -> untyped } -> untyped
+
+                class NoNegotiationEndpointDefinedError < StandardError
+                  attr_reader spec: untyped
+
+                  def initialize: (untyped spec) -> void
+
+                  def message: () -> "No info endpoint is defined for API specification!"
+                end
+              end
+
+              module Instance : Remote::Transport::HTTP::API::Instance
+                def send_info: (untyped env) -> untyped
+
+                class NegotiationNotSupportedError < StandardError
+                  attr_reader spec: untyped
+
+                  def initialize: (untyped spec) -> void
+
+                  def message: () -> "Info not supported for this API!"
+                end
+              end
+
+              class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
+                def initialize: (untyped path) -> void
+
+                def call: (untyped env) { (untyped) -> untyped } -> untyped
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

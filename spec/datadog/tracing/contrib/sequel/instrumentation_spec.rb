@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/span_attribute_schema_examples'
 
 require 'time'
 require 'sequel'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/sequel/integration'
 
 RSpec.describe 'Sequel instrumentation' do
@@ -47,6 +47,13 @@ RSpec.describe 'Sequel instrumentation' do
         String :name
       end
 
+      # Warm up the connection and flushed out some internal queries.
+      # This mitigates inconsistent ordering during test assertion.
+      #
+      # For example:
+      # - `pg` retrieves the primary key column name of a table named tbl in a PostgreSQL database
+      sequel[:tbl].insert(name: 'data0')
+
       clear_traces!
     end
 
@@ -62,7 +69,7 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.name).to eq('sequel.query')
           # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
-          expect(span.span_type).to eq('sql')
+          expect(span.type).to eq('sql')
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           # Expect non-quantized query: agent does SQL quantization.
           expect(span.resource).to eq(expected_query)
@@ -121,7 +128,7 @@ RSpec.describe 'Sequel instrumentation' do
             sequel[:tbl].insert(name: 'data1')
             sequel[:tbl].insert(name: 'data2')
             data = sequel[:tbl].select.to_a
-            expect(data.length).to eq(2)
+            expect(data.length).to eq(3)
             data.each do |row|
               expect(row[:name]).to match(/^data.$/)
             end
@@ -136,14 +143,14 @@ RSpec.describe 'Sequel instrumentation' do
         expect(publish_span.name).to eq('publish')
         expect(publish_span.service).to eq('webapp')
         expect(publish_span.resource).to eq('/index')
-        expect(publish_span.span_id).to_not eq(publish_span.trace_id)
+        expect(publish_span.id).to_not eq(publish_span.trace_id)
         expect(publish_span.parent_id).to eq(0)
 
         # Check process span
         expect(process_span.name).to eq('process')
         expect(process_span.service).to eq('datalayer')
         expect(process_span.resource).to eq('home')
-        expect(process_span.parent_id).to eq(publish_span.span_id)
+        expect(process_span.parent_id).to eq(publish_span.id)
         expect(process_span.trace_id).to eq(publish_span.trace_id)
 
         # Check each command span
@@ -151,7 +158,7 @@ RSpec.describe 'Sequel instrumentation' do
           [sequel_cmd1_span, "INSERT INTO tbl (name) VALUES ('data1')"],
           [sequel_cmd2_span, "INSERT INTO tbl (name) VALUES ('data2')"],
           [sequel_cmd3_span, 'SELECT * FROM tbl'],
-          # Internal queries run by Sequel (e.g. 'SELECT version()').
+          # Internal queries run by Sequel (e.g. 'SELECT version()' for `mysql`).
           # We don't care about their content, only that they are
           # correctly tagged.
           *sequel_internal_spans.map { |span| [span, nil] }
@@ -159,7 +166,7 @@ RSpec.describe 'Sequel instrumentation' do
           expect(span.name).to eq('sequel.query')
           # Expect it to be the normalized adapter name.
           expect(span.service).to eq(normalized_adapter)
-          expect(span.span_type).to eq('sql')
+          expect(span.type).to eq('sql')
           expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
           expect(span.status).to eq(0)
 
@@ -173,7 +180,7 @@ RSpec.describe 'Sequel instrumentation' do
           # Expect non-quantized query: agent does SQL quantization.
           expect(span.resource).to match_normalized_sql(start_with query)
 
-          expect(span.parent_id).to eq(process_span.span_id)
+          expect(span.parent_id).to eq(process_span.id)
           expect(span.trace_id).to eq(publish_span.trace_id)
         end
       end
@@ -203,7 +210,7 @@ RSpec.describe 'Sequel instrumentation' do
         expect(span.name).to eq('sequel.query')
         # Expect it to be the normalized adapter name.
         expect(span.service).to eq(normalized_adapter)
-        expect(span.span_type).to eq('sql')
+        expect(span.type).to eq('sql')
         expect(span.get_tag('sequel.db.vendor')).to eq(normalized_adapter)
         expect(span.get_tag('sequel.prepared.name')).to eq('prepared_name')
         # Expect non-quantized query: agent does SQL quantization.

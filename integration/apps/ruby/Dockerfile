@@ -6,12 +6,12 @@ FROM ${BASE_IMAGE}
 RUN mkdir /app
 WORKDIR /app
 
-# Setup specific version of ddtrace, if specified.
-ARG ddtrace_git
-ENV DD_DEMO_ENV_GEM_GIT_DDTRACE ${ddtrace_git}
+# Setup specific version of datadog, if specified.
+ARG gem_git_datadog
+ENV DD_DEMO_ENV_GEM_GIT_DATADOG ${gem_git_datadog}
 
-ARG ddtrace_ref
-ENV DD_DEMO_ENV_GEM_REF_DDTRACE ${ddtrace_ref}
+ARG gem_ref_datadog
+ENV DD_DEMO_ENV_GEM_REF_DATADOG ${gem_ref_datadog}
 
 # Install dependencies
 COPY Gemfile /app/Gemfile

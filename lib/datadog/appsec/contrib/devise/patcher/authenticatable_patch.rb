@@ -15,6 +15,7 @@ module Datadog
             def validate(resource, &block)
               result = super
               return result unless AppSec.enabled?
+              return result if @_datadog_skip_track_login_event
 
               track_user_events_configuration = Datadog.configuration.appsec.track_user_events
 

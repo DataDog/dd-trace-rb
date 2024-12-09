@@ -26,6 +26,8 @@ module Datadog
         :parent_id,
         :resource,
         :service,
+        :links,
+        :events,
         :type,
         :start_time,
         :status,
@@ -33,11 +35,6 @@ module Datadog
 
       attr_writer \
         :duration
-
-      # For backwards compatiblity
-      # TODO: Deprecate and remove these.
-      alias :span_id :id
-      alias :span_type :type
 
       # Create a new span manually. Call the <tt>start()</tt> method to start the time
       # measurement and then <tt>stop()</tt> once the timing operation is over.
@@ -49,7 +46,7 @@ module Datadog
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
       # * +service_entry+: whether it is a service entry span.
-      # TODO: Remove span_type
+      # * +events+: the list of events that occurred while a span was active.
       def initialize(
         name,
         duration: nil,
@@ -60,12 +57,13 @@ module Datadog
         parent_id: 0,
         resource: name,
         service: nil,
-        span_type: nil,
         start_time: nil,
         status: 0,
-        type: span_type,
+        type: nil,
         trace_id: nil,
-        service_entry: nil
+        service_entry: nil,
+        links: nil,
+        events: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -93,6 +91,10 @@ module Datadog
 
         @service_entry = service_entry
 
+        @links = links || []
+
+        @events = events || []
+
         # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
       end
@@ -115,7 +117,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Spans with the same ID are considered the same span
@@ -143,13 +145,16 @@ module Datadog
           service: @service,
           span_id: @id,
           trace_id: @trace_id,
-          type: @type
+          type: @type,
+          span_links: @links.map(&:to_hash)
         }
 
         if stopped?
           h[:start] = start_time_nano
           h[:duration] = duration_nano
         end
+
+        h[:meta]['events'] = @events.map(&:to_hash).to_json unless @events.empty?
 
         h
       end

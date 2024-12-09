@@ -9,7 +9,7 @@ module Datadog
       # that load appsec rules and data from  settings
       module RuleLoader
         class << self
-          def load_rules(ruleset:)
+          def load_rules(ruleset:, telemetry:)
             begin
               case ruleset
               when :recommended, :strict
@@ -35,6 +35,8 @@ module Datadog
                 "libddwaf ruleset failed to load, ruleset: #{ruleset.inspect} error: #{e.inspect}"
               end
 
+              telemetry.report(e, description: 'libddwaf ruleset failed to load')
+
               nil
             end
           end
@@ -47,6 +49,13 @@ module Datadog
             data
           end
 
+          def load_exclusions(ip_passlist: [])
+            exclusions = []
+            exclusions << [passlist_exclusions(ip_passlist)] if ip_passlist.any?
+
+            exclusions
+          end
+
           private
 
           def denylist_data(id, denylist)
@@ -55,6 +64,59 @@ module Datadog
               'type' => 'data_with_expiration',
               'data' => denylist.map { |v| { 'value' => v.to_s, 'expiration' => 2**63 } }
             }
+          end
+
+          def passlist_exclusions(ip_passlist) # rubocop:disable Metrics/MethodLength
+            case ip_passlist
+            when Array
+              pass = ip_passlist
+              monitor = []
+            when Hash
+              pass = ip_passlist[:pass]
+              monitor = ip_passlist[:monitor]
+            else
+              pass = []
+              monitor = []
+            end
+
+            exclusions = []
+
+            exclusions << {
+              'conditions' => [
+                {
+                  'operator' => 'ip_match',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'http.client_ip'
+                      }
+                    ],
+                    'list' => pass
+                  }
+                }
+              ],
+              'id' => SecureRandom.uuid,
+            }
+
+            exclusions << {
+              'conditions' => [
+                {
+                  'operator' => 'ip_match',
+                  'parameters' => {
+                    'inputs' => [
+                      {
+                        'address' => 'http.client_ip'
+                      }
+                    ],
+                    'list' => monitor
+                  }
+                }
+              ],
+              'id' => SecureRandom.uuid,
+              'on_match' => 'monitor'
+            }
+
+            exclusions
           end
         end
       end

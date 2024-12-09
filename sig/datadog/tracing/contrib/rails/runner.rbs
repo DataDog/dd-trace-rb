@@ -1,0 +1,12 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Rails
+        module Runner
+        end
+        module Command
+        end
+      end
+    end
+  end
+end

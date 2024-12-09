@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'buffer'
 require_relative 'pipeline'
 
@@ -14,7 +16,7 @@ module Datadog
         DEFAULT_TIMEOUT = 5
         BACK_OFF_RATIO = 1.2
         BACK_OFF_MAX = 5
-        SHUTDOWN_TIMEOUT = 1
+        DEFAULT_SHUTDOWN_TIMEOUT = 1
 
         attr_reader \
           :trace_buffer
@@ -36,6 +38,7 @@ module Datadog
 
           # Threading
           @shutdown = ConditionVariable.new
+          @shutdown_timeout = options.fetch(:shutdown_timeout, DEFAULT_SHUTDOWN_TIMEOUT)
           @mutex = Mutex.new
           @worker = nil
           @run = false
@@ -53,7 +56,7 @@ module Datadog
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
             # a fatal exception
-            Datadog.logger.error(
+            Datadog.logger.warn(
               "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )
           end
@@ -67,7 +70,8 @@ module Datadog
             @run = true
             Datadog.logger.debug { "Starting thread for: #{self}" }
             @worker = Thread.new { perform }
-            @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+            @worker.name = self.class.name
+            @worker.thread_variable_set(:fork_safe, true)
 
             nil
           end
@@ -89,7 +93,7 @@ module Datadog
 
         # Block until executor shutdown is complete or until timeout seconds have passed.
         def join
-          @worker.join(SHUTDOWN_TIMEOUT)
+          @worker.join(@shutdown_timeout)
         end
 
         # Enqueue an item in the trace internal buffer. This operation is thread-safe

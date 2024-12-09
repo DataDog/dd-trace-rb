@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/dalli/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Dalli::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:dalli) }
 
   describe '.version' do

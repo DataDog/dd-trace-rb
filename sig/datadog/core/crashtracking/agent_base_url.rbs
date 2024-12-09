@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Crashtracking
+      module AgentBaseUrl
+        def self.resolve: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) -> ::String?
+      end
+    end
+  end
+end

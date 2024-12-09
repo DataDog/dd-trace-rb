@@ -1,7 +1,0 @@
-module Datadog
-  module Profiling
-    module Pprof
-      Payload: untyped
-    end
-  end
-end

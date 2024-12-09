@@ -4,6 +4,7 @@ require_relative '../../metadata/ext'
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
+require_relative '../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -12,12 +13,17 @@ module Datadog
         # Tags handles generic common tags assignment.
         module Tags
           class << self
-            def set_common_tags(client, span, show_command_args)
+            def set_common_tags(client, span, raw_command)
               if datadog_configuration[:peer_service]
                 span.set_tag(
                   Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                   datadog_configuration[:peer_service]
                 )
+              end
+
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
               end
 
               span.set_tag(Tracing::Metadata::Ext::TAG_COMPONENT, Ext::TAG_COMPONENT)
@@ -37,9 +43,12 @@ module Datadog
 
               span.set_tag Ext::TAG_DATABASE_INDEX, client.db.to_s
               span.set_tag Ext::TAG_DB, client.db
-              span.set_tag Ext::TAG_RAW_COMMAND, span.resource if show_command_args
+              span.set_tag Ext::TAG_RAW_COMMAND, raw_command
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+            rescue StandardError => e
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
 
             private

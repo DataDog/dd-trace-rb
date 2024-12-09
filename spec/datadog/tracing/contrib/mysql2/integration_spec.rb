@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/mysql2/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Mysql2::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:mysql2) }
 
   describe '.version' do

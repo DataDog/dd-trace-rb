@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Component
+        @registry: Hash[String, Proc]
+      end
+    end
+  end
+end

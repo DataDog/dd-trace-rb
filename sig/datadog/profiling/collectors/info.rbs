@@ -1,0 +1,34 @@
+module Datadog
+  module Profiling
+    module Collectors
+      class Info
+        def initialize: (untyped settings) -> void
+
+        type platform_info = ::Hash[::Symbol, untyped]
+        type runtime_info = ::Hash[::Symbol, untyped]
+        type application_info = ::Hash[::Symbol, untyped]
+        type profiler_info = ::Hash[::Symbol, untyped]
+        type info = {
+          platform: platform_info,
+          runtime: runtime_info,
+          application: application_info,
+          profiler: profiler_info
+        }
+
+        attr_reader info: info
+
+        private
+        START_TIME: ::Time
+
+        @info: info
+
+        def collect_platform_info: () -> platform_info
+        def collect_runtime_info: () -> runtime_info
+        def collect_application_info: (untyped settings) -> application_info
+        def collect_profiler_info: (untyped settings) -> profiler_info
+
+        def collect_settings_recursively: (untyped v) -> untyped
+      end
+    end
+  end
+end

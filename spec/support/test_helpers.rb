@@ -1,12 +1,4 @@
 module TestHelpers
-  module_function
-
-  # Integration tests are normally expensive (time-wise or resource-wise).
-  # They run in CI by default.
-  def run_integration_tests?
-    ENV['TEST_DATADOG_INTEGRATION']
-  end
-
   module RSpec
     # RSpec extension to allow for declaring integration tests
     # using example group parameters:
@@ -19,11 +11,9 @@ module TestHelpers
     module Integration
       def self.included(base)
         base.class_exec do
-          before do
-            unless run_integration_tests?
-              skip('Integration tests can be enabled by setting the environment variable `TEST_DATADOG_INTEGRATION=1`')
-            end
-          end
+          skip_unless_integration_testing_enabled
+
+          include_context 'non-development execution environment'
         end
       end
     end

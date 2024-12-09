@@ -19,7 +19,7 @@ module Datadog
           # Class methods for Racecar events.
           # Note, they share the same process method and before_trace method.
           module ClassMethods
-            def subscription(*args)
+            def subscription(*args, **kwargs)
               super.tap do |subscription|
                 subscription.before_trace { ensure_clean_context! }
               end
@@ -33,7 +33,7 @@ module Datadog
               Datadog.configuration.tracing[:racecar]
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               span.service = configuration[:service_name]
               span.resource = payload[:consumer_class]
 
@@ -47,6 +47,11 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
+
+              # Tag original global service name if not used
+              if span.service != Datadog.configuration.service
+                span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
+              end
 
               span.set_tag(Ext::TAG_TOPIC, payload[:topic])
               span.set_tag(Ext::TAG_CONSUMER, payload[:consumer_class])

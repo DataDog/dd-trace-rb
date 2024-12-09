@@ -28,9 +28,11 @@ module Datadog
 
           private
 
+          # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/MethodLength
           def annotate!(span, context)
             span.service = configuration[:service_name]
-            span.span_type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
+            span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
             span.name = Ext::SPAN_COMMAND
             span.resource = context.safely(:resource)
             aws_service = span.resource.split('.')[0]
@@ -45,6 +47,11 @@ module Datadog
                 Tracing::Metadata::Ext::TAG_PEER_SERVICE,
                 configuration[:peer_service]
               )
+            end
+
+            # Tag original global service name if not used
+            if span.service != Datadog.configuration.service
+              span.set_tag(Tracing::Contrib::Ext::Metadata::TAG_BASE_SERVICE, Datadog.configuration.service)
             end
 
             span.set_tag(Tracing::Metadata::Ext::TAG_KIND, Tracing::Metadata::Ext::SpanKind::TAG_CLIENT)
@@ -70,7 +77,12 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+          rescue StandardError => e
+            Datadog.logger.error(e.message)
+            Datadog::Core::Telemetry::Logger.report(e)
           end
+          # rubocop:enable Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize
 
           def configuration
             Datadog.configuration.tracing[:aws]

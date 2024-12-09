@@ -8,6 +8,7 @@ module Datadog
         module Ext
           APP = 'roda'
           ENV_ENABLED = 'DD_TRACE_RODA_ENABLED'
+          # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_RODA_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_RODA_ANALYTICS_SAMPLE_RATE'
           SPAN_REQUEST = 'roda.request'

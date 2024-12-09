@@ -1,0 +1,67 @@
+module Datadog
+  module Transport
+    module HTTP
+      module Traces
+        class Response
+          include Core::Transport::HTTP::Response
+
+          include Tracing::Transport::Traces::Response
+
+          def initialize: (untyped http_response, ?::Hash[untyped, untyped] options) -> void
+        end
+
+        module Client
+          def send_traces_payload: (untyped request) -> untyped
+        end
+
+        module API
+          module Spec
+            attr_reader traces: untyped
+
+            def traces=: (untyped endpoint) -> untyped
+
+            def send_traces: (untyped env) ?{ () -> untyped } -> untyped
+
+            def encoder: () -> untyped
+
+            class NoTraceEndpointDefinedError < StandardError
+              attr_reader spec: untyped
+
+              def initialize: (untyped spec) -> void
+
+              def message: () -> "No trace endpoint is defined for API specification!"
+            end
+          end
+
+          module Instance
+            def send_traces: (untyped env) -> untyped
+
+            class TracesNotSupportedError < StandardError
+              attr_reader spec: untyped
+
+              def initialize: (untyped spec) -> void
+
+              def message: () -> "Traces not supported for this API!"
+            end
+          end
+
+          class Endpoint < Core::Transport::HTTP::API::Endpoint
+            HEADER_CONTENT_TYPE: "Content-Type"
+
+            HEADER_TRACE_COUNT: "X-Datadog-Trace-Count"
+
+            SERVICE_RATE_KEY: "rate_by_service"
+
+            attr_reader encoder: untyped
+
+            def initialize: (untyped path, untyped encoder, ?::Hash[untyped, untyped] options) -> void
+
+            def service_rates?: () -> untyped
+
+            def call: (untyped env) ?{ () -> untyped } -> untyped
+          end
+        end
+      end
+    end
+  end
+end

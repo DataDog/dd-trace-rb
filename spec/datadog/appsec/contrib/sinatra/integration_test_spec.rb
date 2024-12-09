@@ -1,5 +1,6 @@
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
+require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'securerandom'
@@ -18,13 +19,39 @@ require 'datadog/appsec'
 RSpec.describe 'Sinatra integration tests' do
   include Rack::Test::Methods
 
+  # We send the trace to a mocked agent to verify that the trace includes the headers that we want
+  # In the future, it might be a good idea to use the traces that the mocked agent
+  # receives in the tests/shared examples
+  let(:agent_http_client) do
+    Datadog::Tracing::Transport::HTTP.default do |t|
+      t.adapter agent_http_adapter
+    end
+  end
+
+  let(:agent_http_adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
+
+  let(:agent_settings) do
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      adapter: nil,
+      ssl: false,
+      uds_path: nil,
+      hostname: 'localhost',
+      port: 6218,
+      timeout_seconds: 30,
+    )
+  end
+
   let(:sorted_spans) do
+    # We must format the trace to have the same result as the agent
+    # This is especially important for _sampling_priority_v1 metric
+    Datadog::Tracing::Transport::TraceFormatter.format!(trace)
+
     chain = lambda do |start|
       loop.with_object([start]) do |_, o|
         # root reached (default)
         break o if o.last.parent_id == 0
 
-        parent = spans.find { |span| span.span_id == o.last.parent_id }
+        parent = spans.find { |span| span.id == o.last.parent_id }
 
         # root reached (distributed tracing)
         break o if parent.nil?
@@ -36,15 +63,21 @@ RSpec.describe 'Sinatra integration tests' do
     sort.call(spans)
   end
 
+  let(:agent_tested_headers) { {} }
+
   let(:sinatra_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_REQUEST } }
   let(:route_span) { sorted_spans.find { |x| x.name == Datadog::Tracing::Contrib::Sinatra::Ext::SPAN_ROUTE } }
   let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
 
-  let(:appsec_enabled) { true }
   let(:tracing_enabled) { true }
+  let(:appsec_enabled) { true }
+
+  let(:appsec_standalone_enabled) { false }
   let(:appsec_ip_denylist) { [] }
   let(:appsec_user_id_denylist) { [] }
   let(:appsec_ruleset) { :recommended }
+  let(:api_security_enabled) { false }
+  let(:api_security_sample) { 0.0 }
 
   let(:crs_942_100) do
     {
@@ -94,22 +127,54 @@ RSpec.describe 'Sinatra integration tests' do
   end
 
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
+    # Mocked agent with correct headers
+    stub_request(:post, 'http://localhost:6218/v0.4/traces')
+      .with do |request|
+        agent_tested_headers <= request.headers
+      end
+      .to_return(status: 200)
+
+    # DEV: Would it be faster to do another stub for requests that don't match the headers
+    # rather than waiting for the TCP connection to fail?
+
+    # TODO: Mocked agent that matches a given body, then use it in the shared examples,
+    # That way it would be real integration tests
+
     Datadog.configure do |c|
       c.tracing.enabled = tracing_enabled
+
       c.tracing.instrument :sinatra
+      c.tracing.instrument :http
 
       c.appsec.enabled = appsec_enabled
-      c.appsec.waf_timeout = 10_000_000 # in us
+
       c.appsec.instrument :sinatra
+      # TODO: test with c.appsec.instrument :rack
+
+      c.appsec.standalone.enabled = appsec_standalone_enabled
+      c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_denylist = appsec_ip_denylist
       c.appsec.user_id_denylist = appsec_user_id_denylist
       c.appsec.ruleset = appsec_ruleset
-
-      # TODO: test with c.appsec.instrument :rack
+      c.appsec.api_security.enabled = api_security_enabled
+      c.appsec.api_security.sample_rate = api_security_sample
     end
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
     Datadog.registry[:sinatra].reset_configuration!
@@ -140,11 +205,7 @@ RSpec.describe 'Sinatra integration tests' do
     let(:client_ip) { remote_addr }
 
     let(:service_span) do
-      span = sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
-
-      expect(span.name).to eq 'rack.request'
-
-      span
+      sorted_spans.reverse.find { |s| s.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
     end
 
     let(:span) { rack_span }
@@ -163,6 +224,22 @@ RSpec.describe 'Sinatra integration tests' do
           get '/set_user' do
             Datadog::Kit::Identity.set_user(Datadog::Tracing.active_trace, id: 'blocked-user-id')
             'ok'
+          end
+
+          get '/requestdownstream' do
+            content_type :json
+
+            uri = URI('http://localhost:3000/returnheaders')
+            ext_request = nil
+            ext_response = nil
+
+            Net::HTTP.start(uri.host, uri.port) do |http|
+              ext_request = Net::HTTP::Get.new(uri)
+
+              ext_response = http.request(ext_request)
+            end
+
+            ext_response.body
           end
         end
       end
@@ -186,6 +263,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in headers' do
@@ -198,6 +276,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in query string' do
@@ -209,6 +288,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -219,6 +299,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -239,6 +320,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -249,6 +331,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -263,6 +346,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 403 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events', { blocking: true }
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering response' do
@@ -275,6 +359,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 404 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with user blocking ID' do
@@ -286,6 +371,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a GET 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'with an event-triggering user ID' do
             let(:appsec_user_id_denylist) { ['blocked-user-id'] }
@@ -296,6 +382,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a GET 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
       end
@@ -315,6 +402,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace without AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
         end
 
         context 'with an event-triggering request in application/x-www-form-url-encoded body' do
@@ -326,6 +414,7 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
 
           context 'and a blocking rule' do
             let(:appsec_ruleset) { crs_942_100 }
@@ -336,6 +425,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a POST 403 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events', { blocking: true }
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -350,6 +440,7 @@ RSpec.describe 'Sinatra integration tests' do
             it_behaves_like 'a POST 200 span'
             it_behaves_like 'a trace with AppSec tags'
             it_behaves_like 'a trace with AppSec events'
+            it_behaves_like 'a trace with AppSec api security tags'
           end
         end
 
@@ -378,8 +469,11 @@ RSpec.describe 'Sinatra integration tests' do
           it_behaves_like 'a POST 200 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
+          it_behaves_like 'a trace with AppSec api security tags'
         end
       end
+
+      it_behaves_like 'appsec standalone billing'
     end
   end
 end

@@ -4,7 +4,7 @@ require 'datadog/tracing/contrib/analytics_examples'
 require 'active_record'
 require 'delayed_job'
 require 'delayed_job_active_record'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/tracing/contrib/delayed_job/plugin'
 require_relative 'delayed_job_active_record'
 
@@ -93,8 +93,8 @@ RSpec.describe Datadog::Tracing::Contrib::DelayedJob::Plugin, :delayed_job_activ
     end
 
     context 'when job fails' do
-      let(:configuration_options) { { error_handler: error_handler } }
-      let(:error_handler) { proc { @error_handler_called = true } }
+      let(:configuration_options) { { on_error: on_error } }
+      let(:on_error) { proc { @error_handler_called = true } }
 
       let(:sample_job_object) do
         stub_const(

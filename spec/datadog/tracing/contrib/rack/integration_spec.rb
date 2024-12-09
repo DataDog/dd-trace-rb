@@ -4,8 +4,6 @@ require 'datadog/tracing/contrib/auto_instrument_examples'
 require 'datadog/tracing/contrib/rack/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Rack::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:rack) }
 
   describe '.version' do

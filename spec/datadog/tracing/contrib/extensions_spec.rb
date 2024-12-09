@@ -46,7 +46,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
 
             it 'sends a telemetry integrations change event' do
-              expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+              expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
               configure
             end
           end

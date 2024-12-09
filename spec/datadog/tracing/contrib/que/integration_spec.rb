@@ -2,8 +2,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/que/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Que::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:que) }
 
   describe '.version' do

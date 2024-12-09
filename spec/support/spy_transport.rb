@@ -1,8 +1,8 @@
 require 'datadog/core/encoding'
-require 'ddtrace/transport/http'
+require 'datadog/tracing/transport/http'
 
-shared_context 'Datadog::Transport::HTTP::Client spy' do
-  let(:transport) { instance_double(Datadog::Transport::HTTP::Client) }
+shared_context 'Datadog::Tracing::Transport::HTTP::Client spy' do
+  let(:transport) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
   let(:spy_encoder) { Datadog::Core::Encoding::JSONEncoder }
   let(:spy_sent) { { 200 => {}, 500 => {} } }
@@ -22,16 +22,16 @@ shared_context 'Datadog::Transport::HTTP::Client spy' do
   end
 
   def build_trace_response(code)
-    Datadog::Transport::HTTP::Traces::Response.new(
-      Datadog::Transport::HTTP::Adapters::Net::Response.new(
+    Datadog::Core::Transport::HTTP::Traces::Response.new(
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(
         Net::HTTPResponse.new(1.0, code, code.to_s)
       )
     )
   end
 end
 
-# SpyTransport is a dummy Datadog::Transport that tracks what would be sent.
-class SpyTransport < Datadog::Transport::HTTP::Client
+# SpyTransport is a dummy Datadog::Tracing::Transport that tracks what would be sent.
+class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
   attr_reader :helper_sent
 
   def initialize(*)
@@ -43,7 +43,7 @@ class SpyTransport < Datadog::Transport::HTTP::Client
 
   def send_traces(data)
     encoded_data = data.map do |trace|
-      @helper_encoder.join([Datadog::Transport::Traces::Encoder.encode_trace(@helper_encoder, trace)])
+      @helper_encoder.join([Datadog::Tracing::Transport::Traces::Encoder.encode_trace(@helper_encoder, trace)])
     end
 
     @helper_mutex.synchronize do
@@ -61,8 +61,8 @@ class SpyTransport < Datadog::Transport::HTTP::Client
   end
 
   def build_trace_response(code)
-    Datadog::Transport::HTTP::Traces::Response.new(
-      Datadog::Transport::HTTP::Adapters::Net::Response.new(
+    Datadog::Tracing::Transport::HTTP::Traces::Response.new(
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response.new(
         Net::HTTPResponse.new(1.0, code, code.to_s)
       ),
       trace_count: 1

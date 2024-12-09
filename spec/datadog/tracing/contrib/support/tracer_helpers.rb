@@ -3,6 +3,7 @@ require 'support/network_helpers'
 
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
+require 'datadog/tracing/sync_writer'
 
 module Contrib
   include NetworkHelpers
@@ -28,7 +29,7 @@ module Contrib
     # Retrieves all traces in the current tracer instance.
     # This method does not cache its results.
     def fetch_traces(tracer = self.tracer)
-      tracer.instance_variable_get(:@traces) || []
+      (tracer.instance_variable_defined?(:@traces) && tracer.instance_variable_get(:@traces)) || []
     end
 
     # Retrieves and sorts all spans in the current tracer instance.
@@ -81,7 +82,6 @@ module Contrib
               end
             end
           end
-
           instance
         end
       end
@@ -102,15 +102,33 @@ module Contrib
         traces = fetch_traces(tracer)
         unless traces.empty?
           if tracer.respond_to?(:writer) && tracer.writer.transport.client.api.adapter.respond_to?(:hostname) && # rubocop:disable Style/SoleNestedConditional
-              tracer.writer.transport.client.api.adapter.hostname == 'testagent' && test_agent_running?
+              tracer.writer.transport.client.api.adapter.hostname == agent_host
+            transport_options = {
+              adapter: :net_http,
+              hostname: agent_host,
+              port: agent_port,
+              timeout: 30
+            }
             traces.each do |trace|
               # write traces after the test to the agent in order to not mess up assertions
-              parse_tracer_config_and_add_to_headers tracer.writer.transport.client.api.headers
-              tracer.writer.write(trace)
+              # remake syncwriter instance for each flush to prevent headers from being overrwritten
+              sync_writer = Datadog::Tracing::SyncWriter.new(transport_options: transport_options)
+              sync_writer.transport.client.api.headers['X-Datadog-Trace-Env-Variables'] = parse_tracer_config
+              sync_writer.write(trace)
             end
           end
         end
       end
+    end
+
+    # Gets the Datadog Trace Configuration and returns a comma separated string of key/value pairs.
+    #
+    # @return [String] Key/Value pairs representing relevant Tracer Configuration
+    def parse_tracer_config
+      dd_env_variables = ENV.to_h.select { |key, _| key.start_with?('DD_') }
+      dd_env_variables['DD_SERVICE'] = dd_env_variables['DD_TEST_EXPECTED_SERVICE']
+      dd_env_variables.delete('DD_TEST_EXPECTED_SERVICE')
+      dd_env_variables.map { |key, value| "#{key}=#{value}" }.join(',')
     end
 
     # Useful for integration testing.

@@ -6,6 +6,6 @@ FROM ${BASE_IMAGE}
 COPY . /vendor/dd-trace-rb
 
 # Install dependencies
-# Setup specific version of ddtrace, if specified.
-ENV DD_DEMO_ENV_GEM_LOCAL_DDTRACE /vendor/dd-trace-rb
+# Setup specific version of datadog, if specified.
+ENV DD_DEMO_ENV_GEM_LOCAL_DATADOG /vendor/dd-trace-rb
 RUN bundle install

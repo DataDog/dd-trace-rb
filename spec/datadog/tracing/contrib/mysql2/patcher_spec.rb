@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 require 'mysql2'
 
 RSpec.describe 'Mysql2::Client patcher' do
@@ -77,6 +77,20 @@ RSpec.describe 'Mysql2::Client patcher' do
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
+
+        context 'when configured with `on_error`' do
+          before do
+            Datadog.configure_onto(client, on_error: ->(_span, _error) { false })
+          end
+
+          let(:sql_statement) { 'SELECT INVALID' }
+
+          it 'does not mark span with error' do
+            expect { query }.to raise_error(Mysql2::Error)
+
+            expect(span).not_to have_error
+          end
+        end
       end
 
       context 'when a successful query is made' do
@@ -85,6 +99,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
           expect(spans.count).to eq(1)
           expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)
@@ -148,6 +163,15 @@ RSpec.describe 'Mysql2::Client patcher' do
 
         it_behaves_like 'configured peer service span', 'DD_TRACE_MYSQL2_PEER_SERVICE', error: Mysql2::Error do
           let(:configuration_options) { {} }
+        end
+
+        context 'when configured with `on_error`' do
+          let(:configuration_options) { { on_error: ->(_span, _error) { false } } }
+
+          it 'does not mark span with error' do
+            expect { query }.to raise_error(Mysql2::Error)
+            expect(span).not_to have_error
+          end
         end
       end
     end

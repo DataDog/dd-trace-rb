@@ -4,7 +4,6 @@ module Datadog
       module HTTP
         module Instrumentation
           def self.included: (untyped base) -> untyped
-          def self.after_request: () ?{ () -> untyped } -> untyped
           module InstanceMethods
             include Contrib::HttpAnnotationHelper
             def request: (untyped req, ?untyped? body) ?{ () -> untyped } -> untyped

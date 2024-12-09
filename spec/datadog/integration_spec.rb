@@ -1,5 +1,4 @@
 require 'datadog/tracing'
-require 'datadog/opentracer'
 require 'datadog/statsd'
 
 RSpec.describe 'Datadog integration' do
@@ -37,9 +36,11 @@ RSpec.describe 'Datadog integration' do
 
         shutdown
 
-        expect(threads.size).to eq(original_threads.size),
-          "Expected #{original_threads.size} threads (#{original_threads_inspect}), "\
-                  "got #{threads.size} threads (#{inspect_threads(threads)})"
+        post_shutdown_new_threads = Thread.list - original_threads
+
+        expect(post_shutdown_new_threads).to be_empty,
+          "Expected #{original_threads.size} threads but got #{threads.size} threads. "\
+            "extra_threads: (#{inspect_threads(post_shutdown_new_threads)})"
       end
     end
 
@@ -85,14 +86,14 @@ RSpec.describe 'Datadog integration' do
 
     before do
       Datadog.configure do |c|
-        c.diagnostics.health_metrics.enabled = true
+        c.health_metrics.enabled = true
       end
 
       shutdown!
     end
 
     after do
-      Datadog.configuration.diagnostics.health_metrics.reset!
+      Datadog.configuration.health_metrics.reset!
       Datadog.shutdown!
     end
 
@@ -122,44 +123,6 @@ RSpec.describe 'Datadog integration' do
 
       it 'does not error on reporting health metrics' do
         expect { Datadog.health_metrics.queue_accepted(1) }.to_not raise_error
-      end
-
-      context 'with OpenTracer' do
-        before do
-          OpenTracing.global_tracer = Datadog::OpenTracer::Tracer.new
-        end
-
-        let(:tracer) do
-          OpenTracing.global_tracer
-        end
-
-        it 'does not error on tracing' do
-          span = tracer.start_span('test')
-
-          expect { span.finish }.to_not raise_error
-        end
-
-        it 'does not error on tracing with block' do
-          scope = tracer.start_span('test') do |scp|
-            expect(scp).to be_a(OpenTracing::Scope)
-          end
-
-          expect(scope).to be_a(OpenTracing::Span)
-        end
-
-        it 'does not error on registered scope tracing' do
-          span = tracer.start_active_span('test')
-
-          expect { span.close }.to_not raise_error
-        end
-
-        it 'does not error on registered scope tracing with block' do
-          scope = tracer.start_active_span('test') do |scp|
-            expect(scp).to be_a(OpenTracing::Scope)
-          end
-
-          expect(scope).to be_a(OpenTracing::Scope)
-        end
       end
     end
   end

@@ -5,7 +5,7 @@ require 'datadog/tracing/contrib/environment_service_name_examples'
 require 'datadog/tracing/contrib/span_attribute_schema_examples'
 require 'datadog/tracing/contrib/peer_service_configuration_examples'
 
-require 'ddtrace'
+require 'datadog'
 require 'mongo'
 
 RSpec.describe 'Mongo::Client instrumentation' do
@@ -148,7 +148,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       it 'has basic properties' do
         expect(spans).to have(1).items
         expect(span.service).to eq('mongodb')
-        expect(span.span_type).to eq('mongodb')
+        expect(span.type).to eq('mongodb')
         expect(span.get_tag('db.system')).to eq('mongodb')
         expect(span.get_tag('mongodb.db')).to eq(database)
         collection_value = collection.is_a?(Numeric) ? collection : collection.to_s

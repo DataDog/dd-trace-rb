@@ -1,5 +1,5 @@
 require 'datadog/statsd'
-require 'ddtrace'
+require 'datadog'
 require 'datadog/appsec'
 
 Datadog.configure do |c|

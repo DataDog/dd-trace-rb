@@ -3,8 +3,6 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/tracing/contrib/resque/integration'
 
 RSpec.describe Datadog::Tracing::Contrib::Resque::Integration do
-  extend ConfigurationHelpers
-
   let(:integration) { described_class.new(:resque) }
 
   describe '.version' do

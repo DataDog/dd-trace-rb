@@ -6,8 +6,8 @@ FROM ${BASE_IMAGE}
 COPY . /vendor/dd-trace-rb
 
 # Install dependencies
-ENV DD_DEMO_ENV_GEM_LOCAL_DDTRACE /vendor/dd-trace-rb
+ENV DD_DEMO_ENV_GEM_LOCAL_DATADOG /vendor/dd-trace-rb
 
-RUN /vendor/dd-demo/build_ddtrace_profiling_native_extension.rb
+RUN /vendor/dd-demo/build_datadog_profiling_native_extension.rb
 
 RUN bundle install

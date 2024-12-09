@@ -1,0 +1,27 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        module Response
+          def initialize: (untyped http_response) -> void
+
+          def payload: () -> untyped
+
+          def internal_error?: () -> untyped
+
+          def unsupported?: () -> untyped
+
+          def ok?: () -> untyped
+
+          def not_found?: () -> untyped
+
+          def client_error?: () -> untyped
+
+          def server_error?: () -> untyped
+
+          def code: () -> (untyped | nil)
+        end
+      end
+    end
+  end
+end

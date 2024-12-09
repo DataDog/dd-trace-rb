@@ -8,7 +8,7 @@ require 'time'
 require 'elasticsearch'
 require 'faraday'
 
-require 'ddtrace'
+require 'datadog'
 
 RSpec.describe 'Elasticsearch::Transport::Client tracing' do
   before do
@@ -72,7 +72,15 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
 
     describe 'the handlers' do
-      subject(:handlers) { client.transport.connections.first.connection.builder.handlers }
+      subject(:handlers) do
+        connections = if client.transport.respond_to? :connections
+                        client.transport.connections
+                      else
+                        client.transport.transport.connections
+                      end
+
+        connections.first.connection.builder.handlers
+      end
 
       it { is_expected.to include(middleware) }
     end
@@ -167,11 +175,11 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
     end
   end
 
-  describe 'client configuration override' do
+  describe 'transport configuration override' do
     context 'when #service is overridden' do
-      before { Datadog.configure_onto(client.transport, service_name: service_name) }
-
       let(:service_name) { 'bar' }
+
+      before { Datadog.configure_onto(client.transport, service_name: service_name) }
 
       describe 'then a GET request' do
         subject(:response) { client.perform_request(method, path) }
@@ -189,22 +197,6 @@ RSpec.describe 'Elasticsearch::Transport::Client tracing' do
           expect(spans).to have(1).items
           expect(span.name).to eq('elasticsearch.query')
           expect(span.service).to eq(service_name)
-        end
-
-        context 'configured at the Elasticsearch client level' do
-          before do
-            skip('Configuration through client object is not possible in Elasticsearch >= 8.0.0') if version_greater_than_8
-
-            Datadog.configure_onto(client, service_name: 'custom')
-          end
-
-          let(:version_greater_than_8) { Gem::Version.new(::Elasticsearch::VERSION) >= Gem::Version.new('8.0.0') }
-
-          it 'warns about deprecated configuration of the Elasticsearch client itself' do
-            expect { response }.to emit_deprecation_warning(
-              include('Providing configuration though the Elasticsearch client object is deprecated')
-            )
-          end
         end
       end
     end

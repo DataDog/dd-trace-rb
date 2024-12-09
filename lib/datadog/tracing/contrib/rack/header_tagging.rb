@@ -37,10 +37,20 @@ module Datadog
                      whitelist = configuration[:headers][:response] || []
                      whitelist.each_with_object({}) do |header, result|
                        header_value = headers[header]
-                       unless header_value.nil?
-                         header_tag = Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)
-                         result[header_tag] = header_value
-                       end
+
+                       next if header_value.nil?
+
+                       header_tag = Tracing::Metadata::Ext::HTTP::ResponseHeaders.to_tag(header)
+
+                       # Maintain the value format between Rack 2 and 3
+                       #
+                       # Rack 2.x => { 'foo' => 'bar,baz' }
+                       # Rack 3.x => { 'foo' => ['bar', 'baz'] }
+                       result[header_tag] = if header_value.is_a? Array
+                                              header_value.join(',')
+                                            else
+                                              header_value
+                                            end
                      end
                    end
 
