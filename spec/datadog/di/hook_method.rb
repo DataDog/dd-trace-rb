@@ -39,3 +39,9 @@ class HookTestClass
     [arg, options]
   end
 end
+
+class YieldingMethodMissingHookTestClass
+  def method_missing(name, *args, **kwargs)
+    yield args.first
+  end
+end
