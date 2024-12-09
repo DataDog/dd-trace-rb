@@ -29,6 +29,9 @@ jobs:
   check:
     name: Update Gemfiles
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       # Only execute if there's a PR attached to this branch.
       # Because we execute on `push`, we have to double check here if this is part of a PR.

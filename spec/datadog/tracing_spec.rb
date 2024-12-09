@@ -106,6 +106,16 @@ RSpec.describe Datadog::Tracing do
       expect(log_correlation).to eq(returned)
     end
     # rubocop:enable RSpec/MessageChain
+
+    context 'with tracing disabled' do
+      before do
+        allow(Datadog.send(:components).tracer).to receive(:enabled).and_return(false)
+      end
+
+      it 'returns an empty string' do
+        expect(log_correlation).to eq('')
+      end
+    end
   end
 
   describe '.shutdown!' do

@@ -25,12 +25,15 @@ jobs:
           - name: proxy
             internal: datadog/system-tests:proxy-v1
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
     name: Build (${{ matrix.image.name }})
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          persist-credentials: false
       - name: Pull released image
         run: |
           if docker pull ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest; then
@@ -99,11 +102,14 @@ jobs:
           - rails71
     runs-on: ubuntu-latest
     name: Build (${{ matrix.app }})
+    permissions:
+      packages: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          persist-credentials: false
       - name: Checkout ${{ matrix.library.repository }}
         uses: actions/checkout@v4
         with:
@@ -250,6 +256,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          persist-credentials: false
       - name: Pull runner image
         run: |
           docker pull ${{ env.REPO }}/system-tests/runner:gha${{ github.run_id }}-g${{ github.sha }}
@@ -316,6 +323,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'DataDog/system-tests'
+          persist-credentials: false
       - name: Retrieve logs
         uses: actions/download-artifact@v4
         with:
