@@ -1,0 +1,229 @@
+=begin
+
+This benchmark verifies that the rate limits used for dynamic instrumentation
+probes are attainable.
+
+Each benchmark performs as many operations as the rate limit permits -
+5000 for a basic probe and 1 for enriched probe. If the benchmark
+produces a rate of fewer than 1 "instructions" per second, the rate limit is
+not being reached. A result of more than 1 "instruction" per second
+means the rate limit is being reached.
+
+Note that the number of "instructions per second" reported by benchmark/ips
+does not reflect how many times the instrumentation creates a snapshot -
+there can (and normally are) invocations of the target method that do not
+produce DI snapshots due to rate limit but these invocations are counted in
+the "instructions per second" reported by benchmark/ips.
+
+=end
+
+# Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
+VALIDATE_BENCHMARK_MODE = ENV['VALIDATE_BENCHMARK'] == 'true'
+
+return unless __FILE__ == $PROGRAM_NAME || VALIDATE_BENCHMARK_MODE
+
+require 'benchmark/ips'
+require 'datadog'
+require 'webrick'
+
+class DISnapshotBenchmark
+  BASIC_RATE_LIMIT = 5000
+  ENRICHED_RATE_LIMIT = 1
+
+  def initialize
+
+    Datadog::DI.activate_tracking!
+
+    Datadog.configure do |c|
+      c.remote.enabled = true
+      c.dynamic_instrumentation.enabled = true
+      c.dynamic_instrumentation.internal.development = true
+    end
+
+    Thread.new do
+      server.start
+    end
+
+    require_relative 'support/di_snapshot_target'
+  end
+
+  def run_benchmark
+    probe = Datadog::DI::Probe.new(
+      id: 1, type: :log,
+      type_name: 'DISnapshotTarget', method_name: 'test_method',
+      rate_limit: BASIC_RATE_LIMIT,
+    )
+
+    unless probe_manager.add_probe(probe)
+      raise "Failed to instrument method (without snapshot capture)"
+    end
+
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report('method probe - basic') do
+        BASIC_RATE_LIMIT.times do
+          DISnapshotTarget.new.test_method
+        end
+        Datadog::DI.component.probe_notifier_worker.flush
+      end
+
+      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    # DI does not provide an API to remove a specific probe because
+    # this functionality is currently not needed by the product.
+    probe_manager.remove_other_probes([])
+
+    puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
+
+    probe = Datadog::DI::Probe.new(
+      id: 1, type: :log,
+      type_name: 'DISnapshotTarget', method_name: 'test_method',
+      capture_snapshot: true,
+      # Normally rate limit for enriched probes is 1.
+      # To get a meaningful number of submissions, increase it to 20.
+      # We should get about 200 snapshots in the 10 seconds that the
+      # benchmark is supposed to run.
+      rate_limit: ENRICHED_RATE_LIMIT,
+    )
+
+    unless probe_manager.add_probe(probe)
+      raise "Failed to instrument method (with snapshot capture)"
+    end
+
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report('method probe - enriched') do
+        ENRICHED_RATE_LIMIT.times do
+          DISnapshotTarget.new.test_method
+        end
+        Datadog::DI.component.probe_notifier_worker.flush
+      end
+
+      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    probe_manager.remove_other_probes([])
+
+    puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
+
+    probe = Datadog::DI::Probe.new(
+      id: 1, type: :log,
+      file: 'di_snapshot_target.rb', line_no: 20,
+      capture_snapshot: false,
+      rate_limit: BASIC_RATE_LIMIT,
+    )
+
+    unless probe_manager.add_probe(probe)
+      raise "Failed to instrument line (with snapshot capture)"
+    end
+
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report('line probe - basic') do
+        BASIC_RATE_LIMIT.times do
+          DISnapshotTarget.new.test_method
+        end
+        Datadog::DI.component.probe_notifier_worker.flush
+      end
+
+      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    probe_manager.remove_other_probes([])
+
+    puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
+
+    probe = Datadog::DI::Probe.new(
+      id: 1, type: :log,
+      file: 'di_snapshot_target.rb', line_no: 20,
+      capture_snapshot: true,
+      rate_limit: ENRICHED_RATE_LIMIT,
+    )
+
+    unless probe_manager.add_probe(probe)
+      raise "Failed to instrument line (with snapshot capture)"
+    end
+
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
+
+    Benchmark.ips do |x|
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      x.config(
+        **benchmark_time,
+      )
+
+      x.report('line probe - enriched') do
+        ENRICHED_RATE_LIMIT.times do
+          DISnapshotTarget.new.test_method
+        end
+        Datadog::DI.component.probe_notifier_worker.flush
+      end
+
+      x.save! 'di-snapshot-results.json' unless VALIDATE_BENCHMARK_MODE
+      x.compare!
+    end
+
+    probe_manager.remove_other_probes([])
+
+    puts "Received #{@received_snapshot_count} snapshots, #{@received_snapshot_bytes} bytes total"
+  end
+
+  private
+
+  def probe_manager
+    Datadog::DI.component.probe_manager
+  end
+
+  def server
+    WEBrick::HTTPServer.new(
+      Port: 8126,
+    ).tap do |server|
+      @received_snapshot_count = 0
+      @received_snapshot_bytes = 0
+
+      server.mount_proc('/debugger/v1/diagnostics') do |req, res|
+        # This request is a multipart form post
+      end
+
+      server.mount_proc('/debugger/v1/input') do |req, res|
+        payload = JSON.parse(req.body)
+        @received_snapshot_count += payload.length
+        @received_snapshot_bytes += req.body.length
+      end
+    end
+  end
+
+  attr_reader :received_snapshot_count
+end
+
+puts "Current pid is #{Process.pid}"
+
+DISnapshotBenchmark.new.instance_exec do
+  run_benchmark
+end

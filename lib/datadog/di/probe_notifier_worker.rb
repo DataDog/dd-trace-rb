@@ -184,7 +184,7 @@ module Datadog
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             # TODO determine a suitable limit via testing/benchmarking
-            if queue.length > 100
+            if queue.length > 10000
               logger.warn("#{self.class.name}: dropping #{event_type} because queue is full")
             else
               queue << event
