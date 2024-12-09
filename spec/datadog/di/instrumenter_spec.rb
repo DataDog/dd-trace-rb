@@ -82,33 +82,12 @@ RSpec.describe Datadog::DI::Instrumenter do
     context 'when target method yields to a block' do
 
       shared_examples 'yields to the block' do
-        let(:probe_args) do
-          {type_name: type.name, method_name: 'yielding'}
-        end
-
-        it 'invokes callback' do
-          instrumenter.hook_method(probe) do |payload|
-            observed_calls << payload
+        context 'when method takes a positional argument' do
+          let(:probe_args) do
+            {type_name: type.name, method_name: 'yielding'}
           end
 
-          yielded_value = nil
-          expect(type.new.yielding('hello') do |value|
-            yielded_value = value
-            [value]
-          end).to eq ['hello']
-
-          expect(yielded_value).to eq('hello')
-
-          expect(observed_calls.length).to eq 1
-          expect(observed_calls.first.keys.sort).to eq call_keys
-          expect(observed_calls.first[:rv]).to eq ['hello']
-          expect(observed_calls.first[:duration]).to be_a(Float)
-        end
-
-        context 'when rate limited' do
-          let(:rate_limit) { 0 }
-
-          it 'does not invoke callback but invokes target method with block' do
+          it 'invokes callback' do
             instrumenter.hook_method(probe) do |payload|
               observed_calls << payload
             end
@@ -116,12 +95,123 @@ RSpec.describe Datadog::DI::Instrumenter do
             yielded_value = nil
             expect(type.new.yielding('hello') do |value|
               yielded_value = value
-              [value]
-            end).to eq ['hello']
+            end).to eq [['hello'], {}]
 
-            expect(yielded_value).to eq('hello')
+            expect(yielded_value).to eq([['hello'], {}])
 
-            expect(observed_calls.length).to eq 0
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq [['hello'], {}]
+            expect(observed_calls.first[:duration]).to be_a(Float)
+          end
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            it 'does not invoke callback but invokes target method with block' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              yielded_value = nil
+              expect(type.new.yielding('hello') do |value|
+                yielded_value = value
+              end).to eq [['hello'], {}]
+
+              expect(yielded_value).to eq([['hello'], {}])
+
+              expect(observed_calls.length).to eq 0
+            end
+          end
+        end
+
+        context 'when method takes a keyword argument' do
+          let(:probe_args) do
+            {type_name: type.name, method_name: 'yielding_kw'}
+          end
+
+          let(:expected_rv) do
+            [[], {arg: 'hello'}]
+          end
+
+          it 'invokes callback' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            yielded_value = nil
+            expect(type.new.yielding_kw(arg: 'hello') do |value|
+              yielded_value = value
+            end).to eq [[], {arg: 'hello'}]
+
+            expect(yielded_value).to eq(expected_rv)
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq expected_rv
+            expect(observed_calls.first[:duration]).to be_a(Float)
+          end
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            it 'does not invoke callback but invokes target method with block' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              yielded_value = nil
+              expect(type.new.yielding_kw(arg: 'hello') do |value|
+                yielded_value = value
+              end).to eq expected_rv
+
+              expect(yielded_value).to eq(expected_rv)
+
+              expect(observed_calls.length).to eq 0
+            end
+          end
+        end
+
+        context 'when method takes both positional and keyword arguments' do
+          let(:probe_args) do
+            {type_name: type.name, method_name: 'yielding_both'}
+          end
+
+          it 'invokes callback' do
+            instrumenter.hook_method(probe) do |payload|
+              observed_calls << payload
+            end
+
+            yielded_value = nil
+            expect(type.new.yielding_both('hello', kw: 'world') do |value|
+              yielded_value = value
+            end).to eq [['hello'], {kw: 'world'}]
+
+            expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+
+            expect(observed_calls.length).to eq 1
+            expect(observed_calls.first.keys.sort).to eq call_keys
+            expect(observed_calls.first[:rv]).to eq [['hello'], {kw: 'world'}]
+            expect(observed_calls.first[:duration]).to be_a(Float)
+          end
+
+          context 'when rate limited' do
+            let(:rate_limit) { 0 }
+
+            it 'does not invoke callback but invokes target method with block' do
+              instrumenter.hook_method(probe) do |payload|
+                observed_calls << payload
+              end
+
+              yielded_value = nil
+              expect(type.new.yielding_both('hello', kw: 'world') do |value|
+                yielded_value = value
+              end).to eq [['hello'], {kw: 'world'}]
+
+              expect(yielded_value).to eq([['hello'], {kw: 'world'}])
+
+              expect(observed_calls.length).to eq 0
+            end
           end
         end
       end

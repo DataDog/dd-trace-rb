@@ -16,7 +16,15 @@ class HookTestClass
   end
 
   def yielding(arg)
-    yield arg
+    yield [[arg], {}]
+  end
+
+  def yielding_kw(arg:)
+    yield [[], arg: arg]
+  end
+
+  def yielding_both(pos, kw:)
+    yield [[pos], kw: kw]
   end
 
   def recursive(depth)
@@ -42,6 +50,7 @@ end
 
 class YieldingMethodMissingHookTestClass
   def method_missing(name, *args, **kwargs)
-    yield args.first
+    yield [args, kwargs]
+    [args, kwargs]
   end
 end
