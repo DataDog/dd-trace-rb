@@ -166,7 +166,7 @@ module Datadog
                 # being sent out by the probe notifier worker) and creates a
                 # possibility of dropping payloads if the queue gets too long.
                 option :min_send_interval do |o|
-                  o.type :int
+                  o.type :float
                   o.default 3
                 end
 

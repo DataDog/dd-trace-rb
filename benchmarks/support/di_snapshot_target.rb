@@ -2,7 +2,7 @@ class DISnapshotTarget
   def test_method
     # Perform some work to take up time
     SecureRandom.uuid
-    
+
     v1 = Datadog.configuration
     v2 = Datadog.configuration
     v3 = Datadog.configuration

@@ -15,6 +15,18 @@ there can (and normally are) invocations of the target method that do not
 produce DI snapshots due to rate limit but these invocations are counted in
 the "instructions per second" reported by benchmark/ips.
 
+The default dynamic instrumentation settings for the probe notifier worker
+(queue capacity of 100 and minimum send interval of 3 seconds) mean an
+effective rate limit of 30 snapshots per second for basic probes,
+which is shared across all probes in the application, which is significantly
+below the 5000 snapshots per second per probe that DI is theoretically
+supposed to achieve. However, to increase actual attainable snapshot rate
+to 5000/second, the probe notifier worker needs to be changed to send
+multiple network requests for a single queue processing run or be more
+aggressive in flushing the snapshots to the network when the queue is getting
+full. In either case care needs to be taken not to starve customer applications
+of CPU.
+
 =end
 
 # Used to quickly run benchmark under RSpec as part of the usual test suite, to validate it didn't bitrot
@@ -38,7 +50,13 @@ class DISnapshotBenchmark
       c.remote.enabled = true
       c.dynamic_instrumentation.enabled = true
       c.dynamic_instrumentation.internal.development = true
+
+      # Increase queue capacity and reduce min send interval
+      # to be able to send more snapshots out.
+      # The default settings will result in dropped snapshots
+      # way before non-enriched probe rate limit is reached.
       c.dynamic_instrumentation.internal.snapshot_queue_capacity = 10000
+      c.dynamic_instrumentation.internal.min_send_interval = 1
     end
 
     Thread.new do
