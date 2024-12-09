@@ -70,13 +70,15 @@ def parse_gemfiles(directory = 'gemfiles/')
   # 2. '>= 1.2.3'
   # 3. 1.2.3
   def extract_version(constraint)
-    if constraint =~ /\~>\s*([\d\.]+)/ || constraint =~ /\>=\s*([\d\.]+)/ || constraint =~ /([\d\.]+)/
-      Regexp.last_match(1)
+    if constraint =~ /\~>\s*([\d\.]+(?:[-\.\w]*))| # Handles ~> constraints
+                       \>=\s*([\d\.]+(?:[-\.\w]*))| # Handles >= constraints
+                       ([\d\.]+(?:[-\.\w]*))       # Handles plain versions
+                      /x
+      Regexp.last_match(1) || Regexp.last_match(2) || Regexp.last_match(3)
     else
       nil
     end
-  end
-
+  end  
 
 def get_integration_names(directory = 'lib/datadog/tracing/contrib/')
     unless Dir.exist?(directory)
