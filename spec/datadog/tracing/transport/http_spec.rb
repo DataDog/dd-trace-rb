@@ -182,7 +182,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when Datadog.configuration.tracing.non_billing.enabled' do
-      before { expect(Datadog.configuration.tracing.non_billing).to receive(:enabled).and_return(tracing_non_billing_enabled) }
+      before do
+        expect(Datadog.configuration.tracing.non_billing).to receive(:enabled).and_return(tracing_non_billing_enabled)
+      end
 
       context 'is true' do
         let(:tracing_non_billing_enabled) { true }
