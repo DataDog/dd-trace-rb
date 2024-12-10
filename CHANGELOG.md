@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+## [2.8.0] - 2024-12-10
+
+### Added
+
+* AppSec: Add SQL injection detection for ActiveRecord for following adapters: `mysql2`, `postgresql`, and `sqlite3` ([#4167][])
+* Telemetry: Add environment variable to disable logs ([#4153][])
+* Integrations: Add configuration option `on_error` to Elasticsearch tracing ([#4066][])
+
+### Changed
+
+* Upgrade libdatadog dependency to 14.3.1 ([#4196][])
+* Profiling: Require Ruby 3.1+ for heap profiling ([#4178][])
+* Appsec: Update libddwaf to 1.18.0.0.0 ([#4164][])
+* Single-step: Lower SSI GLIBC requirements down to 2.17 ([#4137][])
+
+### Fixed
+
+* Integrations: Avoid loading `ActiveSupport::Cache::RedisCacheStore`, which tries to load `redis >= 4.0.1` regardless of the version of Redis the host application has installed ([#4197][])
+* Profiling: Fix unsafe initialization when using profiler with otel tracing ([#4195][])
+* Single-step: Add safe NOOP injection script for very old rubies ([#4140][])
+
 ## [2.7.1] - 2024-11-28
 
 ### Fixed
@@ -3035,7 +3056,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.7.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.8.0...master
+[2.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.7.1...v2.8.0
 [2.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.4.0...v2.5.0
@@ -4480,12 +4502,22 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4027]: https://github.com/DataDog/dd-trace-rb/issues/4027
 [#4033]: https://github.com/DataDog/dd-trace-rb/issues/4033
 [#4065]: https://github.com/DataDog/dd-trace-rb/issues/4065
+[#4066]: https://github.com/DataDog/dd-trace-rb/issues/4066
 [#4075]: https://github.com/DataDog/dd-trace-rb/issues/4075
 [#4078]: https://github.com/DataDog/dd-trace-rb/issues/4078
 [#4082]: https://github.com/DataDog/dd-trace-rb/issues/4082
 [#4083]: https://github.com/DataDog/dd-trace-rb/issues/4083
 [#4085]: https://github.com/DataDog/dd-trace-rb/issues/4085
+[#4137]: https://github.com/DataDog/dd-trace-rb/issues/4137
+[#4140]: https://github.com/DataDog/dd-trace-rb/issues/4140
+[#4153]: https://github.com/DataDog/dd-trace-rb/issues/4153
 [#4161]: https://github.com/DataDog/dd-trace-rb/issues/4161
+[#4164]: https://github.com/DataDog/dd-trace-rb/issues/4164
+[#4167]: https://github.com/DataDog/dd-trace-rb/issues/4167
+[#4178]: https://github.com/DataDog/dd-trace-rb/issues/4178
+[#4195]: https://github.com/DataDog/dd-trace-rb/issues/4195
+[#4196]: https://github.com/DataDog/dd-trace-rb/issues/4196
+[#4197]: https://github.com/DataDog/dd-trace-rb/issues/4197
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
