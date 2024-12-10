@@ -590,7 +590,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   }
 
   // We implicitly assume there can be no concurrent nor nested calls to handle_sampling_signal because
-  // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one
+  // a) we get triggered using SIGPROF, and the docs state a second SIGPROF will not interrupt an existing one (see sigaction docs on sa_mask)
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
 
@@ -607,7 +607,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     state->stats.postponed_job_success++; // Always succeeds
   #else
 
-    // This is a workaround for https://bugs.ruby-lang.org/issues/19991 (for Ruby < 3.3)
+    // Passing in `gc_finalize_deferred_workaround` is a workaround for https://bugs.ruby-lang.org/issues/19991 (for Ruby < 3.3)
     //
     // TL;DR the `rb_postponed_job_register_one` API is not atomic (which is why it got replaced by `rb_postponed_job_trigger`)
     // and in rare cases can cause VM crashes.
