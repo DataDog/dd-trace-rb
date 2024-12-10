@@ -153,28 +153,34 @@ module Datadog
               # Configures tracing non-billing mode configuration
               #
               # This rate-limit traces to 1 per minute, to keep the service alive without billing it.
-              # The RFC defines the environment variable as DD_TRACE_APM_ENABLED, we are fallowing a similar name.
+              # The RFC defines the environment variable as DD_TRACE_APM_ENABLED, we are following a similar name.
               # As of late November, the RFC is not approved yet but should be soon, hence why we are still
-              # using DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED
+              # using DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED. DD_TRACE_APM_ENABLED will most likely change.
+              # As we already have a way to completely disable traces, we are using 'non_billing' terminology to
+              # make it clear that this is a non-billing mode, which does NOT completely disables tracing.
+              #
+              # Currently, the env var is DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED
+              # which enables non-billing mode when set to `true`. But the future env var will
+              # enables non-billing mode when set to `false`. so we will have to invert the values
+              # returned by the env_parser block.
               #
               # @public_api
-              settings :apm do
-                # When set to false, sets the rate limit to 1 trace per minute, and prevents billing by adding tags
+              settings :non_billing do
+                # When set to true (or env var set to false)
+                # sets the rate limit to 1 trace per minute, and prevents billing by adding tags
                 #
                 # @default `DD_TRACE_APM_ENABLED` environment variable, otherwise `true`
                 # @return [Boolean]
                 option :enabled do |o|
                   o.env Tracing::Configuration::Ext::ENV_APM_ENABLED
-                  o.default true
+                  o.default false
                   o.type :bool
                   o.env_parser do |value|
-                    # While the naming RFC is not approved, we are using the previous env var, which is reversed.
-                    # When it is approved, we can delete that block
                     value = value&.downcase
                     if ['false', '0'].include?(value)
-                      true
-                    elsif ['true', '1'].include?(value)
                       false
+                    elsif ['true', '1'].include?(value)
+                      true
                     else
                       Datadog.logger.warn("Unsupported value for 'non-billing' mode: #{value}. Traces will be sent to Datadog.")
                       nil

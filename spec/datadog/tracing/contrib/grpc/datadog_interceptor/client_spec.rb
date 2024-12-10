@@ -17,13 +17,13 @@ RSpec.describe 'tracing on the client connection' do
   let(:peer) { "#{host}:#{port}" }
   let(:host) { 'host.name' }
   let(:port) { 0 }
-  let(:tracing_apm_enabled) { true }
+  let(:tracing_non_billing_enabled) { false }
   let(:force_execute_distributed_tracing) { false }
 
   before do
     Datadog.configure do |c|
       c.tracing.instrument :grpc, configuration_options
-      c.tracing.apm.enabled = tracing_apm_enabled
+      c.tracing.non_billing.enabled = tracing_non_billing_enabled
     end
 
     if force_execute_distributed_tracing
@@ -132,7 +132,7 @@ RSpec.describe 'tracing on the client connection' do
         # But we can verify non-billing mode through distributed tracing
 
         # Not sure why, putting a before block here has no effect
-        let(:tracing_apm_enabled) { false }
+        let(:tracing_non_billing_enabled) { true }
         let(:force_execute_distributed_tracing) { true }
 
         it {

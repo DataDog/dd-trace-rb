@@ -351,11 +351,11 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
-    describe 'apm' do
+    describe 'non_billing' do
       describe '#enabled' do
-        subject(:enabled) { settings.tracing.apm.enabled }
+        subject(:enabled) { settings.tracing.non_billing.enabled }
 
-        it { is_expected.to be true }
+        it { is_expected.to be false }
 
         context 'when DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' do
           around do |example|
@@ -367,29 +367,29 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           context 'is not defined' do
             let(:appsec_standalone_enabled) { nil }
 
-            it { is_expected.to eq true }
+            it { is_expected.to eq false }
           end
 
           context 'is set to true' do
             let(:appsec_standalone_enabled) { 'true' }
 
-            it { is_expected.to be false }
+            it { is_expected.to be true }
           end
 
           context 'is set to false' do
             let(:appsec_standalone_enabled) { 'false' }
 
-            it { is_expected.to be true }
+            it { is_expected.to be false }
           end
         end
       end
 
       describe '#enabled=' do
         it 'updates the #enabled setting' do
-          expect { settings.tracing.apm.enabled = false }
-            .to change { settings.tracing.apm.enabled }
-            .from(true)
-            .to(false)
+          expect { settings.tracing.non_billing.enabled = true }
+            .to change { settings.tracing.non_billing.enabled }
+            .from(false)
+            .to(true)
         end
       end
     end

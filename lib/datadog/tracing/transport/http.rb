@@ -75,7 +75,7 @@ module Datadog
             container_id = Datadog::Core::Environment::Container.container_id
             headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
             # Pretend that stats computation are already done by the client
-            unless Datadog.configuration.tracing.apm.enabled
+            if Datadog.configuration.tracing.non_billing.enabled
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'
             end
           end

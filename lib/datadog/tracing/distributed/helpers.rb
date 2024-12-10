@@ -61,7 +61,7 @@ module Datadog
         end
 
         def self.should_skip_distributed_tracing?(app_config, client_config: nil, trace: nil)
-          unless ::Datadog.configuration.tracing.apm.enabled
+          if ::Datadog.configuration.tracing.non_billing.enabled
             return true unless trace
             return true if trace.non_billing_reject?
           end

@@ -75,7 +75,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
 
       context 'with ASM standalone enabled' do
-        before { expect(Datadog.configuration.tracing.apm).to receive(:enabled).and_return(false) }
+        before { expect(Datadog.configuration.tracing.non_billing).to receive(:enabled).and_return(true) }
 
         it { expect(transport.client.api.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
       end
@@ -213,8 +213,8 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
 
       it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
 
-      context 'with ASM standalone enabled' do
-        before { expect(Datadog.configuration.tracing.apm).to receive(:enabled).and_return(false) }
+      context 'with non-billing mode enabled' do
+        before { expect(Datadog.configuration.tracing.non_billing).to receive(:enabled).and_return(true) }
 
         it { expect(transport.client.api.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
       end

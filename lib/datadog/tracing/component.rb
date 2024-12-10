@@ -77,7 +77,7 @@ module Datadog
         # but to show the service on the service catalog, we need to send at least one trace per minute,
         # to keep the service alive on the backend side.
         # Traces can still be force-kept (e.g. those containing AppSec events).
-        unless settings.tracing.apm.enabled
+        if settings.tracing.non_billing.enabled
           post_sampler = Tracing::Sampling::RuleSampler.new(
             [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
             rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0),

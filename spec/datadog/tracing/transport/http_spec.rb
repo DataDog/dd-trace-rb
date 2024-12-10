@@ -181,17 +181,17 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       end
     end
 
-    context 'when Datadog.configuration.tracing.apm.enabled' do
-      before { expect(Datadog.configuration.tracing.apm).to receive(:enabled).and_return(tracing_apm_enabled) }
+    context 'when Datadog.configuration.tracing.non_billing.enabled' do
+      before { expect(Datadog.configuration.tracing.non_billing).to receive(:enabled).and_return(tracing_non_billing_enabled) }
 
-      context 'is false' do
-        let(:tracing_apm_enabled) { false }
+      context 'is true' do
+        let(:tracing_non_billing_enabled) { true }
 
         it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS => 'yes') }
       end
 
-      context 'is true' do
-        let(:tracing_apm_enabled) { true }
+      context 'is false' do
+        let(:tracing_non_billing_enabled) { false }
 
         it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS) }
       end

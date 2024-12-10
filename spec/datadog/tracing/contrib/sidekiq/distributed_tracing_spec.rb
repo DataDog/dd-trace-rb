@@ -67,7 +67,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
       context 'with non-billing mode' do
         before do
           Datadog.configure do |c|
-            c.tracing.apm.enabled = false
+            c.tracing.non_billing.enabled = true
           end
           # This cannot happen in actual apps but we do this to
           # verify that sampling priority is set to 0 through distributed tracing without mocking an agent

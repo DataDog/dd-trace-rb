@@ -545,7 +545,7 @@ module Datadog
       end
 
       def non_billing_enabled
-        @non_billing_enabled ||= !Datadog.configuration.tracing.apm.enabled
+        @non_billing_enabled ||= Datadog.configuration.tracing.non_billing.enabled
       end
     end
   end

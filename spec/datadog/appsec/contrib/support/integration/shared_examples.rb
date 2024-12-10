@@ -220,7 +220,7 @@ end
 RSpec.shared_examples 'appsec standalone billing' do
   subject(:response) { get url, params, env }
 
-  let(:tracing_apm_enabled) { false }
+  let(:tracing_non_billing_enabled) { true }
 
   let(:url) { '/requestdownstream' }
   let(:params) { {} }
