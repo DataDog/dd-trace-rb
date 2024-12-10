@@ -18,15 +18,17 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
+// Important: If new fields are introduced that need marking, please remember to update the
+// signal_handler_sampling_buffer_typed_data_mark function in collectors_stack.c
 typedef struct frame_info {
   union {
     struct {
-      VALUE iseq;
-      void *caching_pc; // For caching only
+      VALUE iseq; // Needs marking if kept around
+      void *caching_pc; // For caching validation/invalidation only
       int line;
     } ruby_frame;
     struct {
-      VALUE caching_cme; // For caching only
+      VALUE caching_cme; // For caching validation/invalidation only
       ID method_id;
     } native_frame;
   } as;

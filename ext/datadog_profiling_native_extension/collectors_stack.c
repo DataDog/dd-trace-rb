@@ -35,8 +35,13 @@ extern VALUE rb_iseq_base_label(const VALUE);
 void collectors_stack_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
   VALUE collectors_stack_class = rb_define_class_under(collectors_module, "Stack", rb_cObject);
+  VALUE signal_handler_sampling_buffer_class =
+    rb_define_class_under(collectors_stack_class, "SignalHandlerSamplingBuffer", rb_cObject);
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(collectors_stack_class, "Testing");
+
+  // Cannot be created from Ruby code, only for internal use
+  rb_undef_alloc_func(signal_handler_sampling_buffer_class);
 
   rb_define_singleton_method(testing_module, "_native_sample", _native_sample, -1);
 
@@ -465,4 +470,74 @@ void sampling_buffer_free(sampling_buffer *buffer) {
   ruby_xfree(buffer->stack_buffer);
 
   ruby_xfree(buffer);
+}
+
+// The SignalHandlerSamplingBuffer is, on purpose, very similar to the sampling_buffer.
+// The key difference is that it gets written to in the profiler signal handler (as the name indicates) by whatever
+// thread was active.
+// Thus (and unlike the sampling_buffer):
+// 1. It needs marking, as Ruby may decide to GC in between it was collected and when we can process it
+// 2. It contains data from different threads, rather than being always reused by the same one
+
+typedef struct {
+  uint16_t max_frames;
+  int rb_profile_frames_result;
+  VALUE sample_for_thread; // Qnil if no unprocessed sample pending
+  // This structure has a variable size, as this dynamically-sized array is part of its allocation
+  frame_info stack_buffer[];
+} signal_handler_sampling_buffer;
+
+static void signal_handler_sampling_buffer_typed_data_mark(void *state_ptr) {
+  signal_handler_sampling_buffer *state = (signal_handler_sampling_buffer *) state_ptr;
+
+  // Nothing to mark if no sample is pending or no frames in it
+  if (state->sample_for_thread == Qnil || state->rb_profile_frames_result == 0) return;
+
+  rb_gc_mark(state->sample_for_thread);
+
+  for (int i = 0; i <= state->rb_profile_frames_result; i++) {
+    if (state->stack_buffer[i].is_ruby_frame) {
+      // This field is the only one that needs marking in frame_info
+      rb_gc_mark(state->stack_buffer[i].as.ruby_frame.iseq);
+    }
+  }
+}
+
+// This structure is used to define a Ruby object that stores a pointer to a struct signal_handler_sampling_buffer
+// See also https://github.com/ruby/ruby/blob/master/doc/extension.rdoc for how this works
+static const rb_data_type_t signal_handler_sampling_buffer_typed_data = {
+  .wrap_struct_name = "Datadog::Profiling::Collectors::Stack::SignalHandlerSamplingBuffer",
+  .function = {
+    .dmark = signal_handler_sampling_buffer_typed_data_mark,
+    .dfree = RUBY_DEFAULT_FREE,
+    .dsize = NULL, // We don't track profile memory usage (although it'd be cool if we did!)
+    //.dcompact = NULL, // FIXME: Add support for compaction
+  },
+  .flags = RUBY_TYPED_FREE_IMMEDIATELY
+};
+
+VALUE signal_handler_sampling_buffer_new(uint16_t max_frames) {
+  sampling_buffer_check_max_frames(max_frames);
+
+  VALUE current_value;
+
+  current_value = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  ENFORCE_TYPE(current_value, T_MODULE);
+  current_value = rb_const_get(current_value, rb_intern("Profiling"));
+  ENFORCE_TYPE(current_value, T_MODULE);
+  current_value = rb_const_get(current_value, rb_intern("Collectors"));
+  ENFORCE_TYPE(current_value, T_MODULE);
+  current_value = rb_const_get(current_value, rb_intern("Stack"));
+  ENFORCE_TYPE(current_value, T_CLASS);
+  VALUE signal_handler_sampling_buffer_class = rb_const_get(current_value, rb_intern("SignalHandlerSamplingBuffer"));
+  ENFORCE_TYPE(signal_handler_sampling_buffer_class, T_CLASS);
+
+  signal_handler_sampling_buffer *state =
+    ruby_xcalloc(1, sizeof(signal_handler_sampling_buffer) + max_frames * sizeof(frame_info));
+
+  state->max_frames = max_frames;
+  state->rb_profile_frames_result = 0;
+  state->sample_for_thread = Qnil;
+
+  return TypedData_Wrap_Struct(signal_handler_sampling_buffer_class, &signal_handler_sampling_buffer_typed_data, state);
 }
