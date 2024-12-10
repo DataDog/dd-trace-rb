@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.13.1"
+    "rules_version": "1.13.3"
   },
   "rules": [
     {
@@ -10,7 +10,8 @@
       "tags": {
         "type": "security_scanner",
         "crs_id": "913100",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -84,7 +85,8 @@
       "tags": {
         "type": "http_protocol_violation",
         "crs_id": "921120",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -127,7 +129,8 @@
         "crs_id": "921140",
         "category": "attack_attempt",
         "capec": "1000/210/272/220/273",
-        "cwe": "113"
+        "cwe": "113",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -154,7 +157,8 @@
       "tags": {
         "type": "command_injection",
         "crs_id": "932100",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -193,7 +197,8 @@
       "tags": {
         "type": "command_injection",
         "crs_id": "932115",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -690,7 +695,8 @@
       "tags": {
         "type": "command_injection",
         "crs_id": "932130",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -729,7 +735,8 @@
       "tags": {
         "type": "command_injection",
         "crs_id": "932150",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -768,7 +775,8 @@
       "tags": {
         "type": "php_code_injection",
         "crs_id": "933110",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -818,7 +826,8 @@
       "tags": {
         "type": "php_code_injection",
         "crs_id": "933180",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -857,7 +866,8 @@
       "tags": {
         "type": "php_code_injection",
         "crs_id": "933210",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -897,7 +907,8 @@
         "type": "xss",
         "crs_id": "941100",
         "category": "attack_attempt",
-        "cwe": "79"
+        "cwe": "79",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -948,7 +959,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941130",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -994,7 +1006,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941150",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1041,7 +1054,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941160",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1093,7 +1107,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941190",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1134,7 +1149,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941250",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1175,7 +1191,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941260",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1216,7 +1233,8 @@
       "tags": {
         "type": "xss",
         "crs_id": "941370",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1255,7 +1273,8 @@
       "tags": {
         "type": "js_code_injection",
         "crs_id": "941380",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1294,7 +1313,8 @@
       "tags": {
         "type": "sql_injection",
         "crs_id": "942151",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1333,7 +1353,8 @@
       "tags": {
         "type": "sql_injection",
         "crs_id": "942170",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1372,7 +1393,8 @@
         "type": "sql_injection",
         "crs_id": "942190",
         "category": "attack_attempt",
-        "cwe": "89"
+        "cwe": "89",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1413,7 +1435,8 @@
       "tags": {
         "type": "sql_injection",
         "crs_id": "942230",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1452,7 +1475,8 @@
       "tags": {
         "type": "sql_injection",
         "crs_id": "942320",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1490,7 +1514,8 @@
       "tags": {
         "type": "sql_injection",
         "crs_id": "942350",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1528,7 +1553,8 @@
       "tags": {
         "type": "java_code_injection",
         "crs_id": "944240",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1573,7 +1599,8 @@
         "type": "lfi",
         "category": "attack_attempt",
         "cwe": "22",
-        "capec": "1000/255/153/126"
+        "capec": "1000/255/153/126",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1612,7 +1639,8 @@
         "type": "lfi",
         "category": "attack_attempt",
         "cwe": "22",
-        "capec": "1000/255/153/126"
+        "capec": "1000/255/153/126",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1653,7 +1681,8 @@
       "tags": {
         "type": "nosql_injection",
         "category": "attack_attempt",
-        "cwe": "943"
+        "cwe": "943",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1689,7 +1718,8 @@
       "name": "Node.js: Prototype pollution",
       "tags": {
         "type": "js_code_injection",
-        "category": "attack_attempt"
+        "category": "attack_attempt",
+        "module": "waf"
       },
       "conditions": [
         {
