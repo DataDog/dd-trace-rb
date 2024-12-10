@@ -2585,8 +2585,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     let(:trace_op) { described_class.new(**options) }
-    let(:options) { { non_billing_enabled: !tracing_apm_enabled } }
-    let(:tracing_apm_enabled) { true }
+    let(:options) { { non_billing_enabled: non_billing_enabled } }
+    let(:non_billing_enabled) { false }
     let(:distributed_appsec_event) { '0' }
 
     before do
@@ -2596,7 +2596,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     it { is_expected.to be false }
 
     context 'when non-billing is enabled' do
-      let(:tracing_apm_enabled) { false }
+      let(:non_billing_enabled) { true }
 
       it { is_expected.to be true }
 
