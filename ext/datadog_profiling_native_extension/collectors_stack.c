@@ -541,3 +541,25 @@ VALUE signal_handler_sampling_buffer_new(uint16_t max_frames) {
 
   return TypedData_Wrap_Struct(signal_handler_sampling_buffer_class, &signal_handler_sampling_buffer_typed_data, state);
 }
+
+// Assumption: This function gets called from a signal handler, so it must behave in a signal-safe manner.
+// (That includes being very careful in what we call from the Ruby VM, and for instance not raising exceptions)
+bool collect_stack_into_buffer(VALUE signal_handler_sampling_buffer_instance) {
+  // Can't raise, so we let the caller know something's wrong in this way
+  if (!rb_typeddata_is_kind_of(signal_handler_sampling_buffer_instance, &signal_handler_sampling_buffer_typed_data)) return false;
+
+  signal_handler_sampling_buffer *state;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(signal_handler_sampling_buffer_instance, signal_handler_sampling_buffer, &signal_handler_sampling_buffer_typed_data, state);
+
+  state->sample_for_thread = rb_thread_current();
+
+  state->rb_profile_frames_result = ddtrace_rb_profile_frames(
+    state->sample_for_thread,
+    0 /* stack starting depth */,
+    state->max_frames,
+    state->stack_buffer
+  );
+
+  return true;
+}
