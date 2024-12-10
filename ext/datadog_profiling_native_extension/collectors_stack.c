@@ -157,7 +157,8 @@ static VALUE native_sample_do(VALUE args) {
       args_struct->buffer,
       args_struct->recorder_instance,
       args_struct->values,
-      args_struct->labels
+      args_struct->labels,
+      Qnil
     );
   }
 
@@ -189,16 +190,25 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels
+  sample_labels labels,
+  // If we already have the stack collected and awaiting processing
+  VALUE optional_signal_handler_sampling_buffer
 ) {
-  frame_info *stack_buffer = buffer->stack_buffer;
+  frame_info *stack_buffer;
+  int captured_frames;
 
-  int captured_frames = ddtrace_rb_profile_frames(
-    thread,
-    0 /* stack starting depth */,
-    buffer->max_frames,
-    stack_buffer
-  );
+  if (optional_signal_handler_sampling_buffer != Qnil) {
+    rb_raise(rb_eRuntimeError, "TODO");
+  } else {
+    captured_frames = ddtrace_rb_profile_frames(
+      thread,
+      0 /* stack starting depth */,
+      buffer->max_frames,
+      buffer->stack_buffer
+    );
+
+    stack_buffer = buffer->stack_buffer;
+  }
 
   if (captured_frames == PLACEHOLDER_STACK_IN_NATIVE_CODE) {
     record_placeholder_stack_in_native_code(recorder_instance, values, labels);

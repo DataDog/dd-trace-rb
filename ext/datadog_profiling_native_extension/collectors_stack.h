@@ -14,7 +14,8 @@ void sample_thread(
   sampling_buffer* buffer,
   VALUE recorder_instance,
   sample_values values,
-  sample_labels labels
+  sample_labels labels,
+  VALUE optional_signal_handler_sampling_buffer
 );
 void record_placeholder_stack(
   VALUE recorder_instance,
