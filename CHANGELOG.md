@@ -6,6 +6,7 @@
 
 ### Added
 
+* DI: Dynamic instrumentation is now available in Ruby as a Preview
 * AppSec: Add SQL injection detection for ActiveRecord for following adapters: `mysql2`, `postgresql`, and `sqlite3` ([#4167][])
 * Telemetry: Add environment variable to disable logs ([#4153][])
 * Integrations: Add configuration option `on_error` to Elasticsearch tracing ([#4066][])
@@ -14,7 +15,7 @@
 
 * Upgrade libdatadog dependency to 14.3.1 ([#4196][])
 * Profiling: Require Ruby 3.1+ for heap profiling ([#4178][])
-* Appsec: Update libddwaf to 1.18.0.0.0 ([#4164][])
+* AppSec: Update libddwaf to 1.18.0.0.0 ([#4164][])
 * Single-step: Lower SSI GLIBC requirements down to 2.17 ([#4137][])
 
 ### Fixed
