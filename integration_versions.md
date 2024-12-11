@@ -1,4 +1,5 @@
 # This is a table of supported integration versions generated from gemfiles.
+
 | Integration | Ruby Min | JRuby Min |
 |-------------|----------|-----------|
 | action_cable | 5.2.8.1 | 5.2.8.1 |

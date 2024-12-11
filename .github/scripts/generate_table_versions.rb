@@ -8,7 +8,7 @@ output_file = 'integration_versions.md'
 data = JSON.parse(File.read(input_file))
 
 # Prepare the Markdown content
-comment = "# This is a table of supported integration versions generated from gemfiles."
+comment = "# This is a table of supported integration versions generated from gemfiles.\n\n"
 header = "| Integration | Ruby Min | JRuby Min |\n"
 separator = "|-------------|----------|-----------|\n"
 rows = data.map do |integration_name, versions|
