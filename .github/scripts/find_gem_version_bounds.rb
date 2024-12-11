@@ -3,8 +3,11 @@ require 'rubygems'
 require 'json'
 
 def parse_gemfiles(directory = 'gemfiles/')
-  parsed_gems_ruby = {}
-  parsed_gems_jruby = {}
+  minimum_gems_ruby = {}
+  minimum_gems_jruby = {}
+  maximum_gems_ruby = {}
+  maximum_gems_jruby = {}
+
 
   gemfiles = Dir.glob(File.join(directory, '*'))
   gemfiles.each do |gemfile_name|
@@ -21,13 +24,19 @@ def parse_gemfiles(directory = 'gemfiles/')
       # Validate and store the minimum version
       if version_valid?(version)
         if runtime == 'ruby'
-          if parsed_gems_ruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(parsed_gems_ruby[gem_name])
-            parsed_gems_ruby[gem_name] = version
+          if minimum_gems_ruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(minimum_gems_ruby[gem_name])
+            minimum_gems_ruby[gem_name] = version
+          end
+          if maximum_gems_ruby[gem_name].nil? || Gem::Version.new(version) > Gem::Version.new(maximum_gems_ruby[gem_name])
+            maximum_gems_ruby[gem_name] = version
           end
         end
         if runtime == 'jruby'
-          if parsed_gems_jruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(parsed_gems_jruby[gem_name])
-            parsed_gems_jruby[gem_name] = version
+          if minimum_gems_jruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(minimum_gems_jruby[gem_name])
+            minimum_gems_jruby[gem_name] = version
+          end
+          if maximum_gems_jruby[gem_name].nil? || Gem::Version.new(version) > Gem::Version.new(maximum_gems_jruby[gem_name])
+            maximum_gems_jruby[gem_name] = version
           end
         end
       else
@@ -36,7 +45,7 @@ def parse_gemfiles(directory = 'gemfiles/')
     end
   end
 
-  [parsed_gems_ruby, parsed_gems_jruby]
+  [minimum_gems_ruby, minimum_gems_jruby, maximum_gems_ruby, maximum_gems_jruby]
 end
 
 # Helper: Parse a Gemfile-style gem declaration
@@ -107,7 +116,7 @@ mapping = {
 }
 
 excluded = ["configuration", "propagation", "utils"]
-parsed_gems_ruby, parsed_gems_jruby = parse_gemfiles("gemfiles/")
+min_gems_ruby, min_gems_jruby, max_gems_ruby, max_gems_jruby = parse_gemfiles("gemfiles/")
 integrations = get_integration_names('lib/datadog/tracing/contrib/')
 
 integration_json_mapping = {}
@@ -118,12 +127,14 @@ integrations.each do |integration|
   end
   integration_name = mapping[integration] || integration
 
-  min_version_jruby = parsed_gems_jruby[integration_name]
-  min_version_ruby = parsed_gems_ruby[integration_name]
+  min_version_jruby = min_gems_jruby[integration_name]
+  min_version_ruby = min_gems_ruby[integration_name]
+  max_version_jruby = max_gems_jruby[integration_name]
+  max_version_ruby = max_gems_ruby[integration_name]
 
   # mapping jruby, ruby
-  integration_json_mapping[integration] = [min_version_ruby, min_version_jruby]
+  integration_json_mapping[integration] = [min_version_ruby, max_version_ruby, min_version_jruby, max_version_jruby]
   integration_json_mapping.replace(integration_json_mapping.sort.to_h)
 end
 
-File.write("minimum_gem_output.json", JSON.pretty_generate(integration_json_mapping))
+File.write("gem_output.json", JSON.pretty_generate(integration_json_mapping))

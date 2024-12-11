@@ -1,7 +1,7 @@
 require 'json'
 
 # Input and output file names
-input_file = 'minimum_gem_output.json'
+input_file = 'gem_output.json'
 output_file = 'integration_versions.md'
 
 # Read JSON data from the input file
@@ -9,11 +9,11 @@ data = JSON.parse(File.read(input_file))
 
 # Prepare the Markdown content
 comment = "# This is a table of supported integration versions generated from gemfiles.\n\n"
-header = "| Integration | Ruby Min | JRuby Min |\n"
-separator = "|-------------|----------|-----------|\n"
+header = "| Integration | Ruby Min |  Ruby Max | JRuby Min | JRuby Max |\n"
+separator = "|-------------|----------|-----------|----------|----------|\n"
 rows = data.map do |integration_name, versions|
-  ruby_min, jruby_min = versions
-  "| #{integration_name} | #{ruby_min} | #{jruby_min} |"
+    ruby_min, ruby_max, jruby_min, jruby_max = versions.map { |v| v || "None" }
+    "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
 end
 
 # Write the Markdown file
