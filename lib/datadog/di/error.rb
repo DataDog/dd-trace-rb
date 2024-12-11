@@ -27,6 +27,11 @@ module Datadog
       class DITargetNotDefined < Error
       end
 
+      # Attempting to instrument a line and the file containing the line
+      # was loaded prior to code tracking being enabled.
+      class DITargetNotInRegistry < Error
+      end
+
       # Raised when trying to install a probe whose installation failed
       # earlier in the same process. This exception should contain the
       # original exception report from initial installation attempt.

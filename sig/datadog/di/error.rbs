@@ -7,6 +7,8 @@ module Datadog
       end
       class DITargetNotDefined < Error
       end
+      class DITargetNotInRegistry < Error
+      end
       class ProbePreviouslyFailed < Error
       end
       class MultiplePathsMatch < Error
