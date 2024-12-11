@@ -11,16 +11,16 @@ module Datadog
           ].freeze
           private_constant :ADDRESSES
 
-          def self.publish(op, user)
+          def self.publish(engine, user)
             catch(:block) do
-              op.publish('usr.id', user.id)
+              engine.publish('usr.id', user.id)
 
               nil
             end
           end
 
-          def self.subscribe(op, waf_context)
-            op.subscribe(*ADDRESSES) do |*values|
+          def self.subscribe(engine, waf_context)
+            engine.subscribe(*ADDRESSES) do |*values|
               Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
 
               user_id = values[0]
