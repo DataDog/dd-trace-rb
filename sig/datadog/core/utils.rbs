@@ -5,7 +5,7 @@ module Datadog
 
       EMPTY_STRING: untyped
       def self.truncate: (untyped value, untyped size, ?untyped omission) -> untyped
-      def self.utf8_encode: (untyped str, ?binary: bool, ?placeholder: untyped) -> untyped
+      def self.utf8_encode: (Object str, ?binary: bool, ?String: untyped) -> String
       def self.without_warnings: () { () -> untyped } -> untyped
       def self.extract_host_port: (untyped host_port) -> (nil | ::Array[untyped])
     end
