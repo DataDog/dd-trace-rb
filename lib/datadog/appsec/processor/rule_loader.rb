@@ -74,9 +74,6 @@ module Datadog
             when Hash
               pass = ip_passlist[:pass]
               monitor = ip_passlist[:monitor]
-            else
-              pass = []
-              monitor = []
             end
 
             exclusions = []
