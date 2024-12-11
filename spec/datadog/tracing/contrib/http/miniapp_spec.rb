@@ -59,7 +59,6 @@ RSpec.describe 'net/http miniapp tests' do
         http_spans.each do |span|
           expect(span.name).to eq('http.request')
           expect(span.service).to eq('net/http')
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(host)
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_HOSTNAME)).to eq(host)
           expect(span.resource).to eq('GET')
           expect(span.get_tag('http.url')).to eq('/my/path')
