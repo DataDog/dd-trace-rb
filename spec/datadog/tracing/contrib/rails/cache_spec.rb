@@ -117,6 +117,21 @@ RSpec.describe 'Rails cache' do
       expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
     end
+
+    context 'when cache_key.enabled is false' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+      end
+
+      it do
+        expect(read).to eq(50)
+
+        expect(spans).to have(2).items
+        get, = spans
+        expect(get.name).to eq('rails.cache')
+        expect(get.get_tag('rails.cache.key')).to be_nil
+      end
+    end
   end
 
   describe '#read_multi' do
@@ -147,6 +162,20 @@ RSpec.describe 'Rails cache' do
           .to eq('active_support')
         expect(set.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
           .to eq('cache')
+      end
+    end
+
+    context 'when cache_key.enabled is false' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+      end
+
+      it do
+        expect(read_multi).to eq(Hash[multi_keys.zip([51, 52, 53])])
+        expect(spans).to have(1 + multi_keys.size).items
+        get = spans[0]
+        expect(get.name).to eq('rails.cache')
+        expect(get.get_tag('rails.cache.keys')).to be_nil
       end
     end
   end
@@ -189,6 +218,20 @@ RSpec.describe 'Rails cache' do
       it 'expands key using ActiveSupport' do
         write
         expect(span.get_tag('rails.cache.key')).to eq('custom-key/x/y/User:3')
+      end
+    end
+
+    context 'when cache_key.enabled is false' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+      end
+
+      let(:key) { ['custom-key', %w[x y], user] }
+      let(:user) { double('User', cache_key: 'User:3') }
+
+      it 'does not expand key using ActiveSupport when cache_key.enabled false' do
+        write
+        expect(span.get_tag('rails.cache.key')).to be_nil
       end
     end
   end
@@ -240,6 +283,27 @@ RSpec.describe 'Rails cache' do
           expect(span.get_tag('rails.cache.keys')).to eq('["custom-key/x/y/User:3"]')
         end
       end
+
+      context 'when cache_key.enabled is false' do
+        before do
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+        end
+
+        it do
+          write_multi
+          expect(span.name).to eq('rails.cache')
+          expect(span.type).to eq('cache')
+          expect(span.resource).to eq('MSET')
+          expect(span.service).to eq('rails-cache')
+          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+          expect(span.get_tag('rails.cache.keys')).to be_nil
+
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+            .to eq('active_support')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            .to eq('cache')
+        end
+      end
     end
 
     context 'when the method is not defined' do
@@ -278,6 +342,27 @@ RSpec.describe 'Rails cache' do
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
         .to eq('cache')
     end
+
+    context 'when cache_key.enabled is false' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+      end
+
+      it do
+        delete
+        expect(span.name).to eq('rails.cache')
+        expect(span.type).to eq('cache')
+        expect(span.resource).to eq('DELETE')
+        expect(span.service).to eq('rails-cache')
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        expect(span.get_tag('rails.cache.key')).to be_nil
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('cache')
+      end
+    end
   end
 
   describe '#fetch' do
@@ -297,6 +382,32 @@ RSpec.describe 'Rails cache' do
         expect(span.service).to eq('rails-cache')
         expect(span.get_tag('rails.cache.backend')).to eq('file_store')
         expect(span.get_tag('rails.cache.key')).to eq('exception')
+        expect(span.get_tag('error.type')).to eq('RuntimeError')
+        expect(span.get_tag('error.message')).to eq('oops')
+
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+          .to eq('active_support')
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+          .to eq('cache')
+      end
+    end
+
+    context 'when cache_key.enabled is false' do
+      before do
+        Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+      end
+
+      subject(:fetch) { cache.fetch('exception') { raise 'oops' } }
+
+      it do
+        expect { fetch }.to raise_error(StandardError)
+
+        expect(span.name).to eq('rails.cache')
+        expect(span.type).to eq('cache')
+        expect(span.resource).to eq('GET')
+        expect(span.service).to eq('rails-cache')
+        expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+        expect(span.get_tag('rails.cache.key')).to be_nil
         expect(span.get_tag('error.type')).to eq('RuntimeError')
         expect(span.get_tag('error.message')).to eq('oops')
 
@@ -340,6 +451,30 @@ RSpec.describe 'Rails cache' do
             .to eq('cache')
         end
       end
+
+      context 'with exception and when cache_key.enabled is false' do
+        before do
+          Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+        end
+        subject(:fetch_multi) { cache.fetch_multi('exception', 'another', 'one') { raise 'oops' } }
+
+        it do
+          expect { fetch_multi }.to raise_error(StandardError)
+          expect(span.name).to eq('rails.cache')
+          expect(span.type).to eq('cache')
+          expect(span.resource).to eq('MGET')
+          expect(span.service).to eq('rails-cache')
+          expect(span.get_tag('rails.cache.backend')).to eq('file_store')
+          expect(span.get_tag('rails.cache.keys')).to be_nil
+          expect(span.get_tag('error.type')).to eq('RuntimeError')
+          expect(span.get_tag('error.message')).to eq('oops')
+
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+            .to eq('active_support')
+          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+            .to eq('cache')
+        end
+      end
     end
 
     context 'when the method is not defined' do
@@ -371,6 +506,26 @@ RSpec.describe 'Rails cache' do
       expect(span.name).to eq('rails.cache')
       expect(span.get_tag('rails.cache.key')).to have(max_key_size).items
       expect(span.get_tag('rails.cache.key')).to end_with('...')
+
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+        .to eq('active_support')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+        .to eq('cache')
+    end
+  end
+
+  context 'with very large cache key and when cache_key.enabled is false' do
+    before do
+      Datadog.configuration.tracing[:active_support][:cache_key].enabled = false
+    end
+    it 'truncates key too large' do
+      max_key_size = Datadog::Tracing::Contrib::ActiveSupport::Ext::QUANTIZE_CACHE_MAX_KEY_SIZE
+      large_key = ''.ljust(max_key_size * 2, SecureRandom.hex)
+      cache.write(large_key, 'foobar')
+
+      expect(large_key.size).to be > max_key_size
+      expect(span.name).to eq('rails.cache')
+      expect(span.get_tag('rails.cache.key')).to be_nil
 
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_support')
