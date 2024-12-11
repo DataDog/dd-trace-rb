@@ -145,16 +145,6 @@ struct cpu_and_wall_time_worker_state {
     // How many times we actually tried to interrupt a thread for sampling
     unsigned int interrupt_thread_attempts;
 
-    // # Stats for the results of calling rb_postponed_job_register_one
-    // The same function was already waiting to be executed
-    unsigned int postponed_job_skipped_already_existed;
-    // The function was added to the queue successfully
-    unsigned int postponed_job_success;
-    // The queue was full
-    unsigned int postponed_job_full;
-    // The function returned an unknown result code
-    unsigned int postponed_job_unknown_result;
-
     // # CPU/Walltime sampling stats
     // How many times we actually CPU/wall sampled
     unsigned int cpu_sampled;
@@ -594,19 +584,11 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
 
-  // Note: rb_postponed_job_register_one ensures that if there's a previous sample_from_postponed_job queued for execution
-  // then we will not queue a second one. It does this by doing a linear scan on the existing jobs; in the future we
-  // may want to implement that check ourselves.
-
   state->stats.signal_handler_enqueued_sample++;
 
-  // Note: If we ever want to get rid of rb_postponed_job_register_one, remember not to clobber Ruby exceptions, as
-  // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
     rb_postponed_job_trigger(sample_from_postponed_job_handle);
-    state->stats.postponed_job_success++; // Always succeeds
   #else
-
     // Passing in `gc_finalize_deferred_workaround` is a workaround for https://bugs.ruby-lang.org/issues/19991 (for Ruby < 3.3)
     //
     // TL;DR the `rb_postponed_job_register_one` API is not atomic (which is why it got replaced by `rb_postponed_job_trigger`)
@@ -631,20 +613,7 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
     //
     // Thus, our workaround is simple: we pass in objspace as our argument, just in case the clobbering happens.
     // In the happy path, we never use this argument so it makes no difference. In the buggy path, we avoid crashing the VM.
-    int result = rb_postponed_job_register(0, sample_from_postponed_job, gc_finalize_deferred_workaround /* instead of NULL */);
-
-    // Officially, the result of rb_postponed_job_register_one is documented as being opaque, but in practice it does not
-    // seem to have changed between Ruby 2.3 and 3.2, and so we track it as a debugging mechanism
-    switch (result) {
-      case 0:
-        state->stats.postponed_job_full++; break;
-      case 1:
-        state->stats.postponed_job_success++; break;
-      case 2:
-        state->stats.postponed_job_skipped_already_existed++; break;
-      default:
-        state->stats.postponed_job_unknown_result++;
-    }
+    rb_postponed_job_register(0, sample_from_postponed_job, gc_finalize_deferred_workaround /* instead of NULL */);
   #endif
 }
 
@@ -714,6 +683,8 @@ static void interrupt_sampling_trigger_loop(void *state_ptr) {
   atomic_store(&state->should_run, false);
 }
 
+  // Note: If we ever want to get rid of the postponed job execution, remember not to clobber Ruby exceptions, as
+  // this function does this helpful job for us now -- https://github.com/ruby/ruby/commit/a98e343d39c4d7bf1e2190b076720f32d9f298b3.
 static void sample_from_postponed_job(DDTRACE_UNUSED void *_unused) {
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
@@ -1020,10 +991,6 @@ static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance) {
     ID2SYM(rb_intern("simulated_signal_delivery")),                  /* => */ UINT2NUM(state->stats.simulated_signal_delivery),
     ID2SYM(rb_intern("signal_handler_enqueued_sample")),             /* => */ UINT2NUM(state->stats.signal_handler_enqueued_sample),
     ID2SYM(rb_intern("signal_handler_wrong_thread")),                /* => */ UINT2NUM(state->stats.signal_handler_wrong_thread),
-    ID2SYM(rb_intern("postponed_job_skipped_already_existed")),      /* => */ UINT2NUM(state->stats.postponed_job_skipped_already_existed),
-    ID2SYM(rb_intern("postponed_job_success")),                      /* => */ UINT2NUM(state->stats.postponed_job_success),
-    ID2SYM(rb_intern("postponed_job_full")),                         /* => */ UINT2NUM(state->stats.postponed_job_full),
-    ID2SYM(rb_intern("postponed_job_unknown_result")),               /* => */ UINT2NUM(state->stats.postponed_job_unknown_result),
     ID2SYM(rb_intern("interrupt_thread_attempts")),                  /* => */ UINT2NUM(state->stats.interrupt_thread_attempts),
 
     // CPU Stats
