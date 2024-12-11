@@ -1,8 +1,14 @@
 require "datadog/di/spec_helper"
-require 'datadog/di'
+require 'datadog/di/instrumenter'
+require 'datadog/di/code_tracker'
+require 'datadog/di/serializer'
+require 'datadog/di/probe'
 require_relative 'hook_line'
 require_relative 'hook_method'
+require 'logger'
 
+# The examples below use a local code tracker when they set line probes,
+# for better test encapsulation and to avoid having to clear/reset global state.
 RSpec.describe Datadog::DI::Instrumenter do
   di_test
 
@@ -53,6 +59,18 @@ RSpec.describe Datadog::DI::Instrumenter do
 
   let(:call_keys) do
     %i[caller_locations duration probe rv serialized_entry_args]
+  end
+
+  shared_context 'with code tracking' do
+    let!(:code_tracker) do
+      Datadog::DI::CodeTracker.new.tap do |tracker|
+        tracker.start
+      end
+    end
+
+    after do
+      code_tracker.stop
+    end
   end
 
   describe '.hook_method' do
@@ -582,6 +600,12 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when hooking two identical but different probes' do
+      include_context 'with code tracking'
+
+      before do
+        load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
+      end
+
       let(:probe) do
         Datadog::DI::Probe.new(**base_probe_args.merge(
           type_name: 'HookTestClass', method_name: 'hook_test_method'
@@ -810,12 +834,10 @@ RSpec.describe Datadog::DI::Instrumenter do
       end
 
       context 'with code tracking' do
-        let(:code_tracker) { Datadog::DI.code_tracker }
+        include_context 'with code tracking'
 
         before do
           expect(di_internal_settings).to receive(:untargeted_trace_points).and_return(false)
-          Datadog::DI.activate_tracking!
-          code_tracker.clear
         end
 
         let(:probe) do
@@ -906,7 +928,6 @@ RSpec.describe Datadog::DI::Instrumenter do
 
     context 'when hooking same line twice with identical but different probes' do
       before(:all) do
-        Datadog::DI.activate_tracking!
         require_relative 'hook_line_basic'
       end
 
@@ -952,15 +973,13 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when code tracking is available' do
+      include_context 'with code tracking'
+
       before do
-        Datadog::DI.activate_tracking!
-        require_relative 'hook_line_targeted'
-
         path = File.join(File.dirname(__FILE__), 'hook_line_targeted.rb')
-        expect(Datadog::DI.code_tracker.send(:registry)[path]).to be_a(RubyVM::InstructionSequence)
+        load path
+        expect(code_tracker.send(:registry)[path]).to be_a(RubyVM::InstructionSequence)
       end
-
-      let(:code_tracker) { Datadog::DI.code_tracker }
 
       let(:probe) do
         Datadog::DI::Probe.new(file: 'hook_line_targeted.rb', line_no: 3,
@@ -969,7 +988,7 @@ RSpec.describe Datadog::DI::Instrumenter do
 
       it 'targets the trace point' do
         path = File.join(File.dirname(__FILE__), 'hook_line_targeted.rb')
-        target = Datadog::DI.code_tracker.send(:registry)[path]
+        target = code_tracker.send(:registry)[path]
         expect(target).to be_a(RubyVM::InstructionSequence)
 
         expect_any_instance_of(TracePoint).to receive(:enable).with(target: target, target_line: 3).and_call_original
@@ -1000,12 +1019,11 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when method is recursive' do
-      before(:all) do
-        Datadog::DI.activate_tracking!
+      include_context 'with code tracking'
+
+      before do
         load File.join(File.dirname(__FILE__), 'hook_line_recursive.rb')
       end
-
-      let(:code_tracker) { Datadog::DI.code_tracker }
 
       context 'non-enriched probe' do
         let(:probe_args) do
@@ -1039,12 +1057,11 @@ RSpec.describe Datadog::DI::Instrumenter do
     end
 
     context 'when method is infinitely recursive' do
-      before(:all) do
-        Datadog::DI.activate_tracking!
+      include_context 'with code tracking'
+
+      before do
         require_relative 'hook_line_recursive'
       end
-
-      let(:code_tracker) { Datadog::DI.code_tracker }
 
       # We need to use a rate limiter, otherwise the stack is exhausted
       # very slowly and this test burns 100% CPU for a long time performing
