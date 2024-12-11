@@ -11,6 +11,8 @@ require_relative 'event'
 require_relative 'metadata'
 require_relative 'metadata/ext'
 require_relative 'span'
+require_relative 'span_event'
+require_relative 'span_link'
 require_relative 'utils'
 
 module Datadog

@@ -12,8 +12,9 @@ module Datadog
         attr_reader \
           :trace
 
-        def initialize(trace)
+        def initialize(trace, native_events_supported = false)
           @trace = trace
+          @native_events_supported = native_events_supported
         end
 
         # MessagePack serializer interface. Making this object
@@ -26,13 +27,13 @@ module Datadog
         # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
         def to_msgpack(packer = nil)
           # As of 1.3.3, JRuby implementation doesn't pass an existing packer
-          trace.spans.map { |s| SerializableSpan.new(s) }.to_msgpack(packer)
+          trace.spans.map { |s| SerializableSpan.new(s, @native_events_supported) }.to_msgpack(packer)
         end
 
         # JSON serializer interface.
         # Used by older version of the transport.
         def to_json(*args)
-          trace.spans.map { |s| SerializableSpan.new(s).to_hash }.to_json(*args)
+          trace.spans.map { |s| SerializableSpan.new(s, @native_events_supported).to_hash }.to_json(*args)
         end
       end
 
@@ -41,9 +42,10 @@ module Datadog
         attr_reader \
           :span
 
-        def initialize(span)
+        def initialize(span, native_events_supported)
           @span = span
           @trace_id = Tracing::Utils::TraceId.to_low_order(span.trace_id)
+          @native_events_supported = native_events_supported
         end
 
         # MessagePack serializer interface. Making this object
@@ -55,10 +57,13 @@ module Datadog
         #
         # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
         # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength
         def to_msgpack(packer = nil)
           packer ||= MessagePack::Packer.new
 
           number_of_elements_to_write = 11
+
+          number_of_elements_to_write += 1 if span.events.any? && @native_events_supported
 
           if span.stopped?
             packer.write_map_header(number_of_elements_to_write + 2) # Set header with how many elements in the map
@@ -72,8 +77,16 @@ module Datadog
             packer.write_map_header(number_of_elements_to_write) # Set header with how many elements in the map
           end
 
-          # serialize span events as meta tags
-          span.set_tag('events', span.events.map(&:to_hash).to_json) if span.events.any?
+          if span.events.any?
+            if @native_events_supported
+              # Use top-level field for native events
+              packer.write('span_events')
+              packer.write(span.events.map(&:to_native_format))
+            else
+              # Serialize span events as meta tags
+              span.set_tag('events', span.events.map(&:to_hash).to_json)
+            end
+          end
 
           # DEV: We use strings as keys here, instead of symbols, as
           # DEV: MessagePack will ultimately convert them to strings.
@@ -103,6 +116,7 @@ module Datadog
           packer
         end
         # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength
 
         # JSON serializer interface.
         # Used by older version of the transport.
