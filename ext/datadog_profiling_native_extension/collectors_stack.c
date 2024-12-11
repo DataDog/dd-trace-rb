@@ -635,3 +635,10 @@ static void clear_buffer(VALUE optional_signal_handler_sampling_buffer) {
 
   state->sample_for_thread = Qnil;
 }
+
+VALUE pending_stack_thread_from_buffer(VALUE signal_handler_sampling_buffer_instance) {
+  signal_handler_sampling_buffer *state;
+  TypedData_Get_Struct(signal_handler_sampling_buffer_instance, signal_handler_sampling_buffer, &signal_handler_sampling_buffer_typed_data, state);
+
+  return state->sample_for_thread;
+}

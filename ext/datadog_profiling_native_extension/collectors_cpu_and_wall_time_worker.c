@@ -584,6 +584,19 @@ static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED si
   // b) we validate we are in the thread that has the global VM lock; if a different thread gets a signal, it will return early
   //    because it will not have the global VM lock
 
+  // Should we sample the current thread's stack right now, or do we just it let be sampled later, inside
+  // sample_from_postponed_job? Sampling immediately here avoids "safepoint bias", but there's a few situations where
+  // we can't do it. In those situations, we just sample later, inside `sample_from_postponed_job`.
+  if (
+    true /* TODO: state->sample_from_signal_handler_enabled*/ &&
+    // It's not a great idea to sample during GC, since we'll be getting and following references from the VM
+    // and during GC they may be in-flux/not correctly accounted for
+    !rb_during_gc()
+  ) {
+    // TODO: Missing dynamic sampling rate handling
+    thread_context_collector_sample_from_signal_handler(state->thread_context_collector_instance);
+  }
+
   state->stats.signal_handler_enqueued_sample++;
 
   #ifndef NO_POSTPONED_TRIGGER // Ruby 3.3+
@@ -1040,8 +1053,7 @@ void *simulate_sampling_signal_delivery(DDTRACE_UNUSED void *_unused) {
 
   state->stats.simulated_signal_delivery++;
 
-  // @ivoanjo: We could instead directly call sample_from_postponed_job, but I chose to go through the signal handler
-  // so that the simulated case is as close to the original one as well (including any metrics increases, etc).
+  // `handle_sampling_signal` does a few things extra on top of `sample_from_postponed_job` so that's why we don't shortcut here
   handle_sampling_signal(0, NULL, NULL);
 
   return NULL; // Unused

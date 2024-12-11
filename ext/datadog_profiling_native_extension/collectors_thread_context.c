@@ -568,6 +568,7 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
   long cpu_time_at_sample_start_for_current_thread = cpu_time_now_ns(current_thread_context);
 
   VALUE threads = thread_list(state);
+  VALUE pending_stack_thread = pending_stack_thread_from_buffer(state->signal_handler_sampling_buffer);
 
   const long thread_count = RARRAY_LEN(threads);
   for (long i = 0; i < thread_count; i++) {
@@ -586,7 +587,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
       thread_context->sampling_buffer,
       current_cpu_time_ns,
       current_monotonic_wall_time_ns,
-      Qnil // TODO: This is a placeholder for signal handler sampling
+      // Did we gather a stack for this thread already in the signal handler? If so, let's use it
+      thread == pending_stack_thread ? state->signal_handler_sampling_buffer : Qnil
     );
   }
 

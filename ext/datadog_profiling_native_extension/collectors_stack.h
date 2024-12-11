@@ -29,3 +29,4 @@ void sampling_buffer_free(sampling_buffer *buffer);
 
 VALUE signal_handler_sampling_buffer_new(uint16_t max_frames);
 bool collect_stack_into_buffer(VALUE signal_handler_sampling_buffer);
+VALUE pending_stack_thread_from_buffer(VALUE signal_handler_sampling_buffer);
