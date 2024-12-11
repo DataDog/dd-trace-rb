@@ -9,7 +9,6 @@ def parse_gemfiles(directory = 'gemfiles/')
   gemfiles = Dir.glob(File.join(directory, '*'))
   gemfiles.each do |gemfile_name|
     runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
-    # puts "Runtime: #{runtime}"
     File.foreach(gemfile_name) do |line|
       if (gem_details = parse_gemfile_entry(line))
         gem_name, version = gem_details
@@ -117,18 +116,10 @@ integrations.each do |integration|
   if excluded.include?(integration)
     next
   end
-  # puts "integration: #{integration}"
   integration_name = mapping[integration] || integration
 
   min_version_jruby = parsed_gems_jruby[integration_name]
   min_version_ruby = parsed_gems_ruby[integration_name]
-
-  # if min_version_ruby
-  #   puts "minimum version of gem '#{integration_name} for Ruby': #{min_version_ruby}"
-  # end
-  # if min_version_jruby
-  #   puts "minimum version of gem '#{integration_name} for JRuby': #{min_version_jruby}"
-  # end
 
   # mapping jruby, ruby
   integration_json_mapping[integration] = [min_version_ruby, min_version_jruby]

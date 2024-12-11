@@ -1,5 +1,6 @@
+# This is a table of supported integration versions generated from gemfiles.
 | Integration | Ruby Min | JRuby Min |
-|-------------|-----------|----------|
+|-------------|----------|-----------|
 | action_cable | 5.2.8.1 | 5.2.8.1 |
 | action_mailer | 4.2.11.3 | 5.2.8.1 |
 | action_pack | 4.2.11.3 | 5.2.8.1 |
@@ -18,17 +19,17 @@
 | faraday | 0.17 | 0.17 |
 | grape | 1.7.0 | 1.7.0 |
 | graphql | 1.13.0 | 1.13.0 |
-| grpc | 1.38.0 | None |
-| hanami | 1 | None |
+| grpc | 1.38.0 |  |
+| hanami | 1 |  |
 | http | 5.0.1 | 4 |
 | httpclient | 2.8.3 | 2.8.3 |
 | httprb | 5.0.1 | 4 |
 | kafka | 0.7.10 | 0.7.10 |
 | lograge | 0.11 | 0.11 |
 | mongodb | 2.8.0 | 2.8.0 |
-| mysql2 | 0.5 | None |
+| mysql2 | 0.5 |  |
 | opensearch | 2 | 2 |
-| pg | 0.18.4 | None |
+| pg | 0.18.4 |  |
 | presto | 0.5.14 | 0.5.14 |
 | que | 1.0.0 | 1.0.0 |
 | racecar | 0.3.5 | 0.3.5 |
@@ -47,4 +48,4 @@
 | sneakers | 2.12.0 | 2.12.0 |
 | stripe | 5.15.0 | 5.15.0 |
 | sucker_punch | 3.1.0 | 3.1.0 |
-| trilogy | 2.6.0 | None |
+| trilogy | 2.6.0 |  |
