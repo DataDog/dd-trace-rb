@@ -519,7 +519,7 @@ static void signal_handler_sampling_buffer_typed_data_mark(void *state_ptr) {
   signal_handler_sampling_buffer *state = (signal_handler_sampling_buffer *) state_ptr;
 
   // Nothing to mark if no sample is pending or no frames in it
-  if (state->sample_for_thread == Qnil || state->rb_profile_frames_result == 0) return;
+  if (state->sample_for_thread == Qnil || state->rb_profile_frames_result <= 0) return;
 
   rb_gc_mark(state->sample_for_thread);
 
