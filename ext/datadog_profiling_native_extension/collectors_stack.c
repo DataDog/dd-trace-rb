@@ -36,6 +36,7 @@ static pair_buffer_frames frames_from_signal_handler_buffer(
   VALUE thread,
   uint16_t expected_max_frames
 );
+static void clear_buffer(VALUE optional_signal_handler_sampling_buffer);
 
 // These two functions are exposed as symbols by the VM but are not in any header.
 // Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
@@ -352,6 +353,8 @@ void sample_thread(
     values,
     labels
   );
+
+  clear_buffer(optional_signal_handler_sampling_buffer);
 }
 
 // Rails's ActionView likes to dynamically generate method names with suffixed hashes/ids, resulting in methods with
@@ -622,4 +625,13 @@ static pair_buffer_frames frames_from_signal_handler_buffer(
     .captured_frames = state->rb_profile_frames_result,
     .stack_buffer = state->stack_buffer
   };
+}
+
+static void clear_buffer(VALUE optional_signal_handler_sampling_buffer) {
+  if (optional_signal_handler_sampling_buffer == Qnil) return;
+
+  signal_handler_sampling_buffer *state;
+  TypedData_Get_Struct(optional_signal_handler_sampling_buffer, signal_handler_sampling_buffer, &signal_handler_sampling_buffer_typed_data, state);
+
+  state->sample_for_thread = Qnil;
 }
