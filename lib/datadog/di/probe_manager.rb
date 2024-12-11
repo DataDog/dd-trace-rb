@@ -161,7 +161,7 @@ module Datadog
                 # Silence all exceptions?
                 # TODO should we propagate here and rescue upstream?
                 logger.warn("Error removing probe #{probe.id}: #{exc.class}: #{exc}")
-                telemetry&.report(exc, description: "Error removing probe #{probe.id}")
+                telemetry&.report(exc, description: "Error removing probe")
               end
             end
           end
@@ -206,6 +206,9 @@ module Datadog
       # point, which is invoked for each required or loaded file
       # (and also for eval'd code, but those invocations are filtered out).
       def install_pending_line_probes(path)
+        if path.nil?
+          raise ArgumentError, "path must not be nil"
+        end
         @lock.synchronize do
           @pending_probes.values.each do |probe|
             if probe.line?

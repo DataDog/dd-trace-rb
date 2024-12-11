@@ -24,7 +24,9 @@ module Datadog
 
           return unless environment_supported?(settings)
 
-          new(settings, agent_settings, Datadog.logger, code_tracker: DI.code_tracker, telemetry: telemetry)
+          new(settings, agent_settings, Datadog.logger, code_tracker: DI.code_tracker, telemetry: telemetry).tap do |component|
+            DI.add_current_component(component)
+          end
         end
 
         def build!(settings, agent_settings, telemetry: nil)
@@ -99,6 +101,8 @@ module Datadog
       # was replaced by a new instance, the new instance of it wouldn't have
       # any of the already loaded code tracked.
       def shutdown!(replacement = nil)
+        DI.remove_current_component(self)
+
         probe_manager.clear_hooks
         probe_manager.close
         probe_notifier_worker.stop

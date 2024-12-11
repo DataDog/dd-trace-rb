@@ -12,7 +12,7 @@ on:
 jobs:
   semgrep:
     name: semgrep/ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     container:
       image: returntocorp/semgrep

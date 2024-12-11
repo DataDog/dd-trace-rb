@@ -15,6 +15,12 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
     capabilities
   end
 
+  shared_examples 'matches tracing capabilities only' do
+    it 'matches tracing capabilities only' do
+      expect(capabilities.base64_capabilities).to eq('IABwAA==')
+    end
+  end
+
   context 'AppSec component' do
     context 'when disabled' do
       let(:settings) do
@@ -34,9 +40,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IABwAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -52,9 +56,7 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
       end
 
       describe '#base64_capabilities' do
-        it 'matches tracing capabilities only' do
-          expect(capabilities.base64_capabilities).to eq('IABwAA==')
-        end
+        include_examples 'matches tracing capabilities only'
       end
     end
 
@@ -79,6 +81,66 @@ RSpec.describe Datadog::Core::Remote::Client::Capabilities do
         it 'returns binary capabilities' do
           expect(capabilities.base64_capabilities).to_not be_empty
         end
+      end
+    end
+  end
+
+  context 'DI component' do
+    context 'when disabled' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = false
+        settings
+      end
+
+      it 'does not register any capabilities, products, and receivers' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to_not include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+          }
+        )
+      end
+
+      describe '#base64_capabilities' do
+        include_examples 'matches tracing capabilities only'
+      end
+    end
+
+    context 'when not present' do
+      it 'does not register any capabilities, products, and receivers' do
+        expect(capabilities.products).to_not include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to_not include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+          }
+        )
+      end
+
+      describe '#base64_capabilities' do
+        include_examples 'matches tracing capabilities only'
+      end
+    end
+
+    context 'when enabled' do
+      let(:settings) do
+        settings = Datadog::Core::Configuration::Settings.new
+        settings.dynamic_instrumentation.enabled = true
+        settings
+      end
+
+      it 'register capabilities, products, and receivers' do
+        expect(capabilities.products).to include('LIVE_DEBUGGING')
+        expect(capabilities.receivers).to include(
+          lambda { |r|
+            r.match? Datadog::Core::Remote::Configuration::Path.parse('datadog/2/LIVE_DEBUGGING/_/_')
+          }
+        )
+      end
+
+      describe '#base64_capabilities' do
+        # DI does not contain any additional capabilities at this time
+        include_examples 'matches tracing capabilities only'
       end
     end
   end

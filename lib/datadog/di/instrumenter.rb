@@ -106,7 +106,7 @@ module Datadog
         settings = self.settings
 
         mod = Module.new do
-          define_method(method_name) do |*args, **kwargs| # steep:ignore
+          define_method(method_name) do |*args, **kwargs, &target_block| # steep:ignore
             if rate_limiter.nil? || rate_limiter.allow?
               # Arguments may be mutated by the method, therefore
               # they need to be serialized prior to method invocation.
@@ -117,17 +117,18 @@ module Datadog
               end
               rv = nil
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+              # for methods defined via method_missing.
               duration = Benchmark.realtime do # steep:ignore
                 rv = if args.any?
                   if kwargs.any?
-                    super(*args, **kwargs)
+                    super(*args, **kwargs, &target_block)
                   else
-                    super(*args)
+                    super(*args, &target_block)
                   end
                 elsif kwargs.any?
-                  super(**kwargs)
+                  super(**kwargs, &target_block)
                 else
-                  super()
+                  super(&target_block)
                 end
               end
               # The method itself is not part of the stack trace because
@@ -152,7 +153,28 @@ module Datadog
                 serialized_entry_args: entry_args)
               rv
             else
-              super(*args, **kwargs)
+              # stop standard from trying to mess up my code
+              _ = 42
+
+              # The necessity to invoke super in each of these specific
+              # ways is very difficult to test.
+              # Existing tests, even though I wrote many, still don't
+              # cause a failure if I replace all of the below with a
+              # simple super(*args, **kwargs, &target_block).
+              # But, let's be safe and go through the motions in case
+              # there is actually a legitimate need for the breakdown.
+              # TODO figure out how to test this properly.
+              if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
+                else
+                  super(*args, &target_block)
+                end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
+              end
             end
           end
         end

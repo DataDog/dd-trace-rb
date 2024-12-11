@@ -1,0 +1,22 @@
+module Datadog
+  module DI
+    module Remote
+      class ReadError < StandardError
+      end
+
+      PRODUCT: "LIVE_DEBUGGING"
+
+      def self.products: () -> ::Array[untyped]
+
+      def self.capabilities: () -> ::Array[untyped]
+
+      def self.receivers: (untyped telemetry) -> untyped
+
+      def self.receiver: (?::Array[untyped] products) { (?) -> untyped } -> ::Array[untyped]
+
+      private
+
+      def self.parse_content: (untyped content) -> untyped
+    end
+  end
+end

@@ -52,6 +52,8 @@ RSpec.describe Datadog::Profiling::Component do
         skip_if_profiling_not_supported(self)
 
         settings.profiling.enabled = true
+        # Disabled to avoid warnings on Rubies where it's not supported; there's separate specs that test it when enabled
+        settings.profiling.advanced.gc_enabled = false
         allow(profiler_setup_task).to receive(:run)
       end
 
@@ -306,15 +308,15 @@ RSpec.describe Datadog::Profiling::Component do
             stub_const("RUBY_VERSION", testing_version)
           end
 
-          context "on a Ruby older than 2.7" do
-            let(:testing_version) { "2.6" }
+          context "on a Ruby older than 3.1" do
+            let(:testing_version) { "3.0" }
 
             it "initializes StackRecorder without heap sampling support and warns" do
               expect(Datadog::Profiling::StackRecorder).to receive(:new)
                 .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:warn).with(/upgrade to Ruby >= 2.7/)
+              expect(Datadog.logger).to receive(:warn).with(/upgrade to Ruby >= 3.1/)
 
               build_profiler_component
             end
@@ -361,23 +363,6 @@ RSpec.describe Datadog::Profiling::Component do
                 expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
                 expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
                 expect(Datadog.logger).not_to receive(:warn).with(/experimental heap size profiling/)
-
-                build_profiler_component
-              end
-            end
-
-            context "on a Ruby older than 3.1" do
-              let(:testing_version) { "2.7" }
-
-              it "initializes StackRecorder with heap sampling support but shows warning and debug messages" do
-                expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                  .with(hash_including(heap_samples_enabled: true))
-                  .and_call_original
-
-                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
-                expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
-                expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
-                expect(Datadog.logger).to receive(:debug).with(/forced object recycling.+upgrading to Ruby >= 3.1/)
 
                 build_profiler_component
               end

@@ -15,6 +15,7 @@ RSpec.describe Datadog::Core::Configuration do
     allow(telemetry).to receive(:emit_closing!)
     allow(Datadog::Core::Telemetry::Component).to receive(:new).and_return(telemetry)
     allow(Datadog::Core::Remote::Component).to receive(:build)
+    allow(Datadog::DI::Component).to receive(:build)
   end
 
   context 'when extended by a class' do
@@ -56,7 +57,7 @@ RSpec.describe Datadog::Core::Configuration do
 
             expect(new_components)
               .to have_received(:startup!)
-              .with(test_class.configuration)
+              .with(test_class.configuration, old_state: { remote_started: nil })
               .ordered
 
             expect(new_components).to_not have_received(:shutdown!)

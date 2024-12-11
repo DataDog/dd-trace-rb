@@ -13,7 +13,7 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:agent_settings) do
-      double('agent settings')
+      instance_double_agent_settings
     end
 
     context 'when dynamic instrumentation is enabled' do

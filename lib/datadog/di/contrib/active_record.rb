@@ -5,6 +5,7 @@ Datadog::DI::Serializer.register(condition: lambda { |value| ActiveRecord::Base 
   # steep:ignore:start
   value_to_serialize = {
     attributes: value.attributes,
+    new_record: value.new_record?,
   }
   serializer.serialize_value(value_to_serialize, depth: depth ? depth - 1 : nil, type: value.class)
   # steep:ignore:end

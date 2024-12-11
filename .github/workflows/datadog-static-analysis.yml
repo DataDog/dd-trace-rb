@@ -4,7 +4,7 @@ name: Datadog Static Analysis
 
 jobs:
   static-analysis:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Datadog Static Analyzer
     steps:
       - name: Checkout

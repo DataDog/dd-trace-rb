@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
       it { expect(telemetry).not_to receive(:error) }
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
-      it { expect(actions).to eq [[]] }
+      it { expect(actions).to eq [{}] }
     end
 
     context 'multiple attacks per run' do
@@ -181,7 +181,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 2) }
-      it { expect(actions).to eq [[]] }
+      it { expect(actions).to eq [{}] }
     end
 
     context 'multiple runs' do
@@ -199,7 +199,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         it { expect(matches).to have_attributes(count: 1) }
         it { expect(events).to have_attributes(count: 1) }
-        it { expect(actions).to eq [[]] }
+        it { expect(actions).to eq [{}] }
       end
 
       context 'different attacks' do
@@ -215,7 +215,7 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
         it { expect(matches).to have_attributes(count: 2) }
         it { expect(events).to have_attributes(count: 2) }
-        it { expect(actions).to eq [[], []] }
+        it { expect(actions).to eq [{}, {}] }
       end
     end
 
@@ -235,7 +235,12 @@ RSpec.describe Datadog::AppSec::Processor::Context do
 
       it { expect(matches).to have_attributes(count: 1) }
       it { expect(events).to have_attributes(count: 1) }
-      it { expect(actions).to eq [['block']] }
+
+      it do
+        expect(actions).to(
+          eq([{ 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }])
+        )
+      end
     end
 
     context 'run failed with libddwaf error result' do

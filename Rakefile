@@ -27,17 +27,6 @@ namespace :test do
   desc 'Run all tests'
   task all: TEST_METADATA.map { |k, _| "test:#{k}" }
 
-  ruby_version = RUBY_VERSION[0..2]
-
-  major, minor, = if defined?(RUBY_ENGINE_VERSION)
-                    Gem::Version.new(RUBY_ENGINE_VERSION).segments
-                  else
-                    # For Ruby < 2.3
-                    Gem::Version.new(RUBY_VERSION).segments
-                  end
-
-  ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
-
   TEST_METADATA.each do |key, spec_metadata|
     spec_task = "spec:#{key}"
 
@@ -45,22 +34,15 @@ namespace :test do
     task key, [:task_args] do |_, args|
       spec_arguments = args.task_args
 
-      candidates = spec_metadata.select do |appraisal_group, rubies|
-        if RUBY_PLATFORM == 'java'
-          # Rails 4.x is not supported on JRuby 9.2 (which is RUBY_VERSION 2.5)
-          next false if ruby_runtime == 'jruby-9.2' && appraisal_group.start_with?('rails4')
-
-          rubies.include?("✅ #{ruby_version}") && rubies.include?('✅ jruby')
-        else
-          rubies.include?("✅ #{ruby_version}")
-        end
+      candidates = spec_metadata.select do |_group, rubies|
+        RuntimeMatcher.match?(rubies)
       end
 
-      candidates.each do |appraisal_group, _|
-        env = if appraisal_group.empty?
+      candidates.each do |group, _|
+        env = if group.empty?
                 {}
               else
-                gemfile = File.join(File.dirname(__FILE__), 'gemfiles', "#{ruby_runtime}-#{appraisal_group}.gemfile".tr('-', '_'))
+                gemfile = AppraisalConversion.to_bundle_gemfile(group)
                 { 'BUNDLE_GEMFILE' => gemfile }
               end
         command = "bundle check || bundle install && bundle exec rake #{spec_task}"
@@ -168,6 +150,15 @@ namespace :spec do
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:railsautoinstrument) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/rails/**/*auto_instrument*_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
+  # Tests if Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher does not eager load
+  # ActiveSupport::Cache::RedisCacheStore when the version of Redis present is too old to be compatible.
+  # @see Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher#patch_redis_cache_store?
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:rails_old_redis) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/rails/cache_spec.rb'
     t.rspec_opts = args.to_a.join(' ')
   end
 
@@ -285,7 +276,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :rack, :rails, :sinatra, :devise, :graphql]
+    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -298,6 +289,7 @@ namespace :spec do
 
     # Datadog AppSec integrations
     [
+      :active_record,
       :rack,
       :sinatra,
       :rails,
