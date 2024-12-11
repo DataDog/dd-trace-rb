@@ -12,6 +12,8 @@ module Datadog
         attr_reader \
           :trace
 
+        # @param trace [Datadog::Trace] the trace to serialize
+        # @param native_events_supported [Boolean] whether the agent supports span events as a top-level field
         def initialize(trace, native_events_supported = false)
           @trace = trace
           @native_events_supported = native_events_supported
@@ -42,6 +44,8 @@ module Datadog
         attr_reader \
           :span
 
+        # @param span [Datadog::Span] the span to serialize
+        # @param native_events_supported [Boolean] whether the agent supports span events as a top-level field
         def initialize(span, native_events_supported)
           @span = span
           @trace_id = Tracing::Utils::TraceId.to_low_order(span.trace_id)

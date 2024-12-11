@@ -36,12 +36,20 @@ module Datadog
         @time_unix_nano = time_unix_nano || (Time.now.to_r * 1_000_000_000).to_i
       end
 
+      # Converts the span event into a hash to be used by with the span tag serialization
+      # (`span.set_tag('events) = [event.to_hash]`). This serialization format has the drawback
+      # of being limiting span events to the size limit of a span tag.
+      # All Datadog agents support this format.
       def to_hash
         h = { 'name' => @name, 'time_unix_nano' => @time_unix_nano }
         h['attributes'] = @attributes unless @attributes.empty?
         h
       end
 
+      # Converts the span event into a hash to be used by the MessagePack serialization as a
+      # top-level span field (span.span_events = [event.to_native_format]).
+      # This serialization format removes the serialization limitations of the `span.set_tag('events)` approach,
+      # but is only supported by newer version of the Datadog agent.
       def to_native_format
         h = { 'name' => @name, 'time_unix_nano' => @time_unix_nano }
 
