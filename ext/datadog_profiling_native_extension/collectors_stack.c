@@ -20,12 +20,22 @@ struct sampling_buffer {
   frame_info *stack_buffer;
 }; // Note: typedef'd in the header to sampling_buffer
 
+typedef struct {
+  frame_info *stack_buffer;
+  int captured_frames;
+} pair_buffer_frames;
+
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
 static VALUE native_sample_ensure(VALUE args);
 static void maybe_add_placeholder_frames_omitted(VALUE thread, sampling_buffer* buffer, char *frames_omitted_message, int frames_omitted_message_size);
 static void record_placeholder_stack_in_native_code(VALUE recorder_instance, sample_values values, sample_labels labels);
 static void maybe_trim_template_random_ids(ddog_CharSlice *name_slice, ddog_CharSlice *filename_slice);
+static pair_buffer_frames frames_from_signal_handler_buffer(
+  VALUE optional_signal_handler_sampling_buffer,
+  VALUE thread,
+  uint16_t expected_max_frames
+);
 
 // These two functions are exposed as symbols by the VM but are not in any header.
 // Their signatures actually take a `const rb_iseq_t *iseq` but it gets casted back and forth between VALUE.
@@ -198,7 +208,11 @@ void sample_thread(
   int captured_frames;
 
   if (optional_signal_handler_sampling_buffer != Qnil) {
-    rb_raise(rb_eRuntimeError, "TODO");
+    pair_buffer_frames result =
+      frames_from_signal_handler_buffer(optional_signal_handler_sampling_buffer, thread, buffer->max_frames);
+
+    captured_frames = result.captured_frames;
+    stack_buffer = result.stack_buffer;
   } else {
     captured_frames = ddtrace_rb_profile_frames(
       thread,
@@ -206,7 +220,6 @@ void sample_thread(
       buffer->max_frames,
       buffer->stack_buffer
     );
-
     stack_buffer = buffer->stack_buffer;
   }
 
@@ -574,4 +587,39 @@ bool collect_stack_into_buffer(VALUE signal_handler_sampling_buffer_instance) {
   );
 
   return true;
+}
+
+static pair_buffer_frames frames_from_signal_handler_buffer(
+  VALUE optional_signal_handler_sampling_buffer,
+  VALUE thread,
+  uint16_t expected_max_frames
+) {
+  signal_handler_sampling_buffer *state;
+  TypedData_Get_Struct(optional_signal_handler_sampling_buffer, signal_handler_sampling_buffer, &signal_handler_sampling_buffer_typed_data, state);
+
+  if (state->sample_for_thread == Qnil) {
+    rb_raise(
+      rb_eRuntimeError, "BUG: frames_from_signal_handler_buffer called with no sample pending, expected %"PRIsVALUE, thread);
+  }
+  if (state->sample_for_thread != thread) {
+    rb_raise(
+      rb_eRuntimeError,
+      "BUG: frames_from_signal_handler_buffer called with wrong thread, expected %"PRIsVALUE" got %"PRIsVALUE,
+      state->sample_for_thread,
+      thread
+    );
+  }
+  if (state->max_frames != expected_max_frames) {
+    rb_raise(
+      rb_eRuntimeError,
+      "BUG: frames_from_signal_handler_buffer called with wrong max_frames, expected %d got %d",
+      state->max_frames,
+      expected_max_frames
+    );
+  }
+
+  return (pair_buffer_frames) {
+    .captured_frames = state->rb_profile_frames_result,
+    .stack_buffer = state->stack_buffer
+  };
 }
