@@ -147,6 +147,8 @@ struct thread_context_collector_state {
   // Qtrue serves as a marker we've not yet extracted it; when we try to extract it, we set it to an object if
   // successful and Qnil if not.
   VALUE otel_current_span_key;
+  // Used to hold samples taken inside the signal handler
+  VALUE signal_handler_sampling_buffer;
 
   struct stats {
     // Track how many garbage collection samples we've taken.
@@ -382,6 +384,7 @@ static void thread_context_collector_typed_data_mark(void *state_ptr) {
   rb_gc_mark(state->thread_list_buffer);
   rb_gc_mark(state->main_thread);
   rb_gc_mark(state->otel_current_span_key);
+  rb_gc_mark(state->signal_handler_sampling_buffer);
 }
 
 static void thread_context_collector_typed_data_free(void *state_ptr) {
@@ -440,6 +443,7 @@ static VALUE _native_new(VALUE klass) {
   state->otel_current_span_key = Qtrue;
   state->gc_tracking.wall_time_at_previous_gc_ns = INVALID_TIME;
   state->gc_tracking.wall_time_at_last_flushed_gc_event_ns = 0;
+  state->signal_handler_sampling_buffer = Qnil;
 
   // Note: Remember to keep any new allocated objects that get stored in the state also on the stack + mark them with
   // RB_GC_GUARD -- otherwise it's possible for a GC to run and
@@ -448,7 +452,7 @@ static VALUE _native_new(VALUE klass) {
   VALUE instance = TypedData_Wrap_Struct(klass, &thread_context_collector_typed_data, state);
 
   RB_GC_GUARD(thread_list_buffer);
-  RB_GC_GUARD(main_thread); // Arguably not needed, but perhaps can be move in some future Ruby release?
+  RB_GC_GUARD(main_thread);
 
   return instance;
 }
@@ -491,6 +495,7 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
   } else {
     rb_raise(rb_eArgError, "Unexpected value for otel_context_enabled: %+" PRIsVALUE, otel_context_enabled);
   }
+  state->signal_handler_sampling_buffer = signal_handler_sampling_buffer_new(state->max_frames);
 
   global_waiting_for_gvl_threshold_ns = NUM2UINT(waiting_for_gvl_threshold_ns);
 
@@ -2051,3 +2056,14 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     DDTRACE_UNUSED long current_cpu_time_ns
   ) { return false; }
 #endif // NO_GVL_INSTRUMENTATION
+
+// Assumption 1: This function is called in a thread that is holding the Global VM Lock. Caller is responsible for enforcing this.
+// Assumption 2: This function gets called from a signal handler.
+void thread_context_collector_sample_from_signal_handler(VALUE self_instance) {
+  struct thread_context_collector_state *state;
+  if (!rb_typeddata_is_kind_of(self_instance, &thread_context_collector_typed_data)) return;
+  // This should never fail the the above check passes
+  TypedData_Get_Struct(self_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
+
+  collect_stack_into_buffer(state->signal_handler_sampling_buffer);
+}
