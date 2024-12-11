@@ -214,7 +214,8 @@ static void update_metrics_and_sample(
   struct per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  VALUE optional_signal_handler_sampling_buffer
 );
 static void trigger_sample_for_thread(
   struct thread_context_collector_state *state,
@@ -227,7 +228,8 @@ static void trigger_sample_for_thread(
   ddog_CharSlice *ruby_vm_type,
   ddog_CharSlice *class_name,
   bool is_gvl_waiting_state,
-  bool is_safe_to_allocate_objects
+  bool is_safe_to_allocate_objects,
+  VALUE optional_signal_handler_sampling_buffer
 );
 static VALUE _native_thread_list(VALUE self);
 static struct per_thread_context *get_or_create_context_for(VALUE thread, struct thread_context_collector_state *state);
@@ -275,7 +277,8 @@ static bool handle_gvl_waiting(
   VALUE stack_from_thread,
   struct per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
-  long current_cpu_time_ns
+  long current_cpu_time_ns,
+  VALUE optional_signal_handler_sampling_buffer
 );
 static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread);
 static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread);
@@ -577,7 +580,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
       thread_context,
       thread_context->sampling_buffer,
       current_cpu_time_ns,
-      current_monotonic_wall_time_ns
+      current_monotonic_wall_time_ns,
+      Qnil // TODO: This is a placeholder for signal handler sampling
     );
   }
 
@@ -595,7 +599,8 @@ void thread_context_collector_sample(VALUE self_instance, long current_monotonic
     // Here we use the overhead thread's sampling buffer so as to not invalidate the cache in the buffer of the thread being sampled
     get_or_create_context_for(profiler_overhead_stack_thread, state)->sampling_buffer,
     cpu_time_now_ns(current_thread_context),
-    monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
+    monotonic_wall_time_now_ns(RAISE_ON_FAILURE),
+    Qnil
   );
 }
 
@@ -606,10 +611,19 @@ static void update_metrics_and_sample(
   struct per_thread_context *thread_context,
   sampling_buffer* sampling_buffer,
   long current_cpu_time_ns,
-  long current_monotonic_wall_time_ns
+  long current_monotonic_wall_time_ns,
+  VALUE optional_signal_handler_sampling_buffer
 ) {
   bool is_gvl_waiting_state =
-    handle_gvl_waiting(state, thread_being_sampled, stack_from_thread, thread_context, sampling_buffer, current_cpu_time_ns);
+    handle_gvl_waiting(
+      state,
+      thread_being_sampled,
+      stack_from_thread,
+      thread_context,
+      sampling_buffer,
+      current_cpu_time_ns,
+      optional_signal_handler_sampling_buffer
+    );
 
   // Don't assign/update cpu during "Waiting for GVL"
   long cpu_time_elapsed_ns = is_gvl_waiting_state ? 0 : update_time_since_previous_sample(
@@ -656,7 +670,8 @@ static void update_metrics_and_sample(
     NULL,
     NULL,
     is_gvl_waiting_state,
-    /* is_safe_to_allocate_objects: */ true // We called from a context that's safe to run any regular code, including allocations
+    /* is_safe_to_allocate_objects: */ true, // We're called from a context that's safe to run any regular code, including allocations
+    optional_signal_handler_sampling_buffer
   );
 }
 
@@ -845,7 +860,8 @@ static void trigger_sample_for_thread(
   bool is_gvl_waiting_state,
   // If the Ruby VM is at a state that can allocate objects safely, or not. Added for allocation profiling: we're not
   // allowed to allocate objects (or raise exceptions) when inside the NEWOBJ tracepoint.
-  bool is_safe_to_allocate_objects
+  bool is_safe_to_allocate_objects,
+  VALUE optional_signal_handler_sampling_buffer
 ) {
   int max_label_count =
     1 + // thread id
@@ -975,7 +991,7 @@ static void trigger_sample_for_thread(
       .end_timestamp_ns = end_timestamp_ns,
       .is_gvl_waiting_state = is_gvl_waiting_state,
     },
-    Qnil
+    optional_signal_handler_sampling_buffer
   );
 }
 
@@ -1495,7 +1511,8 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     &ruby_vm_type,
     optional_class_name,
     /* is_gvl_waiting_state: */ false,
-    /* is_safe_to_allocate_objects: */ false // Not safe to allocate further inside the NEWOBJ tracepoint
+    /* is_safe_to_allocate_objects: */ false, // Not safe to allocate further inside the NEWOBJ tracepoint
+    Qnil
   );
 }
 
@@ -1871,7 +1888,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
       thread_context,
       thread_context->sampling_buffer,
       cpu_time_for_thread,
-      current_monotonic_wall_time_ns
+      current_monotonic_wall_time_ns,
+      Qnil
     );
 
     return Qtrue;
@@ -1886,7 +1904,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     VALUE stack_from_thread,
     struct per_thread_context *thread_context,
     sampling_buffer* sampling_buffer,
-    long current_cpu_time_ns
+    long current_cpu_time_ns,
+    VALUE optional_signal_handler_sampling_buffer
   ) {
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread_being_sampled);
 
@@ -1970,7 +1989,8 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
         NULL,
         NULL,
         /* is_gvl_waiting_state: */ false, // This is the extra sample before the wait begun; only the next sample will be in the gvl waiting state
-        /* is_safe_to_allocate_objects: */ true // This is similar to a regular cpu/wall sample, so it's also safe
+        /* is_safe_to_allocate_objects: */ true, // This is similar to a regular cpu/wall sample, so it's also safe
+        optional_signal_handler_sampling_buffer
       );
     }
 
