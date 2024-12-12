@@ -79,7 +79,7 @@ module Datadog
           @context.run(persistent_data, ephemeral_data, timeout)
         rescue WAF::LibDDWAF::Error => e
           Datadog.logger.debug { "#{@libddwaf_debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
-          @telemetry.report(e, description: 'libddwaf-rb internal low-level error')
+          @telemetry.report(e, description: "#{@libddwaf_debug_tag} internal low-level error")
 
           [:err_internal, WAF::Result.new(:err_internal, [], 0.0, false, [], [])]
         end
@@ -92,8 +92,13 @@ module Datadog
           else
             message = "#{@libddwaf_debug_tag} execution error: #{result.status.inspect}"
 
+            # NOTE: Ruby 3.4.0 allows to pass way faster `Thread::Backtrace::Location`
+            #       via `caller_locations` method
+            error = WAF::LibDDWAF::Error.new(message)
+            error.set_backtrace(caller)
+
             Datadog.logger.debug { message }
-            @telemetry.error(message)
+            @telemetry.report(error, description: message)
           end
         end
 
