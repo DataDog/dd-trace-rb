@@ -4,8 +4,6 @@
 # enable dynamic instrumentation for third-party libraries used by the
 # application.
 
-require_relative '../tracing'
-require_relative '../tracing/contrib'
 require_relative '../di'
 
 # Code tracking is required for line probes to work; see the comments
