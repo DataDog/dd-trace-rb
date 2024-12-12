@@ -12,6 +12,8 @@ module Datadog
             attr_reader endpoints: untyped
 
             attr_reader config: untyped
+
+            attr_reader span_events: bool
           end
 
           class Transport
@@ -25,7 +27,9 @@ module Datadog
 
             def initialize: (untyped apis, untyped default_api) -> void
 
-            def send_info: () -> untyped
+            type send_info_return = HTTP::Negotiation::Response & Core::Transport::InternalErrorResponse
+
+            def send_info: () -> send_info_return
 
             def current_api: () -> untyped
           end

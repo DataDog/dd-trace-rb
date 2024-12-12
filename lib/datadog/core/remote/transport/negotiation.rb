@@ -32,7 +32,7 @@ module Datadog
 
           # Negotiation response
           module Response
-            attr_reader :version, :endpoints, :config
+            attr_reader :version, :endpoints, :config, :span_events
           end
 
           # Negotiation transport

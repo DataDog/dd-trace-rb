@@ -23,6 +23,12 @@ module Datadog
         def encode(_)
           raise NotImplementedError
         end
+
+        # Deserializes a value serialized with {#encode}.
+        # This method is used for debugging purposes.
+        def decode(_)
+          raise NotImplementedError
+        end
       end
 
       # Encoder for the JSON format
@@ -39,6 +45,10 @@ module Datadog
 
         def encode(obj)
           JSON.dump(obj)
+        end
+
+        def decode(obj)
+          JSON.parse(obj)
         end
 
         def join(encoded_data)
@@ -60,6 +70,10 @@ module Datadog
 
         def encode(obj)
           MessagePack.pack(obj)
+        end
+
+        def decode(obj)
+          MessagePack.unpack(obj)
         end
 
         def join(encoded_data)

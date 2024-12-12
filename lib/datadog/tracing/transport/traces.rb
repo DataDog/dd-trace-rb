@@ -50,8 +50,9 @@ module Datadog
           #
           # @param encoder [Datadog::Core::Encoding::Encoder]
           # @param max_size [String] maximum acceptable payload size
-          def initialize(encoder, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
+          def initialize(encoder, native_events_supported, max_size: DEFAULT_MAX_PAYLOAD_SIZE)
             @encoder = encoder
+            @native_events_supported = native_events_supported
             @max_size = max_size
           end
 
@@ -77,7 +78,7 @@ module Datadog
           private
 
           def encode_one(trace)
-            encoded = Encoder.encode_trace(encoder, trace)
+            encoded = Encoder.encode_trace(encoder, trace, @native_events_supported)
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
@@ -95,17 +96,17 @@ module Datadog
         module Encoder
           module_function
 
-          def encode_trace(encoder, trace)
+          def encode_trace(encoder, trace, native_events_supported)
             # Format the trace for transport
             TraceFormatter.format!(trace)
 
             # Make the trace serializable
-            serializable_trace = SerializableTrace.new(trace)
-
-            Datadog.logger.debug { "Flushing trace: #{JSON.dump(serializable_trace)}" }
+            serializable_trace = SerializableTrace.new(trace, native_events_supported)
 
             # Encode the trace
-            encoder.encode(serializable_trace)
+            encoder.encode(serializable_trace).tap do |encoded|
+              Datadog.logger.debug { "Flushing trace: #{encoder.decode(encoded)}" }
+            end
           end
         end
 
@@ -126,7 +127,7 @@ module Datadog
 
           def send_traces(traces)
             encoder = current_api.encoder
-            chunker = Datadog::Tracing::Transport::Traces::Chunker.new(encoder)
+            chunker = Datadog::Tracing::Transport::Traces::Chunker.new(encoder, native_events_supported?)
 
             responses = chunker.encode_in_chunks(traces.lazy).map do |encoded_traces, trace_count|
               request = Request.new(EncodedParcel.new(encoded_traces, trace_count))
@@ -186,6 +187,20 @@ module Datadog
 
             @current_api_id = api_id
             @client = HTTP::Client.new(current_api)
+          end
+
+          # Queries the agent for native span events serialization support.
+          # This currently makes a call to the agent every time, which
+          # adds overhead on every flush, but at the same time ensures
+          # that if the agent version changes while the application is running,
+          # the agent capabilities changes are updated.
+          # It's unlikely that `span_events` support by the agent will change after queried,
+          # specially after the agent with `span_events` support has been released for a while.
+          # TODO: We should consider caching this value, even if for a period of time,
+          # TODO: after this change has been released for about 2 years.
+          def native_events_supported?
+            # Datadog::Core::Remote::Tie.agent_info&.span_events == true
+            true
           end
 
           # Raised when configured with an unknown API version

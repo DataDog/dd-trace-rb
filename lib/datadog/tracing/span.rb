@@ -169,7 +169,7 @@ module Datadog
           q.text "Span ID: #{@id}\n"
           q.text "Parent ID: #{@parent_id}\n"
           q.text "Trace ID: #{@trace_id}\n"
-          q.text "Type: #{@type}\n"
+          q.text "Type: #{@type}\n" if @type
           q.text "Service: #{@service}\n"
           q.text "Resource: #{@resource}\n"
           q.text "Error: #{@status}\n"
@@ -181,13 +181,28 @@ module Datadog
             q.seplist @meta.each do |key, value|
               q.text "#{key} => #{value}"
             end
-          end
+          end unless @meta.empty?
           q.group(2, 'Metrics: [', ']') do
             q.breakable
             q.seplist @metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
-          end
+          end unless @metrics.empty?
+          q.breakable
+          q.group(2, 'Links: [', ']') do
+            q.breakable
+            q.seplist @links.each do |link|
+              q.text link.pretty_print(q)
+            end
+          end unless @links.empty?
+          q.breakable
+          q.group(2, 'Events: [', ']') do
+            q.breakable
+            q.seplist @events.each do |event|
+              # q.text event.pretty_print(q)
+              q.text event.inspect
+            end
+          end unless @events.empty?
         end
       end
 

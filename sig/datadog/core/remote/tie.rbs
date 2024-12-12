@@ -9,6 +9,8 @@ module Datadog
           attr_reader time: Numeric
         end
 
+        def self.agent_info: -> Hash[String, untyped]
+
         def self.boot: () -> Boot?
       end
     end

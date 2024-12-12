@@ -23,6 +23,16 @@ module Datadog
           # https://github.com/soutaro/steep/issues/1231
           Boot.new(barrier, t)
         end
+
+        # Fetches the information from the agent's /info endpoint
+        def self.agent_info
+          boot = self.boot
+          return unless boot
+
+          res = Datadog::Core::Remote.active_remote.agent_info
+          return unless res.ok?
+          res
+        end
       end
     end
   end

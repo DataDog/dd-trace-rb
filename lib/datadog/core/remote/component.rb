@@ -19,7 +19,7 @@ module Datadog
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
-          negotiation = Negotiation.new(settings, agent_settings)
+          @negotiation = Negotiation.new(settings, agent_settings)
           transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options.dup)
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
@@ -29,7 +29,7 @@ module Datadog
           Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
 
           @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
-            unless @healthy || negotiation.endpoint?('/v0.7/config')
+            unless @healthy || @negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
               next
@@ -47,7 +47,7 @@ module Datadog
               # In case of unexpected errors, reset the negotiation object
               # given external conditions have changed and the negotiation
               # negotiation object stores error logging state that should be reset.
-              negotiation = Negotiation.new(settings, agent_settings)
+              @negotiation = Negotiation.new(settings, agent_settings)
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               Datadog.logger.error do
@@ -87,6 +87,10 @@ module Datadog
 
         def shutdown!
           @worker.stop
+        end
+
+        def agent_info
+          @negotiation.transport_root.send_info
         end
 
         # Barrier provides a mechanism to fence execution until a condition happens

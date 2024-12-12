@@ -2,7 +2,7 @@ module Datadog
   module Core
     module Remote
       class Negotiation
-        @transport_root: Datadog::Core::Remote::Transport::Negotiation::Transport
+        attr_reader transport_root: Datadog::Core::Remote::Transport::Negotiation::Transport
         @logged: ::Hash[::Symbol, bool]
 
         def initialize: (Datadog::Core::Configuration::Settings _settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, ?suppress_logging: ::Hash[::Symbol, bool]) -> void

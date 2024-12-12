@@ -43,6 +43,7 @@ module Datadog
                 @version = options[:version]
                 @endpoints = options[:endpoints]
                 @config = options[:config]
+                @span_events = options[:span_events]
               end
             end
 

@@ -81,6 +81,8 @@ module Datadog
 
             def message: () -> ::String
           end
+
+          def native_events_supported?: -> bool
         end
       end
     end

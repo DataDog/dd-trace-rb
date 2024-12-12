@@ -7,6 +7,8 @@ module Datadog
     module Remote
       # Endpoint negotiation
       class Negotiation
+        attr_reader :transport_root
+
         def initialize(_settings, agent_settings, suppress_logging: {})
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings

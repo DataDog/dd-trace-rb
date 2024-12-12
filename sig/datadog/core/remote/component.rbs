@@ -4,6 +4,8 @@ module Datadog
       class Component
         BARRIER_TIMEOUT: Barrier::timeout_s
 
+        @negotiation: Negotiation
+
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
         attr_reader healthy: bool
@@ -11,6 +13,8 @@ module Datadog
         @barrier: Barrier
 
         def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+
+        def agent_info: -> Transport::Negotiation::Transport::send_info_return
 
         def start: -> void
 
