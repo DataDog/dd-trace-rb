@@ -3,6 +3,7 @@
 
 #include "ruby_helpers.h"
 #include "private_vm_api_access.h"
+#include "extconf.h"
 
 // The following global variables are initialized at startup to save expensive lookups later.
 // They are not expected to be mutated outside of init.
@@ -219,17 +220,26 @@ static bool ruby_is_obj_with_class(VALUE obj) {
   return false;
 }
 
-// These two functions are not present in the VM headers, but are public symbols that can be invoked.
+// This function is not present in the VM headers, but is a public symbol that can be invoked.
 int rb_objspace_internal_object_p(VALUE obj);
-const char *rb_obj_info(VALUE obj);
+
+#ifdef NO_RB_OBJ_INFO
+  const char* safe_object_info(DDTRACE_UNUSED VALUE obj) { return "(No rb_obj_info for current Ruby)"; }
+#else
+  // This function is a public symbol, but not on all Rubies; `safe_object_info` below abstracts this, and
+  // should be used instead.
+  const char *rb_obj_info(VALUE obj);
+
+  const char* safe_object_info(VALUE obj) { return rb_obj_info(obj); }
+#endif
 
 VALUE ruby_safe_inspect(VALUE obj) {
   if (!ruby_is_obj_with_class(obj))       return rb_str_new_cstr("(Not an object)");
-  if (rb_objspace_internal_object_p(obj)) return rb_sprintf("(VM Internal, %s)", rb_obj_info(obj));
+  if (rb_objspace_internal_object_p(obj)) return rb_sprintf("(VM Internal, %s)", safe_object_info(obj));
   // @ivoanjo: I saw crashes on Ruby 3.1.4 when trying to #inspect matchdata objects. I'm not entirely sure why this
   // is needed, but since we only use this method for debug purposes I put in this alternative and decided not to
   // dig deeper.
-  if (rb_type(obj) == RUBY_T_MATCH)   return rb_sprintf("(MatchData, %s)", rb_obj_info(obj));
+  if (rb_type(obj) == RUBY_T_MATCH)   return rb_sprintf("(MatchData, %s)", safe_object_info(obj));
   if (rb_respond_to(obj, inspect_id)) return rb_sprintf("%+"PRIsVALUE, obj);
   if (rb_respond_to(obj, to_s_id))    return rb_sprintf("%"PRIsVALUE, obj);
 

@@ -258,8 +258,6 @@ static VALUE _native_check_heap_hashes(DDTRACE_UNUSED VALUE _self, VALUE locatio
 static VALUE _native_start_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_end_fake_slow_heap_serialization(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
-static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj);
-static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj);
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE instance);
 static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns, long heap_iteration_prep_time_ns, long heap_profile_build_time_ns);
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
@@ -297,10 +295,6 @@ void stack_recorder_init(VALUE profiling_module) {
       _native_end_fake_slow_heap_serialization, 1);
   rb_define_singleton_method(testing_module, "_native_debug_heap_recorder",
       _native_debug_heap_recorder, 1);
-  rb_define_singleton_method(testing_module, "_native_gc_force_recycle",
-      _native_gc_force_recycle, 1);
-  rb_define_singleton_method(testing_module, "_native_has_seen_id_flag",
-      _native_has_seen_id_flag, 1);
   rb_define_singleton_method(testing_module, "_native_is_object_recorded?", _native_is_object_recorded, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
@@ -1004,34 +998,6 @@ static VALUE _native_debug_heap_recorder(DDTRACE_UNUSED VALUE _self, VALUE recor
   TypedData_Get_Struct(recorder_instance, struct stack_recorder_state, &stack_recorder_typed_data, state);
 
   return heap_recorder_testonly_debug(state->heap_recorder);
-}
-
-#pragma GCC diagnostic push
-// rb_gc_force_recycle was deprecated in latest versions of Ruby and is a noop.
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
-// It SHOULD NOT be used for other purposes.
-static VALUE _native_gc_force_recycle(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  #ifdef HAVE_WORKING_RB_GC_FORCE_RECYCLE
-    rb_gc_force_recycle(obj);
-  #endif
-  return Qnil;
-}
-#pragma GCC diagnostic pop
-
-// This method exists only to enable testing Datadog::Profiling::StackRecorder behavior using RSpec.
-// It SHOULD NOT be used for other purposes.
-static VALUE _native_has_seen_id_flag(DDTRACE_UNUSED VALUE _self, VALUE obj) {
-  #ifndef NO_SEEN_OBJ_ID_FLAG
-    if (RB_FL_TEST(obj, RUBY_FL_SEEN_OBJ_ID)) {
-      return Qtrue;
-    } else {
-      return Qfalse;
-    }
-  #else
-    return Qfalse;
-  #endif
 }
 
 static VALUE _native_stats(DDTRACE_UNUSED VALUE self, VALUE recorder_instance) {

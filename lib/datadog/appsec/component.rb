@@ -3,7 +3,6 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
-require_relative 'processor/actions'
 
 module Datadog
   module AppSec
@@ -52,10 +51,6 @@ module Datadog
           )
           return nil unless rules
 
-          actions = rules['actions']
-
-          AppSec::Processor::Actions.merge(actions) if actions
-
           data = AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.appsec.ip_denylist,
             user_id_denylist: settings.appsec.user_id_denylist,
@@ -84,10 +79,8 @@ module Datadog
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:, actions:, telemetry:)
+      def reconfigure(ruleset:, telemetry:)
         @mutex.synchronize do
-          AppSec::Processor::Actions.merge(actions)
-
           new = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
           if new && new.ready?

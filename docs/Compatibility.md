@@ -22,7 +22,8 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 |       |                            | 2.1       | [EOL](#support-eol)       | < 2.0.0             |
 |       |                            | 2.0       | [EOL](#support-eol)       | < 0.50.0            |
 |       |                            | 1.9       | [EOL](#support-eol)       | < 0.27.0            |
-| JRuby | https://www.jruby.org      | 9.3       | [latest](#support-latest) | Latest              |
+| JRuby | https://www.jruby.org      | 9.4       | [latest](#support-latest) | Latest              |
+|       |                            | 9.3       | [latest](#support-latest) | Latest              |
 |       |                            | 9.2.21.0+ | [latest](#support-latest) | Latest              |
 
 ### Supported web servers
@@ -37,6 +38,7 @@ The Ruby Datadog Trace library is open source. See the [dd-trace-rb][1] GitHub r
 
 | Type        | Documentation                                   | Version | Support type        | Gem version support |
 |-------------|-------------------------------------------------|---------|---------------------|---------------------|
+| OpenTelemetry | https://github.com/open-telemetry/opentelemetry-ruby | >= 1.1.0 | [latest](#support-latest) | 1.9.0+ |
 | OpenTracing | https://github.com/opentracing/opentracing-ruby | 0.4.1+  | [EOL](#support-eol) | < 2.0.0             |
 
 ### Supported operating systems

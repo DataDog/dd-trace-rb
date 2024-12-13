@@ -115,11 +115,11 @@ RSpec.describe Datadog::DI::Remote do
       end
 
       let(:agent_settings) do
-        double('agent settings')
+        instance_double_agent_settings
       end
 
       let(:transport) do
-        double('transport')
+        instance_double(Datadog::DI::Transport)
       end
 
       let(:notifier_worker) do

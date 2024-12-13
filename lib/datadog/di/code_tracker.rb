@@ -78,10 +78,11 @@ module Datadog
               registry_lock.synchronize do
                 registry[path] = tp.instruction_sequence
               end
+
+              # Also, pending line probes should only be installed for
+              # non-eval'd code.
+              DI.current_component&.probe_manager&.install_pending_line_probes(path)
             end
-
-            DI.current_component&.probe_manager&.install_pending_line_probes(path)
-
           # Since this method normally is called from customer applications,
           # rescue any exceptions that might not be handled to not break said
           # customer applications.

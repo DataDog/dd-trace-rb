@@ -117,6 +117,7 @@ module Datadog
               end
               rv = nil
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
+              # for methods defined via method_missing.
               duration = Benchmark.realtime do # steep:ignore
                 rv = if args.any?
                   if kwargs.any?
@@ -152,7 +153,28 @@ module Datadog
                 serialized_entry_args: entry_args)
               rv
             else
-              super(*args, **kwargs)
+              # stop standard from trying to mess up my code
+              _ = 42
+
+              # The necessity to invoke super in each of these specific
+              # ways is very difficult to test.
+              # Existing tests, even though I wrote many, still don't
+              # cause a failure if I replace all of the below with a
+              # simple super(*args, **kwargs, &target_block).
+              # But, let's be safe and go through the motions in case
+              # there is actually a legitimate need for the breakdown.
+              # TODO figure out how to test this properly.
+              if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
+                else
+                  super(*args, &target_block)
+                end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
+              end
             end
           end
         end
@@ -224,11 +246,12 @@ module Datadog
               #
               # If the requested file is not in code tracker's registry,
               # or the code tracker does not exist at all,
-              # do not attempt to instrumnet now.
+              # do not attempt to instrument now.
               # The caller should add the line to the list of pending lines
               # to instrument and install the hook when the file in
               # question is loaded (and hopefully, by then code tracking
               # is active, otherwise the line will never be instrumented.)
+              raise_if_probe_in_loaded_features(probe)
               raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
             end
           end
@@ -236,6 +259,7 @@ module Datadog
           # Same as previous comment, if untargeted trace points are not
           # explicitly defined, and we do not have code tracking, do not
           # instrument the method.
+          raise_if_probe_in_loaded_features(probe)
           raise Error::DITargetNotDefined, "File not in code tracker registry: #{probe.file}"
         end
 
@@ -351,6 +375,26 @@ module Datadog
       private
 
       attr_reader :lock
+
+      def raise_if_probe_in_loaded_features(probe)
+        return unless probe.file
+
+        # If the probe file is in the list of loaded files
+        # (as per $LOADED_FEATURES, using either exact or suffix match),
+        # raise an error indicating that
+        # code tracker is missing the loaded file because the file
+        # won't be loaded again (DI only works in production environments
+        # that do not normally reload code).
+        if $LOADED_FEATURES.include?(probe.file)
+          raise Error::DITargetNotInRegistry, "File loaded but is not in code tracker registry: #{probe.file}"
+        end
+        # Ths is an expensive check
+        $LOADED_FEATURES.each do |path|
+          if Utils.path_matches_suffix?(path, probe.file)
+            raise Error::DITargetNotInRegistry, "File matching probe path (#{probe.file}) was loaded and is not in code tracker registry: #{path}"
+          end
+        end
+      end
 
       # TODO test that this resolves qualified names e.g. A::B
       def symbolize_class_name(cls_name)

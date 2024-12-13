@@ -153,6 +153,15 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  # Tests if Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher does not eager load
+  # ActiveSupport::Cache::RedisCacheStore when the version of Redis present is too old to be compatible.
+  # @see Datadog::Tracing::Contrib::ActiveSupport::Cache::Redis::Patcher#patch_redis_cache_store?
+  desc '' # "Explicitly hiding from `rake -T`"
+  RSpec::Core::RakeTask.new(:rails_old_redis) do |t, args|
+    t.pattern = 'spec/datadog/tracing/contrib/rails/cache_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   desc '' # "Explicitly hiding from `rake -T`"
   RSpec::Core::RakeTask.new(:hanami) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/hanami/**/*_spec.rb'
@@ -267,7 +276,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :rack, :rails, :sinatra, :devise, :graphql]
+    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -280,6 +289,7 @@ namespace :spec do
 
     # Datadog AppSec integrations
     [
+      :active_record,
       :rack,
       :sinatra,
       :rails,

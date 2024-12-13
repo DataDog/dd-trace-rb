@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/appsec/contrib/support/integration/shared_examples'
 require 'datadog/appsec/spec_helper'

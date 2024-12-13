@@ -142,7 +142,7 @@ module Datadog
           scope.trace.keep! if scope.trace
 
           if scope.service_entry_span
-            scope.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.include?('block')
+            scope.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.key?('block_request')
             scope.service_entry_span.set_tag('appsec.event', 'true')
           end
 

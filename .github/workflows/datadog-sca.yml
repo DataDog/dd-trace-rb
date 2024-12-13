@@ -4,7 +4,7 @@ name: Datadog Software Composition Analysis
 
 jobs:
   software-composition-analysis:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Datadog SBOM Generation and Upload
     steps:
       - name: Checkout

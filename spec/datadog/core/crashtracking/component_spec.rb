@@ -293,6 +293,35 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           expect(crash_report_message[:os_info]).to_not be_empty
         end
       end
+
+      context 'when forked' do
+        # This tests that the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
+        # does not contain a stale instance of the crashtracker component.
+        it 'ensures the latest configuration applied' do
+          allow(described_class).to receive(:_native_start_or_update_on_fork)
+
+          # `Datadog.configure` to trigger crashtracking component reinstantiation,
+          #  a callback is first registered with `Utils::AtForkMonkeyPatch.at_fork`,
+          #  but not with the second `Datadog.configure` invokation.
+          Datadog.configure do |c|
+            c.agent.host = 'example.com'
+          end
+
+          Datadog.configure do |c|
+            c.agent.host = 'google.com'
+            c.agent.port = 12345
+          end
+
+          expect_in_fork do
+            expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
+              hash_including(
+                action: :update_on_fork,
+                agent_base_url: 'http://google.com:12345/',
+              )
+            )
+          end
+        end
+      end
     end
   end
 
