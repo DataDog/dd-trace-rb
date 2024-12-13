@@ -18,6 +18,26 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
   end
 
+  shared_examples_for 'a binary setting with' do |env_variable:, default:|
+    context "when #{env_variable}" do
+      around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
+
+      context 'is not defined' do
+        let(:environment) { nil }
+
+        it { is_expected.to be default }
+      end
+
+      [true, false].each do |value|
+        context "is defined as #{value}" do
+          let(:environment) { value.to_s }
+
+          it { is_expected.to be value }
+        end
+      end
+    end
+  end
+
   describe '#api_key' do
     subject(:api_key) { settings.api_key }
 
@@ -220,27 +240,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.health_metrics.enabled }
 
-      context "when #{Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED}" do
-        around do |example|
-          ClimateControl.modify(
-            Datadog::Core::Configuration::Ext::Diagnostics::ENV_HEALTH_METRICS_ENABLED => environment
-          ) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        context 'is defined' do
-          let(:environment) { 'true' }
-
-          it { is_expected.to be true }
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_HEALTH_METRICS_ENABLED', default: false
     end
 
     describe '#enabled=' do
@@ -319,25 +319,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.profiling.enabled }
 
-      context "when #{Datadog::Profiling::Ext::ENV_ENABLED}" do
-        around do |example|
-          ClimateControl.modify(Datadog::Profiling::Ext::ENV_ENABLED => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        context 'is defined' do
-          let(:environment) { 'true' }
-
-          it { is_expected.to be true }
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_ENABLED', default: false
     end
 
     describe '#enabled=' do
@@ -371,27 +353,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#allocation_enabled' do
       subject(:allocation_enabled) { settings.profiling.allocation_enabled }
 
-      context 'when DD_PROFILING_ALLOCATION_ENABLED' do
-        around do |example|
-          ClimateControl.modify('DD_PROFILING_ALLOCATION_ENABLED' => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:environment) { value.to_s }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_ALLOCATION_ENABLED', default: false
     end
 
     describe '#allocation_enabled=' do
@@ -442,27 +404,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           describe '#enabled' do
             subject(:enabled) { settings.profiling.advanced.endpoint.collection.enabled }
 
-            context "when #{Datadog::Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED}" do
-              around do |example|
-                ClimateControl.modify(Datadog::Profiling::Ext::ENV_ENDPOINT_COLLECTION_ENABLED => environment) do
-                  example.run
-                end
-              end
-
-              context 'is not defined' do
-                let(:environment) { nil }
-
-                it { is_expected.to be true }
-              end
-
-              [true, false].each do |value|
-                context "is defined as #{value}" do
-                  let(:environment) { value.to_s }
-
-                  it { is_expected.to be value }
-                end
-              end
-            end
+            it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_ENDPOINT_COLLECTION_ENABLED', default: true
           end
 
           describe '#enabled=' do
@@ -494,27 +436,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#gc_enabled' do
         subject(:gc_enabled) { settings.profiling.advanced.gc_enabled }
 
-        context 'when DD_PROFILING_GC_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_GC_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be true }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_GC_ENABLED', default: true
       end
 
       describe '#gc_enabled=' do
@@ -544,27 +466,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#experimental_heap_enabled' do
         subject(:experimental_heap_enabled) { settings.profiling.advanced.experimental_heap_enabled }
 
-        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED', default: false
       end
 
       describe '#experimental_heap_enabled=' do
@@ -579,27 +481,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#experimental_heap_size_enabled' do
         subject(:experimental_heap_size_enabled) { settings.profiling.advanced.experimental_heap_size_enabled }
 
-        context 'when DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be true }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED', default: true
       end
 
       describe '#experimental_heap_size_enabled=' do
@@ -647,27 +529,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#skip_mysql2_check' do
         subject(:skip_mysql2_check) { settings.profiling.advanced.skip_mysql2_check }
 
-        context 'when DD_PROFILING_SKIP_MYSQL2_CHECK' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_SKIP_MYSQL2_CHECK' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_SKIP_MYSQL2_CHECK', default: false
       end
 
       describe '#skip_mysql2_check=' do
@@ -717,27 +579,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#timeline_enabled' do
         subject(:timeline_enabled) { settings.profiling.advanced.timeline_enabled }
 
-        context 'when DD_PROFILING_TIMELINE_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_TIMELINE_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be true }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_TIMELINE_ENABLED', default: true
       end
 
       describe '#timeline_enabled=' do
@@ -818,27 +660,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#experimental_crash_tracking_enabled' do
         subject(:experimental_crash_tracking_enabled) { settings.profiling.advanced.experimental_crash_tracking_enabled }
 
-        context 'when DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be_nil }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be_nil }
-            end
-          end
-        end
+        it { is_expected.to be_nil } # Currently a no-op, kept for backwards compatibility
       end
 
       describe '#experimental_crash_tracking_enabled=' do
@@ -852,27 +674,9 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#dir_interruption_workaround_enabled' do
         subject(:dir_interruption_workaround_enabled) { settings.profiling.advanced.dir_interruption_workaround_enabled }
 
-        context 'when DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be true }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with',
+          env_variable: 'DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED',
+          default: true
       end
 
       describe '#dir_interruption_workaround_enabled=' do
@@ -887,27 +691,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#preview_gvl_enabled' do
         subject(:preview_gvl_enabled) { settings.profiling.advanced.preview_gvl_enabled }
 
-        context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be false }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_PREVIEW_GVL_ENABLED', default: false
       end
 
       describe '#preview_gvl_enabled=' do
@@ -922,27 +706,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       describe '#heap_clean_after_gc_enabled' do
         subject(:heap_clean_after_gc_enabled) { settings.profiling.advanced.heap_clean_after_gc_enabled }
 
-        context 'when DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED' do
-          around do |example|
-            ClimateControl.modify('DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED' => environment) do
-              example.run
-            end
-          end
-
-          context 'is not defined' do
-            let(:environment) { nil }
-
-            it { is_expected.to be true }
-          end
-
-          [true, false].each do |value|
-            context "is defined as #{value}" do
-              let(:environment) { value.to_s }
-
-              it { is_expected.to be value }
-            end
-          end
-        end
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED', default: true
       end
 
       describe '#heap_clean_after_gc_enabled=' do
@@ -1083,25 +847,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:enabled) { settings.runtime_metrics.enabled }
 
-      context "when #{Datadog::Core::Runtime::Ext::Metrics::ENV_ENABLED}" do
-        around do |example|
-          ClimateControl.modify(Datadog::Core::Runtime::Ext::Metrics::ENV_ENABLED => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be false }
-        end
-
-        context 'is defined' do
-          let(:environment) { 'true' }
-
-          it { is_expected.to be true }
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_RUNTIME_METRICS_ENABLED', default: false
     end
 
     describe '#enabled=' do
@@ -1735,23 +1481,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#metrics_enabled' do
       subject(:metrics_enabled) { settings.telemetry.metrics_enabled }
-      let(:env_var_name) { 'DD_TELEMETRY_METRICS_ENABLED' }
 
-      context 'when DD_TELEMETRY_METRICS_ENABLED' do
-        context 'is not defined' do
-          let(:env_var_value) { nil }
-
-          it { is_expected.to be true }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:env_var_value) { value.to_s }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_TELEMETRY_METRICS_ENABLED', default: true
     end
 
     describe '#metrics_enabled=' do
@@ -1768,23 +1499,8 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
     describe '#log_collection_enabled' do
       subject(:log_collection_enabled) { settings.telemetry.log_collection_enabled }
-      let(:env_var_name) { 'DD_TELEMETRY_LOG_COLLECTION_ENABLED' }
 
-      context 'when DD_TELEMETRY_LOG_COLLECTION_ENABLED' do
-        context 'is not defined' do
-          let(:env_var_value) { nil }
-
-          it { is_expected.to be true }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:env_var_value) { value.to_s }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_TELEMETRY_LOG_COLLECTION_ENABLED', default: true
     end
 
     describe '#log_collection_enabled=' do
@@ -2098,27 +1814,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
     describe '#enabled' do
       subject(:crashtracking_enabled) { settings.crashtracking.enabled }
 
-      context 'when DD_CRASHTRACKING_ENABLED' do
-        around do |example|
-          ClimateControl.modify('DD_CRASHTRACKING_ENABLED' => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be true }
-        end
-
-        [true, false].each do |value|
-          context "is defined as #{value}" do
-            let(:environment) { value.to_s }
-
-            it { is_expected.to be value }
-          end
-        end
-      end
+      it_behaves_like 'a binary setting with', env_variable: 'DD_CRASHTRACKING_ENABLED', default: true
     end
 
     describe '#enabled=' do
