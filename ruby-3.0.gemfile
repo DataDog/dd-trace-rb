@@ -54,7 +54,7 @@ gem 'webrick', '>= 1.7.0'
 
 group :check do
   gem 'rbs', '~> 3', require: false
-  gem 'steep', '~> 1', require: false
+  gem 'steep', '>= 1.8', require: false
   gem 'standard', require: false
 end
 
