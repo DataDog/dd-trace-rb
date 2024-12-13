@@ -983,6 +983,20 @@ RSpec.describe Datadog::DI::Instrumenter do
         expect(observed_calls.length).to eq 1
         expect(observed_calls.first).to be_a(Hash)
       end
+
+      context 'when instrumenting a line in loaded but not tracked file' do
+        let(:probe) do
+          Datadog::DI::Probe.new(file: 'hook_line.rb', line_no: 3,
+            id: 1, type: :log)
+        end
+
+        it 'raises DITargetNotInRegistry' do
+          expect do
+            instrumenter.hook_line(probe) do |payload|
+            end
+          end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+        end
+      end
     end
 
     context 'when method is recursive' do
