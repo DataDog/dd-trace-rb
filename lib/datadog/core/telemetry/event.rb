@@ -393,14 +393,20 @@ module Datadog
             'logs'
           end
 
+          # @param message [String] the log message
+          # @param level [Symbol, String] the log level. Either :error, :warn, 'ERROR', or 'WARN'.
+          # @param stack_trace [String, nil] the stack trace
+          # @param count [Integer] the number of times the log was emitted. Used for deduplication.
           def initialize(message:, level:, stack_trace: nil, count: 1)
             super()
             @message = message
             @stack_trace = stack_trace
 
             if level.is_a?(String) && LEVELS_STRING.include?(level)
+              # String level is used during object copy for deduplication
               @level = level
             elsif level.is_a?(Symbol)
+              # Symbol level is used by the regular log emitter user
               @level = LEVELS.fetch(level) { |k| raise ArgumentError, "Invalid log level :#{k}" }
             else
               raise ArgumentError, "Invalid log level #{level}"

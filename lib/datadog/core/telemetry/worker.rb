@@ -170,9 +170,9 @@ module Datadog
           disable!
         end
 
-        # Deduplicate all_logs by counting the number of occurrences of each log
-        # entry and replacing them with a single entry with the count.
-        # Other events are passed through unchanged.
+        # Deduplicate logs by counting the number of repeated occurrences of the same log
+        # entry and replacing them with a single entry with the calculated `count` value.
+        # Non-log events are unchanged.
         def deduplicate_logs(events)
           return events if events.empty?
 
