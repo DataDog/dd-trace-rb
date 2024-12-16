@@ -2311,7 +2311,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
               :span_before_start,
               :span_finished,
               :trace_finished,
-              :propagate,
+              :trace_propagated,
             ].each do |event|
               expect(new_events.send(event).subscriptions).to eq(old_events.send(event).subscriptions)
             end
