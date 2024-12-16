@@ -9,13 +9,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          # This was temporarily disabled on 2024-12-16 as the sca check was getting confused with the vendor folder
-          # If we forgot to re-enable it, kindly try to do it ;)
-          bundler-cache: false
-          ruby-version: "3.3"
       - name: Check imported libraries are secure and compliant
         id: datadog-software-composition-analysis
         uses: DataDog/datadog-sca-github-action@main
