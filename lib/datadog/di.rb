@@ -72,6 +72,8 @@ module Datadog
       # which contains a reference to the most recently instantiated
       # DI::Component. This way, if a DI component hasn't been instantiated,
       # we do not try to reference Datadog.components.
+      # In other words, this method exists so that we never attempt to call
+      # Datadog.components from the code tracker.
       def current_component
         LOCK.synchronize do
           @current_components&.last
