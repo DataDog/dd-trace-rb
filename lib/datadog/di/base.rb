@@ -1,5 +1,13 @@
 # frozen_string_literal: true
 
+# This file is loaded by datadog/di/init.rb.
+# It contains just the global DI reference to the (normally one and only)
+# code tracker for the current process.
+# This file should not require the rest of DI, specifically none of the
+# contrib code that is meant to be loaded after third-party libraries
+# are loaded, and also none of the rest of datadog library which also
+# has contrib code in other products.
+
 require_relative 'code_tracker'
 
 module Datadog
