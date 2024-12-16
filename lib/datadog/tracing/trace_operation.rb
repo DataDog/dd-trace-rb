@@ -311,7 +311,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        events.trace_propagated.publish(@active_span, self)
+        events.trace_propagated.publish(self)
 
         TraceDigest.new(
           span_id: span_id,

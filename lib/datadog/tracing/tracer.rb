@@ -362,7 +362,7 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
-        events.trace_propagated.subscribe do |_event_span, event_trace_op|
+        events.trace_propagated.subscribe do |event_trace_op|
           sample_trace(event_trace_op)
         end
 
