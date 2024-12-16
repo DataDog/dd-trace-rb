@@ -265,7 +265,7 @@ module Datadog
       # Sample a span, tagging the trace as appropriate.
       def sample_trace(trace_op)
         begin
-          @sampler.sample!(trace_op)
+          @sampler.sample!(trace_op) if trace_op.sampling_priority.nil?
         rescue StandardError => e
           SAMPLE_TRACE_LOG_ONLY_ONCE.run do
             Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
@@ -362,12 +362,12 @@ module Datadog
           event_span_op.service ||= @default_service
         end
 
-        events.propagate.subscribe do |_event_span, event_trace_op|
-          sample_trace(event_trace_op) unless event_trace_op.sampling_priority
+        events.trace_propagated.subscribe do |_event_span, event_trace_op|
+          sample_trace(event_trace_op)
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
-          sample_trace(trace_op) unless trace_op.sampling_priority
+          sample_trace(trace_op)
           sample_span(event_trace_op, event_span)
           flush_trace(event_trace_op)
         end

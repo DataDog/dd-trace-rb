@@ -311,7 +311,7 @@ module Datadog
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        events.propagate.publish(@active_span, self)
+        events.trace_propagated.publish(@active_span, self)
 
         TraceDigest.new(
           span_id: span_id,
@@ -381,13 +381,13 @@ module Datadog
           :span_before_start,
           :span_finished,
           :trace_finished,
-          :propagate
+          :trace_propagated
 
         def initialize
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
-          @propagate = Propagate.new
+          @trace_propagated = TracePropagated.new
         end
 
         # Triggered before a span starts.
@@ -405,9 +405,9 @@ module Datadog
         end
 
         #  Triggered when trace is being propagated between applications or contexts
-        class Propagate < Tracing::Event
+        class TracePropagated < Tracing::Event
           def initialize
-            super(:propagate)
+            super(:trace_propagated)
           end
         end
 
