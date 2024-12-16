@@ -16,6 +16,8 @@ module Datadog
   # @api private
   module DI
 
+    LOCK = Mutex.new
+
     class << self
       attr_reader :code_tracker
 
@@ -74,6 +76,41 @@ module Datadog
       # because the latter one may be nil.
       def code_tracking_active?
         code_tracker&.active? || false
+      end
+
+      # DI code tracker is instantiated globally before the regular set of
+      # components is created, but the code tracker needs to call out to the
+      # "current" DI component to perform instrumentation when application
+      # code is loaded. Because this call may happen prior to Datadog
+      # components having been initialized, we maintain the "current component"
+      # which contains a reference to the most recently instantiated
+      # DI::Component. This way, if a DI component hasn't been instantiated,
+      # we do not try to reference Datadog.components.
+      # In other words, this method exists so that we never attempt to call
+      # Datadog.components from the code tracker.
+      def current_component
+        LOCK.synchronize do
+          @current_components&.last
+        end
+      end
+
+      # To avoid potential races with DI::Component being added and removed,
+      # we maintain a list of the components. Normally the list should contain
+      # either zero or one component depending on whether DI is enabled in
+      # Datadog configuration. However, if a new instance of DI::Component
+      # is created while the previous instance is still running, we are
+      # guaranteed to not end up with no component when one is running.
+      def add_current_component(component)
+        LOCK.synchronize do
+          @current_components ||= []
+          @current_components << component
+        end
+      end
+
+      def remove_current_component(component)
+        LOCK.synchronize do
+          @current_components&.delete(component)
+        end
       end
     end
   end
