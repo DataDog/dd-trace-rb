@@ -3,6 +3,7 @@
 # rubocop:disable Lint/AssignmentInCondition
 
 require 'benchmark'
+require_relative 'logging'
 
 module Datadog
   module DI
@@ -54,6 +55,8 @@ module Datadog
     #
     # @api private
     class Instrumenter
+      include Logging
+
       def initialize(settings, serializer, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @serializer = serializer
@@ -305,13 +308,13 @@ module Datadog
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+            log_warn_internal("Unhandled exception in line trace point: #{exc.class}: #{exc}")
             telemetry&.report(exc, description: "Unhandled exception in line trace point")
             # TODO test this path
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+          log_warn_internal("Unhandled exception in line trace point: #{exc.class}: #{exc}")
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
@@ -357,7 +360,7 @@ module Datadog
           hook_line(probe, &block)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to hook: #{probe}")
+          log_warn_internal("Unknown probe type to hook: #{probe}")
         end
       end
 
@@ -368,7 +371,7 @@ module Datadog
           unhook_line(probe)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to unhook: #{probe}")
+          log_warn_internal("Unknown probe type to unhook: #{probe}")
         end
       end
 

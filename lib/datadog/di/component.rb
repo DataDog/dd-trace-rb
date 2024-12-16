@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'logging'
+
 module Datadog
   module DI
     # Component for dynamic instrumentation.
@@ -13,12 +15,14 @@ module Datadog
     # intalled tracepoints and so on. Component will clean up all
     # resources and installed tracepoints upon shutdown.
     class Component
+      include Logging
+
       class << self
         def build(settings, agent_settings, telemetry: nil)
           return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
 
           unless settings.respond_to?(:remote) && settings.remote.enabled
-            Datadog.logger.debug("Dynamic Instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+            Datadog.logger.warn("Dynamic Instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
             return
           end
 
@@ -53,12 +57,12 @@ module Datadog
           # TODO add tests?
           unless settings.dynamic_instrumentation.internal.development
             if Datadog::Core::Environment::Execution.development?
-              Datadog.logger.debug("Not enabling dynamic instrumentation because we are in development environment")
+              Datadog.logger.warn("Not enabling dynamic instrumentation because we are in development environment")
               return false
             end
           end
           if RUBY_ENGINE != 'ruby' || RUBY_VERSION < '2.6'
-            Datadog.logger.debug("Not enabling dynamic instrumentation because of unsupported Ruby version")
+            Datadog.logger.warn("Not enabling dynamic instrumentation because of unsupported Ruby version")
             return false
           end
           true
