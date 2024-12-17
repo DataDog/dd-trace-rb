@@ -4,6 +4,9 @@ module Datadog
   module Profiling
     # Responsible for wiring up the Profiler for execution
     module Component
+      ALLOCATION_WITH_RACTORS_ONLY_ONCE = Datadog::Core::Utils::OnlyOnce.new
+      private_constant :ALLOCATION_WITH_RACTORS_ONLY_ONCE
+
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
       # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
@@ -190,11 +193,13 @@ module Datadog
         # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
         # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
         elsif RUBY_VERSION.start_with?("3.")
-          logger.info(
-            "Using Ractors may result in allocation profiling " \
-            "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
-            "application stability or performance. This does not happen if Ractors are not used."
-          )
+          ALLOCATION_WITH_RACTORS_ONLY_ONCE.run do
+            logger.info(
+              "Using Ractors may result in allocation profiling " \
+              "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
+              "application stability or performance. This does not happen if Ractors are not used."
+            )
+          end
         end
 
         logger.debug("Enabled allocation profiling")
