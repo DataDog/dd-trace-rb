@@ -272,7 +272,7 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(alloc_samples_enabled: true))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
+                expect(Datadog.logger).to receive(:info).with(/Ractors.+stopping/)
                 expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
@@ -342,7 +342,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
+              expect(Datadog.logger).to receive(:info).with(/Ractors.+stopping/)
               expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
               expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)

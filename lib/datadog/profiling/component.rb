@@ -190,8 +190,8 @@ module Datadog
         # On all known versions of Ruby 3.x, due to https://bugs.ruby-lang.org/issues/19112, when a ractor gets
         # garbage collected, Ruby will disable all active tracepoints, which this feature internally relies on.
         elsif RUBY_VERSION.start_with?("3.")
-          Datadog.logger.warn(
-            "In all known versions of Ruby 3.x, using Ractors may result in allocation profiling unexpectedly " \
+          Datadog.logger.info(
+            "Using Ractors may result in allocation profiling " \
             "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
             "application stability or performance. This does not happen if Ractors are not used."
           )
