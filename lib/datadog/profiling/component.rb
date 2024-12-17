@@ -138,7 +138,7 @@ module Datadog
           return false
         elsif RUBY_VERSION.start_with?("3.")
           Datadog.logger.debug(
-            "In all known versions of Ruby 3.x, using Ractors may result in GC profiling unexpectedly " \
+            "Using Ractors may result in GC profiling unexpectedly " \
             "stopping (https://bugs.ruby-lang.org/issues/19112). Note that this stop has no impact in your " \
             "application stability or performance. This does not happen if Ractors are not used."
           )
@@ -254,12 +254,12 @@ module Datadog
         end
 
         if setting_value == false
-          if legacy_ruby_that_should_use_workaround
+          if RUBY_VERSION.start_with?("2.5.")
             Datadog.logger.warn(
-              'The profiling "no signals" workaround has been disabled via configuration on a legacy Ruby version ' \
-              "(< 2.6). This is not recommended " \
-              "in production environments, as due to limitations in Ruby APIs, we suspect it may lead to crashes " \
-              "in very rare situations. Please report any issues you run into to Datadog support or " \
+              'The profiling "no signals" workaround has been disabled via configuration on Ruby 2.5. ' \
+              "This is not recommended " \
+              "in production environments, as due to limitations in Ruby APIs, we suspect it may lead to rare crashes " \
+              "Please report any issues you run into to Datadog support or " \
               "via <https://github.com/datadog/dd-trace-rb/issues/new>!"
             )
           else

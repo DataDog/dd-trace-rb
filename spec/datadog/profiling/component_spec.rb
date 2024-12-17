@@ -177,7 +177,7 @@ RSpec.describe Datadog::Profiling::Component do
 
             it "emits a debug log about Ractors interfering with GC profiling" do
               expect(Datadog.logger)
-                .to receive(:debug).with(/using Ractors may result in GC profiling unexpectedly stopping/)
+                .to receive(:debug).with(/Ractors may result in GC profiling unexpectedly stopping/)
 
               build_profiler_component
             end
