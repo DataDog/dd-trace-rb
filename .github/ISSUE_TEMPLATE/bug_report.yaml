@@ -19,6 +19,14 @@ body:
     validations:
       required: true
 
+  - type: input
+    attributes:
+      label: Relevent Library and Version(s)
+      description: "The name of a library and version(s) that you've encountered this bug with"
+      placeholder: "mysql 2.9.1"
+    validations:
+      required: false
+
   - type: textarea
     attributes:
       label: Bug Report
