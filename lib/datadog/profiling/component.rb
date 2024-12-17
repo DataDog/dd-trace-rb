@@ -246,7 +246,6 @@ module Datadog
 
       private_class_method def self.no_signals_workaround_enabled?(settings, logger) # rubocop:disable Metrics/MethodLength
         setting_value = settings.profiling.advanced.no_signals_workaround_enabled
-        legacy_ruby_that_should_use_workaround = RUBY_VERSION.start_with?("2.5.")
 
         unless [true, false, :auto].include?(setting_value)
           logger.warn(
@@ -284,7 +283,7 @@ module Datadog
         # Setting is in auto mode. Let's probe to see if we should enable it:
 
         # We don't warn users in this situation because "upgrade your Ruby" is not a great warning
-        return true if legacy_ruby_that_should_use_workaround
+        return true if RUBY_VERSION.start_with?("2.5.")
 
         if Gem.loaded_specs["mysql2"] && incompatible_libmysqlclient_version?(settings, logger)
           logger.warn(
