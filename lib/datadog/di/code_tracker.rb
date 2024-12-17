@@ -90,8 +90,9 @@ module Datadog
           # customer applications.
           rescue => exc
             # Code tracker may be loaded without the rest of DI,
-            # in which case DI.current_component won't be defined.
-            if component = DI.respond_to?(:current_component) && DI.current_component
+            # in which case DI.component will not yet be defined,
+            # but we will have DI.current_component (set to nil).
+            if component = DI.current_component
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
               component.logger.warn("Unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
