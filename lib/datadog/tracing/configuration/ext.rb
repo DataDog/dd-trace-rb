@@ -12,6 +12,7 @@ module Datadog
         ENV_OTEL_TRACES_EXPORTER = 'OTEL_TRACES_EXPORTER'
         ENV_HEADER_TAGS = 'DD_TRACE_HEADER_TAGS'
         ENV_TRACE_ID_128_BIT_GENERATION_ENABLED = 'DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED'
+        ENV_APM_ENABLED = 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED' # Temporary until RFC decides final name
 
         # @public_api
         module SpanAttributeSchema

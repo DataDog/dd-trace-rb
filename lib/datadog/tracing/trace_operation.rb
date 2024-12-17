@@ -71,6 +71,7 @@ module Datadog
         sampling_priority: nil,
         service: nil,
         profiling_enabled: nil,
+        non_billing_enabled: nil,
         tags: nil,
         metrics: nil,
         trace_state: nil,
@@ -98,6 +99,7 @@ module Datadog
         @sampling_priority = sampling_priority
         @service = service
         @profiling_enabled = profiling_enabled
+        @non_billing_enabled = non_billing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
         @tracer = tracer
@@ -373,6 +375,14 @@ module Datadog
         )
       end
 
+      # When APM is running in 'non-billing' mode, we should skip distributed tracing
+      # unless specific distributed tags are present. These tags can come from upstream
+      # services, or from the service itself.
+      # For now, only '_dd.p.appsec=1' is supported.
+      def non_billing_reject?
+        @non_billing_enabled && get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1'
+      end
+
       # Callback behavior
       class Events
         include Tracing::Events
@@ -510,6 +520,7 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
+          non_billing_enabled: @non_billing_enabled,
         )
       end
 
