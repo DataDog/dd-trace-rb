@@ -5,7 +5,7 @@ module Datadog
     # Responsible for wiring up the Profiler for execution
     module Component
       # Passing in a `nil` tracer is supported and will disable the following profiling features:
-      # * Code Hotspots panel in the trace viewer, as well as scoping a profile down to a span
+      # * Profiling in the trace viewer, as well as scoping a profile down to a span
       # * Endpoint aggregation in the profiler UX, including normalization (resource per endpoint call)
       def self.build_profiler_component(settings:, agent_settings:, optional_tracer:) # rubocop:disable Metrics/MethodLength
         return [nil, {profiling_enabled: false}] unless settings.profiling.enabled
