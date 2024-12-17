@@ -2,8 +2,9 @@ require "datadog/profiling/spec_helper"
 
 RSpec.describe Datadog::Profiling::Component do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
-  let(:logger) { nil }
-  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
+  # Note: We explicitly pass in a nil logger below as we don't want the AgentSettingsResolver to try to log anything
+  let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:profiler_setup_task) { instance_double(Datadog::Profiling::Tasks::Setup) if Datadog::Profiling.supported? }
 
   before do
@@ -21,7 +22,8 @@ RSpec.describe Datadog::Profiling::Component do
       described_class.build_profiler_component(
         settings: settings,
         agent_settings: agent_settings,
-        optional_tracer: tracer
+        optional_tracer: tracer,
+        logger: logger,
       )
     end
 
@@ -116,7 +118,7 @@ RSpec.describe Datadog::Profiling::Component do
           expect(settings.profiling.advanced).to receive(:overhead_target_percentage)
             .and_return(:overhead_target_percentage_config)
           expect(described_class).to receive(:valid_overhead_target)
-            .with(:overhead_target_percentage_config).and_return(:overhead_target_percentage_config)
+            .with(:overhead_target_percentage_config, logger).and_return(:overhead_target_percentage_config)
           expect(settings.profiling.advanced)
             .to receive(:allocation_counting_enabled).and_return(:allocation_counting_enabled_config)
           expect(described_class).to receive(:enable_gvl_profiling?).and_return(:gvl_profiling_result)
@@ -149,7 +151,7 @@ RSpec.describe Datadog::Profiling::Component do
                   gc_profiling_enabled: true,
                 )
 
-                allow(Datadog.logger).to receive(:debug)
+                allow(logger).to receive(:debug)
 
                 build_profiler_component
               end
@@ -165,7 +167,7 @@ RSpec.describe Datadog::Profiling::Component do
                   gc_profiling_enabled: false,
                 )
 
-                expect(Datadog.logger).to receive(:warn).with(/has been disabled/)
+                expect(logger).to receive(:warn).with(/has been disabled/)
 
                 build_profiler_component
               end
@@ -176,8 +178,8 @@ RSpec.describe Datadog::Profiling::Component do
             let(:testing_version) { "3.3.0" }
 
             it "emits a debug log about Ractors interfering with GC profiling" do
-              expect(Datadog.logger)
-                .to receive(:debug).with(/using Ractors may result in GC profiling unexpectedly stopping/)
+              expect(logger)
+                .to receive(:debug).with(/Ractors may result in GC profiling unexpectedly stopping/)
 
               build_profiler_component
             end
@@ -201,6 +203,8 @@ RSpec.describe Datadog::Profiling::Component do
             settings.profiling.allocation_enabled = true
             settings.profiling.advanced.gc_enabled = false # Disable this to avoid any additional warnings coming from it
             stub_const("RUBY_VERSION", testing_version)
+
+            described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
           end
 
           context "on Ruby 2.x" do
@@ -214,8 +218,8 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(alloc_samples_enabled: true))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
-              expect(Datadog.logger).to_not receive(:warn)
+              expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
+              expect(logger).to_not receive(:warn)
 
               build_profiler_component
             end
@@ -233,8 +237,8 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(alloc_samples_enabled: false))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/forcibly disabled/)
-                expect(Datadog.logger).to_not receive(:warn).with(/Ractor/)
+                expect(logger).to receive(:warn).with(/forcibly disabled/)
+                expect(logger).to_not receive(:warn).with(/Ractor/)
 
                 build_profiler_component
               end
@@ -253,8 +257,8 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(alloc_samples_enabled: true))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/Ractors.+crashes/)
-                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
+                expect(logger).to receive(:warn).with(/Ractors.+crashes/)
+                expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
               end
@@ -272,8 +276,8 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(alloc_samples_enabled: true))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
-                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
+                expect(logger).to receive(:info).with(/Ractors.+stopping/)
+                expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
 
                 build_profiler_component
               end
@@ -316,7 +320,7 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:warn).with(/upgrade to Ruby >= 3.1/)
+              expect(logger).to receive(:warn).with(/upgrade to Ruby >= 3.1/)
 
               build_profiler_component
             end
@@ -335,6 +339,8 @@ RSpec.describe Datadog::Profiling::Component do
           context "and allocation profiling enabled and supported" do
             before do
               settings.profiling.allocation_enabled = true
+
+              described_class.const_get(:ALLOCATION_WITH_RACTORS_ONLY_ONCE).send(:reset_ran_once_state_for_tests)
             end
 
             it "initializes StackRecorder with heap sampling support and warns" do
@@ -342,10 +348,10 @@ RSpec.describe Datadog::Profiling::Component do
                 .with(hash_including(heap_samples_enabled: true, heap_size_enabled: true))
                 .and_call_original
 
-              expect(Datadog.logger).to receive(:warn).with(/Ractors.+stopping/)
-              expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
-              expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
-              expect(Datadog.logger).to receive(:warn).with(/experimental heap size profiling/)
+              expect(logger).to receive(:info).with(/Ractors.+stopping/)
+              expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
+              expect(logger).to receive(:warn).with(/experimental heap profiling/)
+              expect(logger).to receive(:warn).with(/experimental heap size profiling/)
 
               build_profiler_component
             end
@@ -360,9 +366,10 @@ RSpec.describe Datadog::Profiling::Component do
                   .with(hash_including(heap_samples_enabled: true, heap_size_enabled: false))
                   .and_call_original
 
-                expect(Datadog.logger).to receive(:debug).with(/Enabled allocation profiling/)
-                expect(Datadog.logger).to receive(:warn).with(/experimental heap profiling/)
-                expect(Datadog.logger).not_to receive(:warn).with(/experimental heap size profiling/)
+                expect(logger).to receive(:info).with(/Ractors.+stopping/)
+                expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
+                expect(logger).to receive(:warn).with(/experimental heap profiling/)
+                expect(logger).not_to receive(:warn).with(/experimental heap size profiling/)
 
                 build_profiler_component
               end
@@ -634,7 +641,7 @@ RSpec.describe Datadog::Profiling::Component do
           before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "does not enable GVL profiling" do
-            allow(Datadog.logger).to receive(:warn)
+            allow(logger).to receive(:warn)
 
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
               .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
@@ -643,7 +650,7 @@ RSpec.describe Datadog::Profiling::Component do
           end
 
           it "logs a warning" do
-            expect(Datadog.logger).to receive(:warn).with(/GVL profiling is currently not supported/)
+            expect(logger).to receive(:warn).with(/GVL profiling is currently not supported/)
 
             build_profiler_component
           end
@@ -679,14 +686,14 @@ RSpec.describe Datadog::Profiling::Component do
   end
 
   describe ".valid_overhead_target" do
-    subject(:valid_overhead_target) { described_class.send(:valid_overhead_target, overhead_target_percentage) }
+    subject(:valid_overhead_target) { described_class.send(:valid_overhead_target, overhead_target_percentage, logger) }
 
     [0, 20.1].each do |invalid_value|
       let(:overhead_target_percentage) { invalid_value }
 
       context "when overhead_target_percentage is invalid value (#{invalid_value})" do
         it "logs an error" do
-          expect(Datadog.logger).to receive(:error).with(
+          expect(logger).to receive(:warn).with(
             /Ignoring invalid value for profiling overhead_target_percentage/
           )
 
@@ -694,7 +701,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it "falls back to the default value" do
-          allow(Datadog.logger).to receive(:error)
+          allow(logger).to receive(:warn)
 
           expect(valid_overhead_target).to eq 2.0
         end
@@ -711,14 +718,14 @@ RSpec.describe Datadog::Profiling::Component do
   end
 
   describe ".no_signals_workaround_enabled?" do
-    subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings) }
+    subject(:no_signals_workaround_enabled?) { described_class.send(:no_signals_workaround_enabled?, settings, logger) }
 
     before { skip_if_profiling_not_supported(self) }
 
     context "when no_signals_workaround_enabled is false" do
       before do
         settings.profiling.advanced.no_signals_workaround_enabled = false
-        allow(Datadog.logger).to receive(:warn)
+        allow(logger).to receive(:warn)
       end
 
       it { is_expected.to be false }
@@ -727,7 +734,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "2.6." }
 
         it "logs a warning message mentioning that this is is not recommended" do
-          expect(Datadog.logger).to receive(:warn).with(
+          expect(logger).to receive(:warn).with(
             /workaround has been disabled via configuration.*This is not recommended/
           )
 
@@ -739,7 +746,7 @@ RSpec.describe Datadog::Profiling::Component do
         before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION < "2.6." }
 
         it "logs a warning message mentioning that the no signals mode has been disabled" do
-          expect(Datadog.logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
+          expect(logger).to receive(:warn).with('Profiling "no signals" workaround disabled via configuration')
 
           no_signals_workaround_enabled?
         end
@@ -749,13 +756,13 @@ RSpec.describe Datadog::Profiling::Component do
     context "when no_signals_workaround_enabled is true" do
       before do
         settings.profiling.advanced.no_signals_workaround_enabled = true
-        allow(Datadog.logger).to receive(:warn)
+        allow(logger).to receive(:warn)
       end
 
       it { is_expected.to be true }
 
       it "logs a warning message mentioning that this setting is active" do
-        expect(Datadog.logger).to receive(:warn).with(/Profiling "no signals" workaround enabled via configuration/)
+        expect(logger).to receive(:warn).with(/Profiling "no signals" workaround enabled via configuration/)
 
         no_signals_workaround_enabled?
       end
@@ -775,8 +782,8 @@ RSpec.describe Datadog::Profiling::Component do
           include_context("loaded gems", mysql2: Gem::Version.new("0.5.5"), rugged: nil)
 
           before do
-            allow(Datadog.logger).to receive(:warn)
-            allow(Datadog.logger).to receive(:debug)
+            allow(logger).to receive(:warn)
+            allow(logger).to receive(:debug)
           end
 
           context "when skip_mysql2_check is enabled" do
@@ -785,7 +792,7 @@ RSpec.describe Datadog::Profiling::Component do
             it { is_expected.to be true }
 
             it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
               no_signals_workaround_enabled?
             end
@@ -797,7 +804,7 @@ RSpec.describe Datadog::Profiling::Component do
             it { is_expected.to be true }
 
             it "logs that probing mysql2 failed" do
-              expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+              expect(logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
 
               no_signals_workaround_enabled?
             end
@@ -807,7 +814,7 @@ RSpec.describe Datadog::Profiling::Component do
             before { allow(described_class).to receive(:require).with("mysql2") }
 
             it "logs a debug message stating mysql2 will be required" do
-              expect(Datadog.logger).to receive(:debug).with(/Requiring `mysql2` to check/)
+              expect(logger).to receive(:debug).with(/Requiring `mysql2` to check/)
 
               no_signals_workaround_enabled?
             end
@@ -830,7 +837,7 @@ RSpec.describe Datadog::Profiling::Component do
               it { is_expected.to be true }
 
               it "logs a warning including the error details" do
-                expect(Datadog.logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
+                expect(logger).to receive(:warn).with(/Failed to probe `mysql2` gem information/)
 
                 no_signals_workaround_enabled?
               end
@@ -847,7 +854,7 @@ RSpec.describe Datadog::Profiling::Component do
               it { is_expected.to be false }
 
               it "does not log any warning message" do
-                expect(Datadog.logger).to_not receive(:warn)
+                expect(logger).to_not receive(:warn)
 
                 no_signals_workaround_enabled?
               end
@@ -863,7 +870,7 @@ RSpec.describe Datadog::Profiling::Component do
               it { is_expected.to be true }
 
               it "logs a warning message mentioning that the no signals workaround is going to be used" do
-                expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+                expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
                 no_signals_workaround_enabled?
               end
@@ -879,7 +886,7 @@ RSpec.describe Datadog::Profiling::Component do
               it { is_expected.to be false }
 
               it "does not log any warning message" do
-                expect(Datadog.logger).to_not receive(:warn)
+                expect(logger).to_not receive(:warn)
 
                 no_signals_workaround_enabled?
               end
@@ -916,12 +923,12 @@ RSpec.describe Datadog::Profiling::Component do
         context "when rugged gem is available" do
           include_context("loaded gems", rugged: Gem::Version.new("1.6.3"), mysql2: nil)
 
-          before { allow(Datadog.logger).to receive(:warn) }
+          before { allow(logger).to receive(:warn) }
 
           it { is_expected.to be true }
 
           it "logs a warning message mentioning that the no signals workaround is going to be used" do
-            expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+            expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
             no_signals_workaround_enabled?
           end
@@ -932,13 +939,13 @@ RSpec.describe Datadog::Profiling::Component do
 
           before do
             stub_const("::PhusionPassenger", Module.new)
-            allow(Datadog.logger).to receive(:warn)
+            allow(logger).to receive(:warn)
           end
 
           it { is_expected.to be true }
 
           it "logs a warning message mentioning that the no signals workaround is going to be used" do
-            expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+            expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
             no_signals_workaround_enabled?
           end
@@ -954,12 +961,12 @@ RSpec.describe Datadog::Profiling::Component do
           context "on passenger < 6.0.19" do
             include_context("loaded gems", passenger: Gem::Version.new("6.0.18"), rugged: nil, mysql2: nil)
 
-            before { allow(Datadog.logger).to receive(:warn) }
+            before { allow(logger).to receive(:warn) }
 
             it { is_expected.to be true }
 
             it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
               no_signals_workaround_enabled?
             end
@@ -976,13 +983,13 @@ RSpec.describe Datadog::Profiling::Component do
           context "on passenger < 6.0.19" do
             before do
               stub_const("PhusionPassenger::VERSION_STRING", "6.0.18")
-              allow(Datadog.logger).to receive(:warn)
+              allow(logger).to receive(:warn)
             end
 
             it { is_expected.to be true }
 
             it "logs a warning message mentioning that the no signals workaround is going to be used" do
-              expect(Datadog.logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
+              expect(logger).to receive(:warn).with(/Enabling the profiling "no signals" workaround/)
 
               no_signals_workaround_enabled?
             end
@@ -1006,13 +1013,8 @@ RSpec.describe Datadog::Profiling::Component do
     context "when no_signals_workaround_enabled is an invalid value" do
       before do
         settings.profiling.advanced.no_signals_workaround_enabled = "invalid value"
-        allow(Datadog.logger).to receive(:error)
-      end
 
-      it "logs an error message mentioning that the invalid value will be ignored" do
-        expect(Datadog.logger).to receive(:error).with(/Ignoring invalid value/)
-
-        no_signals_workaround_enabled?
+        expect(logger).to receive(:warn).with(/Ignoring invalid value/)
       end
 
       include_examples "no_signals_workaround_enabled :auto behavior"

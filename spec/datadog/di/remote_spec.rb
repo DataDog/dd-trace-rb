@@ -1,5 +1,7 @@
 require "datadog/di/spec_helper"
+require 'datadog/di'
 require 'spec_helper'
+require 'logger'
 
 RSpec.describe Datadog::DI::Remote do
   di_test

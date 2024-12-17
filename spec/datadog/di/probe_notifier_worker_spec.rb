@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/probe_notifier_worker"
+require 'logger'
 
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   di_test
