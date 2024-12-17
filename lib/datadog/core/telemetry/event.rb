@@ -378,7 +378,7 @@ module Datadog
         end
 
         # Telemetry class for the 'logs' event.
-        # Logs with the same contend are deduplicated at flush time.
+        # Logs with the same content are deduplicated at flush time.
         class Log < Base
           LEVELS = {
             error: 'ERROR',
