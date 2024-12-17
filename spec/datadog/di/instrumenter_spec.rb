@@ -11,6 +11,7 @@ RSpec.describe Datadog::DI::Instrumenter do
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:untargeted_trace_points).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:verbose_logging).and_return(true)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_depth).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_attribute_count).and_return(2)
     allow(settings.dynamic_instrumentation).to receive(:max_capture_string_length).and_return(100)

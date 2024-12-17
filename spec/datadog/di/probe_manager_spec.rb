@@ -9,6 +9,7 @@ RSpec.describe Datadog::DI::ProbeManager do
   mock_settings_for_di do |settings|
     allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+    allow(settings.dynamic_instrumentation.internal).to receive(:verbose_logging).and_return(true)
   end
 
   let(:instrumenter) do

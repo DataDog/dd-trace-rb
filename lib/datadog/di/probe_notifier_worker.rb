@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../core/semaphore'
+require_relative 'logging'
 
 module Datadog
   module DI
@@ -23,6 +24,8 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
+      include Logging
+
       def initialize(settings, transport, logger, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
@@ -77,7 +80,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.warn("Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
+              log_warn_internal("Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
@@ -185,7 +188,7 @@ module Datadog
             queue = send("#{event_type}_queue")
             # TODO determine a suitable limit via testing/benchmarking
             if queue.length > 100
-              logger.warn("#{self.class.name}: dropping #{event_type} because queue is full")
+              log_warn_internal("#{self.class.name}: dropping #{event_type} because queue is full")
             else
               queue << event
             end
@@ -242,7 +245,7 @@ module Datadog
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.warn("failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
+              log_warn_internal("failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
               # Should we report this error to telemetry? Most likely failure
               # to send is due to a network issue, and trying to send a
               # telemetry message would also fail.
@@ -253,7 +256,7 @@ module Datadog
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
           # while consuming it here. Rescue ThreadError and return.
-          logger.warn("Unexpected #{event_name} queue underflow - consumed elsewhere?")
+          log_warn_internal("Unexpected #{event_name} queue underflow - consumed elsewhere?")
           telemetry&.report(exc, description: "Unexpected #{event_name} queue underflow")
         ensure
           @lock.synchronize do

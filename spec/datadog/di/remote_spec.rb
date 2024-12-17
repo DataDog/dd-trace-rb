@@ -92,6 +92,7 @@ RSpec.describe Datadog::DI::Remote do
       mock_settings_for_di do |settings|
         allow(settings.dynamic_instrumentation).to receive(:enabled).and_return(true)
         allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
+        allow(settings.dynamic_instrumentation.internal).to receive(:verbose_logging).and_return(true)
       end
 
       let(:serializer) do
@@ -144,8 +145,7 @@ RSpec.describe Datadog::DI::Remote do
         end
 
         it 'calls probe manager to add a probe' do
-          expect(component).to receive(:logger).and_return(logger)
-          expect(logger).to receive(:info) do |message|
+          expect(component).to receive(:log_info_internal) do |message|
             expect(message).to match(/Received probe/)
           end
 
@@ -162,15 +162,13 @@ RSpec.describe Datadog::DI::Remote do
         context 'probe addition raises an exception' do
           it 'logs warning and consumes the exception' do
             expect(component).to receive(:telemetry).and_return(telemetry)
-            expect(component).to receive(:logger).and_return(logger)
-            expect(logger).to receive(:info) do |message|
+            expect(component).to receive(:log_info_internal) do |message|
               expect(message).to match(/Received probe/)
             end
 
-            expect(logger).to receive(:warn) do |msg|
+            expect(component).to receive(:log_warn_internal) do |msg|
               expect(msg).to match(/Unhandled exception.*Runtime error from test/)
             end
-            expect(component).to receive(:logger).and_return(logger)
             expect(telemetry).to receive(:report)
 
             expect(probe_manager).to receive(:add_probe).and_raise("Runtime error from test")
@@ -186,17 +184,15 @@ RSpec.describe Datadog::DI::Remote do
 
         it 'calls probe manager to remove stale probes' do
           allow(component).to receive(:telemetry)
-          expect(component).to receive(:logger).and_return(logger)
-          expect(logger).to receive(:info) do |message|
+          expect(component).to receive(:log_info_internal) do |message|
             expect(message).to match(/Received probe/)
           end
 
-          expect(logger).to receive(:warn) do |msg|
+          expect(component).to receive(:log_warn_internal) do |msg|
             expect(msg).to match(/Unhandled exception.*Runtime error from test/)
           end
 
           allow(probe_manager).to receive(:add_probe).and_raise("Runtime error from test")
-          expect(component).to receive(:logger).and_return(logger)
           expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
           expect(probe_notification_builder).to receive(:build_received)
           expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
@@ -209,27 +205,24 @@ RSpec.describe Datadog::DI::Remote do
         context 'probe removal raises an exception' do
           it 'logs warning and consumes the exception' do
             expect(component).to receive(:telemetry).and_return(telemetry).at_least(:once)
-            expect(component).to receive(:logger).and_return(logger)
-            expect(logger).to receive(:info) do |message|
+            expect(component).to receive(:log_info_internal) do |message|
               expect(message).to match(/Received probe/)
             end
 
-            expect(logger).to receive(:warn) do |msg|
+            expect(component).to receive(:log_warn_internal) do |msg|
               expect(msg).to match(/Unhandled exception.*Runtime error 1 from test/)
             end
             expect(telemetry).to receive(:report)
 
             allow(probe_manager).to receive(:add_probe).and_raise("Runtime error 1 from test")
-            expect(component).to receive(:logger).and_return(logger)
             expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
             expect(probe_notification_builder).to receive(:build_received)
             expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
             expect(probe_notifier_worker).to receive(:add_status)
 
-            expect(logger).to receive(:warn) do |msg|
+            expect(component).to receive(:log_warn_internal) do |msg|
               expect(msg).to match(/Unhandled exception.*Runtime error 2 from test/)
             end
-            expect(component).to receive(:logger).and_return(logger)
             expect(telemetry).to receive(:report)
 
             expect(probe_manager).to receive(:remove_other_probes).with(['11']).and_raise("Runtime error 2 from test")

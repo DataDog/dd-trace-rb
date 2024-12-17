@@ -157,6 +157,15 @@ module Datadog
                   o.default false
                 end
 
+                # Increases logging verbosity level from 'debug' to 'warn'
+                # for internal DI diagnostics, i.e. log messages that
+                # should not be written to customers' logs in production but
+                # that are useful when developing DI.
+                option :verbose_logging do |o|
+                  o.type :bool
+                  o.default false
+                end
+
                 # Minimum interval, in seconds, between probe status and
                 # snapshot submissions to the agent. Probe notifier worker will
                 # batch together payloads submitted during each interval.
