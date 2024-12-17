@@ -294,6 +294,7 @@ RSpec.describe Datadog::Core::Telemetry::Event do
       ]
 
       expect(events.uniq).to have(1).item
+      expect(events.uniq[0].count).to eq(2)
     end
 
     it 'all events to be different' do
