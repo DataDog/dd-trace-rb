@@ -689,7 +689,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       context "when overhead_target_percentage is invalid value (#{invalid_value})" do
         it "logs an error" do
-          expect(logger).to receive(:error).with(
+          expect(logger).to receive(:warn).with(
             /Ignoring invalid value for profiling overhead_target_percentage/
           )
 
@@ -697,7 +697,7 @@ RSpec.describe Datadog::Profiling::Component do
         end
 
         it "falls back to the default value" do
-          allow(logger).to receive(:error)
+          allow(logger).to receive(:warn)
 
           expect(valid_overhead_target).to eq 2.0
         end
@@ -1009,13 +1009,8 @@ RSpec.describe Datadog::Profiling::Component do
     context "when no_signals_workaround_enabled is an invalid value" do
       before do
         settings.profiling.advanced.no_signals_workaround_enabled = "invalid value"
-        allow(logger).to receive(:error)
-      end
 
-      it "logs an error message mentioning that the invalid value will be ignored" do
-        expect(logger).to receive(:error).with(/Ignoring invalid value/)
-
-        no_signals_workaround_enabled?
+        expect(logger).to receive(:warn).with(/Ignoring invalid value/)
       end
 
       include_examples "no_signals_workaround_enabled :auto behavior"
