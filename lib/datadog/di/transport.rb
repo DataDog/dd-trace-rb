@@ -2,6 +2,7 @@
 
 require 'ostruct'
 require_relative 'error'
+require_relative '../core/transport/http/adapters/net'
 
 module Datadog
   module DI

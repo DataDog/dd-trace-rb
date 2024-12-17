@@ -1,5 +1,13 @@
 module DIHelpers
   module ClassMethods
+    def deactivate_code_tracking
+      before(:all) do
+        if Datadog::DI.respond_to?(:deactivate_tracking!)
+          Datadog::DI.deactivate_tracking!
+        end
+      end
+    end
+
     def ruby_2_only
       if RUBY_VERSION >= '3'
         before(:all) do
