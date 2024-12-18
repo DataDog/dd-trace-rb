@@ -8,92 +8,69 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'datadog'
 
 def parse_gemfiles(directory = 'gemfiles/')
-  minimum_gems_ruby = {}
-  minimum_gems_jruby = {}
-  maximum_gems_ruby = {}
-  maximum_gems_jruby = {}
-
+  min_gems = { 'ruby' => {}, 'jruby' => {} }
+  max_gems = { 'ruby' => {}, 'jruby' => {} }
 
   gemfiles = Dir.glob(File.join(directory, '*'))
   gemfiles.each do |gemfile_name|
     runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
+    next unless %w[ruby jruby].include?(runtime)
     # parse the gemfile
     if gemfile_name.end_with?(".gemfile")
-      begin
-        definition = Bundler::Definition.build(gemfile_name, nil, nil)
-    
-        definition.dependencies.each do |dependency|
-          gem_name, version = dependency.name, dependency.requirement
-          # puts "Gem: #{dependency.name}, Version: #{dependency.requirement}"
-          if version_valid?(version)
-            case runtime
-            when 'ruby'
-              update_min_max(minimum_gems_ruby, maximum_gems_ruby, gem_name, version)
-            when 'jruby'
-              update_min_max(minimum_gems_jruby, maximum_gems_jruby, gem_name, version)
-            end
-          else
-            next
-          end
-      end
-      rescue Bundler::GemfileError => e
-        puts "Error reading Gemfile: #{e.message}"
-      end
-    elsif gemfile_name.end_with?(".gemfile.lock")
-      lockfile_contents = File.read(gemfile_name)
-      parser = Bundler::LockfileParser.new(lockfile_contents)
-      parser.specs.each do |spec|
-        # puts "Gem: #{spec.name}, Version: #{spec.version}"
-        gem_name, version = spec.name, spec.version.to_s
-        if version_valid?(version)
-          case runtime
-          when 'ruby'
-            update_min_max(minimum_gems_ruby, maximum_gems_ruby, gem_name, version)
-          when 'jruby'
-            update_min_max(minimum_gems_jruby, maximum_gems_jruby, gem_name, version)
-          end
-        else
-          next
-        end
-      end
+      process_gemfile(gemfile_name, runtime, min_gems, max_gems)
+    elsif gemfile_name.end_with?('.gemfile.lock')
+      process_lockfile(gemfile_name, runtime, min_gems, max_gems)
     end
   end
 
-  [minimum_gems_ruby, minimum_gems_jruby, maximum_gems_ruby, maximum_gems_jruby]
+  [min_gems['ruby'], min_gems['jruby'], max_gems['ruby'], max_gems['jruby']]
 end
 
-
-def update_min_max(minimum_gems, maximum_gems, gem_name, version)
-  gem_version = Gem::Version.new(version)
-  
-  if minimum_gems[gem_name].nil? || gem_version < Gem::Version.new(minimum_gems[gem_name])
-    minimum_gems[gem_name] = version
-  end
-  
-  if maximum_gems[gem_name].nil? || gem_version > Gem::Version.new(maximum_gems[gem_name])
-    maximum_gems[gem_name] = version
-  end
-end
-
-def parse_gemfile(gemfile_path)
-  # Helper: Parse a Gemfile
+def process_gemfile(gemfile_name, runtime, min_gems, max_gems)
   begin
-    definition = Bundler::Definition.build(gemfile_path, nil, nil)
-
+    definition = Bundler::Definition.build(gemfile_name, nil, nil)
     definition.dependencies.each do |dependency|
-      puts "Gem: #{dependency.name}, Version: #{dependency.requirement}"
+      gem_name = dependency.name
+      version = dependency.requirement.to_s
+      update_gem_versions(runtime, gem_name, version, min_gems, max_gems)
     end
-  end
   rescue Bundler::GemfileError => e
     puts "Error reading Gemfile: #{e.message}"
   end
+end
+
+def process_lockfile(gemfile_name, runtime, min_gems, max_gems)
+  lockfile_contents = File.read(gemfile_name)
+  parser = Bundler::LockfileParser.new(lockfile_contents)
+  parser.specs.each do |spec|
+    gem_name = spec.name
+    version = spec.version.to_s
+    update_gem_versions(runtime, gem_name, version, min_gems, max_gems)
+  end
+end
+
+def update_gem_versions(runtime, gem_name, version, min_gems, max_gems)
+  return unless version_valid?(version)
+
+  gem_version = Gem::Version.new(version)
+
+  # Update minimum gems
+  if min_gems[runtime][gem_name].nil? || gem_version < Gem::Version.new(min_gems[runtime][gem_name])
+    min_gems[runtime][gem_name] = version
+  end
+
+  # Update maximum gems
+  if max_gems[runtime][gem_name].nil? || gem_version > Gem::Version.new(max_gems[runtime][gem_name])
+    max_gems[runtime][gem_name] = version
+  end
+end
+
 
 
 # Helper: Validate the version format
 def version_valid?(version)
   return false if version.nil?
 
-  # Convert to string if version is not already a string
   version = version.to_s.strip
 
   return false if version.empty?
@@ -104,21 +81,6 @@ def version_valid?(version)
     true
   rescue ArgumentError
     false
-  end
-end
-
-
-# Helper: Extract the actual version number from a constraint
-# Matches on the following version patterns:
-# 1. "pessimistic" versions, ex. '~> 1.2.3'
-# 2. '>= 1.2.3'
-# 3. 1.2.3
-def extract_version(constraint)
-  if constraint =~ /~>\s*([\d.]+(?:[-.\w]*))| # Handles ~> constraints
-                     >=\s*([\d.]+(?:[-.\w]*))| # Handles >= constraints
-                     ([\d.]+(?:[-.\w]*))       # Handles plain versions
-                    /x
-    Regexp.last_match(1) || Regexp.last_match(2) || Regexp.last_match(3)
   end
 end
 
