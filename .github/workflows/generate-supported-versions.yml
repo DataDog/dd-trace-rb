@@ -1,0 +1,42 @@
+name: "Generate Supported Versions"
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          bundler-cache: true # runs bundle install
+          ruby-version: "3.3"
+
+      - name: Update latest
+        run: bundle exec ruby .github/scripts/find_gem_version_bounds.rb
+
+      - run: git diff
+
+      - name: Create Pull Request
+        id: cpr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GHA_PAT }}
+          branch: auto-generate/update-supported-versions
+          title: '[🤖] Update Supported Versions'
+          base: master
+          labels: dev/internal, integrations
+          commit-message: "Test creating supported versions"
+          delete-branch: true
+          body: |
+            - Test
