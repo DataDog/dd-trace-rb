@@ -1,6 +1,11 @@
 require 'pathname'
 require 'rubygems'
 require 'json'
+require 'bundler'
+
+lib = File.expand_path('lib', __dir__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'datadog'
 
 def parse_gemfiles(directory = 'gemfiles/')
   minimum_gems_ruby = {}
@@ -12,35 +17,44 @@ def parse_gemfiles(directory = 'gemfiles/')
   gemfiles = Dir.glob(File.join(directory, '*'))
   gemfiles.each do |gemfile_name|
     runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
-    File.foreach(gemfile_name) do |line|
-      if (gem_details = parse_gemfile_entry(line))
-        gem_name, version = gem_details
-      elsif (gem_details = parse_gemfile_lock_entry(line))
-        gem_name, version = gem_details
-      else
-        next
+    # parse the gemfile
+    if gemfile_name.end_with?(".gemfile")
+      begin
+        definition = Bundler::Definition.build(gemfile_name, nil, nil)
+    
+        definition.dependencies.each do |dependency|
+          gem_name, version = dependency.name, dependency.requirement
+          # puts "Gem: #{dependency.name}, Version: #{dependency.requirement}"
+          if version_valid?(version)
+            case runtime
+            when 'ruby'
+              update_min_max(minimum_gems_ruby, maximum_gems_ruby, gem_name, version)
+            when 'jruby'
+              update_min_max(minimum_gems_jruby, maximum_gems_jruby, gem_name, version)
+            end
+          else
+            next
+          end
       end
-
-      # Validate and store the minimum version
-      if version_valid?(version)
-        if runtime == 'ruby'
-          if minimum_gems_ruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(minimum_gems_ruby[gem_name])
-            minimum_gems_ruby[gem_name] = version
+      rescue Bundler::GemfileError => e
+        puts "Error reading Gemfile: #{e.message}"
+      end
+    elsif gemfile_name.end_with?(".gemfile.lock")
+      lockfile_contents = File.read(gemfile_name)
+      parser = Bundler::LockfileParser.new(lockfile_contents)
+      parser.specs.each do |spec|
+        # puts "Gem: #{spec.name}, Version: #{spec.version}"
+        gem_name, version = spec.name, spec.version.to_s
+        if version_valid?(version)
+          case runtime
+          when 'ruby'
+            update_min_max(minimum_gems_ruby, maximum_gems_ruby, gem_name, version)
+          when 'jruby'
+            update_min_max(minimum_gems_jruby, maximum_gems_jruby, gem_name, version)
           end
-          if maximum_gems_ruby[gem_name].nil? || Gem::Version.new(version) > Gem::Version.new(maximum_gems_ruby[gem_name])
-            maximum_gems_ruby[gem_name] = version
-          end
+        else
+          next
         end
-        if runtime == 'jruby'
-          if minimum_gems_jruby[gem_name].nil? || Gem::Version.new(version) < Gem::Version.new(minimum_gems_jruby[gem_name])
-            minimum_gems_jruby[gem_name] = version
-          end
-          if maximum_gems_jruby[gem_name].nil? || Gem::Version.new(version) > Gem::Version.new(maximum_gems_jruby[gem_name])
-            maximum_gems_jruby[gem_name] = version
-          end
-        end
-      else
-        next
       end
     end
   end
@@ -48,28 +62,51 @@ def parse_gemfiles(directory = 'gemfiles/')
   [minimum_gems_ruby, minimum_gems_jruby, maximum_gems_ruby, maximum_gems_jruby]
 end
 
-# Helper: Parse a Gemfile-style gem declaration
-# ex. gem 'ruby-kafka', '~> 5.0'
-def parse_gemfile_entry(line)
-  if (match = line.match(/^\s*gem\s+["']([^"']+)["']\s*,?\s*["']?([^"']*)["']?/))
-    gem_name, version_constraint = match[1], match[2]
-    version = extract_version(version_constraint)
-    [gem_name, version]
+
+def update_min_max(minimum_gems, maximum_gems, gem_name, version)
+  gem_version = Gem::Version.new(version)
+  
+  if minimum_gems[gem_name].nil? || gem_version < Gem::Version.new(minimum_gems[gem_name])
+    minimum_gems[gem_name] = version
+  end
+  
+  if maximum_gems[gem_name].nil? || gem_version > Gem::Version.new(maximum_gems[gem_name])
+    maximum_gems[gem_name] = version
   end
 end
 
-# Helper: Parse a Gemfile.lock-style entry
-# matches on ex. actionmailer (= 6.0.6)
-def parse_gemfile_lock_entry(line)
-  if (match = line.match(/^\s*([a-z0-9_-]+)\s+\(([^)]+)\)/))
-    [match[1], match[2]]
+def parse_gemfile(gemfile_path)
+  # Helper: Parse a Gemfile
+  begin
+    definition = Bundler::Definition.build(gemfile_path, nil, nil)
+
+    definition.dependencies.each do |dependency|
+      puts "Gem: #{dependency.name}, Version: #{dependency.requirement}"
+    end
   end
-end
+  rescue Bundler::GemfileError => e
+    puts "Error reading Gemfile: #{e.message}"
+  end
+
 
 # Helper: Validate the version format
 def version_valid?(version)
-  version =~ /^\d+(\.\d+)*$/
+  return false if version.nil?
+
+  # Convert to string if version is not already a string
+  version = version.to_s.strip
+
+  return false if version.empty?
+
+  # Ensure it's a valid Gem::Version
+  begin
+    Gem::Version.new(version)
+    true
+  rescue ArgumentError
+    false
+  end
 end
+
 
 # Helper: Extract the actual version number from a constraint
 # Matches on the following version patterns:
@@ -86,16 +123,10 @@ def extract_version(constraint)
 end
 
 def get_integration_names(directory = 'lib/datadog/tracing/contrib/')
-  unless Dir.exist?(directory)
-    puts "Directory '#{directory}' not found!"
-    return []
-  end
-
-  # Get all subdirectories inside the specified directory
-  Dir.children(directory).select do |entry|
-    File.directory?(File.join(directory, entry))
-  end
+  Datadog::Tracing::Contrib::REGISTRY.map{ |i| i.name.to_s }
 end
+
+# TODO: The gem information should reside in the integration declaration instead of here.
 
 mapping = {
   "action_mailer" => "actionmailer",
