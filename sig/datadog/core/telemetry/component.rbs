@@ -20,7 +20,7 @@ module Datadog
 
         def disable!: () -> void
 
-        def client_configuration_change!: (Enumerable[[String, Numeric | bool | String]] changes) -> void
+        def client_configuration_change!: (Array[[String, Numeric | bool | String]] changes) -> void
 
         def emit_closing!: () -> void
 

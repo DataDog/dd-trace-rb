@@ -97,6 +97,8 @@ module Datadog
           return if events.empty?
           return if !enabled? || !sent_started_event?
 
+          events = deduplicate_logs(events)
+
           Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
           send_event(Event::MessageBatch.new(events))
         end
@@ -166,6 +168,37 @@ module Datadog
 
           Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
           disable!
+        end
+
+        # Deduplicate logs by counting the number of repeated occurrences of the same log
+        # entry and replacing them with a single entry with the calculated `count` value.
+        # Non-log events are unchanged.
+        def deduplicate_logs(events)
+          return events if events.empty?
+
+          all_logs = []
+          other_events = events.reject do |event|
+            if event.is_a?(Event::Log)
+              all_logs << event
+              true
+            else
+              false
+            end
+          end
+
+          return events if all_logs.empty?
+
+          uniq_logs = all_logs.group_by(&:itself).map do |_, logs|
+            log = logs.first
+            if logs.size > 1
+              # New log event with a count of repeated occurrences
+              Event::Log.new(message: log.message, level: log.level, stack_trace: log.stack_trace, count: logs.size)
+            else
+              log
+            end
+          end
+
+          other_events + uniq_logs
         end
       end
     end

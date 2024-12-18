@@ -41,6 +41,18 @@ module Datadog
             }
           end
 
+          def ==(other)
+            other.is_a?(self.class) &&
+              name == other.name &&
+              values == other.values && tags == other.tags && common == other.common && type == other.type
+          end
+
+          alias eql? ==
+
+          def hash
+            [self.class, name, values, tags, common, type].hash
+          end
+
           private
 
           def tags_to_array(tags)
@@ -70,6 +82,16 @@ module Datadog
             res = super
             res[:interval] = interval
             res
+          end
+
+          def ==(other)
+            super && interval == other.interval
+          end
+
+          alias eql? ==
+
+          def hash
+            [super, interval].hash
           end
         end
 

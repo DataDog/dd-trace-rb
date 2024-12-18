@@ -19,11 +19,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
-            logs: [{ message: 'RuntimeError', level: 'ERROR',
+            logs: [{ message: 'RuntimeError', level: 'ERROR', count: 1,
                      stack_trace: a_string_including('REDACTED') }]
           )
           expect(event.payload).to include(
-            logs: [{ message: 'RuntimeError', level: 'ERROR',
+            logs: [{ message: 'RuntimeError', level: 'ERROR', count: 1,
                      stack_trace: a_string_including("\n/spec/") }]
           )
         end
@@ -39,11 +39,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
         it 'sends a log event to via telemetry' do
           expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
             expect(event.payload).to include(
-              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR',
+              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
                        stack_trace: a_string_including('REDACTED') }]
             )
             expect(event.payload).to include(
-              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR',
+              logs: [{ message: 'RuntimeError: Must not contain PII', level: 'ERROR', count: 1,
                        stack_trace: a_string_including("\n/spec/") }]
             )
           end
@@ -61,11 +61,11 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
           expect(event.payload).to include(
-            logs: [{ message: /#<Class:/, level: 'ERROR',
+            logs: [{ message: /#<Class:/, level: 'ERROR', count: 1,
                      stack_trace: a_string_including('REDACTED') }]
           )
           expect(event.payload).to include(
-            logs: [{ message: /#<Class:/, level: 'ERROR',
+            logs: [{ message: /#<Class:/, level: 'ERROR', count: 1,
                      stack_trace: a_string_including("\n/spec/") }]
           )
         end
@@ -85,7 +85,7 @@ RSpec.describe Datadog::Core::Telemetry::Logging do
     context 'with description' do
       it 'sends a log event to via telemetry' do
         expect(component).to receive(:log!).with(instance_of(Datadog::Core::Telemetry::Event::Log)) do |event|
-          expect(event.payload).to include(logs: [{ message: 'Must not contain PII', level: 'ERROR' }])
+          expect(event.payload).to include(logs: [{ message: 'Must not contain PII', level: 'ERROR', count: 1 }])
         end
 
         component.error('Must not contain PII')
