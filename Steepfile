@@ -1,7 +1,47 @@
+# Declare shortcuts for Steep::Signature::Ruby to make this file easier to read
+# as well as facilitating the findability of violation types emitted by the CLI
+# (e.g. the CLI emits `Diagnostic ID: Ruby::UnknownConstant` when finding errors).
+Ruby = Steep::Diagnostic::Ruby
+
 target :datadog do
   signature 'sig'
 
   check 'lib/'
+
+  # This makes Steep check the codebase with the strictest settings.
+  # We are free to disable checks if needed inside the block.
+  #
+  # The default level is `Ruby.default`, and there's an even stricter level called `Ruby.all_error`.
+  configure_code_diagnostics(Ruby.strict) do |hash|
+    # These checks can be gradually enabled as the codebase cleans up.
+    # The reporting levels are:
+    # * `:error`, `:warning`: These will fail `rake typecheck` and are always reported by default.
+    # * `:information`, `:hint`: To see these, run `rake 'typecheck[--severity-level=information]'`
+    #   or `rake 'typecheck[--severity-level=hint]'`
+
+    # These first checks are likely the easiest to fix, given they capture a mismatch
+    # between the already declared type in `.rbs` and the actual type inferred by Steep.
+    hash[Ruby::DifferentMethodParameterKind] = :information
+    hash[Ruby::IncompatibleAssignment] = :information
+
+    # These checks are a bit harder, because they represent the lack of sufficient type information.
+    hash[Ruby::FallbackAny] = :information
+    hash[Ruby::UnknownInstanceVariable] = :information
+    hash[Ruby::UnknownRecordKey] = :information
+
+    # This check asks you to type every empty collection used in
+    # local variables with an inline type annotation (e.g. `ret = {} #: Hash[Symbol,untyped]`).
+    # This pollutes the code base, and demands seemingly unnecessary typing of internal variables.
+    # Ideally, these empty collections automatically assume a signature based on its usage inside its method.
+    # @see https://github.com/soutaro/steep/pull/1338
+    hash[Ruby::UnannotatedEmptyCollection] = :information
+
+    # This one is funny: it is raised whenever we use `super` from a method in a Module.
+    # Since there's no guarantee that the module will be included in a class with the matching method,
+    # Steep cannot know if the `super` call will be valid.
+    # But this is very common in the codebase, as such module are used for monkey-patching.
+    hash[Ruby::UnexpectedSuper] = :information
+  end
 
   ignore 'lib/datadog/appsec.rb'
   ignore 'lib/datadog/appsec/component.rb'

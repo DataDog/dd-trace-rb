@@ -18,18 +18,18 @@ namespace :appsec do
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true
 
-        req = Net::HTTP::Get.new(uri)
-        req['Authorization'] = "Bearer #{token}"
-        req['Accept'] = 'application/vnd.github.raw+json'
+        request = Net::HTTP::Get.new(uri)
+        request['Authorization'] = "Bearer #{token}"
+        request['Accept'] = 'application/vnd.github.raw+json'
 
-        http.request(req) do |res|
-          case res
+        http.request(request) do |response|
+          case response
           when Net::HTTPSuccess
             filename = "lib/datadog/appsec/assets/waf_rules/#{ruleset}.json"
             raise "File '#{filename}' was moved or deleted, please review the rake task" unless File.exist?(filename)
 
             File.open(filename, 'wb') do |f|
-              res.read_body do |chunk|
+              response.read_body do |chunk|
                 f << chunk
               end
             end

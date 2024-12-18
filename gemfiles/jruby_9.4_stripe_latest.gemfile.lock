@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.7.1)
+    datadog (2.8.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 14.1.0.1.0)
+      libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
 
@@ -22,10 +22,6 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     benchmark-ips (2.14.0)
     benchmark-memory (0.1.2)
@@ -46,7 +42,7 @@ GEM
     json (2.7.2-java)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.1.0.1.0)
+    libdatadog (14.3.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -124,7 +120,6 @@ GEM
     spoon (0.0.6)
       ffi
     stripe (13.2.0)
-    thor (1.3.2)
     unicode-display_width (2.6.0)
     warning (1.4.0)
     webmock (3.23.1)
@@ -137,7 +132,6 @@ PLATFORMS
   universal-java-11
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.7.1)
+    datadog (2.8.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 14.1.0.1.0)
+      libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
 
@@ -85,10 +85,6 @@ GEM
       tzinfo (~> 2.0)
       zeitwerk (~> 2.3)
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     benchmark-ips (2.10.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
@@ -115,7 +111,7 @@ GEM
     jdbc-postgres (42.2.25)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.1.0.1.0)
+    libdatadog (14.3.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     lograge (0.12.0)
@@ -253,7 +249,6 @@ PLATFORMS
 
 DEPENDENCIES
   activerecord-jdbcpostgresql-adapter (>= 61)
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

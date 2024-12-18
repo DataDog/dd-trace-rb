@@ -147,7 +147,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         describe '#propagate!' do
           it 'calls events.trace_propagated.publish with self' do
             expect(trace_propagated).to receive(:publish).with(trace_op)
-            trace_op.to_digest
+            trace_op.propagate!
           end
         end
       end
@@ -1868,9 +1868,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#to_digest' do
-    subject(:to_digest) { trace_op.to_digest }
-    let(:digest) { to_digest }
+  describe '#propagate!' do
+    subject(:propagate!) { trace_op.propagate! }
+    let(:digest) { propagate! }
 
     context 'when the trace' do
       context 'is empty' do
@@ -1955,7 +1955,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             ) do |parent, trace|
               @parent = parent
               trace.set_tag('_dd.p.test', 'value')
-              to_digest
+              propagate!
             end
           end
         end
@@ -2689,7 +2689,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           workers = nil
           trace.measure('start_inserts', resource: 'inventory', service: 'job-worker') do
-            trace_digest = trace.to_digest
+            trace_digest = trace.propagate!
 
             workers = Array.new(5) do |index|
               Thread.new do

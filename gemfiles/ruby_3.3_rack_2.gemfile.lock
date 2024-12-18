@@ -11,9 +11,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.7.1)
+    datadog (2.8.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 14.1.0.1.0)
+      libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
 
@@ -21,10 +21,6 @@ GEM
   remote: https://rubygems.org/
   specs:
     addressable (2.4.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     benchmark-ips (2.12.0)
     benchmark-memory (0.1.2)
@@ -49,8 +45,8 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.1.0.1.0-aarch64-linux)
-    libdatadog (14.1.0.1.0-x86_64-linux)
+    libdatadog (14.3.1.1.0-aarch64-linux)
+    libdatadog (14.3.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -131,7 +127,6 @@ GEM
     simplecov-html (0.12.3)
     simplecov_json_formatter (0.1.4)
     strscan (3.1.0)
-    thor (1.2.2)
     unicode-display_width (2.4.2)
     warning (1.3.0)
     webmock (3.13.0)
@@ -145,7 +140,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   climate_control (~> 0.2.0)

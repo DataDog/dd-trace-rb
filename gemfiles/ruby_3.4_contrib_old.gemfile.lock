@@ -18,9 +18,9 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.7.1)
+    datadog (2.8.0)
       datadog-ruby_core_source (~> 3.3)
-      libdatadog (~> 14.1.0.1.0)
+      libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
 
@@ -29,10 +29,6 @@ GEM
   specs:
     addressable (2.8.7)
       public_suffix (>= 2.0.2, < 7.0)
-    appraisal (2.4.1)
-      bundler
-      rake
-      thor (>= 0.14.0)
     ast (2.4.2)
     atomic (1.1.101)
     avl_tree (1.2.1)
@@ -70,8 +66,8 @@ GEM
     json (2.7.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.1.0.1.0-aarch64-linux)
-    libdatadog (14.1.0.1.0-x86_64-linux)
+    libdatadog (14.3.1.1.0-aarch64-linux)
+    libdatadog (14.3.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -82,15 +78,11 @@ GEM
       atomic (~> 1.0)
       avl_tree (~> 1.2.0)
       hitimes (~> 1.1)
-    mini_portile2 (2.8.7)
     msgpack (1.7.5)
     multipart-post (2.4.1)
     mustermann (1.1.2)
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.2.0)
-    nokogiri (1.16.7)
-      mini_portile2 (~> 2.8.2)
-      racc (~> 1.4)
     os (1.1.4)
     parallel (1.25.1)
     parser (3.3.3.0)
@@ -173,8 +165,6 @@ GEM
       rubocop-capybara (~> 2.17)
     ruby-progressbar (1.13.0)
     ruby2_keywords (0.0.5)
-    ruby_memcheck (3.0.0)
-      nokogiri
     rusage (0.2.0)
     sentry-raven (0.15.6)
       faraday (>= 0.7.6)
@@ -210,7 +200,6 @@ PLATFORMS
   x86_64-linux
 
 DEPENDENCIES
-  appraisal (~> 2.4.0)
   base64
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
@@ -242,7 +231,6 @@ DEPENDENCIES
   rubocop-packaging (~> 0.5.2)
   rubocop-performance (~> 1.9)
   rubocop-rspec (~> 2.20, < 2.21)
-  ruby_memcheck (>= 3)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   strscan!

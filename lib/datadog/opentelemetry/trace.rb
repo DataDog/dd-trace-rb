@@ -17,7 +17,7 @@ module Datadog
           digest = if parent_span
                      digest_with_parent_span(trace, parent_span)
                    else
-                     trace.to_digest_without_propagate
+                     trace.to_digest_no_propagation
                    end
 
           # Create a new TraceOperation, attached to the current Datadog Tracer.
@@ -31,7 +31,7 @@ module Datadog
         # which allows you to specific any span as the arbitrary parent of a new span.
         def digest_with_parent_span(trace, parent_span)
           # sampling_priority added here right upon otel span creation
-          digest = trace.to_digest_without_propagate
+          digest = trace.to_digest_no_propagation
 
           Tracing::TraceDigest.new(
             span_id: parent_span.id,

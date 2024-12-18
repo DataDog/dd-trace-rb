@@ -40,7 +40,7 @@ module Datadog
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
       def propagate!: () -> untyped
-      def to_digest_without_propagate: () -> untyped
+      def to_digest_no_propagation: () -> untyped
       def fork_clone: () -> untyped
 
       class Events

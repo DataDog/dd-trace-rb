@@ -90,7 +90,7 @@ RSpec.describe 'DI integration from remote config' do
   end
 
   let(:agent_settings) do
-    double('agent settings').tap do |agent_settings|
+    instance_double_agent_settings.tap do |agent_settings|
       allow(agent_settings).to receive(:hostname)
       allow(agent_settings).to receive(:port)
       allow(agent_settings).to receive(:timeout_seconds).and_return(1)
