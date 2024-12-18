@@ -39,7 +39,8 @@ require 'datadog'
 require 'webrick'
 
 class DISnapshotBenchmark
-  BASIC_RATE_LIMIT = 5000
+  # If we are validating the benchmark a single operation is sufficient.
+  BASIC_RATE_LIMIT = VALIDATE_BENCHMARK_MODE ? 1 : 5000
   ENRICHED_RATE_LIMIT = 1
 
   def initialize
@@ -60,6 +61,14 @@ class DISnapshotBenchmark
     end
 
     Thread.new do
+      # If there is an actual Datadog agent running locally, the server
+      # used in this benchmark will fail to start.
+      # Using an actual Datadog agent instead of the fake server should not
+      # affect the indication of whether the rate limit is reachable
+      # since the agent shouldn't take longer to process than the fake
+      # web server (and the agent should also run on another core),
+      # however using a real agent would forego reports of the number of
+      # snapshots submitted and their size.
       server.start
     end
 

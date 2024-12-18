@@ -20,15 +20,19 @@ RSpec.describe "Dynamic instrumentation benchmarks", :memcheck_valgrind_skip do
       else
         10
       end
-      it("runs without raising errors") do
-        expect_in_fork(timeout_seconds: timeout) { load "./benchmarks/#{benchmark}.rb" }
+      it "runs without raising errors" do
+        expect_in_fork(timeout_seconds: timeout) do
+          load "./benchmarks/#{benchmark}.rb"
+        end
       end
     end
   end
 
   # This test validates that we don't forget to add new benchmarks to benchmarks_to_validate
   it "tests all expected benchmarks in the benchmarks folder" do
-    all_benchmarks = Dir["./benchmarks/di_*"].map { |it| it.gsub("./benchmarks/", "").gsub(".rb", "") }
+    all_benchmarks = Dir["./benchmarks/di_*"].map do |it|
+      it.gsub("./benchmarks/", "").gsub(".rb", "")
+    end
 
     expect(benchmarks_to_validate).to contain_exactly(*all_benchmarks)
   end
