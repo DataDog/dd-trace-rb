@@ -2418,7 +2418,7 @@ On the client:
 ```ruby
 Datadog::Tracing.trace('web.call') do |span, trace|
   # Inject trace headers into request headers (`env` must be a Hash)
-  Datadog::Tracing::Contrib::HTTP.inject(trace.to_digest, env)
+  Datadog::Tracing::Contrib::HTTP.inject(trace.propagate!, env)
 end
 ```
 

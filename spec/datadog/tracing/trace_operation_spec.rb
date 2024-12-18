@@ -136,6 +136,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'given' do
+      context ':trace_operation_triggers_trace_propagated_event' do
+        let(:events) { instance_double('Events') }
+        let(:trace_propagated) { instance_double('TracePropagated') }
+        let(:trace_op) { described_class.new(events: events) }
+        before do
+          allow(events).to receive(:trace_propagated).and_return(trace_propagated)
+          allow(trace_propagated).to receive(:publish)
+        end
+        describe '#propagate!' do
+          it 'calls events.trace_propagated.publish with self' do
+            expect(trace_propagated).to receive(:publish).with(trace_op)
+            trace_op.to_digest
+          end
+        end
+      end
+
       context ':agent_sample_rate' do
         subject(:options) { { agent_sample_rate: agent_sample_rate } }
         let(:agent_sample_rate) { 0.5 }

@@ -69,7 +69,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
     expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
       sql_statement,
       a_span_operation_with(service: service_name),
-      duck_type(:to_digest),
+      duck_type(:propagate!),
       propagation_mode
     )
   end
@@ -90,7 +90,7 @@ RSpec.shared_examples_for 'propagates with sql comment' do |mode:, span_op_name:
       expect(Datadog::Tracing::Contrib::Propagation::SqlComment).to have_received(:prepend_comment).with(
         sql_statement,
         a_span_operation_with(service: service_name),
-        duck_type(:to_digest),
+        duck_type(:propagate!),
         propagation_mode
       )
     end

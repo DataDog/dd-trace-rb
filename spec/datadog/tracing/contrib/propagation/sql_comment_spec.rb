@@ -66,7 +66,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
       end
       let(:trace_op) do
         double(
-          to_digest: Datadog::Tracing::TraceDigest.new(
+          propagate!: Datadog::Tracing::TraceDigest.new(
             trace_id: 0xC0FFEE,
             span_id: 0xBEE,
             trace_flags: 0xFE

@@ -39,6 +39,8 @@ module Datadog
       def build_span: (untyped op_name, ?events: untyped?, ?on_error: untyped?, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) -> untyped
       def flush!: () { (untyped) -> untyped } -> untyped
       def to_digest: () -> untyped
+      def propagate!: () -> untyped
+      def to_digest_without_propagate: () -> untyped
       def fork_clone: () -> untyped
 
       class Events

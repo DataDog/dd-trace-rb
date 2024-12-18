@@ -84,7 +84,7 @@ RSpec.describe Datadog::Tracing::Tracer do
 
           workers = nil
           tracer.trace('start_inserts', resource: 'inventory') do
-            trace_digest = trace.to_digest
+            trace_digest = trace.propagate!
 
             workers = Array.new(5) do |index|
               Thread.new do
@@ -305,7 +305,7 @@ RSpec.describe Datadog::Tracing::Tracer do
   describe 'distributed trace' do
     let(:extract) { Datadog::Tracing::Contrib::HTTP.extract(rack_headers) }
     let(:trace) { Datadog::Tracing.continue_trace!(extract) }
-    let(:inject) { {}.tap { |env| Datadog::Tracing::Contrib::HTTP.inject(trace.to_digest, env) } }
+    let(:inject) { {}.tap { |env| Datadog::Tracing::Contrib::HTTP.inject(trace.propagate!, env) } }
 
     let(:rack_headers) { headers.map { |k, v| [RackSupport.header_to_rack(k), v] }.to_h }
 

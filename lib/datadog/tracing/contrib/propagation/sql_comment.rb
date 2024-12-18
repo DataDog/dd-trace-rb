@@ -45,7 +45,7 @@ module Datadog
               # When tracing is disabled, trace_operation is a dummy object that does not contain data to build traceparent
               if config.tracing.enabled
                 tags[Ext::KEY_TRACEPARENT] =
-                  Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.to_digest)
+                  Tracing::Distributed::TraceContext.new(fetcher: nil).send(:build_traceparent, trace_op.propagate!)
               else
                 Datadog.logger.warn(
                   'Sql comment propagation with `full` mode is aborted, because tracing is disabled. '\

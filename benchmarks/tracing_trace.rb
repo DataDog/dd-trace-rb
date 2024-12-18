@@ -78,13 +78,13 @@ class TracingTraceBenchmark
     end
   end
 
-  def benchmark_to_digest
+  def benchmark_propagate!
     Datadog::Tracing.trace('op.name') do |span, trace|
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
-        x.report("trace.to_digest") do
-          trace.to_digest
+        x.report("trace.propagate!") do
+          trace.propagate!
         end
 
         x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -108,13 +108,13 @@ class TracingTraceBenchmark
     end
   end
 
-  def benchmark_to_digest_continue
+  def benchmark_propagate_continue
     Datadog::Tracing.trace('op.name') do |span, trace|
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
-        x.report("trace.to_digest - Continue") do
-          digest = trace.to_digest
+        x.report("trace.propagate! - Continue") do
+          digest = trace.propagate!
           Datadog::Tracing.continue_trace!(digest)
         end
 
@@ -136,7 +136,7 @@ class TracingTraceBenchmark
     end
 
     Datadog::Tracing.trace('op.name') do |span, trace|
-      injected_trace_digest = trace.to_digest
+      injected_trace_digest = trace.propagate!
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
@@ -159,7 +159,7 @@ class TracingTraceBenchmark
     end
 
     Datadog::Tracing.trace('op.name') do |span, trace|
-      injected_trace_digest = trace.to_digest
+      injected_trace_digest = trace.propagate!
       Benchmark.ips do |x|
         x.config(**benchmark_time)
 
@@ -190,9 +190,9 @@ end
 TracingTraceBenchmark.new.instance_exec do
   run_benchmark { benchmark_no_writer }
   run_benchmark { benchmark_no_network }
-  run_benchmark { benchmark_to_digest }
+  run_benchmark { benchmark_propagate! }
   run_benchmark { benchmark_log_correlation }
-  run_benchmark { benchmark_to_digest_continue }
+  run_benchmark { benchmark_propagate_continue }
   run_benchmark { benchmark_propagation_datadog }
   run_benchmark { benchmark_propagation_trace_context }
 end
