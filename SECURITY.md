@@ -6,7 +6,7 @@ This gives us an opportunity to release a fix for others to benefit from by the 
 
 ## Supported Versions
 
-We accept vulnerability submissions for the [currently maintained release](https://github.com/DataDog/dd-trace-rb/releases).
+We accept vulnerability submissions for the [currently maintained releases](https://github.com/DataDog/dd-trace-rb/releases).
 
 ## Reporting a Vulnerability
 
