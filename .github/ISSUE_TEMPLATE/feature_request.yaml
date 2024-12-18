@@ -6,7 +6,7 @@ body:
   - type: input
     attributes:
       label: Gem Name
-      description: "If your feature request is to add instrumentation support for a Ruby gem please provide the name here"
+      description: "If your feature request is to add instrumentation support for a Ruby gem please provide the gem name here"
       placeholder: mysql
     validations:
       required: false
@@ -14,7 +14,7 @@ body:
   - type: input
     attributes:
       label: Gem Version(s)
-      description: "If your feature request is to add instrumentation support for a Ruby gem please provide the version you use"
+      description: "Please provide the version of the above gem here"
       placeholder: 2.9.1
     validations:
       required: false
