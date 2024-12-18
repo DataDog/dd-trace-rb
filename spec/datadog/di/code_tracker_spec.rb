@@ -1,12 +1,9 @@
+require 'datadog/di'
 require "datadog/di/spec_helper"
-require "datadog/di/code_tracker"
 
 RSpec.describe Datadog::DI::CodeTracker do
   di_test
-
-  before(:all) do
-    Datadog::DI.deactivate_tracking!
-  end
+  deactivate_code_tracking
 
   let(:tracker) do
     described_class.new

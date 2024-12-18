@@ -105,7 +105,8 @@ module Datadog
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: @tracer
+            optional_tracer: @tracer,
+            logger: @logger,
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 

@@ -272,13 +272,7 @@ jobs:
             scenario: DEBUGGER_PROBES_STATUS
           - library: ruby
             app: rails70
-            scenario: DEBUGGER_METHOD_PROBES_SNAPSHOT
-          - library: ruby
-            app: rails70
-            scenario: DEBUGGER_LINE_PROBES_SNAPSHOT
-          - library: ruby
-            app: rails70
-            scenario: DEBUGGER_MIX_LOG_PROBE
+            scenario: DEBUGGER_PROBES_SNAPSHOT
           - library: ruby
             app: rails70
             scenario: DEBUGGER_PII_REDACTION

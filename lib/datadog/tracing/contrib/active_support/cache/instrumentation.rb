@@ -3,6 +3,7 @@
 require_relative '../../../../core/utils'
 require_relative '../../../metadata/ext'
 require_relative '../ext'
+require_relative 'event'
 
 module Datadog
   module Tracing
@@ -58,7 +59,8 @@ module Datadog
                 end
 
                 span.set_tag(Ext::TAG_CACHE_BACKEND, store) if store
-                set_cache_key(span, key, multi_key)
+
+                set_cache_key(span, key, multi_key) if Datadog.configuration.tracing[:active_support][:cache_key].enabled
 
                 yield
               end

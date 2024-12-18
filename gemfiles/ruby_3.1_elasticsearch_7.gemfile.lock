@@ -11,7 +11,7 @@ GIT
 PATH
   remote: ..
   specs:
-    datadog (2.7.1)
+    datadog (2.8.0)
       datadog-ruby_core_source (~> 3.3)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
@@ -50,7 +50,7 @@ GEM
       faraday (>= 1, < 3)
       multi_json
     extlz4 (0.3.4)
-    faraday (2.12.1)
+    faraday (2.12.2)
       faraday-net_http (>= 2.0, < 3.5)
       json
       logger
@@ -70,7 +70,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.2)
+    logger (1.6.3)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.7.5)

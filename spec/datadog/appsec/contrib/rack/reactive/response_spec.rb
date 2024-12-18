@@ -2,13 +2,13 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/scope'
-require 'datadog/appsec/reactive/operation'
 require 'datadog/appsec/contrib/rack/gateway/response'
 require 'datadog/appsec/contrib/rack/reactive/response'
+require 'datadog/appsec/reactive/engine'
 require 'datadog/appsec/reactive/shared_examples'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
-  let(:operation) { Datadog::AppSec::Reactive::Operation.new('test') }
+  let(:engine) { Datadog::AppSec::Reactive::Engine.new }
   let(:processor_context) { instance_double(Datadog::AppSec::Processor::Context) }
   let(:scope) { instance_double(Datadog::AppSec::Scope, processor_context: processor_context) }
   let(:body) { ['Ok'] }
@@ -24,31 +24,31 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   end
 
   describe '.publish' do
-    it 'propagates response attributes to the operation' do
-      expect(operation).to receive(:publish).with('response.status', 200)
-      expect(operation).to receive(:publish).with(
+    it 'propagates response attributes to the engine' do
+      expect(engine).to receive(:publish).with('response.status', 200)
+      expect(engine).to receive(:publish).with(
         'response.headers',
         headers,
       )
-      described_class.publish(operation, response)
+      described_class.publish(engine, response)
     end
   end
 
   describe '.subscribe' do
     context 'not all addresses have been published' do
       it 'does not call the waf context' do
-        expect(operation).to receive(:subscribe).with(
+        expect(engine).to receive(:subscribe).with(
           'response.status',
           'response.headers',
         ).and_call_original
         expect(processor_context).to_not receive(:run)
-        described_class.subscribe(operation, processor_context)
+        described_class.subscribe(engine, processor_context)
       end
     end
 
     context 'waf arguments' do
       before do
-        expect(operation).to receive(:subscribe).and_call_original
+        expect(engine).to receive(:subscribe).and_call_original
       end
 
       let(:waf_result) { double(:waf_result, status: :ok, timeout: false) }
@@ -73,8 +73,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
             {},
             Datadog.configuration.appsec.waf_timeout
           ).and_return(waf_result)
-          described_class.subscribe(operation, processor_context)
-          result = described_class.publish(operation, response)
+          described_class.subscribe(engine, processor_context)
+          result = described_class.publish(engine, response)
           expect(result).to be_nil
         end
       end

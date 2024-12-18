@@ -41,7 +41,7 @@ module Datadog
               else
                 'REDACTED'
               end
-            end.join(',')
+            end.join("\n")
           end
         end
 
@@ -49,7 +49,7 @@ module Datadog
           # Annoymous exceptions to be logged as <Class:0x00007f8b1c0b3b40>
           message = +''
           message << (exception.class.name || exception.class.inspect)
-          message << ':' << description if description
+          message << ': ' << description if description
 
           event = Event::Log.new(
             message: message,

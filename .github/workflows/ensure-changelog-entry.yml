@@ -57,7 +57,7 @@ jobs:
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            const regex = /\*\*Change log entry\*\*\s+(?:(?<answer_yes>yes|yep|yeah)(?:\.\s*(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?)\s*/mi
+            const regex = /\*\*Change log entry\*\*\s+(?:<!--.*?-->\s*)?(?:(?<answer_yes>yes|yep|yeah)(?:\s?[.,:-]\s?(?<yes_message>[^\r\n<!-]+))?|(?<answer_no>no|nope|none)\.?.*?)/ims
             const entry = context.payload.pull_request.body.match(regex)
 
             const isWriteComment =
