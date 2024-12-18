@@ -1,7 +1,11 @@
 name: "Generate Supported Versions"
 
 on:
+  push:
+    branches:
+      - quinna.halim/add-supported-versions-table
   workflow_dispatch:
+  
 
 concurrency:
   group: ${{ github.workflow }}
