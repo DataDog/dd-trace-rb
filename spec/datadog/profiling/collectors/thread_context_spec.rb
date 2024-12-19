@@ -66,8 +66,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current)
-    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread)
+  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
+    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
   def on_gc_start
@@ -78,8 +78,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
   end
 
-  def sample_after_gc(reset_monotonic_to_system_state: false)
-    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, reset_monotonic_to_system_state)
+  def sample_after_gc(reset_monotonic_to_system_state: false, allow_exception: false)
+    described_class::Testing._native_sample_after_gc(
+      cpu_and_wall_time_collector,
+      reset_monotonic_to_system_state,
+      allow_exception,
+    )
   end
 
   def sample_allocation(weight:, new_object: Object.new)
@@ -782,18 +786,18 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
                 )
               end
 
-              context 'raises an exception' do
+              context 'when an exception is raised' do
                 before { setup_failure }
                 after { expect(ran_log).to eq [:ran_code] }
 
                 it 'does not leave the exception pending' do
-                  sample
+                  sample(allow_exception: true)
 
                   expect($!).to be nil
                 end
 
                 it 'omits the "local root span id" and "span id" labels in the sample' do
-                  sample
+                  sample(allow_exception: true)
 
                   expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
                 end
@@ -1433,7 +1437,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when called before on_gc_start/on_gc_finish" do
       it do
-        expect { sample_after_gc }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+        expect { sample_after_gc(allow_exception: true) }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
       end
     end
 
@@ -1451,7 +1455,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it do
           sample_after_gc
 
-          expect { sample_after_gc }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+          expect { sample_after_gc(allow_exception: true) }
+            .to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
         end
       end
 

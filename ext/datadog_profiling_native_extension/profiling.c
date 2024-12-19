@@ -11,6 +11,7 @@
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module);
@@ -56,6 +57,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_thread_context_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
+  unsafe_api_calls_check_init();
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
