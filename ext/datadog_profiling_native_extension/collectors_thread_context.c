@@ -9,6 +9,7 @@
 #include "private_vm_api_access.h"
 #include "stack_recorder.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 // Used to trigger sampling of threads, based on external "events", such as:
 // * periodic timer for cpu-time and wall-time
@@ -203,10 +204,10 @@ static int hash_map_per_thread_context_mark(st_data_t key_thread, st_data_t _val
 static int hash_map_per_thread_context_free_values(st_data_t _thread, st_data_t value_per_thread_context, st_data_t _argument);
 static VALUE _native_new(VALUE klass);
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
-static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread);
+static VALUE _native_sample(VALUE self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception);
 static VALUE _native_on_gc_start(VALUE self, VALUE collector_instance);
 static VALUE _native_on_gc_finish(VALUE self, VALUE collector_instance);
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state);
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state, VALUE allow_exception);
 static void update_metrics_and_sample(
   struct thread_context_collector_state *state,
   VALUE thread_being_sampled,
@@ -310,11 +311,11 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(collectors_thread_context_class, "_native_initialize", _native_initialize, -1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_inspect", _native_inspect, 1);
   rb_define_singleton_method(collectors_thread_context_class, "_native_reset_after_fork", _native_reset_after_fork, 1);
-  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 2);
+  rb_define_singleton_method(testing_module, "_native_sample", _native_sample, 3);
   rb_define_singleton_method(testing_module, "_native_sample_allocation", _native_sample_allocation, 3);
   rb_define_singleton_method(testing_module, "_native_on_gc_start", _native_on_gc_start, 1);
   rb_define_singleton_method(testing_module, "_native_on_gc_finish", _native_on_gc_finish, 1);
-  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 2);
+  rb_define_singleton_method(testing_module, "_native_sample_after_gc", _native_sample_after_gc, 3);
   rb_define_singleton_method(testing_module, "_native_thread_list", _native_thread_list, 0);
   rb_define_singleton_method(testing_module, "_native_per_thread_context", _native_per_thread_context, 1);
   rb_define_singleton_method(testing_module, "_native_stats", _native_stats, 1);
@@ -504,31 +505,49 @@ static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _sel
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread) {
+static VALUE _native_sample(DDTRACE_UNUSED VALUE _self, VALUE collector_instance, VALUE profiler_overhead_stack_thread, VALUE allow_exception) {
+  ENFORCE_BOOLEAN(allow_exception);
+
   if (!is_thread_alive(profiler_overhead_stack_thread)) rb_raise(rb_eArgError, "Unexpected: profiler_overhead_stack_thread is not alive");
 
+  if (allow_exception == Qfalse) debug_enter_unsafe_context();
+
   thread_context_collector_sample(collector_instance, monotonic_wall_time_now_ns(RAISE_ON_FAILURE), profiler_overhead_stack_thread);
+
+  if (allow_exception == Qfalse) debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_start(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  debug_enter_unsafe_context();
+
   thread_context_collector_on_gc_start(collector_instance);
+
+  debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_on_gc_finish(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+  debug_enter_unsafe_context();
+
   (void) !thread_context_collector_on_gc_finish(collector_instance);
+
+  debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
-static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state) {
+static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE reset_monotonic_to_system_state, VALUE allow_exception) {
   ENFORCE_BOOLEAN(reset_monotonic_to_system_state);
+  ENFORCE_BOOLEAN(allow_exception);
 
   struct thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, struct thread_context_collector_state, &thread_context_collector_typed_data, state);
@@ -537,7 +556,12 @@ static VALUE _native_sample_after_gc(DDTRACE_UNUSED VALUE self, VALUE collector_
     state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
   }
 
+  if (allow_exception == Qfalse) debug_enter_unsafe_context();
+
   thread_context_collector_sample_after_gc(collector_instance);
+
+  if (allow_exception == Qfalse) debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
@@ -982,7 +1006,13 @@ static void trigger_sample_for_thread(
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_thread_list(DDTRACE_UNUSED VALUE _self) {
   VALUE result = rb_ary_new();
+
+  debug_enter_unsafe_context();
+
   ddtrace_thread_list(result);
+
+  debug_leave_unsafe_context();
+
   return result;
 }
 
@@ -1501,7 +1531,12 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 // This method exists only to enable testing Datadog::Profiling::Collectors::ThreadContext behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
 static VALUE _native_sample_allocation(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE sample_weight, VALUE new_object) {
+  debug_enter_unsafe_context();
+
   thread_context_collector_sample_allocation(collector_instance, NUM2UINT(sample_weight), new_object);
+
+  debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
@@ -1640,7 +1675,12 @@ void thread_context_collector_sample_skipped_allocation_samples(VALUE self_insta
 }
 
 static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE skipped_samples) {
+  debug_enter_unsafe_context();
+
   thread_context_collector_sample_skipped_allocation_samples(collector_instance, NUM2UINT(skipped_samples));
+
+  debug_leave_unsafe_context();
+
   return Qtrue;
 }
 
@@ -1979,31 +2019,53 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
   static VALUE _native_on_gvl_waiting(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
+    debug_enter_unsafe_context();
+
     thread_context_collector_on_gvl_waiting(thread_from_thread_object(thread));
+
+    debug_leave_unsafe_context();
+
     return Qnil;
   }
 
   static VALUE _native_gvl_waiting_at_for(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
+    debug_enter_unsafe_context();
+
     intptr_t gvl_waiting_at = gvl_profiling_state_thread_object_get(thread);
+
+    debug_leave_unsafe_context();
+
     return LONG2NUM(gvl_waiting_at);
   }
 
   static VALUE _native_on_gvl_running(DDTRACE_UNUSED VALUE self, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+    debug_enter_unsafe_context();
+
+    VALUE result = thread_context_collector_on_gvl_running(thread_from_thread_object(thread)) == ON_GVL_RUNNING_SAMPLE ? Qtrue : Qfalse;
+
+    debug_leave_unsafe_context();
+
+    return result;
   }
 
   static VALUE _native_sample_after_gvl_running(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread) {
     ENFORCE_THREAD(thread);
 
-    return thread_context_collector_sample_after_gvl_running(
+    debug_enter_unsafe_context();
+
+    VALUE result = thread_context_collector_sample_after_gvl_running(
       collector_instance,
       thread,
       monotonic_wall_time_now_ns(RAISE_ON_FAILURE)
     );
+
+    debug_leave_unsafe_context();
+
+    return result;
   }
 
   static VALUE _native_apply_delta_to_cpu_time_at_previous_sample_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance, VALUE thread, VALUE delta_ns) {
