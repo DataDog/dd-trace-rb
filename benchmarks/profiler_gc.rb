@@ -14,7 +14,7 @@ class ProfilerGcBenchmark
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current, false)
   end
 
   def run_benchmark
@@ -29,7 +29,7 @@ class ProfilerGcBenchmark
       x.report('profiler gc') do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false, false)
       end
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -52,7 +52,7 @@ class ProfilerGcBenchmark
         estimated_gc_per_minute.times do
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false)
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false, false)
         end
 
         @recorder.serialize
