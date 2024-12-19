@@ -19,7 +19,7 @@ PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -53,7 +53,7 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     debug_inspector (1.2.0)
     delayed_job (4.1.13)
       activesupport (>= 3.0, < 9.0)
