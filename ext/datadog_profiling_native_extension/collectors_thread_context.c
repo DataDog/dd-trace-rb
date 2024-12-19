@@ -1750,7 +1750,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
 
   VALUE root_span_type = rb_ivar_get(local_root_span.span, at_kind_id /* @kind */);
   // We filter out spans that don't have `kind: :server`
-  if (root_span_type == Qnil || !RB_TYPE_P(root_span_type, T_SYMBOL) || SYM2ID(root_span_type) != server_id) return;
+  if (root_span_type == Qnil || !RB_TYPE_P(root_span_type, T_SYMBOL) || !RB_STATIC_SYM_P(root_span_type) || SYM2ID(root_span_type) != server_id) return;
 
   VALUE trace_resource = rb_ivar_get(local_root_span.span, at_name_id /* @name */);
   if (!RB_TYPE_P(trace_resource, T_STRING)) return;
