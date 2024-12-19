@@ -21,5 +21,11 @@
 // stop the Ruby VM before further damage happens (and hopefully giving us a stack trace clearly pointing to the culprit).
 
 void unsafe_api_calls_check_init(void);
+
+// IMPORTANT: This method **MUST** only be called from test code, as it causes an immediate hard-crash on the Ruby VM
+// when it detects a potential issue, and that's not something we want for production apps.
+//
+// In the future we may introduce some kind of setting (off by default) to also allow this to be safely be used
+// in production code if needed.
 void debug_enter_unsafe_context(void);
 void debug_leave_unsafe_context(void);
