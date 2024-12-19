@@ -52,8 +52,8 @@ gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.7.0'
 
 group :check do
-  gem 'rbs', '>= 3.6.1', require: false
-  gem 'steep', '~> 1', '>= 1.7.1', require: false
+  gem 'rbs', '~> 3.7', require: false
+  gem 'steep', '~> 1', '>= 1.9.1', require: false
   gem 'standard', require: false
 end
 
