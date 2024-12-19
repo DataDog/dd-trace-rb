@@ -15,7 +15,6 @@ module Datadog
   #
   # @api private
   module DI
-
     LOCK = Mutex.new
 
     class << self
