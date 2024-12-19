@@ -29,6 +29,9 @@ jobs:
       - name: Update latest
         run: bundle exec ruby .github/scripts/find_gem_version_bounds.rb
 
+      - name: Generate versions table
+        run: ruby .github/scripts/generate_table_versions.rb
+
       - run: git diff
 
       - name: Create Pull Request
@@ -43,4 +46,7 @@ jobs:
           commit-message: "Test creating supported versions"
           delete-branch: true
           body: |
-            - Test
+            This is a PR to update the table for supported integration versions.
+            Workflow run: [Generate Supported Versions](https://github.com/DataDog/dd-trace-rb/actions/workflows/generate-supported-versions.yml)
+            This should be tied to tracer releases, or triggered manually.
+
