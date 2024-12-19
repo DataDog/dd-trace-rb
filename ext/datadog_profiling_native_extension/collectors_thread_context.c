@@ -291,6 +291,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
 );
 static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
+static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -1632,7 +1633,7 @@ static void ddtrace_otel_trace_identifiers_for(
   // trace and span representing it. Each ddtrace trace is then connected to the previous otel span, forming a linked
   // list. The local root span is going to be the trace/span we find at the end of this linked list.
   while (otel_values != Qnil) {
-    VALUE otel_span = rb_hash_lookup(otel_values, otel_current_span_key);
+    VALUE otel_span = safely_lookup_hash_without_going_into_ruby_code(otel_values, otel_current_span_key);
     if (otel_span == Qnil) break;
     VALUE next_trace = rb_ivar_get(otel_span, at_datadog_trace_id);
     if (next_trace == Qnil) break;
@@ -1766,7 +1767,7 @@ static struct otel_span otel_span_from(VALUE otel_context, VALUE otel_current_sp
   if (context_entries == Qnil || !RB_TYPE_P(context_entries, T_HASH)) return failed;
 
   // If it exists, context_entries is expected to be a Hash[OpenTelemetry::Context::Key, OpenTelemetry::Trace::Span]
-  VALUE span = rb_hash_lookup(context_entries, otel_current_span_key);
+  VALUE span = safely_lookup_hash_without_going_into_ruby_code(context_entries, otel_current_span_key);
   if (span == Qnil) return failed;
 
   // If it exists, span_context is expected to be a OpenTelemetry::Trace::SpanContext (don't confuse it with OpenTelemetry::Context)
@@ -2092,3 +2093,37 @@ static uint64_t otel_span_id_to_uint(VALUE otel_span_id) {
     DDTRACE_UNUSED long current_cpu_time_ns
   ) { return false; }
 #endif // NO_GVL_INSTRUMENTATION
+
+#define MAX_SAFE_LOOKUP_SIZE 16
+
+typedef struct { VALUE lookup_key; VALUE result; } safe_lookup_hash_state;
+
+static int safe_lookup_hash_iterate(VALUE key, VALUE value, VALUE state_ptr) {
+  safe_lookup_hash_state *state = (safe_lookup_hash_state *) state_ptr;
+
+  if (key == state->lookup_key) {
+    state->result = value;
+    return ST_STOP;
+  }
+
+  return ST_CONTINUE;
+}
+
+// This method exists because we need to look up a hash during sampling, but we don't want to invoke any
+// Ruby code as a side effect. To be able to look up by hash, `rb_hash_lookup` calls `#hash` on the key,
+// which we want to avoid.
+// Thus, instead, we opt to just iterate through the hash and check if we can find what we're looking for.
+//
+// To avoid having too much overhead here we only iterate in hashes up to MAX_SAFE_LOOKUP_SIZE.
+// Note that we don't even try to iterate if the hash is bigger -- this is to avoid flaky behavior where
+// depending on the internal storage order of the hash we may or not find the key, and instead we always
+// enforce the size.
+static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key) {
+  if (!RB_TYPE_P(hash, T_HASH) || RHASH_SIZE(hash) > MAX_SAFE_LOOKUP_SIZE) return Qnil;
+
+  safe_lookup_hash_state state = {.lookup_key = key, .result = Qnil};
+
+  rb_hash_foreach(hash, safe_lookup_hash_iterate, (VALUE) &state);
+
+  return state.result;
+}
