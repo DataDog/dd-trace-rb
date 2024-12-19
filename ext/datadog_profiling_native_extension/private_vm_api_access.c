@@ -800,3 +800,6 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
     return current_thread;
   }
 #endif
+
+// Is the VM smack in the middle of raising an exception?
+bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
