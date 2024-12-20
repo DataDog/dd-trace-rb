@@ -62,3 +62,10 @@ body:
       placeholder: Darwin Kernel Version 23.6.0
     validations:
       required: false
+
+  - type: textarea
+    attributes:
+      label: How does Datadog Help You
+      description: "Optionally, tell us why and how you're using datadog, and what your overall experience with it is!"
+    validations:
+      required: false
