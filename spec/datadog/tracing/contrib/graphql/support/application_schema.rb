@@ -62,6 +62,12 @@ module TestGraphQL
       OpenStruct.new(id: 1, name: name)
     end
 
+    field :unexpected_error, UserType, description: 'Raises error'
+
+    def unexpected_error
+      raise 'Unexpected error'
+    end
+
     field :mutationUserByName, UserType, null: false, description: 'Find an user by name' do
       argument :name, ::GraphQL::Types::String, required: true
     end
