@@ -56,7 +56,7 @@ module Datadog
             return nil
           end
 
-          digest = digest.to_digest if digest.respond_to?(:to_digest)
+          digest = digest.propagate! if digest.respond_to?(:propagate!)
 
           if digest.trace_id.nil?
             ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id is nil.')
