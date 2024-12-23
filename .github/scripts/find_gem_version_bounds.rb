@@ -88,25 +88,9 @@ def get_integration_names(directory = 'lib/datadog/tracing/contrib/')
   Datadog::Tracing::Contrib::REGISTRY.map{ |i| i.name.to_s }
 end
 
-# TODO: The gem information should reside in the integration declaration instead of here.
-
-mapping = {
-  "action_mailer" => "actionmailer",
-  "opensearch" => "opensearch-ruby",
-  "concurrent_ruby" => "concurrent-ruby",
-  "action_view" => "actionview",
-  "action_cable" => "actioncable",
-  "active_record" => "activerecord",
-  "mongodb" => "mongo",
-  "rest_client" => "rest-client",
-  "active_support" => "activesupport",
-  "action_pack" => "actionpack",
-  "active_job" => "activejob",
-  "httprb" => "http",
-  "kafka" => "ruby-kafka",
-  "presto" => "presto-client",
-  "aws" => "aws-sdk-core"
-}
+SPECIAL_CASES = {
+  "opensearch" => "OpenSearch" # special case because opensearch = OpenSearch not Opensearch
+}.freeze 
 
 excluded = ["configuration", "propagation", "utils"]
 min_gems_ruby, min_gems_jruby, max_gems_ruby, max_gems_jruby = parse_gemfiles("gemfiles/")
@@ -115,19 +99,32 @@ integrations = get_integration_names('lib/datadog/tracing/contrib/')
 integration_json_mapping = {}
 
 integrations.each do |integration|
-  if excluded.include?(integration)
-    next
+  next if excluded.include?(integration)
+
+  begin
+    mod_name = SPECIAL_CASES[integration] || integration.split('_').map(&:capitalize).join
+    module_name = "Datadog::Tracing::Contrib::#{mod_name}"
+    integration_module = Object.const_get(module_name)::Integration
+    integration_name = integration_module.respond_to?(:gem_name) ? integration_module.gem_name : integration
+  rescue NameError
+    puts "Integration module not found for #{integration}, falling back to integration name."
+    integration_name = integration
+  rescue NoMethodError
+    puts "gem_name method missing for #{integration}, falling back to integration name."
+    integration_name = integration
   end
-  integration_name = mapping[integration] || integration
 
   min_version_jruby = min_gems_jruby[integration_name]
   min_version_ruby = min_gems_ruby[integration_name]
   max_version_jruby = max_gems_jruby[integration_name]
   max_version_ruby = max_gems_ruby[integration_name]
 
-  # mapping jruby, ruby
-  integration_json_mapping[integration] = [min_version_ruby, max_version_ruby, min_version_jruby, max_version_jruby]
-  integration_json_mapping.replace(integration_json_mapping.sort.to_h)
+  integration_json_mapping[integration] = [
+    min_version_ruby, max_version_ruby,
+    min_version_jruby, max_version_jruby
+  ]
 end
 
+# Sort and output the mapping
+integration_json_mapping = integration_json_mapping.sort.to_h
 File.write("gem_output.json", JSON.pretty_generate(integration_json_mapping))
