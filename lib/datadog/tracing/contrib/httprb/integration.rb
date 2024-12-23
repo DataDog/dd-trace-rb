@@ -20,7 +20,7 @@ module Datadog
           def self.gem_name
             'http'
           end
-          
+
           def self.version
             Gem.loaded_specs['http'] && Gem.loaded_specs['http'].version
           end

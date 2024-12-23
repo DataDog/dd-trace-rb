@@ -19,7 +19,7 @@ module Datadog
           def self.gem_name
             'presto-client'
           end
-          
+
           def self.version
             Gem.loaded_specs['presto-client'] && Gem.loaded_specs['presto-client'].version
           end

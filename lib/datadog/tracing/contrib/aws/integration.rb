@@ -19,7 +19,7 @@ module Datadog
           def self.gem_name
             'aws-sdk-core'
           end
-          
+
           def self.version
             if Gem.loaded_specs['aws-sdk']
               Gem.loaded_specs['aws-sdk'].version

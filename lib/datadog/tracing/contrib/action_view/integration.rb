@@ -21,7 +21,7 @@ module Datadog
           def self.gem_name
             'actionview'
           end
-          
+
           def self.version
             # ActionView is its own gem in Rails 4.1+
             if Gem.loaded_specs['actionview']

@@ -20,7 +20,7 @@ module Datadog
           def self.gem_name
             'mongo'
           end
-          
+
           def self.version
             Gem.loaded_specs['mongo'] && Gem.loaded_specs['mongo'].version
           end

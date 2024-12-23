@@ -22,7 +22,7 @@ module Datadog
           def self.gem_name
             'activesupport'
           end
-          
+
           def self.version
             Gem.loaded_specs['activesupport'] && Gem.loaded_specs['activesupport'].version
           end

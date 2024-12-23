@@ -19,7 +19,7 @@ module Datadog
           def self.gem_name
             'ruby-kafka'
           end
-          
+
           def self.version
             Gem.loaded_specs['ruby-kafka'] && Gem.loaded_specs['ruby-kafka'].version
           end

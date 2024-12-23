@@ -20,6 +20,7 @@ module Datadog
           def self.gem_name
             'actioncable'
           end
+
           def self.version
             Gem.loaded_specs['actioncable'] && Gem.loaded_specs['actioncable'].version
           end

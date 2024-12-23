@@ -21,6 +21,7 @@ module Datadog
           def self.gem_name
             'actionpack'
           end
+
           def self.version
             Gem.loaded_specs['actionpack'] && Gem.loaded_specs['actionpack'].version
           end
