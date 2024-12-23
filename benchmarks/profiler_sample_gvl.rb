@@ -27,7 +27,7 @@ class ProfilerSampleGvlBenchmark
     @target_thread = thread_with_very_deep_stack
 
     # Sample once to trigger thread context creation for all threads (including @target_thread)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
   end
 
   def create_profiler

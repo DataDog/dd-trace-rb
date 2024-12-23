@@ -1171,6 +1171,16 @@ static void on_newobj_event(DDTRACE_UNUSED VALUE unused1, DDTRACE_UNUSED void *u
     return;
   }
 
+  // If Ruby is in the middle of raising an exception, we don't want to try to sample. This is because if we accidentally
+  // trigger an exception inside the profiler code, bad things will happen (specifically, Ruby will try to kill off the
+  // thread even though we may try to catch the exception).
+  //
+  // Note that "in the middle of raising an exception" means the exception itself has already been allocated.
+  // What's getting allocated now is probably the backtrace objects (@ivoanjo or at least that's what I've observed)
+  if (is_raised_flag_set(rb_thread_current())) {
+    return;
+  }
+
   // Hot path: Dynamic sampling rate is usually enabled and the sampling decision is usually false
   if (RB_LIKELY(state->dynamic_sampling_rate_enabled && !discrete_dynamic_sampler_should_sample(&state->allocation_sampler))) {
     state->stats.allocation_skipped++;
