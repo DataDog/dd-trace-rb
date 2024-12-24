@@ -42,7 +42,7 @@ RSpec.describe 'DI initializer' do
       SCRIPT
       out, status = Open3.capture2e('ruby', stdin_data: script)
       unless status.exitstatus == 0
-        fail("Test script failed with exist status #{status.exitstatus}:\n#{out}")
+        fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
       end
     end
   end
