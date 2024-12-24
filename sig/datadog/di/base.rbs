@@ -1,0 +1,23 @@
+module Datadog
+  module DI
+    self.@code_tracker: CodeTracker?
+
+    attr_reader self.code_tracker: CodeTracker?
+    
+    def self.activate_tracking: () -> void
+    
+    def self.activate_tracking!: () -> void
+    
+    def self.deactivate_tracking!: () -> void
+    
+    def self.code_tracking_active?: () -> bool
+    
+    def self.current_component: () -> Component?
+    
+    def self.add_current_component: (Component) -> void
+    
+    def self.remove_current_component: (Component) -> void
+        
+    LOCK: Mutex
+  end
+end
