@@ -14,7 +14,6 @@ class GemfileProcessor
   EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
 
   def initialize(directory: 'gemfiles/', contrib_dir: 'lib/datadog/tracing/contrib/')
-    # TODO: HERE
     @directory = directory
     @contrib_dir = contrib_dir
     @min_gems = { 'ruby' => {}, 'jruby' => {} }
@@ -23,7 +22,6 @@ class GemfileProcessor
   end
 
   def process
-    # TODO: HERE
     parse_gemfiles
     process_integrations
     write_output
@@ -33,9 +31,6 @@ class GemfileProcessor
 
 
   def parse_gemfiles(directory = 'gemfiles/')
-    # min_gems = { 'ruby' => {}, 'jruby' => {} }
-    # max_gems = { 'ruby' => {}, 'jruby' => {} }
-
     gemfiles = Dir.glob(File.join(@directory, '*'))
     gemfiles.each do |gemfile_name|
       runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
