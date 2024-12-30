@@ -13,6 +13,9 @@ module Datadog
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE'
           SERVICE_NAME = 'graphql'
           TAG_COMPONENT = 'graphql'
+
+          # Span event name for query-level errors
+          EVENT_QUERY_ERROR = 'dd.graphql.query.error'
         end
       end
     end
