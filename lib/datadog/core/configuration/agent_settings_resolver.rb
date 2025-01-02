@@ -45,6 +45,16 @@ module Datadog
               raise ArgumentError, "Unexpected adapter: #{adapter}"
             end
           end
+
+          def ==(other)
+            self.class == other.class &&
+              adapter == other.adapter &&
+              ssl == other.ssl &&
+              hostname == other.hostname &&
+              port == other.port &&
+              uds_path == other.uds_path &&
+              timeout_seconds == other.timeout_seconds
+          end
         end
 
         # IPv6 regular expression from
