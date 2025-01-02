@@ -102,6 +102,8 @@ build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('kicks', 3)
+build_coverage_matrix('sneakers', 2)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -136,7 +138,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 end

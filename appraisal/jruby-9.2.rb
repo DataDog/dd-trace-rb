@@ -208,6 +208,8 @@ build_coverage_matrix('dalli', [2])
 # NOTE: JRuby bundler failed to install some dependencies https://github.com/ruby/psych/issues/700
 #       and it could be re-enabled when upstream fix the issue
 # build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('kicks', 3)
+build_coverage_matrix('sneakers', 2)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
@@ -242,7 +244,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq'
-  gem 'sneakers', '>= 2.12.0'
   gem 'bunny', '~> 2.19.0' # uninitialized constant OpenSSL::SSL::TLS1_3_VERSION for jruby, https://github.com/ruby-amqp/bunny/issues/645
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0', '< 2.0.0'

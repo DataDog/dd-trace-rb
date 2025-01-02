@@ -99,6 +99,8 @@ build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('devise', min: '3.2.1')
+build_coverage_matrix('kicks', 3)
+build_coverage_matrix('sneakers', 2)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -133,7 +135,6 @@ appraise 'contrib' do
   gem 'roda', '>= 2.0.0'
   gem 'semantic_logger', '~> 4.0'
   gem 'sidekiq', '~> 7'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 end
