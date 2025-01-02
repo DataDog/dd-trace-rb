@@ -11,6 +11,8 @@ module Datadog
           attr_reader port: untyped
           attr_reader uds_path: untyped
           attr_reader timeout_seconds: untyped
+
+          def url: () -> ::String
         end
 
         @settings: untyped
@@ -23,6 +25,11 @@ module Datadog
         @uds_fallback: untyped
         @mixed_http_and_uds: untyped
         @parsed_url: untyped
+
+        # IPv6 regular expression from
+        # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
+        # Does not match IPv4 addresses.
+        IPV6_REGEXP: ::Regexp
 
         def self.call: (untyped settings, ?logger: untyped) -> untyped
 

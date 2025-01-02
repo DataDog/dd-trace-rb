@@ -8,8 +8,7 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
     context 'when using HTTP adapter' do
       context 'when SSL is enabled' do
         let(:agent_settings) do
-          instance_double(
-            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: true,
             hostname: 'example.com',
@@ -24,8 +23,7 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
       context 'when SSL is disabled' do
         let(:agent_settings) do
-          instance_double(
-            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: false,
             hostname: 'example.com',
@@ -40,8 +38,7 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
       context 'when hostname is an IPv4 address' do
         let(:agent_settings) do
-          instance_double(
-            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: false,
             hostname: '1.2.3.4',
@@ -56,8 +53,7 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
       context 'when hostname is an IPv6 address' do
         let(:agent_settings) do
-          instance_double(
-            Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
             adapter: Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER,
             ssl: false,
             hostname: '1234:1234::1',
@@ -73,8 +69,7 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
     context 'when using UnixSocket adapter' do
       let(:agent_settings) do
-        instance_double(
-          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings,
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
           adapter: Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
           uds_path: '/var/run/datadog.sock'
         )
@@ -82,16 +77,6 @@ RSpec.describe Datadog::Core::Crashtracking::AgentBaseUrl do
 
       it 'returns the correct base URL' do
         expect(described_class.resolve(agent_settings)).to eq('unix:///var/run/datadog.sock')
-      end
-    end
-
-    context 'when using unknownm adapter' do
-      let(:agent_settings) do
-        instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings, adapter: 'unknown')
-      end
-
-      it 'returns nil' do
-        expect(described_class.resolve(agent_settings)).to be_nil
       end
     end
   end
