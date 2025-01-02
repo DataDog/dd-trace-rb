@@ -19,17 +19,17 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
-        AgentSettings = Struct.new(
-          :adapter,
-          :ssl,
-          :hostname,
-          :port,
-          :uds_path,
-          :timeout_seconds,
-          keyword_init: true
-        ) do
-          def initialize(*)
-            super
+        # Immutable container for the resulting settings
+        class AgentSettings
+          attr_reader :adapter, :ssl, :hostname, :port, :uds_path, :timeout_seconds
+
+          def initialize(adapter: nil, ssl: nil, hostname: nil, port: nil, uds_path: nil, timeout_seconds: nil)
+            @adapter = adapter
+            @ssl = ssl
+            @hostname = hostname
+            @port = port
+            @uds_path = uds_path
+            @timeout_seconds = timeout_seconds
             freeze
           end
         end
