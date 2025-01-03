@@ -23,3 +23,5 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
 static inline char* string_from_char_slice(ddog_CharSlice slice) {
   return ruby_strndup(slice.ptr, slice.len);
 }
+
+ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string);

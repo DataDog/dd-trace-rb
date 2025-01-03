@@ -1014,16 +1014,6 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
   return stats_as_hash;
 }
 
-ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string) {
-  if (string.len == 0) return (ddog_prof_ManagedStringId) { 0 }; // Id 0 is always an empty string, no need to ask
-
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(string_storage, string);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
-  }
-  return intern_result.ok;
-}
-
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE obj_id) {
   ENFORCE_TYPE(obj_id, T_FIXNUM);
 
