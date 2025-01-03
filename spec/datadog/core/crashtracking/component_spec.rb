@@ -9,7 +9,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
-    let(:agent_settings) { double('agent_settings') }
+    let(:agent_settings) do
+      instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
+    end
     let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
@@ -19,8 +21,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       it 'creates a new instance of Component and starts it' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -42,32 +43,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       end
     end
 
-    context 'when missing `agent_base_url`' do
-      let(:agent_base_url) { nil }
-
-      it 'returns nil' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
-        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
-
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
-      end
-    end
-
     context 'when missing `ld_library_path`' do
       let(:ld_library_path) { nil }
 
       it 'returns nil' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -84,8 +66,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       it 'returns nil' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -102,8 +83,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       it 'returns an instance of Component that failed to start' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)

@@ -80,7 +80,6 @@ target :datadog do
   ignore 'lib/datadog/core/buffer/thread_safe.rb'
   ignore 'lib/datadog/core/chunker.rb'
   ignore 'lib/datadog/core/configuration.rb'
-  ignore 'lib/datadog/core/configuration/agent_settings_resolver.rb'
   ignore 'lib/datadog/core/configuration/base.rb'
   ignore 'lib/datadog/core/configuration/components.rb'
   ignore 'lib/datadog/core/configuration/dependency_resolver.rb'

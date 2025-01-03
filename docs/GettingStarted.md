@@ -1547,11 +1547,10 @@ Rake::Task['my_task'].invoke
 
 | Key            | Env Var| Type     | Description                                                                                              | Default  |
 | -------------- | - | ------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| `enabled`      | | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
+| `enabled`      | `DD_TRACE_RAKE_ENABLED` | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
 | `quantize`     | | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
 | `service_name` | | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
 | `tasks`        | | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
-| `enabled` | `DD_TRACE_RAKE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 **Configuring task quantization behavior**
 

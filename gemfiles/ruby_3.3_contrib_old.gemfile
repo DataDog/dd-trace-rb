@@ -33,7 +33,6 @@ gem "webrick", ">= 1.7.0"
 gem "dalli", "< 3.0.0"
 gem "presto-client", ">= 0.5.14"
 gem "qless", "0.12.0"
-gem "racc"
 
 group :check do
 

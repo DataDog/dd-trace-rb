@@ -191,8 +191,6 @@ appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
-
-  gem 'racc' # Remove this once graphql resolves issue for ruby 3.3 preview. https://github.com/rmosolgo/graphql-ruby/issues/4650
 end
 
 appraise 'core-old' do
