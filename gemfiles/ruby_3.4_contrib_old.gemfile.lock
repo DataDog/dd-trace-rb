@@ -220,7 +220,6 @@ DEPENDENCIES
   pry
   pry-stack_explorer
   qless (= 0.12.0)
-  racc
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
   rspec (~> 3.13)
