@@ -223,10 +223,29 @@ https://github.com/datadog/dd-apm-test-agent#readme
 
 **Linting**
 
-The trace library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
+Most of the library uses Rubocop to enforce [code style](https://github.com/bbatsov/ruby-style-guide) and quality. To check, run:
 
 ```
 $ bundle exec rake rubocop
+```
+
+To change your code to the version that rubocop wants, run:
+
+```
+$ bundle exec rake rubocop -A
+```
+
+Profiling and Dynamic Instrumentation use [standard](https://github.com/standardrb/standard)
+instead of Rubocop. To check files with standard, run:
+
+```
+$ bundle exec rake standard
+```
+
+To change your code to the version that standard wants, run:
+
+```
+$ bundle exec rake standard:fix
 ```
 
 ## Appendix
