@@ -17,6 +17,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :mongo, auto_patch: true
+          def self.gem_name
+            'mongo'
+          end
 
           def self.version
             Gem.loaded_specs['mongo'] && Gem.loaded_specs['mongo'].version
