@@ -95,6 +95,27 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
       end
     end
+
+    context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
+      let(:agent_base_url) { 'http://1234:1234::1/' }
+
+      it 'returns an instance of Component that failed to start' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
+          .and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+
+        # Diagnostics is only provided via the error report to logger,
+        # there is no indication in the object state that it failed to start.
+        expect(logger).to receive(:error).with(/Failed to start crash tracking/)
+
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
+      end
+    end
   end
 
   context 'instance methods' do
