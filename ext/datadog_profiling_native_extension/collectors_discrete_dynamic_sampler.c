@@ -333,7 +333,7 @@ static VALUE _native_should_sample(VALUE self, VALUE now);
 static VALUE _native_after_sample(VALUE self, VALUE now);
 static VALUE _native_state_snapshot(VALUE self);
 
-typedef struct sampler_state {
+typedef struct {
   discrete_dynamic_sampler sampler;
 } sampler_state;
 

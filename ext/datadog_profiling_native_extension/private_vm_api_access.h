@@ -18,7 +18,7 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
-typedef struct frame_info {
+typedef struct {
   union {
     struct {
       VALUE iseq;
