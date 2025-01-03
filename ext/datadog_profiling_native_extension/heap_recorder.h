@@ -17,7 +17,7 @@
 typedef struct heap_recorder heap_recorder;
 
 // Extra data associated with each live object being tracked.
-typedef struct live_object_data {
+typedef struct {
   // The weight of this object from a sampling perspective.
   //
   // A notion of weight is preserved for each tracked object to allow for an approximate
