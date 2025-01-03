@@ -97,6 +97,8 @@ build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
+build_coverage_matrix('kicks', [], min: '3.0.0')
+build_coverage_matrix('sneakers', [], min: '2.12.0', latest: false)
 
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
@@ -138,7 +140,6 @@ appraise 'contrib' do
   # Note: Sidekiq 8 uses different timestamp formatting compared to prior versions. As long as
   # versions <8 are supported, make sure there's some CI running both older and newer versions.
   gem 'sidekiq', '~> 8'
-  gem 'sneakers', '>= 2.12.0'
   gem 'sucker_punch'
   gem 'que', '>= 1.0.0'
 

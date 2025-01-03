@@ -224,8 +224,8 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli')
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.3.4' } })
-build_coverage_matrix('kicks', 3)
-build_coverage_matrix('sneakers', 2)
+build_coverage_matrix('kicks', [], min: '3.0.0', latest: false) # kicks 3.1+ requires Ruby 3.0+
+build_coverage_matrix('sneakers', [], min: '2.12.0', latest: false)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'

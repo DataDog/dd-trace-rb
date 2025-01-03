@@ -147,8 +147,8 @@ build_coverage_matrix('waterdrop', min: '2.8.8.rc1')
 build_coverage_matrix('devise', min: '3.2.1')
 build_coverage_matrix('openfeature', min: '0.3.1', gem: 'openfeature-sdk')
 build_coverage_matrix('ruby-llm', gem: 'ruby_llm')
-build_coverage_matrix('kicks', 3)
-build_coverage_matrix('sneakers', 2)
+build_coverage_matrix('kicks', [], min: '3.0.0')
+build_coverage_matrix('sneakers', [], min: '2.12.0', latest: false)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
