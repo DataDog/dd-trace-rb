@@ -47,8 +47,8 @@ GEM
       logger
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
-    ffi (1.17.0-aarch64-linux-gnu)
-    ffi (1.17.0-x86_64-linux-gnu)
+    ffi (1.17.1-aarch64-linux-gnu)
+    ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.25.4-aarch64-linux)
     google-protobuf (3.25.4-x86_64-linux)
     hashdiff (1.1.1)
