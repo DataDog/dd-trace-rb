@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# rubocop:disable Lint/AssignmentInCondition
+require_relative '../core/utils/time'
 
-require 'benchmark'
+# rubocop:disable Lint/AssignmentInCondition
 
 module Datadog
   module DI
@@ -115,22 +115,21 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              rv = nil
+              start_time = Core::Utils::Time.get_time
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
               # for methods defined via method_missing.
-              duration = Benchmark.realtime do # steep:ignore
-                rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
-                  else
-                    super(*args, &target_block)
-                  end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
+              rv = if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
                 else
-                  super(&target_block)
+                  super(*args, &target_block)
                 end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
               end
+              duration = Core::Utils::Time.get_time - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
