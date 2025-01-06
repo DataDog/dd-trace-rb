@@ -2,6 +2,7 @@
 #include <datadog/crashtracker.h>
 
 #include "datadog_ruby_common.h"
+#include "data_pipeline.h"
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
@@ -16,6 +17,7 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE crashtracking_module = rb_define_module_under(core_module, "Crashtracking");
 
   crashtracker_init(crashtracking_module);
+  trace_exporter_init();
 }
 
 void crashtracker_init(VALUE crashtracking_module) {
@@ -95,7 +97,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .optional_stdout_filename = {},
   };
 
-  ddog_crasht_Result result =
+  ddog_VoidResult result =
     action == start_action ?
       ddog_crasht_init(config, receiver_config, metadata) :
       ddog_crasht_update_on_fork(config, receiver_config, metadata);
@@ -105,7 +107,7 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
   ddog_endpoint_drop(endpoint);
   // }} End of exception-free zone to prevent leaks
 
-  if (result.tag == DDOG_CRASHT_RESULT_ERR) {
+  if (result.tag == DDOG_VOID_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to start/update the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 
@@ -113,9 +115,9 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
 }
 
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self) {
-  ddog_crasht_Result result = ddog_crasht_shutdown();
+  ddog_VoidResult result = ddog_crasht_shutdown();
 
-  if (result.tag == DDOG_CRASHT_RESULT_ERR) {
+  if (result.tag == DDOG_VOID_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to stop the crash tracker: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 

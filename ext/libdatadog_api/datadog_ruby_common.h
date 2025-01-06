@@ -38,6 +38,12 @@ static inline ddog_CharSlice char_slice_from_ruby_string(VALUE string) {
   return char_slice;
 }
 
+static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
+  ENFORCE_TYPE(string, T_STRING);
+  ddog_ByteSlice byte_slice = {.ptr = (uint8_t *) RSTRING_PTR(string), .len = RSTRING_LEN(string)};
+  return byte_slice;
+}
+
 __attribute__((warn_unused_result))
 ddog_Vec_Tag convert_tags(VALUE tags_as_array);
 
