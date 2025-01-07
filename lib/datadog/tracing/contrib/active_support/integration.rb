@@ -5,7 +5,7 @@ require_relative 'configuration/settings'
 require_relative 'patcher'
 require_relative 'cache/redis'
 require_relative '../rails/ext'
-require_relative '../../../core/contrib/rails/utils'
+require_relative '../../../core/utils/rails'
 
 module Datadog
   module Tracing
@@ -35,7 +35,7 @@ module Datadog
           # enabled by rails integration so should only auto instrument
           # if detected that it is being used without rails
           def auto_instrument?
-            !Core::Contrib::Rails::Utils.railtie_supported?
+            !Core::Utils::Rails.railtie_supported?
           end
 
           def new_configuration

@@ -9,10 +9,10 @@ module Datadog
     module Contrib
       # Auto-activate instrumentation
       def self.auto_instrument!
-        require_relative '../../core/contrib/rails/utils'
+        require_relative '../../core/utils/rails'
 
         # Defer to Rails if this is a Rails application
-        if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
+        if Datadog::Core::Utils::Rails.railtie_supported?
           require_relative 'rails/auto_instrument_railtie'
         else
           AutoInstrument.patch_all!

@@ -9,7 +9,7 @@ require_relative '../active_support/integration'
 require_relative '../grape/endpoint'
 require_relative '../lograge/integration'
 require_relative 'ext'
-require_relative '../../../core/contrib/rails/utils'
+require_relative '../../../core/utils/rails'
 require_relative '../semantic_logger/integration'
 
 module Datadog
@@ -41,7 +41,7 @@ module Datadog
               # being executed, but here we know better, get it from Rails config.
               # Don't set this if service has been explicitly provided by the user.
               if datadog_config.service_without_fallback.nil?
-                datadog_config.service = rails_config[:service_name] || Core::Contrib::Rails::Utils.app_name
+                datadog_config.service = rails_config[:service_name] || Core::Utils::Rails.app_name
               end
 
               activate_rack!(datadog_config, rails_config)
