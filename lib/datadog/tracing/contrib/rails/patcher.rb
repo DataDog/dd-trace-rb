@@ -6,6 +6,7 @@ require_relative 'framework'
 require_relative 'log_injection'
 require_relative 'middlewares'
 require_relative 'runner'
+require_relative '../../../core/contrib/rails/utils'
 require_relative '../semantic_logger/patcher'
 
 module Datadog

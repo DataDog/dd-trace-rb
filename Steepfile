@@ -89,6 +89,7 @@ target :datadog do
   ignore 'lib/datadog/core/configuration/option_definition_set.rb'
   ignore 'lib/datadog/core/configuration/options.rb'
   ignore 'lib/datadog/core/configuration/settings.rb'
+  ignore 'lib/datadog/core/contrib/rails/utils.rb'
   ignore 'lib/datadog/core/diagnostics/health.rb'
   ignore 'lib/datadog/core/encoding.rb'
   ignore 'lib/datadog/core/environment/container.rb'
@@ -127,7 +128,6 @@ target :datadog do
   ignore 'lib/datadog/core/utils/hash.rb' # Refinement module
   ignore 'lib/datadog/core/utils/network.rb'
   ignore 'lib/datadog/core/utils/only_once.rb'
-  ignore 'lib/datadog/core/utils/rails.rb'
   ignore 'lib/datadog/core/utils/safe_dup.rb'
   ignore 'lib/datadog/core/utils/sequence.rb'
   ignore 'lib/datadog/core/utils/time.rb'
