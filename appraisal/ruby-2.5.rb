@@ -222,7 +222,7 @@ build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 build_coverage_matrix('kicks', 3)
-build_coverage_matrix('sneakers', 2)
+build_coverage_matrix('sneakers', [], min: '2.12.0') # Sneakers is not receiving updates anymore and 2.12.0 is the last version
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
