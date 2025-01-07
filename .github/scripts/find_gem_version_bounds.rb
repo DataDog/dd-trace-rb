@@ -24,6 +24,7 @@ class GemfileProcessor
   def process
     parse_gemfiles
     process_integrations
+    include_hardcoded_versions
     write_output
   end
 
@@ -109,6 +110,24 @@ class GemfileProcessor
         @max_gems['jruby'][integration_name]
       ]
     end
+  end
+
+  def include_hardcoded_versions
+      # `httpx` is maintained externally
+    @integration_json_mapping['httpx'] = [
+      '0.11', # Min version Ruby
+      '0.11', # Max version Ruby
+      nil,     # Min version JRuby
+      nil      # Max version JRuby
+    ]
+
+    # `makara` is part of `activerecord`
+    @integration_json_mapping['makara'] = [
+      '0.3.5', # Min version Ruby
+      '0.3.5', # Max version Ruby
+      nil,     # Min version JRuby
+      nil      # Max version JRuby
+    ]
   end
 
   def resolve_integration_name(integration)
