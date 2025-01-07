@@ -59,8 +59,12 @@ RSpec.describe 'Instrumentation integration' do
     instance_double_agent_settings
   end
 
+  let(:logger) do
+    instance_double(Logger)
+  end
+
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings)
+    Datadog::DI::Component.build!(settings, agent_settings, logger)
   end
 
   let(:expected_installed_payload) do
