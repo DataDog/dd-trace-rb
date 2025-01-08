@@ -14,11 +14,11 @@
 static VALUE missing_string = Qnil;
 
 // Used as scratch space during sampling
-struct sampling_buffer {
+struct sampling_buffer { // Note: typedef'd in the header to sampling_buffer
   uint16_t max_frames;
   ddog_prof_Location *locations;
   frame_info *stack_buffer;
-}; // Note: typedef'd in the header to sampling_buffer
+};
 
 static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE native_sample_do(VALUE args);
@@ -44,7 +44,7 @@ void collectors_stack_init(VALUE profiling_module) {
   rb_global_variable(&missing_string);
 }
 
-struct native_sample_args {
+typedef struct {
   VALUE in_gc;
   VALUE recorder_instance;
   sample_values values;
@@ -52,7 +52,7 @@ struct native_sample_args {
   VALUE thread;
   ddog_prof_Location *locations;
   sampling_buffer *buffer;
-};
+} native_sample_args;
 
 // This method exists only to enable testing Datadog::Profiling::Collectors::Stack behavior using RSpec.
 // It SHOULD NOT be used for other purposes.
@@ -123,7 +123,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 
   ddog_prof_Slice_Label slice_labels = {.ptr = labels, .len = labels_count};
 
-  struct native_sample_args args_struct = {
+  native_sample_args args_struct = {
     .in_gc = in_gc,
     .recorder_instance = recorder_instance,
     .values = values,
@@ -137,7 +137,7 @@ static VALUE _native_sample(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
 }
 
 static VALUE native_sample_do(VALUE args) {
-  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+  native_sample_args *args_struct = (native_sample_args *) args;
 
   if (args_struct->in_gc == Qtrue) {
     record_placeholder_stack(
@@ -160,7 +160,7 @@ static VALUE native_sample_do(VALUE args) {
 }
 
 static VALUE native_sample_ensure(VALUE args) {
-  struct native_sample_args *args_struct = (struct native_sample_args *) args;
+  native_sample_args *args_struct = (native_sample_args *) args;
 
   ruby_xfree(args_struct->locations);
   sampling_buffer_free(args_struct->buffer);

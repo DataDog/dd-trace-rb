@@ -5,13 +5,13 @@
 #include <ruby.h>
 
 // Contains the operating-system specific identifier needed to fetch CPU-time, and a flag to indicate if we failed to fetch it
-typedef struct thread_cpu_time_id {
+typedef struct {
   bool valid;
   clockid_t clock_id;
 } thread_cpu_time_id;
 
 // Contains the current cpu time, and a flag to indicate if we failed to fetch it
-typedef struct thread_cpu_time {
+typedef struct {
   bool valid;
   long result_ns;
 } thread_cpu_time;

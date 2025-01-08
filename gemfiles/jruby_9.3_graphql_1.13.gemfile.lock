@@ -99,7 +99,7 @@ GEM
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     erubi (1.13.0)
-    ffi (1.17.0-java)
+    ffi (1.17.1-java)
     globalid (1.2.1)
       activesupport (>= 6.1)
     graphql (1.13.21)
