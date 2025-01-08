@@ -8,13 +8,6 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
-GIT
-  remote: https://github.com/ruby/strscan
-  revision: 041b15df4ccc067deabd85fd489b2c15961d0e2f
-  ref: 041b15df4ccc067deabd85fd489b2c15961d0e2f
-  specs:
-    strscan (3.1.1)
-
 PATH
   remote: ..
   specs:
@@ -49,7 +42,8 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
-    ffi (1.17.0)
+    ffi (1.17.1-aarch64-linux-gnu)
+    ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.25.5)
     hashdiff (1.1.1)
     json (2.7.2)
@@ -176,7 +170,6 @@ DEPENDENCIES
   simplecov!
   simplecov-cobertura (~> 2.1.0)
   stripe (= 5.15.0)
-  strscan!
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)

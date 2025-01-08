@@ -65,7 +65,7 @@ body:
 
   - type: textarea
     attributes:
-      label: How does Datadog Help You
+      label: How does Datadog help you?
       description: "Optionally, tell us why and how you're using datadog, and what your overall experience with it is!"
     validations:
       required: false
