@@ -20,7 +20,7 @@ module Datadog
           return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
 
           unless settings.respond_to?(:remote) && settings.remote.enabled
-            logger.warn("datadog: di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
+            logger.warn("di: dynamic instrumentation could not be enabled because Remote Configuration Management is not available. To enable Remote Configuration, see https://docs.datadoghq.com/agent/remote_config")
             return
           end
 
@@ -55,16 +55,16 @@ module Datadog
           # TODO add tests?
           unless settings.dynamic_instrumentation.internal.development
             if Datadog::Core::Environment::Execution.development?
-              logger.warn("datadog: di: development environment detected; not enabling dynamic instrumentation")
+              logger.warn("di: development environment detected; not enabling dynamic instrumentation")
               return false
             end
           end
           if RUBY_ENGINE != 'ruby'
-            logger.warn("datadog: di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
+            logger.warn("di: cannot enable dynamic instrumentation: MRI is required, but running on #{RUBY_ENGINE}")
             return false
           end
           if RUBY_VERSION < '2.6'
-            logger.warn("datadog: di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
+            logger.warn("di: cannot enable dynamic instrumentation: Ruby 2.6+ is required, but running on #{RUBY_VERSION}")
             return false
           end
           true
