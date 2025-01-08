@@ -10,6 +10,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     allow(settings.dynamic_instrumentation.internal).to receive(:propagate_all_exceptions).and_return(false)
     # Reduce to 1 to have the test run faster
     allow(settings.dynamic_instrumentation.internal).to receive(:min_send_interval).and_return(1)
+    allow(settings.dynamic_instrumentation.internal).to receive(:snapshot_queue_capacity).and_return(10)
   end
 
   let(:transport) do

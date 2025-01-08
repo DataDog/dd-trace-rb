@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -29,11 +29,11 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
-    ffi (1.17.0-java)
+    ffi (1.17.1-java)
     hashdiff (1.0.1)
     json-schema (2.8.1)
       addressable (>= 2.4)

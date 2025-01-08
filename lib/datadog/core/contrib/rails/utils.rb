@@ -1,9 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../analytics'
-
 module Datadog
-  module Tracing
+  module Core
     module Contrib
       module Rails
         # common utilities for Rails

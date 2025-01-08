@@ -8,18 +8,11 @@ GIT
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
 
-GIT
-  remote: https://github.com/ruby/strscan
-  revision: 041b15df4ccc067deabd85fd489b2c15961d0e2f
-  ref: 041b15df4ccc067deabd85fd489b2c15961d0e2f
-  specs:
-    strscan (3.1.1)
-
 PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -44,13 +37,14 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
     docile (1.4.0)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
-    ffi (1.17.0)
+    ffi (1.17.1-aarch64-linux-gnu)
+    ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.25.3)
     hashdiff (1.1.0)
     json (2.7.2)
@@ -162,6 +156,7 @@ GEM
       rack-protection (= 4.0.0)
       rack-session (>= 2.0.0, < 3)
       tilt (~> 2.0)
+    strscan (3.1.1)
     tilt (2.4.0)
     unicode-display_width (2.5.0)
     warning (1.4.0)
@@ -207,7 +202,6 @@ DEPENDENCIES
   rubocop-rspec (~> 2.20, < 2.21)
   simplecov!
   simplecov-cobertura (~> 2.1.0)
-  strscan!
   warning (~> 1)
   webmock (>= 3.10.0)
   webrick (>= 1.8.2)

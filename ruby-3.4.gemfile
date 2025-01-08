@@ -49,22 +49,13 @@ gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 # but given it only affects unsupported version of Ruby, it might not get merged.
 gem 'simplecov', git: 'https://github.com/DataDog/simplecov', ref: '3bb6b7ee58bf4b1954ca205f50dd44d6f41c57db'
 gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
-
-# Ruby 3.4 should be supported by strscan v3.1.1. However, the latest release of strscan is v3.1.0.
-# Pin strscan to the latest commit sha.
-#
-# TODO: Remove once v3.1.1 is released.
-gem 'strscan',
-  git: 'https://github.com/ruby/strscan',
-  ref: '041b15df4ccc067deabd85fd489b2c15961d0e2f'
-
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 gem 'webrick', '>= 1.8.2'
 
 group :check do
-  gem 'rbs', '>= 3.6.1', require: false
-  gem 'steep', '~> 1', '>= 1.7.1', require: false
+  gem 'rbs', '~> 3.7', require: false
+  gem 'steep', '~> 1', '>= 1.9.1', require: false
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
 end

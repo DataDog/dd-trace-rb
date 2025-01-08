@@ -35,7 +35,7 @@ class ProfilerSampleSerializeBenchmark
         simulate_seconds = 60
 
         (samples_per_second * simulate_seconds).times do
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD)
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, PROFILER_OVERHEAD_STACK_THREAD, false)
         end
 
         @recorder.serialize

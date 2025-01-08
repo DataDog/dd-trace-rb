@@ -27,6 +27,7 @@ RSpec.describe 'gem release process' do
            |ext/.*/.clang-format
            |Appraisals
            |CONTRIBUTING.md
+           |SECURITY.md
            |Gemfile
            |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile

@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -59,7 +59,7 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     diff-lcs (1.5.0)
     digest-crc (0.6.5)
       rake (>= 12.0.0, < 14.0.0)
@@ -80,7 +80,7 @@ GEM
       dry-logic (~> 1.4)
       zeitwerk (~> 2.6)
     erubi (1.12.0)
-    ffi (1.17.0-java)
+    ffi (1.17.1-java)
     grape (1.8.0)
       activesupport (>= 5)
       builder

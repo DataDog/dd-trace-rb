@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -37,7 +37,7 @@ GEM
       rexml
     daemons (1.4.1)
     dalli (2.7.11)
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
@@ -48,8 +48,8 @@ GEM
       multipart-post (>= 1.2, < 3)
     faraday_middleware (0.12.2)
       faraday (>= 0.7.4, < 1.0)
-    ffi (1.17.0-aarch64-linux-gnu)
-    ffi (1.17.0-x86_64-linux-gnu)
+    ffi (1.17.1-aarch64-linux-gnu)
+    ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.22.0)
     google-protobuf (3.22.0-x86_64-linux)
     hashdiff (1.0.1)

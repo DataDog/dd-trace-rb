@@ -12,7 +12,7 @@ PATH
   remote: ..
   specs:
     datadog (2.8.0)
-      datadog-ruby_core_source (~> 3.3)
+      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       msgpack
@@ -88,15 +88,15 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.6)
+    datadog-ruby_core_source (3.3.7)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.0)
     dogstatsd-ruby (5.5.0)
     erubi (1.12.0)
     extlz4 (0.3.3)
-    ffi (1.17.0-aarch64-linux-gnu)
-    ffi (1.17.0-x86_64-linux-gnu)
+    ffi (1.17.1-aarch64-linux-gnu)
+    ffi (1.17.1-x86_64-linux-gnu)
     globalid (1.1.0)
       activesupport (>= 5.0)
     google-protobuf (3.19.1)
