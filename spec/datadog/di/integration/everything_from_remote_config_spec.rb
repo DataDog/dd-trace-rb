@@ -241,7 +241,7 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'adds a probe to pending list' do
-      expect(logger).to receive(:info).with(/Received probe from RC:/)
+      expect_lazy_log(logger, :debug, /received probe from RC:/)
 
       do_rc
 
@@ -272,7 +272,7 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'instruments code and adds probe to installed list' do
-      expect(logger).to receive(:info).with(/Received probe from RC:/)
+      expect_lazy_log(logger, :debug, /received probe from RC:/)
 
       do_rc
       assert_received_and_installed
@@ -282,7 +282,7 @@ RSpec.describe 'DI integration from remote config' do
 
     context 'and target method is invoked' do
       it 'notifies about execution' do
-        expect(logger).to receive(:info).with(/Received probe from RC:/)
+        expect_lazy_log(logger, :debug, /received probe from RC:/)
 
         do_rc
         assert_received_and_installed
@@ -325,8 +325,8 @@ RSpec.describe 'DI integration from remote config' do
       end
 
       it 'installs the second, known, probe' do
-        expect(logger).to receive(:warn).with(/Unrecognized probe type:/)
-        expect(logger).to receive(:info).with(/Received probe from RC:/)
+        expect_lazy_log(logger, :debug, /Unrecognized probe type:/)
+        expect_lazy_log(logger, :debug, /received probe from RC:/)
 
         do_rc
         assert_received_and_installed
