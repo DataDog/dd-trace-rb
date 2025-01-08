@@ -31,10 +31,15 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.5.0)
     extlz4 (0.3.3)
+    ffi (1.17.1-aarch64-linux-gnu)
     ffi (1.17.1-x86_64-linux-gnu)
+    google-protobuf (3.25.5-aarch64-linux)
     google-protobuf (3.25.5-x86_64-linux)
     googleapis-common-protos-types (1.16.0)
       google-protobuf (>= 3.18, < 5.a)
+    grpc (1.67.0-aarch64-linux)
+      google-protobuf (>= 3.25, < 5.0)
+      googleapis-common-protos-types (~> 1.0)
     grpc (1.67.0-x86_64-linux)
       google-protobuf (>= 3.25, < 5.0)
       googleapis-common-protos-types (~> 1.0)
@@ -42,7 +47,10 @@ GEM
     json (2.6.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (14.3.1.1.0-aarch64-linux)
     libdatadog (14.3.1.1.0-x86_64-linux)
+    libddwaf (1.18.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -168,6 +176,7 @@ GEM
     webrick (1.8.1)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
