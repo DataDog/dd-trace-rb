@@ -88,7 +88,7 @@ module DIHelpers
 
     def expect_lazy_log(logger, meth, expected_msg)
       expect(logger).to receive(meth) do |&block|
-        if String === expected_msg
+        if expected_msg.is_a?(String)
           expect(block.call).to eq(expected_msg)
         else
           expect(block.call).to match(expected_msg)
