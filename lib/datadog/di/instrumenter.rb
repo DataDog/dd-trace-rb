@@ -310,7 +310,7 @@ module Datadog
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug {"di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+          logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
