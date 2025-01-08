@@ -48,7 +48,7 @@ RSpec.describe Datadog::DI::Component do
         end
 
         it 'returns nil' do
-          expect(logger).to receive(:debug).with(/Dynamic Instrumentation could not be enabled because Remote Configuration Management is not available/)
+          expect(logger).to receive(:warn).with(/dynamic instrumentation could not be enabled because Remote Configuration Management is not available/)
           component = described_class.build(settings, agent_settings, logger)
           expect(component).to be nil
         end
