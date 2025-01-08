@@ -18,9 +18,7 @@
 module SimpleCovCombineFix
   def combine(coverage_a, coverage_b)
     super.tap do |result|
-      if SimpleCov.branch_coverage?
-        result['branches'] ||= {}
-      end
+      result['branches'] ||= {} if SimpleCov.branch_coverage?
     end
   end
 end
