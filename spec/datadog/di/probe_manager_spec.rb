@@ -97,9 +97,7 @@ RSpec.describe Datadog::DI::ProbeManager do
 
       context 'when there is an exception during instrumentation' do
         it 'logs warning, drops probe and reraises the exception' do
-          expect(logger).to receive(:debug) do |msg|
-            expect(msg).to match(/error processing probe configuration.*Instrumentation error/)
-          end
+          expect_lazy_log(logger, :debug, /error processing probe configuration.*Instrumentation error/)
 
           expect(instrumenter).to receive(:hook) do |probe_|
             expect(probe_).to be(probe)
@@ -180,9 +178,7 @@ RSpec.describe Datadog::DI::ProbeManager do
         it 'logs warning and keeps probe in installed list' do
           expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
 
-          expect(logger).to receive(:debug) do |msg|
-            expect(msg).to match(/error removing probe.*Deinstrumentation error/)
-          end
+          expect_lazy_log(logger, :debug, /error removing probe.*Deinstrumentation error/)
 
           manager.remove_other_probes(['123'])
 
@@ -207,9 +203,7 @@ RSpec.describe Datadog::DI::ProbeManager do
             expect(instrumenter).to receive(:unhook).with(probe).and_raise("Deinstrumentation error")
             expect(instrumenter).to receive(:unhook).with(probe2)
 
-            expect(logger).to receive(:debug) do |msg|
-              expect(msg).to match(/error removing probe.*Deinstrumentation error/)
-            end
+            expect_lazy_log(logger, :debug, /error removing probe.*Deinstrumentation error/)
 
             manager.remove_other_probes(['123'])
 
