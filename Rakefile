@@ -402,6 +402,7 @@ namespace :coverage do
   # Generates one report for each Ruby version
   task :report_per_ruby_version do
     require 'simplecov'
+    require_relative 'spec/support/simplecov_fix'
 
     versions = Dir["#{ENV.fetch('COVERAGE_DIR', 'coverage')}/versions/*"].map { |f| File.basename(f) }
     versions.map do |version|
