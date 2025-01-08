@@ -157,8 +157,8 @@ module Datadog
             return_value = yield(self) unless e && !e.is_a?(StandardError)
           end
 
+          # Louis Test Code
           @errors.each do |exception|
-            puts exception[:time]
             @span_events << Datadog::Tracing::SpanEvent.new(
               exception[:exception],
               time_unix_nano: (exception[:time].to_r * 1_000_000_000).to_i
@@ -177,6 +177,16 @@ module Datadog
           # but this is not really a serious concern.
           stop
 
+          # Louis Test Code
+          # Basically checking which error caused the stoppage
+          @errors.each do |exception|
+            next if exception[:exception].equal?(e)
+
+            @span_events << Datadog::Tracing::SpanEvent.new(
+              exception[:exception],
+              time_unix_nano: (exception[:time].to_r * 1_000_000_000).to_i
+            )
+          end
           # Trigger the on_error event
           events.on_error.publish(self, e)
 
