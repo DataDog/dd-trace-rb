@@ -37,7 +37,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status, :span_events
+      attr_accessor :links, :status, :span_events, :errors
 
       def initialize(
         name,
@@ -96,6 +96,7 @@ module Datadog
         # Subscribe :on_error event
         @events.on_error.wrap_default(&on_error) if on_error.is_a?(Proc)
 
+        @errors = []
         # Start the span with start time, if given.
         start(start_time) if start_time
       end
@@ -130,6 +131,10 @@ module Datadog
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
       end
 
+      def add_error(e, timestamp)
+        @errors << { :exception => e, :time => timestamp }
+      end
+
       def measure
         raise ArgumentError, 'Must provide block to measure!' unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
@@ -151,6 +156,15 @@ module Datadog
             #   end its execution (either due to a system error or graceful shutdown).
             return_value = yield(self) unless e && !e.is_a?(StandardError)
           end
+
+          @errors.each do |exception|
+            puts exception[:time]
+            @span_events << Datadog::Tracing::SpanEvent.new(
+              exception[:exception],
+              time_unix_nano: (exception[:time].to_r * 1_000_000_000).to_i
+            )
+          end
+
         # rubocop:disable Lint/RescueException
         # Here we really want to catch *any* exception, not only StandardError,
         # as we really have no clue of what is in the block,

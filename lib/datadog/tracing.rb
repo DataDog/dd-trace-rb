@@ -26,7 +26,7 @@ module Datadog
         id: nil,
         &block
       )
-
+        puts 'custom dd-trace-rb'
         tracer.trace(
           name,
           continue_from: continue_from,
