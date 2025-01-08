@@ -23,12 +23,12 @@ module Datadog
 
       @probe_manager: untyped
 
-      def self.build: (untyped settings, untyped agent_settings, ?telemetry: untyped?) -> (nil | untyped)
+      def self.build: (untyped settings, untyped agent_settings, Core::Logger logger, ?telemetry: untyped?) -> (nil | untyped)
 
-      def self.build!: (untyped settings, untyped agent_settings, ?telemetry: untyped?) -> untyped
-      def self.environment_supported?: (untyped settings) -> (false | true)
+      def self.build!: (untyped settings, untyped agent_settings, Core::Logger logger, ?telemetry: untyped?) -> untyped
+      def self.environment_supported?: (untyped settings, Core::Logger logger) -> (false | true)
 
-      def initialize: (untyped settings, untyped agent_settings, untyped logger, ?code_tracker: untyped?, ?telemetry: untyped?) -> void
+      def initialize: (untyped settings, untyped agent_settings, Core::Logger logger, ?code_tracker: untyped?, ?telemetry: untyped?) -> void
 
       attr_reader settings: untyped
 
