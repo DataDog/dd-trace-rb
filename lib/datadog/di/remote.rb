@@ -51,7 +51,7 @@ module Datadog
                     probe = ProbeBuilder.build_from_remote_config(probe_spec)
                     payload = component.probe_notification_builder.build_received(probe)
                     component.probe_notifier_worker.add_status(payload)
-                    component.logger.info("Received probe from RC: #{probe.type} #{probe.location}")
+                    component.logger.debug("datadog: di: received probe from RC: #{probe.type} #{probe.location}")
 
                     begin
                       # TODO test exception capture
@@ -60,7 +60,7 @@ module Datadog
                     rescue => exc
                       raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                      component.logger.warn("Unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}")
+                      component.logger.debug("datadog: di: unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}")
                       component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
                       # If a probe fails to install, we will mark the content
@@ -81,7 +81,7 @@ module Datadog
                   rescue => exc
                     raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    component.logger.warn("Unhandled exception handling probe in DI remote receiver: #{exc.class}: #{exc}")
+                    component.logger.debug("datadog: di: unhandled exception handling probe in DI remote receiver: #{exc.class}: #{exc}")
                     component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
                     content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}: #{Array(exc.backtrace).join("\n")}")
@@ -95,7 +95,7 @@ module Datadog
               rescue => exc
                 raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                component.logger.warn("Unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc}")
+                component.logger.debug("datadog: di: unhandled exception removing probes in DI remote receiver: #{exc.class}: #{exc}")
                 component.telemetry&.report(exc, description: "Unhandled exception removing probes in DI remote receiver")
               end
             end

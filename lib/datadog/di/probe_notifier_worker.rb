@@ -77,7 +77,7 @@ module Datadog
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-              logger.warn("Error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
+              logger.debug("datadog: di: error in probe notifier worker: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
               telemetry&.report(exc, description: "Error in probe notifier worker")
             end
             @lock.synchronize do
@@ -184,7 +184,7 @@ module Datadog
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              logger.warn("#{self.class.name}: dropping #{event_type} because queue is full")
+              logger.debug("datadog: di: #{self.class.name}: dropping #{event_type} because queue is full")
             else
               queue << event
             end
@@ -241,7 +241,7 @@ module Datadog
               end
             rescue => exc
               raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              logger.warn("failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
+              logger.debug("datadog: di: failed to send #{event_name}: #{exc.class}: #{exc} (at #{exc.backtrace.first})")
               # Should we report this error to telemetry? Most likely failure
               # to send is due to a network issue, and trying to send a
               # telemetry message would also fail.
@@ -252,7 +252,7 @@ module Datadog
           # Normally the queue should only be consumed in this method,
           # however if anyone consumes it elsewhere we don't want to block
           # while consuming it here. Rescue ThreadError and return.
-          logger.warn("Unexpected #{event_name} queue underflow - consumed elsewhere?")
+          logger.debug("datadog: di: unexpected #{event_name} queue underflow - consumed elsewhere?")
           telemetry&.report(exc, description: "Unexpected #{event_name} queue underflow")
         ensure
           @lock.synchronize do
