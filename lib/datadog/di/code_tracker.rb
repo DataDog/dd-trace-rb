@@ -91,7 +91,7 @@ module Datadog
             # before release.
             if component = DI.current_component # steep:ignore
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
-              component.logger.debug { "datadog: di: unhandled exception in script_compiled trace point: #{exc.class}: #{exc}" }
+              component.logger.debug("datadog: di: unhandled exception in script_compiled trace point: #{exc.class}: #{exc}")
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
               # TODO test this path
             else

@@ -304,13 +304,13 @@ module Datadog
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.debug { "datadog: di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+            logger.debug("datadog: di: unhandled exception in line trace point: #{exc.class}: #{exc}")
             telemetry&.report(exc, description: "Unhandled exception in line trace point")
             # TODO test this path
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.debug {"datadog: di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
+          logger.debug("datadog: di: unhandled exception in line trace point: #{exc.class}: #{exc}")
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
@@ -356,7 +356,7 @@ module Datadog
           hook_line(probe, &block)
         else
           # TODO add test coverage for this path
-          logger.debug { "datadog: di: unknown probe type to hook: #{probe}" }
+          logger.debug("datadog: di: unknown probe type to hook: #{probe}")
         end
       end
 
@@ -367,7 +367,7 @@ module Datadog
           unhook_line(probe)
         else
           # TODO add test coverage for this path
-          logger.debug { "datadog: di: unknown probe type to unhook: #{probe}" }
+          logger.debug("datadog: di: unknown probe type to unhook: #{probe}")
         end
       end
 
