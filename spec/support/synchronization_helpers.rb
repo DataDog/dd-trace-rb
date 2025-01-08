@@ -67,12 +67,12 @@ module SynchronizationHelpers
     raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
 
     spec = if seconds
-      "#{seconds} seconds"
-    elsif attempts || backoff
-      "#{attempts} attempts with backoff #{backoff}"
-    else
-      'none'
-    end
+             "#{seconds} seconds"
+           elsif attempts || backoff
+             "#{attempts} attempts with backoff #{backoff}"
+           else
+             'none'
+           end
 
     if seconds
       attempts = seconds * 10
