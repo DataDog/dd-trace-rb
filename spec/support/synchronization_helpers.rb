@@ -66,6 +66,14 @@ module SynchronizationHelpers
   def try_wait_until(seconds: nil, attempts: nil, backoff: nil)
     raise 'Provider either `seconds` or `attempts` & `backoff`, not both' if seconds && (attempts || backoff)
 
+    spec = if seconds
+      "#{seconds} seconds"
+    elsif attempts || backoff
+      "#{attempts} attempts with backoff #{backoff}"
+    else
+      'none'
+    end
+
     if seconds
       attempts = seconds * 10
       backoff = 0.1
@@ -74,6 +82,8 @@ module SynchronizationHelpers
       attempts ||= 50
       backoff ||= 0.1
     end
+
+    start_time = Datadog::Core::Utils::Time.get_time
 
     # It's common for tests to want to run simple tasks in a background thread
     # but call this method without the thread having even time to start.
@@ -94,7 +104,10 @@ module SynchronizationHelpers
       end
     end
 
-    raise('Wait time exhausted!')
+    elapsed = Datadog::Core::Utils::Time.get_time - start_time
+    actual = "#{'%.2f' % elapsed} seconds, #{attempts} attempts with backoff #{backoff}"
+
+    raise("Wait time exhausted! Requested: #{spec}, waited: #{actual}")
   end
 
   def test_repeat
