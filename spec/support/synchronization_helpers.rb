@@ -105,7 +105,7 @@ module SynchronizationHelpers
     end
 
     elapsed = Datadog::Core::Utils::Time.get_time - start_time
-    actual = "#{'%.2f' % elapsed} seconds, #{attempts} attempts with backoff #{backoff}"
+    actual = "#{'%.2f' % elapsed} seconds, #{attempts} attempts with backoff #{backoff}" # rubocop:disable Style/FormatString
 
     raise("Wait time exhausted! Requested: #{spec}, waited: #{actual}")
   end
