@@ -3,7 +3,7 @@
 require_relative '../integration'
 require_relative 'configuration/settings'
 require_relative 'patcher'
-require_relative '../rails/utils'
+require_relative '../../../core/contrib/rails/utils'
 
 module Datadog
   module Tracing
@@ -17,6 +17,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :action_cable, auto_patch: false
+          def self.gem_name
+            'actioncable'
+          end
 
           def self.version
             Gem.loaded_specs['actioncable'] && Gem.loaded_specs['actioncable'].version
@@ -33,7 +36,7 @@ module Datadog
           # enabled by rails integration so should only auto instrument
           # if detected that it is being used without rails
           def auto_instrument?
-            !Contrib::Rails::Utils.railtie_supported?
+            !Core::Contrib::Rails::Utils.railtie_supported?
           end
 
           def new_configuration

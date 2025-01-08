@@ -1,11 +1,11 @@
 module Datadog
-  module Tracing
+  module Core
     module Contrib
       module Rails
         module Utils
-          def self.app_name: () -> untyped
+          def self.app_name: () -> String
 
-          def self.railtie_supported?: () -> untyped
+          def self.railtie_supported?: () -> bool
         end
       end
     end
