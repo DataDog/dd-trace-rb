@@ -48,3 +48,10 @@ body:
       description: Add any other context or screenshots about the feature request here
     validations:
       required: false
+
+  - type: textarea
+    attributes:
+      label: How does Datadog help you?
+      description: "Optionally, tell us why and how you're using datadog, and what your overall experience with it is!"
+    validations:
+      required: false
