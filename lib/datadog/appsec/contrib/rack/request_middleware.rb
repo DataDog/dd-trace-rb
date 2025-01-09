@@ -86,7 +86,7 @@ module Datadog
               request_return[2],
               request_return[0],
               request_return[1],
-              scope: ctx,
+              context: ctx,
             )
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)

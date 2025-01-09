@@ -17,19 +17,19 @@ RSpec.describe Datadog::AppSec::Context do
   end
 
   describe '.activate_context' do
-    context 'with no active scope' do
+    context 'with no active context' do
       subject(:activate_context) { described_class.activate_context(trace, span, processor) }
 
-      it 'returns a new scope' do
+      it 'returns a new context' do
         expect(activate_context).to be_a described_class
       end
 
-      it 'sets the active scope' do
+      it 'sets the active context' do
         expect { activate_context }.to change { described_class.active_context }.from(nil).to be_a described_class
       end
     end
 
-    context 'with an active scope' do
+    context 'with an active context' do
       before do
         described_class.activate_context(trace, span, processor)
       end
@@ -40,26 +40,26 @@ RSpec.describe Datadog::AppSec::Context do
         expect { activate_context }.to raise_error Datadog::AppSec::Context::ActiveScopeError
       end
 
-      it 'does not change the active scope' do
+      it 'does not change the active context' do
         expect { activate_context rescue nil }.to_not(change { described_class.active_context })
       end
     end
   end
 
   describe '.deactivate_context' do
-    context 'with no active scope' do
+    context 'with no active context' do
       subject(:deactivate_context) { described_class.deactivate_context }
 
       it 'raises ActiveContextError' do
         expect { deactivate_context }.to raise_error Datadog::AppSec::Context::InactiveScopeError
       end
 
-      it 'does not change the active scope' do
+      it 'does not change the active context' do
         expect { deactivate_context rescue nil }.to_not(change { described_class.active_context })
       end
     end
 
-    context 'with an active scope' do
+    context 'with an active context' do
       let(:active_context) { described_class.active_context }
       subject(:deactivate_context) { described_class.deactivate_context }
 
@@ -71,7 +71,7 @@ RSpec.describe Datadog::AppSec::Context do
         expect(active_context).to receive(:finalize).and_call_original
       end
 
-      it 'unsets the active scope' do
+      it 'unsets the active context' do
         expect { deactivate_context }.to change { described_class.active_context }.from(active_context).to nil
       end
     end

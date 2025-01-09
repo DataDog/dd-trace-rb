@@ -213,7 +213,7 @@ RSpec.describe Datadog::Kit::Identity do
 
     context 'appsec' do
       let(:appsec_active_context) { nil }
-      before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_context) }
+      before { allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context) }
 
       context 'when is enabled' do
         let(:appsec_active_context) do

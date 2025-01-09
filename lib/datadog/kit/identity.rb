@@ -66,7 +66,7 @@ module Datadog
               active_span.set_tag("usr.#{k}", v) unless v.nil?
             end
 
-            if Datadog::AppSec.active_scope
+            if Datadog::AppSec.active_context
               user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id)
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
@@ -78,7 +78,7 @@ module Datadog
         private
 
         def set_trace_and_span_context(method, trace = nil, span = nil)
-          if (appsec_context = Datadog::AppSec.active_scope)
+          if (appsec_context = Datadog::AppSec.active_context)
             trace = appsec_context.trace
             span = appsec_context.service_entry_span
           end

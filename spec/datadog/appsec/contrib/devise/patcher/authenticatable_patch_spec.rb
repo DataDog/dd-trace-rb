@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
     end
   end
 
-  context 'AppSec scope is nil' do
+  context 'AppSec context is nil' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
     let(:mode) { 'safe' }

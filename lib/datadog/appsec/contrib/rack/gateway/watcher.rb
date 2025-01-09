@@ -57,7 +57,7 @@ module Datadog
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
                   event = nil
-                  context = gateway_response.scope
+                  context = gateway_response.context
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Response.subscribe(engine, context.processor_context) do |result|

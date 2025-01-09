@@ -19,7 +19,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       body,
       200,
       headers,
-      scope: context,
+      context: context,
     )
   end
 

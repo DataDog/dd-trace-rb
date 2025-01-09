@@ -9,7 +9,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   shared_context 'uses AppSec context' do
-    before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_context) }
+    before { allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context) }
     let(:appsec_span) { trace_op.build_span('root') }
 
     context 'when is present' do
@@ -19,7 +19,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         Datadog::AppSec::Context.new(trace_op, appsec_span, processor)
       end
 
-      it 'sets tags on AppSec scope' do
+      it 'sets tags on AppSec span' do
         event
         expect(appsec_span.has_tag?(event_tag)).to eq true
       end

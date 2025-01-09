@@ -21,7 +21,7 @@ module Datadog
 
       class << self
         def activate_context(trace, service_entry_span, processor)
-          raise ActiveScopeError, 'another scope is active, nested scopes are not supported' if active_context
+          raise ActiveScopeError, 'another context is active, nested contexts are not supported' if active_context
 
           context = processor.new_context
           self.active_context = new(trace, service_entry_span, context)

@@ -14,8 +14,8 @@ module Datadog
         Datadog.configuration.appsec.enabled
       end
 
-      def active_scope
-        Datadog::AppSec::Context.active_scope
+      def active_context
+        Datadog::AppSec::Context.active_context
       end
 
       def processor
