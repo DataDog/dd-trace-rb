@@ -784,7 +784,7 @@ RSpec.describe Datadog::DI::Instrumenter do
         # Needed for the cleanup unhook call.
         allow(probe).to receive(:method?).and_return(false)
         allow(probe).to receive(:line?).and_return(false)
-        allow(logger).to receive(:warn)
+        allow(logger).to receive(:debug)
       end
 
       it 'raises ArgumentError' do

@@ -85,6 +85,16 @@ module DIHelpers
     def instance_double_agent_settings
       instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
     end
+
+    def expect_lazy_log(logger, meth, expected_msg)
+      expect(logger).to receive(meth) do |&block|
+        if expected_msg.is_a?(String)
+          expect(block.call).to eq(expected_msg)
+        else
+          expect(block.call).to match(expected_msg)
+        end
+      end
+    end
   end
 end
 

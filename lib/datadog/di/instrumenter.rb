@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-# rubocop:disable Lint/AssignmentInCondition
+require_relative '../core/utils/time'
 
-require 'benchmark'
+# rubocop:disable Lint/AssignmentInCondition
 
 module Datadog
   module DI
@@ -115,22 +115,21 @@ module Datadog
                   depth: probe.max_capture_depth || settings.dynamic_instrumentation.max_capture_depth,
                   attribute_count: probe.max_capture_attribute_count || settings.dynamic_instrumentation.max_capture_attribute_count)
               end
-              rv = nil
+              start_time = Core::Utils::Time.get_time
               # Under Ruby 2.6 we cannot just call super(*args, **kwargs)
               # for methods defined via method_missing.
-              duration = Benchmark.realtime do # steep:ignore
-                rv = if args.any?
-                  if kwargs.any?
-                    super(*args, **kwargs, &target_block)
-                  else
-                    super(*args, &target_block)
-                  end
-                elsif kwargs.any?
-                  super(**kwargs, &target_block)
+              rv = if args.any?
+                if kwargs.any?
+                  super(*args, **kwargs, &target_block)
                 else
-                  super(&target_block)
+                  super(*args, &target_block)
                 end
+              elsif kwargs.any?
+                super(**kwargs, &target_block)
+              else
+                super(&target_block)
               end
+              duration = Core::Utils::Time.get_time - start_time
               # The method itself is not part of the stack trace because
               # we are getting the stack trace from outside of the method.
               # Add the method in manually as the top frame.
@@ -305,13 +304,13 @@ module Datadog
             end
           rescue => exc
             raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-            logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+            logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
             telemetry&.report(exc, description: "Unhandled exception in line trace point")
             # TODO test this path
           end
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.warn("Unhandled exception in line trace point: #{exc.class}: #{exc}")
+          logger.debug { "di: unhandled exception in line trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in line trace point")
           # TODO test this path
         end
@@ -357,7 +356,7 @@ module Datadog
           hook_line(probe, &block)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to hook: #{probe}")
+          logger.debug { "di: unknown probe type to hook: #{probe}" }
         end
       end
 
@@ -368,7 +367,7 @@ module Datadog
           unhook_line(probe)
         else
           # TODO add test coverage for this path
-          logger.warn("Unknown probe type to unhook: #{probe}")
+          logger.debug { "di: unknown probe type to unhook: #{probe}" }
         end
       end
 

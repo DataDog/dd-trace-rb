@@ -23,6 +23,8 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
+  let(:logger) { instance_double(Logger) }
+
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
   let(:transaction) do
@@ -59,7 +61,7 @@ RSpec.describe 'DI integration from remote config' do
   let(:receiver) { remote.receivers(telemetry)[0] }
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings)
+    Datadog::DI::Component.build!(settings, agent_settings, logger)
   end
 
   let(:propagate_all_exceptions) { true }
@@ -239,6 +241,8 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'adds a probe to pending list' do
+      expect_lazy_log(logger, :debug, /received probe from RC:/)
+
       do_rc
 
       expect(payloads).to be_a(Array)
@@ -268,6 +272,8 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'instruments code and adds probe to installed list' do
+      expect_lazy_log(logger, :debug, /received probe from RC:/)
+
       do_rc
       assert_received_and_installed
 
@@ -276,6 +282,8 @@ RSpec.describe 'DI integration from remote config' do
 
     context 'and target method is invoked' do
       it 'notifies about execution' do
+        expect_lazy_log(logger, :debug, /received probe from RC:/)
+
         do_rc
         assert_received_and_installed
 
@@ -317,6 +325,9 @@ RSpec.describe 'DI integration from remote config' do
       end
 
       it 'installs the second, known, probe' do
+        expect_lazy_log(logger, :debug, /Unrecognized probe type:/)
+        expect_lazy_log(logger, :debug, /received probe from RC:/)
+
         do_rc
         assert_received_and_installed
 
