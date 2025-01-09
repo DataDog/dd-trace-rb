@@ -2,7 +2,7 @@
 
 require_relative 'appsec/configuration'
 require_relative 'appsec/extensions'
-require_relative 'appsec/scope'
+require_relative 'appsec/context'
 require_relative 'appsec/ext'
 require_relative 'appsec/utils'
 
@@ -15,7 +15,7 @@ module Datadog
       end
 
       def active_scope
-        Datadog::AppSec::Scope.active_scope
+        Datadog::AppSec::Context.active_scope
       end
 
       def processor

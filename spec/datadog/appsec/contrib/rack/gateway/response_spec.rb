@@ -2,7 +2,7 @@
 
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/rack/gateway/response'
-require 'datadog/appsec/scope'
+require 'datadog/appsec/context'
 require 'rack'
 
 RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
@@ -15,7 +15,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Gateway::Response do
       body,
       200,
       headers,
-      scope: instance_double(Datadog::AppSec::Scope)
+      scope: instance_double(Datadog::AppSec::Context)
     )
   end
 

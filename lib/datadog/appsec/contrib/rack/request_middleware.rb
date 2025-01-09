@@ -45,7 +45,7 @@ module Datadog
 
             processor = nil
             ready = false
-            scope = nil
+            ctx = nil
 
             # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
@@ -56,8 +56,8 @@ module Datadog
               processor = Datadog::AppSec.processor
 
               if !processor.nil? && processor.ready?
-                scope = Datadog::AppSec::Scope.activate_scope(active_trace, active_span, processor)
-                env[Datadog::AppSec::Ext::SCOPE_KEY] = scope
+                ctx = Datadog::AppSec::Context.activate_scope(active_trace, active_span, processor)
+                env[Datadog::AppSec::Ext::SCOPE_KEY] = ctx
                 ready = true
               end
             end
@@ -68,8 +68,8 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            add_appsec_tags(processor, scope)
-            add_request_tags(scope, env)
+            add_appsec_tags(processor, ctx)
+            add_request_tags(ctx, env)
 
             request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               Instrumentation.gateway.push('rack.request', gateway_request) do
@@ -86,27 +86,27 @@ module Datadog
               request_return[2],
               request_return[0],
               request_return[1],
-              scope: scope,
+              scope: ctx,
             )
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 
-            result = scope.processor_context.extract_schema
+            result = ctx.processor_context.extract_schema
 
             if result
-              scope.processor_context.events << {
-                trace: scope.trace,
-                span: scope.service_entry_span,
+              ctx.processor_context.events << {
+                trace: ctx.trace,
+                span: ctx.service_entry_span,
                 waf_result: result,
               }
             end
 
-            scope.processor_context.events.each do |e|
+            ctx.processor_context.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(scope.service_entry_span, *scope.processor_context.events)
+            AppSec::Event.record(ctx.service_entry_span, *ctx.processor_context.events)
 
             if response_response
               blocked_event = response_response.find { |action, _options| action == :block }
@@ -115,9 +115,9 @@ module Datadog
 
             request_return
           ensure
-            if scope
-              add_waf_runtime_tags(scope)
-              Datadog::AppSec::Scope.deactivate_scope
+            if ctx
+              add_waf_runtime_tags(ctx)
+              Datadog::AppSec::Context.deactivate_scope
             end
           end
           # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
@@ -144,9 +144,9 @@ module Datadog
             Datadog::Tracing.active_span
           end
 
-          def add_appsec_tags(processor, scope)
-            span = scope.service_entry_span
-            trace = scope.trace
+          def add_appsec_tags(processor, context)
+            span = context.service_entry_span
+            trace = context.trace
 
             return unless trace && span
 
@@ -181,8 +181,8 @@ module Datadog
             end
           end
 
-          def add_request_tags(scope, env)
-            span = scope.service_entry_span
+          def add_request_tags(context, env)
+            span = context.service_entry_span
 
             return unless span
 
@@ -204,9 +204,9 @@ module Datadog
             end
           end
 
-          def add_waf_runtime_tags(scope)
-            span = scope.service_entry_span
-            context = scope.processor_context
+          def add_waf_runtime_tags(context)
+            span = context.service_entry_span
+            context = context.processor_context
 
             return unless span && context
 

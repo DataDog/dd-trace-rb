@@ -9,8 +9,8 @@ module Datadog
           module_function
 
           def detect_sql_injection(sql, adapter_name)
-            scope = AppSec.active_scope
-            return unless scope
+            context = AppSec.active_scope
+            return unless context
 
             # libddwaf expects db system to be lowercase,
             # in case of sqlite adapter, libddwaf expects 'sqlite' as db system
@@ -23,19 +23,19 @@ module Datadog
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
-            result = scope.processor_context.run({}, ephemeral_data, waf_timeout)
+            result = context.processor_context.run({}, ephemeral_data, waf_timeout)
 
             if result.status == :match
-              Datadog::AppSec::Event.tag_and_keep!(scope, result)
+              Datadog::AppSec::Event.tag_and_keep!(context, result)
 
               event = {
                 waf_result: result,
-                trace: scope.trace,
-                span: scope.service_entry_span,
+                trace: context.trace,
+                span: context.service_entry_span,
                 sql: sql,
                 actions: result.actions
               }
-              scope.processor_context.events << event
+              context.processor_context.events << event
             end
           end
 

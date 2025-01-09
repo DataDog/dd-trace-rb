@@ -5,7 +5,7 @@ require 'time'
 require 'datadog/tracing/trace_operation'
 require 'datadog/kit/identity'
 
-require 'datadog/appsec/scope'
+require 'datadog/appsec/context'
 
 RSpec.describe Datadog::Kit::Identity do
   subject(:trace_op) { Datadog::Tracing::TraceOperation.new }
@@ -212,16 +212,16 @@ RSpec.describe Datadog::Kit::Identity do
     end
 
     context 'appsec' do
-      let(:appsec_active_scope) { nil }
-      before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_scope) }
+      let(:appsec_active_context) { nil }
+      before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_context) }
 
       context 'when is enabled' do
-        let(:appsec_active_scope) do
+        let(:appsec_active_context) do
           processor = instance_double('Datadog::Appsec::Processor')
           trace = trace_op
           span = trace.build_span('root')
 
-          Datadog::AppSec::Scope.new(trace, span, processor)
+          Datadog::AppSec::Context.new(trace, span, processor)
         end
 
         before do

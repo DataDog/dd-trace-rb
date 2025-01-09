@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/scope'
+require 'datadog/appsec/context'
 require 'datadog/appsec/contrib/rack/gateway/response'
 require 'datadog/appsec/contrib/rack/reactive/response'
 require 'datadog/appsec/reactive/engine'
@@ -10,7 +10,7 @@ require 'datadog/appsec/reactive/shared_examples'
 RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
   let(:engine) { Datadog::AppSec::Reactive::Engine.new }
   let(:processor_context) { instance_double(Datadog::AppSec::Processor::Context) }
-  let(:scope) { instance_double(Datadog::AppSec::Scope, processor_context: processor_context) }
+  let(:context) { instance_double(Datadog::AppSec::Context, processor_context: processor_context) }
   let(:body) { ['Ok'] }
   let(:headers) { { 'content-type' => 'text/html', 'set-cookie' => 'foo' } }
 
@@ -19,7 +19,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Response do
       body,
       200,
       headers,
-      scope: scope,
+      scope: context,
     )
   end
 

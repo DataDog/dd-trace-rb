@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
     if appsec_enabled
       allow(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
 
-      allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if track_user_events_enabled
+      allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_context) if track_user_events_enabled
     end
   end
 
@@ -71,7 +71,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
     let(:mode) { 'safe' }
-    let(:appsec_scope) { nil }
+    let(:appsec_context) { nil }
 
     it 'do not tracks event' do
       expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_login_success)
@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'when logging in from Rememberable devise strategy' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
 
     let(:mock_klass) do
       Class.new do
@@ -109,7 +109,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'successful login' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
 
     context 'with resource ID' do
       context 'safe mode' do
@@ -117,8 +117,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: resource.id,
             **{}
           )
@@ -131,8 +131,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: resource.id,
             **{ username: 'John', email: 'hello@gmail.com' }
           )
@@ -149,8 +149,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: nil,
             **{}
           )
@@ -163,8 +163,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: nil,
             **{ username: 'John', email: 'hello@gmail.com' }
           )
@@ -177,7 +177,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'unsuccessful login' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
 
     context 'with resource' do
       context 'safe mode' do
@@ -185,8 +185,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: resource.id,
             user_exists: true,
             **{}
@@ -200,8 +200,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: resource.id,
             user_exists: true,
             **{ username: 'John', email: 'hello@gmail.com' }
@@ -217,8 +217,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: nil,
             user_exists: false,
             **{}
@@ -232,8 +232,8 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
 
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
+            appsec_context.trace,
+            appsec_context.service_entry_span,
             user_id: nil,
             user_exists: false,
             **{}

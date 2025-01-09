@@ -61,7 +61,6 @@ RSpec.describe Datadog::AppSec::Context do
 
     context 'with an active scope' do
       let(:active_scope) { described_class.active_scope }
-
       subject(:deactivate_scope) { described_class.deactivate_scope }
 
       before do
@@ -81,14 +80,12 @@ RSpec.describe Datadog::AppSec::Context do
   describe '.active_scope' do
     subject(:active_scope) { described_class.active_scope }
 
-    context 'with no active scope' do
+    context 'with no active context' do
       it { is_expected.to be_nil }
     end
 
-    context 'with an active scope' do
-      before do
-        described_class.activate_scope(trace, span, processor)
-      end
+    context 'with an active context' do
+      before { described_class.activate_scope(trace, span, processor) }
 
       it { is_expected.to be_a described_class }
     end

@@ -8,15 +8,15 @@ require 'datadog/kit/appsec/events'
 RSpec.describe Datadog::Kit::AppSec::Events do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
-  shared_context 'uses AppSec scope' do
-    before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_scope) }
+  shared_context 'uses AppSec context' do
+    before { allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_active_context) }
     let(:appsec_span) { trace_op.build_span('root') }
 
     context 'when is present' do
-      let(:appsec_active_scope) do
+      let(:appsec_active_context) do
         processor = instance_double('Datadog::Appsec::Processor')
 
-        Datadog::AppSec::Scope.new(trace_op, appsec_span, processor)
+        Datadog::AppSec::Context.new(trace_op, appsec_span, processor)
       end
 
       it 'sets tags on AppSec scope' do
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     end
 
     context 'when is not present' do
-      let(:appsec_active_scope) { nil }
+      let(:appsec_active_context) { nil }
 
       it 'sets tags on active_span' do
         trace_op.measure('root') do |span, _trace|
@@ -87,7 +87,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       expect(user_argument).to eql(user_argument_dup)
     end
 
-    it_behaves_like 'uses AppSec scope' do
+    it_behaves_like 'uses AppSec context' do
       let(:event_tag) { 'appsec.events.users.login.success.track' }
       subject(:event) { described_class.track_login_success(trace_op, user: { id: '42' }) }
     end
@@ -143,7 +143,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
-    it_behaves_like 'uses AppSec scope' do
+    it_behaves_like 'uses AppSec context' do
       let(:event_tag) { 'appsec.events.users.login.failure.track' }
       subject(:event) { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true) }
     end
@@ -193,7 +193,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       expect(user_argument).to eql(user_argument_dup)
     end
 
-    it_behaves_like 'uses AppSec scope' do
+    it_behaves_like 'uses AppSec context' do
       let(:event_tag) { 'appsec.events.users.signup.track' }
       subject(:event) { described_class.track_signup(trace_op, user: { id: '42' }, foo: 'bar') }
     end
@@ -219,7 +219,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
-    it_behaves_like 'uses AppSec scope' do
+    it_behaves_like 'uses AppSec context' do
       let(:event_tag) { 'appsec.events.foo.track' }
       subject(:event) { described_class.track('foo', trace_op) }
     end

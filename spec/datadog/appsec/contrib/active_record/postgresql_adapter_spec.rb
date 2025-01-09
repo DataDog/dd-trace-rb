@@ -53,7 +53,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
       c.appsec.instrument :active_record
     end
 
-    Datadog::AppSec::Scope.activate_scope(trace, span, processor)
+    Datadog::AppSec::Context.activate_scope(trace, span, processor)
 
     raise_on_rails_deprecation!
   end
@@ -61,7 +61,7 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
   after do
     Datadog.configuration.reset!
 
-    Datadog::AppSec::Scope.deactivate_scope
+    Datadog::AppSec::Context.deactivate_scope
     processor.finalize
   end
 
