@@ -2,6 +2,8 @@
 
 # rubocop:disable Lint/AssignmentInCondition
 
+require_relative 'error'
+
 module Datadog
   module DI
     # Tracks loaded Ruby code by source file and maintains a map from
@@ -87,9 +89,10 @@ module Datadog
           # rescue any exceptions that might not be handled to not break said
           # customer applications.
           rescue => exc
-            # TODO we do not have DI.component defined yet, remove steep:ignore
-            # before release.
-            if component = DI.current_component # steep:ignore
+            # Code tracker may be loaded without the rest of DI,
+            # in which case DI.component will not yet be defined,
+            # but we will have DI.current_component (set to nil).
+            if component = DI.current_component
               raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
               component.logger.debug { "di: unhandled exception in script_compiled trace point: #{exc.class}: #{exc}" }
               component.telemetry&.report(exc, description: "Unhandled exception in script_compiled trace point")
