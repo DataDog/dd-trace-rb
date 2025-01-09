@@ -57,7 +57,7 @@ module Datadog
 
               if !processor.nil? && processor.ready?
                 ctx = Datadog::AppSec::Context.activate_scope(active_trace, active_span, processor)
-                env[Datadog::AppSec::Ext::SCOPE_KEY] = ctx
+                env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
                 ready = true
               end
             end
@@ -125,7 +125,7 @@ module Datadog
           private
 
           def active_scope(env)
-            env[Datadog::AppSec::Ext::SCOPE_KEY]
+            env[Datadog::AppSec::Ext::CONTEXT_KEY]
           end
 
           def active_trace

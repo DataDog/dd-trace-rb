@@ -17,7 +17,7 @@ module Datadog
           end
 
           def call(env)
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return @app.call(env) unless context
 

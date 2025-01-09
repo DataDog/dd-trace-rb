@@ -26,7 +26,7 @@ module Datadog
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
                   event = nil
-                  context = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Request.subscribe(engine, context.processor_context) do |result|
@@ -88,7 +88,7 @@ module Datadog
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
                   event = nil
-                  context = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::RequestBody.subscribe(engine, context.processor_context) do |result|

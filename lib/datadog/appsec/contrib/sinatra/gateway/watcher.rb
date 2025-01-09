@@ -24,7 +24,7 @@ module Datadog
               def watch_request_dispatch(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   event = nil
-                  context = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::RequestBody.subscribe(engine, context.processor_context) do |result|
@@ -55,7 +55,7 @@ module Datadog
               def watch_request_routed(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   event = nil
-                  context = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
                   Sinatra::Reactive::Routed.subscribe(engine, context.processor_context) do |result|
