@@ -20,7 +20,7 @@ module Datadog
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user', :appsec) do |stack, user|
                 event = nil
-                context = Datadog::AppSec.active_scope
+                context = Datadog::AppSec.active_context
                 engine = AppSec::Reactive::Engine.new
 
                 Monitor::Reactive::SetUser.subscribe(engine, context.processor_context) do |result|

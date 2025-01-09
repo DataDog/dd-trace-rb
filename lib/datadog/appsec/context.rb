@@ -4,6 +4,9 @@ module Datadog
   module AppSec
     # Write desciption TODO
     class Context
+      InactiveScopeError = Class.new(StandardError)
+      ActiveScopeError = Class.new(StandardError)
+
       attr_reader :trace, :service_entry_span, :processor_context
 
       def initialize(trace, service_entry_span, processor_context)
@@ -17,42 +20,39 @@ module Datadog
       end
 
       class << self
-        def activate_scope(trace, service_entry_span, processor)
-          raise ActiveScopeError, 'another scope is active, nested scopes are not supported' if active_scope
+        def activate_context(trace, service_entry_span, processor)
+          raise ActiveScopeError, 'another scope is active, nested scopes are not supported' if active_context
 
           context = processor.new_context
-          self.active_scope = new(trace, service_entry_span, context)
+          self.active_context = new(trace, service_entry_span, context)
         end
 
-        def deactivate_scope
-          raise InactiveScopeError, 'no scope is active, nested scopes are not supported' unless active_scope
+        def deactivate_context
+          raise InactiveScopeError, 'no context is active, nested contexts are not supported' unless active_context
 
-          scope = active_scope
+          context = active_context
 
-          reset_active_scope
+          reset_active_context
 
-          scope.finalize
+          context.finalize
         end
 
-        def active_scope
-          Thread.current[:datadog_appsec_active_scope]
+        def active_context
+          Thread.current[Ext::ACTIVE_CONTEXT_KEY]
         end
 
         private
 
-        def active_scope=(scope)
-          raise ArgumentError, 'not a Datadog::AppSec::Scope' unless scope.instance_of?(Context)
+        def active_context=(context)
+          raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
 
-          Thread.current[:datadog_appsec_active_scope] = scope
+          Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
 
-        def reset_active_scope
-          Thread.current[:datadog_appsec_active_scope] = nil
+        def reset_active_context
+          Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
       end
-
-      class InactiveScopeError < StandardError; end
-      class ActiveScopeError < StandardError; end
     end
   end
 end

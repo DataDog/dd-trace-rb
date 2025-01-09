@@ -43,7 +43,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
     if appsec_enabled
       allow(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
 
-      allow(Datadog::AppSec).to receive(:active_scope).and_return(appsec_context) if track_user_events_enabled
+      allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_context) if track_user_events_enabled
     end
   end
 

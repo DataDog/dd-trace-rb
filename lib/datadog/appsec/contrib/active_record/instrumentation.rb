@@ -9,7 +9,7 @@ module Datadog
           module_function
 
           def detect_sql_injection(sql, adapter_name)
-            context = AppSec.active_scope
+            context = AppSec.active_context
             return unless context
 
             # libddwaf expects db system to be lowercase,

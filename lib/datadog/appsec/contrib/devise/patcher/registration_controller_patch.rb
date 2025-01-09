@@ -20,7 +20,7 @@ module Datadog
 
               automated_track_user_events_mode = track_user_events_configuration.mode
 
-              appsec_context = Datadog::AppSec.active_scope
+              appsec_context = Datadog::AppSec.active_context
               return super unless appsec_context
 
               super do |resource|

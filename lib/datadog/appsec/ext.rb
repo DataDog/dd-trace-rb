@@ -5,6 +5,7 @@ module Datadog
     module Ext
       INTERRUPT = :datadog_appsec_interrupt
       CONTEXT_KEY = 'datadog.appsec.context'
+      ACTIVE_CONTEXT_KEY = :datadog_appsec_active_context
 
       TAG_APPSEC_ENABLED = '_dd.appsec.enabled'
       TAG_APM_ENABLED = '_dd.apm.enabled'

@@ -54,7 +54,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
     if appsec_enabled
       expect(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
 
-      expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_context) if track_user_events_enabled
+      expect(Datadog::AppSec).to receive(:active_context).and_return(appsec_context) if track_user_events_enabled
     end
   end
 

@@ -50,13 +50,13 @@ module Datadog
             # For a given request, keep using the first Rack stack scope for
             # nested apps. Don't set `context` local variable so that on popping
             # out of this nested stack we don't finalize the parent's context
-            return @app.call(env) if active_scope(env)
+            return @app.call(env) if active_context(env)
 
             Datadog::AppSec.reconfigure_lock do
               processor = Datadog::AppSec.processor
 
               if !processor.nil? && processor.ready?
-                ctx = Datadog::AppSec::Context.activate_scope(active_trace, active_span, processor)
+                ctx = Datadog::AppSec::Context.activate_context(active_trace, active_span, processor)
                 env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
                 ready = true
               end
@@ -117,14 +117,14 @@ module Datadog
           ensure
             if ctx
               add_waf_runtime_tags(ctx)
-              Datadog::AppSec::Context.deactivate_scope
+              Datadog::AppSec::Context.deactivate_context
             end
           end
           # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
 
           private
 
-          def active_scope(env)
+          def active_context(env)
             env[Datadog::AppSec::Ext::CONTEXT_KEY]
           end
 
