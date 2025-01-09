@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 
+require 'ostruct'
 require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
