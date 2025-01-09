@@ -23,9 +23,8 @@ module Datadog
       # Activates code tracking. Normally this method should be called
       # when the application starts. If instrumenting third-party code,
       # code tracking needs to be enabled before the third-party libraries
-      # are loaded. If you definitely will not be instrumenting
-      # third-party libraries, activating tracking after third-party libraries
-      # have been loaded may improve lookup performance.
+      # are loaded. Any third-party code loaded before code tracking is
+      # activated will NOT be instrumentable using dynamic instrumentation.
       #
       # TODO test that activating tracker multiple times preserves
       # existing mappings in the registry
