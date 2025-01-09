@@ -4,6 +4,7 @@ require 'open3'
 RSpec.describe 'DI initializer' do
   di_test
 
+  # rubocop:disable Lint/ConstantDefinitionInBlock
   BOOTSTRAP_SCRIPT = <<-SCRIPT
     if defined?(Datadog) && Datadog.constants != %i(VERSION)
       raise "Datadog code loaded too early"
@@ -38,6 +39,7 @@ RSpec.describe 'DI initializer' do
       raise "Too many datadog components loaded at the end of execution: \#{Datadog.constants}"
     end
   SCRIPT
+  # rubocop:enable Lint/ConstantDefinitionInBlock
 
   context 'when loaded initially into a clean process' do
     it 'loads only DI code tracker' do
