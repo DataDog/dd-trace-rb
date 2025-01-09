@@ -49,12 +49,12 @@ module Datadog
           Datadog::DI.activate_tracking!
         rescue => exc
           if defined?(Datadog.logger)
-            Datadog.logger.warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            Datadog.logger.warn { "di: Failed to activate code tracking for DI: #{exc.class}: #{exc}" }
           else
             # We do not have Datadog logger potentially because DI code tracker is
             # being loaded early in application boot process and the rest of datadog
             # wasn't loaded yet. Output to standard error.
-            warn("Failed to activate code tracking for DI: #{exc.class}: #{exc}")
+            warn("datadog: di: Failed to activate code tracking for DI: #{exc.class}: #{exc}")
           end
         end
       end
