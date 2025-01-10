@@ -32,7 +32,7 @@ module Datadog
                       event = {
                         waf_result: result,
                         trace: context.trace,
-                        span: context.service_entry_span,
+                        span: context.span,
                         multiplex: gateway_multiplex,
                         actions: result.actions
                       }

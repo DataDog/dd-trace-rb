@@ -141,9 +141,9 @@ module Datadog
           # We want to keep the trace in case of security event
           context.trace.keep! if context.trace
 
-          if context.service_entry_span
-            context.service_entry_span.set_tag('appsec.blocked', 'true') if waf_result.actions.key?('block_request')
-            context.service_entry_span.set_tag('appsec.event', 'true')
+          if context.span
+            context.span.set_tag('appsec.blocked', 'true') if waf_result.actions.key?('block_request')
+            context.span.set_tag('appsec.event', 'true')
           end
 
           add_distributed_tags(context.trace)

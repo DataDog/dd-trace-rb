@@ -99,7 +99,7 @@ module Datadog
             if result
               ctx.processor_context.events << {
                 trace: ctx.trace,
-                span: ctx.service_entry_span,
+                span: ctx.span,
                 waf_result: result,
               }
             end
@@ -109,7 +109,7 @@ module Datadog
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(ctx.service_entry_span, *ctx.processor_context.events)
+            AppSec::Event.record(ctx.span, *ctx.processor_context.events)
 
             if response_response
               blocked_event = response_response.find { |action, _options| action == :block }
@@ -148,7 +148,7 @@ module Datadog
           end
 
           def add_appsec_tags(processor, context)
-            span = context.service_entry_span
+            span = context.span
             trace = context.trace
 
             return unless trace && span
@@ -185,7 +185,7 @@ module Datadog
           end
 
           def add_request_tags(context, env)
-            span = context.service_entry_span
+            span = context.span
 
             return unless span
 
@@ -208,7 +208,7 @@ module Datadog
           end
 
           def add_waf_runtime_tags(context)
-            span = context.service_entry_span
+            span = context.span
             context = context.processor_context
 
             return unless span && context

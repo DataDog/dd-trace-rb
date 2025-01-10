@@ -385,10 +385,10 @@ RSpec.describe Datadog::AppSec::Event do
         context_span = span if with_span
       end
 
-      dbl = double
+      dbl = instance_double(Datadog::AppSec::Context)
 
       allow(dbl).to receive(:trace).and_return(context_trace)
-      allow(dbl).to receive(:service_entry_span).and_return(context_span)
+      allow(dbl).to receive(:span).and_return(context_span)
 
       dbl
     end
@@ -402,8 +402,8 @@ RSpec.describe Datadog::AppSec::Event do
 
     context 'with no actions' do
       it 'does not add appsec.blocked tag to span' do
-        expect(context.service_entry_span.send(:meta)).to_not include('appsec.blocked')
-        expect(context.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        expect(context.span.send(:meta)).to_not include('appsec.blocked')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
         expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
         expect(context.trace.send(:meta)['_dd.p.appsec']).to eq('1')
       end
@@ -415,18 +415,18 @@ RSpec.describe Datadog::AppSec::Event do
       end
 
       it 'adds appsec.blocked tag to span' do
-        expect(context.service_entry_span.send(:meta)['appsec.blocked']).to eq('true')
-        expect(context.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+        expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
         expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
         expect(context.trace.send(:meta)['_dd.p.appsec']).to eq('1')
       end
     end
 
-    context 'without service_entry_span' do
+    context 'without span' do
       let(:with_span) { false }
 
       it 'does not add appsec span tags but still add distributed tags' do
-        expect(context.service_entry_span).to be nil
+        expect(context.span).to be nil
         expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
         expect(context.trace.send(:meta)['_dd.p.appsec']).to eq('1')
       end
@@ -438,8 +438,8 @@ RSpec.describe Datadog::AppSec::Event do
       context 'with no actions' do
         it 'does not add distributed tags but still add appsec span tags' do
           expect(context.trace).to be nil
-          expect(context.service_entry_span.send(:meta)['appsec.blocked']).to be nil
-          expect(context.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+          expect(context.span.send(:meta)['appsec.blocked']).to be nil
+          expect(context.span.send(:meta)['appsec.event']).to eq('true')
         end
       end
 
@@ -450,8 +450,8 @@ RSpec.describe Datadog::AppSec::Event do
 
         it 'does not add distributed tags but still add appsec span tags' do
           expect(context.trace).to be nil
-          expect(context.service_entry_span.send(:meta)['appsec.blocked']).to eq('true')
-          expect(context.service_entry_span.send(:meta)['appsec.event']).to eq('true')
+          expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+          expect(context.span.send(:meta)['appsec.event']).to eq('true')
         end
       end
     end

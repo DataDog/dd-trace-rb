@@ -7,7 +7,10 @@ module Datadog
     class Context
       ActiveContextError = Class.new(StandardError)
 
-      attr_reader :trace, :service_entry_span, :processor_context
+      # XXX: Continue from here:
+      #        1. Replace naming of processor_context into waf_runner
+      #        2. Replace calls of waf run
+      attr_reader :trace, :span, :processor_context
 
       class << self
         def activate(context)
@@ -32,14 +35,22 @@ module Datadog
         @trace = trace
         @span = span
         @security_engine = security_engine
+        @waf_runner = security_engine.new_context
 
-        # TODO: Rename
-        @service_entry_span = span
-        @processor_context = security_engine.new_context
+        # FIXME: Left for compatibility now
+        @processor_context = @waf_runner
+      end
+
+      def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        @waf_runner.run(persistent_data, ephemeral_data, timeout)
+      end
+
+      def run_rasp(_type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        @waf_runner.run(persistent_data, ephemeral_data, timeout)
       end
 
       def finalize
-        @processor_context.finalize
+        @waf_runner.finalize
       end
     end
   end

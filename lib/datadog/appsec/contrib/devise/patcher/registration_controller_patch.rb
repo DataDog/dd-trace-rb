@@ -37,7 +37,7 @@ module Datadog
 
                   Tracking.track_signup(
                     appsec_context.trace,
-                    appsec_context.service_entry_span,
+                    appsec_context.span,
                     user_id: event_information.user_id,
                     **event_information.to_h
                   )

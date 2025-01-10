@@ -138,7 +138,7 @@ module Datadog
           def set_trace_and_span_context(method, trace = nil, span = nil)
             if (appsec_context = Datadog::AppSec.active_context)
               trace = appsec_context.trace
-              span = appsec_context.service_entry_span
+              span = appsec_context.span
             end
 
             trace ||= Datadog::Tracing.active_trace

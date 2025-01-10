@@ -82,7 +82,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'when logging in from Rememberable devise strategy' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
 
     let(:mock_klass) do
       Class.new do
@@ -109,7 +109,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'successful login' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
 
     context 'with resource ID' do
       context 'safe mode' do
@@ -118,7 +118,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             **{}
           )
@@ -132,7 +132,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             **{ username: 'John', email: 'hello@gmail.com' }
           )
@@ -150,7 +150,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             **{}
           )
@@ -164,7 +164,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_success).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             **{ username: 'John', email: 'hello@gmail.com' }
           )
@@ -177,7 +177,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
   context 'unsuccessful login' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
 
     context 'with resource' do
       context 'safe mode' do
@@ -186,7 +186,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             user_exists: true,
             **{}
@@ -201,7 +201,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             user_exists: true,
             **{ username: 'John', email: 'hello@gmail.com' }
@@ -218,7 +218,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             user_exists: false,
             **{}
@@ -233,7 +233,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_login_failure).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             user_exists: false,
             **{}

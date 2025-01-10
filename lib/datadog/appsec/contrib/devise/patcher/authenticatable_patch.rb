@@ -40,7 +40,7 @@ module Datadog
 
                 Tracking.track_login_success(
                   appsec_context.trace,
-                  appsec_context.service_entry_span,
+                  appsec_context.span,
                   user_id: event_information.user_id,
                   **event_information.to_h
                 )
@@ -60,7 +60,7 @@ module Datadog
 
               Tracking.track_login_failure(
                 appsec_context.trace,
-                appsec_context.service_entry_span,
+                appsec_context.span,
                 user_id: event_information.user_id,
                 user_exists: user_exists,
                 **event_information.to_h

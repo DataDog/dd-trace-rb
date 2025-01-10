@@ -33,7 +33,7 @@ module Datadog
                       event = {
                         waf_result: result,
                         trace: context.trace,
-                        span: context.service_entry_span,
+                        span: context.span,
                         request: gateway_request,
                         actions: result.actions
                       }
@@ -64,7 +64,7 @@ module Datadog
                       event = {
                         waf_result: result,
                         trace: context.trace,
-                        span: context.service_entry_span,
+                        span: context.span,
                         request: gateway_request,
                         actions: result.actions
                       }

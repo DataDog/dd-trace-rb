@@ -127,7 +127,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
   context 'with persisted resource' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
 
     context 'with resource ID' do
       let(:resource) { persited_resource }
@@ -142,7 +142,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
           it 'tracks event' do
             expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
               appsec_context.trace,
-              appsec_context.service_entry_span,
+              appsec_context.span,
               user_id: resource.id,
               **{}
             )
@@ -157,7 +157,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
           it 'tracks event' do
             expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
               appsec_context.trace,
-              appsec_context.service_entry_span,
+              appsec_context.span,
               user_id: resource.id,
               **{ email: 'hello@gmail.com', username: 'John' }
             )
@@ -173,7 +173,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             **{}
           )
@@ -187,7 +187,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: resource.id,
             **{ email: 'hello@gmail.com', username: 'John' }
           )
@@ -209,7 +209,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
           it 'tracks event' do
             expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
               appsec_context.trace,
-              appsec_context.service_entry_span,
+              appsec_context.span,
               user_id: nil,
               **{}
             )
@@ -224,7 +224,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
           it 'tracks event' do
             expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
               appsec_context.trace,
-              appsec_context.service_entry_span,
+              appsec_context.span,
               user_id: nil,
               **{ email: 'hello@gmail.com', username: 'John' }
             )
@@ -240,7 +240,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             **{}
           )
@@ -254,7 +254,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
         it 'tracks event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
             appsec_context.trace,
-            appsec_context.service_entry_span,
+            appsec_context.span,
             user_id: nil,
             **{ email: 'hello@gmail.com', username: 'John' }
           )
@@ -267,7 +267,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
   context 'with non persisted resource' do
     let(:appsec_enabled) { true }
     let(:track_user_events_enabled) { true }
-    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, service_entry_span: double) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
     let(:resource) { non_persisted_resource }
 
     context 'safe mode' do
