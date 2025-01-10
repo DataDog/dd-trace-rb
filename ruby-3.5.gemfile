@@ -63,4 +63,6 @@ group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
 end
 
-gem 'ostruct'
+group :test do
+  gem 'ostruct'
+end

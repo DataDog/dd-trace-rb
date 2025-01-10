@@ -146,6 +146,7 @@ GEM
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     os (1.1.4)
+    ostruct (0.6.1)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
@@ -266,6 +267,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   mutex_m (>= 0.1.0)
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer

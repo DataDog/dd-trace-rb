@@ -217,7 +217,6 @@ RSpec.describe 'DI integration from remote config' do
     # Events can be batched, meaning +post+ could be called once or twice
     # depending on how threads are scheduled by the VM.
     expect(component.transport.send(:client)).to receive(:post).at_least(:once) do |env|
-      expect(env).to be_a(OpenStruct)
       notify_payload = if env.path == '/debugger/v1/diagnostics'
         JSON.parse(env.form.fetch('event').io.read, symbolize_names: true)
       else

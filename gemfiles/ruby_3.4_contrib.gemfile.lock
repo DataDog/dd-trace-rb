@@ -66,6 +66,7 @@ GEM
       ruby2_keywords (~> 0.0.1)
     mutex_m (0.2.0)
     os (1.1.4)
+    ostruct (0.6.1)
     pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
@@ -193,6 +194,7 @@ DEPENDENCIES
   mongo (>= 2.8.0, < 2.15.0)
   mutex_m
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
