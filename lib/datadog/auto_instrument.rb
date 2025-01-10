@@ -6,6 +6,11 @@
 require_relative '../datadog'
 require_relative 'tracing/contrib/auto_instrument'
 
+# DI is not loaded on Ruby 2.5 and JRuby
+if defined?(Datadog::DI::Contrib)
+  Datadog::DI::Contrib.load_now_or_later
+end
+
 Datadog::Profiling.start_if_enabled
 
 module Datadog
