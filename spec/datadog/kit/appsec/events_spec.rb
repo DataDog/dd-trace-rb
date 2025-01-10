@@ -9,15 +9,16 @@ RSpec.describe Datadog::Kit::AppSec::Events do
   let(:trace_op) { Datadog::Tracing::TraceOperation.new }
 
   shared_context 'uses AppSec context' do
-    before { allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context) }
+    before do
+      allow(processor).to receive(:new_context).and_return(instance_double(Datadog::AppSec::Processor::Context))
+      allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
+    end
+
+    let(:processor) { instance_double(Datadog::AppSec::Processor) }
     let(:appsec_span) { trace_op.build_span('root') }
 
     context 'when is present' do
-      let(:appsec_active_context) do
-        processor = instance_double('Datadog::Appsec::Processor')
-
-        Datadog::AppSec::Context.new(trace_op, appsec_span, processor)
-      end
+      let(:appsec_active_context) { Datadog::AppSec::Context.new(trace_op, appsec_span, processor) }
 
       it 'sets tags on AppSec span' do
         event

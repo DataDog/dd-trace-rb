@@ -94,22 +94,22 @@ module Datadog
 
             _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
 
-            result = ctx.processor_context.extract_schema
+            result = ctx.waf_runner.extract_schema
 
             if result
-              ctx.processor_context.events << {
+              ctx.waf_runner.events << {
                 trace: ctx.trace,
                 span: ctx.span,
                 waf_result: result,
               }
             end
 
-            ctx.processor_context.events.each do |e|
+            ctx.waf_runner.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(ctx.span, *ctx.processor_context.events)
+            AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
 
             if response_response
               blocked_event = response_response.find { |action, _options| action == :block }
@@ -209,7 +209,7 @@ module Datadog
 
           def add_waf_runtime_tags(context)
             span = context.span
-            context = context.processor_context
+            context = context.waf_runner
 
             return unless span && context
 

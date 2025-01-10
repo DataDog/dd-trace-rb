@@ -41,12 +41,9 @@ RSpec.describe Datadog::AppSec::Context do
 
       subject(:activate_context) { described_class.activate(described_class.new(trace, span, processor)) }
 
-      it 'raises ActiveContextError' do
+      it 'raises ActiveContextError and does not change the active context' do
         expect { activate_context }.to raise_error(Datadog::AppSec::Context::ActiveContextError)
-      end
-
-      it 'does not change the active context' do
-        expect { activate_context rescue nil }.to_not(change { described_class.active })
+          .and(not_change { described_class.active })
       end
     end
   end
@@ -75,12 +72,9 @@ RSpec.describe Datadog::AppSec::Context do
         expect(context).to receive(:finalize).and_raise(RuntimeError.new('Ooops'))
       end
 
-      it 'raises underlying exception' do
+      it 'raises underlying exception and unsets the active context' do
         expect { described_class.deactivate }.to raise_error(RuntimeError)
-      end
-
-      it 'unsets the active context' do
-        expect { described_class.deactivate rescue nil }.to change { described_class.active }.from(context).to(nil)
+          .and(change { described_class.active }.from(context).to(nil))
       end
     end
   end

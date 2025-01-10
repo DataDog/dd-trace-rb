@@ -23,7 +23,7 @@ module Datadog
                 context = Datadog::AppSec.active_context
                 engine = AppSec::Reactive::Engine.new
 
-                Monitor::Reactive::SetUser.subscribe(engine, context.processor_context) do |result|
+                Monitor::Reactive::SetUser.subscribe(engine, context) do |result|
                   if result.status == :match
                     # TODO: should this hash be an Event instance instead?
                     event = {
@@ -37,7 +37,7 @@ module Datadog
                     # We want to keep the trace in case of security event
                     context.trace.keep! if context.trace
                     Datadog::AppSec::Event.tag_and_keep!(context, result)
-                    context.processor_context.events << event
+                    context.waf_runner.events << event
                   end
                 end
 

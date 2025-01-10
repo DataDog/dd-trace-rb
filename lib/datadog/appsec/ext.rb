@@ -3,6 +3,7 @@
 module Datadog
   module AppSec
     module Ext
+      RASP_SQLI = :sql_injection
       INTERRUPT = :datadog_appsec_interrupt
       CONTEXT_KEY = 'datadog.appsec.context'
       ACTIVE_CONTEXT_KEY = :datadog_appsec_active_context

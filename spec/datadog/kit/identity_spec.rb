@@ -212,12 +212,16 @@ RSpec.describe Datadog::Kit::Identity do
     end
 
     context 'appsec' do
+      before do
+        allow(processor).to receive(:new_context).and_return(instance_double(Datadog::AppSec::Processor::Context))
+        allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
+      end
+
+      let(:processor) { instance_double(Datadog::AppSec::Processor) }
       let(:appsec_active_context) { nil }
-      before { allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context) }
 
       context 'when is enabled' do
         let(:appsec_active_context) do
-          processor = instance_double('Datadog::Appsec::Processor')
           trace = trace_op
           span = trace.build_span('root')
 

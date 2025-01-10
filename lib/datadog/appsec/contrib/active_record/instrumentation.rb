@@ -23,7 +23,7 @@ module Datadog
             }
 
             waf_timeout = Datadog.configuration.appsec.waf_timeout
-            result = context.processor_context.run({}, ephemeral_data, waf_timeout)
+            result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
             if result.status == :match
               Datadog::AppSec::Event.tag_and_keep!(context, result)
@@ -35,7 +35,7 @@ module Datadog
                 sql: sql,
                 actions: result.actions
               }
-              context.processor_context.events << event
+              context.waf_runner.events << event
             end
           end
 
