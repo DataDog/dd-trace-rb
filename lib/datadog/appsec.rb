@@ -15,7 +15,7 @@ module Datadog
       end
 
       def active_context
-        Datadog::AppSec::Context.active_context
+        Datadog::AppSec::Context.active
       end
 
       def processor

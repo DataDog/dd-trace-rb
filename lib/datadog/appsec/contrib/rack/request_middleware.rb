@@ -56,7 +56,10 @@ module Datadog
               processor = Datadog::AppSec.processor
 
               if !processor.nil? && processor.ready?
-                ctx = Datadog::AppSec::Context.activate_context(active_trace, active_span, processor)
+                ctx = Datadog::AppSec::Context.activate(
+                  Datadog::AppSec::Context.new(active_trace, active_span, processor)
+                )
+
                 env[Datadog::AppSec::Ext::CONTEXT_KEY] = ctx
                 ready = true
               end
@@ -117,7 +120,7 @@ module Datadog
           ensure
             if ctx
               add_waf_runtime_tags(ctx)
-              Datadog::AppSec::Context.deactivate_context
+              Datadog::AppSec::Context.deactivate
             end
           end
           # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength

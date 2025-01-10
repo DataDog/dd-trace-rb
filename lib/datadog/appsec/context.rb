@@ -2,56 +2,44 @@
 
 module Datadog
   module AppSec
-    # Write desciption TODO
+    # This class accumulates the context over the request life-cycle and exposes
+    # interface sufficient for instrumentation to perform threat detection.
     class Context
-      InactiveScopeError = Class.new(StandardError)
-      ActiveScopeError = Class.new(StandardError)
+      ActiveContextError = Class.new(StandardError)
 
       attr_reader :trace, :service_entry_span, :processor_context
 
-      def initialize(trace, service_entry_span, processor_context)
-        @trace = trace
-        @service_entry_span = service_entry_span
-        @processor_context = processor_context
-      end
-
-      def finalize
-        @processor_context.finalize
-      end
-
       class << self
-        def activate_context(trace, service_entry_span, processor)
-          raise ActiveScopeError, 'another context is active, nested contexts are not supported' if active_context
-
-          context = processor.new_context
-          self.active_context = new(trace, service_entry_span, context)
-        end
-
-        def deactivate_context
-          raise InactiveScopeError, 'no context is active, nested contexts are not supported' unless active_context
-
-          context = active_context
-
-          reset_active_context
-
-          context.finalize
-        end
-
-        def active_context
-          Thread.current[Ext::ACTIVE_CONTEXT_KEY]
-        end
-
-        private
-
-        def active_context=(context)
+        def activate(context)
           raise ArgumentError, 'not a Datadog::AppSec::Context' unless context.instance_of?(Context)
+          raise ActiveContextError, 'another context is active, nested contexts are not supported' if active
 
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = context
         end
 
-        def reset_active_context
+        def deactivate
+          active&.finalize
+        ensure
           Thread.current[Ext::ACTIVE_CONTEXT_KEY] = nil
         end
+
+        def active
+          Thread.current[Ext::ACTIVE_CONTEXT_KEY]
+        end
+      end
+
+      def initialize(trace, span, security_engine)
+        @trace = trace
+        @span = span
+        @security_engine = security_engine
+
+        # TODO: Rename
+        @service_entry_span = span
+        @processor_context = security_engine.new_context
+      end
+
+      def finalize
+        @processor_context.finalize
       end
     end
   end

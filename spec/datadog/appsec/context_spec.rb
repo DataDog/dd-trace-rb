@@ -4,90 +4,84 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/context'
 
 RSpec.describe Datadog::AppSec::Context do
-  let(:trace) { double }
-  let(:span) { double }
+  let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
+  let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
 
   let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
   let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
+  let(:context) { described_class.new(trace, span, processor) }
 
   after do
-    described_class.send(:reset_active_context)
+    described_class.deactivate
     processor.finalize
   end
 
-  describe '.activate_context' do
+  describe '.active' do
     context 'with no active context' do
-      subject(:activate_context) { described_class.activate_context(trace, span, processor) }
-
-      it 'returns a new context' do
-        expect(activate_context).to be_a described_class
-      end
-
-      it 'sets the active context' do
-        expect { activate_context }.to change { described_class.active_context }.from(nil).to be_a described_class
-      end
+      it { expect(described_class.active).to be_nil }
     end
 
     context 'with an active context' do
-      before do
-        described_class.activate_context(trace, span, processor)
-      end
+      before { described_class.activate(context) }
 
-      subject(:activate_context) { described_class.activate_context(trace, span, processor) }
+      it { expect(described_class.active).to eq(context) }
+    end
+  end
 
-      it 'raises ActiveScopeError' do
-        expect { activate_context }.to raise_error Datadog::AppSec::Context::ActiveScopeError
+  describe '.activate' do
+    it { expect { described_class.activate(double) }.to raise_error(ArgumentError) }
+
+    context 'with no active context' do
+      it { expect { described_class.activate(context) }.to change { described_class.active }.from(nil).to(context) }
+    end
+
+    context 'with an active context' do
+      before { described_class.activate(context) }
+
+      subject(:activate_context) { described_class.activate(described_class.new(trace, span, processor)) }
+
+      it 'raises ActiveContextError' do
+        expect { activate_context }.to raise_error(Datadog::AppSec::Context::ActiveContextError)
       end
 
       it 'does not change the active context' do
-        expect { activate_context rescue nil }.to_not(change { described_class.active_context })
+        expect { activate_context rescue nil }.to_not(change { described_class.active })
       end
     end
   end
 
-  describe '.deactivate_context' do
+  describe '.deactivate' do
     context 'with no active context' do
-      subject(:deactivate_context) { described_class.deactivate_context }
-
-      it 'raises ActiveContextError' do
-        expect { deactivate_context }.to raise_error Datadog::AppSec::Context::InactiveScopeError
-      end
-
       it 'does not change the active context' do
-        expect { deactivate_context rescue nil }.to_not(change { described_class.active_context })
+        expect { described_class.deactivate }.to_not(change { described_class.active })
       end
     end
 
     context 'with an active context' do
-      let(:active_context) { described_class.active_context }
-      subject(:deactivate_context) { described_class.deactivate_context }
-
       before do
-        allow(described_class).to receive(:new).and_call_original
-
-        described_class.activate_context(trace, span, processor)
-
-        expect(active_context).to receive(:finalize).and_call_original
+        described_class.activate(context)
+        expect(context).to receive(:finalize).and_call_original
       end
 
       it 'unsets the active context' do
-        expect { deactivate_context }.to change { described_class.active_context }.from(active_context).to nil
+        expect { described_class.deactivate }.to change { described_class.active }.from(context).to(nil)
       end
     end
-  end
 
-  describe '.active_context' do
-    subject(:active_context) { described_class.active_context }
+    context 'with error during deactivation' do
+      before do
+        described_class.activate(context)
+        expect(context).to receive(:finalize).and_raise(RuntimeError.new('Ooops'))
+      end
 
-    context 'with no active context' do
-      it { is_expected.to be_nil }
-    end
+      it 'raises underlying exception' do
+        expect { described_class.deactivate }.to raise_error(RuntimeError)
+      end
 
-    context 'with an active context' do
-      before { described_class.activate_context(trace, span, processor) }
-
-      it { is_expected.to be_a described_class }
+      it 'unsets the active context' do
+        expect { described_class.deactivate rescue nil }.to change { described_class.active }.from(context).to(nil)
+      end
     end
   end
 end

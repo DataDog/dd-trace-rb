@@ -24,7 +24,7 @@ module Datadog
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
                   block = false
                   event = nil
-                  context = AppSec::Context.active_context
+                  context = AppSec::Context.active
                   engine = AppSec::Reactive::Engine.new
 
                   if context
