@@ -295,6 +295,7 @@ end
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+RSpec::Matchers.define_negated_matcher :not_change, :change
 
 # The Ruby Timeout class uses a long-lived class-level thread that is never terminated.
 # Creating it early here ensures tests that tests that check for leaking threads are not
