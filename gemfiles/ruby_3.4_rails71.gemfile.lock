@@ -111,6 +111,7 @@ GEM
     drb (2.2.1)
     erubi (1.13.0)
     extlz4 (0.3.4)
+    ffi (1.17.1-aarch64-linux-gnu)
     ffi (1.17.1-x86_64-linux-gnu)
     globalid (1.2.1)
       activesupport (>= 6.1)
@@ -124,7 +125,10 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (14.3.1.1.0-aarch64-linux)
     libdatadog (14.3.1.1.0-x86_64-linux)
+    libddwaf (1.18.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     loofah (2.22.0)
@@ -260,6 +264,7 @@ GEM
     zeitwerk (2.6.17)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES

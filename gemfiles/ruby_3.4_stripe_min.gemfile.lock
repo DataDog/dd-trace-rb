@@ -31,12 +31,16 @@ GEM
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
+    ffi (1.17.1-aarch64-linux-gnu)
     ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.25.5)
     hashdiff (1.1.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
+    libdatadog (14.3.1.1.0-aarch64-linux)
     libdatadog (14.3.1.1.0-x86_64-linux)
+    libddwaf (1.18.0.0.0-aarch64-linux)
+      ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
     memory_profiler (0.9.14)
@@ -94,6 +98,7 @@ GEM
     webrick (1.9.0)
 
 PLATFORMS
+  aarch64-linux
   x86_64-linux
 
 DEPENDENCIES
