@@ -1576,7 +1576,7 @@ GEM
     datadog-ruby_core_source (3.3.7)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
-    docile (1.4.0)
+    docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     extlz4 (0.3.4)
     ffi (1.17.1-aarch64-linux-gnu)
@@ -1633,14 +1633,14 @@ GEM
       aws-sdk-core (>= 2)
       concurrent-ruby
       thor
-    simplecov (0.21.2)
+    simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
     simplecov-cobertura (2.1.0)
       rexml
       simplecov (~> 0.19)
-    simplecov-html (0.12.3)
+    simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
     strscan (3.1.1)
     thor (1.3.1)
@@ -1681,7 +1681,7 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   shoryuken
-  simplecov
+  simplecov (~> 0.22.0)
   simplecov-cobertura (~> 2.1.0)
   warning (~> 1)
   webmock (>= 3.10.0)

@@ -104,7 +104,7 @@ GEM
       rspec-core (>= 2, < 4, != 2.12.0)
     sequel (5.86.0)
       bigdecimal
-    simplecov (0.21.2)
+    simplecov (0.22.0)
       docile (~> 1.1)
       simplecov-html (~> 0.11)
       simplecov_json_formatter (~> 0.1)
@@ -160,7 +160,7 @@ DEPENDENCIES
   rspec-wait (~> 0)
   rspec_junit_formatter (>= 0.5.1)
   sequel
-  simplecov
+  simplecov (~> 0.22.0)
   simplecov-cobertura (~> 2.1.0)
   sqlite3 (~> 1.4)
   trilogy
