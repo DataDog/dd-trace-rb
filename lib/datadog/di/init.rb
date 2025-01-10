@@ -4,7 +4,7 @@
 # enable dynamic instrumentation for third-party libraries used by the
 # application.
 
-require_relative '../di'
+require_relative 'base'
 
 # Code tracking is required for line probes to work; see the comments
 # on the activate_tracking methods in di.rb for further details.
