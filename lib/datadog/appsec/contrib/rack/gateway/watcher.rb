@@ -50,14 +50,7 @@ module Datadog
                   block = Rack::Reactive::Request.publish(engine, gateway_request)
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
 
@@ -88,14 +81,7 @@ module Datadog
                   block = Rack::Reactive::Response.publish(engine, gateway_response)
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_response.response)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_response.response)
                 end
               end
 
@@ -126,14 +112,7 @@ module Datadog
                   block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
             end
