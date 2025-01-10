@@ -37,13 +37,6 @@ gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
 
-# 1.50 is the last version to support Ruby 2.6
-gem 'rubocop', '~> 1.50.0', require: false
-gem 'rubocop-packaging', '~> 0.5.2', require: false
-gem 'rubocop-performance', '~> 1.9', require: false
-# 2.20 is the last version to support Ruby 2.6
-gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
-
 gem 'simplecov'
 gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
@@ -55,6 +48,13 @@ group :check do
   gem 'steep', '~> 1', '>= 1.9.1', require: false
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
+
+  # 1.50 is the last version to support Ruby 2.6
+  gem 'rubocop', '~> 1.50.0', require: false
+  gem 'rubocop-packaging', '~> 0.5.2', require: false
+  gem 'rubocop-performance', '~> 1.9', require: false
+  # 2.20 is the last version to support Ruby 2.6
+  gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
 end
 
 group :dev do
