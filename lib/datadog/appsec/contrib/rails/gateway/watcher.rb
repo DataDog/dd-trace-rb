@@ -46,14 +46,7 @@ module Datadog
                   block = Rails::Reactive::Action.publish(engine, gateway_request)
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
             end

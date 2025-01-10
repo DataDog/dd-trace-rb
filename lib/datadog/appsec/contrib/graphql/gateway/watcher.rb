@@ -46,14 +46,7 @@ module Datadog
 
                   next [nil, [[:block, event]]] if block
 
-                  ret, res = stack.call(gateway_multiplex.arguments)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_multiplex.arguments)
                 end
               end
             end

@@ -131,7 +131,9 @@ onboarding_tests_installer:
 onboarding_tests_k8s_injection:
   parallel:
     matrix:
-      - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+    - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+      SCENARIO: [K8S_LIB_INJECTION, K8S_LIB_INJECTION_UDS, K8S_LIB_INJECTION_NO_AC, K8S_LIB_INJECTION_NO_AC_UDS, K8S_LIB_INJECTION_PROFILING_DISABLED, K8S_LIB_INJECTION_PROFILING_ENABLED, K8S_LIB_INJECTION_PROFILING_OVERRIDE]
+      K8S_CLUSTER_VERSION: ['7.56.2','7.59.0']
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2

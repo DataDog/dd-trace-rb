@@ -42,6 +42,52 @@ The `images/` folders hosts some images for Ruby applications.
 
 Ruby base images include `Datadog::DemoEnv` and other helpers.
 
+### Running Integration Tests
+
+1. Pick an application to run the tests against:
+
+    ```
+    cd apps/rails-seven
+    ```
+
+2. Pick a Ruby version and build Docker images:
+
+    ```
+    ./script/build-images -v 3.3
+    ```
+
+Note: you need to build the images using this command whenever you make
+any changes in the source code.
+
+3. Run integration test script:
+
+    ```
+    ./script/ci -v 3.3
+    ```
+
+### Running Integration Tests Not In Docker
+
+Run the test application manually (in a separate terminal):
+
+```
+cd apps/rails-seven
+export RUBYOPT=-I../../images/include
+# Use local dd-trace-rb tree
+export DD_DEMO_ENV_GEM_LOCAL_DATADOG=../../..
+export DATABASE_URL=mysql2://user:password@localhost:3306
+bundle exec rake db:create db:migrate
+bundle exec rails server -p 3000
+```
+
+Run the tests:
+
+```
+cd apps/rails-seven
+export RUBYOPT=-I../../images/include
+export TEST_INTEGRATION=1 TEST_HOSTNAME=localhost TEST_PORT=3000
+bundle exec rspec
+```
+
 ### Debugging
 
 #### Profiling memory

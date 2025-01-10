@@ -84,7 +84,6 @@ group :test do
     gem 'shoulda-matchers'
   end
 
-  gem 'simplecov', require: false # Will install simplecov-html as a dependency
   gem 'timecop'
   gem 'webmock'
 end

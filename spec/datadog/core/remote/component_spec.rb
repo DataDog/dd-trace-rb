@@ -258,8 +258,26 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     context 'with waiters' do
       it 'unblocks waiters' do
+        skip('Known flaky (assertion below sometimes fails with timeout)')
+
         waiter_thread = Thread.new(record) do |record|
           record << :one
+          # Failures:
+          #
+          #   1) Datadog::Core::Remote::Component::Barrier#lift with waiters unblocks waiters
+          #      Failure/Error: expect(barrier.wait_once).to eq :lift
+          #
+          #        expected: :lift
+          #             got: :timeout
+          #
+          #        (compared using ==)
+          #
+          #        Diff:
+          #        @@ -1 +1 @@
+          #        -:lift
+          #        +:timeout
+          #      # ./spec/datadog/core/remote/component_spec.rb:263:in `block (5 levels) in <top (required)>'
+          #      # ./spec/spec_helper.rb:254:in `block in initialize'
           expect(barrier.wait_once).to eq :lift
           record << :two
         end.run
