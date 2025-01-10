@@ -53,6 +53,7 @@ GEM
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.24.0)
     parser (3.3.1.0)
       ast (~> 2.4.1)
@@ -166,6 +167,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug

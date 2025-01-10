@@ -63,6 +63,7 @@ GEM
       faraday (>= 1.0, < 3)
       multi_json (>= 1.0)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.26.3)
     parser (3.3.5.0)
       ast (~> 2.4.1)
@@ -162,6 +163,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   opensearch-ruby
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug

@@ -72,6 +72,7 @@ GEM
     mutex_m (0.2.0)
     mysql2 (0.5.6)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.26.3)
     parser (3.3.6.0)
       ast (~> 2.4.1)
@@ -182,6 +183,7 @@ DEPENDENCIES
   mutex_m
   mysql2 (>= 0.5.3)
   os (~> 1.1)
+  ostruct
   pg
   pimpmychangelog (>= 0.1.2)
   pry

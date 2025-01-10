@@ -146,6 +146,7 @@ GEM
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.25.1)
     parser (3.3.3.0)
       ast (~> 2.4.1)
@@ -298,6 +299,7 @@ DEPENDENCIES
   mutex_m
   net-smtp
   os (~> 1.1)
+  ostruct
   pg (>= 1.1)
   pimpmychangelog (>= 0.1.2)
   pry

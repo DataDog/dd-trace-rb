@@ -147,6 +147,7 @@ GEM
     nokogiri (1.15.5-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.23.0)
     parser (3.2.2.4)
       ast (~> 2.4.1)
@@ -295,6 +296,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   net-smtp
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer

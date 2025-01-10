@@ -122,6 +122,7 @@ GEM
     nokogiri (1.13.10-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.23.0)
     parser (3.2.1.0)
       ast (~> 2.4.1)
@@ -267,6 +268,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
+  ostruct
   pg (< 1.0)
   pimpmychangelog (>= 0.1.2)
   pry

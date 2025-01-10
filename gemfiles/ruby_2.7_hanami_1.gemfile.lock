@@ -138,6 +138,7 @@ GEM
     net-smtp (0.3.3)
       net-protocol
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.23.0)
     parser (3.2.1.0)
       ast (~> 2.4.1)
@@ -243,6 +244,7 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug

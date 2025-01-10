@@ -50,6 +50,7 @@ GEM
     msgpack (1.7.5)
     mutex_m (0.2.0)
     os (1.1.4)
+    ostruct (0.6.1)
     parallel (1.25.1)
     parser (3.3.3.0)
       ast (~> 2.4.1)
@@ -149,6 +150,7 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   mutex_m
   os (~> 1.1)
+  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
