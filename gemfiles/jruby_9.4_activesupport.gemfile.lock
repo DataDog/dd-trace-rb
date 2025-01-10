@@ -109,7 +109,6 @@ GEM
     nokogiri (1.15.4-java)
       racc (~> 1.4)
     os (1.1.4)
-    ostruct (0.6.1)
     parallel (1.23.0)
     parser (3.2.2.3)
       ast (~> 2.4.1)
@@ -247,7 +246,6 @@ DEPENDENCIES
   lograge
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby

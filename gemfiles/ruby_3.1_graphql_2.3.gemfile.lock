@@ -150,7 +150,6 @@ GEM
     nokogiri (1.16.6-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
-    ostruct (0.6.1)
     parallel (1.25.1)
     parser (3.3.3.0)
       ast (~> 2.4.1)
@@ -301,7 +300,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug

@@ -45,8 +45,4 @@ group :dev do
 
 end
 
-group :test do
-  gem "ostruct"
-end
-
 gemspec path: "../"

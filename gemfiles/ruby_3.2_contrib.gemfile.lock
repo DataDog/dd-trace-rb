@@ -67,7 +67,6 @@ GEM
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
-    ostruct (0.6.1)
     parallel (1.23.0)
     parser (3.2.1.0)
       ast (~> 2.4.1)
@@ -213,7 +212,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   mongo (>= 2.8.0, < 2.15.0)
   os (~> 1.1)
-  ostruct
   pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
