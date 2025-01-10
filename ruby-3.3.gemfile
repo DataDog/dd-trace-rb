@@ -58,7 +58,3 @@ group :dev do
   gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
 end
-
-group :test do
-  gem 'ostruct'
-end

@@ -63,5 +63,7 @@ group :dev do
 end
 
 group :test do
+  # This silences the warning:
+  # warning: ostruct was loaded from the standard library, but will no longer be part of the default gems starting from Ruby 3.5.0.
   gem 'ostruct'
 end
