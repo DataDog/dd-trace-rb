@@ -995,6 +995,86 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
     end
   end
+
+  describe '#record_exception' do
+    subject(:record_exception) do
+      begin
+        raise error
+      rescue => e
+        @error_object = Datadog::Core::Error.build_from(e)
+        span_op.record_exception(
+          e,
+          attributes: attributes,
+          timestamp: timestamp,
+          escaped: escaped
+        )
+      end
+    end
+
+    let(:error) { StandardError.new('test error') }
+    let(:attributes) { nil }
+    let(:timestamp) { nil }
+    let(:escaped) { false }
+    let(:error_object) { @error_object }
+
+    it 'creates a span event with exception details' do
+      record_exception
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: :exception,
+        attributes: {
+          'exception.type' => error_object.type,
+          'exception.message' => error_object.message,
+          'exception.stacktrace' => error_object.backtrace,
+          'escaped' => false
+        }
+      )
+    end
+
+    context 'when escaped is true' do
+      let(:escaped) { true }
+
+      it 'sets error tags on the span' do
+        record_exception
+
+        expect(span_op.status).to eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
+        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq(error_object.type)
+        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_MSG)).to eq(error_object.message)
+        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).to eq(error_object.backtrace)
+      end
+    end
+
+    context 'with custom attributes' do
+      let(:attributes) { { custom_attr: 'value' } }
+
+      it 'merges custom attributes with exception details' do
+        record_exception
+
+        expect(span_op.span_events.last).to have_attributes(
+          name: :exception,
+          attributes: {
+            'exception.type' => error_object.type,
+            'exception.message' => error_object.message,
+            'exception.stacktrace' => error_object.backtrace,
+            'escaped' => false,
+            'custom_attr' => 'value'
+          }
+        )
+      end
+    end
+
+    context 'with custom timestamp' do
+      let(:timestamp) { 1234567890 }
+
+      it 'uses the provided timestamp' do
+        record_exception
+
+        expect(span_op.span_events.last).to have_attributes(
+          time_unix_nano: 1234567890
+        )
+      end
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::SpanOperation::Events do

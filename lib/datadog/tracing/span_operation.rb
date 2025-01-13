@@ -278,6 +278,38 @@ module Datadog
         set_error_tags(e)
       end
 
+      # Record an exception during the execution of this span by creating a span event.
+      #
+      # If escaped is True, it will also set the span error tags
+      #
+      # @return [void]
+      # @public_api
+      def record_exception(exception, attributes: nil, timestamp: nil, escaped: false)
+        exc = Core::Error.build_from(exception)
+
+        exc_type = exc.type
+        exc_msg = exc.message
+        exc_stacktrace = exc.backtrace
+
+        set_error(exc) if escaped
+
+        attrs = {
+          'exception.type' => exc_type,
+          'exception.message' => exc_msg,
+          'exception.stacktrace' => exc_stacktrace,
+          'escaped' => escaped
+        }
+
+        attrs.merge!(attributes) if attributes
+
+        span_event = SpanEvent.new(
+          :exception,
+          attributes: attrs,
+          time_unix_nano: timestamp || (Time.now.to_r * 1_000_000_000).to_i
+        )
+        @span_events << span_event
+      end
+
       # Return a string representation of the span.
       def to_s
         "SpanOperation(name:#{@name},sid:#{@id},tid:#{@trace_id},pid:#{@parent_id})"
