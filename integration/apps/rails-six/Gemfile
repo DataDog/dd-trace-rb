@@ -18,7 +18,7 @@ gem 'puma'
 gem 'unicorn'
 
 # Choose correct specs for 'datadog' demo environment
-gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+gem *Datadog::DemoEnv.gem_datadog_auto_instrument
 
 gem 'dogstatsd-ruby'
 gem 'ffi'
