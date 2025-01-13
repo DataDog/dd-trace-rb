@@ -6,9 +6,12 @@ RSpec.describe 'Dynamic Instrumentation' do
   di_test
 
   describe 'ActiveRecord integration' do
-    subject { JSON.parse(get('di/ar_serializer').body) }
+    let(:response) { get('di/ar_serializer') }
+    subject { JSON.parse(response.body) }
 
     it 'is loaded' do
+      expect(response.code).to eq '200'
+
       # If AR integration is loaded, this output will be the result of
       # the custom serializer.
       # If AR integration is not loaded, the output here will have a bunch of
