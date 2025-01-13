@@ -36,7 +36,7 @@ module Datadog
             @rack_headers = {}
           end
 
-          # rubocop:disable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:disable Metrics/AbcSize,Metrics/MethodLength
           def call(env)
             return @app.call(env) unless Datadog::AppSec.enabled?
 
@@ -74,16 +74,16 @@ module Datadog
             add_appsec_tags(processor, ctx)
             add_request_tags(ctx, env)
 
-            request_return, request_response = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              Instrumentation.gateway.push('rack.request', gateway_request) do
+            request_return = nil
+            block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              request_return, _request_response = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
+
+              nil
             end
 
-            if request_response
-              blocked_event = request_response.find { |action, _options| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
-            end
+            request_return = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             gateway_response = Gateway::Response.new(
               request_return[2],
@@ -92,7 +92,11 @@ module Datadog
               context: ctx,
             )
 
-            _response_return, response_response = Instrumentation.gateway.push('rack.response', gateway_response)
+            block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              Instrumentation.gateway.push('rack.response', gateway_response)
+
+              nil
+            end
 
             result = ctx.waf_runner.extract_schema
 
@@ -111,10 +115,7 @@ module Datadog
 
             AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
 
-            if response_response
-              blocked_event = response_response.find { |action, _options| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
-            end
+            request_return = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             request_return
           ensure
@@ -123,7 +124,7 @@ module Datadog
               Datadog::AppSec::Context.deactivate
             end
           end
-          # rubocop:enable Metrics/AbcSize,Metrics/PerceivedComplexity,Metrics/CyclomaticComplexity,Metrics/MethodLength
+          # rubocop:enable Metrics/AbcSize,Metrics/MethodLength
 
           private
 
