@@ -1,0 +1,37 @@
+module Datadog
+  module AppSec
+    class Context
+      type waf_data = ::Hash[::String, untyped]
+
+      @trace: Tracing::TraceOperation
+
+      @span: Tracing::SpanOperation
+
+      @security_engine: Processor
+
+      @waf_runner: Processor::Context
+
+      ActiveContextError: ::StandardError
+
+      attr_reader trace: Tracing::TraceOperation
+
+      attr_reader span: Tracing::SpanOperation
+
+      attr_reader waf_runner: Processor::Context
+
+      def self.activate: (Context context) -> Context
+
+      def self.deactivate: () -> void
+
+      def self.active: () -> Context
+
+      def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span, AppSec::Processor security_engine) -> void
+
+      def run_waf: (waf_data persistent_data, waf_data ephemeral_data, ?Integer timeout) -> WAF::Result
+
+      def run_rasp: (::Symbol _type, waf_data persistent_data, waf_data ephemeral_data, ?Integer timeout) -> WAF::Result
+
+      def finalize: () -> void
+    end
+  end
+end
