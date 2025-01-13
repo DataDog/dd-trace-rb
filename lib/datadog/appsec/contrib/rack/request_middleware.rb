@@ -69,41 +69,35 @@ module Datadog
 
             return @app.call(env) unless ready
 
-            gateway_request = Gateway::Request.new(env)
-
             add_appsec_tags(processor, ctx)
             add_request_tags(ctx, env)
 
+            gateway_request = Gateway::Request.new(env)
             request_return = nil
+            gateway_response = nil
+
             block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               request_return, _request_response = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
+
+              gateway_response = Gateway::Response.new(
+                request_return[2], request_return[0], request_return[1], context: ctx
+              )
+
+              Instrumentation.gateway.push('rack.response', gateway_response)
 
               nil
             end
 
             request_return = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
-            gateway_response = Gateway::Response.new(
-              request_return[2],
-              request_return[0],
-              request_return[1],
-              context: ctx,
-            )
-
-            block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              Instrumentation.gateway.push('rack.response', gateway_response)
-
-              nil
-            end
-
             result = ctx.waf_runner.extract_schema
 
-            if result
-              ctx.waf_runner.events << {
+            if (result = ctx.processor_context.extract_schema)
+              scope.processor_context.events << {
                 trace: ctx.trace,
-                span: ctx.span,
+                span: ctx.service_entry_span,
                 waf_result: result,
               }
             end
@@ -114,8 +108,6 @@ module Datadog
             end
 
             AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
-
-            request_return = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             request_return
           ensure
