@@ -26,7 +26,9 @@ Datadog.configure do |c|
     c.profiling.exporter.transport = Datadog::DemoEnv.profiler_file_transport
   end
 
-  c.remote.enabled = true
-  c.dynamic_instrumentation.enabled = true
-  c.dynamic_instrumentation.internal.development = true
+  if c.respond_to?(:dynamic_instrumentation)
+    c.remote.enabled = true
+    c.dynamic_instrumentation.enabled = true
+    c.dynamic_instrumentation.internal.development = true
+  end
 end

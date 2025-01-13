@@ -29,7 +29,9 @@ Datadog.configure do |c|
     end
   end
 
-  c.remote.enabled = true
-  c.dynamic_instrumentation.enabled = true
-  c.dynamic_instrumentation.internal.development = true
+  if c.respond_to?(:dynamic_instrumentation)
+    c.remote.enabled = true
+    c.dynamic_instrumentation.enabled = true
+    c.dynamic_instrumentation.internal.development = true
+  end
 end
