@@ -91,7 +91,9 @@ end
 group :test, :development do
   gem 'byebug', platform: :ruby
   # mock_redis 0.47.0+ requires redis 5 or higher
-  gem 'mock_redis', '~> 0.46.0'
+  # mock_redis 0.42.0+ requires Ruby 3.0 or higher
+  # mock_redis 0.37.0+ requires Ruby 2.7 or higher
+  gem 'mock_redis', '~> 0.41.0'
   gem 'parallel_tests'
 
   gem 'listen'
