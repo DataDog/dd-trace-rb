@@ -72,8 +72,8 @@ module Datadog
             add_appsec_tags(processor, ctx)
             add_request_tags(ctx, env)
 
-            gateway_request = Gateway::Request.new(env)
             http_response = nil
+            gateway_request = Gateway::Request.new(env)
             gateway_response = nil
 
             block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do

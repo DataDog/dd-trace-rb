@@ -25,15 +25,14 @@ module Datadog
 
             http_response = nil
             block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              http_response, = Instrumentation.gateway.push(
-                'rack.request.body', Gateway::Request.new(env)
-              ) do
+              http_response, = Instrumentation.gateway.push('rack.request.body', Gateway::Request.new(env)) do
                 @app.call(env)
               end
 
               nil
             end
-            http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
+
+            return AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             http_response
           end
