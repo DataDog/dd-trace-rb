@@ -73,16 +73,16 @@ module Datadog
             add_request_tags(ctx, env)
 
             gateway_request = Gateway::Request.new(env)
-            request_return = nil
+            http_response = nil
             gateway_response = nil
 
             block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              request_return, _request_response = Instrumentation.gateway.push('rack.request', gateway_request) do
+              http_response, = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
 
               gateway_response = Gateway::Response.new(
-                request_return[2], request_return[0], request_return[1], context: ctx
+                http_response[2], http_response[0], http_response[1], context: ctx
               )
 
               Instrumentation.gateway.push('rack.response', gateway_response)
@@ -90,7 +90,7 @@ module Datadog
               nil
             end
 
-            request_return = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
+            http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             result = ctx.waf_runner.extract_schema
 
@@ -109,7 +109,7 @@ module Datadog
 
             AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
 
-            request_return
+            http_response
           ensure
             if ctx
               add_waf_runtime_tags(ctx)
