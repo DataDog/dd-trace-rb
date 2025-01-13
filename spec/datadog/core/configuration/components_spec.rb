@@ -99,20 +99,22 @@ RSpec.describe Datadog::Core::Configuration::Components do
     describe '@environment_logger_extra' do
       let(:environment_logger_extra) { {} }
 
-      subject do
+      let(:extra) do
         components.instance_variable_get('@environment_logger_extra')
       end
 
       context 'DI is not enabled' do
         it 'reports DI as disabled' do
           expect(components.dynamic_instrumentation).to be nil
-          expect(subject).to eq(dynamic_instrumentation_enabled: false)
+          expect(extra).to eq(dynamic_instrumentation_enabled: false)
         end
       end
 
       context 'DI is enabled' do
         before(:all) do
-          skip 'DI is disabled due to Ruby version < 2.5' if RUBY_VERSION < '2.6'
+          if RUBY_VERSION < '2.6'
+            skip "DI is disabled due to Ruby version < 2.5"
+          end
         end
 
         before do
@@ -121,7 +123,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         it 'reports DI as enabled' do
           expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
-          expect(subject).to eq(dynamic_instrumentation_enabled: true)
+          expect(extra).to eq(dynamic_instrumentation_enabled: true)
         end
       end
     end
@@ -1164,8 +1166,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
         receive(:collect_and_log!).with(
-          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
-        )
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false))
 
       startup!
     end
