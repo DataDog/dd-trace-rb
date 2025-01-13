@@ -23,9 +23,9 @@ RSpec.describe 'Dynamic Instrumentation' do
                [{"type"=>"String", "value"=>"version"}, {"type"=>"NilClass", "isNull"=>true}],
                [{"type"=>"String", "value"=>"data"}, {"type"=>"NilClass", "isNull"=>true}],
                [{"type"=>"String", "value"=>"created_at"},
-                {"type"=>"ActiveSupport::TimeWithZone", "value"=>String}],
+                {"type"=>"Time", "value"=>String}],
                [{"type"=>"String", "value"=>"updated_at"},
-                {"type"=>"ActiveSupport::TimeWithZone", "value"=>String}]]}],
+                {"type"=>"Time", "value"=>String}]]}],
            [{"type"=>"Symbol", "value"=>"new_record"}, {"type"=>"FalseClass", "value"=>"false"}]]}
       )
     end
