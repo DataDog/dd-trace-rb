@@ -112,9 +112,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       context 'DI is enabled' do
         before(:all) do
-          if RUBY_VERSION < '2.6'
-            skip "DI is disabled due to Ruby version < 2.5"
-          end
+          skip 'DI is disabled due to Ruby version < 2.5' if RUBY_VERSION < '2.6'
         end
 
         before do
@@ -1166,7 +1164,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
       expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
         receive(:collect_and_log!).with(
-          environment_logger_extra.merge(dynamic_instrumentation_enabled: false))
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
+        )
 
       startup!
     end
