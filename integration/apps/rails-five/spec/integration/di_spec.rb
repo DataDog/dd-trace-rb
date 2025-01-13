@@ -3,6 +3,7 @@ require 'json'
 
 RSpec.describe 'Dynamic Instrumentation' do
   include_context 'integration test'
+  di_test
 
   describe 'ActiveRecord integration' do
     subject { JSON.parse(get('di/ar_serializer').body) }
