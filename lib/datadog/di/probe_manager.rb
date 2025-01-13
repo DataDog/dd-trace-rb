@@ -111,9 +111,11 @@ module Datadog
             # Always remove from pending list here because it makes the
             # API smaller and shouldn't cause any actual problems.
             @pending_probes.delete(probe.id)
+            logger.debug { "di: installed #{probe.type} probe #{probe.id}" }
             true
           rescue Error::DITargetNotDefined
             @pending_probes[probe.id] = probe
+            logger.debug { "di: could not install #{probe.type} probe #{probe.id} because its target is not defined, adding it to pending list" }
             false
           end
         rescue => exc
