@@ -47,7 +47,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
   end
 
   describe '.subscribe' do
-    let(:waf_context) { double(:waf_context) }
+    let(:appsec_context) { instance_double(Datadog::AppSec::Context) }
 
     context 'not all addresses have been published' do
       it 'does not call the waf context' do
@@ -59,8 +59,8 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
           'request.client_ip',
           'server.request.method',
         ).and_call_original
-        expect(waf_context).to_not receive(:run)
-        described_class.subscribe(engine, waf_context)
+        expect(appsec_context).to_not receive(:run_waf)
+        described_class.subscribe(engine, appsec_context)
       end
     end
 
@@ -79,12 +79,12 @@ RSpec.describe Datadog::AppSec::Contrib::Rack::Reactive::Request do
         }
 
         waf_result = double(:waf_result, status: :ok, timeout: false)
-        expect(waf_context).to receive(:run).with(
+        expect(appsec_context).to receive(:run_waf).with(
           expected_waf_arguments,
           {},
           Datadog.configuration.appsec.waf_timeout
         ).and_return(waf_result)
-        described_class.subscribe(engine, waf_context)
+        described_class.subscribe(engine, appsec_context)
         result = described_class.publish(engine, request)
         expect(result).to be_nil
       end

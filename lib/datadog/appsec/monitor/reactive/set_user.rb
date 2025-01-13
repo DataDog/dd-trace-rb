@@ -19,7 +19,7 @@ module Datadog
             end
           end
 
-          def self.subscribe(engine, waf_context)
+          def self.subscribe(engine, context)
             engine.subscribe(*ADDRESSES) do |*values|
               Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
 
@@ -30,7 +30,7 @@ module Datadog
               }
 
               waf_timeout = Datadog.configuration.appsec.waf_timeout
-              result = waf_context.run(persistent_data, {}, waf_timeout)
+              result = context.run_waf(persistent_data, {}, waf_timeout)
 
               next if result.status != :match
 

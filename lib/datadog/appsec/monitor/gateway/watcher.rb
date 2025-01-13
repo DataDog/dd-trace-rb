@@ -20,24 +20,24 @@ module Datadog
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user', :appsec) do |stack, user|
                 event = nil
-                scope = Datadog::AppSec.active_scope
+                context = Datadog::AppSec.active_context
                 engine = AppSec::Reactive::Engine.new
 
-                Monitor::Reactive::SetUser.subscribe(engine, scope.processor_context) do |result|
+                Monitor::Reactive::SetUser.subscribe(engine, context) do |result|
                   if result.status == :match
                     # TODO: should this hash be an Event instance instead?
                     event = {
                       waf_result: result,
-                      trace: scope.trace,
-                      span: scope.service_entry_span,
+                      trace: context.trace,
+                      span: context.span,
                       user: user,
                       actions: result.actions
                     }
 
                     # We want to keep the trace in case of security event
-                    scope.trace.keep! if scope.trace
-                    Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                    scope.processor_context.events << event
+                    context.trace.keep! if context.trace
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
+                    context.waf_runner.events << event
                   end
                 end
 

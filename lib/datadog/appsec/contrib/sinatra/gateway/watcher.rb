@@ -24,24 +24,24 @@ module Datadog
               def watch_request_dispatch(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
                   event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
-                  Rack::Reactive::RequestBody.subscribe(engine, scope.processor_context) do |result|
+                  Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
                     if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
+                        trace: context.trace,
+                        span: context.span,
                         request: gateway_request,
                         actions: result.actions
                       }
 
                       # We want to keep the trace in case of security event
-                      scope.trace.keep! if scope.trace
-                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                      scope.processor_context.events << event
+                      context.trace.keep! if context.trace
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
                   end
 
@@ -55,24 +55,24 @@ module Datadog
               def watch_request_routed(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.routed', :appsec) do |stack, (gateway_request, gateway_route_params)|
                   event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
                   engine = AppSec::Reactive::Engine.new
 
-                  Sinatra::Reactive::Routed.subscribe(engine, scope.processor_context) do |result|
+                  Sinatra::Reactive::Routed.subscribe(engine, context) do |result|
                     if result.status == :match
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
+                        trace: context.trace,
+                        span: context.span,
                         request: gateway_request,
                         actions: result.actions
                       }
 
                       # We want to keep the trace in case of security event
-                      scope.trace.keep! if scope.trace
-                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                      scope.processor_context.events << event
+                      context.trace.keep! if context.trace
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
                   end
 

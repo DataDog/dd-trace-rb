@@ -24,21 +24,21 @@ module Datadog
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
                   block = false
                   event = nil
-                  scope = AppSec::Scope.active_scope
+                  context = AppSec::Context.active
                   engine = AppSec::Reactive::Engine.new
 
-                  if scope
-                    GraphQL::Reactive::Multiplex.subscribe(engine, scope.processor_context) do |result|
+                  if context
+                    GraphQL::Reactive::Multiplex.subscribe(engine, context) do |result|
                       event = {
                         waf_result: result,
-                        trace: scope.trace,
-                        span: scope.service_entry_span,
+                        trace: context.trace,
+                        span: context.span,
                         multiplex: gateway_multiplex,
                         actions: result.actions
                       }
 
-                      Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                      scope.processor_context.events << event
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
 
                     block = GraphQL::Reactive::Multiplex.publish(engine, gateway_multiplex)

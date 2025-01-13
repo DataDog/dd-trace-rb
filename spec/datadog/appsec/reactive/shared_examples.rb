@@ -6,8 +6,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :match, timeout: false, actions: [])
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      described_class.subscribe(engine, waf_context) do |result|
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      described_class.subscribe(engine, appsec_context) do |result|
         expect(result).to eq(waf_result)
       end
       result = described_class.publish(engine, gateway)
@@ -18,8 +18,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :match, timeout: false, actions: ['block'])
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      described_class.subscribe(engine, waf_context) do |result|
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      described_class.subscribe(engine, appsec_context) do |result|
         expect(result).to eq(waf_result)
       end
       block = described_class.publish(engine, gateway)
@@ -32,8 +32,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :ok, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
@@ -44,8 +44,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :invalid_call, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
@@ -56,8 +56,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :invalid_rule, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
@@ -68,8 +68,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :invalid_flow, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
@@ -80,8 +80,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :no_rule, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
@@ -92,8 +92,8 @@ RSpec.shared_examples 'waf result' do
       expect(engine).to receive(:subscribe).and_call_original
 
       waf_result = double(:waf_result, status: :foo, timeout: false)
-      expect(waf_context).to receive(:run).and_return(waf_result)
-      expect { |b| described_class.subscribe(engine, waf_context, &b) }.not_to yield_control
+      expect(appsec_context).to receive(:run_waf).and_return(waf_result)
+      expect { |b| described_class.subscribe(engine, appsec_context, &b) }.not_to yield_control
       result = described_class.publish(engine, gateway)
       expect(result).to be_nil
     end
