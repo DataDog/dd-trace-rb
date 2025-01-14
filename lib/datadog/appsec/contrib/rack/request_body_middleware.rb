@@ -23,19 +23,18 @@ module Datadog
 
             # TODO: handle exceptions, except for @app.call
 
-            request_return, request_response = Instrumentation.gateway.push(
-              'rack.request.body',
-              Gateway::Request.new(env)
-            ) do
-              @app.call(env)
+            http_response = nil
+            block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              http_response, = Instrumentation.gateway.push('rack.request.body', Gateway::Request.new(env)) do
+                @app.call(env)
+              end
+
+              nil
             end
 
-            if request_response
-              blocked_event = request_response.find { |action, _event| action == :block }
-              request_return = AppSec::Response.negotiate(env, blocked_event.last[:actions]).to_rack if blocked_event
-            end
+            return AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
-            request_return
+            http_response
           end
         end
       end
