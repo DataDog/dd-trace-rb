@@ -27,11 +27,14 @@ module Datadog
         :resource,
         :service,
         :links,
-        :events,
         :type,
         :start_time,
         :status,
         :trace_id
+
+      def events
+        @span_events
+      end
 
       attr_writer \
         :duration
@@ -93,7 +96,7 @@ module Datadog
 
         @links = links || []
 
-        @events = events || []
+        @span_events = events || []
 
         # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
@@ -154,42 +157,80 @@ module Datadog
           h[:duration] = duration_nano
         end
 
-        h[:meta]['events'] = @events.map(&:to_hash).to_json unless @events.empty?
+        h[:meta]['events'] = @span_events.map(&:to_hash).to_json unless @span_events.empty?
 
         h
       end
 
-      # Return a human readable version of the span
-      def pretty_print(q)
-        start_time = (self.start_time.to_f * 1e9).to_i
-        end_time = (self.end_time.to_f * 1e9).to_i
-        q.group 0 do
-          q.breakable
-          q.text "Name: #{@name}\n"
-          q.text "Span ID: #{@id}\n"
-          q.text "Parent ID: #{@parent_id}\n"
-          q.text "Trace ID: #{@trace_id}\n"
-          q.text "Type: #{@type}\n"
-          q.text "Service: #{@service}\n"
-          q.text "Resource: #{@resource}\n"
-          q.text "Error: #{@status}\n"
-          q.text "Start: #{start_time}\n"
-          q.text "End: #{end_time}\n"
-          q.text "Duration: #{duration.to_f}\n"
-          q.group(2, 'Tags: [', "]\n") do
-            q.breakable
-            q.seplist @meta.each do |key, value|
-              q.text "#{key} => #{value}"
+      module PrettyPrint
+        # Return a human-readable version of this object
+        #
+        # rubocop:disable Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/BlockLength
+        def pretty_print(q)
+          start_time = (self.start_time.to_f * 1e9).to_i
+          end_time = (self.end_time.to_f * 1e9).to_i
+          q.group 0 do
+            q.text "Name: #{@name}\n"
+            q.text "Span ID: #{@id}\n"
+            q.text "Parent ID: #{@parent_id}\n"
+            q.text "Trace ID: #{@trace_id}\n"
+            q.text "Type: #{@type}\n" if @type
+            q.text "Service: #{@service}\n"
+            q.text "Resource: #{@resource}\n"
+            q.text "Error: #{@status}\n"
+            q.text "Start: #{start_time}\n"
+            q.text "End: #{end_time}\n"
+            q.text "Duration: #{duration.to_f}\n"
+            unless @meta.empty?
+              q.group(2, 'Tags: [', "]") do
+                q.breakable
+                q.seplist @meta.each do |key, value|
+                  q.text "#{key}=#{value}"
+                end
+                q.breakable
+              end
+              q.breakable
             end
-          end
-          q.group(2, 'Metrics: [', ']') do
-            q.breakable
-            q.seplist @metrics.each do |key, value|
-              q.text "#{key} => #{value}"
+            unless @metrics.empty?
+              q.group(2, 'Metrics: [', ']') do
+                q.breakable
+                q.seplist @metrics.each do |key, value|
+                  q.text "#{key}=#{value}"
+                end
+                q.breakable
+              end
+              q.breakable
+            end
+            unless @links.empty?
+              q.group(2, 'Links: [', ']') do
+                q.breakable
+                q.seplist @links.each do |link|
+                  q.pp link
+                end
+                q.breakable
+              end
+              q.breakable
+            end
+            unless @span_events.empty?
+              q.group(2, 'Events: [', ']') do
+                q.breakable
+                q.seplist @span_events.each do |event|
+                  q.pp event
+                end
+                q.breakable
+              end
+              q.breakable
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/BlockLength
       end
+
+      include PrettyPrint
 
       private
 

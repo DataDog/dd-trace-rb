@@ -3,6 +3,8 @@ module Datadog
     class Span
       attr_accessor span_id: Integer
 
+      def events: -> SpanEvent
+
       def set_tag: (String key, ?untyped? value) -> void
     end
   end

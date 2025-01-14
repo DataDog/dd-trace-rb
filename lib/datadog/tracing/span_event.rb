@@ -67,6 +67,23 @@ module Datadog
         h
       end
 
+      def pretty_print(q)
+        q.group 0 do
+          q.text "Name: #{@name}\n"
+          q.text "Time: #{@time_unix_nano} ns\n"
+          unless @attributes.empty?
+            q.group(2, 'Attributes: [', "]") do
+              q.breakable
+              q.seplist @attributes.each do |key, value|
+                q.text "#{key}=#{value}"
+              end
+              q.breakable
+            end
+            q.breakable
+          end
+        end
+      end
+
       private
 
       MIN_INT64_SIGNED = -2**63

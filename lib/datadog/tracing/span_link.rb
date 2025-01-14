@@ -87,6 +87,26 @@ module Datadog
                     end
         h
       end
+
+      def pretty_print(q)
+        q.group 0 do
+          q.text "span_id: #{@span_id},"
+          q.text "trace_id: #{@trace_id},"
+          q.text "trace_flags: #{@trace_flags},"
+          q.text "trace_state: #{@trace_state},"
+          q.text "dropped_attributes: #{@dropped_attributes}" if @dropped_attributes != 0
+          unless @attributes.empty?
+            q.group(2, 'attributes: [', "]") do
+              q.breakable
+              q.seplist @attributes.each do |key, value|
+                q.text "#{key}=#{value}"
+              end
+              q.breakable
+            end
+            q.breakable
+          end
+        end
+      end
     end
   end
 end

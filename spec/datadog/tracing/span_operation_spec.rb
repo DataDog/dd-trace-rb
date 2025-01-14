@@ -995,6 +995,23 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
     end
   end
+
+  describe '#pretty_print' do
+    subject(:pretty_print) { PP.pp(span_op) }
+
+    # Populate list/hash fields
+    let(:options) do
+      {
+        tags: { "meta1" => "1", "meta2" => "2", "metric1" => 1, "metric2" => 2 },
+        links: [Datadog::Tracing::SpanLink.new(Datadog::Tracing::TraceDigest.new)],
+        span_events: [Datadog::Tracing::SpanEvent.new('event')],
+      }
+    end
+
+    it 'output without errors' do
+      expect { pretty_print }.to output.to_stdout
+    end
+  end
 end
 
 RSpec.describe Datadog::Tracing::SpanOperation::Events do
