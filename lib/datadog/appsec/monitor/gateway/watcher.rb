@@ -42,7 +42,7 @@ module Datadog
                 end
 
                 block = Monitor::Reactive::SetUser.publish(engine, user)
-                throw(Datadog::AppSec::Ext::INTERRUPT, [nil, [[:block, event]]]) if block
+                throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
                 stack.call(user)
               end

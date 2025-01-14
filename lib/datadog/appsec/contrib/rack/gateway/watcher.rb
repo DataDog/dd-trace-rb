@@ -48,7 +48,7 @@ module Datadog
                   end
 
                   block = Rack::Reactive::Request.publish(engine, gateway_request)
-                  next [nil, [[:block, event]]] if block
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
                   stack.call(gateway_request.request)
                 end
@@ -79,7 +79,7 @@ module Datadog
                   end
 
                   block = Rack::Reactive::Response.publish(engine, gateway_response)
-                  next [nil, [[:block, event]]] if block
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
                   stack.call(gateway_response.response)
                 end
@@ -110,7 +110,7 @@ module Datadog
                   end
 
                   block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
-                  next [nil, [[:block, event]]] if block
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
                   stack.call(gateway_request.request)
                 end
