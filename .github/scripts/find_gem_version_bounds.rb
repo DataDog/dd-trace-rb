@@ -125,9 +125,9 @@ class GemfileProcessor
   def include_hardcoded_versions
       # `httpx` is maintained externally
     @integration_json_mapping['httpx'] = [
-      '0.11', # Min version Ruby
-      nil, # Max version Ruby
-      '0.11',     # Min version JRuby
+      '0.11',  # Min version Ruby
+      nil,     # Max version Ruby
+      '0.11',  # Min version JRuby
       nil      # Max version JRuby
     ]
 

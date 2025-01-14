@@ -13,15 +13,11 @@ rows = data.map do |integration_name, versions|
     if v == "infinity"
       "latest"
     else
-      v || "None"  # This handles nil values by replacing them with "None"
+      v || "None"
     end
   end
   "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
 end
-# rows = data.map do |integration_name, versions|
-#     ruby_min, ruby_max, jruby_min, jruby_max = versions.map { |v| v || "None" }
-#     "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
-# end
 
 File.open(output_file, 'w') do |file|
   file.puts comment
