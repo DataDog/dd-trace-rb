@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# This file is loaded by datadog/di/init.rb.
+# This file is loaded by datadog/di/preload.rb.
 # It contains just the global DI reference to the (normally one and only)
 # code tracker for the current process.
 # This file should not require the rest of DI, specifically none of the
