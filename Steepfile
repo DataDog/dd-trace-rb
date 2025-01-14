@@ -127,16 +127,12 @@ target :datadog do
   ignore 'lib/datadog/tracing/sampling/rule.rb'
   ignore 'lib/datadog/tracing/sampling/rule_sampler.rb'
   ignore 'lib/datadog/tracing/sampling/span/rule.rb'
-  ignore 'lib/datadog/tracing/span.rb'
-  ignore 'lib/datadog/tracing/span_operation.rb'
   ignore 'lib/datadog/tracing/sync_writer.rb'
   ignore 'lib/datadog/tracing/trace_operation.rb'
   ignore 'lib/datadog/tracing/tracer.rb'
   ignore 'lib/datadog/tracing/transport/http.rb'
   ignore 'lib/datadog/tracing/transport/http/api.rb'
-  ignore 'lib/datadog/tracing/transport/http/builder.rb'
   ignore 'lib/datadog/tracing/transport/http/client.rb'
-  ignore 'lib/datadog/tracing/transport/http/statistics.rb'
   ignore 'lib/datadog/tracing/transport/http/traces.rb'
   ignore 'lib/datadog/tracing/transport/io/client.rb'
   ignore 'lib/datadog/tracing/transport/io/traces.rb'
@@ -161,30 +157,13 @@ target :datadog do
   library 'digest'
   library 'zlib'
   library 'time'
+  library 'pp'
 
+  # Load all dependency signatures from the `vendor/rbs` directory
   repo_path 'vendor/rbs'
-  library 'cucumber'
-  library 'jruby'
-  library 'gem'
-  library 'rails'
-  library 'spring'
-  library 'sinatra'
-  library 'google-protobuf'
-  library 'protobuf-cucumber'
-  library 'minitest'
-  library 'mysql2'
-  library 'mysql2-aurora'
-  library 'concurrent-ruby'
-  library 'faraday'
-  library 'seahorse'
-  library 'excon'
-  library 'grpc'
-  library 'delayed_job'
-  library 'opentelemetry-api'
-  library 'passenger'
-  library 'webmock'
-  library 'graphql'
-  library 'datadog-ci'
+  Dir.children('vendor/rbs').each do |vendor_gem|
+    library vendor_gem
+  end
 
   # ffi version 1.17 was shipped with invalid rbs types:
   # https://github.com/ffi/ffi/issues/1107
