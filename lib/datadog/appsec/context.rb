@@ -35,7 +35,7 @@ module Datadog
         @trace = trace
         @span = span
         @security_engine = security_engine
-        @waf_runner = security_engine.new_context
+        @waf_runner = security_engine.new_runner
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
