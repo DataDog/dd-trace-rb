@@ -13,6 +13,9 @@ module Datadog
         end
       end
 
+      # This method can be called more than once, to attempt to load
+      # DI components that depend on third-party libraries after additional
+      # dependencies are loaded (or potentially loaded).
       module_function def load_now
         if defined?(ActiveRecord::Base)
           require_relative 'contrib/active_record'
