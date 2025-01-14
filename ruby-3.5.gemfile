@@ -27,6 +27,7 @@ gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'mutex_m'
 gem 'os', '~> 1.1'
+gem 'ostruct'
 gem 'pimpmychangelog', '>= 0.1.2'
 gem 'pry'
 gem 'pry-stack_explorer'
@@ -61,8 +62,4 @@ end
 group :dev do
   gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
-end
-
-group :test do
-  gem 'ostruct'
 end
