@@ -10,7 +10,7 @@ RSpec.describe 'DI initializer' do
       raise "Datadog code loaded too early"
     end
 
-    require 'datadog/di/init'
+    require 'datadog/di/preload'
 
     if Datadog.constants.sort != %i(DI VERSION)
       raise "Too many datadog components loaded: \#{Datadog.constants}"

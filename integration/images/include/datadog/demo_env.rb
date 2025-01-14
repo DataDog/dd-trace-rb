@@ -3,7 +3,7 @@ module Datadog
   module DemoEnv
     module_function
 
-    def gem_spec(gem_name, defaults = {})
+    def gem_spec(gem_name)
       args = if local_gem(gem_name)
                [local_gem(gem_name)]
              elsif git_gem(gem_name)
@@ -15,6 +15,18 @@ module Datadog
       yield(args) if block_given?
 
       args
+    end
+
+    def gem_datadog_auto_instrument
+      gem_spec = gem_spec('datadog')
+      req = {require: 'datadog/auto_instrument'}
+      opts = if gem_spec.last.is_a?(Hash)
+        gem_spec.pop.merge(req)
+      else
+        req
+      end
+      gem_spec << opts
+      ['datadog', *gem_spec]
     end
 
     def gem_env_name(gem_name)

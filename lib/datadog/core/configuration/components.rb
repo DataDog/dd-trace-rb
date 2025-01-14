@@ -114,6 +114,7 @@ module Datadog
           @health_metrics = self.class.build_health_metrics(settings)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           self.class.configure_tracing(settings)
         end
