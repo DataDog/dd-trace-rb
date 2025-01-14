@@ -122,9 +122,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         context 'MRI' do
           before(:all) do
-            if PlatformHelpers.jruby?
-              skip "Test requires MRI"
-            end
+            skip 'Test requires MRI' if PlatformHelpers.jruby?
           end
 
           it 'reports DI as enabled' do
@@ -135,9 +133,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         context 'JRuby' do
           before(:all) do
-            unless PlatformHelpers.jruby?
-              skip "Test requires JRuby"
-            end
+            skip 'Test requires JRuby' unless PlatformHelpers.jruby?
           end
 
           it 'reports DI as disabled' do
