@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'datadog/di/spec_helper'
 require 'datadog/profiling/spec_helper'
 
 require 'logger'
@@ -119,9 +120,31 @@ RSpec.describe Datadog::Core::Configuration::Components do
           settings.dynamic_instrumentation.enabled = true
         end
 
-        it 'reports DI as enabled' do
-          expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
-          expect(extra).to eq(dynamic_instrumentation_enabled: true)
+        context 'MRI' do
+          before(:all) do
+            if PlatformHelpers.jruby?
+              skip "Test requires MRI"
+            end
+          end
+
+          it 'reports DI as enabled' do
+            expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+            expect(extra).to eq(dynamic_instrumentation_enabled: true)
+          end
+        end
+
+        context 'JRuby' do
+          before(:all) do
+            unless PlatformHelpers.jruby?
+              skip "Test requires JRuby"
+            end
+          end
+
+          it 'reports DI as disabled' do
+            expect(logger).to receive(:warn).with(/cannot enable dynamic instrumentation/)
+            expect(components.dynamic_instrumentation).to be nil
+            expect(extra).to eq(dynamic_instrumentation_enabled: false)
+          end
         end
       end
     end
