@@ -18,21 +18,6 @@ require_relative 'di/serializer'
 require_relative 'di/transport'
 require_relative 'di/utils'
 
-if defined?(ActiveRecord::Base)
-  # The third-party library integrations need to be loaded after the
-  # third-party libraries are loaded. Tracing and appsec use Railtie
-  # to delay integrations until all of the application's dependencies
-  # are loaded, when running under Rails. We should do the same here in
-  # principle, however DI currently only has an ActiveRecord integration
-  # and AR should be loaded before any application code is loaded, being
-  # part of Rails, therefore for now we should be OK to just require the
-  # AR integration from here.
-  #
-  # TODO this require might need to be delayed via Rails post-initialization
-  # logic?
-  require_relative 'di/contrib/active_record'
-end
-
 module Datadog
   # Namespace for Datadog dynamic instrumentation.
   #
@@ -75,3 +60,7 @@ if %w(1 true).include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
   # for line probes to work) activate tracking in an initializer.
   Datadog::DI.activate_tracking
 end
+
+require_relative 'di/contrib'
+
+Datadog::DI::Contrib.load_now_or_later

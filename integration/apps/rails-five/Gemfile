@@ -25,7 +25,7 @@ gem 'unicorn'
 gem 'loofah', '2.19.1'
 
 # Choose correct specs for 'datadog' demo environment
-gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+gem *Datadog::DemoEnv.gem_datadog_auto_instrument
 
 gem 'dogstatsd-ruby'
 gem 'ffi'

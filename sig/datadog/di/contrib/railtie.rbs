@@ -1,0 +1,8 @@
+module Datadog
+  module DI
+    module Contrib
+      class Railtie < Rails::Railtie
+      end
+    end
+  end
+end
