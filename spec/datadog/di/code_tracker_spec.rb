@@ -116,6 +116,11 @@ RSpec.describe Datadog::DI::CodeTracker do
           expect(tracker.send(:registry).length).to eq(1)
           path = tracker.send(:registry).to_a.dig(0, 0)
           expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+
+          require_relative 'code_tracker_test_class_5'
+          expect(tracker.send(:registry).length).to eq(2)
+          path = tracker.send(:registry).to_a.dig(1, 0)
+          expect(File.basename(path)).to eq("code_tracker_test_class_5.rb")
         end
 
         begin
