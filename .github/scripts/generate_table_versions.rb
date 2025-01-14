@@ -9,8 +9,14 @@ comment = "# Integrations\n\n"
 header = "| Integration | Ruby Min |  Ruby Max | JRuby Min | JRuby Max |\n"
 separator = "|-------------|----------|-----------|----------|----------|\n"
 rows = data.map do |integration_name, versions|
-    ruby_min, ruby_max, jruby_min, jruby_max = versions.map { |v| v || "None" }
-    "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
+  ruby_min, ruby_max, jruby_min, jruby_max = versions.map do |v|
+    if v == "infinity"
+      "latest"
+    else
+      v || "None"
+    end
+  end
+  "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
 end
 
 File.open(output_file, 'w') do |file|

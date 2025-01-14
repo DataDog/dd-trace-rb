@@ -52,7 +52,11 @@ class GemfileProcessor
       definition.dependencies.each do |dependency|
         gem_name = dependency.name
         version = dependency.requirement.to_s
-        update_gem_versions(runtime, gem_name, version)
+        unspecified = version.strip == '' || version == ">= 0"
+        if unspecified
+          puts "#{gem_name} uses latest"
+        end
+        update_gem_versions(runtime, gem_name, version, unspecified)
       end
     rescue Bundler::GemfileError => e
       puts "Error reading Gemfile: #{e.message}"
@@ -65,30 +69,36 @@ class GemfileProcessor
     parser.specs.each do |spec|
       gem_name = spec.name
       version = spec.version.to_s
-      update_gem_versions(runtime, gem_name, version)
+      update_gem_versions(runtime, gem_name, version, false)
     end
   end
 
-  def update_gem_versions(runtime, gem_name, version)
-    return unless version_valid?(version)
+  def update_gem_versions(runtime, gem_name, version, unspecified)
+    return unless version_valid?(version, unspecified)
 
-    gem_version = Gem::Version.new(version)
-
+    gem_version = Gem::Version.new(version) unless unspecified
     # Update minimum gems
-    if @min_gems[runtime][gem_name].nil? || gem_version < Gem::Version.new(@min_gems[runtime][gem_name])
-      @min_gems[runtime][gem_name] = version
+    if not unspecified
+      if @min_gems[runtime][gem_name].nil? || gem_version < Gem::Version.new(@min_gems[runtime][gem_name])
+        @min_gems[runtime][gem_name] = version
+      end
     end
 
     # Update maximum gems
-    if @max_gems[runtime][gem_name].nil? || gem_version > Gem::Version.new(@max_gems[runtime][gem_name])
-      @max_gems[runtime][gem_name] = version
+    if unspecified
+      puts "Setting gem #{gem_name} to infinity"
+      @max_gems[runtime][gem_name] = Float::INFINITY
+    else
+      if @max_gems[runtime][gem_name].nil? || (@max_gems[runtime][gem_name] != Float::INFINITY && gem_version > Gem::Version.new(@max_gems[runtime][gem_name]))
+        @max_gems[runtime][gem_name] = version
+      end
     end
   end
 
   # Helper: Validate the version format
-  def version_valid?(version)
+  def version_valid?(version, unspecified)
+    return true if unspecified
     return false if version.nil? || version.strip.empty?
-
     Gem::Version.new(version)
     true
   rescue ArgumentError
@@ -115,17 +125,17 @@ class GemfileProcessor
   def include_hardcoded_versions
       # `httpx` is maintained externally
     @integration_json_mapping['httpx'] = [
-      '0.11', # Min version Ruby
-      '0.11', # Max version Ruby
-      nil,     # Min version JRuby
+      '0.11',  # Min version Ruby
+      nil,     # Max version Ruby
+      '0.11',  # Min version JRuby
       nil      # Max version JRuby
     ]
 
     # `makara` is part of `activerecord`
     @integration_json_mapping['makara'] = [
       '0.3.5', # Min version Ruby
-      '0.3.5', # Max version Ruby
-      nil,     # Min version JRuby
+      nil,     # Max version Ruby
+      '0.3.5', # Min version JRuby
       nil      # Max version JRuby
     ]
   end
@@ -142,6 +152,9 @@ class GemfileProcessor
 
   def write_output
     @integration_json_mapping = @integration_json_mapping.sort.to_h
+    @integration_json_mapping.each do |integration, versions|
+      versions.map! { |v| v == Float::INFINITY ? 'infinity' : v }
+    end
     File.write("gem_output.json", JSON.pretty_generate(@integration_json_mapping))
   end
 end
