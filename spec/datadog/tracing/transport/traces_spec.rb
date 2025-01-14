@@ -60,8 +60,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Response do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
-  let(:chunker) { described_class.new(encoder, max_size: max_size) }
+  let(:chunker) { described_class.new(encoder, native_events_supported, max_size: max_size) }
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
+  let(:native_events_supported) { double }
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
   let(:max_size) { 10 }
 
@@ -72,9 +73,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
       let(:traces) { get_test_traces(3) }
 
       before do
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[0]).and_return('1')
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[1]).and_return('22')
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[2]).and_return('333')
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[0], native_events_supported).and_return('1')
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[1], native_events_supported).and_return('22')
+        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[2], native_events_supported).and_return('333')
         allow(encoder).to receive(:join) { |arr| arr.join(',') }
       end
 
@@ -138,8 +139,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
 
     let(:api_v1) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v1', encoder: encoder_v1) }
     let(:api_v2) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance, 'v2', encoder: encoder_v2) }
-    let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/plain') }
-    let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, content_type: 'text/csv') }
+    let(:encoder_v1) { instance_double(Datadog::Core::Encoding::Encoder, 'v1', content_type: 'text/plain') }
+    let(:encoder_v2) { instance_double(Datadog::Core::Encoding::Encoder, 'v2', content_type: 'text/csv') }
   end
 
   describe '#initialize' do
@@ -157,6 +158,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     subject(:send_traces) { transport.send_traces(traces) }
 
     let(:traces) { [] }
+
     let(:response) { Class.new { include Datadog::Core::Transport::Response }.new }
     let(:responses) { [response] }
 
@@ -170,10 +172,14 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     let(:client_v1) { instance_double(Datadog::Tracing::Transport::HTTP::Client) }
 
     let(:chunker) { instance_double(Datadog::Tracing::Transport::Traces::Chunker, max_size: 1) }
+    let(:native_events_supported) { nil }
+    let(:agent_info_response) do
+      instance_double(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response, span_events: native_events_supported)
+    end
 
     before do
-      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v1).and_return(chunker)
-      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v1, false).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2, false).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
@@ -183,6 +189,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
       allow(client_v2).to receive(:send_traces_payload).with(request).and_return(response)
 
       allow(Datadog::Tracing::Transport::Traces::Request).to receive(:new).and_return(request)
+
+      allow_any_instance_of(Datadog::Core::Environment::AgentInfo).to receive(:fetch)
+        .and_return(agent_info_response)
     end
 
     context 'which returns an OK response' do
@@ -252,6 +261,61 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
         expect(client_v1).to have_received(:send_traces_payload).with(request).once
 
         expect(health_metrics).to have_received(:transport_chunked).with(1)
+      end
+    end
+
+    context 'for native span event support by the agent' do
+      context 'on a successful agent info call' do
+        context 'with support not advertised' do
+          let(:native_events_supported) { nil }
+
+          it 'does not encode native span events' do
+            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+              encoder_v2,
+              false
+            ).and_return(chunker)
+            send_traces
+          end
+        end
+
+        context 'with support advertised as supported' do
+          let(:native_events_supported) { true }
+
+          it 'encodes native span events' do
+            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2, true).and_return(chunker)
+            send_traces
+          end
+        end
+
+        context 'with support advertised as unsupported' do
+          let(:native_events_supported) { false }
+
+          it 'encodes native span events' do
+            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+              encoder_v2,
+              false
+            ).and_return(chunker)
+            send_traces
+          end
+        end
+
+        it 'caches the agent result' do
+          transport.send_traces(traces)
+          transport.send_traces(traces)
+
+          expect(Datadog.send(:components).agent_info).to have_received(:fetch).once
+        end
+      end
+
+      context 'on an unsuccessful agent info call' do
+        let(:agent_info_response) { nil }
+
+        it 'does not cache the agent result' do
+          transport.send_traces(traces)
+          transport.send_traces(traces)
+
+          expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
+        end
       end
     end
   end

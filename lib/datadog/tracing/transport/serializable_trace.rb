@@ -14,7 +14,7 @@ module Datadog
 
         # @param trace [Datadog::Trace] the trace to serialize
         # @param native_events_supported [Boolean] whether the agent supports span events as a top-level field
-        def initialize(trace, native_events_supported = false)
+        def initialize(trace, native_events_supported)
           @trace = trace
           @native_events_supported = native_events_supported
         end

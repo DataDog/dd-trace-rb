@@ -28,7 +28,7 @@ module Datadog
 
           attr_reader max_size: untyped
 
-          def initialize: (untyped encoder, ?max_size: untyped) -> void
+          def initialize: (untyped encoder, bool native_events_supported, ?max_size: untyped) -> void
 
           def encode_in_chunks: (untyped traces) -> untyped
 
@@ -38,10 +38,12 @@ module Datadog
         end
 
         module Encoder
-          def self?.encode_trace: (untyped encoder, untyped trace) -> untyped
+          def self?.encode_trace: (untyped encoder, untyped trace, bool native_events_supported) -> untyped
         end
 
         class Transport
+          @native_events_supported: bool
+
           attr_reader client: untyped
 
           attr_reader apis: untyped
@@ -52,7 +54,7 @@ module Datadog
 
           def initialize: (untyped apis, untyped default_api) -> void
 
-          def send_traces: (untyped traces) -> untyped
+          def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
 
           def stats: () -> untyped
 
@@ -81,6 +83,8 @@ module Datadog
 
             def message: () -> ::String
           end
+
+          def native_events_supported?: -> bool
         end
       end
     end
