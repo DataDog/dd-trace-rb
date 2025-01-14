@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/context'
+require 'datadog/appsec/processor'
+require 'datadog/appsec/processor/rule_loader'
+require 'datadog/appsec/processor/rule_merger'
 
 RSpec.describe Datadog::AppSec::Context do
   let(:span) { instance_double(Datadog::Tracing::SpanOperation) }
@@ -18,11 +20,11 @@ RSpec.describe Datadog::AppSec::Context do
   end
 
   describe '.active' do
-    context 'with no active context' do
+    context 'when no active context is set' do
       it { expect(described_class.active).to be_nil }
     end
 
-    context 'with an active context' do
+    context 'when active context is set' do
       before { described_class.activate(context) }
 
       it { expect(described_class.active).to eq(context) }
@@ -32,16 +34,16 @@ RSpec.describe Datadog::AppSec::Context do
   describe '.activate' do
     it { expect { described_class.activate(double) }.to raise_error(ArgumentError) }
 
-    context 'with no active context' do
+    context 'when no active context is set' do
       it { expect { described_class.activate(context) }.to change { described_class.active }.from(nil).to(context) }
     end
 
-    context 'with an active context' do
+    context 'when active context is already set' do
       before { described_class.activate(context) }
 
       subject(:activate_context) { described_class.activate(described_class.new(trace, span, processor)) }
 
-      it 'raises ActiveContextError and does not change the active context' do
+      it 'raises an error and does not change the active context' do
         expect { activate_context }.to raise_error(Datadog::AppSec::Context::ActiveContextError)
           .and(not_change { described_class.active })
       end
@@ -49,13 +51,13 @@ RSpec.describe Datadog::AppSec::Context do
   end
 
   describe '.deactivate' do
-    context 'with no active context' do
+    context 'when no active context is set' do
       it 'does not change the active context' do
         expect { described_class.deactivate }.to_not(change { described_class.active })
       end
     end
 
-    context 'with an active context' do
+    context 'when active context is set' do
       before do
         described_class.activate(context)
         expect(context).to receive(:finalize).and_call_original
@@ -66,7 +68,7 @@ RSpec.describe Datadog::AppSec::Context do
       end
     end
 
-    context 'with error during deactivation' do
+    context 'when error happen during deactivation' do
       before do
         described_class.activate(context)
         expect(context).to receive(:finalize).and_raise(RuntimeError.new('Ooops'))
@@ -75,6 +77,89 @@ RSpec.describe Datadog::AppSec::Context do
       it 'raises underlying exception and unsets the active context' do
         expect { described_class.deactivate }.to raise_error(RuntimeError)
           .and(change { described_class.active }.from(context).to(nil))
+      end
+    end
+  end
+
+  describe '#run_waf' do
+    context 'when multiple same matching runs were made within a single context' do
+      let!(:run_results) do
+        persistent_data = {
+          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+        }
+
+        Array.new(3) { context.run_waf(persistent_data, {}, 1_000) }
+      end
+
+      it 'returns a single match and rest is ok' do
+        expect(run_results).to match_array(
+          [
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok),
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+          ]
+        )
+      end
+    end
+
+    context 'when multiple different matching runs were made within a single context' do
+      let!(:run_results) do
+        persistent_data_1 = { 'server.request.query' => { 'q' => '1 OR 1;' } }
+        persistent_data_2 = {
+          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+        }
+
+        [
+          context.run_waf(persistent_data_1, {}, 1_000),
+          context.run_waf(persistent_data_2, {}, 1_000),
+        ]
+      end
+
+      it 'returns a single match and rest is ok' do
+        expect(run_results).to match_array(
+          [
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Match),
+            kind_of(Datadog::AppSec::SecurityEngine::Result::Match)
+          ]
+        )
+      end
+    end
+  end
+
+  describe '#run_rasp' do
+    # TODO
+  end
+
+  describe '#waf_metrics' do
+    context 'when multiple calls were successful' do
+      let!(:run_results) do
+        persistent_data = {
+          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+        }
+        Array.new(3) { context.run_waf(persistent_data, {}, 1_000) }
+      end
+
+      it 'returns metrics containing 0 timeouts and cumulative durations' do
+        expect(context.waf_metrics.timeouts).to eq(0)
+        expect(context.waf_metrics.duration_ns).to be > 0
+        expect(context.waf_metrics.duration_ext_ns).to be > 0
+        expect(context.waf_metrics.duration_ns).to eq(run_results.sum(&:duration_ns))
+        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
+      end
+    end
+
+    context 'when multiple calls have timeouts' do
+      let!(:run_results) do
+        persistent_data = {
+          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
+        }
+        Array.new(5) { context.run_waf(persistent_data, {}, 0) }
+      end
+
+      it 'returns metrics containing 5 timeouts and cumulative durations' do
+        expect(context.waf_metrics.timeouts).to eq(5)
+        expect(context.waf_metrics.duration_ns).to eq(0)
+        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
       end
     end
   end

@@ -6,8 +6,9 @@ module Datadog
     # interface sufficient for instrumentation to perform threat detection.
     class Context
       ActiveContextError = Class.new(StandardError)
+      WAFMetrics = Struct.new(:timeouts, :duration_ns, :duration_ext_ns, keyword_init: true)
 
-      attr_reader :trace, :span
+      attr_reader :trace, :span, :waf_metrics
 
       # NOTE: This is an intermediate state and will be changed
       attr_reader :waf_runner
@@ -36,10 +37,20 @@ module Datadog
         @span = span
         @security_engine = security_engine
         @waf_runner = security_engine.new_runner
+        @waf_metrics = WAFMetrics.new(timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
+        @mutex = Mutex.new
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
-        @waf_runner.run(persistent_data, ephemeral_data, timeout)
+        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+
+        @mutex.synchronize do
+          @waf_metrics.timeouts += 1 if result.timeout?
+          @waf_metrics.duration_ns += result.duration_ns
+          @waf_metrics.duration_ext_ns += result.duration_ext_ns
+        end
+
+        result
       end
 
       def run_rasp(_type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
