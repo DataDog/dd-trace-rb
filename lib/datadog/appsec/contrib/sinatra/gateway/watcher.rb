@@ -28,7 +28,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -59,7 +59,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Sinatra::Reactive::Routed.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,

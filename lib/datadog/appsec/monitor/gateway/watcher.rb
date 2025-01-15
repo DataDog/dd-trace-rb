@@ -24,7 +24,7 @@ module Datadog
                 engine = AppSec::Reactive::Engine.new
 
                 Monitor::Reactive::SetUser.subscribe(engine, context) do |result|
-                  if result.status == :match
+                  if result.match?
                     # TODO: should this hash be an Event instance instead?
                     event = {
                       waf_result: result,
