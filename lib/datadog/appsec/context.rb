@@ -8,10 +8,7 @@ module Datadog
       ActiveContextError = Class.new(StandardError)
       WAFMetrics = Struct.new(:timeouts, :duration_ns, :duration_ext_ns, keyword_init: true)
 
-      attr_reader :trace, :span, :waf_metrics
-
-      # NOTE: This is an intermediate state and will be changed
-      attr_reader :waf_runner
+      attr_reader :trace, :span, :events, :waf_metrics
 
       class << self
         def activate(context)
@@ -35,6 +32,7 @@ module Datadog
       def initialize(trace, span, security_engine)
         @trace = trace
         @span = span
+        @events = []
         @security_engine = security_engine
         @waf_runner = security_engine.new_runner
         @waf_metrics = WAFMetrics.new(timeouts: 0, duration_ns: 0, duration_ext_ns: 0)

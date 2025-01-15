@@ -35,7 +35,7 @@ module Datadog
                 sql: sql,
                 actions: result.actions
               }
-              context.waf_runner.events << event
+              context.events << event
             end
           end
 

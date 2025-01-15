@@ -88,7 +88,7 @@ RSpec.describe Datadog::AppSec::Context do
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
         }
 
-        Array.new(3) { context.run_waf(persistent_data, {}, 1_000) }
+        Array.new(3) { context.run_waf(persistent_data, {}, 10_000) }
       end
 
       it 'returns a single match and rest is ok' do
@@ -110,8 +110,8 @@ RSpec.describe Datadog::AppSec::Context do
         }
 
         [
-          context.run_waf(persistent_data_1, {}, 1_000),
-          context.run_waf(persistent_data_2, {}, 1_000),
+          context.run_waf(persistent_data_1, {}, 10_000),
+          context.run_waf(persistent_data_2, {}, 10_000),
         ]
       end
 
@@ -142,7 +142,7 @@ RSpec.describe Datadog::AppSec::Context do
         persistent_data = {
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
         }
-        Array.new(3) { context.run_waf(persistent_data, {}, 1_000) }
+        Array.new(3) { context.run_waf(persistent_data, {}, 10_000) }
       end
 
       it 'returns metrics containing 0 timeouts and cumulative durations' do

@@ -17,6 +17,8 @@ module Datadog
 
       @span: Tracing::SpanOperation
 
+      @events: ::Array[untyped]
+
       @security_engine: Processor
 
       @waf_runner: SecurityEngine::Runner
@@ -31,7 +33,7 @@ module Datadog
 
       attr_reader span: Tracing::SpanOperation
 
-      attr_reader waf_runner: SecurityEngine::Runner
+      attr_reader events: ::Array[untyped]
 
       attr_reader waf_metrics: WAFMetrics
 

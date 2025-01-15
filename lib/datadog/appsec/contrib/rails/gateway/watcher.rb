@@ -39,7 +39,7 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
                     end
                   end
 

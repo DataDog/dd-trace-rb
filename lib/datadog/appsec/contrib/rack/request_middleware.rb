@@ -93,19 +93,19 @@ module Datadog
             http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
             if AppSec.api_security_enabled?
-              ctx.waf_runner.events << {
+              ctx.events << {
                 trace: ctx.trace,
                 span: ctx.span,
                 waf_result: ctx.extract_schema,
               }
             end
 
-            ctx.waf_runner.events.each do |e|
+            ctx.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
+            AppSec::Event.record(ctx.span, *ctx.events)
 
             http_response
           ensure
