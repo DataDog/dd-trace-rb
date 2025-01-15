@@ -37,27 +37,11 @@ class GemfileProcessor
       runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
       next unless %w[ruby jruby].include?(runtime)
       # parse the gemfile
-      if gemfile_name.end_with?(".gemfile")
-        process_gemfile(gemfile_name, runtime)
-      elsif gemfile_name.end_with?('.gemfile.lock')
+      if gemfile_name.end_with?('.gemfile.lock')
         process_lockfile(gemfile_name, runtime)
       end
     end
 
-  end
-
-  def process_gemfile(gemfile_name, runtime)
-    begin
-      definition = Bundler::Definition.build(gemfile_name, nil, nil)
-      definition.dependencies.each do |dependency|
-        gem_name = dependency.name
-        version = dependency.requirement.to_s
-        unspecified = version.strip == '' || version == ">= 0"
-        update_gem_versions(runtime, gem_name, version, unspecified)
-      end
-    rescue Bundler::GemfileError => e
-      puts "Error reading Gemfile: #{e.message}"
-    end
   end
 
   def process_lockfile(gemfile_name, runtime)
@@ -98,6 +82,7 @@ class GemfileProcessor
     Gem::Version.new(version)
     true
   rescue ArgumentError
+    puts "#{version} is invalid format."
     false
   end
 
@@ -148,9 +133,6 @@ class GemfileProcessor
 
   def write_output
     @integration_json_mapping = @integration_json_mapping.sort.to_h
-    @integration_json_mapping.each do |integration, versions|
-      versions.map! { |v| v == Float::INFINITY ? 'infinity' : v }
-    end
     File.write("gem_output.json", JSON.pretty_generate(@integration_json_mapping))
   end
 end
