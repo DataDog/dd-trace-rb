@@ -58,8 +58,6 @@ RSpec.describe 'Rack integration tests' do
           allow(Datadog::Core::Remote::Negotiation).to receive(:new).and_return(negotiation)
 
           allow(client).to receive(:id).and_return(remote_client_id)
-          allow(worker).to receive(:start).and_call_original
-          allow(worker).to receive(:stop).and_call_original
 
           Datadog.configure do |c|
             c.remote.enabled = remote_enabled
