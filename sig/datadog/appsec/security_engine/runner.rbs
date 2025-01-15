@@ -16,8 +16,6 @@ module Datadog
 
         def initialize: (WAF::Handle handle, telemetry: Core::Telemetry::Component) -> void
 
-        def extract_schema: () -> SecurityEngine::result
-
         def run: (SecurityEngine::data persistent_data, SecurityEngine::data ephemeral_data, ?::Integer timeout) -> SecurityEngine::result
 
         def finalize: () -> void
@@ -27,12 +25,6 @@ module Datadog
         def try_run: (SecurityEngine::data persistent_data, SecurityEngine::data ephemeral_data, untyped timeout) -> waf_run_result
 
         def report_execution: (WAF::Result result) -> void
-
-        def extract_schema?: () -> bool
-
-        def fallback_waf_error_result: () -> waf_run_result
-
-        def generic_ok_result: () -> SecurityEngine::result
       end
     end
   end

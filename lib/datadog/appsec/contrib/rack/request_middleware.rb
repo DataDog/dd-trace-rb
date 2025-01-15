@@ -92,11 +92,11 @@ module Datadog
 
             http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
-            if (result = ctx.waf_runner.extract_schema)
+            if AppSec.api_security_enabled?
               ctx.waf_runner.events << {
                 trace: ctx.trace,
                 span: ctx.span,
-                waf_result: result,
+                waf_result: ctx.extract_schema,
               }
             end
 

@@ -126,6 +126,16 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
+  describe '#extract_schema' do
+    it 'calls the waf runner with specific addresses' do
+      expect_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
+        .with({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+        .and_call_original
+
+      expect(context.extract_schema).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
+    end
+  end
+
   describe '#waf_metrics' do
     context 'when multiple calls were successful' do
       let!(:run_results) do

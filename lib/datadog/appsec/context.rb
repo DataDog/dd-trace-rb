@@ -57,6 +57,10 @@ module Datadog
         @waf_runner.run(persistent_data, ephemeral_data, timeout)
       end
 
+      def extract_schema
+        @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+      end
+
       def finalize
         @waf_runner.finalize
       end

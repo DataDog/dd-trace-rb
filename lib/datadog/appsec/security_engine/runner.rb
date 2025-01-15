@@ -17,17 +17,6 @@ module Datadog
           @debug_tag = "libddwaf:#{WAF::VERSION::STRING} method:ddwaf_run"
         end
 
-        # TODO: Replace nil return value with SecurityEngine::Result::Ok
-        def extract_schema
-          return generic_ok_result unless extract_schema?
-
-          persistent_data = {
-            'waf.context.processor' => { 'extract-schema' => true }
-          }
-
-          run(persistent_data, {})
-        end
-
         def run(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
           @mutex.lock
 
@@ -78,7 +67,7 @@ module Datadog
           Datadog.logger.debug { "#{@debug_tag} execution error: #{e} backtrace: #{e.backtrace&.first(3)}" }
           @telemetry.report(e, description: 'libddwaf-rb internal low-level error')
 
-          fallback_waf_error_result
+          [:err_internal, WAF::Result.new(:err_internal, [], 0, false, [], [])]
         end
 
         def report_execution(result)
@@ -92,23 +81,6 @@ module Datadog
             Datadog.logger.debug { message }
             @telemetry.error(message)
           end
-        end
-
-        # NOTE: This configuration reads should be a part of the SecurityEngine
-        #       configuration instead.
-        def extract_schema?
-          Datadog.configuration.appsec.api_security.enabled &&
-            Datadog.configuration.appsec.api_security.sample_rate.sample?
-        end
-
-        def fallback_waf_error_result
-          [:err_internal, WAF::Result.new(:err_internal, [], 0, false, [], [])]
-        end
-
-        def generic_ok_result
-          Result::Ok.new(
-            events: [], actions: [], derivatives: [], timeout: false, duration_ns: 0, duration_ext_ns: 0
-          )
         end
       end
     end
