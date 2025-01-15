@@ -199,6 +199,9 @@ module Datadog
       end
 
       # Mark the span stopped at the current time
+      #
+      # steep:ignore:start
+      # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
       def stop(stop_time = nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
@@ -221,6 +224,7 @@ module Datadog
 
         self
       end
+      # steep:ignore:end
 
       # Return whether the duration is started or not
       def started?

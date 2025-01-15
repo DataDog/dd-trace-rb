@@ -3,7 +3,25 @@ module Datadog
     module Diagnostics
       module Health
         module Metrics
-          def self.extended: (untyped base) -> untyped
+          def api_errors: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def api_requests: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def api_responses: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def error_context_overflow: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def error_instrumentation_patch: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def error_span_finish: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def error_unfinished_spans: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def instrumentation_patched: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_accepted: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_accepted_lengths: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_dropped: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def traces_filtered: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def transport_trace_too_large: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def transport_chunked: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def writer_cpu_time: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_length: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_max_length: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def queue_spans: (untyped ?value) ?{ (untyped) -> untyped } -> void
+          def sampling_service_cache_length: (untyped ?value) ?{ (untyped) -> untyped } -> void
         end
       end
     end
