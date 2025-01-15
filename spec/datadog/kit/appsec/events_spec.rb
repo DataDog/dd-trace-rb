@@ -10,7 +10,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
 
   shared_context 'uses AppSec context' do
     before do
-      allow(processor).to receive(:new_context).and_return(instance_double(Datadog::AppSec::Processor::Context))
+      allow(processor).to receive(:new_runner).and_return(instance_double(Datadog::AppSec::SecurityEngine::Runner))
       allow(Datadog::AppSec).to receive(:active_context).and_return(appsec_active_context)
     end
 
