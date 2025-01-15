@@ -1,0 +1,57 @@
+module Minitest
+  def self.__run: (untyped reporter, untyped options) -> untyped
+
+  def self.after_run: () { (*untyped) -> untyped } -> untyped
+
+  def self.allow_fork: () -> untyped
+
+  def self.allow_fork=: (untyped) -> untyped
+
+  def self.autorun: () -> untyped
+
+  def self.backtrace_filter: () -> untyped
+
+  def self.backtrace_filter=: (untyped) -> untyped
+
+  def self.cattr_accessor: (untyped name) -> untyped
+
+  def self.clock_time: () -> untyped
+
+  def self.empty_run!: (untyped options) -> untyped
+
+  def self.extensions: () -> untyped
+
+  def self.extensions=: (untyped) -> untyped
+
+  def self.filter_backtrace: (untyped bt) -> untyped
+
+  def self.info_signal: () -> untyped
+
+  def self.info_signal=: (untyped) -> untyped
+
+  def self.init_plugins: (untyped options) -> untyped
+
+  def self.load_plugins: () -> untyped
+
+  def self.parallel_executor: () -> untyped
+
+  def self.parallel_executor=: (untyped) -> untyped
+
+  def self.process_args: (?untyped args) -> untyped
+
+  def self.register_plugin: (untyped name_or_mod) -> untyped
+
+  def self.reporter: () -> untyped
+
+  def self.reporter=: (untyped) -> untyped
+
+  def self.run: (?untyped args) -> untyped
+
+  def self.run_one_method: (untyped klass, untyped method_name) -> untyped
+
+  def self.seed: () -> untyped
+
+  def self.seed=: (untyped) -> untyped
+
+  VERSION: ::String
+end
