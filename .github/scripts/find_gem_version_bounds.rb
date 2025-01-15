@@ -53,9 +53,6 @@ class GemfileProcessor
         gem_name = dependency.name
         version = dependency.requirement.to_s
         unspecified = version.strip == '' || version == ">= 0"
-        if unspecified
-          puts "#{gem_name} uses latest"
-        end
         update_gem_versions(runtime, gem_name, version, unspecified)
       end
     rescue Bundler::GemfileError => e
