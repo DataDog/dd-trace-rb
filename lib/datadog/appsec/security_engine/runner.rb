@@ -101,8 +101,6 @@ module Datadog
             Datadog.configuration.appsec.api_security.sample_rate.sample?
         end
 
-        private
-
         def fallback_waf_error_result
           [:err_internal, WAF::Result.new(:err_internal, [], 0, false, [], [])]
         end

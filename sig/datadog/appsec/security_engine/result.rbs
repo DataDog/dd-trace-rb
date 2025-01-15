@@ -1,0 +1,72 @@
+module Datadog
+  module AppSec
+    module SecurityEngine
+      module Result
+        class Base
+          @events: ::Array[untyped]
+
+          @actions: ::Array[untyped]
+
+          @derivatives: ::Array[untyped]
+
+          @timeout: bool
+
+          @duration_ns: ::Integer
+
+          @duration_ext_ns: ::Integer
+
+          attr_reader events: ::Array[untyped]
+
+          attr_reader actions: ::Array[untyped]
+
+          attr_reader derivatives: ::Array[untyped]
+
+          attr_reader duration_ns: ::Integer
+
+          attr_reader duration_ext_ns: ::Integer
+
+          def initialize: (events: ::Array[untyped], actions: ::Array[untyped], derivatives: ::Array[untyped], timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+
+          def timeout?: () -> bool
+
+          def match?: () -> bool
+        end
+
+        # A result that indicates a security rule match
+        class Match < Base
+          def match?: () -> true
+        end
+
+        # A result that indicates a successful security rules check without a match
+        class Ok < Base
+          def match?: () -> false
+        end
+
+        # A result that indicates an internal security library error
+        class Error
+          @events: ::Array[untyped]
+
+          @duration_ns: ::Integer
+
+          @duration_ext_ns: ::Integer
+
+          attr_reader events: ::Array[untyped]
+
+          attr_reader actions: ::Array[untyped]
+
+          attr_reader derivatives: ::Array[untyped]
+
+          attr_reader duration_ns: ::Integer
+
+          attr_reader duration_ext_ns: ::Integer
+
+          def initialize: (duration_ext_ns: ::Integer) -> void
+
+          def timeout?: () -> false
+
+          def match?: () -> false
+        end
+      end
+    end
+  end
+end
