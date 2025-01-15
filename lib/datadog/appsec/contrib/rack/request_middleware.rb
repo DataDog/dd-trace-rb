@@ -200,15 +200,13 @@ module Datadog
 
           def add_waf_runtime_tags(context)
             span = context.span
-            context = context.waf_runner
+            return unless span
 
-            return unless span && context
-
-            span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
+            span.set_tag('_dd.appsec.waf.timeouts', context.waf_metrics.timeouts)
 
             # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration', context.waf_metrics.duration_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration_ext', context.waf_metrics.duration_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)

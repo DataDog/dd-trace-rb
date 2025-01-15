@@ -126,10 +126,6 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#run_rasp' do
-    # TODO
-  end
-
   describe '#waf_metrics' do
     context 'when multiple calls were successful' do
       let!(:run_results) do
