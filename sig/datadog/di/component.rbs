@@ -9,19 +9,21 @@ module Datadog
 
       @telemetry: untyped
 
-      @redactor: untyped
+      @redactor: Redactor
 
-      @serializer: untyped
+      @serializer: Serializer
 
-      @instrumenter: untyped
+      @instrumenter: Instrumenter
+
+      @code_tracker: CodeTracker
 
       @transport: untyped
 
-      @probe_notifier_worker: untyped
+      @probe_notifier_worker: ProbeNotifierWorker
 
-      @probe_notification_builder: untyped
+      @probe_notification_builder: ProbeNotificationBuilder
 
-      @probe_manager: untyped
+      @probe_manager: ProbeManager
 
       def self.build: (untyped settings, untyped agent_settings, Core::Logger logger, ?telemetry: untyped?) -> (nil | untyped)
 
@@ -38,17 +40,19 @@ module Datadog
 
       attr_reader telemetry: untyped
 
-      attr_reader instrumenter: untyped
+      attr_reader code_tracker: CodeTracker
+
+      attr_reader instrumenter: Instrumenter
 
       attr_reader transport: untyped
 
-      attr_reader probe_notifier_worker: untyped
+      attr_reader probe_notifier_worker: ProbeNotifierWorker
 
-      attr_reader probe_notification_builder: untyped
+      attr_reader probe_notification_builder: ProbeNotificationBuilder
 
-      attr_reader probe_manager: untyped
+      attr_reader probe_manager: ProbeManager
 
-      attr_reader redactor: untyped
+      attr_reader redactor: Redactor
 
       attr_reader serializer: untyped
       def shutdown!: (?untyped? replacement) -> untyped
