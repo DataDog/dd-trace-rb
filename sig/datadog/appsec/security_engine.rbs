@@ -4,7 +4,6 @@ module Datadog
       type result = Result::Ok
                   | Result::Match
                   | Result::Error
-      type data = ::Hash[::String, untyped]
     end
   end
 end

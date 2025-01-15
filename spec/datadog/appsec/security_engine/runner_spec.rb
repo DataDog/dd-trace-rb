@@ -28,8 +28,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           Datadog::AppSec::WAF::Result,
           status: :ok,
           events: [],
-          actions: [],
-          derivatives: [],
+          actions: {},
+          derivatives: {},
           total_runtime: 100,
           timeout: false
         )
@@ -88,10 +88,10 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           Datadog::AppSec::WAF::Result,
           status: :match,
           events: [],
-          actions: [
-            { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
-          ],
-          derivatives: [],
+          actions: {
+            'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' }
+          },
+          derivatives: {},
           timeout: false,
           total_runtime: 10
         )
@@ -103,9 +103,9 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result).not_to be_timeout
         expect(result.events).to eq([])
         expect(result.actions).to eq(
-          [{ 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }]
+          { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
         )
-        expect(result.derivatives).to eq([])
+        expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(10)
         expect(result.duration_ext_ns).to be > result.duration_ns
       end
@@ -123,8 +123,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
           Datadog::AppSec::WAF::Result,
           status: :ok,
           events: [],
-          actions: [],
-          derivatives: [],
+          actions: {},
+          derivatives: {},
           timeout: true,
           total_runtime: 100
         )
@@ -135,8 +135,8 @@ RSpec.describe Datadog::AppSec::SecurityEngine::Runner do
         expect(result).to be_instance_of(Datadog::AppSec::SecurityEngine::Result::Ok)
         expect(result).to be_timeout
         expect(result.events).to eq([])
-        expect(result.actions).to eq([])
-        expect(result.derivatives).to eq([])
+        expect(result.actions).to eq({})
+        expect(result.derivatives).to eq({})
         expect(result.duration_ns).to eq(100)
         expect(result.duration_ext_ns).to be > result.duration_ns
       end

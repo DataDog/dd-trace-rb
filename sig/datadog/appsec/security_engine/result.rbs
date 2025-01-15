@@ -2,12 +2,17 @@ module Datadog
   module AppSec
     module SecurityEngine
       module Result
+        type data = ::String | ::Hash[::String, data] | ::Array[data]
+        type events = ::Array[::Hash[::String, data]]
+        type actions = ::Hash[::String, data]
+        type derivatives = ::Hash[::String, data]
+
         class Base
-          @events: ::Array[untyped]
+          @events: events
 
-          @actions: ::Array[untyped]
+          @actions: actions
 
-          @derivatives: ::Array[untyped]
+          @derivatives: derivatives
 
           @timeout: bool
 
@@ -15,17 +20,17 @@ module Datadog
 
           @duration_ext_ns: ::Integer
 
-          attr_reader events: ::Array[untyped]
+          attr_reader events: events
 
-          attr_reader actions: ::Array[untyped]
+          attr_reader actions: actions
 
-          attr_reader derivatives: ::Array[untyped]
+          attr_reader derivatives: derivatives
 
           attr_reader duration_ns: ::Integer
 
           attr_reader duration_ext_ns: ::Integer
 
-          def initialize: (events: ::Array[untyped], actions: ::Array[untyped], derivatives: ::Array[untyped], timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
 
           def timeout?: () -> bool
 
@@ -44,17 +49,21 @@ module Datadog
 
         # A result that indicates an internal security library error
         class Error
-          @events: ::Array[untyped]
+          @events: events
+
+          @actions: actions
+
+          @derivatives: derivatives
 
           @duration_ns: ::Integer
 
           @duration_ext_ns: ::Integer
 
-          attr_reader events: ::Array[untyped]
+          attr_reader events: events
 
-          attr_reader actions: ::Array[untyped]
+          attr_reader actions: actions
 
-          attr_reader derivatives: ::Array[untyped]
+          attr_reader derivatives: derivatives
 
           attr_reader duration_ns: ::Integer
 

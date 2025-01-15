@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::Contrib::Rails::Reactive::Action do
     context 'all addresses have been published' do
       let(:waf_result) do
         Datadog::AppSec::SecurityEngine::Result::Ok.new(
-          events: [], actions: [], derivatives: [], timeout: false, duration_ns: 0, duration_ext_ns: 0
+          events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
         )
       end
 

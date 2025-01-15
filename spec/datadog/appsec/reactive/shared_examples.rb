@@ -4,7 +4,7 @@ RSpec.shared_examples 'waf result' do
   context 'is a match' do
     it 'yields result and no blocking action' do
       waf_result = Datadog::AppSec::SecurityEngine::Result::Match.new(
-        events: [], actions: [], derivatives: [], timeout: false, duration_ns: 0, duration_ext_ns: 0
+        events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
       )
 
       expect(engine).to receive(:subscribe).and_call_original
@@ -17,8 +17,9 @@ RSpec.shared_examples 'waf result' do
     end
 
     it 'yields result and blocking action. The publish method catches the resul as well' do
+      actions = { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
       waf_result = Datadog::AppSec::SecurityEngine::Result::Match.new(
-        events: [], actions: ['block'], derivatives: [], timeout: false, duration_ns: 0, duration_ext_ns: 0
+        events: [], actions: actions, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
       )
 
       expect(engine).to receive(:subscribe).and_call_original
@@ -34,7 +35,7 @@ RSpec.shared_examples 'waf result' do
   context 'is ok' do
     let(:waf_result) do
       Datadog::AppSec::SecurityEngine::Result::Ok.new(
-        events: [], actions: [], derivatives: [], timeout: false, duration_ns: 0, duration_ext_ns: 0
+        events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
       )
     end
 

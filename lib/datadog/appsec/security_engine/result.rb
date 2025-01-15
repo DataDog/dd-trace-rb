@@ -47,7 +47,8 @@ module Datadog
           attr_reader :events, :actions, :derivatives, :duration_ns, :duration_ext_ns
 
           def initialize(duration_ext_ns:)
-            @events = @actions = @derivatives = []
+            @events = []
+            @actions = @derivatives = {}
             @duration_ns = 0
             @duration_ext_ns = duration_ext_ns
           end

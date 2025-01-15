@@ -5,7 +5,7 @@ require_relative 'result'
 module Datadog
   module AppSec
     module SecurityEngine
-      # TODO
+      # A class that check input via security engine (WAF) and respond with result.
       class Runner
         SUCCESSFUL_EXECUTION_CODES = [:ok, :match].freeze
 

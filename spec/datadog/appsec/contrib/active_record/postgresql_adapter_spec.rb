@@ -103,10 +103,9 @@ RSpec.describe 'AppSec ActiveRecord integration for Postgresql adapter' do
     User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
   end
 
-  it 'adds an event to processor context if waf status is :match' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).and_return(instance_double(Datadog::AppSec::WAF::Result, status: :match, actions: {}))
-    )
+  it 'adds an event to processor context if waf result is a match' do
+    expect(Datadog::AppSec.active_context).to receive(:run_rasp)
+      .and_return(instance_double(Datadog::AppSec::SecurityEngine::Result::Match, actions: {}))
 
     expect(Datadog::AppSec.active_context.waf_runner.events).to receive(:<<).and_call_original
 
