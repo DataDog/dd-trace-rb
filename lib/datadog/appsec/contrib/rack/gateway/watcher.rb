@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../reactive/operation'
+require_relative '../../../reactive/engine'
 require_relative '../reactive/request'
 require_relative '../reactive/request_body'
 require_relative '../reactive/response'
@@ -25,126 +25,94 @@ module Datadog
 
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
-                  block = false
                   event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
+                  engine = AppSec::Reactive::Engine.new
 
-                  AppSec::Reactive::Operation.new('rack.request') do |op|
-                    Rack::Reactive::Request.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          request: gateway_request,
-                          actions: result.actions
-                        }
+                  Rack::Reactive::Request.subscribe(engine, context) do |result|
+                    if result.status == :match
+                      # TODO: should this hash be an Event instance instead?
+                      event = {
+                        waf_result: result,
+                        trace: context.trace,
+                        span: context.span,
+                        request: gateway_request,
+                        actions: result.actions
+                      }
 
-                        # We want to keep the trace in case of security event
-                        scope.trace.keep! if scope.trace
-                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                        scope.processor_context.events << event
-                      end
+                      # We want to keep the trace in case of security event
+                      context.trace.keep! if context.trace
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
-
-                    block = Rack::Reactive::Request.publish(op, gateway_request)
                   end
 
-                  next [nil, [[:block, event]]] if block
+                  block = Rack::Reactive::Request.publish(engine, gateway_request)
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
 
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
-                  block = false
-
                   event = nil
-                  scope = gateway_response.scope
+                  context = gateway_response.context
+                  engine = AppSec::Reactive::Engine.new
 
-                  AppSec::Reactive::Operation.new('rack.response') do |op|
-                    Rack::Reactive::Response.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          response: gateway_response,
-                          actions: result.actions
-                        }
+                  Rack::Reactive::Response.subscribe(engine, context) do |result|
+                    if result.status == :match
+                      # TODO: should this hash be an Event instance instead?
+                      event = {
+                        waf_result: result,
+                        trace: context.trace,
+                        span: context.span,
+                        response: gateway_response,
+                        actions: result.actions
+                      }
 
-                        # We want to keep the trace in case of security event
-                        scope.trace.keep! if scope.trace
-                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                        scope.processor_context.events << event
-                      end
+                      # We want to keep the trace in case of security event
+                      context.trace.keep! if context.trace
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
-
-                    block = Rack::Reactive::Response.publish(op, gateway_response)
                   end
 
-                  next [nil, [[:block, event]]] if block
+                  block = Rack::Reactive::Response.publish(engine, gateway_response)
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
-                  ret, res = stack.call(gateway_response.response)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_response.response)
                 end
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
-                  block = false
-
                   event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
+                  engine = AppSec::Reactive::Engine.new
 
-                  AppSec::Reactive::Operation.new('rack.request.body') do |op|
-                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          request: gateway_request,
-                          actions: result.actions
-                        }
+                  Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
+                    if result.status == :match
+                      # TODO: should this hash be an Event instance instead?
+                      event = {
+                        waf_result: result,
+                        trace: context.trace,
+                        span: context.span,
+                        request: gateway_request,
+                        actions: result.actions
+                      }
 
-                        # We want to keep the trace in case of security event
-                        scope.trace.keep! if scope.trace
-                        Datadog::AppSec::Event.tag_and_keep!(scope, result)
-                        scope.processor_context.events << event
-                      end
+                      # We want to keep the trace in case of security event
+                      context.trace.keep! if context.trace
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+                      context.waf_runner.events << event
                     end
-
-                    block = Rack::Reactive::RequestBody.publish(op, gateway_request)
                   end
 
-                  next [nil, [[:block, event]]] if block
+                  block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
+                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
 
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
             end

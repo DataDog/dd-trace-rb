@@ -7,7 +7,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 gem "rails", "~> 7.0.5"
 
 # Choose correct specs for 'datadog' demo environment
-gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+gem *Datadog::DemoEnv.gem_datadog_auto_instrument
 
 gem 'dogstatsd-ruby'
 

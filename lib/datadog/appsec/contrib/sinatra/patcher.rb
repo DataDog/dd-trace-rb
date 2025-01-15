@@ -54,7 +54,7 @@ module Datadog
           def dispatch!
             env = @request.env
 
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return super unless context
 
@@ -86,7 +86,7 @@ module Datadog
           def process_route(*)
             env = @request.env
 
-            context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+            context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
             return super unless context
 

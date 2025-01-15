@@ -1,3 +1,4 @@
+require 'ostruct'
 require 'datadog/tracing/contrib/rails/log_injection'
 
 RSpec.describe Datadog::Tracing::Contrib::Rails::LogInjection do

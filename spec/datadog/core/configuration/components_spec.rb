@@ -1,4 +1,5 @@
 require 'spec_helper'
+require 'datadog/di/spec_helper'
 require 'datadog/profiling/spec_helper'
 
 require 'logger'
@@ -75,7 +76,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
         settings: settings,
         agent_settings: agent_settings,
-        optional_tracer: tracer
+        optional_tracer: tracer,
+        logger: logger,
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
@@ -93,6 +95,54 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.profiler).to be profiler
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
+    end
+
+    describe '@environment_logger_extra' do
+      let(:environment_logger_extra) { {} }
+
+      let(:extra) do
+        components.instance_variable_get('@environment_logger_extra')
+      end
+
+      context 'DI is not enabled' do
+        it 'reports DI as disabled' do
+          expect(components.dynamic_instrumentation).to be nil
+          expect(extra).to eq(dynamic_instrumentation_enabled: false)
+        end
+      end
+
+      context 'DI is enabled' do
+        before(:all) do
+          skip 'DI is disabled due to Ruby version < 2.5' if RUBY_VERSION < '2.6'
+        end
+
+        before do
+          settings.dynamic_instrumentation.enabled = true
+        end
+
+        context 'MRI' do
+          before(:all) do
+            skip 'Test requires MRI' if PlatformHelpers.jruby?
+          end
+
+          it 'reports DI as enabled' do
+            expect(components.dynamic_instrumentation).to be_a(Datadog::DI::Component)
+            expect(extra).to eq(dynamic_instrumentation_enabled: true)
+          end
+        end
+
+        context 'JRuby' do
+          before(:all) do
+            skip 'Test requires JRuby' unless PlatformHelpers.jruby?
+          end
+
+          it 'reports DI as disabled' do
+            expect(logger).to receive(:warn).with(/cannot enable dynamic instrumentation/)
+            expect(components.dynamic_instrumentation).to be nil
+            expect(extra).to eq(dynamic_instrumentation_enabled: false)
+          end
+        end
+      end
     end
   end
 
@@ -1091,7 +1141,8 @@ RSpec.describe Datadog::Core::Configuration::Components do
           expect(Datadog::Profiling::Component).to receive(:build_profiler_component).with(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: anything
+            optional_tracer: anything,
+            logger: anything, # Tested above in "new"
           ).and_return([profiler, environment_logger_extra])
         end
 
@@ -1130,7 +1181,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(Datadog::Profiling::Component).to receive(:build_profiler_component)
         .and_return([nil, environment_logger_extra])
 
-      expect(Datadog::Core::Diagnostics::EnvironmentLogger).to receive(:collect_and_log!).with(environment_logger_extra)
+      expect(Datadog::Core::Diagnostics::EnvironmentLogger).to \
+        receive(:collect_and_log!).with(
+          environment_logger_extra.merge(dynamic_instrumentation_enabled: false)
+        )
 
       startup!
     end

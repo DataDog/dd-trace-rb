@@ -1,5 +1,13 @@
 module DIHelpers
   module ClassMethods
+    def deactivate_code_tracking
+      before(:all) do
+        if Datadog::DI.respond_to?(:deactivate_tracking!)
+          Datadog::DI.deactivate_tracking!
+        end
+      end
+    end
+
     def ruby_2_only
       if RUBY_VERSION >= '3'
         before(:all) do
@@ -76,6 +84,16 @@ module DIHelpers
 
     def instance_double_agent_settings
       instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
+    end
+
+    def expect_lazy_log(logger, meth, expected_msg)
+      expect(logger).to receive(meth) do |&block|
+        if expected_msg.is_a?(String)
+          expect(block.call).to eq(expected_msg)
+        else
+          expect(block.call).to match(expected_msg)
+        end
+      end
     end
   end
 end

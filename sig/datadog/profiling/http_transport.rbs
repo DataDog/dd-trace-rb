@@ -19,10 +19,6 @@ module Datadog
 
       private
 
-      def base_url_from: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> ::String
-
-      def validate_agent_settings: (Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
-
       def agentless?: (::String? site, ::String? api_key) -> bool
 
       def validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]

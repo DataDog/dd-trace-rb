@@ -25,7 +25,7 @@ gem 'unicorn'
 gem 'loofah', '2.19.1'
 
 # Choose correct specs for 'datadog' demo environment
-gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
+gem *Datadog::DemoEnv.gem_datadog_auto_instrument
 
 gem 'dogstatsd-ruby'
 gem 'ffi'
@@ -78,7 +78,6 @@ group :test do
   gem 'rspec-collection_matchers'
   gem 'rspec-rails'
   gem 'shoulda-matchers', '4.0.1'
-  gem 'simplecov', require: false # Will install simplecov-html as a dependency
   gem 'timecop'
   gem 'webmock'
 end

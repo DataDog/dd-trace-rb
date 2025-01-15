@@ -16,7 +16,7 @@
 //       every event and is thus, in theory, susceptible to some pattern
 //       biases. In practice, the dynamic readjustment of sampling interval
 //       and randomized starting point should help with avoiding heavy biases.
-typedef struct discrete_dynamic_sampler {
+typedef struct {
   // --- Config ---
   // Name of this sampler for debug logs.
   const char *debug_name;

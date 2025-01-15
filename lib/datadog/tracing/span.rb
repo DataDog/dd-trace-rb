@@ -112,7 +112,10 @@ module Datadog
 
       def duration
         return @duration if @duration
-        return @end_time - @start_time if @start_time && @end_time
+
+        start_time = @start_time
+        end_time = @end_time
+        end_time - start_time if start_time && end_time
       end
 
       def set_error(e)
@@ -135,6 +138,8 @@ module Datadog
       # TODO: Change this to reflect attributes when serialization
       # isn't handled by this method.
       def to_hash
+        @meta['events'] = @events.map(&:to_hash).to_json unless @events.empty?
+
         h = {
           error: @status,
           meta: @meta,
@@ -153,8 +158,6 @@ module Datadog
           h[:start] = start_time_nano
           h[:duration] = duration_nano
         end
-
-        h[:meta]['events'] = @events.map(&:to_hash).to_json unless @events.empty?
 
         h
       end
@@ -196,12 +199,17 @@ module Datadog
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def start_time_nano
-        @start_time.to_i * 1000000000 + @start_time.nsec
+        return unless (start_time = @start_time)
+
+        start_time.to_i * 1000000000 + start_time.nsec
       end
 
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
+        duration = self.duration
+        return unless duration
+
         (duration * 1e9).to_i
       end
 

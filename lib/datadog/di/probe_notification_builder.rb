@@ -141,14 +141,16 @@ module Datadog
             version: 2,
           },
           # TODO add tests that the trace/span id is correctly propagated
-          "dd.trace_id": Datadog::Tracing.active_trace&.id&.to_s,
-          "dd.span_id": Datadog::Tracing.active_span&.id&.to_s,
+          "dd.trace_id": active_trace&.id&.to_s,
+          "dd.span_id": active_span&.id&.to_s,
           ddsource: 'dd_debugger',
           message: probe.template && evaluate_template(probe.template,
             duration: duration ? duration * 1000 : 0),
           timestamp: timestamp,
         }
       end
+
+      private
 
       def build_status(probe, message:, status:)
         {
@@ -198,6 +200,18 @@ module Datadog
         binding.local_variables.each_with_object({}) do |name, map|
           value = binding.local_variable_get(name)
           map[name] = value
+        end
+      end
+
+      def active_trace
+        if defined?(Datadog::Tracing)
+          Datadog::Tracing.active_trace
+        end
+      end
+
+      def active_span
+        if defined?(Datadog::Tracing)
+          Datadog::Tracing.active_span
         end
       end
     end

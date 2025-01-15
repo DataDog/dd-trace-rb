@@ -13,7 +13,7 @@ typedef struct {
   int64_t timeline_wall_time_ns;
 } sample_values;
 
-typedef struct sample_labels {
+typedef struct {
   ddog_prof_Slice_Label labels;
 
   // This is used to allow the `Collectors::Stack` to modify the existing label, if any. This MUST be NULL or point

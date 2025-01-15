@@ -11,6 +11,7 @@
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module);
@@ -56,6 +57,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_thread_context_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
+  unsafe_api_calls_check_init();
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
@@ -83,16 +85,16 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-struct trigger_grab_gvl_and_raise_arguments {
+typedef struct {
   VALUE exception_class;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_arguments;
 
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_arguments args;
+  trigger_grab_gvl_and_raise_arguments args;
 
   args.exception_class = exception_class;
   args.test_message = StringValueCStr(test_message);
@@ -108,7 +110,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_arguments *args = (struct trigger_grab_gvl_and_raise_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
@@ -119,16 +121,16 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   return NULL;
 }
 
-struct trigger_grab_gvl_and_raise_syserr_arguments {
+typedef struct {
   int syserr_errno;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_syserr_arguments;
 
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_syserr_arguments args;
+  trigger_grab_gvl_and_raise_syserr_arguments args;
 
   args.syserr_errno = NUM2INT(syserr_errno);
   args.test_message = StringValueCStr(test_message);
@@ -144,7 +146,7 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_syserr_arguments *args = (struct trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);

@@ -20,8 +20,8 @@ module Datadog
 
               automated_track_user_events_mode = track_user_events_configuration.mode
 
-              appsec_scope = Datadog::AppSec.active_scope
-              return super unless appsec_scope
+              appsec_context = Datadog::AppSec.active_context
+              return super unless appsec_context
 
               super do |resource|
                 if resource.persisted?
@@ -36,8 +36,8 @@ module Datadog
                   end
 
                   Tracking.track_signup(
-                    appsec_scope.trace,
-                    appsec_scope.service_entry_span,
+                    appsec_context.trace,
+                    appsec_context.span,
                     user_id: event_information.user_id,
                     **event_information.to_h
                   )

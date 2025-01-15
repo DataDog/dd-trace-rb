@@ -13,17 +13,17 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, gateway_response)
+            def self.publish(engine, gateway_response)
               catch(:block) do
-                op.publish('response.status', gateway_response.status)
-                op.publish('response.headers', gateway_response.headers)
+                engine.publish('response.status', gateway_response.status)
+                engine.publish('response.headers', gateway_response.headers)
 
                 nil
               end
             end
 
-            def self.subscribe(op, waf_context)
-              op.subscribe(*ADDRESSES) do |*values|
+            def self.subscribe(engine, context)
+              engine.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
 
                 response_status = values[0]
@@ -37,7 +37,7 @@ module Datadog
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(persistent_data, {}, waf_timeout)
+                result = context.run_waf(persistent_data, {}, waf_timeout)
 
                 next if result.status != :match
 

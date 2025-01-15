@@ -108,7 +108,7 @@ OR
 
 #### Other Ruby applications
 
-If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
+If your application does not use the above mentioned gems (Rails or Hanami), you can set it up as follows:
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -166,6 +166,24 @@ If your Agent runs on a different host or container than your application, or yo
 ### Final steps for installation
 
 After setting up, your services will appear on the [APM services page](https://app.datadoghq.com/apm/services) within a few minutes. Learn more about [using the APM UI][visualization docs].
+
+### Disabling during testing/specs and test optimization for Ruby
+
+Tracing is enabled by default; this includes:
+
+* When loading using `datadog/auto_instrument`
+* When activating integrations using `tracing.instrument` in the `Datadog.configure` block
+* When calling the `Datadog::Tracing.trace` method
+
+If you'd like to disable tracing when running your tests/specs, you can set the `DD_TRACE_ENABLED` environment variable to `false` or via code:
+
+```ruby
+Datadog.configure do |c|
+  c.tracing.enabled = false
+end
+```
+
+Furthermore, if you're trying to get more visibility into your tests or you're struggling with slow or flaky test suites, consider looking at Datadog's [Test optimization](https://docs.datadoghq.com/tests/) via the [`datadog-ci`](https://github.com/DataDog/datadog-ci-rb?tab=readme-ov-file#datadog-test-optimization-for-ruby) gem.
 
 ## Manual Instrumentation
 
@@ -294,10 +312,6 @@ end
 For a list of available integrations and their supported versions, see [Ruby Integration Compatibility][2].
 
 For a list of configuration options for the available integrations, refer to the following:
-
-#### CI Visibility
-
-Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -1533,11 +1547,10 @@ Rake::Task['my_task'].invoke
 
 | Key            | Env Var| Type     | Description                                                                                              | Default  |
 | -------------- | - | ------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| `enabled`      | | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
+| `enabled`      | `DD_TRACE_RAKE_ENABLED` | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
 | `quantize`     | | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
 | `service_name` | | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
 | `tasks`        | | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
-| `enabled` | `DD_TRACE_RAKE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 **Configuring task quantization behavior**
 
@@ -2021,7 +2034,6 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
      c.env = ENV['RACK_ENV']
 
      c.tracing.report_hostname = true
-     c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
    end
    ```
 
@@ -2067,8 +2079,6 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `tracing.test_mode.trace_flush`                        |                                                         | `Datadog::Tracing::TraceFlush`        | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 #### Custom logging
 
@@ -2634,18 +2644,6 @@ DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 
 Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
 or `c.agent.port`.
-
-#### Transporting in Test Mode
-
-When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
-test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
-This mode only works for tracing.
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.test_mode.enabled = true
-end
-```
 
 ### Setting the time provider
 

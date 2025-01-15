@@ -23,9 +23,9 @@ module Datadog
 
               automated_track_user_events_mode = track_user_events_configuration.mode
 
-              appsec_scope = Datadog::AppSec.active_scope
+              appsec_context = Datadog::AppSec.active_context
 
-              return result unless appsec_scope
+              return result unless appsec_context
 
               devise_resource = resource ? Resource.new(resource) : nil
 
@@ -39,8 +39,8 @@ module Datadog
                 end
 
                 Tracking.track_login_success(
-                  appsec_scope.trace,
-                  appsec_scope.service_entry_span,
+                  appsec_context.trace,
+                  appsec_context.span,
                   user_id: event_information.user_id,
                   **event_information.to_h
                 )
@@ -59,8 +59,8 @@ module Datadog
               end
 
               Tracking.track_login_failure(
-                appsec_scope.trace,
-                appsec_scope.service_entry_span,
+                appsec_context.trace,
+                appsec_context.span,
                 user_id: event_information.user_id,
                 user_exists: user_exists,
                 **event_information.to_h

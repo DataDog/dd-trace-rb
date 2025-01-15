@@ -13,13 +13,13 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 
 static VALUE library_version_string = Qnil;
 
-struct call_exporter_without_gvl_arguments {
+typedef struct {
   ddog_prof_Exporter *exporter;
   ddog_prof_Exporter_Request_BuildResult *build_result;
   ddog_CancellationToken *cancel_token;
   ddog_prof_Exporter_SendResult result;
   bool send_ran;
-};
+} call_exporter_without_gvl_arguments;
 
 static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
@@ -165,7 +165,7 @@ static VALUE perform_export(
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_exporter_without_gvl_arguments args =
+  call_exporter_without_gvl_arguments args =
     {.exporter = exporter, .build_result = &build_result, .cancel_token = cancel_token, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
@@ -300,7 +300,7 @@ static VALUE _native_do_export(
 }
 
 static void *call_exporter_without_gvl(void *call_args) {
-  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) call_args;
+  call_exporter_without_gvl_arguments *args = (call_exporter_without_gvl_arguments*) call_args;
 
   args->result = ddog_prof_Exporter_send(args->exporter, &args->build_result->ok, args->cancel_token);
   args->send_ran = true;

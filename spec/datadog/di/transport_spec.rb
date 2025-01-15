@@ -1,5 +1,6 @@
 require "datadog/di/spec_helper"
 require "datadog/di/transport"
+require 'datadog/core/configuration/agent_settings_resolver'
 
 RSpec.describe Datadog::DI::Transport do
   di_test
