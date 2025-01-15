@@ -1,0 +1,4 @@
+module Minitest
+  class Unit
+  end
+end
