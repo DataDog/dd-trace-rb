@@ -40,6 +40,11 @@ module Datadog
         appsec_component.reconfigure_lock(&block)
       end
 
+      def api_security_enabled?
+        Datadog.configuration.appsec.api_security.enabled &&
+          Datadog.configuration.appsec.api_security.sample_rate.sample?
+      end
+
       private
 
       def components

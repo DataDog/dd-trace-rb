@@ -92,20 +92,20 @@ module Datadog
 
             http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
 
-            if (result = ctx.waf_runner.extract_schema)
-              ctx.waf_runner.events << {
+            if AppSec.api_security_enabled?
+              ctx.events << {
                 trace: ctx.trace,
                 span: ctx.span,
-                waf_result: result,
+                waf_result: ctx.extract_schema,
               }
             end
 
-            ctx.waf_runner.events.each do |e|
+            ctx.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
+            AppSec::Event.record(ctx.span, *ctx.events)
 
             http_response
           ensure
@@ -200,15 +200,13 @@ module Datadog
 
           def add_waf_runtime_tags(context)
             span = context.span
-            context = context.waf_runner
+            return unless span
 
-            return unless span && context
-
-            span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
+            span.set_tag('_dd.appsec.waf.timeouts', context.waf_metrics.timeouts)
 
             # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration', context.waf_metrics.duration_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration_ext', context.waf_metrics.duration_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)
