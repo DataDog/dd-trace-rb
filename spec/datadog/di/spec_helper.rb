@@ -97,7 +97,10 @@ module DIHelpers
     end
 
     def expect_lazy_log_many(logger, meth, *expectations)
-      expect(logger).to receive(meth) do |&block|
+      if expectations.empty?
+        raise ArgumentError, "Must have at least one expectation"
+      end
+      expect(logger).to receive(meth).exactly(expectations.length).times do |&block|
         expected_msg = expectations.shift
         case expected_msg
         when String

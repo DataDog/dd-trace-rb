@@ -171,6 +171,25 @@ RSpec.describe 'DI integration from remote config' do
     }
   end
 
+  let(:expected_errored_payload) do
+    {
+      path: '/debugger/v1/diagnostics',
+      ddsource: 'dd_debugger',
+      debugger: {
+        diagnostics: {
+          parentId: nil,
+          probeId: '11',
+          probeVersion: 0,
+          runtimeId: LOWERCASE_UUID_REGEXP,
+          status: 'ERROR',
+        },
+      },
+      message: 'Instrumentation for probe 11 failed: File matching probe path (instrumentation_integration_test_class.rb) was loaded and is not in code tracker registry: /home/w/apps/dd-trace-rb/spec/datadog/di/integration/instrumentation_integration_test_class.rb',
+      service: 'rspec',
+      timestamp: Integer,
+    }
+  end
+
   let(:expected_snapshot_payload) do
     {
       path: '/debugger/v1/input',
@@ -211,9 +230,11 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:payloads) { [] }
 
-  def do_rc
+  def do_rc(expect_hook: true)
     expect(probe_manager).to receive(:add_probe).and_call_original
-    expect(instrumenter).to receive(:hook_method).and_call_original
+    if expect_hook
+      expect(instrumenter).to receive(:hook_method).and_call_original
+    end
     # Events can be batched, meaning +post+ could be called once or twice
     # depending on how threads are scheduled by the VM.
     expect(component.transport.send(:client)).to receive(:post).at_least(:once) do |env|
@@ -378,7 +399,7 @@ RSpec.describe 'DI integration from remote config' do
           /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,
         )
 
-        do_rc
+        do_rc(expect_hook: false)
         assert_received_and_errored
 
         expect(probe_manager.installed_probes.length).to eq 0

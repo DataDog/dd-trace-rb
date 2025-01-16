@@ -60,6 +60,9 @@ module Datadog
                     rescue DI::Error::DITargetNotInRegistry => exc
                       component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
 
+                      payload = component.probe_notification_builder.build_errored(probe, exc)
+                      component.probe_notifier_worker.add_status(payload)
+
                       # If a probe fails to install, we will mark the content
                       # as errored. On subsequent remote configuration application
                       # attemps, probe manager will raise the "previously errored"
