@@ -30,6 +30,12 @@ module Datadog
                 Contrib::Redis::Tags.set_common_tags(client, span, raw_command)
 
                 ### BRAZE MODIFICATION
+                if command.is_a?(Array) && command.size > 1
+                  span.set_tag(
+                    Contrib::Redis::Ext::METRIC_KEY,
+                    command[1]
+                  )
+                end
                 span.set_metric Contrib::Redis::Ext::METRIC_RAW_COMMAND_LEN, raw_command.to_s.length
                 result = yield
                 span.set_metric Contrib::Redis::Ext::METRIC_RESP_COMMAND_LEN, result.to_s.bytesize
