@@ -105,3 +105,12 @@ end
 
 # Gem no longer included in Ruby 3.4
 gem 'mutex_m'
+
+# concurrent-ruby 1.3.5 removed dependency on logger, see:
+# https://github.com/ruby-concurrency/concurrent-ruby/commit/d7ce956dacd0b772273d39b8ed31a30cff7ecf38
+# Unfortunately this broke rails because ActiveSupport used Logger
+# but didn't require logger.
+# Since the failure happens rather early in rails bootstrapping,
+# patching it is difficult, thus downgrade concurrent-ruby for Rails 6.
+# The issue does not occur in Rails 7.
+gem 'concurrent-ruby', '1.3.4'
