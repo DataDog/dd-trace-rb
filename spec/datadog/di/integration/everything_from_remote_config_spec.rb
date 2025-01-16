@@ -254,18 +254,29 @@ RSpec.describe 'DI integration from remote config' do
     end
   end
 
+  def assert_received_and_installed
+    expect(payloads).to be_a(Array)
+    expect(payloads.length).to eq 2
+
+    received_payload = payloads.shift
+    expect(received_payload).to match(expected_received_payload)
+
+    installed_payload = payloads.shift
+    expect(installed_payload).to match(expected_installed_payload)
+  end
+
+  def assert_received_and_errored
+    expect(payloads).to be_a(Array)
+    expect(payloads.length).to eq 2
+
+    received_payload = payloads.shift
+    expect(received_payload).to match(expected_received_payload)
+
+    installed_payload = payloads.shift
+    expect(installed_payload).to match(expected_errored_payload)
+  end
+
   context 'method probe received matching a loaded class' do
-    def assert_received_and_installed
-      expect(payloads).to be_a(Array)
-      expect(payloads.length).to eq 2
-
-      received_payload = payloads.shift
-      expect(received_payload).to match(expected_received_payload)
-
-      installed_payload = payloads.shift
-      expect(installed_payload).to match(expected_installed_payload)
-    end
-
     let(:probe_spec) do
       {id: '11', name: 'bar', type: 'LOG_PROBE', where: {typeName: 'EverythingFromRemoteConfigSpecTestClass', methodName: 'target_method'}}
     end
@@ -368,9 +379,9 @@ RSpec.describe 'DI integration from remote config' do
         )
 
         do_rc
-        assert_received_and_installed
+        assert_received_and_errored
 
-        expect(probe_manager.installed_probes.length).to eq 1
+        expect(probe_manager.installed_probes.length).to eq 0
       end
     end
   end

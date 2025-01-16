@@ -57,6 +57,17 @@ module Datadog
                       # TODO test exception capture
                       probe_manager.add_probe(probe)
                       content.applied
+                    rescue DI::Error::DITargetNotInRegistry => exc
+                      component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
+
+                      # If a probe fails to install, we will mark the content
+                      # as errored. On subsequent remote configuration application
+                      # attemps, probe manager will raise the "previously errored"
+                      # exception and we'll rescue it here, again marking the
+                      # content as errored but with a somewhat different exception
+                      # message.
+                      # TODO assert content state (errored for this example)
+                      content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
                     rescue => exc
                       raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
@@ -69,8 +80,8 @@ module Datadog
                       # exception and we'll rescue it here, again marking the
                       # content as errored but with a somewhat different exception
                       # message.
-                      # TODO stack trace must be redacted or not sent at all
-                      content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}: #{Array(exc.backtrace).join("\n")}")
+                      # TODO assert content state (errored for this example)
+                      content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
                     end
 
                     # Important: even if processing fails for this probe config,
@@ -84,7 +95,8 @@ module Datadog
                     component.logger.debug { "di: unhandled exception handling probe in DI remote receiver: #{exc.class}: #{exc}" }
                     component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
-                    content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}: #{Array(exc.backtrace).join("\n")}")
+                    # TODO assert content state (errored for this example)
+                    content.errored("Error applying dynamic instrumentation configuration: #{exc.class.name} #{exc.message}")
                   end
                 end
               end
