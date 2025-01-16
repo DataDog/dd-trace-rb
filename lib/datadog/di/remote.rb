@@ -49,8 +49,10 @@ module Datadog
                   begin
                     probe_spec = parse_content(content)
                     probe = ProbeBuilder.build_from_remote_config(probe_spec)
-                    payload = component.probe_notification_builder.build_received(probe)
-                    component.probe_notifier_worker.add_status(payload)
+                    probe_notification_builder = component.probe_notification_builder
+                    payload = probe_notification_builder.build_received(probe)
+                    probe_notifier_worker = component.probe_notifier_worker
+                    probe_notifier_worker.add_status(payload)
                     component.logger.debug { "di: received probe from RC: #{probe.type} #{probe.location}" }
 
                     begin
@@ -60,8 +62,8 @@ module Datadog
                     rescue DI::Error::DITargetNotInRegistry => exc
                       component.telemetry&.report(exc, description: "Line probe is targeting a loaded file that is not in code tracker")
 
-                      payload = component.probe_notification_builder.build_errored(probe, exc)
-                      component.probe_notifier_worker.add_status(payload)
+                      payload = probe_notification_builder.build_errored(probe, exc)
+                      probe_notifier_worker.add_status(payload)
 
                       # If a probe fails to install, we will mark the content
                       # as errored. On subsequent remote configuration application
@@ -78,8 +80,8 @@ module Datadog
                       component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
                       # TODO test this path
-                      payload = component.probe_notification_builder.build_errored(probe, exc)
-                      component.probe_notifier_worker.add_status(payload)
+                      payload = probe_notification_builder.build_errored(probe, exc)
+                      probe_notifier_worker.add_status(payload)
 
                       # If a probe fails to install, we will mark the content
                       # as errored. On subsequent remote configuration application
