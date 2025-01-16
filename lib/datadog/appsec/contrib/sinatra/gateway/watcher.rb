@@ -42,11 +42,14 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      result.actions.each do |action_type, action_params|
+                        Datadog::AppSec::ActionHandler.handle(action_type, action_params)
+                      end
                     end
                   end
 
-                  block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
-                  next [nil, [[:block, event]]] if block
+                  Rack::Reactive::RequestBody.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
@@ -73,11 +76,14 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      result.actions.each do |action_type, action_params|
+                        Datadog::AppSec::ActionHandler.handle(action_type, action_params)
+                      end
                     end
                   end
 
-                  block = Sinatra::Reactive::Routed.publish(engine, [gateway_request, gateway_route_params])
-                  next [nil, [[:block, event]]] if block
+                  Sinatra::Reactive::Routed.publish(engine, [gateway_request, gateway_route_params])
 
                   stack.call(gateway_request.request)
                 end

@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module ActionHandler
+      def handle: (::String type, ::Hash[::String, ::String] action_params) -> void
+
+      def block_request: (::Hash[::String, ::String] action_params) -> void
+
+      def redirect_request: (::Hash[::String, ::String] action_params) -> void
+
+      def generate_stack: (::Hash[::String, ::String] action_params) -> void
+
+      def generate_schema: (::Hash[::String, ::String] action_params) -> void
+
+      def monitor: (::Hash[::String, ::String] action_params) -> void
+    end
+  end
+end

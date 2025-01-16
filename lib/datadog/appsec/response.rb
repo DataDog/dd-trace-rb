@@ -19,32 +19,11 @@ module Datadog
         [status, headers, body]
       end
 
-      def to_sinatra_response
-        ::Sinatra::Response.new(body, status, headers)
-      end
-
-      def to_action_dispatch_response
-        ::ActionDispatch::Response.new(status, headers, body)
-      end
-
       class << self
-        def negotiate(env, actions)
-          # @type var configured_response: Response?
-          configured_response = nil
-          actions.each do |type, parameters|
-            # Need to use next to make steep happy :(
-            # I rather use break to stop the execution
-            next if configured_response
+        def build(action_params, http_accept_header)
+          return redirect_response(action_params) if action_params['location']
 
-            configured_response = case type
-                                  when 'block_request'
-                                    block_response(env, parameters)
-                                  when 'redirect_request'
-                                    redirect_response(env, parameters)
-                                  end
-          end
-
-          configured_response || default_response(env)
+          block_response(action_params, http_accept_header)
         end
 
         def graphql_response(gateway_multiplex)
@@ -63,54 +42,27 @@ module Datadog
 
         private
 
-        def default_response(env)
-          content_type = content_type(env)
-
-          body = []
-          body << content(content_type)
-
-          Response.new(
-            status: 403,
-            headers: { 'Content-Type' => content_type },
-            body: body,
-          )
-        end
-
-        def block_response(env, options)
-          content_type = if options['type'] == 'auto'
-                           content_type(env)
-                         else
-                           FORMAT_TO_CONTENT_TYPE[options['type']]
+        def block_response(action_params, http_accept_header)
+          content_type = case action_params['type']
+                         when nil, 'auto' then content_type(http_accept_header)
+                         else FORMAT_TO_CONTENT_TYPE.fetch(action_params['type'], DEFAULT_CONTENT_TYPE)
                          end
 
-          body = []
-          body << content(content_type)
-
           Response.new(
-            status: options['status_code']&.to_i || 403,
+            status: action_params['status_code']&.to_i || 403,
             headers: { 'Content-Type' => content_type },
-            body: body,
+            body: [content(content_type)],
           )
         end
 
-        def redirect_response(env, options)
-          if options['location'] && !options['location'].empty?
-            content_type = content_type(env)
+        def redirect_response(action_params)
+          status_code = action_params['status_code'].to_i
 
-            headers = {
-              'Content-Type' => content_type,
-              'Location' => options['location']
-            }
-
-            status_code = options['status_code'].to_i
-            Response.new(
-              status: (status_code >= 300 && status_code < 400 ? status_code : 303),
-              headers: headers,
-              body: [],
-            )
-          else
-            default_response(env)
-          end
+          Response.new(
+            status: (status_code >= 300 && status_code < 400 ? status_code : 303),
+            headers: { 'Location' => action_params.fetch('location') },
+            body: [],
+          )
         end
 
         CONTENT_TYPE_TO_FORMAT = {
@@ -126,10 +78,10 @@ module Datadog
 
         DEFAULT_CONTENT_TYPE = 'application/json'
 
-        def content_type(env)
-          return DEFAULT_CONTENT_TYPE unless env.key?('HTTP_ACCEPT')
+        def content_type(http_accept_header)
+          return DEFAULT_CONTENT_TYPE if http_accept_header.nil?
 
-          accept_types = env['HTTP_ACCEPT'].split(',').map(&:strip)
+          accept_types = http_accept_header.split(',').map(&:strip)
 
           accepted = accept_types.map { |m| Utils::HTTP::MediaRange.new(m) }.sort!.reverse!
 
