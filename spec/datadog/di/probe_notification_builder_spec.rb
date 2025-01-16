@@ -128,6 +128,35 @@ RSpec.describe Datadog::DI::ProbeNotificationBuilder do
     end
   end
 
+  describe '#build_errored' do
+    let(:payload) do
+      builder.build_errored(probe, Exception.new('Test message'))
+    end
+
+    let(:expected) do
+      {
+        ddsource: 'dd_debugger',
+        debugger: {
+          diagnostics: {
+            parentId: nil,
+            probeId: '123',
+            probeVersion: 0,
+            runtimeId: String,
+            status: 'ERROR',
+          },
+        },
+        message: "Instrumentation for probe 123 failed: Test message",
+        service: 'test service',
+        timestamp: Integer,
+      }
+    end
+
+    it 'returns a hash with expected contents' do
+      expect(payload).to be_a(Hash)
+      expect(payload).to match(expected)
+    end
+  end
+
   describe '#build_executed' do
     let(:payload) { builder.build_executed(probe) }
 
