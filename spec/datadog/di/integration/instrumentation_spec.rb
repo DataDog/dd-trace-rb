@@ -579,7 +579,7 @@ RSpec.describe 'Instrumentation integration' do
             # use 'require'.
             # Note that the other tests use 'load' because they want the
             # code to always be loaded.
-            require_relative 'instrumentation_integration_test_class.rb'
+            require_relative 'instrumentation_integration_test_class'
             expect($LOADED_FEATURES.detect do |path|
               File.basename(path) == 'instrumentation_integration_test_class.rb'
             end).to be_truthy
