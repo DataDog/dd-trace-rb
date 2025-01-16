@@ -55,7 +55,7 @@ module Datadog
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
                 result = context.run_waf(persistent_data, {}, waf_timeout)
 
-                next if result.status != :match
+                next unless result.match?
 
                 yield result
                 throw(:block, true) unless result.actions.empty?
