@@ -38,7 +38,7 @@ module Datadog
                       }
 
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
                     end
 
                     block = GraphQL::Reactive::Multiplex.publish(engine, gateway_multiplex)

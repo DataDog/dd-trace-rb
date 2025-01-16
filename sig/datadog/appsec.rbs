@@ -11,6 +11,8 @@ module Datadog
 
     def self.reconfigure_lock: () { () -> void } -> void
 
+    def self.api_security_enabled?: () -> bool
+
     private
 
     def self.components: () -> Datadog::Core::Configuration::Components

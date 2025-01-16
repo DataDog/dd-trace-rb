@@ -30,7 +30,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Request.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -43,7 +43,7 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
                     end
                   end
 
@@ -61,7 +61,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Response.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -74,7 +74,7 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
                     end
                   end
 
@@ -92,7 +92,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -105,7 +105,7 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
                     end
                   end
 
