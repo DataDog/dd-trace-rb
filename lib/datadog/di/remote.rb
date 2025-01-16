@@ -77,6 +77,10 @@ module Datadog
                       component.logger.debug { "di: unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}" }
                       component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
+                      # TODO test this path
+                      payload = component.probe_notification_builder.build_errored(probe, exc)
+                      component.probe_notifier_worker.add_status(payload)
+
                       # If a probe fails to install, we will mark the content
                       # as errored. On subsequent remote configuration application
                       # attemps, probe manager will raise the "previously errored"
