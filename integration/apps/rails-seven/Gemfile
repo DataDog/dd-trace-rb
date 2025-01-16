@@ -49,3 +49,13 @@ end
 # Gems no longer included in Ruby 3.4
 gem 'bigdecimal'
 gem 'mutex_m'
+
+# concurrent-ruby 1.3.5 removed dependency on logger, see:
+# https://github.com/ruby-concurrency/concurrent-ruby/commit/d7ce956dacd0b772273d39b8ed31a30cff7ecf38
+# Unfortunately this broke Rails because ActiveSupport used Logger
+# before requiring logger.
+# Since the failure happens rather early in rails bootstrapping,
+# patching it is difficult, thus downgrade concurrent-ruby.
+# The issue appears to affect all existing Rails versions:
+# https://github.com/rails/rails/blob/main/activesupport/lib/active_support/logger.rb#L4-L5
+gem 'concurrent-ruby', '1.3.4'
