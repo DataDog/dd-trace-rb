@@ -184,7 +184,7 @@ RSpec.describe 'DI integration from remote config' do
           status: 'ERROR',
         },
       },
-      message: 'Instrumentation for probe 11 failed: File matching probe path (instrumentation_integration_test_class.rb) was loaded and is not in code tracker registry: /home/w/apps/dd-trace-rb/spec/datadog/di/integration/instrumentation_integration_test_class.rb',
+      message: /Instrumentation for probe 11 failed: File matching probe path \(instrumentation_integration_test_class.rb\) was loaded and is not in code tracker registry:/,
       service: 'rspec',
       timestamp: Integer,
     }
@@ -373,21 +373,16 @@ RSpec.describe 'DI integration from remote config' do
     context 'line probe received targeting loaded code not in code tracker' do
       let(:probe_spec) do
         {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
-          sourceFile: 'instrumentation_integration_test_class.rb', lines: [22]
-        }}
+          sourceFile: 'instrumentation_integration_test_class.rb', lines: [22]}}
       end
 
       before do
-        begin
-          Object.send(:remove_const, :InstrumentationIntegrationTestClass)
-        rescue
-          nil
-        end
+        Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
         # Files loaded via 'load' do not get added to $LOADED_FEATURES,
         # use 'require'.
         # Note that the other tests use 'load' because they want the
         # code to always be loaded.
-        require_relative 'instrumentation_integration_test_class'
+        require_relative 'instrumentation_integration_test_class.rb'
         expect($LOADED_FEATURES.detect do |path|
           File.basename(path) == 'instrumentation_integration_test_class.rb'
         end).to be_truthy
@@ -401,7 +396,8 @@ RSpec.describe 'DI integration from remote config' do
       it 'instruments code and adds probe to installed list' do
         expect_lazy_log_many(logger, :debug,
           /received probe from RC:/,
-          /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,)
+          /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,
+        )
 
         do_rc(expect_hook: false)
         assert_received_and_errored
