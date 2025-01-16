@@ -89,7 +89,7 @@ group :test do
 end
 
 group :test, :development do
-  gem 'byebug', platform: :ruby
+  gem "debug", platforms: %i[ mri mingw x64_mingw ]
   # mock_redis 0.47.0+ requires redis 5 or higher
   # mock_redis 0.42.0+ requires Ruby 3.0 or higher
   # mock_redis 0.37.0+ requires Ruby 2.7 or higher

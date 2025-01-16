@@ -29,6 +29,10 @@ group :test, :development do
   gem 'dotenv', '~> 2.4'
 end
 
+group :development, :test do
+  gem "debug", platforms: %i[ mri mingw x64_mingw ]
+end
+
 group :test do
   gem 'rspec'
   # gem 'capybara'

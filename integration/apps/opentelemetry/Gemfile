@@ -10,5 +10,5 @@ gem 'opentelemetry-sdk'
 # Choose correct specs for 'datadog' demo environment
 gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
-gem 'byebug'
+gem "debug", platforms: %i[ mri mingw x64_mingw ]
 gem 'rspec'

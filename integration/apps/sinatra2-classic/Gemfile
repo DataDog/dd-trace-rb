@@ -11,6 +11,7 @@ gem 'dogstatsd-ruby'
 gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 # Development
+gem "debug", platforms: %i[ mri mingw x64_mingw ]
 gem 'pry-byebug'
 # gem 'pry-stack_explorer', platform: :ruby
 # gem 'rbtrace'
