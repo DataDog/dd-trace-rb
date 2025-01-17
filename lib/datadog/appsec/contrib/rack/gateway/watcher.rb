@@ -45,9 +45,7 @@ module Datadog
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
 
-                      result.actions.each do |action_type, action_params|
-                        Datadog::AppSec::ActionHandler.handle(action_type, action_params)
-                      end
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
@@ -79,9 +77,7 @@ module Datadog
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
 
-                      result.actions.each do |action_type, action_params|
-                        Datadog::AppSec::ActionHandler.handle(action_type, action_params)
-                      end
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
@@ -113,9 +109,7 @@ module Datadog
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
 
-                      result.actions.each do |action_type, action_params|
-                        Datadog::AppSec::ActionHandler.handle(action_type, action_params)
-                      end
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 

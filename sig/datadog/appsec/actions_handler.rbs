@@ -1,7 +1,7 @@
 module Datadog
   module AppSec
-    module ActionHandler
-      def handle: (::String type, ::Hash[::String, ::String] action_params) -> void
+    module ActionsHandler
+      def handle: (::Hash[::String, ::Hash[::String, ::String]] actions_hash) -> void
 
       def block_request: (::Hash[::String, ::String] action_params) -> void
 
