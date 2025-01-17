@@ -63,7 +63,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       expect(described_class).not_to receive(:block_request)
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
-        described_class.handle(**block_request_action, **redirect_request_action)
+        described_class.handle(block_request_action.merge(redirect_request_action))
       end
     end
 
@@ -75,7 +75,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
         receive(:generate_schema).with(generate_schema_action['generate_schema']).and_call_original
       )
 
-      described_class.handle(**generate_stack_action, **generate_schema_action)
+      described_class.handle(generate_stack_action.merge(generate_schema_action))
     end
 
     it 'calls both generate_stack and block_request when both are present' do
@@ -87,7 +87,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       )
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
-        described_class.handle(**generate_stack_action, **block_request_action)
+        described_class.handle(generate_stack_action.merge(block_request_action))
       end
     end
 
@@ -100,7 +100,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       )
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
-        described_class.handle(**generate_stack_action, **redirect_request_action)
+        described_class.handle(generate_stack_action.merge(redirect_request_action))
       end
     end
   end
