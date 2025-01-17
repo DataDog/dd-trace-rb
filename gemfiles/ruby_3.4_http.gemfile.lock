@@ -5,6 +5,7 @@ PATH
       datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
+      logger
       msgpack
 
 GEM
@@ -68,6 +69,7 @@ GEM
     llhttp-ffi (0.5.0)
       ffi-compiler (~> 1.0)
       rake (~> 13.0)
+    logger (1.6.5)
     memory_profiler (0.9.14)
     method_source (1.1.0)
     mime-types (3.5.2)
