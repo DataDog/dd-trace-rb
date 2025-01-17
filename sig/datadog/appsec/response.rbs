@@ -10,7 +10,6 @@ module Datadog
       def to_rack: () -> ::Array[untyped]
 
       def self.build: (::Hash[::String, ::String] action_params, ::String http_accept_header) -> Response
-      def self.graphql_response: (Datadog::AppSec::Contrib::GraphQL::Gateway::Multiplex gateway_multiplex) -> Array[::GraphQL::Query::Result]
 
       private
 
