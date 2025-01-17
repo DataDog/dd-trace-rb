@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
-# Require 'datadog/di/init' early in the application boot process to
+# Require 'datadog/di/preload' early in the application boot process to
 # enable dynamic instrumentation for third-party libraries used by the
 # application.
 
-require_relative '../di'
+require_relative 'base'
 
 # Code tracking is required for line probes to work; see the comments
 # on the activate_tracking methods in di.rb for further details.

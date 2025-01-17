@@ -16,6 +16,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :aws, auto_patch: true
+          def self.gem_name
+            'aws-sdk-core'
+          end
 
           def self.version
             if Gem.loaded_specs['aws-sdk']

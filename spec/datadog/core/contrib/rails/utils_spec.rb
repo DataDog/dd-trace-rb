@@ -1,7 +1,7 @@
-require 'lib/datadog/tracing/contrib/rails/utils'
+require 'lib/datadog/core/contrib/rails/utils'
 require 'rails/version'
 
-RSpec.describe Datadog::Tracing::Contrib::Rails::Utils do
+RSpec.describe Datadog::Core::Contrib::Rails::Utils do
   describe 'railtie_supported?' do
     subject(:railtie_supported?) { described_class.railtie_supported? }
 

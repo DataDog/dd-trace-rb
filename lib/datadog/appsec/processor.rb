@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
-require_relative 'processor/context'
+require_relative 'security_engine/runner'
 
 module Datadog
   module AppSec
     # Processor integrates libddwaf into datadog/appsec
+    # NOTE: This class will be moved under AppSec::SecurityEngine namespace
     class Processor
       attr_reader :diagnostics, :addresses
 
@@ -29,8 +30,8 @@ module Datadog
         @handle.finalize
       end
 
-      def new_context
-        Context.new(@handle, telemetry: @telemetry)
+      def new_runner
+        SecurityEngine::Runner.new(@handle, telemetry: @telemetry)
       end
 
       private

@@ -97,6 +97,43 @@ RSpec.describe Datadog::DI::CodeTracker do
         expect(tracker.send(:registry)).to be_empty
       end
     end
+
+    context 'when process forks' do
+      it 'continues tracking in the fork' do
+        # Load rspec assertion code
+        expect(1).to eq(1)
+        expect(1).to equal(1)
+
+        expect(tracker.send(:registry)).to be_empty
+        tracker.start
+
+        require_relative 'code_tracker_test_class_4'
+        expect(tracker.send(:registry).length).to eq(1)
+        path = tracker.send(:registry).to_a.dig(0, 0)
+        expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+
+        expect_in_fork do
+          expect(tracker.send(:registry).length).to eq(1)
+          path = tracker.send(:registry).to_a.dig(0, 0)
+          expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+
+          require_relative 'code_tracker_test_class_5'
+          expect(tracker.send(:registry).length).to eq(2)
+          path = tracker.send(:registry).to_a.dig(1, 0)
+          expect(File.basename(path)).to eq("code_tracker_test_class_5.rb")
+        end
+
+        begin
+          Process.waitpid
+        rescue Errno::ECHILD
+        end
+
+        # Verify parent did not change
+        expect(tracker.send(:registry).length).to eq(1)
+        path = tracker.send(:registry).to_a.dig(0, 0)
+        expect(File.basename(path)).to eq("code_tracker_test_class_4.rb")
+      end
+    end
   end
 
   describe "#active?" do

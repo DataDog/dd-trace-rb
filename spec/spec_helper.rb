@@ -15,6 +15,7 @@ require 'jruby' if RUBY_ENGINE == 'jruby'
 if (ENV['SKIP_SIMPLECOV'] != '1') && !RSpec.configuration.files_to_run.all? { |path| path.include?('/benchmark/') }
   # +SimpleCov.start+ must be invoked before any application code is loaded
   require 'simplecov'
+  require 'support/simplecov_fix'
   SimpleCov.start do
     formatter SimpleCov::Formatter::SimpleFormatter
   end
@@ -294,6 +295,7 @@ end
 
 # Helper matchers
 RSpec::Matchers.define_negated_matcher :not_be, :be
+RSpec::Matchers.define_negated_matcher :not_change, :change
 
 # The Ruby Timeout class uses a long-lived class-level thread that is never terminated.
 # Creating it early here ensures tests that tests that check for leaking threads are not
