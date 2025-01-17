@@ -175,12 +175,14 @@ else
         injection_failure = false
 
         # This is order dependent
+        # ADD NEW DEPENDENCIES HERE
         [
           'msgpack',
           'ffi',
           'datadog-ruby_core_source',
           'libdatadog',
           'libddwaf',
+          'logger',
           'datadog'
         ].each do |gem|
           fork do
