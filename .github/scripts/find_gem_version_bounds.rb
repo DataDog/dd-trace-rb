@@ -9,7 +9,7 @@ require 'datadog'
 
 class GemfileProcessor
   SPECIAL_CASES = {
-    "opensearch" => "OpenSearch" # special case because opensearch = OpenSearch not Opensearch
+    "opensearch" => "OpenSearch", # special case because opensearch = OpenSearch not Opensearch
   }.freeze
   EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
 
@@ -37,30 +37,11 @@ class GemfileProcessor
       runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
       next unless %w[ruby jruby].include?(runtime)
       # parse the gemfile
-      if gemfile_name.end_with?(".gemfile")
-        process_gemfile(gemfile_name, runtime)
-      elsif gemfile_name.end_with?('.gemfile.lock')
+      if gemfile_name.end_with?('.gemfile.lock')
         process_lockfile(gemfile_name, runtime)
       end
     end
 
-  end
-
-  def process_gemfile(gemfile_name, runtime)
-    begin
-      definition = Bundler::Definition.build(gemfile_name, nil, nil)
-      definition.dependencies.each do |dependency|
-        gem_name = dependency.name
-        version = dependency.requirement.to_s
-        unspecified = version.strip == '' || version == ">= 0"
-        if unspecified
-          puts "#{gem_name} uses latest"
-        end
-        update_gem_versions(runtime, gem_name, version, unspecified)
-      end
-    rescue Bundler::GemfileError => e
-      puts "Error reading Gemfile: #{e.message}"
-    end
   end
 
   def process_lockfile(gemfile_name, runtime)
@@ -86,7 +67,6 @@ class GemfileProcessor
 
     # Update maximum gems
     if unspecified
-      puts "Setting gem #{gem_name} to infinity"
       @max_gems[runtime][gem_name] = Float::INFINITY
     else
       if @max_gems[runtime][gem_name].nil? || (@max_gems[runtime][gem_name] != Float::INFINITY && gem_version > Gem::Version.new(@max_gems[runtime][gem_name]))
@@ -102,6 +82,7 @@ class GemfileProcessor
     Gem::Version.new(version)
     true
   rescue ArgumentError
+    puts "#{version} is invalid format."
     false
   end
 
@@ -125,18 +106,18 @@ class GemfileProcessor
   def include_hardcoded_versions
       # `httpx` is maintained externally
     @integration_json_mapping['httpx'] = [
-      '0.11',  # Min version Ruby
-      nil,     # Max version Ruby
-      '0.11',  # Min version JRuby
-      nil      # Max version JRuby
+      '0.11',         # Min version Ruby
+      'infinity',     # Max version Ruby
+      '0.11',         # Min version JRuby
+      'infinity'      # Max version JRuby
     ]
 
     # `makara` is part of `activerecord`
     @integration_json_mapping['makara'] = [
-      '0.3.5', # Min version Ruby
-      nil,     # Max version Ruby
-      '0.3.5', # Min version JRuby
-      nil      # Max version JRuby
+      '0.3.5',        # Min version Ruby
+      'infinity',     # Max version Ruby
+      '0.3.5',        # Min version JRuby
+      'infinity'      # Max version JRuby
     ]
   end
 
@@ -152,9 +133,6 @@ class GemfileProcessor
 
   def write_output
     @integration_json_mapping = @integration_json_mapping.sort.to_h
-    @integration_json_mapping.each do |integration, versions|
-      versions.map! { |v| v == Float::INFINITY ? 'infinity' : v }
-    end
     File.write("gem_output.json", JSON.pretty_generate(@integration_json_mapping))
   end
 end
