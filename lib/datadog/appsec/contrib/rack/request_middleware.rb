@@ -204,11 +204,11 @@ module Datadog
             span = context.span
             return unless span
 
-            span.set_tag('_dd.appsec.waf.timeouts', context.waf_metrics.timeouts)
+            span.set_tag('_dd.appsec.waf.timeouts', context.metrics.waf.timeouts)
 
             # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.waf_metrics.duration_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.waf_metrics.duration_ext_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration', context.metrics.waf.duration_ns / 1000.0)
+            span.set_tag('_dd.appsec.waf.duration_ext', context.metrics.waf.duration_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)

@@ -1,16 +1,6 @@
 module Datadog
   module AppSec
     class Context
-      class WAFMetrics < ::Struct[untyped]
-        attr_accessor timeouts: ::Integer
-
-        attr_accessor duration_ns: ::Integer
-
-        attr_accessor duration_ext_ns: ::Integer
-
-        def self.new: (timeouts: ::Integer, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
-      end
-
       type input_data = SecurityEngine::Runner::input_data
 
       @trace: Tracing::TraceOperation
@@ -23,9 +13,7 @@ module Datadog
 
       @waf_runner: SecurityEngine::Runner
 
-      @waf_metrics: WAFMetrics
-
-      @mutex: ::Mutex
+      @metrics: Metrics::Collector
 
       ActiveContextError: ::StandardError
 
@@ -35,7 +23,7 @@ module Datadog
 
       attr_reader events: ::Array[untyped]
 
-      attr_reader waf_metrics: WAFMetrics
+      attr_reader metrics: Metrics::Collector
 
       def self.activate: (Context context) -> Context
 

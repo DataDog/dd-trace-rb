@@ -136,8 +136,42 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#waf_metrics' do
-    context 'when multiple calls were successful' do
+  describe '#metrics' do
+    context 'when multiple rasp calls were successful' do
+      let!(:run_results) do
+        ephemeral_data = {
+          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
+          'server.db.system' => 'mysql2'
+        }
+        Array.new(3) { context.run_rasp(Datadog::AppSec::Ext::RASP_SQLI, {}, ephemeral_data, 10_000) }
+      end
+
+      it 'returns metrics containing 0 timeouts and cumulative durations' do
+        expect(context.metrics.rasp.evals).to eq(3)
+        expect(context.metrics.rasp.timeouts).to eq(0)
+        expect(context.metrics.rasp.duration_ns).to be > 0
+        expect(context.metrics.rasp.duration_ext_ns).to be > context.metrics.waf.duration_ns
+      end
+    end
+
+    context 'when multiple rasp calls have timeouts' do
+      let!(:run_results) do
+        ephemeral_data = {
+          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
+          'server.db.system' => 'mysql2'
+        }
+        Array.new(5) { context.run_rasp(Datadog::AppSec::Ext::RASP_SQLI, {}, ephemeral_data, 0) }
+      end
+
+      it 'returns metrics containing 5 timeouts and cumulative durations' do
+        expect(context.metrics.rasp.evals).to eq(5)
+        expect(context.metrics.rasp.timeouts).to eq(5)
+        expect(context.metrics.rasp.duration_ns).to be_zero
+        expect(context.metrics.rasp.duration_ext_ns).to be > context.metrics.waf.duration_ns
+      end
+    end
+
+    context 'when multiple waf calls were successful' do
       let!(:run_results) do
         persistent_data = {
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
@@ -146,15 +180,14 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       it 'returns metrics containing 0 timeouts and cumulative durations' do
-        expect(context.waf_metrics.timeouts).to eq(0)
-        expect(context.waf_metrics.duration_ns).to be > 0
-        expect(context.waf_metrics.duration_ext_ns).to be > 0
-        expect(context.waf_metrics.duration_ns).to eq(run_results.sum(&:duration_ns))
-        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
+        expect(context.metrics.waf.evals).to eq(3)
+        expect(context.metrics.waf.timeouts).to eq(0)
+        expect(context.metrics.waf.duration_ns).to be > 0
+        expect(context.metrics.waf.duration_ext_ns).to be > context.metrics.waf.duration_ns
       end
     end
 
-    context 'when multiple calls have timeouts' do
+    context 'when multiple waf calls have timeouts' do
       let!(:run_results) do
         persistent_data = {
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
@@ -163,9 +196,10 @@ RSpec.describe Datadog::AppSec::Context do
       end
 
       it 'returns metrics containing 5 timeouts and cumulative durations' do
-        expect(context.waf_metrics.timeouts).to eq(5)
-        expect(context.waf_metrics.duration_ns).to eq(0)
-        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
+        expect(context.metrics.waf.evals).to eq(5)
+        expect(context.metrics.waf.timeouts).to eq(5)
+        expect(context.metrics.waf.duration_ns).to be_zero
+        expect(context.metrics.waf.duration_ext_ns).to be > context.metrics.waf.duration_ns
       end
     end
   end
