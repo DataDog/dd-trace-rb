@@ -61,7 +61,7 @@ module Datadog
 
             gateway_request = Gateway::Request.new(env)
 
-            request_return, = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
+            request_return, _gateway_request = Instrumentation.gateway.push('sinatra.request.dispatch', gateway_request) do
               super
             end
 

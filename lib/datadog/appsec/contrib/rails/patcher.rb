@@ -81,7 +81,7 @@ module Datadog
 
               gateway_request = Gateway::Request.new(request)
 
-              http_response, = Instrumentation.gateway.push('rails.request.action', gateway_request) do
+              http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do
                 super
               end
 

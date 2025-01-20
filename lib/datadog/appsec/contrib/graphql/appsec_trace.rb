@@ -16,7 +16,7 @@ module Datadog
 
             gateway_multiplex = Gateway::Multiplex.new(multiplex)
 
-            multiplex_return, = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
+            multiplex_return, _gateway_multiplex = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
               super
             end
 

@@ -77,7 +77,7 @@ module Datadog
             gateway_response = nil
 
             interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              http_response, = Instrumentation.gateway.push('rack.request', gateway_request) do
+              http_response, _gateway_request = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
 
