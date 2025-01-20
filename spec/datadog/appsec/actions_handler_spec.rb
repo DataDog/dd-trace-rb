@@ -35,7 +35,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
     end
 
     it 'calls redirect_request with action parameters' do
-      expect(described_class).to receive(:redirect_request)
+      expect(described_class).to receive(:interrupt_execution)
         .with(redirect_request_action['redirect_request']).and_call_original
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
@@ -44,7 +44,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
     end
 
     it 'calls block_request with action parameters' do
-      expect(described_class).to receive(:block_request)
+      expect(described_class).to receive(:interrupt_execution)
         .with(block_request_action['block_request']).and_call_original
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
@@ -53,10 +53,10 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
     end
 
     it 'calls redirect_request only when both block_request and redirect_request are present' do
-      expect(described_class).to receive(:redirect_request)
+      expect(described_class).to receive(:interrupt_execution)
         .with(redirect_request_action['redirect_request']).and_call_original
 
-      expect(described_class).not_to receive(:block_request)
+      expect(described_class).not_to receive(:interrupt_execution)
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
         described_class.handle(block_request_action.merge(redirect_request_action))
@@ -77,7 +77,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       expect(described_class).to receive(:generate_stack)
         .with(generate_stack_action['generate_stack']).and_call_original
 
-      expect(described_class).to receive(:block_request)
+      expect(described_class).to receive(:interrupt_execution)
         .with(block_request_action['block_request']).and_call_original
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
@@ -89,7 +89,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       expect(described_class).to receive(:generate_stack)
         .with(generate_stack_action['generate_stack']).and_call_original
 
-      expect(described_class).to receive(:redirect_request)
+      expect(described_class).to receive(:interrupt_execution)
         .with(redirect_request_action['redirect_request']).and_call_original
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do

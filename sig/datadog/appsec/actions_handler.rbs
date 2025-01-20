@@ -3,15 +3,11 @@ module Datadog
     module ActionsHandler
       def handle: (::Hash[::String, ::Hash[::String, ::String]] actions_hash) -> void
 
-      def block_request: (::Hash[::String, ::String] action_params) -> void
-
-      def redirect_request: (::Hash[::String, ::String] action_params) -> void
+      def interrupt_execution: (::Hash[::String, ::String] action_params) -> void
 
       def generate_stack: (::Hash[::String, ::String] action_params) -> void
 
       def generate_schema: (::Hash[::String, ::String] action_params) -> void
-
-      def monitor: (::Hash[::String, ::String] action_params) -> void
     end
   end
 end
