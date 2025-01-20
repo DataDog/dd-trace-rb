@@ -26,8 +26,6 @@ module Datadog
       def generate_stack(_action_params); end
 
       def generate_schema(_action_params); end
-
-      def monitor(_action_params); end
     end
   end
 end
