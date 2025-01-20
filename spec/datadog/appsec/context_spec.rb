@@ -138,7 +138,7 @@ RSpec.describe Datadog::AppSec::Context do
 
   describe '#metrics' do
     context 'when multiple rasp calls were successful' do
-      let!(:run_results) do
+      before do
         ephemeral_data = {
           'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
           'server.db.system' => 'mysql2'
@@ -155,7 +155,7 @@ RSpec.describe Datadog::AppSec::Context do
     end
 
     context 'when multiple rasp calls have timeouts' do
-      let!(:run_results) do
+      before do
         ephemeral_data = {
           'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
           'server.db.system' => 'mysql2'
@@ -172,7 +172,7 @@ RSpec.describe Datadog::AppSec::Context do
     end
 
     context 'when multiple waf calls were successful' do
-      let!(:run_results) do
+      before do
         persistent_data = {
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
         }
@@ -188,7 +188,7 @@ RSpec.describe Datadog::AppSec::Context do
     end
 
     context 'when multiple waf calls have timeouts' do
-      let!(:run_results) do
+      before do
         persistent_data = {
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
         }

@@ -9,3 +9,4 @@ module Datadog
 end
 
 require_relative 'metrics/collector'
+require_relative 'metrics/exporter'
