@@ -1,13 +1,13 @@
 module Datadog
   module AppSec
     module ActionsHandler
-      def handle: (::Hash[::String, ::Hash[::String, ::String]] actions_hash) -> void
+      def handle: (Datadog::AppSec::SecurityEngine::Result::actions actions_hash) -> void
 
-      def interrupt_execution: (::Hash[::String, ::String] action_params) -> void
+      def interrupt_execution: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
 
-      def generate_stack: (::Hash[::String, ::String] action_params) -> void
+      def generate_stack: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
 
-      def generate_schema: (::Hash[::String, ::String] action_params) -> void
+      def generate_schema: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
     end
   end
 end

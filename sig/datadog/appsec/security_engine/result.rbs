@@ -4,7 +4,8 @@ module Datadog
       module Result
         type data = ::String | ::Hash[::String, data] | ::Array[data]
         type events = ::Array[::Hash[::String, data]]
-        type actions = ::Hash[::String, data]
+        type action = ::Hash[::String, ::String]
+        type actions = ::Hash[::String, action]
         type derivatives = ::Hash[::String, data]
 
         class Base
