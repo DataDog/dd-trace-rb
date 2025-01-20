@@ -9,7 +9,7 @@ module Datadog
       def initialize: (status: ::Integer, ?headers: ::Hash[::String, ::String], ?body: ::Array[::String]) -> void
       def to_rack: () -> ::Array[untyped]
 
-      def self.build: (::Hash[::String, ::String] action_params, ::String http_accept_header) -> Response
+      def self.from_interrupt_params: (::Hash[::String, ::String] interrupt_params, ::String http_accept_header) -> Response
 
       private
 
@@ -17,8 +17,8 @@ module Datadog
       FORMAT_TO_CONTENT_TYPE: ::Hash[::String, ::String]
       DEFAULT_CONTENT_TYPE: ::String
 
-      def self.block_response: (::Hash[::String, ::String] action_params, ::String http_accept_header) -> Response
-      def self.redirect_response: (::Hash[::String, ::String] action_params) -> Response
+      def self.block_response: (::Hash[::String, ::String] interrupt_params, ::String http_accept_header) -> Response
+      def self.redirect_response: (::Hash[::String, ::String] interrupt_params) -> Response
 
       def self.content_type: (::String) -> ::String
       def self.content: (::String) -> ::String

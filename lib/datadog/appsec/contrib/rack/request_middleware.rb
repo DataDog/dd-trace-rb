@@ -76,7 +76,7 @@ module Datadog
             gateway_request = Gateway::Request.new(env)
             gateway_response = nil
 
-            block_action_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               http_response, = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
@@ -90,7 +90,9 @@ module Datadog
               nil
             end
 
-            http_response = AppSec::Response.build(block_action_params, env['HTTP_ACCEPT']).to_rack if block_action_params
+            if interrupt_params
+              http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
+            end
 
             if AppSec.api_security_enabled?
               ctx.events << {

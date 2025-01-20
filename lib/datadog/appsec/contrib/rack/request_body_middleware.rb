@@ -24,7 +24,7 @@ module Datadog
             # TODO: handle exceptions, except for @app.call
 
             http_response = nil
-            block_action_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
               http_response, = Instrumentation.gateway.push('rack.request.body', Gateway::Request.new(env)) do
                 @app.call(env)
               end
@@ -32,7 +32,7 @@ module Datadog
               nil
             end
 
-            return AppSec::Response.build(block_action_params, env['HTTP_ACCEPT']).to_rack if block_action_params
+            return AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack if interrupt_params
 
             http_response
           end

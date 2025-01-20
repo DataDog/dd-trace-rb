@@ -1,12 +1,12 @@
 require 'datadog/appsec/response'
 
 RSpec.describe Datadog::AppSec::Response do
-  describe '.build' do
+  describe '.from_interrupt_params' do
     let(:http_accept_header) { 'text/html' }
 
-    describe 'configured action_params' do
+    describe 'configured interrupt_params' do
       describe 'block' do
-        let(:action_params) do
+        let(:interrupt_params) do
           {
             'type' => type,
             'status_code' => status_code
@@ -17,7 +17,7 @@ RSpec.describe Datadog::AppSec::Response do
         let(:status_code) { '100' }
 
         context 'status_code' do
-          subject(:status) { described_class.build(action_params, http_accept_header).status }
+          subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
 
           it { is_expected.to eq 100 }
 
@@ -29,7 +29,7 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'body' do
-          subject(:body) { described_class.build(action_params, http_accept_header).body }
+          subject(:body) { described_class.from_interrupt_params(interrupt_params, http_accept_header).body }
 
           it { is_expected.to eq [Datadog::AppSec::Assets.blocked(format: :html)] }
 
@@ -42,7 +42,9 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'headers' do
-          subject(:header) { described_class.build(action_params, http_accept_header).headers['Content-Type'] }
+          subject(:header) do
+            described_class.from_interrupt_params(interrupt_params, http_accept_header).headers['Content-Type']
+          end
 
           it { is_expected.to eq 'text/html' }
 
@@ -54,9 +56,9 @@ RSpec.describe Datadog::AppSec::Response do
           end
         end
 
-        context 'empty action_params' do
-          let(:action_params) { {} }
-          subject(:response) { described_class.build(action_params, http_accept_header) }
+        context 'empty interrupt_params' do
+          let(:interrupt_params) { {} }
+          subject(:response) { described_class.from_interrupt_params(interrupt_params, http_accept_header) }
 
           it 'uses default response' do
             expect(response.status).to eq 403
@@ -67,7 +69,7 @@ RSpec.describe Datadog::AppSec::Response do
       end
 
       describe 'redirect_request' do
-        let(:action_params) do
+        let(:interrupt_params) do
           {
             'location' => location,
             'status_code' => status_code
@@ -78,7 +80,7 @@ RSpec.describe Datadog::AppSec::Response do
         let(:status_code) { '303' }
 
         context 'status_code' do
-          subject(:status) { described_class.build(action_params, http_accept_header).status }
+          subject(:status) { described_class.from_interrupt_params(interrupt_params, http_accept_header).status }
 
           it { is_expected.to eq 303 }
 
@@ -90,13 +92,13 @@ RSpec.describe Datadog::AppSec::Response do
         end
 
         context 'body' do
-          subject(:body) { described_class.build(action_params, http_accept_header).body }
+          subject(:body) { described_class.from_interrupt_params(interrupt_params, http_accept_header).body }
 
           it { is_expected.to eq [] }
         end
 
         context 'headers' do
-          subject(:headers) { described_class.build(action_params, http_accept_header).headers }
+          subject(:headers) { described_class.from_interrupt_params(interrupt_params, http_accept_header).headers }
 
           context 'Location' do
             it 'uses the one from the configuration' do
@@ -108,13 +110,13 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe '.status' do
-      subject(:status) { described_class.build({}, http_accept_header).status }
+      subject(:status) { described_class.from_interrupt_params({}, http_accept_header).status }
 
       it { is_expected.to eq 403 }
     end
 
     describe '.body' do
-      subject(:body) { described_class.build({}, http_accept_header).body }
+      subject(:body) { described_class.from_interrupt_params({}, http_accept_header).body }
 
       shared_examples_for 'with custom response body' do |type|
         before do
@@ -162,7 +164,7 @@ RSpec.describe Datadog::AppSec::Response do
     end
 
     describe ".headers['Content-Type']" do
-      subject(:content_type) { described_class.build({}, http_accept_header).headers['Content-Type'] }
+      subject(:content_type) { described_class.from_interrupt_params({}, http_accept_header).headers['Content-Type'] }
 
       context('with Accept: text/html') do
         let(:http_accept_header) { 'text/html' }

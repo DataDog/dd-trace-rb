@@ -20,33 +20,33 @@ module Datadog
       end
 
       class << self
-        def build(action_params, http_accept_header)
-          return redirect_response(action_params) if action_params['location']
+        def from_interrupt_params(interrupt_params, http_accept_header)
+          return redirect_response(interrupt_params) if interrupt_params['location']
 
-          block_response(action_params, http_accept_header)
+          block_response(interrupt_params, http_accept_header)
         end
 
         private
 
-        def block_response(action_params, http_accept_header)
-          content_type = case action_params['type']
+        def block_response(interrupt_params, http_accept_header)
+          content_type = case interrupt_params['type']
                          when nil, 'auto' then content_type(http_accept_header)
-                         else FORMAT_TO_CONTENT_TYPE.fetch(action_params['type'], DEFAULT_CONTENT_TYPE)
+                         else FORMAT_TO_CONTENT_TYPE.fetch(interrupt_params['type'], DEFAULT_CONTENT_TYPE)
                          end
 
           Response.new(
-            status: action_params['status_code']&.to_i || 403,
+            status: interrupt_params['status_code']&.to_i || 403,
             headers: { 'Content-Type' => content_type },
             body: [content(content_type)],
           )
         end
 
-        def redirect_response(action_params)
-          status_code = action_params['status_code'].to_i
+        def redirect_response(interrupt_params)
+          status_code = interrupt_params['status_code'].to_i
 
           Response.new(
             status: (status_code >= 300 && status_code < 400 ? status_code : 303),
-            headers: { 'Location' => action_params.fetch('location') },
+            headers: { 'Location' => interrupt_params.fetch('location') },
             body: [],
           )
         end
