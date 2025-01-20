@@ -330,10 +330,15 @@ jobs:
         run: |
           docker pull ${{ env.REPO }}/system-tests/${{ matrix.library }}/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
           docker tag ${{ env.REPO }}/system-tests/${{ matrix.library }}/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }} system_tests/weblog:latest
-      - name: Cache dependent images
-        run: |
-          PYTHONPATH=. python utils/scripts/get-image-list.py ruby ${{ matrix.app }} '${{ matrix.scenario }}' > compose.yaml
-          docker compose pull
+      - name: Build local runner
+        uses: ./.github/actions/install_runner
+      - name: Pull images
+        uses: ./.github/actions/pull_images
+        with:
+          library: ruby
+          weblog: ${{ matrix.weblog-variant }}
+          scenarios: '["${{ matrix.app }}"]'
+          cleanup: false
       - name: List images
         run: |
           docker image list
