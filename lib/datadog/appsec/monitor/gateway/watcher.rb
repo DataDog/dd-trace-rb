@@ -38,11 +38,12 @@ module Datadog
                     context.trace.keep! if context.trace
                     Datadog::AppSec::Event.tag_and_keep!(context, result)
                     context.events << event
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
                 end
 
-                block = Monitor::Reactive::SetUser.publish(engine, user)
-                throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                Monitor::Reactive::SetUser.publish(engine, user)
 
                 stack.call(user)
               end
