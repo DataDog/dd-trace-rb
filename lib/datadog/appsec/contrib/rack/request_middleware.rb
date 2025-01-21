@@ -112,7 +112,7 @@ module Datadog
             http_response
           ensure
             if ctx
-              add_waf_runtime_tags(ctx)
+              ctx.export_metrics
               Datadog::AppSec::Context.deactivate
             end
           end
@@ -198,17 +198,6 @@ module Datadog
                 remote_ip: env['REMOTE_ADDR']
               )
             end
-          end
-
-          def add_waf_runtime_tags(context)
-            span = context.span
-            return unless span
-
-            span.set_tag('_dd.appsec.waf.timeouts', context.metrics.waf.timeouts)
-
-            # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.metrics.waf.duration_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.metrics.waf.duration_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)

@@ -7,13 +7,6 @@ module Datadog
       module Exporter
         module_function
 
-        def export_from(context)
-          return if context.span.nil?
-
-          export_waf_metrics(context.metrics.waf, context.span)
-          export_rasp_metrics(context.metrics.rasp, context.span)
-        end
-
         def export_waf_metrics(metrics, span)
           return if metrics.evals.zero?
 

@@ -23,8 +23,6 @@ module Datadog
 
       attr_reader events: ::Array[untyped]
 
-      attr_reader metrics: Metrics::Collector
-
       def self.activate: (Context context) -> Context
 
       def self.deactivate: () -> void
@@ -36,6 +34,8 @@ module Datadog
       def run_waf: (input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
 
       def run_rasp: (::Symbol _type, input_data persistent_data, input_data ephemeral_data, ?Integer timeout) -> SecurityEngine::result
+
+      def export_metrics: () -> void
 
       def finalize: () -> void
     end

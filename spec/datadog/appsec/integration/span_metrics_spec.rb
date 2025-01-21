@@ -2,15 +2,28 @@
 
 require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
-
 require 'rack/test'
+
+require 'sqlite3'
+require 'active_record'
 require 'datadog/tracing'
 require 'datadog/appsec'
 
-RSpec.describe 'Rack integration tests' do
+RSpec.describe 'Span metrics integration test' do
   include Rack::Test::Methods
 
   before do
+    stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
+      klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+
+      klass.connection.create_table 'users', force: :cascade do |t|
+        t.string :name, null: false
+      end
+
+      # prevent internal sql requests from showing up
+      klass.count
+    end
+
     Datadog.configure do |c|
       c.tracing.enabled = true
       c.tracing.instrument :rack
@@ -18,6 +31,7 @@ RSpec.describe 'Rack integration tests' do
 
       c.appsec.enabled = true
       c.appsec.instrument :rack
+      c.appsec.instrument :active_record
 
       c.appsec.standalone.enabled = false
       c.appsec.waf_timeout = 10_000_000 # in us
@@ -44,8 +58,21 @@ RSpec.describe 'Rack integration tests' do
       use Datadog::Tracing::Contrib::Rack::TraceMiddleware
       use Datadog::AppSec::Contrib::Rack::RequestMiddleware
 
-      map '/success' do
-        run ->(_) { [200, { 'Content-Type' => 'text/html' }, ['OK']] }
+      map '/waf' do
+        run ->(_env) { [200, { 'Content-Type' => 'text/html' }, ['OK']] }
+      end
+
+      map '/rasp' do
+        run(
+          lambda do |env|
+            request = Rack::Request.new(env)
+            users = User.find_by_sql(
+              "SELECT * FROM users WHERE name = '#{request.params['name']}'"
+            )
+
+            [200, { 'Content-Type' => 'text/html' }, [users.join(',')]]
+          end
+        )
       end
     end
 
@@ -57,37 +84,15 @@ RSpec.describe 'Rack integration tests' do
     spans.find { |s| s.name == 'rack.request' }
   end
 
-  let(:triggers) do
-    appsec_json = spans
-      .find { |span| span.metrics.fetch('_dd.top_level', -1.0) > 0.0 }
-      .meta
-      .fetch('_dd.appsec.json', '{}')
-    JSON.parse(appsec_json).fetch('triggers', [])
-  end
-
   describe 'HTTP service entry span metrics' do
     subject(:response) { last_response }
 
-    context 'when no attack attempts detected' do
-      before { get('/success', {}, { 'REMOTE_ADDR' => '127.0.0.1' }) }
-
-      it { expect(response).to be_ok }
-      it { expect(triggers).to be_empty }
-
-      it 'contains span WAF metrics' do
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.timeouts')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.duration')
-        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.duration_ext')
-      end
-    end
-
-    context 'when attack detected by WAF' do
+    context 'when WAF check triggered for HTTP request' do
       before do
-        get('/success', {}, { 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP' })
+        get('/waf', {}, { 'REMOTE_ADDR' => '127.0.0.1', 'HTTP_USER_AGENT' => 'Nessus SOAP' })
       end
 
       it { expect(response).to be_ok }
-      it { expect(triggers).to have(1).item }
 
       it 'contains span WAF metrics' do
         expect(http_service_entry_span.metrics).to have_key('_dd.appsec.waf.timeouts')
@@ -96,8 +101,19 @@ RSpec.describe 'Rack integration tests' do
       end
     end
 
-    # TODO Add ActiveRecord example
-    # context 'when attack detected by RASP' do
-    # end
+    context 'when RASP check triggered for database query' do
+      before do
+        get('/rasp', { 'name' => "Bob'; OR 1=1" }, { 'REMOTE_ADDR' => '127.0.0.1' })
+      end
+
+      it { expect(response).to be_ok }
+
+      it 'contains span RASP metrics' do
+        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.rule.eval')
+        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.duration')
+        expect(http_service_entry_span.metrics).to have_key('_dd.appsec.rasp.duration_ext')
+        expect(http_service_entry_span.metrics).not_to have_key('_dd.appsec.rasp.timeout')
+      end
+    end
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'metrics/collector'
+require_relative 'metrics'
 
 module Datadog
   module AppSec
@@ -9,7 +9,7 @@ module Datadog
     class Context
       ActiveContextError = Class.new(StandardError)
 
-      attr_reader :trace, :span, :events, :metrics
+      attr_reader :trace, :span, :events
 
       class << self
         def activate(context)
@@ -55,6 +55,13 @@ module Datadog
 
       def extract_schema
         @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+      end
+
+      def export_metrics
+        return if @span.nil?
+
+        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
+        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
       def finalize

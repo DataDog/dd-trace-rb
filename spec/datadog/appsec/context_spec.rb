@@ -136,70 +136,24 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#metrics' do
-    context 'when multiple rasp calls were successful' do
-      before do
-        ephemeral_data = {
-          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
-          'server.db.system' => 'mysql2'
-        }
-        Array.new(3) { context.run_rasp(Datadog::AppSec::Ext::RASP_SQLI, {}, ephemeral_data, 10_000) }
-      end
+  describe '#export_metrics' do
+    context 'when span is not present' do
+      let(:context) { described_class.new(trace, nil, processor) }
 
-      it 'returns metrics containing 0 timeouts and cumulative durations' do
-        expect(context.metrics.rasp.evals).to eq(3)
-        expect(context.metrics.rasp.timeouts).to eq(0)
-        expect(context.metrics.rasp.duration_ns).to be > 0
-        expect(context.metrics.rasp.duration_ext_ns).to be > context.metrics.waf.duration_ns
+      it 'does not export metrics' do
+        expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_waf_metrics)
+        expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_rasp_metrics)
+
+        context.export_metrics
       end
     end
 
-    context 'when multiple rasp calls have timeouts' do
-      before do
-        ephemeral_data = {
-          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
-          'server.db.system' => 'mysql2'
-        }
-        Array.new(5) { context.run_rasp(Datadog::AppSec::Ext::RASP_SQLI, {}, ephemeral_data, 0) }
-      end
+    context 'when span is present' do
+      it 'exports the metrics' do
+        expect(Datadog::AppSec::Metrics::Exporter).to receive(:export_waf_metrics)
+        expect(Datadog::AppSec::Metrics::Exporter).to receive(:export_rasp_metrics)
 
-      it 'returns metrics containing 5 timeouts and cumulative durations' do
-        expect(context.metrics.rasp.evals).to eq(5)
-        expect(context.metrics.rasp.timeouts).to eq(5)
-        expect(context.metrics.rasp.duration_ns).to be_zero
-        expect(context.metrics.rasp.duration_ext_ns).to be > context.metrics.waf.duration_ns
-      end
-    end
-
-    context 'when multiple waf calls were successful' do
-      before do
-        persistent_data = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
-        }
-        Array.new(3) { context.run_waf(persistent_data, {}, 10_000) }
-      end
-
-      it 'returns metrics containing 0 timeouts and cumulative durations' do
-        expect(context.metrics.waf.evals).to eq(3)
-        expect(context.metrics.waf.timeouts).to eq(0)
-        expect(context.metrics.waf.duration_ns).to be > 0
-        expect(context.metrics.waf.duration_ext_ns).to be > context.metrics.waf.duration_ns
-      end
-    end
-
-    context 'when multiple waf calls have timeouts' do
-      before do
-        persistent_data = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
-        }
-        Array.new(5) { context.run_waf(persistent_data, {}, 0) }
-      end
-
-      it 'returns metrics containing 5 timeouts and cumulative durations' do
-        expect(context.metrics.waf.evals).to eq(5)
-        expect(context.metrics.waf.timeouts).to eq(5)
-        expect(context.metrics.waf.duration_ns).to be_zero
-        expect(context.metrics.waf.duration_ext_ns).to be > context.metrics.waf.duration_ns
+        context.export_metrics
       end
     end
   end
