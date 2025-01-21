@@ -54,17 +54,15 @@ class ProfilerMemorySampleSerializeBenchmark
         timeline_enabled: false,
       )
     }
-    @recorder = @recorder_factory.call
-    @retained_objs = create_objects
   end
 
-  def create_objects
+  def create_objects(recorder)
     samples_per_second = 100
     simulate_seconds = 60
     retained_objs = []
 
     (samples_per_second * simulate_seconds).times do |i|
-      obj = sample_object(@recorder, i % 400)
+      obj = sample_object(recorder, i % 400)
       retained_objs << obj if (i % @retain_every).zero?
     end
 
@@ -75,16 +73,21 @@ class ProfilerMemorySampleSerializeBenchmark
 
   def run_benchmark
     Benchmark.ips do |x|
-      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 10, warmup: 2 }
+      benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 30, warmup: 2 }
       x.config(
         **benchmark_time,
       )
 
-      x.report("heap serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do
-        @recorder.serialize
+      x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do
+        recorder = @recorder_factory.call
+        retained_objs = create_objects(recorder)
+
+        recorder.serialize
+
+        retained_objs.size # Dummy action to make sure this is still alive
       end
 
-      x.save! "#{File.basename(__FILE__)}-heap-results.json" unless VALIDATE_BENCHMARK_MODE
+      x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
       x.compare!
     end
   end
