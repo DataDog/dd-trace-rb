@@ -295,14 +295,12 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  ddog_prof_ManagedStringId alloc_class_id = intern_or_raise(heap_recorder->string_storage, alloc_class);
-
   heap_recorder->active_recording = object_record_new(
     FIX2LONG(ruby_obj_id),
     NULL,
     (live_object_data) {
       .weight = weight * heap_recorder->sample_rate,
-      .class = alloc_class_id,
+      .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
       .alloc_gen = rb_gc_count(),
     }
   );
@@ -525,7 +523,7 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   return hash;
 }
 
-typedef struct debug_context {
+typedef struct {
   heap_recorder *recorder;
   VALUE debug_str;
 } debug_context;
@@ -701,9 +699,6 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
 
 // Struct holding data required for an update operation on heap_records
 typedef struct {
-  // [in] The locations we did this update with
-  heap_recorder *recorder;
-  ddog_prof_Slice_Location locations;
   // [out] Pointer that will be updated to the updated heap record to prevent having to do
   // another lookup to access the updated heap record.
   heap_record **record;
@@ -726,14 +721,10 @@ static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_
 }
 
 static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
-
   heap_stack *stack = heap_stack_new(heap_recorder, locations);
 
   heap_record *heap_record = NULL;
-  heap_record_update_data update_data = (heap_record_update_data) {
-    .recorder = heap_recorder,
-    .record = &heap_record,
-  };
+  heap_record_update_data update_data = (heap_record_update_data) { .record = &heap_record };
   bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &update_data);
   if (existing) {
     heap_stack_free(heap_recorder, stack);
@@ -752,6 +743,7 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
   if (!st_delete(heap_recorder->heap_records, (st_data_t*) &key, NULL)) {
     rb_raise(rb_eRuntimeError, "Attempted to cleanup an untracked heap_record");
   };
+  // This will free both the key as a well as the value
   heap_record_free(heap_recorder, heap_record);
 }
 
@@ -840,9 +832,6 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
   return inspect;
 }
 
-// ==============
-// Heap Frame API
-// ==============
 st_index_t heap_frame_hash(heap_frame *frame, st_index_t seed) {
   st_index_t hash = st_hash(&frame->name, sizeof(frame->name), seed);
   hash = st_hash(&frame->filename, sizeof(frame->filename), hash);
