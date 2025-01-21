@@ -697,35 +697,24 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   }
 }
 
-// Struct holding data required for an update operation on heap_records
-typedef struct {
-  // [out] Pointer that will be updated to the updated heap record to prevent having to do
-  // another lookup to access the updated heap record.
-  heap_record **record;
-} heap_record_update_data;
-
 // This function assumes ownership of stack_data is passed on to it so it'll either transfer ownership or clean-up.
 static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_t *value, st_data_t data, int existing) {
-  heap_record_update_data *update_data = (heap_record_update_data*) data;
-
   if (!existing) {
     // there was no matching heap record so lets create a new one...
     heap_stack *stack = (heap_stack*) *key;
     (*value) = (st_data_t) heap_record_new(stack);
   }
 
-  heap_record *record = (heap_record*) (*value);
-  (*update_data->record) = record;
-
+  heap_record **record = (heap_record **) data;
+  (*record) = (heap_record *) (*value);
   return ST_CONTINUE;
 }
 
 static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   heap_stack *stack = heap_stack_new(heap_recorder, locations);
 
-  heap_record *heap_record = NULL;
-  heap_record_update_data update_data = (heap_record_update_data) { .record = &heap_record };
-  bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &update_data);
+  heap_record *heap_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation
+  bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &heap_record);
   if (existing) {
     heap_stack_free(heap_recorder, stack);
   }
