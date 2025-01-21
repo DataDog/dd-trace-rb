@@ -164,10 +164,6 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
 
 // v--- TEST-ONLY APIs ---v
 
-// Assert internal hashing logic is valid for the provided locations and its
-// corresponding internal representations in heap recorder.
-void heap_recorder_testonly_assert_hash_matches(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
-
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
