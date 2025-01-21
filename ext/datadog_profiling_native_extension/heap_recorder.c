@@ -709,30 +709,12 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
   return ST_CONTINUE;
 }
 
-// Struct holding data required for an update operation on heap_records
-typedef struct {
-  // [in] The recording containing the new object record we want to add.
-  // NOTE: Transfer of ownership of the contained object record is assumed, do not re-use it after call to ::update_object_record_entry
-  object_record *recording;
-
-  // [in] The heap recorder where the update is happening.
-  heap_recorder *heap_recorder;
-} object_record_update_data;
-
-static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *value, st_data_t data, int existing) {
-  object_record_update_data *update_data = (object_record_update_data*) data;
-  object_record *new_object_record = update_data->recording;
-  if (existing) {
-    object_record *existing_record = (object_record*) (*value);
-
-    // This is not supposed to happen, raising...
-    VALUE existing_inspect = object_record_inspect(existing_record);
-    VALUE new_inspect = object_record_inspect(new_object_record);
-    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
-      "the same id. previous=%"PRIsVALUE" new=%"PRIsVALUE, existing_inspect, new_inspect);
+static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *value, st_data_t new_object_record, int existing) {
+  if (!existing) {
+    (*value) = (st_data_t) new_object_record; // Expected to be a `object_record *`
+  } else {
+    // If key already existed, we don't touch the existing value, so it can be used for diagnostics
   }
-  // Always carry on with the update, we want the new record to be there at the end
-  (*value) = (st_data_t) new_object_record;
   return ST_CONTINUE;
 }
 
@@ -745,12 +727,17 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   }
   heap_record->num_tracked_objects++;
 
-  // Update object_records with the data for this new recording
-  object_record_update_data update_data = (object_record_update_data) {
-    .heap_recorder = heap_recorder,
-    .recording = active_recording,
-  };
-  st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) &update_data);
+  int existing_error = st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) active_recording);
+  if (existing_error) {
+    object_record *existing_record = NULL;
+    st_lookup(heap_recorder->object_records, active_recording->obj_id, (st_data_t *) &existing_record);
+    if (existing_record == NULL) rb_raise(rb_eRuntimeError, "Unexpected NULL when reading existing record");
+
+    VALUE existing_inspect = object_record_inspect(existing_record);
+    VALUE new_inspect = object_record_inspect(active_recording);
+    rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
+      "the same id. previous={%"PRIsVALUE"} new={%"PRIsVALUE"}", existing_inspect, new_inspect);
+  }
 }
 
 // Struct holding data required for an update operation on heap_records
