@@ -1,8 +1,6 @@
 #include "heap_recorder.h"
-#include <pthread.h>
 #include "ruby/st.h"
 #include "ruby_helpers.h"
-#include <errno.h>
 #include "collectors_stack.h"
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
@@ -30,7 +28,6 @@ typedef struct {
   char *filename;
   int32_t line;
 } heap_frame;
-static st_index_t heap_frame_hash(heap_frame*, st_index_t seed);
 
 // A compact representation of a stacktrace for a heap allocation.
 //
@@ -140,6 +137,9 @@ struct heap_recorder {
   // outside the GVL.
   // NOTE: This table has ownership of its object_records. The keys are longs and so are
   // passed as values.
+  //
+  // TODO: @ivoanjo We've evolved to actually never need to look up on object_records (we only insert and iterate),
+  // so right now this seems to be just a really really fancy self-resizing list/set.
   st_table *object_records;
 
   // Map[obj_id: long, record: object_record*]
@@ -301,7 +301,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder) {
   //
   // There is one small caveat though: fork only preserves one thread and in a Ruby app, that
   // will be the thread holding on to the GVL. Since we support iteration on the heap recorder
-  // outside of the GVL, any state specific to that interaction may be incosistent after fork
+  // outside of the GVL, any state specific to that interaction may be inconsistent after fork
   // (e.g. an acquired lock for thread safety). Iteration operates on object_records_snapshot
   // though and that one will be updated on next heap_recorder_prepare_iteration so we really
   // only need to finish any iteration that might have been left unfinished.
@@ -322,9 +322,8 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
   }
 
-  if (heap_recorder->num_recordings_skipped + 1 < heap_recorder->sample_rate) {
+  if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) {
     heap_recorder->active_recording.object_record = &SKIPPED_RECORD;
-    heap_recorder->num_recordings_skipped++;
     return;
   }
 
@@ -349,6 +348,10 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // with an rb_protect.
 __attribute__((warn_unused_result))
 int end_heap_allocation_recording_with_rb_protect(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+  if (heap_recorder == NULL) {
+    return 0;
+  }
+
   int exception_state;
   struct end_heap_allocation_args end_heap_allocation_args = {
     .heap_recorder = heap_recorder,
@@ -363,10 +366,6 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
 
   struct heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
-
-  if (heap_recorder == NULL) {
-    return Qnil;
-  }
 
   recording active_recording = heap_recorder->active_recording;
 
@@ -698,6 +697,7 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   iteration_data.object_data = record->object_data;
   iteration_data.locations = (ddog_prof_Slice_Location) {.ptr = locations, .len = stack->frames_len};
 
+  // This is expected to be StackRecorder's add_heap_sample_to_active_profile_without_gvl
   if (!context->for_each_callback(iteration_data, context->for_each_callback_extra_arg)) {
     return ST_STOP;
   }
@@ -867,7 +867,6 @@ void heap_record_free(heap_record *record) {
   ruby_xfree(record);
 }
 
-
 // =================
 // Object Record API
 // =================
@@ -917,25 +916,6 @@ VALUE object_record_inspect(object_record *record) {
 // ==============
 // Heap Frame API
 // ==============
-int heap_frame_cmp(heap_frame *f1, heap_frame *f2) {
-  int line_diff = (int) (f1->line - f2->line);
-  if (line_diff != 0) {
-    return line_diff;
-  }
-  int cmp = strcmp(f1->name, f2->name);
-  if (cmp != 0) {
-    return cmp;
-  }
-  return strcmp(f1->filename, f2->filename);
-}
-
-// TODO: Research potential performance improvements around hashing stuff here
-//       once we have a benchmarking suite.
-//       Example: Each call to st_hash is calling murmur_finish and we may want
-//                to only finish once per structure, not per field?
-//       Example: There may be a more efficient hashing for line that is not the
-//                generic st_hash algorithm?
-
 // WARN: Must be kept in-sync with ::char_slice_hash
 st_index_t string_hash(char *str, st_index_t seed) {
   return st_hash(str, strlen(str), seed);
@@ -971,9 +951,7 @@ st_index_t ddog_location_hash(ddog_prof_Location location, st_index_t seed) {
 heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
-    // This should not be happening anyway since MAX_FRAMES_LIMIT should be shared with
-    // the stacktrace construction mechanism. If it happens, lets just raise. This should
-    // be safe since only allocate with the GVL anyway.
+    // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
     rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
   heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
