@@ -334,7 +334,7 @@ static VALUE _native_new(VALUE klass) {
     .serialization_time_ns_min = INT64_MAX,
   };
 
-  // Note: At this point, slot_one_profile/slot_two_profile contain null pointers. Libdatadog validates pointers
+  // Note: At this point, slot_one_profile/slot_two_profile/string_storage contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
@@ -350,8 +350,7 @@ static VALUE _native_new(VALUE klass) {
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
-  //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
-  //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
+  //       heap samples, we will free and reset heap_recorder back to NULL.
   state->heap_recorder = heap_recorder_new(state->string_storage);
 
   return stack_recorder;
