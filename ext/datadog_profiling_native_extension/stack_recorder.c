@@ -365,22 +365,17 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
   }
 
+  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok };
+
   ddog_prof_Profile_NewResult slot_two_profile_result =
     ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    // Uff! Though spot. We need to make sure to properly clean up the other profile as well first
-    ddog_prof_Profile_drop(&slot_one_profile_result.ok);
-    // And now we can raise...
+    // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
     rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
   }
 
-  state->profile_slot_one = (profile_slot) {
-    .profile = slot_one_profile_result.ok,
-  };
-  state->profile_slot_two = (profile_slot) {
-    .profile = slot_two_profile_result.ok,
-  };
+  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok };
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
