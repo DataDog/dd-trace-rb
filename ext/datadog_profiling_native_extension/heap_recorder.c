@@ -110,14 +110,6 @@ static void object_record_free(object_record*);
 static VALUE object_record_inspect(object_record*);
 static object_record SKIPPED_RECORD = {0};
 
-// A wrapper around an object record that is in the process of being recorded and was not
-// yet committed.
-typedef struct {
-  // Pointer to the (potentially partial) object_record containing metadata about an ongoing recording.
-  // When NULL, this symbolizes an unstarted/invalid recording.
-  object_record *object_record;
-} recording;
-
 struct heap_recorder {
   // Config
   // Whether the recorder should try to determine approximate sizes for tracked objects.
@@ -162,7 +154,7 @@ struct heap_recorder {
   long last_update_ns;
 
   // Data for a heap recording that was started but not yet ended
-  recording active_recording;
+  object_record *active_recording;
 
   // Reusable location array, implementing a flyweight pattern for things like iteration.
   ddog_prof_Location *reusable_locations;
@@ -207,7 +199,7 @@ static int st_object_record_update(st_data_t, st_data_t, st_data_t);
 static int st_object_records_iterate(st_data_t, st_data_t, st_data_t);
 static int st_object_records_debug(st_data_t key, st_data_t value, st_data_t extra);
 static int update_object_record_entry(st_data_t*, st_data_t*, st_data_t, int);
-static void commit_recording(heap_recorder*, heap_record*, recording);
+static void commit_recording(heap_recorder *, heap_record *, object_record *active_recording);
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
@@ -228,7 +220,7 @@ heap_recorder* heap_recorder_new(void) {
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
-  recorder->active_recording = (recording) {0};
+  recorder->active_recording = NULL;
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
 
@@ -254,9 +246,9 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
   st_free_table(heap_recorder->heap_records);
 
-  if (heap_recorder->active_recording.object_record != NULL && heap_recorder->active_recording.object_record != &SKIPPED_RECORD) {
+  if (heap_recorder->active_recording != NULL && heap_recorder->active_recording != &SKIPPED_RECORD) {
     // If there's a partial object record, clean it up as well
-    object_record_free(heap_recorder->active_recording.object_record);
+    object_record_free(heap_recorder->active_recording);
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
@@ -318,12 +310,12 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     return;
   }
 
-  if (heap_recorder->active_recording.object_record != NULL) {
+  if (heap_recorder->active_recording != NULL) {
     rb_raise(rb_eRuntimeError, "Detected consecutive heap allocation recording starts without end.");
   }
 
   if (++heap_recorder->num_recordings_skipped < heap_recorder->sample_rate) {
-    heap_recorder->active_recording.object_record = &SKIPPED_RECORD;
+    heap_recorder->active_recording = &SKIPPED_RECORD;
     return;
   }
 
@@ -334,13 +326,15 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     rb_raise(rb_eRuntimeError, "Detected a bignum object id. These are not supported by heap profiling.");
   }
 
-  heap_recorder->active_recording = (recording) {
-    .object_record = object_record_new(FIX2LONG(ruby_obj_id), NULL, (live_object_data) {
-        .weight =  weight * heap_recorder->sample_rate,
-        .class = string_from_char_slice(alloc_class),
-        .alloc_gen = rb_gc_count(),
-    }),
-  };
+  heap_recorder->active_recording = object_record_new(
+    FIX2LONG(ruby_obj_id),
+    NULL,
+    (live_object_data) {
+      .weight = weight * heap_recorder->sample_rate,
+      .class = string_from_char_slice(alloc_class),
+      .alloc_gen = rb_gc_count(),
+    }
+  );
 }
 
 // end_heap_allocation_recording_with_rb_protect gets called while the stack_recorder is holding one of the profile
@@ -367,18 +361,18 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
   struct heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
-  recording active_recording = heap_recorder->active_recording;
+  object_record *active_recording = heap_recorder->active_recording;
 
-  if (active_recording.object_record == NULL) {
+  if (active_recording == NULL) {
     // Recording ended without having been started?
     rb_raise(rb_eRuntimeError, "Ended a heap recording that was not started");
   }
   // From now on, mark the global active recording as invalid so we can short-circuit at any point
   // and not end up with a still active recording. the local active_recording still holds the
   // data required for committing though.
-  heap_recorder->active_recording = (recording) {0};
+  heap_recorder->active_recording = NULL;
 
-  if (active_recording.object_record == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
+  if (active_recording == &SKIPPED_RECORD) { // special marker when we decided to skip due to sampling
     return Qnil;
   }
 
@@ -719,7 +713,7 @@ static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value
 typedef struct {
   // [in] The recording containing the new object record we want to add.
   // NOTE: Transfer of ownership of the contained object record is assumed, do not re-use it after call to ::update_object_record_entry
-  recording recording;
+  object_record *recording;
 
   // [in] The heap recorder where the update is happening.
   heap_recorder *heap_recorder;
@@ -727,8 +721,7 @@ typedef struct {
 
 static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *value, st_data_t data, int existing) {
   object_record_update_data *update_data = (object_record_update_data*) data;
-  recording recording = update_data->recording;
-  object_record *new_object_record = recording.object_record;
+  object_record *new_object_record = update_data->recording;
   if (existing) {
     object_record *existing_record = (object_record*) (*value);
 
@@ -743,10 +736,10 @@ static int update_object_record_entry(DDTRACE_UNUSED st_data_t *key, st_data_t *
   return ST_CONTINUE;
 }
 
-static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, recording recording) {
+static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_record, object_record *active_recording) {
   // Link the object record with the corresponding heap record. This was the last remaining thing we
   // needed to fully build the object_record.
-  recording.object_record->heap_record = heap_record;
+  active_recording->heap_record = heap_record;
   if (heap_record->num_tracked_objects == UINT32_MAX) {
     rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
   }
@@ -755,9 +748,9 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   // Update object_records with the data for this new recording
   object_record_update_data update_data = (object_record_update_data) {
     .heap_recorder = heap_recorder,
-    .recording = recording,
+    .recording = active_recording,
   };
-  st_update(heap_recorder->object_records, recording.object_record->obj_id, update_object_record_entry, (st_data_t) &update_data);
+  st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) &update_data);
 }
 
 // Struct holding data required for an update operation on heap_records
