@@ -276,7 +276,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql]
+    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql, :integration]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -284,6 +284,13 @@ namespace :spec do
       t.pattern = 'spec/datadog/appsec/**/*_spec.rb'
       t.exclude_pattern = 'spec/datadog/appsec/**/{contrib,auto_instrument}/**/*_spec.rb,'\
                           ' spec/datadog/appsec/**/{auto_instrument,autoload}_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    # Datadog AppSec integration specs
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:integration) do |t, args|
+      t.pattern = 'spec/datadog/appsec/integration/**/*_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end
 
