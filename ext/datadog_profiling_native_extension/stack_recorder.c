@@ -346,6 +346,9 @@ static VALUE _native_new(VALUE klass) {
   }
 
   state->string_storage = string_storage.ok;
+  state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
+  state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
+
   initialize_profiles(state, sample_types);
 
   // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
@@ -528,8 +531,6 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   // happen while holding on to the GVL.
   heap_recorder_prepare_iteration(state->heap_recorder);
   long heap_iteration_prep_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - heap_iteration_prep_start_time_ns;
-  state->label_key_allocation_class = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("allocation class"));
-  state->label_key_gc_gen_age = intern_or_raise(state->string_storage, DDOG_CHARSLICE_C("gc gen age"));
 
   // We'll release the Global VM Lock while we're calling serialize, so that the Ruby VM can continue to work while this
   // is pending
