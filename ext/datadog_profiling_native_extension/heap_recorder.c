@@ -690,8 +690,8 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
     st_lookup(heap_recorder->object_records, active_recording->obj_id, (st_data_t *) &existing_record);
     if (existing_record == NULL) rb_raise(rb_eRuntimeError, "Unexpected NULL when reading existing record");
 
-    VALUE existing_inspect = object_record_inspect(update_data->heap_recorder, existing_record);
-    VALUE new_inspect = object_record_inspect(update_data->heap_recorder, active_recording);
+    VALUE existing_inspect = object_record_inspect(heap_recorder, existing_record);
+    VALUE new_inspect = object_record_inspect(heap_recorder, active_recording);
     rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
       "the same id. previous={%"PRIsVALUE"} new={%"PRIsVALUE"}", existing_inspect, new_inspect);
   }
