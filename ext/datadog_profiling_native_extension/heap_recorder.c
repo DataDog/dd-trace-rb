@@ -151,10 +151,10 @@ struct heap_recorder {
   } stats_lifetime;
 };
 
-struct end_heap_allocation_args {
-  struct heap_recorder *heap_recorder;
+typedef struct {
+  heap_recorder *heap_recorder;
   ddog_prof_Slice_Location locations;
-};
+} end_heap_allocation_args;
 
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -310,24 +310,24 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // locks. To enable us to correctly unlock the profile on exception, we wrap the call to end_heap_allocation_recording
 // with an rb_protect.
 __attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   if (heap_recorder == NULL) {
     return 0;
   }
 
   int exception_state;
-  struct end_heap_allocation_args end_heap_allocation_args = {
+  end_heap_allocation_args args = {
     .heap_recorder = heap_recorder,
     .locations = locations,
   };
-  rb_protect(end_heap_allocation_recording, (VALUE) &end_heap_allocation_args, &exception_state);
+  rb_protect(end_heap_allocation_recording, (VALUE) &args, &exception_state);
   return exception_state;
 }
 
-static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
-  struct end_heap_allocation_args *args = (struct end_heap_allocation_args *) end_heap_allocation_args;
+static VALUE end_heap_allocation_recording(VALUE protect_args) {
+  end_heap_allocation_args *args = (end_heap_allocation_args *) protect_args;
 
-  struct heap_recorder *heap_recorder = args->heap_recorder;
+  heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
   object_record *active_recording = heap_recorder->active_recording;
@@ -934,7 +934,7 @@ static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_Managed
     rb_raise(rb_eRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
   }
   VALUE ruby_string = ruby_string_from_vec_u8(get_string_result.ok.message);
-  ddog_StringWrapper_drop((struct ddog_StringWrapper*)&get_string_result.ok);
+  ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
 
   return ruby_string;
 }
