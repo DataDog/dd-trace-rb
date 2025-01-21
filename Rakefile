@@ -290,7 +290,7 @@ namespace :spec do
     # Datadog AppSec integration specs
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(:integration) do |t, args|
-      t.pattern = 'spec/datadog/appsec/integration/**/*_spec.rb'
+      t.pattern = 'spec/datadog/appsec/contrib/integration/**/*_spec.rb'
       t.rspec_opts = args.to_a.join(' ')
     end
 
