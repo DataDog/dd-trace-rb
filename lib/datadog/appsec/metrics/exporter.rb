@@ -10,10 +10,9 @@ module Datadog
         def export_waf_metrics(metrics, span)
           return if metrics.evals.zero?
 
-          # expected time is in us
           span.set_tag('_dd.appsec.waf.timeouts', metrics.timeouts)
-          span.set_tag('_dd.appsec.waf.duration', metrics.duration_ns / 1000.0)
-          span.set_tag('_dd.appsec.waf.duration_ext', metrics.duration_ext_ns / 1000.0)
+          span.set_tag('_dd.appsec.waf.duration', convert_ns_to_us(metrics.duration_ns))
+          span.set_tag('_dd.appsec.waf.duration_ext', convert_ns_to_us(metrics.duration_ext_ns))
         end
 
         def export_rasp_metrics(metrics, span)
@@ -21,8 +20,14 @@ module Datadog
 
           span.set_tag('_dd.appsec.rasp.rule.eval', metrics.evals)
           span.set_tag('_dd.appsec.rasp.timeout', 1) unless metrics.timeouts.zero?
-          span.set_tag('_dd.appsec.rasp.duration', metrics.duration_ns / 1000.0)
-          span.set_tag('_dd.appsec.rasp.duration_ext', metrics.duration_ext_ns / 1000.0)
+          span.set_tag('_dd.appsec.rasp.duration', convert_ns_to_us(metrics.duration_ns))
+          span.set_tag('_dd.appsec.rasp.duration_ext', convert_ns_to_us(metrics.duration_ext_ns))
+        end
+
+        # private
+
+        def convert_ns_to_us(value)
+          value / 1000.0
         end
       end
     end
