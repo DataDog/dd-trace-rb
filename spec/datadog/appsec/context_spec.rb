@@ -136,36 +136,24 @@ RSpec.describe Datadog::AppSec::Context do
     end
   end
 
-  describe '#waf_metrics' do
-    context 'when multiple calls were successful' do
-      let!(:run_results) do
-        persistent_data = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
-        }
-        Array.new(3) { context.run_waf(persistent_data, {}, 10_000) }
-      end
+  describe '#export_metrics' do
+    context 'when span is not present' do
+      let(:context) { described_class.new(trace, nil, processor) }
 
-      it 'returns metrics containing 0 timeouts and cumulative durations' do
-        expect(context.waf_metrics.timeouts).to eq(0)
-        expect(context.waf_metrics.duration_ns).to be > 0
-        expect(context.waf_metrics.duration_ext_ns).to be > 0
-        expect(context.waf_metrics.duration_ns).to eq(run_results.sum(&:duration_ns))
-        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
+      it 'does not export metrics' do
+        expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_waf_metrics)
+        expect(Datadog::AppSec::Metrics::Exporter).not_to receive(:export_rasp_metrics)
+
+        context.export_metrics
       end
     end
 
-    context 'when multiple calls have timeouts' do
-      let!(:run_results) do
-        persistent_data = {
-          'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
-        }
-        Array.new(5) { context.run_waf(persistent_data, {}, 0) }
-      end
+    context 'when span is present' do
+      it 'exports the metrics' do
+        expect(Datadog::AppSec::Metrics::Exporter).to receive(:export_waf_metrics)
+        expect(Datadog::AppSec::Metrics::Exporter).to receive(:export_rasp_metrics)
 
-      it 'returns metrics containing 5 timeouts and cumulative durations' do
-        expect(context.waf_metrics.timeouts).to eq(5)
-        expect(context.waf_metrics.duration_ns).to eq(0)
-        expect(context.waf_metrics.duration_ext_ns).to eq(run_results.sum(&:duration_ext_ns))
+        context.export_metrics
       end
     end
   end
