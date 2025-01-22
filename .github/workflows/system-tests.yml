@@ -335,8 +335,6 @@ jobs:
       - name: Pull images
         uses: ./.github/actions/pull_images
         with:
-          library: ruby
-          weblog: ${{ matrix.weblog-variant }}
           scenarios: '["${{ matrix.app }}"]'
           cleanup: false
       - name: List images
