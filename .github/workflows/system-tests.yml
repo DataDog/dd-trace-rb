@@ -335,7 +335,7 @@ jobs:
       - name: Pull images
         uses: ./.github/actions/pull_images
         with:
-          scenarios: '["${{ matrix.app }}"]'
+          scenarios: ${{ matrix.scenario }}
           cleanup: false
       - name: List images
         run: |
