@@ -49,6 +49,12 @@ module Datadog
                 end
               end
 
+              option :rasp_enabled do |o|
+                o.type :bool, nilable: true
+                o.env 'DD_APPSEC_RASP_ENABLED'
+                o.default true
+              end
+
               option :ruleset do |o|
                 o.env 'DD_APPSEC_RULES'
                 o.default :recommended
