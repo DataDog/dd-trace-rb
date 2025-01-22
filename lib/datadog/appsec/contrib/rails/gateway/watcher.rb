@@ -40,11 +40,12 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rails::Reactive::Action.publish(engine, gateway_request)
-                  next [nil, [[:block, event]]] if block
+                  Rails::Reactive::Action.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end

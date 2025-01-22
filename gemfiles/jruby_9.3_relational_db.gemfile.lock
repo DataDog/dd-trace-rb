@@ -5,6 +5,7 @@ PATH
       datadog-ruby_core_source (~> 3.3, >= 3.3.7)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
+      logger
       msgpack
 
 GEM
@@ -60,6 +61,7 @@ GEM
     libdatadog (14.3.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
+    logger (1.6.5)
     makara (0.5.1)
       activerecord (>= 5.2.0)
     memory_profiler (0.9.14)

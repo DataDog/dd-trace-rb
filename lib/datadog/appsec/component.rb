@@ -3,6 +3,7 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
+require_relative 'actions_handler'
 
 module Datadog
   module AppSec

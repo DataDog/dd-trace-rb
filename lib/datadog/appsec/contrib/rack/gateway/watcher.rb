@@ -44,11 +44,12 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::Request.publish(engine, gateway_request)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::Request.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
@@ -75,11 +76,12 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::Response.publish(engine, gateway_response)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::Response.publish(engine, gateway_response)
 
                   stack.call(gateway_response.response)
                 end
@@ -106,11 +108,12 @@ module Datadog
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
                       context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::RequestBody.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
