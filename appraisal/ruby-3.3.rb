@@ -185,3 +185,11 @@ end
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
+
+appraise 'rack-activerecord' do
+  gem "rack", "~> 2"
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem "activerecord", "~> 7"
+  gem "sqlite3", ">= 1.4.2", platform: :ruby
+end

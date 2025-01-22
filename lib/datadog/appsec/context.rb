@@ -1,14 +1,15 @@
 # frozen_string_literal: true
 
+require_relative 'metrics'
+
 module Datadog
   module AppSec
     # This class accumulates the context over the request life-cycle and exposes
     # interface sufficient for instrumentation to perform threat detection.
     class Context
       ActiveContextError = Class.new(StandardError)
-      WAFMetrics = Struct.new(:timeouts, :duration_ns, :duration_ext_ns, keyword_init: true)
 
-      attr_reader :trace, :span, :events, :waf_metrics
+      attr_reader :trace, :span, :events
 
       class << self
         def activate(context)
@@ -35,28 +36,32 @@ module Datadog
         @events = []
         @security_engine = security_engine
         @waf_runner = security_engine.new_runner
-        @waf_metrics = WAFMetrics.new(timeouts: 0, duration_ns: 0, duration_ext_ns: 0)
-        @mutex = Mutex.new
+        @metrics = Metrics::Collector.new
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
         result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
 
-        @mutex.synchronize do
-          @waf_metrics.timeouts += 1 if result.timeout?
-          @waf_metrics.duration_ns += result.duration_ns
-          @waf_metrics.duration_ext_ns += result.duration_ext_ns
-        end
-
+        @metrics.record_waf(result)
         result
       end
 
       def run_rasp(_type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
-        @waf_runner.run(persistent_data, ephemeral_data, timeout)
+        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+
+        @metrics.record_rasp(result)
+        result
       end
 
       def extract_schema
         @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+      end
+
+      def export_metrics
+        return if @span.nil?
+
+        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
+        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
       def finalize
