@@ -16,6 +16,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
   let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
   let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
   let(:context) { Datadog::AppSec::Context.new(trace, span, processor) }
+  let(:rasp_enabled) { true }
 
   let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { Datadog::Tracing::TraceOperation.new }
@@ -48,6 +49,8 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
 
     Datadog::AppSec::Context.activate(context)
 
+    allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(rasp_enabled)
+
     raise_on_rails_deprecation!
   end
 
@@ -56,6 +59,22 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
 
     Datadog::AppSec::Context.deactivate
     processor.finalize
+  end
+
+  context 'when RASP is disabled' do
+    let(:rasp_enabled) { false }
+
+    it 'does not call waf when querying using .where' do
+      expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
+
+      User.where(name: 'Bob').to_a
+    end
+
+    it 'does not call waf when querying using .find_by_sql' do
+      expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
+
+      User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
+    end
   end
 
   it 'calls waf with correct arguments when querying using .where' do
