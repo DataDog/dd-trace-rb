@@ -90,13 +90,13 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         context 'is not defined' do
           let(:rasp_enabled_env_var) { nil }
 
-          it { is_expected.to eq true }
+          it { expect(settings.appsec.rasp_enabled).to eq(true) }
         end
 
         context 'is defined' do
           let(:rasp_enabled_env_var) { 'false' }
 
-          it { is_expected.to eq(false) }
+          it { expect(settings.appsec.rasp_enabled).to eq(false) }
         end
       end
     end

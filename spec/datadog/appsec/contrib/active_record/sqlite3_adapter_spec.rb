@@ -16,7 +16,6 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
   let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
   let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
   let(:context) { Datadog::AppSec::Context.new(trace, span, processor) }
-  let(:rasp_enabled) { true }
 
   let(:span) { Datadog::Tracing::SpanOperation.new('root') }
   let(:trace) { Datadog::Tracing::TraceOperation.new }
@@ -49,8 +48,6 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
 
     Datadog::AppSec::Context.activate(context)
 
-    allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(rasp_enabled)
-
     raise_on_rails_deprecation!
   end
 
@@ -62,7 +59,9 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
   end
 
   context 'when RASP is disabled' do
-    let(:rasp_enabled) { false }
+    before do
+      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false)
+    end
 
     it 'does not call waf when querying using .where' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -77,46 +76,52 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
     end
   end
 
-  it 'calls waf with correct arguments when querying using .where' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).with(
-        Datadog::AppSec::Ext::RASP_SQLI,
-        {},
-        {
-          'server.db.statement' => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
-          'server.db.system' => 'sqlite'
-        },
-        Datadog.configuration.appsec.waf_timeout
-      ).and_call_original
-    )
+  context 'when RASP is enabled' do
+    before do
+      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true)
+    end
 
-    User.where(name: 'Bob').to_a
-  end
+    it 'calls waf with correct arguments when querying using .where' do
+      expect(Datadog::AppSec.active_context).to(
+        receive(:run_rasp).with(
+          Datadog::AppSec::Ext::RASP_SQLI,
+          {},
+          {
+            'server.db.statement' => 'SELECT "users".* FROM "users" WHERE "users"."name" = ?',
+            'server.db.system' => 'sqlite'
+          },
+          Datadog.configuration.appsec.waf_timeout
+        ).and_call_original
+      )
 
-  it 'calls waf with correct arguments when querying using .find_by_sql' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).with(
-        Datadog::AppSec::Ext::RASP_SQLI,
-        {},
-        {
-          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
-          'server.db.system' => 'sqlite'
-        },
-        Datadog.configuration.appsec.waf_timeout
-      ).and_call_original
-    )
+      User.where(name: 'Bob').to_a
+    end
 
-    User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
-  end
+    it 'calls waf with correct arguments when querying using .find_by_sql' do
+      expect(Datadog::AppSec.active_context).to(
+        receive(:run_rasp).with(
+          Datadog::AppSec::Ext::RASP_SQLI,
+          {},
+          {
+            'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
+            'server.db.system' => 'sqlite'
+          },
+          Datadog.configuration.appsec.waf_timeout
+        ).and_call_original
+      )
 
-  it 'adds an event to processor context if waf result is a match' do
-    result = Datadog::AppSec::SecurityEngine::Result::Match.new(
-      events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
-    )
+      User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
+    end
 
-    expect(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
-    expect(Datadog::AppSec.active_context.events).to receive(:<<).and_call_original
+    it 'adds an event to processor context if waf result is a match' do
+      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
+        events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
+      )
 
-    User.where(name: 'Bob').to_a
+      expect(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
+      expect(Datadog::AppSec.active_context.events).to receive(:<<).and_call_original
+
+      User.where(name: 'Bob').to_a
+    end
   end
 end
