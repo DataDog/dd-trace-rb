@@ -24,7 +24,7 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          new(processor: processor)
+          new(processor, telemetry)
         end
 
         private
@@ -73,21 +73,26 @@ module Datadog
         end
       end
 
-      attr_reader :processor
+      attr_reader :processor, :telemetry
 
-      def initialize(processor:)
+      def initialize(processor, telemetry)
         @processor = processor
+        @telemetry = telemetry
+
         @mutex = Mutex.new
       end
 
       def reconfigure(ruleset:, telemetry:)
         @mutex.synchronize do
-          new = Processor.new(ruleset: ruleset, telemetry: telemetry)
+          new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
-          if new && new.ready?
-            old = @processor
-            @processor = new
-            old.finalize if old
+          if new_processor && new_processor.ready?
+            old_processor = @processor
+
+            @telemetry = telemetry
+            @processor = new_processor
+
+            old_processor.finalize if old_processor
           end
         end
       end
