@@ -1,0 +1,82 @@
+module Datadog
+  module AppSec
+    module SecurityEngine
+      module Result
+        type data = ::String | ::Hash[::String, data] | ::Array[data]
+        type events = ::Array[::Hash[::String, data]]
+        type action = ::Hash[::String, ::String]
+        type actions = ::Hash[::String, action]
+        type derivatives = ::Hash[::String, data]
+
+        class Base
+          @events: events
+
+          @actions: actions
+
+          @derivatives: derivatives
+
+          @timeout: bool
+
+          @duration_ns: ::Integer
+
+          @duration_ext_ns: ::Integer
+
+          attr_reader events: events
+
+          attr_reader actions: actions
+
+          attr_reader derivatives: derivatives
+
+          attr_reader duration_ns: ::Integer
+
+          attr_reader duration_ext_ns: ::Integer
+
+          def initialize: (events: events, actions: actions, derivatives: derivatives, timeout: bool, duration_ns: ::Integer, duration_ext_ns: ::Integer) -> void
+
+          def timeout?: () -> bool
+
+          def match?: () -> bool
+        end
+
+        # A result that indicates a security rule match
+        class Match < Base
+          def match?: () -> true
+        end
+
+        # A result that indicates a successful security rules check without a match
+        class Ok < Base
+          def match?: () -> false
+        end
+
+        # A result that indicates an internal security library error
+        class Error
+          @events: events
+
+          @actions: actions
+
+          @derivatives: derivatives
+
+          @duration_ns: ::Integer
+
+          @duration_ext_ns: ::Integer
+
+          attr_reader events: events
+
+          attr_reader actions: actions
+
+          attr_reader derivatives: derivatives
+
+          attr_reader duration_ns: ::Integer
+
+          attr_reader duration_ext_ns: ::Integer
+
+          def initialize: (duration_ext_ns: ::Integer) -> void
+
+          def timeout?: () -> false
+
+          def match?: () -> false
+        end
+      end
+    end
+  end
+end

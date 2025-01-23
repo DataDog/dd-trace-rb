@@ -76,8 +76,8 @@ module Datadog
             gateway_request = Gateway::Request.new(env)
             gateway_response = nil
 
-            block_actions = catch(::Datadog::AppSec::Ext::INTERRUPT) do
-              http_response, = Instrumentation.gateway.push('rack.request', gateway_request) do
+            interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              http_response, _gateway_request = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
 
@@ -90,27 +90,29 @@ module Datadog
               nil
             end
 
-            http_response = AppSec::Response.negotiate(env, block_actions).to_rack if block_actions
+            if interrupt_params
+              http_response = AppSec::Response.from_interrupt_params(interrupt_params, env['HTTP_ACCEPT']).to_rack
+            end
 
-            if (result = ctx.waf_runner.extract_schema)
-              ctx.waf_runner.events << {
+            if AppSec.api_security_enabled?
+              ctx.events << {
                 trace: ctx.trace,
                 span: ctx.span,
-                waf_result: result,
+                waf_result: ctx.extract_schema,
               }
             end
 
-            ctx.waf_runner.events.each do |e|
+            ctx.events.each do |e|
               e[:response] ||= gateway_response
               e[:request]  ||= gateway_request
             end
 
-            AppSec::Event.record(ctx.span, *ctx.waf_runner.events)
+            AppSec::Event.record(ctx.span, *ctx.events)
 
             http_response
           ensure
             if ctx
-              add_waf_runtime_tags(ctx)
+              ctx.export_metrics
               Datadog::AppSec::Context.deactivate
             end
           end
@@ -196,19 +198,6 @@ module Datadog
                 remote_ip: env['REMOTE_ADDR']
               )
             end
-          end
-
-          def add_waf_runtime_tags(context)
-            span = context.span
-            context = context.waf_runner
-
-            return unless span && context
-
-            span.set_tag('_dd.appsec.waf.timeouts', context.timeouts)
-
-            # these tags expect time in us
-            span.set_tag('_dd.appsec.waf.duration', context.time_ns / 1000.0)
-            span.set_tag('_dd.appsec.waf.duration_ext', context.time_ext_ns / 1000.0)
           end
 
           def to_rack_header(header)

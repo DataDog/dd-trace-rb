@@ -220,10 +220,8 @@ RSpec.describe 'GraphQL integration tests',
           let(:query) { '{ userByName(name: "$testattack") { id } }' }
 
           it do
-            expect(last_response.body).to eq(
-              {
-                'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
-              }.to_json
+            expect(JSON.parse(last_response.body)).to eq(
+              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -240,8 +238,7 @@ RSpec.describe 'GraphQL integration tests',
             )
           end
 
-          # GraphQL errors should have no impact on the HTTP layer
-          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a POST 403 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
         end
@@ -297,10 +294,8 @@ RSpec.describe 'GraphQL integration tests',
           let(:mutation) { 'mutation { createUser(name: "$testattack") { user { name, id } } }' }
 
           it do
-            expect(last_response.body).to eq(
-              {
-                'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
-              }.to_json
+            expect(JSON.parse(last_response.body)).to eq(
+              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -317,7 +312,7 @@ RSpec.describe 'GraphQL integration tests',
             )
           end
 
-          it_behaves_like 'a POST 200 span'
+          it_behaves_like 'a POST 403 span'
           it_behaves_like 'a trace with AppSec tags'
           it_behaves_like 'a trace with AppSec events'
 
@@ -435,11 +430,8 @@ RSpec.describe 'GraphQL integration tests',
           end
 
           it do
-            expect(last_response.body).to eq(
-              [
-                { 'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }] },
-                { 'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }] }
-              ].to_json
+            expect(JSON.parse(last_response.body)).to eq(
+              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
             )
             expect(spans).to include(
               an_object_having_attributes(
@@ -549,10 +541,8 @@ RSpec.describe 'GraphQL integration tests',
           end
 
           it do
-            expect(last_response.body).to eq(
-              [
-                { 'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }] }
-              ].to_json
+            expect(JSON.parse(last_response.body)).to eq(
+              'errors' => [{ 'title' => 'Blocked', 'detail' => 'Security provided by Datadog.' }]
             )
             expect(spans).to include(
               an_object_having_attributes(

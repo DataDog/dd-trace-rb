@@ -22,7 +22,6 @@ module Datadog
               # This time we don't throw but use next
               def watch_multiplex(gateway = Instrumentation.gateway)
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
-                  block = false
                   event = nil
                   context = AppSec::Context.active
                   engine = AppSec::Reactive::Engine.new
@@ -38,13 +37,13 @@ module Datadog
                       }
 
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
 
-                    block = GraphQL::Reactive::Multiplex.publish(engine, gateway_multiplex)
+                    GraphQL::Reactive::Multiplex.publish(engine, gateway_multiplex)
                   end
-
-                  next [nil, [[:block, event]]] if block
 
                   stack.call(gateway_multiplex.arguments)
                 end

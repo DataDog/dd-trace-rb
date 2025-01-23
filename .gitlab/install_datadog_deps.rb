@@ -78,12 +78,14 @@ env = {
   'DD_PROFILING_NO_EXTENSION' => 'true',
 }
 
+# ADD NEW DEPENDENCIES HERE
 [
   'datadog-ruby_core_source',
   'ffi',
   'libddwaf',
   'msgpack',
   'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
+  'logger',
   'datadog',
 ].each do |gem|
   version = gem_version_mapping.delete(gem)
