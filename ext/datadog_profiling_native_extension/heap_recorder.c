@@ -30,12 +30,10 @@ typedef struct {
 } heap_frame;
 
 // A compact representation of a stacktrace for a heap allocation.
-//
-// We could use a ddog_prof_Slice_Location instead but it has a lot of
-// unused fields. Because we have to keep these stacks around for at
-// least the lifetime of the objects allocated therein, we would be
-// incurring a non-negligible memory overhead for little purpose.
 typedef struct {
+  // How many objects are currently tracked by the heap recorder for this heap record.
+  uint32_t num_tracked_objects;
+
   uint16_t frames_len;
   heap_frame frames[];
 } heap_stack;
@@ -53,9 +51,6 @@ static const struct st_hash_type st_hash_type_heap_stack = { .compare = heap_sta
 // A heap record is used for deduping heap allocation stacktraces across multiple
 // objects sharing the same allocation location.
 typedef struct {
-  // How many objects are currently tracked by the heap recorder for this heap record.
-  uint32_t num_tracked_objects;
-  // stack is owned by the associated record and gets cleaned up alongside it
   heap_stack *stack;
 } heap_record;
 static heap_record* heap_record_new(heap_stack*);
@@ -675,10 +670,10 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   // Link the object record with the corresponding heap record. This was the last remaining thing we
   // needed to fully build the object_record.
   active_recording->heap_record = heap_record;
-  if (heap_record->num_tracked_objects == UINT32_MAX) {
+  if (heap_record->stack->num_tracked_objects == UINT32_MAX) {
     rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
   }
-  heap_record->num_tracked_objects++;
+  heap_record->stack->num_tracked_objects++;
 
   int existing_error = st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) active_recording);
   if (existing_error) {
@@ -719,7 +714,7 @@ static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog
 }
 
 static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_record *heap_record) {
-  if (heap_record->num_tracked_objects > 0) {
+  if (heap_record->stack->num_tracked_objects > 0) {
     // still being used! do nothing...
     return;
   }
@@ -747,7 +742,7 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
   if (heap_record == NULL) rb_raise(rb_eRuntimeError, "heap_record was NULL in on_committed_object_record_cleanup");
   if (heap_record->stack == NULL) rb_raise(rb_eRuntimeError, "heap_record->stack was NULL in on_committed_object_record_cleanup");
 
-  heap_record->num_tracked_objects--;
+  heap_record->stack->num_tracked_objects--;
 
   // One less object using this heap record, it may have become unused...
   cleanup_heap_record_if_unused(heap_recorder, heap_record);
@@ -760,7 +755,6 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 // ===============
 heap_record* heap_record_new(heap_stack *stack) {
   heap_record *record = ruby_xcalloc(1, sizeof(heap_record));
-  record->num_tracked_objects = 0;
   record->stack = stack;
   return record;
 }
@@ -827,6 +821,7 @@ heap_stack* heap_stack_new(heap_recorder *recorder, ddog_prof_Slice_Location loc
     rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
   heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
+  stack->num_tracked_objects = 0;
   stack->frames_len = frames_len;
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const ddog_prof_Location *location = &locations.ptr[i];
