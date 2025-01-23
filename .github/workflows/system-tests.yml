@@ -122,6 +122,92 @@ jobs:
         run: |
           docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest
 
+  build-services:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - name: postgres
+            internal: postgres:alpine
+          - name: mongo
+            internal: mongo:latest
+          - name: kafka
+            internal: apache/kafka:3.7.1
+          - name: cassandra
+            internal: cassandra:latest
+          - name: rabbitmq
+            internal: rabbitmq:3.12-management-alpine
+          - name: mysql
+            internal: mysql/mysql-server:latest
+          - name: opentelemetry-collector
+            internal: otel/opentelemetry-collector-contrib:0.110.0
+          - name: envoy
+            internal: envoyproxy/envoy:v1.31-latest
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    name: Build (${{ matrix.image.name }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          repository: 'DataDog/system-tests'
+          ref: ${{ env.SYSTEM_TESTS_REF }}
+          persist-credentials: false
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Pull released image
+        run: |
+          if docker pull ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest; then
+            docker tag ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest ${{ matrix.image.internal }}
+          fi
+      - name: Create Dockerfile
+        run: |
+          DOCKERFILE="utils/build/docker/${{ matrix.image.name }}.Dockerfile"
+          pwd
+          ls utils/build/docker
+          cat > "${DOCKERFILE}" <<'DOCKERFILE'
+          FROM ${{ matrix.image.internal }}
+          DOCKERFILE
+      - name: Build image
+        run: |
+          DOCKERFILE="utils/build/docker/${{ matrix.image.name }}.Dockerfile"
+          cache_from=()
+          for tag in latest; do
+            cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.image.name }}:${tag}")
+          done
+          echo "cache args: ${cache_from[*]}"
+          docker buildx build --build-arg BUILDKIT_INLINE_CACHE=1 --load --progress=plain --platform linux/x86_64 "${cache_from[@]}" -f "${DOCKERFILE}" -t ${{ matrix.image.internal }} .
+      - name: List images
+        run: |
+          docker image list
+      - name: Log in to the Container registry
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+      - name: Tag image for CI run
+        run:
+          docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Push image for CI run
+        run: |
+          docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
+      - name: Tag image for commit
+        run:
+          docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${{ github.sha }}
+      - name: Push image for commit
+        run: |
+          docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:g${{ github.sha }}
+      - name: Tag image for release
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run:
+          docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest
+      - name: Push image for release
+        if: ${{ github.ref == 'refs/heads/master' }}
+        run: |
+          docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest
+
   build-apps:
     needs:
       - changes
@@ -358,6 +444,7 @@ jobs:
     needs:
       - build-harness
       - build-apps
+      - build-services
     name: Test (${{ matrix.app }}, ${{ matrix.scenario }})
     steps:
       - name: Checkout
@@ -384,6 +471,24 @@ jobs:
         run: |
           docker pull ${{ env.REPO }}/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }}
           docker tag ${{ env.REPO }}/system-tests/agent:gha${{ github.run_id }}-g${{ github.sha }} system_tests/agent:latest
+      - name: Pull service images
+        run: |
+          for image in \
+            postgres,postgres:alpine \
+            mongo,mongo:latest \
+            kafka,apache/kafka:3.7.1 \
+            cassandra,cassandra:latest \
+            rabbitmq,rabbitmq:3.12-management-alpine \
+            mysql,mysql/mysql-server:latest \
+            opentelemetry-collector,otel/opentelemetry-collector-contrib:0.110.0 \
+            envoy,envoyproxy/envoy:v1.31-latest \
+            ; do
+              image_name="${image%%,*}"
+              image_internal="${image##*,}"
+
+              docker pull ${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }}
+              docker tag ${{ env.REPO }}/system-tests/${image_name}:gha${{ github.run_id }}-g${{ github.sha }} "${image_internal}"
+          done
       - name: Pull app image
         run: |
           docker pull ${{ env.REPO }}/system-tests/${{ matrix.library }}/weblog-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
