@@ -78,8 +78,6 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe '#rasp_enabled' do
-      subject(:rasp_enabled) { settings.appsec.rasp_enabled }
-
       context 'when DD_APPSEC_RASP_ENABLED' do
         around do |example|
           ClimateControl.modify('DD_APPSEC_RASP_ENABLED' => rasp_enabled_env_var) do
