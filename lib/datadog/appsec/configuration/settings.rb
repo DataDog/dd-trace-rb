@@ -49,6 +49,9 @@ module Datadog
                 end
               end
 
+              # RASP or Runtime Application Self-Protection
+              # is a collection of techniques and heuristics aimed at detecting malicious inputs and preventing
+              # any potential side-effects on the application resulting from the use of said malicious inputs.
               option :rasp_enabled do |o|
                 o.type :bool, nilable: true
                 o.env 'DD_APPSEC_RASP_ENABLED'
