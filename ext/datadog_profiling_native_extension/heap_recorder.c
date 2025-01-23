@@ -41,7 +41,6 @@ typedef struct {
 } heap_stack;
 static heap_stack* heap_stack_new(heap_recorder*, ddog_prof_Slice_Location);
 static void heap_stack_free(heap_recorder*, heap_stack*);
-static st_index_t heap_stack_hash(heap_stack*, st_index_t);
 
 #if MAX_FRAMES_LIMIT > UINT16_MAX
   #error Frames len type not compatible with MAX_FRAMES_LIMIT
@@ -49,10 +48,7 @@ static st_index_t heap_stack_hash(heap_stack*, st_index_t);
 
 static int heap_stack_cmp_st(st_data_t, st_data_t);
 static st_index_t heap_stack_hash_st(st_data_t);
-static const struct st_hash_type st_hash_type_heap_stack = {
-    heap_stack_cmp_st,
-    heap_stack_hash_st,
-};
+static const struct st_hash_type st_hash_type_heap_stack = { .compare = heap_stack_cmp_st, .hash = heap_stack_hash_st };
 
 // A heap record is used for deduping heap allocation stacktraces across multiple
 // objects sharing the same allocation location.
@@ -821,13 +817,6 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
   return inspect;
 }
 
-st_index_t heap_frame_hash(heap_frame *frame, st_index_t seed) {
-  st_index_t hash = st_hash(&frame->name, sizeof(frame->name), seed);
-  hash = st_hash(&frame->filename, sizeof(frame->filename), hash);
-  hash = st_hash(&frame->line, sizeof(frame->line), hash);
-  return hash;
-}
-
 // ==============
 // Heap Stack API
 // ==============
@@ -861,51 +850,27 @@ void heap_stack_free(heap_recorder *recorder, heap_stack *stack) {
   ruby_xfree(stack);
 }
 
-st_index_t heap_stack_hash(heap_stack *stack, st_index_t seed) {
-  st_index_t hash = seed;
-  for (uint64_t i = 0; i < stack->frames_len; i++) {
-    hash = heap_frame_hash(&stack->frames[i], hash);
-  }
-  return hash;
-}
-
+// The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
+// a big string of bytes and compare it all in one go.
 int heap_stack_cmp_st(st_data_t key1, st_data_t key2) {
   heap_stack *stack1 = (heap_stack*) key1;
   heap_stack *stack2 = (heap_stack*) key2;
 
-  // Fast path, check if lengths differ
   if (stack1->frames_len != stack2->frames_len) {
     return ((int) stack1->frames_len) - ((int) stack2->frames_len);
+  } else {
+    return memcmp(stack1->frames, stack2->frames, stack1->frames_len * sizeof(heap_frame));
   }
-
-  // If we got this far, we have same lengths so need to check item-by-item
-  for (size_t i = 0; i < stack1->frames_len; i++) {
-    heap_frame* frame1 = &stack1->frames[i];
-    heap_frame* frame2 = &stack2->frames[i];
-
-    if (frame1->name.value != frame2->name.value) {
-      return ((int) frame1->name.value) - ((int) frame2->name.value);
-    }
-
-    if (frame1->filename.value != frame2->filename.value) {
-      return ((int) frame1->filename.value) - ((int) frame2->filename.value);
-    }
-
-    if (frame1->line != frame2->line) {
-      return ((int) frame1->line) - ((int)frame2->line);
-    }
-  }
-
-  // If we survived the above for, then everything matched
-  return 0;
 }
 
-// Initial seed for hash functions
+// Initial seed for hash function, same as Ruby uses
 #define FNV1_32A_INIT 0x811c9dc5
 
+// The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
+// a big string of bytes and hash it all in one go.
 st_index_t heap_stack_hash_st(st_data_t key) {
   heap_stack *stack = (heap_stack*) key;
-  return heap_stack_hash(stack, FNV1_32A_INIT);
+  return st_hash(stack->frames, stack->frames_len * sizeof(heap_frame), FNV1_32A_INIT);
 }
 
 static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
