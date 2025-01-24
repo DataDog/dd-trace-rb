@@ -29,32 +29,25 @@ typedef struct {
   int32_t line;
 } heap_frame;
 
-// A compact representation of a stacktrace for a heap allocation.
+// A compact representation of a stacktrace for a heap allocation. Used to dedup
+// heap allocation stacktraces across multiple objects sharing the same allocation location.
 typedef struct {
-  // How many objects are currently tracked by the heap recorder for this heap record.
+  // How many objects are currently tracked in object_records recorder for this heap record.
   uint32_t num_tracked_objects;
 
   uint16_t frames_len;
   heap_frame frames[];
-} heap_stack;
-static heap_stack* heap_stack_new(heap_recorder*, ddog_prof_Slice_Location);
-static void heap_stack_free(heap_recorder*, heap_stack*);
+} heap_record;
+static heap_record* heap_record_new(heap_recorder*, ddog_prof_Slice_Location);
+static void heap_record_free(heap_recorder*, heap_record*);
 
 #if MAX_FRAMES_LIMIT > UINT16_MAX
   #error Frames len type not compatible with MAX_FRAMES_LIMIT
 #endif
 
-static int heap_stack_cmp_st(st_data_t, st_data_t);
-static st_index_t heap_stack_hash_st(st_data_t);
-static const struct st_hash_type st_hash_type_heap_stack = { .compare = heap_stack_cmp_st, .hash = heap_stack_hash_st };
-
-// A heap record is used for deduping heap allocation stacktraces across multiple
-// objects sharing the same allocation location.
-typedef struct {
-  heap_stack *stack;
-} heap_record;
-static heap_record* heap_record_new(heap_stack*);
-static void heap_record_free(heap_recorder*, heap_record*);
+static int heap_record_cmp_st(st_data_t, st_data_t);
+static st_index_t heap_record_hash_st(st_data_t);
+static const struct st_hash_type st_hash_type_heap_record = { .compare = heap_record_cmp_st, .hash = heap_record_hash_st };
 
 // An object record is used for storing data about currently tracked live objects
 typedef struct {
@@ -73,10 +66,10 @@ struct heap_recorder {
   bool size_enabled;
   uint sample_rate;
 
-  // Map[key: heap_stack*, record: heap_record*]
+  // Map[key: heap_record*, record: nothing] (This is a set, basically)
   // NOTE: This table is currently only protected by the GVL since we never interact with it
   // outside the GVL.
-  // NOTE: This table has ownership of both its heap_stacks and heap_records.
+  // NOTE: This table has ownership of its heap_records.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
@@ -175,7 +168,7 @@ static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId)
 heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) {
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
-  recorder->heap_records = st_init_table(&st_hash_type_heap_stack);
+  recorder->heap_records = st_init_table(&st_hash_type_heap_record);
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
@@ -536,9 +529,9 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
 // ==========================
 // Heap Recorder Internal API
 // ==========================
-static int st_heap_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra_arg) {
+static int st_heap_record_entry_free(st_data_t key, DDTRACE_UNUSED st_data_t value, st_data_t extra_arg) {
   heap_recorder *recorder = (heap_recorder *) extra_arg;
-  heap_record_free(recorder, (heap_record *) value);
+  heap_record_free(recorder, (heap_record *) key);
   return ST_DELETE;
 }
 
@@ -609,7 +602,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 // WARN: This can get called outside the GVL. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
 static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
   object_record *record = (object_record*) value;
-  const heap_stack *stack = record->heap_record->stack;
+  const heap_record *stack = record->heap_record;
   iteration_context *context = (iteration_context*) extra;
 
   const heap_recorder *recorder = context->heap_recorder;
@@ -670,10 +663,10 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   // Link the object record with the corresponding heap record. This was the last remaining thing we
   // needed to fully build the object_record.
   active_recording->heap_record = heap_record;
-  if (heap_record->stack->num_tracked_objects == UINT32_MAX) {
+  if (heap_record->num_tracked_objects == UINT32_MAX) {
     rb_raise(rb_eRuntimeError, "Reached maximum number of tracked objects for heap record");
   }
-  heap_record->stack->num_tracked_objects++;
+  heap_record->num_tracked_objects++;
 
   int existing_error = st_update(heap_recorder->object_records, active_recording->obj_id, update_object_record_entry, (st_data_t) active_recording);
   if (existing_error) {
@@ -688,42 +681,38 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
   }
 }
 
-// This function assumes ownership of stack_data is passed on to it so it'll either transfer ownership or clean-up.
 static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_t *value, st_data_t data, int existing) {
+  heap_record **new_or_existing_record = (heap_record **) data;
+  (*new_or_existing_record) = (heap_record *) (*key);
+
   if (!existing) {
-    // there was no matching heap record so lets create a new one...
-    heap_stack *stack = (heap_stack*) *key;
-    (*value) = (st_data_t) heap_record_new(stack);
+    (*value) = (st_data_t) true; // We're only using this hash as a set
   }
 
-  heap_record **record = (heap_record **) data;
-  (*record) = (heap_record *) (*value);
   return ST_CONTINUE;
 }
 
 static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
-  heap_stack *stack = heap_stack_new(heap_recorder, locations);
+  heap_record *stack = heap_record_new(heap_recorder, locations);
 
-  heap_record *heap_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation
-  bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &heap_record);
+  heap_record *new_or_existing_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation
+  bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &new_or_existing_record);
   if (existing) {
-    heap_stack_free(heap_recorder, stack);
+    heap_record_free(heap_recorder, stack);
   }
 
-  return heap_record;
+  return new_or_existing_record;
 }
 
 static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_record *heap_record) {
-  if (heap_record->stack->num_tracked_objects > 0) {
+  if (heap_record->num_tracked_objects > 0) {
     // still being used! do nothing...
     return;
   }
 
-  heap_stack *key = heap_record->stack;
-  if (!st_delete(heap_recorder->heap_records, (st_data_t*) &key, NULL)) {
+  if (!st_delete(heap_recorder->heap_records, (st_data_t*) &heap_record, NULL)) {
     rb_raise(rb_eRuntimeError, "Attempted to cleanup an untracked heap_record");
   };
-  // This will free both the key as a well as the value
   heap_record_free(heap_recorder, heap_record);
 }
 
@@ -740,28 +729,13 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
   heap_record *heap_record = record->heap_record;
 
   if (heap_record == NULL) rb_raise(rb_eRuntimeError, "heap_record was NULL in on_committed_object_record_cleanup");
-  if (heap_record->stack == NULL) rb_raise(rb_eRuntimeError, "heap_record->stack was NULL in on_committed_object_record_cleanup");
 
-  heap_record->stack->num_tracked_objects--;
+  heap_record->num_tracked_objects--;
 
   // One less object using this heap record, it may have become unused...
   cleanup_heap_record_if_unused(heap_recorder, heap_record);
 
   object_record_free(heap_recorder, record);
-}
-
-// ===============
-// Heap Record API
-// ===============
-heap_record* heap_record_new(heap_stack *stack) {
-  heap_record *record = ruby_xcalloc(1, sizeof(heap_record));
-  record->stack = stack;
-  return record;
-}
-
-void heap_record_free(heap_recorder *recorder, heap_record *record) {
-  heap_stack_free(recorder, record->stack);
-  ruby_xfree(record);
 }
 
 // =================
@@ -781,7 +755,7 @@ void object_record_free(heap_recorder *recorder, object_record *record) {
 }
 
 VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
-  heap_frame top_frame = record->heap_record->stack->frames[0];
+  heap_frame top_frame = record->heap_record->frames[0];
   VALUE filename = get_ruby_string_or_raise(recorder, top_frame.filename);
   live_object_data object_data = record->object_data;
 
@@ -812,15 +786,15 @@ VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
 }
 
 // ==============
-// Heap Stack API
+// Heap Record API
 // ==============
-heap_stack* heap_stack_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
+heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
     rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
-  heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
+  heap_record *stack = ruby_xcalloc(1, sizeof(heap_record) + frames_len * sizeof(heap_frame));
   stack->num_tracked_objects = 0;
   stack->frames_len = frames_len;
   for (uint16_t i = 0; i < stack->frames_len; i++) {
@@ -836,7 +810,7 @@ heap_stack* heap_stack_new(heap_recorder *recorder, ddog_prof_Slice_Location loc
   return stack;
 }
 
-void heap_stack_free(heap_recorder *recorder, heap_stack *stack) {
+void heap_record_free(heap_recorder *recorder, heap_record *stack) {
   for (u_int16_t i = 0; i < stack->frames_len; i++) {
     unintern_or_raise(recorder, stack->frames[i].filename);
     unintern_or_raise(recorder, stack->frames[i].name);
@@ -847,9 +821,9 @@ void heap_stack_free(heap_recorder *recorder, heap_stack *stack) {
 
 // The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
 // a big string of bytes and compare it all in one go.
-int heap_stack_cmp_st(st_data_t key1, st_data_t key2) {
-  heap_stack *stack1 = (heap_stack*) key1;
-  heap_stack *stack2 = (heap_stack*) key2;
+int heap_record_cmp_st(st_data_t key1, st_data_t key2) {
+  heap_record *stack1 = (heap_record*) key1;
+  heap_record *stack2 = (heap_record*) key2;
 
   if (stack1->frames_len != stack2->frames_len) {
     return ((int) stack1->frames_len) - ((int) stack2->frames_len);
@@ -863,8 +837,8 @@ int heap_stack_cmp_st(st_data_t key1, st_data_t key2) {
 
 // The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
 // a big string of bytes and hash it all in one go.
-st_index_t heap_stack_hash_st(st_data_t key) {
-  heap_stack *stack = (heap_stack*) key;
+st_index_t heap_record_hash_st(st_data_t key) {
+  heap_record *stack = (heap_record*) key;
   return st_hash(stack->frames, stack->frames_len * sizeof(heap_frame), FNV1_32A_INIT);
 }
 
