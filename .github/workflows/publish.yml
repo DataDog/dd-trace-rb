@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: '3.3.7'
 
       - id: version
         run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> $GITHUB_OUTPUT
@@ -26,9 +26,11 @@ jobs:
         env:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          if gem search datadog --exact ---remote --version "$GEM_VERSION" | grep -q "($GEM_VERSION)"; then
+          if gem search datadog --exact --remote --version "$GEM_VERSION" | grep -q "($GEM_VERSION)"; then
             echo "Version $GEM_VERSION is already published"
             exit 1
+          else
+            echo "Version $GEM_VERSION is not published yet"
           fi
 
       # Check if the commit has passed all Github checks
@@ -83,7 +85,7 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: '3.3.7'
       - uses: rubygems/release-gem@v1
 
   github-release:
