@@ -6,10 +6,12 @@ stages:
   - macrobenchmarks
   - microbenchmarks
   - benchmarks
+  - release
 
 include:
   - remote: https://gitlab-templates.ddbuild.io/libdatadog/include/one-pipeline.yml
   - local: ".gitlab/benchmarks.yml"
+  - local: ".gitlab/release.yml"
 
 variables:
   RUBY_CUSTOM_IMAGE_BASE: $DOCKER_REGISTRY/ci/dd-trace-rb/custom_ruby

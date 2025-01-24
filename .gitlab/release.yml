@@ -1,0 +1,19 @@
+release_ruby_gem:
+  stage: release
+  image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2  
+  tags: ["arch:amd64"]
+  only:
+    # v2.10.0
+    # v2.10.1
+    # v2.10.0rc0
+    # v2.10.0rc5
+    - /^v[0-9]+\.[0-9]+\.[0-9]+(rc[0-9]+)?$/
+  before_script:
+    - |
+      curl -L "https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.2.3.zip" -o "awscliv2.zip"
+      echo "13ee8a87756aa61027bd87985d4da4dee7ac777a36410321b03621a943cf030e awscliv2.zip" | sha256sum --check
+      unzip awscliv2.zip
+      ./aws/install
+    - export GEM_HOST_API_KEY=$(aws ssm get-parameter --region us-east-1 --name "ci.${CI_PROJECT_NAME}.rubygems_datadog_token" --with-decryption --query "Parameter.Value" --out text)
+  script:
+    - gem publish pkg/datadog-*.gem
