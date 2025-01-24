@@ -38,6 +38,8 @@ module Datadog
                 actions: result.actions
               }
               context.events << event
+
+              Datadog::AppSec::ActionsHandler.handle(result.actions)
             end
           end
 
