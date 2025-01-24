@@ -12,7 +12,7 @@ puts "Libdatadog from: #{Libdatadog.pkgconfig_folder}"
 # This benchmark measures the performance of sampling + serializing memory profiles. It enables us to evaluate changes to
 # the profiler and/or libdatadog that may impact both individual samples, as well as samples over time.
 #
-METRIC_VALUES = { 'cpu-time' => 0, 'cpu-samples' => 0, 'wall-time' => 0, 'alloc-samples' => 1, 'timeline' => 0 }.freeze
+METRIC_VALUES = { 'cpu-time' => 0, 'cpu-samples' => 0, 'wall-time' => 0, 'alloc-samples' => 1, 'timeline' => 0, 'heap_sample' => true }.freeze
 OBJECT_CLASS = 'object'.freeze
 
 def sample_object(recorder, depth = 0)
@@ -56,6 +56,21 @@ class ProfilerMemorySampleSerializeBenchmark
     }
   end
 
+  def create_objects(recorder)
+    samples_per_second = 100
+    simulate_seconds = 60
+    retained_objs = []
+
+    (samples_per_second * simulate_seconds).times do |i|
+      obj = sample_object(recorder, i % 400)
+      retained_objs << obj if (i % @retain_every).zero?
+    end
+
+    GC.start unless @skip_end_gc
+
+    retained_objs
+  end
+
   def run_benchmark
     Benchmark.ips do |x|
       benchmark_time = VALIDATE_BENCHMARK_MODE ? { time: 0.01, warmup: 0 } : { time: 30, warmup: 2 }
@@ -65,18 +80,11 @@ class ProfilerMemorySampleSerializeBenchmark
 
       x.report("sample+serialize #{ENV['CONFIG']} retain_every=#{@retain_every} heap_samples=#{@heap_samples_enabled} heap_size=#{@heap_size_enabled} heap_sample_every=#{@heap_sample_every} skip_end_gc=#{@skip_end_gc}") do
         recorder = @recorder_factory.call
-        samples_per_second = 100
-        simulate_seconds = 60
-        retained_objs = []
-
-        (samples_per_second * simulate_seconds).times do |i|
-          obj = sample_object(recorder, i % 400)
-          retained_objs << obj if (i % @retain_every).zero?
-        end
-
-        GC.start unless @skip_end_gc
+        retained_objs = create_objects(recorder)
 
         recorder.serialize
+
+        retained_objs.size # Dummy action to make sure this is still alive
       end
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE

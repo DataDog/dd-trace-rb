@@ -1450,10 +1450,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
 
   // Since this is stack allocated, be careful about moving it
   ddog_CharSlice class_name;
-  ddog_CharSlice *optional_class_name = NULL;
   char imemo_type[100];
-
-  optional_class_name = &class_name;
 
   if (
     type == RUBY_T_OBJECT   ||
@@ -1510,7 +1507,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     class_name = ruby_vm_type; // For other weird internal things we just use the VM type
   }
 
-  track_object(state->recorder_instance, new_object, sample_weight, optional_class_name);
+  track_object(state->recorder_instance, new_object, sample_weight, class_name);
 
   per_thread_context *thread_context = get_or_create_context_for(current_thread, state);
 
@@ -1523,7 +1520,7 @@ void thread_context_collector_sample_allocation(VALUE self_instance, unsigned in
     (sample_values) {.alloc_samples = sample_weight, .alloc_samples_unscaled = 1, .heap_sample = true},
     INVALID_TIME, // For now we're not collecting timestamps for allocation events, as per profiling team internal discussions
     &ruby_vm_type,
-    optional_class_name,
+     &class_name,
     /* is_gvl_waiting_state: */ false,
     /* is_safe_to_allocate_objects: */ false // Not safe to allocate further inside the NEWOBJ tracepoint
   );
