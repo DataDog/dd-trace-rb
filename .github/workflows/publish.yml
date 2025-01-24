@@ -2,45 +2,102 @@ name: Publish gem
 
 on: workflow_dispatch
 
-jobs:
-  # TODO: Prepare release notes
+concurrency: "rubygems" # Only one publish job at a time
 
-  release-gem:
+jobs:
+  verify-checks:
+    name: Verify commit status checks
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: read
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+
+      - id: version
+        run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> $GITHUB_OUTPUT
+
+      # Check if the gem version is already published
+      - name: Verify gem version
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gem search datadog --exact ---remote --version "$GEM_VERSION" | grep -q "($GEM_VERSION)"; then
+            echo "Version $GEM_VERSION is already published"
+            exit 1
+          fi
+
+      # Check if the commit has passed all Github checks
+      - name: Verify check runs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: checksResponse } = await github.rest.checks.listForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha
+            });
+
+            const failedChecks = checksResponse.check_runs.filter(check =>
+              check.status === 'completed' &&
+              check.conclusion !== 'success' &&
+              check.conclusion !== 'skipped'
+            );
+
+            if (failedChecks.length > 0) {
+              const failedNames = failedChecks.map(c => c.name).join(', ');
+              core.setFailed(`Check runs failed: ${failedNames}`);
+            }
+
+      # Check if the commit has passed external CI checks
+      - name: Verify commit status
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: status } = await github.rest.repos.getCombinedStatusForRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha
+            });
+
+            if (status.state !== 'success') {
+              core.setFailed(`Commit status is ${status.state}`);
+            }
+
+  rubygems-release:
     name: Build and push gem to RubyGems.org
     runs-on: ubuntu-24.04
     environment: "rubygems" # see: https://github.com/DataDog/dd-trace-rb/settings/environments
-    concurrency: "rubygems" # Only one publish job at a time
-
+    needs: verify-checks # Make sure to release from a healthy commit
     permissions:
       id-token: write
       contents: write
-
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-
+    env:
+      SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@v4
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3'
-      - id: version
-        run: |
-          echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> $GITHUB_OUTPUT
       - uses: rubygems/release-gem@v1
 
   github-release:
     name: Attach gem to GitHub release and publish
-    needs: release-gem
     runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
-      GEM_VERSION: ${{ needs.release-gem.outputs.version }}
-
+      GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     permissions:
       contents: write
-
     steps:
       - name: Download from RubyGems
         run: |
