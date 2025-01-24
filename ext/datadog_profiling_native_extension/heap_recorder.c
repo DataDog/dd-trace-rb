@@ -104,8 +104,11 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
 
-  // Reusable location array, implementing a flyweight pattern for things like iteration.
+  // Reusable arrays, implementing a flyweight pattern for things like iteration
+  #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
   ddog_prof_Location *reusable_locations;
+  #define REUSABLE_IDS_SIZE (2 * MAX_FRAMES_LIMIT) // because it'll be used for both function names AND file names)
+  ddog_prof_ManagedStringId *reusable_ids;
 
   // Sampling state
   uint num_recordings_skipped;
@@ -154,6 +157,7 @@ static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
+static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
 // ==========================
@@ -171,7 +175,8 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->heap_records = st_init_table(&st_hash_type_heap_record);
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
-  recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
+  recorder->reusable_locations = ruby_xcalloc(REUSABLE_LOCATIONS_SIZE, sizeof(ddog_prof_Location));
+  recorder->reusable_ids = ruby_xcalloc(REUSABLE_IDS_SIZE, sizeof(ddog_prof_ManagedStringId));
   recorder->active_recording = NULL;
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
@@ -205,6 +210,7 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
+  ruby_xfree(heap_recorder->reusable_ids);
 
   ruby_xfree(heap_recorder);
 }
@@ -811,10 +817,14 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
 }
 
 void heap_record_free(heap_recorder *recorder, heap_record *stack) {
+  ddog_prof_ManagedStringId *ids = recorder->reusable_ids;
+
+  // Put all the ids in the same array; doesn't really matter the order
   for (u_int16_t i = 0; i < stack->frames_len; i++) {
-    unintern_or_raise(recorder, stack->frames[i].filename);
-    unintern_or_raise(recorder, stack->frames[i].name);
+    ids[i] = stack->frames[i].filename;
+    ids[i + stack->frames_len] = stack->frames[i].name;
   }
+  unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
 
   ruby_xfree(stack);
 }
@@ -846,6 +856,13 @@ static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId
   if (id.value == 0) return; // Empty string, nothing to do
 
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(recorder->string_storage, id);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  }
+}
+
+static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids) {
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern_all(recorder->string_storage, ids);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
     rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
