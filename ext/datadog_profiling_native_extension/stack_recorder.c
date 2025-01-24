@@ -347,8 +347,6 @@ static VALUE _native_new(VALUE klass) {
   //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
   state->heap_recorder = heap_recorder_new();
 
-  // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
-
   initialize_profiles(state, sample_types);
 
   return stack_recorder;
