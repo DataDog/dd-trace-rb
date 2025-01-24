@@ -129,10 +129,8 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
         allow(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
       end
 
-      it 'adds an event to processor context if waf result is a match' do
-        expect(Datadog::AppSec.active_context.events).to receive(:<<).and_call_original
-
-        User.where(name: 'Bob').to_a
+      it 'adds and event to context events' do
+        expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
 
       it 'calls ActionsHandler with result actions if waf result is a match' do

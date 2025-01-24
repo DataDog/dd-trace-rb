@@ -39,7 +39,7 @@ module Datadog
               }
               context.events << event
 
-              Datadog::AppSec::ActionsHandler.handle(result.actions)
+              ActionsHandler.handle(result.actions)
             end
           end
 
