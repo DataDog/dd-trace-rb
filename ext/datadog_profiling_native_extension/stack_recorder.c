@@ -332,7 +332,7 @@ static VALUE _native_new(VALUE klass) {
     .serialization_time_ns_min = INT64_MAX,
   };
 
-  // Note: At this point, slot_one_profile/slot_two_profile/string_storage contain null pointers. Libdatadog validates pointers
+  // Note: At this point, slot_one_profile/slot_two_profile contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
