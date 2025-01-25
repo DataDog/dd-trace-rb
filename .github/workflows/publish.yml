@@ -27,7 +27,7 @@ jobs:
           GEM_VERSION: ${{ steps.version.outputs.version }}
         run: |
           if gem search datadog --exact --remote --version "$GEM_VERSION" | grep -q "($GEM_VERSION)"; then
-            echo "Version $GEM_VERSION is already published"
+            echo "::error::Version $GEM_VERSION is already published"
             exit 1
           else
             echo "Version $GEM_VERSION is not published yet"
@@ -70,6 +70,26 @@ jobs:
             if (status.state !== 'success') {
               core.setFailed(`Commit status is ${status.state}`);
             }
+
+      # Check if the commit has all the checks passed
+      - name: Verify deferred commit data
+        # NOTE:
+        #
+        # This step uses Github's internal API (for rendering the status of the checks in UI),
+        # which includes Github check runs and external CI statuses and possibly more.
+        #
+        # Although Github check runs and external CI statuses are already covered by the previous steps,
+        # it is still useful to have a double-check and also possibly unearth missing validations.
+        #
+        # However, not depending on Github's public API (REST/GraphQL) suggested that this might change in the future.
+        run: |
+          COMMIT_URL="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/commit/$GITHUB_SHA"
+          STATUS=$(curl -sS --fail --retry 3 --retry-delay 5 "$COMMIT_URL/deferred_commit_data" | jq -r ".data.statusCheckStatus.state")
+          if [ "$STATUS" != "success" ]; then
+            echo "::error::Status check state is '$STATUS'. See: $COMMIT_URL"
+            exit 1
+          fi
+
 
   rubygems-release:
     name: Build and push gem to RubyGems.org
