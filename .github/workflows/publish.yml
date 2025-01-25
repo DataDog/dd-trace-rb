@@ -1,5 +1,6 @@
 name: Publish gem
 
+# TODO: Implement a dry-run mode to verify the checks without publishing
 on: workflow_dispatch
 
 concurrency: "rubygems" # Only one publish job at a time
@@ -32,6 +33,9 @@ jobs:
           else
             echo "Version $GEM_VERSION is not published yet"
           fi
+
+      # TODO: Verify draft release
+      # TODO: Verify milestone
 
       # Check if the commit has passed all Github checks
       - name: Verify check runs
