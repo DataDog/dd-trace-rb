@@ -173,3 +173,5 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VA
 
 // Used to ensure that a GC actually triggers an update of the objects
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
+
+void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all);

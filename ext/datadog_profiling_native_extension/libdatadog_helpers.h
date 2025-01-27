@@ -25,3 +25,10 @@ static inline char* string_from_char_slice(ddog_CharSlice slice) {
 }
 
 ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string);
+
+void intern_all_or_raise(
+  ddog_prof_ManagedStringStorage string_storage,
+  ddog_prof_Slice_CharSlice strings,
+  ddog_prof_ManagedStringId *output_ids,
+  uintptr_t output_ids_size
+);

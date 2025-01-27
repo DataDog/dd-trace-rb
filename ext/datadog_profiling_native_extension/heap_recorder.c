@@ -160,7 +160,6 @@ static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update)
 static inline double ewma_stat(double previous, double current);
 static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
 static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
-static void intern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_CharSlice strings, ddog_prof_ManagedStringId *output_ids, uintptr_t output_ids_size);
 static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
 // ==========================
@@ -817,7 +816,7 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
     strings[i] = location->function.filename;
     strings[i + stack->frames_len] = location->function.name;
   }
-  intern_all_or_raise(recorder, (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = stack->frames_len * 2 }, recorder->reusable_ids, stack->frames_len * 2);
+  intern_all_or_raise(recorder->string_storage, (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = stack->frames_len * 2 }, recorder->reusable_ids, stack->frames_len * 2);
 
   // ...and record them for later use
   for (uint16_t i = 0; i < stack->frames_len; i++) {
@@ -885,13 +884,6 @@ static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_Manag
   }
 }
 
-static void intern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_CharSlice strings, ddog_prof_ManagedStringId *output_ids, uintptr_t output_ids_size) {
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_intern_all(recorder->string_storage, strings, output_ids, output_ids_size);
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
-}
-
 static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
   ddog_prof_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
   if (get_string_result.tag == DDOG_PROF_STRING_WRAPPER_RESULT_ERR) {
@@ -923,4 +915,24 @@ void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
   }
 
   heap_recorder->last_update_ns = 0;
+}
+
+void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
+  if (heap_recorder == NULL) rb_raise(rb_eArgError, "heap profiling must be enabled");
+  if (times > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "times cannot be > than MAX_FRAMES_LIMIT");
+
+  if (use_all) {
+    ddog_CharSlice *strings = heap_recorder->reusable_char_slices;
+
+    for (int i = 0; i < times; i++) strings[i] = string;
+
+    intern_all_or_raise(
+      heap_recorder->string_storage,
+      (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = times },
+      heap_recorder->reusable_ids,
+      times
+    );
+  } else {
+    for (int i = 0; i < times; i++) intern_or_raise(heap_recorder->string_storage, string);
+  }
 }

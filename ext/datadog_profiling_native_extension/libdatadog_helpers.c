@@ -70,3 +70,15 @@ ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_
   }
   return intern_result.ok;
 }
+
+void intern_all_or_raise(
+  ddog_prof_ManagedStringStorage string_storage,
+  ddog_prof_Slice_CharSlice strings,
+  ddog_prof_ManagedStringId *output_ids,
+  uintptr_t output_ids_size
+) {
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_intern_all(string_storage, strings, output_ids, output_ids_size);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  }
+}

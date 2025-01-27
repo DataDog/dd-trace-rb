@@ -266,6 +266,7 @@ static VALUE build_profile_stats(profile_slot *slot, long serialization_time_ns,
 static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE object_id);
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
+static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -300,6 +301,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_is_object_recorded?", _native_is_object_recorded, 2);
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
+  rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -1034,5 +1036,18 @@ static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self,
 
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance) {
   recorder_after_gc_step(recorder_instance);
+  return Qtrue;
+}
+
+static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all) {
+  ENFORCE_TYPE(string, T_STRING);
+  ENFORCE_TYPE(times, T_FIXNUM);
+  ENFORCE_BOOLEAN(use_all);
+
+  stack_recorder_state *state;
+  TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
+
+  heap_recorder_testonly_benchmark_intern(state->heap_recorder, char_slice_from_ruby_string(string), FIX2INT(times), use_all == Qtrue);
+
   return Qtrue;
 }
