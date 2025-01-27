@@ -120,6 +120,10 @@ RSpec.describe Datadog::Core::Configuration::Components do
           settings.dynamic_instrumentation.enabled = true
         end
 
+        after do
+          components.dynamic_instrumentation.shutdown!
+        end
+
         context 'MRI' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?
