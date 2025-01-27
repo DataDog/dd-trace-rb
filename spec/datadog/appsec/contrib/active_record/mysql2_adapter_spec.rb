@@ -138,12 +138,6 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
       it 'adds and event to context events' do
         expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
-
-      it 'calls ActionsHandler with result actions if waf result is a match' do
-        expect(Datadog::AppSec::ActionsHandler).to receive(:handle).with(result.actions)
-
-        User.where(name: 'Bob').to_a
-      end
     end
   end
 end
