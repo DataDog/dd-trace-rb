@@ -11,12 +11,17 @@ module Datadog
       class << self
         def build_from(value)
           case value
-          when Error then value
-          when Array then new(*value)
+          # A Ruby {Exception} is the most common parameter type.
           when Exception then new(value.class, value.message, full_backtrace(value))
-          when ContainsMessage then new(value.class, value.message)
+          # steep:ignore:start
+          # Steep doesn't like an array with up to 3 elements to be passed here: it thinks the array is unbounded.
+          when Array then new(*value)
+          # Steep can follow the logic inside the lambda, thus it doesn't know `value` responds to `:message`.
+          when ->(v) { v.respond_to?(:message) } then new(value.class, value.message)
+          # steep:ignore:end
           when String then new(nil, value)
-          else BlankError
+          when Error then value
+          else Error.new # Blank error
           end
         end
 
@@ -75,7 +80,7 @@ module Datadog
           if trace[1]
             # Ident stack trace for caller lines, to separate
             # them from the main error lines.
-            trace[1..-1].each do |line|
+            trace[1..-1]&.each do |line|
               backtrace << "\n\tfrom "
               backtrace << line
             end
@@ -92,9 +97,6 @@ module Datadog
         @message = Utils.utf8_encode(message)
         @backtrace = Utils.utf8_encode(backtrace)
       end
-
-      BlankError = Error.new
-      ContainsMessage = ->(v) { v.respond_to?(:message) }
     end
   end
 end

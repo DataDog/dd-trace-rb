@@ -2,6 +2,37 @@ module Datadog
   module Core
     module Buffer
       class Random
+        @closed: bool
+        @items: Array[Object]
+        @max_size: Integer
+
+        def initialize: (Integer)-> void
+
+        def add!: (Object) -> Object
+
+        def add_all!: (Array[Object])-> void
+
+        def close: -> void
+
+        def closed?: -> bool
+
+        def concat: (Array[Object]) -> void
+
+        def drain!: -> Array[Object]
+
+        def empty?: -> bool
+
+        def full?: -> bool
+
+        def length: -> Integer
+
+        def overflow_segments: (Array[Object]) -> [Array[Object]?, Array[Object]?]
+
+        def pop: -> Array[Object]
+
+        def push: (Object) -> Object?
+
+        def replace!: (Object)-> Object?
       end
     end
   end
