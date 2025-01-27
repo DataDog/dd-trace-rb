@@ -53,6 +53,10 @@ module Datadog
       attr_accessor instrumentation_module: Module?
       attr_accessor instrumentation_trace_point: TracePoint?
       attr_accessor instrumented_path: String?
+      
+      attr_writer emitting_notified: bool
+      
+      def emitting_notified?: () -> bool
     end
   end
 end

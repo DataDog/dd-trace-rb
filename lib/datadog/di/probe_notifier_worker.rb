@@ -234,7 +234,7 @@ module Datadog
           end
           if batch.any? # steep:ignore
             begin
-              logger.debug { "di: sending #{batch.length} #{event_type} payloads to agent" }
+              logger.debug { "di: sending #{batch.length} #{event_type} payloads to agent" } # steep:ignore
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do

@@ -3,62 +3,71 @@ module Datadog
     class ProbeManager
       @settings: untyped
 
-      @instrumenter: untyped
+      @instrumenter: Instrumenter
 
-      @probe_notification_builder: untyped
+      @probe_notification_builder: ProbeNotificationBuilder
 
-      @probe_notifier_worker: untyped
+      @probe_notifier_worker: ProbeNotifierWorker
 
-      @logger: untyped
+      @logger: ::Logger
 
       @telemetry: untyped
 
-      @installed_probes: untyped
+      @installed_probes: Hash[String, untyped]
 
-      @pending_probes: untyped
+      @pending_probes: Hash[String, untyped]
 
-      @failed_probes: untyped
+      @failed_probes: Hash[String, String]
 
-      @lock: untyped
+      @lock: ::Mutex
 
-      @definition_trace_point: untyped
+      @definition_trace_point: ::TracePoint
 
       def initialize: (untyped settings, untyped instrumenter, untyped probe_notification_builder, untyped probe_notifier_worker, untyped logger, ?telemetry: untyped?) -> void
 
-      attr_reader logger: untyped
+      attr_reader logger: ::Logger
 
       attr_reader telemetry: untyped
-      def close: () -> untyped
+      
+      def close: () -> void
 
-      def clear_hooks: () -> untyped
+      def clear_hooks: () -> void
 
       attr_reader settings: untyped
 
-      attr_reader instrumenter: untyped
+      attr_reader instrumenter: Instrumenter
 
-      attr_reader probe_notification_builder: untyped
+      attr_reader probe_notification_builder: ProbeNotificationBuilder
 
-      attr_reader probe_notifier_worker: untyped
+      attr_reader probe_notifier_worker: ProbeNotifierWorker
 
-      def installed_probes: () -> untyped
+      def installed_probes: () -> Hash[String, untyped]
 
-      def pending_probes: () -> untyped
-      def failed_probes: () -> untyped
-      def add_probe: (untyped probe) -> untyped
-
-      private
-      def do_add_probe: (untyped probe) -> untyped
-
-      public
-      def remove_other_probes: (untyped probe_ids) -> untyped
+      def pending_probes: () -> Hash[String, untyped]
+      
+      def failed_probes: () -> Hash[String, String]
+      
+      def add_probe: (Probe probe) -> untyped
 
       private
-      def install_pending_method_probes: (untyped cls) -> untyped
+      
+      def do_add_probe: (Probe probe) -> untyped
 
       public
-      def install_pending_line_probes: (untyped path) -> untyped
-      def probe_executed_callback: (probe: untyped, **untyped opts) -> untyped
-      attr_reader definition_trace_point: untyped
+      
+      def remove_other_probes: (Array[String] probe_ids) -> void
+
+      private
+      
+      def install_pending_method_probes: (Class cls) -> untyped
+
+      public
+      
+      def install_pending_line_probes: (String path) -> untyped
+      
+      def probe_executed_callback: (probe: Probe, **untyped opts) -> untyped
+      
+      attr_reader definition_trace_point: ::TracePoint
     end
   end
 end
