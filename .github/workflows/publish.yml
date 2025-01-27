@@ -100,7 +100,7 @@ jobs:
   rubygems-release:
     name: Build and push gem to RubyGems.org
     runs-on: ubuntu-24.04
-    environment: "rubygems" # see: https://github.com/DataDog/dd-trace-rb/settings/environments
+    environment: "rubygems.org" # see: https://github.com/DataDog/dd-trace-rb/settings/environments
     needs: verify-checks # Make sure to release from a healthy commit
     permissions:
       id-token: write
