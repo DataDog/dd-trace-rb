@@ -89,3 +89,7 @@ group :test, :development do
 
   gem 'listen'
 end
+
+# Pin psych to <4 to permit aliases in database.yml.
+# https://stackoverflow.com/questions/74725359/ruby-on-rails-legacy-application-update-generates-gem-psych-alias-error-psychb
+gem 'psych', '< 4'
