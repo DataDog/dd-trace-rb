@@ -80,6 +80,8 @@ struct heap_recorder {
   //
   // TODO: @ivoanjo We've evolved to actually never need to look up on object_records (we only insert and iterate),
   // so right now this seems to be just a really really fancy self-resizing list/set.
+  // If we replace this with a list, we could record the latest id and compare it when inserting to make sure our
+  // assumption of ids never reused + always increasing always holds. (This as an alternative to checking for duplicates)
   st_table *object_records;
 
   // Map[obj_id: long, record: object_record*]
