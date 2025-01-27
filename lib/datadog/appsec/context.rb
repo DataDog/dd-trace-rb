@@ -46,10 +46,12 @@ module Datadog
         result
       end
 
-      def run_rasp(_type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+      def run_rasp(type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
         result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
 
+        Metrics::Telemetry.report_rasp(type, result)
         @metrics.record_rasp(result)
+
         result
       end
 
