@@ -129,7 +129,7 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
         allow(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
       end
 
-      it 'adds and event to context events' do
+      it 'adds an event to context events' do
         expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
       end
     end
