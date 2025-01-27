@@ -38,6 +38,8 @@ module Datadog
                 actions: result.actions
               }
               context.events << event
+
+              ActionsHandler.handle(result.actions)
             end
           end
 
