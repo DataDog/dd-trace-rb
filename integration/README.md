@@ -75,6 +75,7 @@ export RUBYOPT=-I../../images/include
 # Use local dd-trace-rb tree
 export DD_DEMO_ENV_GEM_LOCAL_DATADOG=../../..
 export DATABASE_URL=mysql2://user:password@localhost:3306
+bundle install
 bundle exec rake db:create db:migrate
 bundle exec rails server -p 3000
 ```

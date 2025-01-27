@@ -88,7 +88,7 @@ RSpec.describe Datadog::AppSec::Context do
           'server.request.headers.no_cookies' => { 'user-agent' => 'Nessus SOAP' }
         }
 
-        Array.new(3) { context.run_waf(persistent_data, {}, 10_000) }
+        Array.new(3) { context.run_waf(persistent_data, {}, 1_000_000) }
       end
 
       it 'returns a single match and rest is ok' do
@@ -110,8 +110,8 @@ RSpec.describe Datadog::AppSec::Context do
         }
 
         [
-          context.run_waf(persistent_data_1, {}, 10_000),
-          context.run_waf(persistent_data_2, {}, 10_000),
+          context.run_waf(persistent_data_1, {}, 1_000_000),
+          context.run_waf(persistent_data_2, {}, 1_000_000),
         ]
       end
 
@@ -122,6 +122,57 @@ RSpec.describe Datadog::AppSec::Context do
             kind_of(Datadog::AppSec::SecurityEngine::Result::Match)
           ]
         )
+      end
+    end
+  end
+
+  describe '#run_rasp' do
+    context 'when a matching run was made' do
+      before { allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry) }
+
+      let(:persistent_data) do
+        { 'server.request.query' => { 'q' => "1' OR 1=1;" } }
+      end
+      let(:ephemeral_data) do
+        {
+          'server.db.statement' => "SELECT * FROM users WHERE name = '1' OR 1=1;",
+          'server.db.system' => 'mysql'
+        }
+      end
+
+      it 'sends telemetry metrics' do
+        expect(telemetry).to receive(:inc)
+          .with('appsec', anything, kind_of(Integer), anything)
+          .at_least(:once)
+
+        context.run_rasp('sqli', persistent_data, ephemeral_data, 1_000_000)
+      end
+    end
+
+    context 'when a run was a failure' do
+      before do
+        allow(Datadog::AppSec).to receive(:telemetry).and_return(telemetry)
+        allow_any_instance_of(Datadog::AppSec::SecurityEngine::Runner).to receive(:run)
+          .and_return(run_result)
+      end
+
+      let(:run_result) do
+        Datadog::AppSec::SecurityEngine::Result::Error.new(duration_ext_ns: 0)
+      end
+      let(:persistent_data) do
+        { 'server.request.query' => { 'q' => "1' OR 1=1;" } }
+      end
+      let(:ephemeral_data) do
+        {
+          'server.db.statement' => "SELECT * FROM users WHERE name = '1' OR 1=1;",
+          'server.db.system' => 'mysql'
+        }
+      end
+
+      it 'sends telemetry metrics' do
+        expect(telemetry).not_to receive(:inc)
+
+        context.run_rasp('sqli', persistent_data, ephemeral_data, 1_000_000)
       end
     end
   end

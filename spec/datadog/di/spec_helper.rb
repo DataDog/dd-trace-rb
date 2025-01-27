@@ -95,6 +95,24 @@ module DIHelpers
         end
       end
     end
+
+    def expect_lazy_log_many(logger, meth, *expectations)
+      if expectations.empty?
+        raise ArgumentError, "Must have at least one expectation"
+      end
+      expect(logger).to receive(meth).exactly(expectations.length).times do |&block|
+        expected_msg = expectations.shift
+        case expected_msg
+        when String
+          expect(block.call).to eq(expected_msg)
+        when Regexp
+          expect(block.call).to match(expected_msg)
+        when nil
+          value = block.call
+          fail "Logger #{logger} #{meth} called without an expectation set: #{value}"
+        end
+      end
+    end
   end
 end
 

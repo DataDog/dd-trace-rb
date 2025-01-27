@@ -14,6 +14,10 @@ module Datadog
         Datadog.configuration.appsec.enabled
       end
 
+      def rasp_enabled?
+        Datadog.configuration.appsec.rasp_enabled
+      end
+
       def active_context
         Datadog::AppSec::Context.active
       end

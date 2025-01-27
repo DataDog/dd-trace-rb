@@ -122,6 +122,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
           settings.dynamic_instrumentation.enabled = true
         end
 
+        after do
+          # Shutdown DI if present because it creates a background thread.
+          # On JRuby DI is not present.
+          components.dynamic_instrumentation&.shutdown!
+        end
+
         context 'MRI' do
           before(:all) do
             skip 'Test requires MRI' if PlatformHelpers.jruby?

@@ -9,6 +9,8 @@ module Datadog
           module_function
 
           def detect_sql_injection(sql, adapter_name)
+            return unless AppSec.rasp_enabled?
+
             context = AppSec.active_context
             return unless context
 
@@ -36,6 +38,8 @@ module Datadog
                 actions: result.actions
               }
               context.events << event
+
+              ActionsHandler.handle(result.actions)
             end
           end
 

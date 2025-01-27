@@ -19,11 +19,6 @@ gem 'mysql2'
 gem 'puma'
 gem 'unicorn'
 
-# Lock loofah's version as there were issues between specific loofah and nokogiri (a loofah dependency)
-# around loofah 2.20. We can't upgrade both loofah and nokogiri to their latest version because
-# they are not supported by Ruby < 2.5.
-gem 'loofah', '2.19.1'
-
 # Choose correct specs for 'datadog' demo environment
 gem *Datadog::DemoEnv.gem_datadog_auto_instrument
 
@@ -83,9 +78,13 @@ group :test do
 end
 
 group :test, :development do
-  gem 'byebug', platform: :ruby
+  gem "debug", platforms: %i[ mri mingw x64_mingw ]
   gem 'mock_redis', '0.19.0'
   gem 'parallel_tests'
 
   gem 'listen'
 end
+
+# Pin psych to <4 to permit aliases in database.yml.
+# https://stackoverflow.com/questions/74725359/ruby-on-rails-legacy-application-update-generates-gem-psych-alias-error-psychb
+gem 'psych', '< 4'

@@ -17,7 +17,7 @@
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
 
-// Used to trigger the execution of Collectors::ThreadState, which implements all of the sampling logic
+// Used to trigger the execution of Collectors::ThreadContext, which implements all of the sampling logic
 // itself; this class only implements the "when to do it" part.
 //
 // This file implements the native bits of the Datadog::Profiling::Collectors::CpuAndWallTimeWorker class
@@ -33,7 +33,7 @@
 // Currently, sampling Ruby threads requires calling Ruby VM APIs that are only safe to call while holding on to the
 // global VM lock (and are not async-signal safe -- cannot be called from a signal handler).
 //
-// @ivoanjo: As a note, I don't think we should think of this constraint as set in stone. Since can reach into the Ruby
+// @ivoanjo: As a note, I don't think we should think of this constraint as set in stone. Since we can reach inside the Ruby
 // internals, we may be able to figure out a way of overcoming it. But it's definitely going to be hard so for now
 // we're considering it as a given.
 //

@@ -105,7 +105,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class);
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
 //

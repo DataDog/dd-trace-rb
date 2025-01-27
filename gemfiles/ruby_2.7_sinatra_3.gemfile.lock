@@ -2,7 +2,7 @@ PATH
   remote: ..
   specs:
     datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
+      datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
@@ -27,7 +27,7 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
     docile (1.4.1)
@@ -126,6 +126,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
