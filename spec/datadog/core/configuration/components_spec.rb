@@ -121,7 +121,9 @@ RSpec.describe Datadog::Core::Configuration::Components do
         end
 
         after do
-          components.dynamic_instrumentation.shutdown!
+          # Shutdown DI if present because it creates a background thread.
+          # On JRuby DI is not present.
+          components.dynamic_instrumentation&.shutdown!
         end
 
         context 'MRI' do
