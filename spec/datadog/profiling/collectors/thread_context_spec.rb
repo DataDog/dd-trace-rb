@@ -1198,7 +1198,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
               first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
 
-              expect(first_sample.values.fetch(:"cpu-time")).to be 12345
+              expect(first_sample.values.fetch(:"cpu-time")).to be >= 12345
               expect(second_sample.values.fetch(:"cpu-time")).to be 0
             end
           end

@@ -113,15 +113,25 @@ RSpec.describe 'AppSec ActiveRecord integration for SQLite3 adapter' do
       User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
     end
 
-    it 'adds an event to processor context if waf result is a match' do
-      result = Datadog::AppSec::SecurityEngine::Result::Match.new(
-        events: [], actions: {}, derivatives: {}, timeout: false, duration_ns: 0, duration_ext_ns: 0
-      )
+    context 'when waf result is a match' do
+      let(:result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [],
+          actions: { 'generate_stack' => { 'stack_id' => 'some-id' } },
+          derivatives: {},
+          timeout: false,
+          duration_ns: 0,
+          duration_ext_ns: 0
+        )
+      end
 
-      expect(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
-      expect(Datadog::AppSec.active_context.events).to receive(:<<).and_call_original
+      before do
+        allow(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
+      end
 
-      User.where(name: 'Bob').to_a
+      it 'adds an event to context events' do
+        expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
+      end
     end
   end
 end
