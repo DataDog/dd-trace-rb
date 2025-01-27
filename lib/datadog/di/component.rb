@@ -76,6 +76,7 @@ module Datadog
         @agent_settings = agent_settings
         @logger = logger
         @telemetry = telemetry
+        @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
@@ -90,6 +91,7 @@ module Datadog
       attr_reader :agent_settings
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :code_tracker
       attr_reader :instrumenter
       attr_reader :transport
       attr_reader :probe_notifier_worker

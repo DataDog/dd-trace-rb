@@ -37,6 +37,9 @@ module Datadog
       def start: () -> void
       def stop: (?::Integer timeout) -> void
       def flush: () -> void
+      
+      def add_status: (Hash[Symbol, untyped]) -> void
+      def add_snapshot: (Hash[Symbol, untyped]) -> void
 
       private
       
