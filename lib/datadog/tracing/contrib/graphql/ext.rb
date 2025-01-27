@@ -11,8 +11,12 @@ module Datadog
           # @!visibility private
           ENV_ANALYTICS_ENABLED = 'DD_TRACE_GRAPHQL_ANALYTICS_ENABLED'
           ENV_ANALYTICS_SAMPLE_RATE = 'DD_TRACE_GRAPHQL_ANALYTICS_SAMPLE_RATE'
+          ENV_WITH_UNIFIED_TRACER = 'DD_TRACE_GRAPHQL_WITH_UNIFIED_TRACER'
           SERVICE_NAME = 'graphql'
           TAG_COMPONENT = 'graphql'
+
+          # Span event name for query-level errors
+          EVENT_QUERY_ERROR = 'dd.graphql.query.error'
         end
       end
     end

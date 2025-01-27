@@ -22,10 +22,26 @@ def load_test_schema(prefix: '')
       def user(id:)
         OpenStruct.new(id: id, name: 'Bits')
       end
+
+      field :graphql_error, ::GraphQL::Types::Int, description: 'Raises error'
+
+      def graphql_error
+        raise 'GraphQL error'
+      end
     end
 
     class #{prefix}TestGraphQLSchema < ::GraphQL::Schema
       query(#{prefix}TestGraphQLQuery)
+
+      rescue_from(RuntimeError) do |err, obj, args, ctx, field|
+        raise GraphQL::ExecutionError.new(err.message, extensions: {
+          'int-1': 1,
+          'str-1': '1',
+          'array-1-2': [1,'2'],
+          '': 'empty string',
+          ',': 'comma',
+        })
+      end
     end
   RUBY
   # rubocop:enable Style/DocumentDynamicEvalDefinition
@@ -76,10 +92,11 @@ RSpec.shared_examples 'graphql default instrumentation' do
 end
 
 RSpec.shared_examples 'graphql instrumentation with unified naming convention trace' do |prefix: ''|
+  let(:schema) { Object.const_get("#{prefix}TestGraphQLSchema") }
+  let(:service) { defined?(super) ? super() : tracer.default_service }
+
   describe 'query trace' do
     subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 }) }
-    let(:schema) { Object.const_get("#{prefix}TestGraphQLSchema") }
-    let(:service) { defined?(super) ? super() : tracer.default_service }
 
     matrix = [
       ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
@@ -132,6 +149,39 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
           expect(span.get_tag('graphql.variables.id')).to eq('1')
         end
       end
+    end
+  end
+
+  describe 'query with a GraphQL error' do
+    subject(:result) { schema.execute(query: 'query Error{ graphqlError }', variables: { var: 1 }) }
+
+    let(:graphql_execute) { spans.find { |s| s.name == 'graphql.execute' } }
+
+    it 'creates query span for error' do
+      expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+      expect(result.to_h['data']).to eq('graphqlError' => nil)
+
+      expect(graphql_execute.resource).to eq('Error')
+      expect(graphql_execute.service).to eq(service)
+      expect(graphql_execute.type).to eq('graphql')
+
+      expect(graphql_execute.get_tag('graphql.source')).to eq('query Error{ graphqlError }')
+
+      expect(graphql_execute.get_tag('graphql.operation.type')).to eq('query')
+      expect(graphql_execute.get_tag('graphql.operation.name')).to eq('Error')
+
+      expect(graphql_execute.events).to contain_exactly(
+        a_span_event_with(
+          name: 'dd.graphql.query.error',
+          attributes: {
+            'message' => 'GraphQL error',
+            'type' => 'GraphQL::ExecutionError',
+            'stacktrace' => include(__FILE__),
+            'locations' => ['1:14'],
+            'path' => ['graphqlError'],
+          }
+        )
+      )
     end
   end
 end

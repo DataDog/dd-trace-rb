@@ -1,3 +1,5 @@
 {
-  
+  "DEFAULT": [
+    "tests/test_graphql.py"
+  ]
 }

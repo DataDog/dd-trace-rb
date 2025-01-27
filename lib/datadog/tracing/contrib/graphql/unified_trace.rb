@@ -47,14 +47,26 @@ module Datadog
           end
 
           def execute_query(*args, query:, **kwargs)
-            trace(proc { super }, 'execute', query.selected_operation_name, query: query) do |span|
-              span.set_tag('graphql.source', query.query_string)
-              span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
-              span.set_tag('graphql.operation.name', query.selected_operation_name) if query.selected_operation_name
-              query.variables.instance_variable_get(:@storage).each do |key, value|
-                span.set_tag("graphql.variables.#{key}", value)
-              end
-            end
+            trace(
+              proc { super },
+              'execute',
+              query.selected_operation_name,
+              lambda { |span|
+                span.set_tag('graphql.source', query.query_string)
+                span.set_tag('graphql.operation.type', query.selected_operation.operation_type)
+                if query.selected_operation_name
+                  span.set_tag(
+                    'graphql.operation.name',
+                    query.selected_operation_name
+                  )
+                end
+                query.variables.instance_variable_get(:@storage).each do |key, value|
+                  span.set_tag("graphql.variables.#{key}", value)
+                end
+              },
+              ->(span) { add_query_error_events(span, query.context.errors) },
+              query: query,
+            )
           end
 
           def execute_query_lazy(*args, query:, multiplex:, **kwargs)
@@ -131,7 +143,16 @@ module Datadog
 
           private
 
-          def trace(callable, trace_key, resource, **kwargs)
+          # Traces the given callable with the given trace key, resource, and kwargs.
+          #
+          # @param callable [Proc] the original method call
+          # @param trace_key [String] the sub-operation name (`"graphql.#{trace_key}"`)
+          # @param resource [String] the resource name for the trace
+          # @param before [Proc, nil] a callable to run before the trace, same as the block parameter
+          # @param after [Proc, nil] a callable to run after the trace, which has access to query values after execution
+          # @param kwargs [Hash] the arguments to pass to `prepare_span`
+          # @yield [Span] the block to run before the trace, same as the `before` parameter
+          def trace(callable, trace_key, resource, before = nil, after = nil, **kwargs, &before_block)
             config = Datadog.configuration.tracing[:graphql]
 
             Tracing.trace(
@@ -144,11 +165,17 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
               end
 
-              yield(span) if block_given?
+              if (before_callable = before || before_block)
+                before_callable.call(span)
+              end
 
               prepare_span(trace_key, kwargs, span) if @has_prepare_span
 
-              callable.call
+              ret = callable.call
+
+              after.call(span) if after
+
+              ret
             end
           end
 
@@ -161,6 +188,44 @@ module Datadog
               fallback_transaction_name(first_query && first_query.context)
             else
               operations
+            end
+          end
+
+          # Create a Span Event for each error that occurs at query level.
+          #
+          # These are represented in the Datadog App as special GraphQL errors,
+          # given their event name `dd.graphql.query.error`.
+          def add_query_error_events(span, errors)
+            errors.each do |error|
+              e = Core::Error.build_from(error)
+              err = error.to_h
+
+              span.span_events << Datadog::Tracing::SpanEvent.new(
+                Ext::EVENT_QUERY_ERROR,
+                attributes: {
+                  message: err['message'],
+                  type: e.type,
+                  stacktrace: e.backtrace,
+                  locations: serialize_error_locations(err['locations']),
+                  path: err['path'],
+                }
+              )
+            end
+          end
+
+          # Serialize error's `locations` array as an array of Strings, given
+          # Span Events do not support hashes nested inside arrays.
+          #
+          # Here's an example in which `locations`:
+          #   [
+          #    {"line" => 3, "column" => 10},
+          #    {"line" => 7, "column" => 8},
+          #   ]
+          # is serialized as:
+          #   ["3:10", "7:8"]
+          def serialize_error_locations(locations)
+            locations.map do |location|
+              "#{location['line']}:#{location['column']}"
             end
           end
         end
