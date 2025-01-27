@@ -5,8 +5,8 @@ class InstrumentationIntegrationTestClass
     redacted = {b: 33, session: 'blah'}
     # The following condition causes instrumentation trace point callback
     # to be invoked multiple times in CircleCI on Ruby 3.0-3.2 and 3.4
-    #if true || password || redacted
-    if true
+    if true || password || redacted
+    #if true
       a * 2 # line 10
     end
   end # line 12
