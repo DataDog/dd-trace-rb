@@ -114,6 +114,8 @@ jobs:
         with:
           ruby-version: '3.3.7'
       - uses: rubygems/release-gem@v1
+        with:
+          attestations: false # PENDING decision for attestations
 
   github-release:
     name: Attach gem to GitHub release and publish
