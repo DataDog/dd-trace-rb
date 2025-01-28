@@ -18,6 +18,9 @@ module Datadog
             @propagation ||= Contrib::Karafka::Distributed::Propagation.new
           end
 
+          # `each` is the most popular access point to Karafka messages, but not the only one
+          #  Other access patterns do not have a straightforward tracing avenue (e.g. `my_batch_operation messages.payloads`)
+          # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
