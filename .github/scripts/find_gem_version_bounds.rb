@@ -25,7 +25,7 @@ class GemfileProcessor
     parse_gemfiles
     process_integrations
     include_hardcoded_versions
-    write_output
+    write_markdown_output
   end
 
   private
@@ -131,10 +131,42 @@ class GemfileProcessor
     integration
   end
 
-  def write_output
-    @integration_json_mapping = @integration_json_mapping.sort.to_h
-    File.write("gem_output.json", JSON.pretty_generate(@integration_json_mapping))
+  def write_markdown_output
+    output_file = 'docs/integration_versions.md'
+    comment = <<~COMMENT
+      <!--
+      ### Supported Versions Table ###
+  
+      This markdown file is generated from the minimum and maximum versions of the integrations we support, as tested in our `gemfile.lock` lockfiles.
+      -->
+    COMMENT
+    header = "| Integration              | Ruby Min | Ruby Max | JRuby Min | JRuby Max |\n"
+    separator = "|--------------------------|----------|----------|-----------|-----------|\n"
+    column_widths = {
+      integration: 24,
+      ruby_min: 8,
+      ruby_max: 8,
+      jruby_min: 9,
+      jruby_max: 9
+    }
+    rows = @integration_json_mapping.map do |name, versions|
+      integration_name = name.ljust(column_widths[:integration])
+      ruby_min = (versions[0] || "None").ljust(column_widths[:ruby_min])
+      ruby_max = (versions[1] || "None").ljust(column_widths[:ruby_max])
+      jruby_min = (versions[2] || "None").ljust(column_widths[:jruby_min])
+      jruby_max = (versions[3] || "None").ljust(column_widths[:jruby_max])
+  
+      "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
+    end
+  
+    File.open(output_file, 'w') do |file|
+      file.puts comment
+      file.puts header
+      file.puts separator
+      rows.each { |row| file.puts row }
+    end
   end
 end
+
 
 GemfileProcessor.new.process
