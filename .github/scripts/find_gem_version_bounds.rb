@@ -114,10 +114,10 @@ class GemfileProcessor
 
     # `makara` is part of `activerecord`
     @integration_json_mapping['makara'] = [
-      '0.3.5',        # Min version Ruby
-      'infinity',     # Max version Ruby
-      '0.3.5',        # Min version JRuby
-      'infinity'      # Max version JRuby
+      '0.5.1',        # Min version Ruby
+      '0.5.1',     # Max version Ruby
+      '0.5.1',        # Min version JRuby
+      '0.5.1'      # Max version JRuby
     ]
   end
 
@@ -138,6 +138,7 @@ class GemfileProcessor
       ### Supported Versions Table ###
   
       This markdown file is generated from the minimum and maximum versions of the integrations we support, as tested in our `gemfile.lock` lockfiles.
+      For a list of available integrations, and their supported version ranges, refer to the following:
       -->
     COMMENT
     header = "| Integration              | Ruby Min | Ruby Max | JRuby Min | JRuby Max |\n"
@@ -149,12 +150,14 @@ class GemfileProcessor
       jruby_min: 9,
       jruby_max: 9
     }
-    rows = @integration_json_mapping.map do |name, versions|
+    rows = @integration_json_mapping
+          .sort_by { |name, _versions| name.downcase }
+          .map do |name, versions|
       integration_name = name.ljust(column_widths[:integration])
       ruby_min = (versions[0] || "None").ljust(column_widths[:ruby_min])
-      ruby_max = (versions[1] || "None").ljust(column_widths[:ruby_max])
+      ruby_max = (versions[1] == 'infinity' ? 'latest' : versions[1] || 'None').ljust(column_widths[:ruby_max])
       jruby_min = (versions[2] || "None").ljust(column_widths[:jruby_min])
-      jruby_max = (versions[3] || "None").ljust(column_widths[:jruby_max])
+      jruby_max = (versions[3] == 'infinity' ? 'latest' : versions[3] || 'None').ljust(column_widths[:jruby_max])
   
       "| #{integration_name} | #{ruby_min} | #{ruby_max} | #{jruby_min} | #{jruby_max} |"
     end
