@@ -1100,7 +1100,7 @@ end
 
 ### Karafka
 
-The karafka integration provides tracing of the `karafka` gem:
+The karafka integration provides tracing of the `karafka` gem.
 You can enable it through `Datadog.configure`:
 
 ```ruby
