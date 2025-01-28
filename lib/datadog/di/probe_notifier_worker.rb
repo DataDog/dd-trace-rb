@@ -10,7 +10,7 @@ module Datadog
     # The loop inside the worker rescues all exceptions to prevent termination
     # due to unhandled exceptions raised by any downstream code.
     # This includes communication and protocol errors when sending the
-    # payloads to the agent.
+    # events to the agent.
     #
     # The worker groups the data to send into batches. The goal is to perform
     # no more than one network operation per event type per second.
@@ -242,7 +242,7 @@ module Datadog
           end
           if batch.any? # steep:ignore
             begin
-              logger.debug { "di: sending #{batch.length} #{event_type} payloads to agent" }
+              logger.debug { "di: sending #{batch.length} #{event_type} events to agent" }
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
