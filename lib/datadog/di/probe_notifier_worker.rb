@@ -46,6 +46,7 @@ module Datadog
 
       def start
         return if @thread && @pid == Process.pid
+        logger.debug("di: starting probe notifier")
         @thread = Thread.new do
           loop do
             # TODO If stop is requested, we stop immediately without
@@ -96,6 +97,7 @@ module Datadog
       # to killing the thread using Thread#kill.
       def stop(timeout = 1)
         @stop_requested = true
+        logger.debug("di: stopping probe notifier")
         wake.signal
         if thread
           unless thread.join(timeout)
