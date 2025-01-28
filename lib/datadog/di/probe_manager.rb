@@ -32,7 +32,7 @@ module Datadog
           install_pending_method_probes(tp.self)
         rescue => exc
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
-          logger.warn("Unhandled exception in definition trace point: #{exc.class}: #{exc}")
+          logger.debug { "di: unhandled exception in definition trace point: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Unhandled exception in definition trace point")
           # TODO test this path
         end
@@ -120,7 +120,7 @@ module Datadog
           # In "propagate all exceptions" mode we will try to instrument again.
           raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-          logger.warn("Error processing probe configuration: #{exc.class}: #{exc}")
+          logger.debug { "di: error processing probe configuration: #{exc.class}: #{exc}" }
           telemetry&.report(exc, description: "Error processing probe configuration")
           # TODO report probe as failed to agent since we won't attempt to
           # install it again.
@@ -160,8 +160,8 @@ module Datadog
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
                 # Silence all exceptions?
                 # TODO should we propagate here and rescue upstream?
-                logger.warn("Error removing probe #{probe.id}: #{exc.class}: #{exc}")
-                telemetry&.report(exc, description: "Error removing probe #{probe.id}")
+                logger.debug { "di: error removing probe #{probe.id}: #{exc.class}: #{exc}" }
+                telemetry&.report(exc, description: "Error removing probe")
               end
             end
           end
@@ -190,7 +190,7 @@ module Datadog
                 rescue => exc
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.warn("Error installing probe after class is defined: #{exc.class}: #{exc}")
+                  logger.debug { "di: error installing probe after class is defined: #{exc.class}: #{exc}" }
                   telemetry&.report(exc, description: "Error installing probe after class is defined")
                 end
               end
@@ -206,6 +206,9 @@ module Datadog
       # point, which is invoked for each required or loaded file
       # (and also for eval'd code, but those invocations are filtered out).
       def install_pending_line_probes(path)
+        if path.nil?
+          raise ArgumentError, "path must not be nil"
+        end
         @lock.synchronize do
           @pending_probes.values.each do |probe|
             if probe.line?

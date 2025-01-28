@@ -58,6 +58,15 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -172,10 +181,16 @@ appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
-
-  gem 'racc' # Remove this once graphql resolves issue for ruby 3.3 preview. https://github.com/rmosolgo/graphql-ruby/issues/4650
 end
 
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'rack-activerecord' do
+  gem "rack", "~> 2"
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem "activerecord", "~> 7"
+  gem "sqlite3", ">= 1.4.2", platform: :ruby
 end

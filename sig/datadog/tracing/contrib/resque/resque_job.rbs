@@ -18,7 +18,7 @@ module Datadog
 
           def forked?: () -> untyped
 
-          def span_options: () -> { service: untyped, on_error: untyped }
+          def span_options: () -> { service: untyped, on_error: on_error }
 
           def datadog_configuration: () -> untyped
         end

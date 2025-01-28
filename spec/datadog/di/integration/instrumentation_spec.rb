@@ -21,6 +21,19 @@ end
 RSpec.describe 'Instrumentation integration' do
   di_test
 
+  before do
+    # We do not have any configurations in CI that have an agent
+    # implementing debugger endpoints that are used by DI transport
+    # (besides system tests which use an actual agent).
+    # Therefore, if we attempt to actually put payloads on the network,
+    # the requests will fail.
+    # Since this test enables propagation of all exceptions through DI
+    # for early detection of problems, these failing requests would
+    # manifest in the test suite rather than being ignored as they would be
+    # in customer applications.
+    allow_any_instance_of(Datadog::DI::Transport).to receive(:send_request)
+  end
+
   after do
     component.shutdown!
   end
@@ -43,11 +56,15 @@ RSpec.describe 'Instrumentation integration' do
   end
 
   let(:agent_settings) do
-    double('agent settings')
+    instance_double_agent_settings
+  end
+
+  let(:logger) do
+    instance_double(Logger)
   end
 
   let(:component) do
-    Datadog::DI::Component.build!(settings, agent_settings)
+    Datadog::DI::Component.build!(settings, agent_settings, logger)
   end
 
   let(:expected_installed_payload) do
@@ -217,7 +234,7 @@ RSpec.describe 'Instrumentation integration' do
           end
         end
 
-        context 'when class exists and target method virtual' do
+        context 'when class exists and target method is virtual' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
               type_name: 'InstrumentationVirtualTestClass', method_name: 'test_method',
@@ -436,7 +453,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a method' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 11,
+              file: 'instrumentation_integration_test_class.rb', line_no: 12,
               capture_snapshot: false,)
           end
 
@@ -446,7 +463,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is the end line of a block' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 17,
+              file: 'instrumentation_integration_test_class.rb', line_no: 22,
               capture_snapshot: false,)
           end
 
@@ -510,7 +527,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is else of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 23,
+              file: 'instrumentation_integration_test_class.rb', line_no: 32,
               capture_snapshot: false,)
           end
 
@@ -524,7 +541,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line is end of a conditional' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 25,
+              file: 'instrumentation_integration_test_class.rb', line_no: 34,
               capture_snapshot: false,)
           end
 
@@ -538,7 +555,7 @@ RSpec.describe 'Instrumentation integration' do
         context 'target line contains a comment (no executable code)' do
           let(:probe) do
             Datadog::DI::Probe.new(id: "1234", type: :log,
-              file: 'instrumentation_integration_test_class.rb', line_no: 31,
+              file: 'instrumentation_integration_test_class.rb', line_no: 40,
               capture_snapshot: false,)
           end
 
@@ -546,6 +563,39 @@ RSpec.describe 'Instrumentation integration' do
           it 'installs probe' do
             expect(probe_manager.add_probe(probe)).to be true
             expect(probe_manager.installed_probes.length).to eq 1
+          end
+        end
+
+        context 'target line is in a loaded file that is not in code tracker' do
+          let(:probe) do
+            Datadog::DI::Probe.new(id: "1234", type: :log,
+              file: 'instrumentation_integration_test_class.rb', line_no: 22,
+              capture_snapshot: false,)
+          end
+
+          before do
+            Object.send(:remove_const, :InstrumentationIntegrationTestClass) rescue nil
+            # Files loaded via 'load' do not get added to $LOADED_FEATURES,
+            # use 'require'.
+            # Note that the other tests use 'load' because they want the
+            # code to always be loaded.
+            require_relative 'instrumentation_integration_test_class'
+            expect($LOADED_FEATURES.detect do |path|
+              File.basename(path) == 'instrumentation_integration_test_class.rb'
+            end).to be_truthy
+            component.code_tracker.clear
+
+            # We want the probe status to be reported, therefore need to
+            # disable exception propagation.
+            settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
+          end
+
+          it 'does not install the probe' do
+            expect_lazy_log(probe_manager.logger, :debug, /File matching probe path.*was loaded and is not in code tracker registry/)
+            expect do
+              probe_manager.add_probe(probe)
+            end.to raise_error(Datadog::DI::Error::DITargetNotInRegistry, /File matching probe path.*was loaded and is not in code tracker registry/)
+            expect(probe_manager.installed_probes.length).to eq 0
           end
         end
       end

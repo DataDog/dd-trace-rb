@@ -25,7 +25,7 @@ concurrency:
 jobs:
   pr:
     name: Pull Request attached
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       pr_found: ${{ steps.pr.outputs.pr_found }}
       pr_base_ref: ${{ steps.pr.outputs.pr.base.ref }}
@@ -40,7 +40,7 @@ jobs:
     name: Depenedency changes
     needs: pr
     if: ${{ needs.pr.outputs.pr_found == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
     steps:
@@ -57,7 +57,7 @@ jobs:
           filters: .github/dependency_filters.yml
 
   lock:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: dependency
     if: ${{ needs.dependency.outputs.changes == 'true' }}
     strategy:
@@ -111,7 +111,7 @@ jobs:
   commit:
     name: Commit changes
     needs: lock
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         with:

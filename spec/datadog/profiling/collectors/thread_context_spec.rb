@@ -66,8 +66,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current)
-    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread)
+  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
+    described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
   def on_gc_start
@@ -78,8 +78,12 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_on_gc_finish(cpu_and_wall_time_collector)
   end
 
-  def sample_after_gc(reset_monotonic_to_system_state: false)
-    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, reset_monotonic_to_system_state)
+  def sample_after_gc(reset_monotonic_to_system_state: false, allow_exception: false)
+    described_class::Testing._native_sample_after_gc(
+      cpu_and_wall_time_collector,
+      reset_monotonic_to_system_state,
+      allow_exception,
+    )
   end
 
   def sample_allocation(weight:, new_object: Object.new)
@@ -584,6 +588,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             false
           end
 
+          # When opentelemetry-sdk is on the Gemfile, but not opentelemetry-exporter-otlp
           context "when trace comes from otel sdk", if: otel_sdk_available? && !otel_otlp_exporter_available? do
             let(:otel_tracer) do
               require "datadog/opentelemetry"
@@ -616,6 +621,31 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample
 
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
+            end
+
+            describe 'accessing the current span' do
+              before do
+                allow(Datadog.logger).to receive(:error)
+
+                # initialize otel context reading
+                sample
+                # clear samples
+                recorder.serialize!
+              end
+
+              it 'does not try to hash the CURRENT_SPAN_KEY' do
+                inner_check_ran = false
+
+                otel_tracer.in_span("profiler.test") do |_span|
+                  expect(OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY)).to_not receive(:hash)
+
+                  sample_allocation(weight: 1)
+
+                  inner_check_ran = true
+                end
+
+                expect(inner_check_ran).to be true
+              end
             end
 
             context "when there are multiple otel spans nested" do
@@ -717,6 +747,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             end
           end
 
+          # When opentelemetry-sdk AND opentelemetry-exporter-otlp are on the Gemfile
           context(
             "when trace comes from otel sdk and the ddtrace otel support is not loaded",
             if: otel_sdk_available? && otel_otlp_exporter_available?
@@ -763,6 +794,110 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
               sample
 
               expect(t1_sample.labels).to_not include("trace endpoint": anything)
+            end
+
+            describe 'reading CURRENT_SPAN_KEY into otel_current_span_key' do
+              let!(:ran_log) { [] }
+
+              let(:setup_failure) do
+                log = ran_log
+
+                stub_const(
+                  "OpenTelemetry::Trace",
+                  Module.new do
+                    define_singleton_method(:const_missing) do |_value|
+                      log << :ran_code
+                      raise "Simulated failure"
+                    end
+                  end
+                )
+              end
+
+              context 'when an exception is raised' do
+                before { setup_failure }
+                after { expect(ran_log).to eq [:ran_code] }
+
+                it 'does not leave the exception pending' do
+                  sample(allow_exception: true)
+
+                  expect($!).to be nil
+                end
+
+                it 'omits the "local root span id" and "span id" labels in the sample' do
+                  sample(allow_exception: true)
+
+                  expect(t1_sample.labels.keys).to_not include(:"local root span id", :"span id")
+                end
+              end
+
+              context 'during allocation sampling' do
+                it 'does not try to read the CURRENT_SPAN_KEY' do
+                  allow(OpenTelemetry.logger).to receive(:error)
+
+                  otel_tracer.in_span("profiler.test") do |_span|
+                    setup_failure
+
+                    sample_allocation(weight: 1)
+                  end
+
+                  expect(ran_log).to eq []
+                end
+              end
+            end
+
+            describe 'accessing the current span' do
+              before do
+                allow(OpenTelemetry.logger).to receive(:error)
+
+                # initialize otel context reading
+                sample
+                # clear samples
+                recorder.serialize!
+              end
+
+              it 'does not try to hash the CURRENT_SPAN_KEY' do
+                inner_check_ran = false
+
+                otel_tracer.in_span("profiler.test") do |_span|
+                  expect(OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY)).to_not receive(:hash)
+
+                  sample_allocation(weight: 1)
+
+                  inner_check_ran = true
+                end
+
+                expect(inner_check_ran).to be true
+              end
+
+              context 'when there are more than MAX_SAFE_LOOKUP_SIZE entries in the otel context' do
+                let(:max_safe_lookup_size) { 16 } # Value of MAX_SAFE_LOOKUP_SIZE in C code
+
+                it 'does not try to look up the context' do
+                  otel_tracer.in_span("profiler.test") do |_span|
+                    current_size = OpenTelemetry::Context.current.instance_variable_get(:@entries).size
+
+                    OpenTelemetry::Context.with_values(
+                      Array.new((max_safe_lookup_size + 1 - current_size)) { |it| ["key_#{it}", it] }.to_h
+                    ) do
+                      sample_allocation(weight: 12)
+                    end
+
+                    OpenTelemetry::Context.with_values(
+                      Array.new((max_safe_lookup_size - current_size)) { |it| ["key_#{it}", it] }.to_h
+                    ) do
+                      sample_allocation(weight: 34)
+                    end
+                  end
+
+                  result = samples_for_thread(samples, Thread.current)
+
+                  expect(result.size).to be 2
+                  expect(result.find { |it| it.values.fetch(:"alloc-samples") == 12 }.labels.keys)
+                    .to_not include(:"local root span id", :"span id")
+                  expect(result.find { |it| it.values.fetch(:"alloc-samples") == 34 }.labels.keys)
+                    .to include(:"local root span id", :"span id")
+                end
+              end
             end
 
             context 'when otel_context_enabled is false' do
@@ -1063,7 +1198,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
               first_sample, second_sample = samples_for_thread(samples, t1, expected_size: 2)
 
-              expect(first_sample.values.fetch(:"cpu-time")).to be 12345
+              expect(first_sample.values.fetch(:"cpu-time")).to be >= 12345
               expect(second_sample.values.fetch(:"cpu-time")).to be 0
             end
           end
@@ -1384,7 +1519,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
     context "when called before on_gc_start/on_gc_finish" do
       it do
-        expect { sample_after_gc }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+        expect { sample_after_gc(allow_exception: true) }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
       end
     end
 
@@ -1402,7 +1537,8 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
         it do
           sample_after_gc
 
-          expect { sample_after_gc }.to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
+          expect { sample_after_gc(allow_exception: true) }
+            .to raise_error(RuntimeError, /Unexpected call to sample_after_gc/)
         end
       end
 

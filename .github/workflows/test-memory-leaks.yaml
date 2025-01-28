@@ -7,18 +7,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: 3.4.0-preview2 # TODO: Use stable version once 3.4 is out
+          ruby-version: 3.4.1
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
-          cache-version: v1 # bump this to invalidate cache
+          cache-version: v2 # bump this to invalidate cache
       - run: sudo apt-get update && (sudo apt-get install -y valgrind || sleep 5 && sudo apt-get install -y valgrind) && valgrind --version
       - run: gem update --system 3.5.23 # TODO: This is a workaround for a buggy rubygems in 3.4.0-preview2; remove once stable version 3.4 is out
       - run: bundle exec rake compile spec:profiling:memcheck
   test-asan:
-    # Temporarily ruby-asan builds changes
-    # from: `ruby 3.4.0dev (2024-11-07T14:35:19Z :detached: fca07d73e3) +PRISM [x86_64-linux]`
-    # To:   `ruby 3.4.0dev (2024-11-11T18:38:40Z :detached: 8672e88cd2) +PRISM [x86_64-linux]`
-    if: false
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -27,5 +23,5 @@ jobs:
           ruby-version: asan
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
-          cache-version: v1 # bump this to invalidate cache
+          cache-version: v2 # bump this to invalidate cache
       - run: env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:main

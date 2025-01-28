@@ -127,6 +127,19 @@ RSpec.describe Datadog::Profiling::HttpTransport do
           http_transport
         end
       end
+
+      context "when hostname is an ipv6 address" do
+        let(:hostname) { "1234:1234::1" }
+
+        it "provides the correct ipv6 address-safe url to the exporter" do
+          expect(described_class)
+            .to receive(:_native_validate_exporter)
+            .with([:agent, "http://[1234:1234::1]:12345/"])
+            .and_return([:ok, nil])
+
+          http_transport
+        end
+      end
     end
 
     context "when additionally site and api_key are provided" do

@@ -12,18 +12,18 @@ module Datadog
             ].freeze
             private_constant :ADDRESSES
 
-            def self.publish(op, data)
+            def self.publish(engine, data)
               _request, route_params = data
 
               catch(:block) do
-                op.publish('sinatra.request.route_params', route_params.params)
+                engine.publish('sinatra.request.route_params', route_params.params)
 
                 nil
               end
             end
 
-            def self.subscribe(op, waf_context)
-              op.subscribe(*ADDRESSES) do |*values|
+            def self.subscribe(engine, context)
+              engine.subscribe(*ADDRESSES) do |*values|
                 Datadog.logger.debug { "reacted to #{ADDRESSES.inspect}: #{values.inspect}" }
                 path_params = values[0]
 
@@ -32,9 +32,9 @@ module Datadog
                 }
 
                 waf_timeout = Datadog.configuration.appsec.waf_timeout
-                result = waf_context.run(persistent_data, {}, waf_timeout)
+                result = context.run_waf(persistent_data, {}, waf_timeout)
 
-                next if result.status != :match
+                next unless result.match?
 
                 yield result
                 throw(:block, true) unless result.actions.empty?

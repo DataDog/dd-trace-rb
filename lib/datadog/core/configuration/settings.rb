@@ -863,6 +863,16 @@ module Datadog
             o.type :float
             o.default 1.0
           end
+
+          # Enable log collection for telemetry. Log collection only works when telemetry is enabled and
+          # logs are enabled.
+          # @default `DD_TELEMETRY_LOG_COLLECTION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :log_collection_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_LOG_COLLECTION
+            o.default true
+          end
         end
 
         # Remote configuration

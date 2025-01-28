@@ -27,6 +27,7 @@ RSpec.describe 'gem release process' do
            |ext/.*/.clang-format
            |Appraisals
            |CONTRIBUTING.md
+           |SECURITY.md
            |Gemfile
            |(ruby|jruby)-\d+.\d+.gemfile
            |Rakefile
@@ -41,6 +42,7 @@ RSpec.describe 'gem release process' do
            |static-analysis\.datadog\.yml
            |\.standard\.yml
            |\.standard_todo\.yml
+           |.rspec-local.example
           )
           $
         }x
@@ -101,13 +103,15 @@ RSpec.describe 'gem release process' do
         # check `install_datadog_deps.rb` for details
         expect(gem_version_mapping.keys).to contain_exactly(
           # This list MUST NOT derive from the `gemspec.dependencies`,
-          # since it is used to alarm when dependencies  modified.
+          # since it is used to alarm when dependencies are modified.
+          # ADD NEW DEPENDENCIES HERE
           'datadog',
           'datadog-ruby_core_source',
           'ffi',
           'libdatadog',
           'libddwaf',
           'msgpack',
+          'logger',
         )
       end
     end

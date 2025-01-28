@@ -1,4 +1,5 @@
 require 'graphql'
+require 'ostruct'
 
 require_relative 'test_helpers'
 

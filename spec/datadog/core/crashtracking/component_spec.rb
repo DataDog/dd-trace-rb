@@ -9,7 +9,9 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
   describe '.build' do
     let(:settings) { Datadog::Core::Configuration::Settings.new }
-    let(:agent_settings) { double('agent_settings') }
+    let(:agent_settings) do
+      instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings)
+    end
     let(:tags) { { 'tag1' => 'value1' } }
     let(:agent_base_url) { 'agent_base_url' }
     let(:ld_library_path) { 'ld_library_path' }
@@ -19,8 +21,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       it 'creates a new instance of Component and starts it' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -42,32 +43,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       end
     end
 
-    context 'when missing `agent_base_url`' do
-      let(:agent_base_url) { nil }
-
-      it 'returns nil' do
-        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
-          .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
-        expect(::Libdatadog).to receive(:ld_library_path)
-          .and_return(ld_library_path)
-        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
-          .and_return(path_to_crashtracking_receiver_binary)
-        expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
-
-        expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
-      end
-    end
-
     context 'when missing `ld_library_path`' do
       let(:ld_library_path) { nil }
 
       it 'returns nil' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -84,8 +66,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       it 'returns nil' do
         expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
           .and_return(tags)
-        expect(Datadog::Core::Crashtracking::AgentBaseUrl).to receive(:resolve).with(agent_settings)
-          .and_return(agent_base_url)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
         expect(::Libdatadog).to receive(:ld_library_path)
           .and_return(ld_library_path)
         expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
@@ -93,6 +74,26 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         expect(logger).to receive(:warn).with(/cannot enable crash tracking/)
 
         expect(described_class.build(settings, agent_settings, logger: logger)).to be_nil
+      end
+    end
+
+    context 'when agent_base_url is invalid (e.g. hostname is an IPv6 address)' do
+      let(:agent_base_url) { 'http://1234:1234::1/' }
+
+      it 'returns an instance of Component that failed to start' do
+        expect(Datadog::Core::Crashtracking::TagBuilder).to receive(:call).with(settings)
+          .and_return(tags)
+        expect(agent_settings).to receive(:url).and_return(agent_base_url)
+        expect(::Libdatadog).to receive(:ld_library_path)
+          .and_return(ld_library_path)
+        expect(::Libdatadog).to receive(:path_to_crashtracking_receiver_binary)
+          .and_return(path_to_crashtracking_receiver_binary)
+
+        # Diagnostics is only provided via the error report to logger,
+        # there is no indication in the object state that it failed to start.
+        expect(logger).to receive(:error).with(/Failed to start crash tracking/)
+
+        expect(described_class.build(settings, agent_settings, logger: logger)).to be_a(described_class)
       end
     end
   end
@@ -291,6 +292,35 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           expect(crash_report_message[:metadata]).to_not be_empty
           expect(crash_report_message[:files][:'/proc/self/maps']).to_not be_empty
           expect(crash_report_message[:os_info]).to_not be_empty
+        end
+      end
+
+      context 'when forked' do
+        # This tests that the callback registered with `Utils::AtForkMonkeyPatch.at_fork`
+        # does not contain a stale instance of the crashtracker component.
+        it 'ensures the latest configuration applied' do
+          allow(described_class).to receive(:_native_start_or_update_on_fork)
+
+          # `Datadog.configure` to trigger crashtracking component reinstantiation,
+          #  a callback is first registered with `Utils::AtForkMonkeyPatch.at_fork`,
+          #  but not with the second `Datadog.configure` invokation.
+          Datadog.configure do |c|
+            c.agent.host = 'example.com'
+          end
+
+          Datadog.configure do |c|
+            c.agent.host = 'google.com'
+            c.agent.port = 12345
+          end
+
+          expect_in_fork do
+            expect(described_class).to have_received(:_native_start_or_update_on_fork).with(
+              hash_including(
+                action: :update_on_fork,
+                agent_base_url: 'http://google.com:12345/',
+              )
+            )
+          end
         end
       end
     end

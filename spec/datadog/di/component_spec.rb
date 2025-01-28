@@ -13,7 +13,11 @@ RSpec.describe Datadog::DI::Component do
     end
 
     let(:agent_settings) do
-      double('agent settings')
+      instance_double_agent_settings
+    end
+
+    let(:logger) do
+      instance_double(Logger)
     end
 
     context 'when dynamic instrumentation is enabled' do
@@ -32,7 +36,7 @@ RSpec.describe Datadog::DI::Component do
         end
 
         it 'returns a Datadog::DI::Component instance' do
-          component = described_class.build(settings, agent_settings)
+          component = described_class.build(settings, agent_settings, logger)
           expect(component).to be_a(described_class)
           component.shutdown!
         end
@@ -44,7 +48,8 @@ RSpec.describe Datadog::DI::Component do
         end
 
         it 'returns nil' do
-          component = described_class.build(settings, agent_settings)
+          expect(logger).to receive(:warn).with(/dynamic instrumentation could not be enabled because Remote Configuration Management is not available/)
+          component = described_class.build(settings, agent_settings, logger)
           expect(component).to be nil
         end
       end
@@ -54,7 +59,7 @@ RSpec.describe Datadog::DI::Component do
       let(:dynamic_instrumentation_enabled) { false }
 
       it 'returns nil' do
-        component = described_class.build(settings, agent_settings)
+        component = described_class.build(settings, agent_settings, logger)
         expect(component).to be nil
       end
     end

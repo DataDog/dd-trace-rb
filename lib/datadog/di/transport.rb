@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'ostruct'
 require_relative 'error'
+require_relative '../core/transport/http/adapters/net'
 
 module Datadog
   module DI
@@ -60,9 +60,7 @@ module Datadog
       attr_reader :client
 
       def send_request(desc, **options)
-        # steep:ignore:start
-        env = OpenStruct.new(**options)
-        # steep:ignore:end
+        env = Core::Transport::HTTP::Env.new(nil, options)
         response = client.post(env)
         unless response.ok?
           raise Error::AgentCommunicationError, "#{desc} failed: #{response.code}: #{response.payload}"

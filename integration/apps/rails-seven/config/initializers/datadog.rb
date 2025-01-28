@@ -1,6 +1,5 @@
 require 'datadog/statsd'
 require 'datadog'
-require 'datadog/appsec'
 
 Datadog.configure do |c|
   c.env = 'integration'
@@ -25,5 +24,11 @@ Datadog.configure do |c|
   if Datadog::DemoEnv.feature?('profiling') && Datadog::DemoEnv.feature?('pprof_to_file')
     # Reconfigure transport to write pprof to file
     c.profiling.exporter.transport = Datadog::DemoEnv.profiler_file_transport
+  end
+
+  if c.respond_to?(:dynamic_instrumentation)
+    c.remote.enabled = true
+    c.dynamic_instrumentation.enabled = true
+    c.dynamic_instrumentation.internal.development = true
   end
 end

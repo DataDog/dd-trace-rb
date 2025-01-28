@@ -3,7 +3,7 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
-require_relative 'processor/actions'
+require_relative 'actions_handler'
 
 module Datadog
   module AppSec
@@ -24,7 +24,7 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          new(processor: processor)
+          new(processor, telemetry)
         end
 
         private
@@ -52,10 +52,6 @@ module Datadog
           )
           return nil unless rules
 
-          actions = rules['actions']
-
-          AppSec::Processor::Actions.merge(actions) if actions
-
           data = AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.appsec.ip_denylist,
             user_id_denylist: settings.appsec.user_id_denylist,
@@ -77,23 +73,26 @@ module Datadog
         end
       end
 
-      attr_reader :processor
+      attr_reader :processor, :telemetry
 
-      def initialize(processor:)
+      def initialize(processor, telemetry)
         @processor = processor
+        @telemetry = telemetry
+
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:, actions:, telemetry:)
+      def reconfigure(ruleset:, telemetry:)
         @mutex.synchronize do
-          AppSec::Processor::Actions.merge(actions)
+          new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
-          new = Processor.new(ruleset: ruleset, telemetry: telemetry)
+          if new_processor && new_processor.ready?
+            old_processor = @processor
 
-          if new && new.ready?
-            old = @processor
-            @processor = new
-            old.finalize if old
+            @telemetry = telemetry
+            @processor = new_processor
+
+            old_processor.finalize if old_processor
           end
         end
       end

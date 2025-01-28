@@ -35,6 +35,8 @@ module Datadog
 
         private
 
+        def deduplicate_logs: (Array[Event::Base] events) -> Array[Event::Base]
+
         def heartbeat!: () -> void
 
         def started!: () -> void

@@ -170,11 +170,6 @@ $defs << "-DNO_THREAD_TID" if RUBY_VERSION < "3.1"
 # On older Rubies, there was no jit_return member on the rb_control_frame_t struct
 $defs << "-DNO_JIT_RETURN" if RUBY_VERSION < "3.1"
 
-# On older Rubies, rb_gc_force_recycle allowed to free objects in a way that
-# would be invisible to free tracepoints, finalizers and without cleaning
-# obj_to_id_tbl mappings.
-$defs << "-DHAVE_WORKING_RB_GC_FORCE_RECYCLE" if RUBY_VERSION < "3.1"
-
 # On older Rubies, there are no Ractors
 $defs << "-DNO_RACTORS" if RUBY_VERSION < "3"
 
@@ -183,9 +178,6 @@ $defs << "-DNO_IMEMO_NAME" if RUBY_VERSION < "3"
 
 # On older Rubies, objects would not move
 $defs << "-DNO_T_MOVED" if RUBY_VERSION < "2.7"
-
-# On older Rubies, there was no RUBY_SEEN_OBJ_ID flag
-$defs << "-DNO_SEEN_OBJ_ID_FLAG" if RUBY_VERSION < "2.7"
 
 # On older Rubies, rb_global_vm_lock_struct did not include the owner field
 $defs << "-DNO_GVL_OWNER" if RUBY_VERSION < "2.6"

@@ -105,14 +105,16 @@ module Datadog
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
-            optional_tracer: @tracer
+            optional_tracer: @tracer,
+            logger: @logger,
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
-          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, telemetry: telemetry)
+          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           self.class.configure_tracing(settings)
         end

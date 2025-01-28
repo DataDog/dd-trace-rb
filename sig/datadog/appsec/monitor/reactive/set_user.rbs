@@ -5,9 +5,9 @@ module Datadog
         module SetUser
           ADDRESSES: ::Array[::String]
 
-          def self.publish: (untyped op, Datadog::AppSec::Instrumentation::Gateway::User user) -> untyped
+          def self.publish: (AppSec::Reactive::Engine engine, AppSec::Instrumentation::Gateway::User user) -> untyped
 
-          def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
+          def self.subscribe: (AppSec::Reactive::Engine engine, untyped waf_context) { (untyped) -> untyped } -> untyped
         end
       end
     end

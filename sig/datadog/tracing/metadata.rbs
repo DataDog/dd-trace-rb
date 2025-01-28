@@ -1,7 +1,9 @@
 module Datadog
   module Tracing
     module Metadata
-      def self.included: (untyped base) -> untyped
+      include Metadata::Tagging
+      include Metadata::Errors
+      prepend Metadata::Analytics
     end
   end
 end

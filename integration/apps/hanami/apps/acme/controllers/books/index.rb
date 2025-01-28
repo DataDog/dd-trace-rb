@@ -1,3 +1,5 @@
+require 'ostruct'
+
 module Acme
   module Controllers
     module Books

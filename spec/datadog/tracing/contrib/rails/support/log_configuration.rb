@@ -1,3 +1,4 @@
+require 'ostruct'
 require_relative 'backport'
 
 RSpec.shared_context 'Rails log configuration' do

@@ -6,9 +6,9 @@ module Datadog
           module Routed
             ADDRESSES: ::Array[::String]
 
-            def self.publish: (untyped op, ::Array[Datadog::AppSec::Instrumentation::Gateway::Argument] data) -> untyped
+            def self.publish: (AppSec::Reactive::Engine engine, ::Array[AppSec::Instrumentation::Gateway::Argument] data) -> untyped
 
-            def self.subscribe: (untyped op, untyped waf_context) { (untyped) -> untyped } -> untyped
+            def self.subscribe: (AppSec::Reactive::Engine engine, untyped waf_context) { (untyped) -> untyped } -> untyped
           end
         end
       end

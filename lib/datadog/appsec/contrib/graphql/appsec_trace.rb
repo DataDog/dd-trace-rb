@@ -16,14 +16,8 @@ module Datadog
 
             gateway_multiplex = Gateway::Multiplex.new(multiplex)
 
-            multiplex_return, multiplex_response = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
+            multiplex_return, _gateway_multiplex = Instrumentation.gateway.push('graphql.multiplex', gateway_multiplex) do
               super
-            end
-
-            # Returns an error * the number of queries so that the entire multiplex is blocked
-            if multiplex_response
-              blocked_event = multiplex_response.find { |action, _options| action == :block }
-              multiplex_return = AppSec::Response.graphql_response(gateway_multiplex) if blocked_event
             end
 
             multiplex_return
