@@ -53,7 +53,7 @@ module Datadog
                     payload = probe_notification_builder.build_received(probe)
                     probe_notifier_worker = component.probe_notifier_worker
                     probe_notifier_worker.add_status(payload)
-                    component.logger.debug { "di: received probe from RC: #{probe.type} #{probe.location}" }
+                    component.logger.debug { "di: received probe from RC: #{probe.type} at #{probe.location}" }
 
                     begin
                       # TODO test exception capture
