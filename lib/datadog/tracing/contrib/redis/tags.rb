@@ -65,6 +65,13 @@ module Datadog
                   Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_SHARD_INDEX]
                 )
               end
+
+              if !Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_COMPANY_NAME].nil?
+                span.set_tag(
+                  Contrib::Redis::Ext::METRIC_COMPANY_NAME,
+                  Thread.current[Contrib::Redis::Ext::THREAD_GLOBAL_COMPANY_NAME]
+                )
+              end
               ### END BRAZE MODIFICATION
 
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
