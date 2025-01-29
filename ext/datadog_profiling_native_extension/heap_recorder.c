@@ -110,7 +110,7 @@ struct heap_recorder {
   #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
   ddog_prof_Location *reusable_locations;
 
-  #define REUSABLE_FRAME_DETAILS (2 * MAX_FRAMES_LIMIT) // because it'll be used for both function names AND file names)
+  #define REUSABLE_FRAME_DETAILS_SIZE (2 * MAX_FRAMES_LIMIT) // because it'll be used for both function names AND file names)
   ddog_prof_ManagedStringId *reusable_ids;
   ddog_CharSlice *reusable_char_slices;
 
@@ -180,8 +180,8 @@ heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) 
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
   recorder->reusable_locations = ruby_xcalloc(REUSABLE_LOCATIONS_SIZE, sizeof(ddog_prof_Location));
-  recorder->reusable_ids = ruby_xcalloc(REUSABLE_FRAME_DETAILS, sizeof(ddog_prof_ManagedStringId));
-  recorder->reusable_char_slices = ruby_xcalloc(REUSABLE_FRAME_DETAILS, sizeof(ddog_CharSlice));
+  recorder->reusable_ids = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_prof_ManagedStringId));
+  recorder->reusable_char_slices = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_CharSlice));
   recorder->active_recording = NULL;
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
@@ -921,7 +921,7 @@ void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
 
 void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
   if (heap_recorder == NULL) rb_raise(rb_eArgError, "heap profiling must be enabled");
-  if (times > MAX_FRAMES_LIMIT) rb_raise(rb_eArgError, "times cannot be > than MAX_FRAMES_LIMIT");
+  if (times > REUSABLE_FRAME_DETAILS_SIZE) rb_raise(rb_eArgError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
 
   if (use_all) {
     ddog_CharSlice *strings = heap_recorder->reusable_char_slices;
