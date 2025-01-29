@@ -24,7 +24,7 @@ jobs:
           ruby-version: "3.3"
 
       - name: Update latest
-        run: bundle exec ruby .github/scripts/find_gem_version_bounds.rb
+        run: bundle exec ruby .github/scripts/update_supported_versions.rb
 
       - run: git diff
 
