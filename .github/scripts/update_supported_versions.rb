@@ -6,7 +6,6 @@ require 'bundler'
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'datadog'
-require 'logger'
 
 class GemfileProcessor
   SPECIAL_CASES = {
@@ -15,13 +14,12 @@ class GemfileProcessor
   EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
 
   def initialize(directory: 'gemfiles/', contrib_dir: 'lib/datadog/tracing/contrib/')
-    logger = Logger.new($stdout)
     unless Dir.exist?(directory)
-      logger.warn("Directory #{directory} does not exist")
+      warn("Directory #{directory} does not exist")
     end
   
     unless Dir.exist?(contrib_dir)
-      logger.warn("Directory #{contrib_dir} does not exist")
+      warn("Directory #{contrib_dir} does not exist")
     end  
     @directory = directory
     @contrib_dir = contrib_dir
