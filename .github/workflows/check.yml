@@ -2,24 +2,43 @@ name: Check
 on:
   push:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  lint:
-    runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+  build:
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
       - uses: actions/checkout@v4
+      - run: bundle lock
+      - uses: actions/upload-artifact@v4
+        id: lockfile
+        with:
+          name: 'check-lockfile-${{ github.sha }}-${{ github.run_id }}'
+          path: '*.lock'
+          if-no-files-found: error
+
+  lint:
+    needs: ['build']
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - name: Install dependencies
         run: bundle install
       - run: bundle exec rake rubocop standard
 
   check:
     name: Check types
-    runs-on: ubuntu-22.04
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+    needs: ['build']
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
       - name: Install dependencies
         run: bundle install
       - name: Check for stale signature files
@@ -30,3 +49,47 @@ jobs:
         run: bundle exec rake steep:check
       - name: Record stats
         run: bundle exec rake steep:stats[md] >> $GITHUB_STEP_SUMMARY
+
+  # Dogfooding Datadog SBOM Analysis
+  dd-software-composition-analysis:
+    needs: ['build']
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    name: Datadog SBOM Generation and Upload
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+      - name: Check imported libraries are secure and compliant
+        id: datadog-software-composition-analysis
+        uses: DataDog/datadog-sca-github-action@main
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com
+
+  # Dogfooding Datadog Static Analysis
+  dd-static-analysis:
+    runs-on: ubuntu-24.04
+    name: Datadog Static Analyzer
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check code meets quality and security standards
+        id: datadog-static-analysis
+        uses: DataDog/datadog-static-analyzer-github-action@v1
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com
+          cpu_count: 2
+
+  check-result:
+    needs:
+      - 'check'
+      - 'lint'
+      - 'dd-software-composition-analysis'
+      - 'dd-static-analysis'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Done"
