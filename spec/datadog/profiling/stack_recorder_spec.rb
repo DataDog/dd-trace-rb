@@ -426,17 +426,20 @@ RSpec.describe Datadog::Profiling::StackRecorder do
           ._native_sample(Thread.current, stack_recorder, metric_values, labels, numeric_labels)
       end
 
+      def introduce_distinct_stacktraces(i, obj)
+        if i.even?
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        else # rubocop:disable Lint/DuplicateBranch
+          sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
+        end
+      end
+
       before do
         allocations = [a_string, an_array, "a fearsome interpolated string: #{sample_rate}", (-10..-1).to_a, a_hash,
           {"z" => -1, "y" => "-2", "x" => false}, Object.new]
         @num_allocations = 0
         allocations.each_with_index do |obj, i|
-          # Sample allocations with 2 distinct stacktraces
-          if i.even?
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          else # rubocop:disable Lint/DuplicateBranch
-            sample_allocation(obj) # standard:disable Style/IdenticalConditionalBranches
-          end
+          introduce_distinct_stacktraces(i, obj)
           @num_allocations += 1
           GC.start # Force each allocation to be done in its own GC epoch for interesting GC age labels
         end
@@ -650,6 +653,23 @@ RSpec.describe Datadog::Profiling::StackRecorder do
               heap_profile_build_time_ns: be > 0,
             )
           )
+        end
+
+        it "records stack traces that match the allocations stack traces" do
+          expect(samples.map(&:locations).uniq.size).to be 2
+        end
+
+        it "records correct stack traces" do
+          unique_heap_stacks = heap_samples.map(&:locations).uniq
+
+          expect(unique_heap_stacks.size).to be 2
+
+          stack1, stack2 = unique_heap_stacks
+          unique_line1 = stack1.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+          unique_line2 = stack2.find { |it| it.base_label == 'introduce_distinct_stacktraces' }
+
+          expect(stack1.reject { |it| it == unique_line1 }).to eq(stack2.reject { |it| it == unique_line2 })
+          expect(unique_line1.lineno).to be_within(2).of(unique_line2.lineno)
         end
 
         context "with custom heap sample rate configuration" do
