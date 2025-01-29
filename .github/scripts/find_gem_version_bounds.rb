@@ -6,6 +6,7 @@ require 'bundler'
 lib = File.expand_path('lib', __dir__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 require 'datadog'
+require 'logger'
 
 class GemfileProcessor
   SPECIAL_CASES = {
@@ -14,6 +15,14 @@ class GemfileProcessor
   EXCLUDED_INTEGRATIONS = ["configuration", "propagation", "utils"].freeze
 
   def initialize(directory: 'gemfiles/', contrib_dir: 'lib/datadog/tracing/contrib/')
+    logger = Logger.new($stdout)
+    unless Dir.exist?(directory)
+      logger.warn("Directory #{directory} does not exist")
+    end
+  
+    unless Dir.exist?(contrib_dir)
+      logger.warn("Directory #{contrib_dir} does not exist")
+    end  
     @directory = directory
     @contrib_dir = contrib_dir
     @min_gems = { 'ruby' => {}, 'jruby' => {} }
@@ -33,6 +42,7 @@ class GemfileProcessor
 
   def parse_gemfiles(directory = 'gemfiles/')
     gemfiles = Dir.glob(File.join(@directory, '*'))
+    # Dir.exist?(gemfiles) # validate directory exists
     gemfiles.each do |gemfile_name|
       runtime = File.basename(gemfile_name).split('_').first # ruby or jruby
       next unless %w[ruby jruby].include?(runtime)
