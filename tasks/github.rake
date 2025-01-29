@@ -151,7 +151,7 @@ namespace :github do
               'run' => 'bundle exec rake github:run_batch_tests'
             },
             {
-              'if' => "env.RUNNER_DEBUG == '1' && failure()",
+              'if' => "${{ env.RUNNER_DEBUG == '1' && failure() }}",
               'uses' => 'mxschmitt/action-tmate@v3',
               'with' => {
                 'limit-access-to-actor' => true,
