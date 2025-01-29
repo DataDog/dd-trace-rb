@@ -30,7 +30,8 @@ module Datadog
 
               Tracing.trace(Ext::SPAN_MESSAGE_CONSUME) do |span|
                 span.set_tag(Ext::TAG_OFFSET, message.metadata.offset)
-                span.set_tag(Ext::TAG_TOPIC, message.topic)
+                span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, message.topic)
+                span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
 
                 span.resource = message.topic
 

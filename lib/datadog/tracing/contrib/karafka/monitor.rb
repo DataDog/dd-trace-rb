@@ -49,8 +49,9 @@ module Datadog
                 span.set_tag(Ext::TAG_MESSAGE_COUNT, job.messages.count)
                 span.set_tag(Ext::TAG_PARTITION, job.executor.partition)
                 span.set_tag(Ext::TAG_OFFSET, job.messages.first.metadata.offset)
-                span.set_tag(Ext::TAG_TOPIC, job.executor.topic.name)
                 span.set_tag(Ext::TAG_CONSUMER, consumer)
+                span.set_tag(Contrib::Ext::Messaging::TAG_DESTINATION, job.executor.topic.name)
+                span.set_tag(Contrib::Ext::Messaging::TAG_SYSTEM, Ext::TAG_SYSTEM)
               end
 
               super

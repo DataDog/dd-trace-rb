@@ -48,7 +48,8 @@ RSpec.describe 'Karafka patcher' do
       expect(spans).to have(1).items
       expect(span).to_not be nil
       expect(span.get_tag('kafka.offset')).to eq 412
-      expect(span.get_tag('kafka.topic')).to eq 'topic_a'
+      expect(span.get_tag('messaging.destination')).to eq 'topic_a'
+      expect(span.get_tag('messaging.system')).to eq 'kafka'
       expect(span).to_not have_error
       expect(span.resource).to eq 'topic_a'
     end
@@ -73,9 +74,10 @@ RSpec.describe 'Karafka patcher' do
       expect(spans).to have(1).items
       expect(span).to_not be nil
       expect(span.get_tag('kafka.offset')).to eq 412
-      expect(span.get_tag('kafka.topic')).to eq 'topic_a'
       expect(span.get_tag('kafka.partition')).to eq 0
       expect(span.get_tag('kafka.message_count')).to eq 1
+      expect(span.get_tag('messaging.destination')).to eq 'topic_a'
+      expect(span.get_tag('messaging.system')).to eq 'kafka'
       expect(span.resource).to eq 'ABC#consume'
     end
   end

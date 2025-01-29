@@ -17,6 +17,7 @@ module Datadog
           TAG_OFFSET_LAG = 'kafka.offset_lag'
           TAG_MESSAGE_COUNT = 'kafka.message_count'
           TAG_MESSAGE_KEY = 'kafka.message_key'
+          TAG_SYSTEM = 'kafka'
 
           TAG_OPERATION_PROCESS_BATCH = 'consumer.process_batch'
         end
