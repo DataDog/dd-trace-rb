@@ -46,7 +46,7 @@ module Datadog
 
       def start
         return if @thread && @pid == Process.pid
-        logger.debug("di: starting probe notifier")
+        logger.debug("di: starting probe notifier: pid #{$$}")
         @thread = Thread.new do
           loop do
             # TODO If stop is requested, we stop immediately without
