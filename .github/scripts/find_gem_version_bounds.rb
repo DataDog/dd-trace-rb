@@ -106,10 +106,10 @@ class GemfileProcessor
   def include_hardcoded_versions
       # `httpx` is maintained externally
     @integration_json_mapping['httpx'] = [
-      '0.11',         # Min version Ruby
-      'infinity',     # Max version Ruby
-      '0.11',         # Min version JRuby
-      'infinity'      # Max version JRuby
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version Ruby
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',     # Max version Ruby
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',         # Min version JRuby
+      '[3rd-party support](https://honeyryderchuck.gitlab.io/httpx/)',      # Max version JRuby
     ]
 
     # `makara` is part of `activerecord`
@@ -141,15 +141,27 @@ class GemfileProcessor
       For a list of available integrations, and their supported version ranges, refer to the following:
       -->
     COMMENT
-    header = "| Integration              | Ruby Min | Ruby Max | JRuby Min | JRuby Max |\n"
-    separator = "|--------------------------|----------|----------|-----------|-----------|\n"
     column_widths = {
       integration: 24,
-      ruby_min: 8,
-      ruby_max: 8,
-      jruby_min: 9,
-      jruby_max: 9
+      ruby_min: 19,
+      ruby_max: 19,
+      jruby_min: 19,
+      jruby_max: 19
     }
+    columns = {
+      integration: "Integration",
+      ruby_min: "Ruby Min",
+      ruby_max: "Ruby Max",
+      jruby_min: "JRuby Min",
+      jruby_max: "JRuby Max"
+    }
+
+    adjusted_widths = columns.transform_values.with_index do |title, index|
+      [title.length, column_widths.values[index]].max
+    end
+
+    header = "| " + columns.map { |key, title| title.ljust(adjusted_widths[key]) }.join(" | ") + " |"
+    separator = "|-" + adjusted_widths.map { |_, width| "-" * width }.join("-|-") + "-|"
     rows = @integration_json_mapping
           .sort_by { |name, _versions| name.downcase }
           .map do |name, versions|
