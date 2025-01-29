@@ -29,7 +29,8 @@ typedef struct {
   int32_t line;
 } heap_frame;
 
-// A compact representation of a stacktrace for a heap allocation. Used to dedup
+// A compact representation of a stacktrace for a heap allocation.
+// Used to dedup
 // heap allocation stacktraces across multiple objects sharing the same allocation location.
 typedef struct {
   // How many objects are currently tracked in object_records recorder for this heap record.

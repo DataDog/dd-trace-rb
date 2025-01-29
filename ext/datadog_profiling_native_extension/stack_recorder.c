@@ -591,6 +591,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   // It's now OK to again do things that can trigger exceptions
 
+  // @ivoanjo: Maybe this could be done without the GVL being held?
   ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
     rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
