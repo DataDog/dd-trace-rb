@@ -13,9 +13,12 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
+        attr_reader :logger
         attr_reader :client, :healthy
 
-        def initialize(settings, capabilities, agent_settings)
+        def initialize(settings, capabilities, agent_settings, logger:)
+          @logger = logger
+
           transport_options = {}
           transport_options[:agent_settings] = agent_settings if agent_settings
 
@@ -26,9 +29,9 @@ module Datadog
 
           @client = Client.new(transport_v7, capabilities)
           @healthy = false
-          Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
+          logger.debug { "new remote configuration client: #{@client.id}" }
 
-          @worker = Worker.new(interval: settings.remote.poll_interval_seconds) do
+          @worker = Worker.new(interval: settings.remote.poll_interval_seconds, logger: logger) do
             unless @healthy || negotiation.endpoint?('/v0.7/config')
               @barrier.lift
 
@@ -40,7 +43,7 @@ module Datadog
               @healthy ||= true
             rescue Client::SyncError => e
               # Transient errors due to network or agent. Logged the error but not via telemetry
-              Datadog.logger.error do
+              logger.error do
                 "remote worker client sync error: #{e.message} location: #{Array(e.backtrace).first}. skipping sync"
               end
             rescue StandardError => e
@@ -50,7 +53,7 @@ module Datadog
               negotiation = Negotiation.new(settings, agent_settings)
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
-              Datadog.logger.error do
+              logger.error do
                 "remote worker error: #{e.class.name} #{e.message} location: #{Array(e.backtrace).first}. "\
                 'reseting client state'
               end
@@ -58,7 +61,7 @@ module Datadog
               # client state is unknown, state might be corrupted
               @client = Client.new(transport_v7, capabilities)
               @healthy = false
-              Datadog.logger.debug { "new remote configuration client: #{@client.id}" }
+              logger.debug { "new remote configuration client: #{@client.id}" }
 
               # TODO: bail out if too many errors?
             end
@@ -152,10 +155,10 @@ module Datadog
           #
           # Those checks are instead performed inside the worker loop.
           # This allows users to upgrade their agent while keeping their application running.
-          def build(settings, agent_settings, telemetry:)
+          def build(settings, agent_settings, logger:, telemetry:)
             return unless settings.remote.enabled
 
-            new(settings, Client::Capabilities.new(settings, telemetry), agent_settings)
+            new(settings, Client::Capabilities.new(settings, telemetry), agent_settings, logger: logger)
           end
         end
       end

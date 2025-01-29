@@ -17,10 +17,13 @@ module Datadog
       # Writes traces to transport synchronously
       class TraceWriter < Core::Worker
         attr_reader \
+          :logger,
           :transport
 
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
+          @logger = options[:logger] || Datadog.logger
+
           transport_options = options.fetch(:transport_options, {})
 
           transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
@@ -43,7 +46,7 @@ module Datadog
           traces = process_traces(traces)
           flush_traces(traces)
         rescue StandardError => e
-          Datadog.logger.warn(
+          logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end

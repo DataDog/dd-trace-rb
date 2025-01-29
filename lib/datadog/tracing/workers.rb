@@ -42,7 +42,11 @@ module Datadog
           @mutex = Mutex.new
           @worker = nil
           @run = false
+
+          @logger = options.fetch(:logger)
         end
+
+        attr_reader :logger
 
         # Callback function that process traces and executes the +send_traces()+ method.
         def callback_traces
@@ -56,7 +60,7 @@ module Datadog
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
             # a fatal exception
-            Datadog.logger.warn(
+            logger.warn(
               "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )
           end
@@ -68,7 +72,7 @@ module Datadog
             return if @run
 
             @run = true
-            Datadog.logger.debug { "Starting thread for: #{self}" }
+            logger.debug { "Starting thread for: #{self}" }
             @worker = Thread.new { perform }
             @worker.name = self.class.name
             @worker.thread_variable_set(:fork_safe, true)

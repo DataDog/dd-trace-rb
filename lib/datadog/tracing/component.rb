@@ -49,6 +49,7 @@ module Datadog
         Tracing::Tracer.new(
           default_service: settings.service,
           enabled: settings.tracing.enabled,
+          logger: logger,
           trace_flush: trace_flush,
           sampler: sampler_delegator,
           span_sampler: build_span_sampler(settings),
