@@ -13,51 +13,44 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
 jobs:
-  compute_tasks:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        engine:
-        - name: ruby
-          version: '3.3'
-          alias: ruby-33
-        - name: ruby
-          version: '3.2'
-          alias: ruby-32
-    container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
+  build-ruby-33:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.3
     outputs:
-      ruby-33-matrix: "${{ steps.set-matrix.outputs.ruby-33 }}"
-      ruby-32-matrix: "${{ steps.set-matrix.outputs.ruby-32 }}"
+      ruby-33-batches: "${{ steps.set-batches.outputs.ruby-33-batches }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
-    - id: set-matrix
-      run: |
-        matrix_json=$(bundle exec rake github:generate_matrix)
-        # Debug output
-        echo "Generated JSON:"
-        echo "$matrix_json"
-        # Set the output
-        echo "${{ matrix.engine.alias }}=$(echo "$matrix_json")" >> $GITHUB_OUTPUT
-    - run: bundle cache
     - uses: actions/upload-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-${{ matrix.engine.alias }}
+        name: bundled-lockfile-ruby-33-${{ github.run_id }}
         retention-days: 1
-        path: |
-          Gemfile.lock
-          vendor/
+        path: Gemfile.lock
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+        # Debug output
+        echo "Generated JSON:"
+        echo "$batches_json"
+        # Set the output
+        echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
+    - run: bundle exec rake dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
+        retention-days: 1
+        path: "/usr/local/bundle"
   test-ruby-33:
-    name: 'ruby-3.3: ${{ matrix.task }} (${{ matrix.group }})'
     needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
+    - build-ruby-33
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.3[${{ matrix.batch }}]
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-33-matrix) }}"
+        include: "${{ fromJson(needs.build-ruby-33.outputs.ruby-33-batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
       env:
@@ -84,23 +77,61 @@ jobs:
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - uses: actions/download-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-33
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
+        name: bundled-lockfile-ruby-33-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle install
+    - name: Run batched tests
+      timeout-minutes: 30
       env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
-  test-ruby-32:
-    name: 'ruby-3.2: ${{ matrix.task }} (${{ matrix.group }})'
+        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      run: bundle exec rake github:run_batch_tests
+    - if: "${{ env.RUNNER_DEBUG == '1' && failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-jruby-94:
+    runs-on: ubuntu-24.04
+    name: Build jruby-9.4
+    outputs:
+      jruby-94-batches: "${{ steps.set-batches.outputs.jruby-94-batches }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/jruby:9.4
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-94-${{ github.run_id }}
+        retention-days: 1
+        path: Gemfile.lock
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+        # Debug output
+        echo "Generated JSON:"
+        echo "$batches_json"
+        # Set the output
+        echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
+    - run: bundle exec rake dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
+        retention-days: 1
+        path: "/usr/local/bundle"
+  test-jruby-94:
     needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
+    - build-jruby-94
+    runs-on: ubuntu-24.04
+    name: Test jruby-9.4[${{ matrix.batch }}]
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-32-matrix) }}"
+        include: "${{ fromJson(needs.build-jruby-94.outputs.jruby-94-batches).include }}"
     container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+      image: ghcr.io/datadog/images-rb/engines/jruby:9.4
       env:
         TEST_POSTGRES_HOST: postgres
         TEST_REDIS_HOST: redis
@@ -125,9 +156,25 @@ jobs:
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - uses: actions/download-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-32
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
+        name: bundled-lockfile-jruby-94-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle install
+    - name: Run batched tests
+      timeout-minutes: 30
       env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
+        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+      run: bundle exec rake github:run_batch_tests
+    - if: "${{ env.RUNNER_DEBUG == '1' && failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  aggregate:
+    runs-on: ubuntu-24.04
+    needs:
+    - test-ruby-33
+    - test-jruby-94
+    steps:
+    - run: echo "DONE!"
