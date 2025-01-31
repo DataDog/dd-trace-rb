@@ -13,121 +13,1328 @@ concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: "${{ github.ref != 'refs/heads/master' }}"
 jobs:
-  compute_tasks:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        engine:
-        - name: ruby
-          version: '3.3'
-          alias: ruby-33
-        - name: ruby
-          version: '3.2'
-          alias: ruby-32
-    container:
-      image: ghcr.io/datadog/images-rb/engines/${{ matrix.engine.name }}:${{ matrix.engine.version }}
+  build-ruby-34:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.4
     outputs:
-      ruby-33-matrix: "${{ steps.set-matrix.outputs.ruby-33 }}"
-      ruby-32-matrix: "${{ steps.set-matrix.outputs.ruby-32 }}"
+      ruby-34-batches: "${{ steps.set-batches.outputs.ruby-34-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.4
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
-    - id: set-matrix
-      run: |
-        matrix_json=$(bundle exec rake github:generate_matrix)
-        # Debug output
-        echo "Generated JSON:"
-        echo "$matrix_json"
-        # Set the output
-        echo "${{ matrix.engine.alias }}=$(echo "$matrix_json")" >> $GITHUB_OUTPUT
-    - run: bundle cache
     - uses: actions/upload-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-${{ matrix.engine.alias }}
-        retention-days: 1
-        path: |
-          Gemfile.lock
-          vendor/
-  test-ruby-33:
-    name: 'ruby-3.3: ${{ matrix.task }} (${{ matrix.group }})'
+        name: bundled-lockfile-ruby-34-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-34-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-34-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-34:
     needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
+    - build-ruby-34
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.4[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-33-matrix) }}"
+        include: "${{ fromJson(needs.build-ruby-34.outputs.ruby-34-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-34-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-34-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-33:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.3
+    outputs:
+      ruby-33-batches: "${{ steps.set-batches.outputs.ruby-33-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-33-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-33:
+    needs:
+    - build-ruby-33
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.3[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-33.outputs.ruby-33-batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
       env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
         TEST_POSTGRES_HOST: postgres
         TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
     services:
       postgres:
-        image: postgres:9.6
-        credentials:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
       redis:
-        image: redis:6.2
-        credentials:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
     - uses: actions/checkout@v4
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - uses: actions/download-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-33
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
-      env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
+        name: bundled-lockfile-ruby-33-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-32:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.2
+    outputs:
+      ruby-32-batches: "${{ steps.set-batches.outputs.ruby-32-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.2
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-32-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-32-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-32-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-32:
-    name: 'ruby-3.2: ${{ matrix.task }} (${{ matrix.group }})'
     needs:
-    - compute_tasks
-    runs-on: ubuntu-22.04
+    - build-ruby-32
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.2[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.compute_tasks.outputs.ruby-32-matrix) }}"
+        include: "${{ fromJson(needs.build-ruby-32.outputs.ruby-32-batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
       env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
         TEST_POSTGRES_HOST: postgres
         TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
     services:
       postgres:
-        image: postgres:9.6
-        credentials:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
         env:
           POSTGRES_PASSWORD: postgres
           POSTGRES_USER: postgres
           POSTGRES_DB: postgres
       redis:
-        image: redis:6.2
-        credentials:
-          username: "${{ secrets.DOCKERHUB_USERNAME }}"
-          password: "${{ secrets.DOCKERHUB_TOKEN }}"
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
     - uses: actions/checkout@v4
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
     - uses: actions/download-artifact@v4
       with:
-        name: bundled-dependencies-${{ github.run_id }}-ruby-32
-    - run: bundle install --local
-    - name: Test ${{ matrix.task }} with ${{ matrix.gemfile }}
+        name: bundled-lockfile-ruby-32-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-32-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-31:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.1
+    outputs:
+      ruby-31-batches: "${{ steps.set-batches.outputs.ruby-31-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.1
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-31-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-31-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-31-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-31:
+    needs:
+    - build-ruby-31
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.1[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-31.outputs.ruby-31-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.1
       env:
-        BUNDLE_GEMFILE: "${{ matrix.gemfile }}"
-      run: bundle install && bundle exec rake spec:${{ matrix.task }}
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-31-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-31-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-30:
+    runs-on: ubuntu-24.04
+    name: Build ruby-3.0
+    outputs:
+      ruby-30-batches: "${{ steps.set-batches.outputs.ruby-30-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.0
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-30-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-30-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-30-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-30:
+    needs:
+    - build-ruby-30
+    runs-on: ubuntu-24.04
+    name: Test ruby-3.0[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-30.outputs.ruby-30-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.0
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-30-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-30-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-27:
+    runs-on: ubuntu-24.04
+    name: Build ruby-2.7
+    outputs:
+      ruby-27-batches: "${{ steps.set-batches.outputs.ruby-27-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.7
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-27-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-27-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-27-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-27:
+    needs:
+    - build-ruby-27
+    runs-on: ubuntu-24.04
+    name: Test ruby-2.7[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-27.outputs.ruby-27-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:2.7
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-27-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-27-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-26:
+    runs-on: ubuntu-24.04
+    name: Build ruby-2.6
+    outputs:
+      ruby-26-batches: "${{ steps.set-batches.outputs.ruby-26-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.6
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-26-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-26-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-26-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-26:
+    needs:
+    - build-ruby-26
+    runs-on: ubuntu-24.04
+    name: Test ruby-2.6[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-26.outputs.ruby-26-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:2.6
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-26-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-26-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-ruby-25:
+    runs-on: ubuntu-24.04
+    name: Build ruby-2.5
+    outputs:
+      ruby-25-batches: "${{ steps.set-batches.outputs.ruby-25-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.5
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-25-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-25-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "ruby-25-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-ruby-25:
+    needs:
+    - build-ruby-25
+    runs-on: ubuntu-24.04
+    name: Test ruby-2.5[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-ruby-25.outputs.ruby-25-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:2.5
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-ruby-25-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-ruby-25-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-jruby-94:
+    runs-on: ubuntu-24.04
+    name: Build jruby-9.4
+    outputs:
+      jruby-94-batches: "${{ steps.set-batches.outputs.jruby-94-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.4
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-94-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-jruby-94:
+    needs:
+    - build-jruby-94
+    runs-on: ubuntu-24.04
+    name: Test jruby-9.4[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-jruby-94.outputs.jruby-94-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/jruby:9.4
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-94-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-jruby-93:
+    runs-on: ubuntu-24.04
+    name: Build jruby-9.3
+    outputs:
+      jruby-93-batches: "${{ steps.set-batches.outputs.jruby-93-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.3
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-93-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-93-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "jruby-93-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-jruby-93:
+    needs:
+    - build-jruby-93
+    runs-on: ubuntu-24.04
+    name: Test jruby-9.3[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-jruby-93.outputs.jruby-93-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/jruby:9.3
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-93-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-93-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  build-jruby-92:
+    runs-on: ubuntu-24.04
+    name: Build jruby-9.2
+    outputs:
+      jruby-92-batches: "${{ steps.set-batches.outputs.jruby-92-batches }}"
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.2
+    steps:
+    - uses: actions/checkout@v4
+    - run: bundle install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-92-${{ github.run_id }}
+        path: Gemfile.lock
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-92-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - id: set-batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        echo "jruby-92-batches=$batches_json" >> $GITHUB_OUTPUT
+  test-jruby-92:
+    needs:
+    - build-jruby-92
+    runs-on: ubuntu-24.04
+    name: Test jruby-9.2[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.build-jruby-92.outputs.jruby-92-batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/jruby:9.2
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+    services:
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+    steps:
+    - uses: actions/checkout@v4
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-lockfile-jruby-92-${{ github.run_id }}
+    - uses: actions/download-artifact@v4
+      with:
+        name: bundled-dependencies-jruby-92-${{ github.run_id }}
+        path: "/usr/local/bundle"
+    - run: bundle check
+    - name: Run batched tests
+      run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
+    - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
+  aggregate:
+    runs-on: ubuntu-24.04
+    needs:
+    - test-ruby-34
+    - test-ruby-33
+    - test-ruby-32
+    - test-ruby-31
+    - test-ruby-30
+    - test-ruby-27
+    - test-ruby-26
+    - test-ruby-25
+    - test-jruby-94
+    - test-jruby-93
+    - test-jruby-92
+    steps:
+    - run: echo "DONE!"
