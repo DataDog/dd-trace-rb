@@ -18,8 +18,7 @@ jobs:
     name: Build ruby-3.4
     outputs:
       ruby-34-batches: "${{ steps.set-batches.outputs.ruby-34-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.4
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -35,10 +34,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-34-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-34:
     needs:
@@ -124,13 +122,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-34-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -139,8 +137,7 @@ jobs:
     name: Build ruby-3.3
     outputs:
       ruby-33-batches: "${{ steps.set-batches.outputs.ruby-33-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -156,10 +153,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-33:
     needs:
@@ -245,13 +241,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-33-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -260,8 +256,7 @@ jobs:
     name: Build ruby-3.2
     outputs:
       ruby-32-batches: "${{ steps.set-batches.outputs.ruby-32-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.2
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -277,10 +272,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-32-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-32:
     needs:
@@ -366,13 +360,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-32-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -381,8 +375,7 @@ jobs:
     name: Build ruby-3.1
     outputs:
       ruby-31-batches: "${{ steps.set-batches.outputs.ruby-31-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.1
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.1
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -398,10 +391,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-31-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-31:
     needs:
@@ -487,13 +479,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-31-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -502,8 +494,7 @@ jobs:
     name: Build ruby-3.0
     outputs:
       ruby-30-batches: "${{ steps.set-batches.outputs.ruby-30-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:3.0
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.0
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -519,10 +510,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-30-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-30:
     needs:
@@ -608,13 +598,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-30-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -623,8 +613,7 @@ jobs:
     name: Build ruby-2.7
     outputs:
       ruby-27-batches: "${{ steps.set-batches.outputs.ruby-27-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:2.7
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.7
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -640,10 +629,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-27-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-27:
     needs:
@@ -729,13 +717,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-27-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -744,8 +732,7 @@ jobs:
     name: Build ruby-2.6
     outputs:
       ruby-26-batches: "${{ steps.set-batches.outputs.ruby-26-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:2.6
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.6
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -761,10 +748,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-26-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-26:
     needs:
@@ -850,13 +836,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-26-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -865,8 +851,7 @@ jobs:
     name: Build ruby-2.5
     outputs:
       ruby-25-batches: "${{ steps.set-batches.outputs.ruby-25-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/ruby:2.5
+    container: ghcr.io/datadog/images-rb/engines/ruby:2.5
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -882,10 +867,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "ruby-25-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-25:
     needs:
@@ -971,13 +955,13 @@ jobs:
       with:
         name: bundled-dependencies-ruby-25-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -986,8 +970,7 @@ jobs:
     name: Build jruby-9.4
     outputs:
       jruby-94-batches: "${{ steps.set-batches.outputs.jruby-94-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/jruby:9.4
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.4
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -1003,10 +986,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-94:
     needs:
@@ -1092,13 +1074,13 @@ jobs:
       with:
         name: bundled-dependencies-jruby-94-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -1107,8 +1089,7 @@ jobs:
     name: Build jruby-9.3
     outputs:
       jruby-93-batches: "${{ steps.set-batches.outputs.jruby-93-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/jruby:9.3
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.3
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -1124,10 +1105,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "jruby-93-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-93:
     needs:
@@ -1213,13 +1193,13 @@ jobs:
       with:
         name: bundled-dependencies-jruby-93-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
@@ -1228,8 +1208,7 @@ jobs:
     name: Build jruby-9.2
     outputs:
       jruby-92-batches: "${{ steps.set-batches.outputs.jruby-92-batches }}"
-    container:
-      image: ghcr.io/datadog/images-rb/engines/jruby:9.2
+    container: ghcr.io/datadog/images-rb/engines/jruby:9.2
     steps:
     - uses: actions/checkout@v4
     - run: bundle install
@@ -1245,10 +1224,9 @@ jobs:
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
-        # Debug output
-        echo "Generated JSON:"
+
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        # Set the output
+
         echo "jruby-92-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-92:
     needs:
@@ -1334,13 +1312,13 @@ jobs:
       with:
         name: bundled-dependencies-jruby-92-${{ github.run_id }}
         path: "/usr/local/bundle"
-    - run: bundle install
+    - run: bundle check
     - name: Run batched tests
       timeout-minutes: 30
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
-    - if: "${{ failure() }}"
+    - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
         limit-access-to-actor: true
