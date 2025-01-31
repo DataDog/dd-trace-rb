@@ -58,6 +58,7 @@ module Datadog
         service: nil,
         tags: nil,
         metrics: nil,
+        meta_struct: nil,
         profiling_enabled: nil
       )
         @id = id
@@ -68,6 +69,7 @@ module Datadog
         # The caller is expected to have done that
         @meta = (tags && tags.dup) || {}
         @metrics = (metrics && metrics.dup) || {}
+        @meta_struct = (meta_struct && meta_struct.dup) || {}
 
         # Set well-known tags, defaulting to getting the values from tags
         @agent_sample_rate = agent_sample_rate || agent_sample_rate_tag
@@ -146,7 +148,8 @@ module Datadog
       attr_reader \
         :root_span_id,
         :meta,
-        :metrics
+        :metrics,
+        :meta_struct
 
       private
 
