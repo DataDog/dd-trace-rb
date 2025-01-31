@@ -202,13 +202,13 @@ namespace :github do
               'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
               'run' => 'bundle exec rake github:run_batch_tests'
             },
-            # {
-            #   'if' => '${{ failure() }}',
-            #   'uses' => 'mxschmitt/action-tmate@v3',
-            #   'with' => {
-            #     'limit-access-to-actor' => true,
-            #   }
-            # },
+            {
+              'if' => '${{ failure() }}',
+              'uses' => 'mxschmitt/action-tmate@v3',
+              'with' => {
+                'limit-access-to-actor' => true,
+              }
+            },
           ]
         }
       end

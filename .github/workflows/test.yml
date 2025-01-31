@@ -130,6 +130,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-33:
     runs-on: ubuntu-24.04
     name: Build ruby-3.3
@@ -247,6 +251,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-32:
     runs-on: ubuntu-24.04
     name: Build ruby-3.2
@@ -364,6 +372,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-31:
     runs-on: ubuntu-24.04
     name: Build ruby-3.1
@@ -481,6 +493,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-30:
     runs-on: ubuntu-24.04
     name: Build ruby-3.0
@@ -598,6 +614,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-27:
     runs-on: ubuntu-24.04
     name: Build ruby-2.7
@@ -715,6 +735,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-26:
     runs-on: ubuntu-24.04
     name: Build ruby-2.6
@@ -832,6 +856,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-ruby-25:
     runs-on: ubuntu-24.04
     name: Build ruby-2.5
@@ -949,6 +977,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-jruby-94:
     runs-on: ubuntu-24.04
     name: Build jruby-9.4
@@ -1066,6 +1098,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-jruby-93:
     runs-on: ubuntu-24.04
     name: Build jruby-9.3
@@ -1183,6 +1219,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   build-jruby-92:
     runs-on: ubuntu-24.04
     name: Build jruby-9.2
@@ -1300,6 +1340,10 @@ jobs:
       env:
         BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+    - if: "${{ failure() }}"
+      uses: mxschmitt/action-tmate@v3
+      with:
+        limit-access-to-actor: true
   aggregate:
     runs-on: ubuntu-24.04
     needs:
