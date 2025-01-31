@@ -198,7 +198,7 @@ namespace :github do
               'timeout-minutes' => 30,
             },
             {
-              'if' => '${{ failure() && $RUNNER_DEBUG == 1 }}',
+              'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@v3',
               'with' => {
                 'limit-access-to-actor' => true,
