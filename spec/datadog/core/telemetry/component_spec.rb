@@ -209,7 +209,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork', skip: ENV['BATCHED_TASKS']  do
+    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
