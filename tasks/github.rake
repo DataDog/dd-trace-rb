@@ -9,38 +9,69 @@ namespace :github do
     task :test_template do |t|
       ubuntu = 'ubuntu-24.04'
 
-      # Still being rate limited
-      docker_login_credentials = {
-        'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
-        'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+      redis = { 'image' => 'ghcr.io/datadog/images-rb/services/redis:6.2' }
+      memcached = { 'image' => 'ghcr.io/datadog/images-rb/services/memcached:1.5-alpine' }
+      mongodb = { 'image' => 'ghcr.io/datadog/images-rb/services/mongo:3.6' }
+      presto = { 'image' => 'ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9' }
+      mysql = {
+        'image' => 'ghcr.io/datadog/images-rb/services/mysql:8.0',
+        'env' => {
+          'MYSQL_ROOT_PASSWORD' => 'root',
+          'MYSQL_PASSWORD' => 'mysql',
+          'MYSQL_USER' => 'mysql',
+        }
       }
-
       postgres = {
-        'image' => 'postgres:9.6',
-        'credentials' => docker_login_credentials,
+        'image' => 'ghcr.io/datadog/images-rb/services/postgres:9.6',
         'env' => {
           'POSTGRES_PASSWORD' => 'postgres',
           'POSTGRES_USER' => 'postgres',
           'POSTGRES_DB' => 'postgres',
         }
       }
-
-      redis = {
-        'image' => 'redis:6.2',
-        'credentials' => docker_login_credentials,
+      elasticsearch = {
+        'image' => 'ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3',
+        'env' => {
+          'discovery.type' => 'single-node',
+          'xpack.security.enabled' => 'false',
+          'ES_JAVA_OPTS' => '-Xms750m -Xmx750m',
+        }
       }
-
+      opensearch = {
+        'image' => 'ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0',
+        'env' => {
+          'discovery.type' => 'single-node',
+          'DISABLE_SECURITY_PLUGIN' => 'true',
+          'DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI' => 'true',
+          'cluster.routing.allocation.disk.watermark.low' => '3gb',
+          'cluster.routing.allocation.disk.watermark.high' => '2gb',
+          'cluster.routing.allocation.disk.watermark.flood_stage' => '1gb',
+          'cluster.routing.allocation.disk.threshold_enabled' => 'false',
+        }
+      }
+      agent = {
+        'image' => 'ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0',
+        'env' => {
+          'LOG_LEVEL' => 'DEBUG',
+          'TRACE_LANGUAGE' => 'ruby',
+          'PORT' => '9126',
+          'DD_POOL_TRACE_CHECK_FAILURES' => 'true',
+          'DD_DISABLE_ERROR_RESPONSES' => 'true',
+          'ENABLED_CHECKS' => 'trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service',
+        }
+      }
       runtimes = [
+        'ruby:3.4',
         'ruby:3.3',
-        # "ruby:3.2",
-        # "ruby:3.1",
-        # "ruby:3.0",
-        # "ruby:2.7",
-        # "ruby:2.6",
-        # "ruby:2.5",
-        "jruby:9.4",
-        # "jruby:9.3",
-        # "jruby:9.2",
+        'ruby:3.2',
+        'ruby:3.1',
+        'ruby:3.0',
+        'ruby:2.7',
+        'ruby:2.6',
+        'ruby:2.5',
+        'jruby:9.4',
+        'jruby:9.3',
+        'jruby:9.2',
       ].map do |runtime|
         engine, version = runtime.split(':')
         runtime_alias = "#{engine}-#{version.delete('.')}"
@@ -53,7 +84,8 @@ namespace :github do
           'build_id' => "build-#{runtime_alias}",
           'test_id' => "test-#{runtime_alias}",
           'lockfile_artifact' => "bundled-lockfile-#{runtime_alias}-${{ github.run_id }}",
-          'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ github.run_id }}"
+          'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ github.run_id }}",
+          'cache_key' => "${{ github.ref }}-#{runtime_alias}-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
         )
       end
 
@@ -66,9 +98,7 @@ namespace :github do
           'outputs' => {
             "#{runtime.alias}-batches" => "${{ steps.set-batches.outputs.#{runtime.alias}-batches }}"
           },
-          'container' => {
-            'image' => runtime.image
-          },
+          'container' => runtime.image,
           'steps' => [
             { 'uses' => 'actions/checkout@v4' },
             { 'run' => 'bundle install' },
@@ -76,30 +106,27 @@ namespace :github do
               'uses' => 'actions/upload-artifact@v4',
               'with' => {
                 'name' => runtime.lockfile_artifact,
-                'retention-days' => 1,
                 'path' => 'Gemfile.lock'
+              }
+            },
+            { 'run' => 'bundle exec rake dependency:generate dependency:install' },
+            {
+              'uses' => 'actions/upload-artifact@v4',
+              'with' => {
+                'name' => runtime.dependencies_artifact,
+                'path' => '/usr/local/bundle'
               }
             },
             {
               'id' => 'set-batches',
               'run' => <<~BASH
                 batches_json=$(bundle exec rake github:generate_batches)
-                # Debug output
-                echo "Generated JSON:"
-                echo "$batches_json"
-                # Set the output
+
+                echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
                 echo "#{runtime.alias}-batches=$batches_json" >> $GITHUB_OUTPUT
               BASH
             },
-            { 'run' => 'bundle exec rake dependency:install' },
-            {
-              'uses' => 'actions/upload-artifact@v4',
-              'with' => {
-                'name' => runtime.dependencies_artifact,
-                'retention-days' => 1,
-                'path' => '/usr/local/bundle'
-              }
-            }
           ]
         }
 
@@ -107,6 +134,7 @@ namespace :github do
           'needs' => [runtime.build_id],
           'runs-on' => ubuntu,
           'name' => "Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
             'matrix' => {
@@ -116,13 +144,33 @@ namespace :github do
           'container' => {
             'image' => runtime.image,
             'env' => {
+              'DD_INSTRUMENTATION_TELEMETRY_ENABLED' => 'false',
+              'DD_REMOTE_CONFIGURATION_ENABLED' => 'false',
               'TEST_POSTGRES_HOST' => 'postgres',
               'TEST_REDIS_HOST' => 'redis',
+              'TEST_ELASTICSEARCH_HOST' => 'elasticsearch',
+              'TEST_MEMCACHED_HOST' => 'memcached',
+              'TEST_MONGODB_HOST' => 'mongodb',
+              'TEST_MYSQL_HOST' => 'mysql',
+              'TEST_OPENSEARCH_HOST' => 'opensearch',
+              'TEST_OPENSEARCH_PORT' => '9200',
+              'TEST_PRESTO_HOST' => 'presto',
+              'DD_AGENT_HOST' => 'agent',
+              'DD_TRACE_AGENT_PORT' => '9126',
+              'DATADOG_GEM_CI' => 'true',
+              'TEST_DATADOG_INTEGRATION' => '1',
             }
           },
           'services' => {
             'postgres' => postgres,
             'redis' => redis,
+            'elasticsearch' => elasticsearch,
+            'memcached' => memcached,
+            'mongodb' => mongodb,
+            'opensearch' => opensearch,
+            'presto' => presto,
+            'mysql' => mysql,
+            'agent' => agent,
           },
           'steps' => [
             { 'uses' => 'actions/checkout@v4' },
@@ -143,15 +191,14 @@ namespace :github do
                 'path' => '/usr/local/bundle'
               }
             },
-            { 'run' => 'bundle install' },
+            { 'run' => 'bundle check' },
             {
               'name' => 'Run batched tests',
+              'run' => 'bundle exec rake github:run_batch_tests',
               'timeout-minutes' => 30,
-              'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
-              'run' => 'bundle exec rake github:run_batch_tests'
             },
             {
-              'if' => "${{ env.RUNNER_DEBUG == '1' && failure() }}",
+              'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@v3',
               'with' => {
                 'limit-access-to-actor' => true,
@@ -178,13 +225,15 @@ namespace :github do
           'group' => '${{ github.workflow }}-${{ github.ref }}',
           'cancel-in-progress' => '${{ github.ref != \'refs/heads/master\' }}'
         },
-        'jobs' => jobs.merge('aggregate' => {
-          'runs-on' => ubuntu,
-          'needs' => runtimes.map(&:test_id),
-          'steps' => [
-            'run' => 'echo "DONE!"'
-          ]
-        })
+        'jobs' => jobs.merge(
+          'aggregate' => {
+            'runs-on' => ubuntu,
+            'needs' => runtimes.map(&:test_id),
+            'steps' => [
+              'run' => 'echo "DONE!"'
+            ]
+          }
+        )
       }
 
       # `Psych.dump` directly creates anchors, but Github Actions does not support anchors for YAML,
@@ -205,93 +254,18 @@ namespace :github do
   task :generate_batches do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    candidates = [
-      'main',
-      # 'crashtracking',
-      'appsec:main',
-      'profiling:main',
-      'profiling:ractors',
-      'contrib',
-      'opentelemetry',
-      # "action_pack",
-      'action_view',
-      'active_model_serializers',
-      # "active_record",
-      'active_support',
-      'autoinstrument',
-      'aws',
-      'concurrent_ruby',
-      # 'dalli',
-      # "delayed_job",
-      # 'elasticsearch',
-      'ethon',
-      'excon',
-      'faraday',
-      'grape',
-      'graphql',
-      'graphql_unified_trace_patcher',
-      'graphql_trace_patcher',
-      'graphql_tracing_patcher',
-      'grpc',
-      # 'http',
-      'httpclient',
-      'httprb',
-      'kafka',
-      'lograge',
-      # "mongodb",
-      # "mysql2",
-      # "opensearch",
-      'pg',
-      # "presto",
-      'que',
-      'racecar',
-      'rack',
-      'rake',
-      'resque',
-      'rest_client',
-      'roda',
-      'semantic_logger',
-      # 'sequel',
-      'shoryuken',
-      'sidekiq',
-      'sneakers',
-      'stripe',
-      'sucker_punch',
-      'suite',
-      # "trilogy",
-      # "rails",
-      'railsautoinstrument',
-      'railsdisableenv',
-      'railsredis_activesupport',
-      'railsactivejob',
-      'railssemanticlogger',
-      # "rails_old_redis",
-      # 'action_cable',
-      'action_mailer',
-      'railsredis',
-      'hanami',
-      'hanami_autoinstrument',
-      'sinatra',
-      'redis',
-      # 'appsec:active_record',
-      'appsec:rack',
-      # "appsec:integration",
-      'appsec:sinatra',
-      'appsec:devise',
-      # "appsec:rails",
-      'appsec:graphql',
-      # "di:active_record"
+    exceptions = [
+      # 'sidekiq', # Connection refused - connect(2) for 127.0.0.1:6379 (RedisClient::CannotConnectError)
     ]
 
-    remainders = matrix.keys - candidates
+    # candidates = exceptions
+    candidates = matrix.keys - exceptions
 
-    raise 'No remainder found. Use the matrix directly (without candidate filtering).' if remainders.empty?
+    raise 'No candidates.' if candidates.empty?
 
     matrix = matrix.slice(*candidates)
 
     ruby_version = RUBY_VERSION[0..2]
-    major, minor, = Gem::Version.new(RUBY_ENGINE_VERSION).segments
-    ruby_runtime = "#{RUBY_ENGINE}-#{major}.#{minor}"
 
     matching_tasks = []
 
@@ -307,31 +281,21 @@ namespace :github do
 
         gemfile = AppraisalConversion.to_bundle_gemfile(group) rescue 'Gemfile'
 
-        matching_tasks << {
-          group: group,
-          gemfile: gemfile,
-          task: key
-        }
+        matching_tasks << { task: key, group: group, gemfile: gemfile }
       end
     end
 
+    # Random!
     matching_tasks.shuffle!
 
-    # Calculate tasks per job (rounded up)
-    jobs_per_runtime = 4
+    jobs_per_runtime = 5
     jobs_per_runtime *= 2 if RUBY_PLATFORM == 'java'
     tasks_per_job = (matching_tasks.size.to_f / jobs_per_runtime).ceil
 
-
-    # Create batched matrix
     batched_matrix = { 'include' => [] }
 
-    # Distribute tasks across jobs
     matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
-      batched_matrix['include'] << {
-        'batch' => index.to_s,
-        'tasks' => task_group
-      }
+      batched_matrix['include'] << { 'batch' => index.to_s, 'tasks' => task_group }
     end
 
     # Output the JSON
@@ -343,13 +307,10 @@ namespace :github do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
     tasks.each do |task|
-      puts "Running task #{task['task']} (#{task['group']}) with #{task['gemfile']}"
-
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
+      cmd = "bundle exec rake spec:#{task['task']}"
 
-      Bundler.with_unbundled_env do
-        sh(env, "bundle check || bundle install && bundle exec rake spec:#{task['task']}")
-      end
+      Bundler.with_unbundled_env { sh(env, cmd) }
     end
   end
 end

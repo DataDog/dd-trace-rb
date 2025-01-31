@@ -105,7 +105,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      context 'secondary client' do
+      context 'secondary client', skip: ENV['BATCHED_TASKS'] do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
