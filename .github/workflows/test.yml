@@ -43,6 +43,8 @@ jobs:
     - build-ruby-34
     runs-on: ubuntu-24.04
     name: Test ruby-3.4[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -124,10 +126,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -162,6 +162,8 @@ jobs:
     - build-ruby-33
     runs-on: ubuntu-24.04
     name: Test ruby-3.3[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -243,10 +245,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -281,6 +281,8 @@ jobs:
     - build-ruby-32
     runs-on: ubuntu-24.04
     name: Test ruby-3.2[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -362,10 +364,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -400,6 +400,8 @@ jobs:
     - build-ruby-31
     runs-on: ubuntu-24.04
     name: Test ruby-3.1[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -481,10 +483,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -519,6 +519,8 @@ jobs:
     - build-ruby-30
     runs-on: ubuntu-24.04
     name: Test ruby-3.0[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -600,10 +602,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -638,6 +638,8 @@ jobs:
     - build-ruby-27
     runs-on: ubuntu-24.04
     name: Test ruby-2.7[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -719,10 +721,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -757,6 +757,8 @@ jobs:
     - build-ruby-26
     runs-on: ubuntu-24.04
     name: Test ruby-2.6[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -838,10 +840,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -876,6 +876,8 @@ jobs:
     - build-ruby-25
     runs-on: ubuntu-24.04
     name: Test ruby-2.5[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -957,10 +959,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -995,6 +995,8 @@ jobs:
     - build-jruby-94
     runs-on: ubuntu-24.04
     name: Test jruby-9.4[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -1076,10 +1078,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -1114,6 +1114,8 @@ jobs:
     - build-jruby-93
     runs-on: ubuntu-24.04
     name: Test jruby-9.3[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -1195,10 +1197,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:
@@ -1233,6 +1233,8 @@ jobs:
     - build-jruby-92
     runs-on: ubuntu-24.04
     name: Test jruby-9.2[${{ matrix.batch }}]
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
       fail-fast: false
       matrix:
@@ -1314,10 +1316,8 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check
     - name: Run batched tests
-      timeout-minutes: 30
-      env:
-        BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
       run: bundle exec rake github:run_batch_tests
+      timeout-minutes: 30
     - if: "${{ failure() && $RUNNER_DEBUG == 1 }}"
       uses: mxschmitt/action-tmate@v3
       with:

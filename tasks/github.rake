@@ -134,6 +134,7 @@ namespace :github do
           'needs' => [runtime.build_id],
           'runs-on' => ubuntu,
           'name' => "Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
             'matrix' => {
@@ -193,9 +194,8 @@ namespace :github do
             { 'run' => 'bundle check' },
             {
               'name' => 'Run batched tests',
+              'run' => 'bundle exec rake github:run_batch_tests',
               'timeout-minutes' => 30,
-              'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
-              'run' => 'bundle exec rake github:run_batch_tests'
             },
             {
               'if' => '${{ failure() && $RUNNER_DEBUG == 1 }}',
