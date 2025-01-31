@@ -86,6 +86,7 @@ namespace :github do
           'batch_id' => "batch-#{runtime_alias}",
           'build_id' => "build-#{runtime_alias}",
           'test_id' => "test-#{runtime_alias}",
+          'build_test_id' => "build-test-#{runtime_alias}",
           'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
@@ -132,54 +133,12 @@ namespace :github do
           ]
         }
 
-        jobs[runtime.build_id] = {
-          'needs' => [runtime.batch_id],
-          'runs-on' => ubuntu,
-          'name' => "Build #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
-          'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
-          'strategy' => {
-            'fail-fast' => false,
-            'matrix' => {
-              'include' => "${{ fromJson(needs.#{runtime.batch_id}.outputs.#{runtime.alias}-batches).include }}"
-            }
-          },
-          'outputs' => {
-            "#{runtime.alias}-batches" => "${{ steps.set-batches.outputs.#{runtime.alias}-batches }}"
-          },
-          'container' => runtime.image,
-          'steps' => [
-            { 'uses' => 'actions/checkout@v4' },
-            {
-              'uses' => 'actions/download-artifact@v4',
-              'with' => {
-                'name' => runtime.lockfile_artifact,
-              }
-            },
-            {
-              'uses' => 'actions/download-artifact@v4',
-              'with' => {
-                'name' => runtime.bundle_artifact,
-                'path' => '/usr/local/bundle',
-              }
-            },
-            { 'run' => 'bundle check && bundle exec rake github:run_batch_build' },
-            {
-              'uses' => 'actions/upload-artifact@v4',
-              'with' => {
-                'name' => runtime.dependencies_artifact,
-                'path' => '/usr/local/bundle'
-              }
-            },
-          ]
-        }
-
-        jobs[runtime.test_id] = {
+        jobs[runtime.build_test_id] = {
           'needs' => [
             runtime.batch_id,
-            runtime.build_id,
           ],
           'runs-on' => ubuntu,
-          'name' => "Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'name' => "Build & Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
@@ -233,16 +192,13 @@ namespace :github do
             {
               'uses' => 'actions/download-artifact@v4',
               'with' => {
-                'name' => runtime.dependencies_artifact,
+                'name' => runtime.bundle_artifact,
                 'path' => '/usr/local/bundle'
               }
             },
             { 'run' => 'bundle check' },
-            {
-              'name' => 'Run batched tests',
-              'run' => 'bundle exec rake github:run_batch_tests',
-              'timeout-minutes' => 30,
-            },
+            { 'run' => 'bundle exec rake github:run_batch_build' },
+            { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@v3',
@@ -274,7 +230,7 @@ namespace :github do
         'jobs' => jobs.merge(
           'aggregate' => {
             'runs-on' => ubuntu,
-            'needs' => runtimes.map(&:test_id),
+            'needs' => runtimes.map(&:build_test_id),
             'steps' => [
               'run' => 'echo "DONE!"'
             ]
@@ -398,7 +354,7 @@ namespace :github do
     end
   end
 
-  task :run_batch_tests => :run_batch_build do
+  task :run_batch_tests do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
     tasks.each do |task|
