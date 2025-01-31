@@ -37,7 +37,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-34-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-34:
@@ -154,7 +154,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-33:
@@ -271,7 +271,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-32-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-32:
@@ -388,7 +388,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-31-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-31:
@@ -505,7 +505,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-30-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-30:
@@ -622,7 +622,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-27-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-27:
@@ -739,7 +739,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-26-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-26:
@@ -856,7 +856,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "ruby-25-batches=$batches_json" >> $GITHUB_OUTPUT
   test-ruby-25:
@@ -973,7 +973,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-94:
@@ -1090,7 +1090,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "jruby-93-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-93:
@@ -1207,7 +1207,7 @@ jobs:
         batches_json=$(bundle exec rake github:generate_batches)
         # Debug output
         echo "Generated JSON:"
-        echo "$batches_json"
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         # Set the output
         echo "jruby-92-batches=$batches_json" >> $GITHUB_OUTPUT
   test-jruby-92:

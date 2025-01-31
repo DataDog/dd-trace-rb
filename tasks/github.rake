@@ -127,7 +127,7 @@ namespace :github do
                 batches_json=$(bundle exec rake github:generate_batches)
                 # Debug output
                 echo "Generated JSON:"
-                echo "$batches_json"
+                echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
                 # Set the output
                 echo "#{runtime.alias}-batches=$batches_json" >> $GITHUB_OUTPUT
               BASH
