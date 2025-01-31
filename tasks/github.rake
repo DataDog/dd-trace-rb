@@ -287,58 +287,19 @@ namespace :github do
       end
     end
 
+    # Random!
+    matching_tasks.shuffle!
+
     batch_count = 7
     batch_count *= 2 if RUBY_PLATFORM == 'java'
 
-    groups = []
-    objects = matching_tasks.shuffle
-    remaining = objects.dup
+    tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
-    while remaining.any?
-      group = Set.new
-      queue = [remaining.first]
+    batched_matrix = { 'include' => [] }
 
-      # Use BFS to find all connected objects
-      while queue.any?
-        current = queue.shift
-        next if group.include?(current)
-
-        group.add(current)
-
-        # Find all objects that share the same task or gemfile
-        connected = remaining.select do |obj|
-          next if group.include?(obj)
-
-          obj[:task] == current[:task] || obj[:gemfile] == current[:gemfile]
-        end
-
-        queue.concat(connected)
-      end
-
-      # Add the connected group and remove its objects from remaining
-      groups << group.to_a
-      remaining.reject! { |obj| group.include?(obj) }
+    matching_tasks.each_slice(tasks_per_job).with_index do |task_group, index|
+      batched_matrix['include'] << { 'batch' => index.to_s, 'tasks' => task_group }
     end
-
-    # Sort groups by size in descending order
-    groups.sort_by!(&:size).reverse!
-
-    # Initialize batches
-    batches = Array.new(batch_count) { [] }
-
-    # Distribute groups to minimize size differences between batches
-    groups.each do |g|
-      # Find the batch with the minimum current size
-      target_batch = batches.min_by(&:size)
-      target_batch.concat(g)
-    end
-
-    # Create the final structure
-    batched_matrix = {
-      'include' => batches.map.with_index do |tasks, index|
-        { 'batch' => index, 'tasks' => tasks }
-      end
-    }
 
     # Output the JSON
     puts JSON.dump(batched_matrix)
