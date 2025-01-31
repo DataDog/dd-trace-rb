@@ -63,17 +63,17 @@ namespace :github do
         }
       }
       runtimes = [
-        # 'ruby:3.4',
+        'ruby:3.4',
         'ruby:3.3',
-        # 'ruby:3.2',
-        # 'ruby:3.1',
-        # 'ruby:3.0',
-        # 'ruby:2.7',
-        # 'ruby:2.6',
-        # 'ruby:2.5',
-        # 'jruby:9.4',
-        # 'jruby:9.3',
-        # 'jruby:9.2',
+        'ruby:3.2',
+        'ruby:3.1',
+        'ruby:3.0',
+        'ruby:2.7',
+        'ruby:2.6',
+        'ruby:2.5',
+        'jruby:9.4',
+        'jruby:9.3',
+        'jruby:9.2',
       ].map do |runtime|
         engine, version = runtime.split(':')
         runtime_alias = "#{engine}-#{version.delete('.')}"
@@ -135,7 +135,7 @@ namespace :github do
         jobs[runtime.build_id] = {
           'needs' => [runtime.batch_id],
           'runs-on' => ubuntu,
-          'name' => "Build #{runtime.engine}-#{runtime.version}",
+          'name' => "Build #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
