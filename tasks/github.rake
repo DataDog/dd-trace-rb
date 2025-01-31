@@ -103,33 +103,22 @@ namespace :github do
           },
           'steps' => [
             { 'uses' => 'actions/checkout@v4' },
-            { 'run' => 'bundle lock' },
+            { 'run' => 'bundle install' },
             {
               'uses' => 'actions/upload-artifact@v4',
               'with' => {
                 'name' => runtime.lockfile_artifact,
-                'retention-days' => 1,
                 'path' => 'Gemfile.lock'
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
-              'id' => 'cache-dependencies',
-              'with' => {
-                'path' => '/usr/local/bundle',
-                'key' => runtime.cache_key
-              }
+              'run' => 'bundle exec rake dependency:generate dependency:install'
             },
             {
-              'if' => "steps.cache-dependencies.outputs.cache-hit != 'true'",
-              'run' => 'bundle install && bundle exec rake dependency:generate dependency:install'
-            },
-            {
-              'if' => "steps.cache-dependencies.outputs.cache-hit != 'true'",
-              'uses' => 'actions/cache/save@v4',
+              'uses' => 'actions/upload-artifact@v4',
               'with' => {
-                'path' => '/usr/local/bundle',
-                'key' => runtime.cache_key
+                'name' => runtime.dependencies_artifact,
+                'path' => '/usr/local/bundle'
               }
             },
             {
@@ -200,10 +189,10 @@ namespace :github do
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
+              'uses' => 'actions/download-artifact@v4',
               'with' => {
-                'path' => '/usr/local/bundle',
-                'key' => runtime.cache_key
+                'name' => runtime.dependencies_artifact,
+                'path' => '/usr/local/bundle'
               }
             },
             { 'run' => 'bundle install' },

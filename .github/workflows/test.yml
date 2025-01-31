@@ -22,24 +22,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.4
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-34-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-34-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-34-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-34-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -128,10 +120,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-34-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-34-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-34-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -147,24 +139,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-33-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-33-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-33-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -253,10 +237,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-33-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-33-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-33-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -272,24 +256,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-32-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-32-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-32-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-32-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -378,10 +354,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-32-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-32-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-32-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -397,24 +373,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.1
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-31-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-31-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-31-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-31-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -503,10 +471,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-31-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-31-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-31-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -522,24 +490,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.0
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-30-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-30-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-30-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-30-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -628,10 +588,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-30-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-30-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-30-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -647,24 +607,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.7
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-27-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-27-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-27-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-27-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -753,10 +705,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-27-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-27-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-27-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -772,24 +724,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.6
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-26-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-26-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-26-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-26-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -878,10 +822,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-26-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-26-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-26-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -897,24 +841,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.5
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-ruby-25-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-ruby-25-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-25-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-25-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -1003,10 +939,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-ruby-25-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-ruby-25-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-ruby-25-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -1022,24 +958,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.4
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-jruby-94-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-94-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-94-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -1128,10 +1056,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-jruby-94-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-jruby-94-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-94-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -1147,24 +1075,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.3
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-jruby-93-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-jruby-93-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-93-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-93-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -1253,10 +1173,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-jruby-93-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-jruby-93-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-93-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
@@ -1272,24 +1192,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.2
     steps:
     - uses: actions/checkout@v4
-    - run: bundle lock
+    - run: bundle install
     - uses: actions/upload-artifact@v4
       with:
         name: bundled-lockfile-jruby-92-${{ github.run_id }}
-        retention-days: 1
         path: Gemfile.lock
-    - uses: actions/cache/restore@v4
-      id: cache-dependencies
+    - run: bundle exec rake dependency:generate dependency:install
+    - uses: actions/upload-artifact@v4
       with:
+        name: bundled-dependencies-jruby-92-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-92-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      run: bundle install && bundle exec rake dependency:generate dependency:install
-    - if: steps.cache-dependencies.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-92-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
@@ -1378,10 +1290,10 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: bundled-lockfile-jruby-92-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/download-artifact@v4
       with:
+        name: bundled-dependencies-jruby-92-${{ github.run_id }}
         path: "/usr/local/bundle"
-        key: "${{ github.ref }}-jruby-92-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
     - run: bundle install
     - name: Run batched tests
       timeout-minutes: 30
