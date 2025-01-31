@@ -4,7 +4,7 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative 'tracer'
 require_relative 'event'
-require_relative 'metadata/tagging'
+require_relative 'metadata'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
 require_relative 'trace_digest'
@@ -25,7 +25,7 @@ module Datadog
     #
     # @public_api
     class TraceOperation
-      include Metadata::Tagging
+      include Metadata
 
       DEFAULT_MAX_LENGTH = 100_000
 
@@ -73,6 +73,7 @@ module Datadog
         profiling_enabled: nil,
         tags: nil,
         metrics: nil,
+        meta_struct: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
@@ -105,6 +106,7 @@ module Datadog
         # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
+        set_meta_struct(meta_struct) if meta_struct
 
         # State
         @root_span = nil
@@ -369,6 +371,7 @@ module Datadog
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
           metrics: metrics.dup,
+          meta_struct: meta_struct.dup,
           remote_parent: @remote_parent
         )
       end
@@ -508,6 +511,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
+          meta_struct: meta_struct,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
         )

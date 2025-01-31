@@ -289,6 +289,7 @@ module Datadog
           id: @id,
           meta: meta,
           metrics: metrics,
+          meta_struct: meta_struct,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -328,11 +329,15 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Meta-Struct: [', ']') do
+            q.breakable
+            q.pp meta_struct
           end
         end
       end
@@ -456,6 +461,7 @@ module Datadog
           id: @id,
           meta: Core::Utils::SafeDup.frozen_or_dup(meta),
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
+          meta_struct: Core::Utils::SafeDup.frozen_or_dup(meta_struct),
           parent_id: @parent_id,
           resource: @resource,
           service: @service,

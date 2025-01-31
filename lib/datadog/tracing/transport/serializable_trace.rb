@@ -65,7 +65,7 @@ module Datadog
         def to_msgpack(packer = nil)
           packer ||= MessagePack::Packer.new
 
-          number_of_elements_to_write = 11
+          number_of_elements_to_write = 12
 
           number_of_elements_to_write += 1 if span.events.any? && @native_events_supported
 
@@ -113,6 +113,9 @@ module Datadog
           packer.write(span.meta)
           packer.write('metrics')
           packer.write(span.metrics)
+          packer.write('meta_struct')
+          # We encapsulate the resulting msgpack in a binary msgpack
+          packer.write(span.meta_struct.transform_values(&:to_msgpack))
           packer.write('span_links')
           packer.write(span.links.map(&:to_hash))
           packer.write('error')
