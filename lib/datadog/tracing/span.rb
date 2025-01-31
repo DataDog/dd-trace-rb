@@ -21,6 +21,7 @@ module Datadog
         :end_time,
         :id,
         :meta,
+        :meta_struct,
         :metrics,
         :name,
         :parent_id,
@@ -53,6 +54,7 @@ module Datadog
         end_time: nil,
         id: nil,
         meta: nil,
+        meta_struct: nil,
         metrics: nil,
         parent_id: 0,
         resource: name,
@@ -75,6 +77,7 @@ module Datadog
         @trace_id = trace_id || Tracing::Utils.next_id
 
         @meta = meta || {}
+        @meta_struct = meta_struct || {}
         @metrics = metrics || {}
         @status = status || 0
 
@@ -144,6 +147,7 @@ module Datadog
           error: @status,
           meta: @meta,
           metrics: @metrics,
+          meta_struct: @meta_struct,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -185,11 +189,15 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist @metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Meta-Struct: [', ']') do
+            q.breakable
+            q.pp meta_struct
           end
         end
       end
