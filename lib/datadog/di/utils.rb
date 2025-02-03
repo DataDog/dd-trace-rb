@@ -3,8 +3,8 @@
 module Datadog
   module DI
     module Utils
-      # Returns whether the provided +path+ matches the user-designated
-      # file suffix or path (of a line probe).
+      # General path matching considerations
+      # ------------------------------------
       #
       # The following use cases must be supported:
       # 1. The "probe path" is relative path to the file from source code
@@ -29,7 +29,7 @@ module Datadog
       # specification in the probe, the tracer must return an error to the
       # backend/UI rather than instrumenting any of the matching paths.
       #
-      # The logic for path matching is therefore, generally, as follows:
+      # The logic for path matching should therefore, generally, be as follows:
       # 1. If the "probe path" is absolute, see if it exists at runtime.
       #    If so, take it as the desired path and finish.
       # 2. Attempt to identify the application root, by checking if the current
@@ -75,6 +75,12 @@ module Datadog
       # indefinitely cache whether a particular filesystem paths exists
       # in both positive and negative.
       #
+      # As a "quick fix", currently after performing the suffix matching
+      # we just strip leading directory components from the "probe path"
+      # until we get a match via a "suffix of the suffix".
+
+      # Returns whether the provided +path+ matches the user-designated
+      # file suffix (of a line probe).
       #
       # If suffix is an absolute path (i.e., it starts with a slash), the path
       # must be identical for it to match.
@@ -109,6 +115,21 @@ module Datadog
 
           # Alternative implementation using a regular expression:
           # !!(path =~ %r,(/|\A)#{Regexp.quote(suffix)}\z,)
+        end
+      end
+
+      # Returns whether the provided +path+ matches the "probe path" in
+      # +spec+. Attempts all of the fuzzy matches by stripping directories
+      # from the front of +spec+. Does not consider othr known paths to
+      # identify the case of (potentially) multiple matching paths for +spec+.
+      module_function def path_can_match_spec?(path, spec)
+        return true if path_matches_suffix?(path, spec)
+
+        spec = spec.dup
+        loop do
+          return false unless spec.include?('/')
+          spec.sub!(%r,.*/+,, '')
+          return true if path_matches_suffix?(path, spec)
         end
       end
     end
