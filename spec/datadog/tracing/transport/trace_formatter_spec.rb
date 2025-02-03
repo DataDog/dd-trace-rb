@@ -35,6 +35,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         sample_rate: sample_rate,
         sampling_priority: sampling_priority,
         tags: trace_tags,
+        meta_struct: meta_struct,
         profiling_enabled: profiling_enabled,
       }
     end
@@ -50,6 +51,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
     let(:runtime_id) { 'trace.runtime_id' }
     let(:sample_rate) { rand }
     let(:sampling_priority) { Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP }
+    let(:meta_struct) { nil }
     let(:profiling_enabled) { true }
   end
 
@@ -62,6 +64,13 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         'baz' => 42,
         '_dd.p.dm' => '-1',
         '_dd.p.tid' => 'aaaaaaaaaaaaaaaa'
+      }
+    end
+
+    let(:meta_struct) do
+      {
+        'foo' => 'bar',
+        'baz' => { 'value' => 42 }
       }
     end
   end
@@ -204,6 +213,18 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
             )
           end
         end
+
+        context 'meta_struct' do
+          it 'sets root span meta_struct from trace meta_struct' do
+            format!
+            expect(root_span.meta_struct).to include(
+              {
+                'foo' => 'bar',
+                'baz' => { 'value' => 42 }
+              }
+            )
+          end
+        end
       end
 
       shared_examples 'root span without generic tags' do
@@ -215,6 +236,11 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
           it { expect(root_span.meta).to_not include('foo') }
           it { expect(root_span.meta).to_not include('_dd.p.dm') }
           it { expect(root_span.meta).to_not include('_dd.p.tid') }
+        end
+
+        context 'meta_struct' do
+          it { expect(root_span.meta_struct).to_not include('foo') }
+          it { expect(root_span.meta_struct).to_not include('baz') }
         end
       end
 
