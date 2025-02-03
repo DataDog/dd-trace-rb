@@ -44,7 +44,6 @@ jobs:
           test "$(uname -m)" = "${{ matrix.platform.cpu }}"
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
       - name: Print ruby version
         run: |
           nix develop --command which ruby
