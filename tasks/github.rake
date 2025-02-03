@@ -287,11 +287,7 @@ namespace :github do
                   'merge-multiple' => true
                 }
               },
-              {
-                'run' => <<~BASH
-                  sed -i 's/file="\.\//file="/g' rspec/*.xml
-                BASH
-              },
+              { 'run' => "sed -i 's/file=\"\.\//file=\"/g' rspec/*.xml" },
               { 'run' => 'datadog-ci junit upload --service dd-trace-rb rspec/' },
             ]
           }

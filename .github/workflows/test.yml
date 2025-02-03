@@ -1531,9 +1531,8 @@ jobs:
     - run: mkdir rspec && datadog-ci version
     - uses: actions/download-artifact@v4
       with:
+        path: rspec
         pattern: junit-*
         merge-multiple: true
-    - run: 'sed -i ''s/file=".//file="/g'' rspec/*.xml
-
-        '
+    - run: sed -i 's/file="\.\/"/file="/g' rspec/*.xml
     - run: datadog-ci junit upload --service dd-trace-rb rspec/
