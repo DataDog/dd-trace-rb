@@ -1,3 +1,4 @@
+require 'pry'
 require 'json'
 require 'psych'
 require 'ostruct'
@@ -49,6 +50,7 @@ namespace :github do
           'cluster.routing.allocation.disk.threshold_enabled' => 'false',
         }
       }
+      # Rubocop
       agent = {
         'image' => 'ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0',
         'env' => {
@@ -57,7 +59,7 @@ namespace :github do
           'PORT' => '9126',
           'DD_POOL_TRACE_CHECK_FAILURES' => 'true',
           'DD_DISABLE_ERROR_RESPONSES' => 'true',
-          'ENABLED_CHECKS' => 'trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service',
+          'ENABLED_CHECKS' => 'trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service', # rubocop:disable Layout/LineLength
         }
       }
       runtimes = [
@@ -81,10 +83,13 @@ namespace :github do
           'version' => version,
           'alias' => runtime_alias,
           'image' => "ghcr.io/datadog/images-rb/engines/#{engine}:#{version}",
+          'batch_id' => "batch-#{runtime_alias}",
           'build_id' => "build-#{runtime_alias}",
           'test_id' => "test-#{runtime_alias}",
-          'lockfile_artifact' => "bundled-lockfile-#{runtime_alias}-${{ github.run_id }}",
-          'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ github.run_id }}",
+          'build_test_id' => "build-test-#{runtime_alias}",
+          'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
+          'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
+          'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'cache_key' => "${{ github.ref }}-#{runtime_alias}-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
         )
       end
@@ -92,53 +97,53 @@ namespace :github do
       jobs = {}
 
       runtimes.each do |runtime|
-        jobs[runtime.build_id] = {
+        jobs[runtime.batch_id] = {
           'runs-on' => ubuntu,
-          'name' => "Build #{runtime.engine}-#{runtime.version}",
+          'name' => "Batch #{runtime.engine}-#{runtime.version}",
           'outputs' => {
             "#{runtime.alias}-batches" => "${{ steps.set-batches.outputs.#{runtime.alias}-batches }}"
           },
           'container' => runtime.image,
           'steps' => [
             { 'uses' => 'actions/checkout@v4' },
-            { 'run' => 'bundle install' },
+            { 'run' => 'bundle lock' },
             {
               'uses' => 'actions/upload-artifact@v4',
               'with' => {
                 'name' => runtime.lockfile_artifact,
-                'path' => 'Gemfile.lock'
+                'path' => '*.lock'
               }
             },
-            { 'run' => 'bundle exec rake dependency:generate dependency:install' },
-            {
-              'uses' => 'actions/upload-artifact@v4',
-              'with' => {
-                'name' => runtime.dependencies_artifact,
-                'path' => '/usr/local/bundle'
-              }
-            },
+            { 'run' => 'bundle install' },
             {
               'id' => 'set-batches',
               'run' => <<~BASH
                 batches_json=$(bundle exec rake github:generate_batches)
-
                 echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-
                 echo "#{runtime.alias}-batches=$batches_json" >> $GITHUB_OUTPUT
               BASH
+            },
+            {
+              'uses' => 'actions/upload-artifact@v4',
+              'with' => {
+                'name' => runtime.bundle_artifact,
+                'path' => '/usr/local/bundle'
+              }
             },
           ]
         }
 
-        jobs[runtime.test_id] = {
-          'needs' => [runtime.build_id],
+        jobs[runtime.build_test_id] = {
+          'needs' => [
+            runtime.batch_id,
+          ],
           'runs-on' => ubuntu,
-          'name' => "Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'name' => "Build & Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
             'matrix' => {
-              'include' => "${{ fromJson(needs.#{runtime.build_id}.outputs.#{runtime.alias}-batches).include }}"
+              'include' => "${{ fromJson(needs.#{runtime.batch_id}.outputs.#{runtime.alias}-batches).include }}"
             }
           },
           'container' => {
@@ -187,23 +192,20 @@ namespace :github do
             {
               'uses' => 'actions/download-artifact@v4',
               'with' => {
-                'name' => runtime.dependencies_artifact,
+                'name' => runtime.bundle_artifact,
                 'path' => '/usr/local/bundle'
               }
             },
             { 'run' => 'bundle check' },
-            {
-              'name' => 'Run batched tests',
-              'run' => 'bundle exec rake github:run_batch_tests',
-              'timeout-minutes' => 30,
-            },
+            { 'run' => 'bundle exec rake github:run_batch_build' },
+            { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@v3',
               'with' => {
                 'limit-access-to-actor' => true,
               }
-            },
+            }
           ]
         }
       end
@@ -228,7 +230,7 @@ namespace :github do
         'jobs' => jobs.merge(
           'aggregate' => {
             'runs-on' => ubuntu,
-            'needs' => runtimes.map(&:test_id),
+            'needs' => runtimes.map(&:build_test_id),
             'steps' => [
               'run' => 'echo "DONE!"'
             ]
@@ -288,9 +290,10 @@ namespace :github do
     # Random!
     matching_tasks.shuffle!
 
-    jobs_per_runtime = 5
-    jobs_per_runtime *= 2 if RUBY_PLATFORM == 'java'
-    tasks_per_job = (matching_tasks.size.to_f / jobs_per_runtime).ceil
+    batch_count = 7
+    batch_count *= 2 if RUBY_PLATFORM == 'java'
+
+    tasks_per_job = (matching_tasks.size.to_f / batch_count).ceil
 
     batched_matrix = { 'include' => [] }
 
@@ -302,7 +305,16 @@ namespace :github do
     puts JSON.dump(batched_matrix)
   end
 
-  desc 'Run a batch of tests from JSON input'
+  task :run_batch_build do
+    tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
+
+    tasks.each do |task|
+      env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
+      cmd = 'bundle check || bundle install'
+      Bundler.with_unbundled_env { sh(env, cmd) }
+    end
+  end
+
   task :run_batch_tests do
     tasks = JSON.parse(ENV['BATCHED_TASKS'] || {})
 
