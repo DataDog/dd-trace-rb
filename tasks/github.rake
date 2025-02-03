@@ -242,6 +242,7 @@ namespace :github do
           'push' => {
             'branches' => [
               'master',
+              'tonycthsu/*'
             ]
           },
           'pull_request' => {

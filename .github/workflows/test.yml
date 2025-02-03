@@ -6,6 +6,7 @@ name: Unit Tests
   push:
     branches:
     - master
+    - tonycthsu/*
   pull_request:
     branches:
     - master
