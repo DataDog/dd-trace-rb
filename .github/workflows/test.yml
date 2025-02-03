@@ -43,7 +43,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-34-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-34:
     needs:
     - batch-ruby-34
@@ -168,7 +168,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-33:
     needs:
     - batch-ruby-33
@@ -293,7 +293,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-32-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-32:
     needs:
     - batch-ruby-32
@@ -418,7 +418,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-31-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-31:
     needs:
     - batch-ruby-31
@@ -543,7 +543,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-30-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-30:
     needs:
     - batch-ruby-30
@@ -668,7 +668,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-27-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-27:
     needs:
     - batch-ruby-27
@@ -793,7 +793,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-26-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-26:
     needs:
     - batch-ruby-26
@@ -918,7 +918,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "ruby-25-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-ruby-25:
     needs:
     - batch-ruby-25
@@ -1043,7 +1043,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-jruby-94:
     needs:
     - batch-jruby-94
@@ -1168,7 +1168,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "jruby-93-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-jruby-93:
     needs:
     - batch-jruby-93
@@ -1293,7 +1293,7 @@ jobs:
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "jruby-92-batches=$batches_json" >> $GITHUB_OUTPUT
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
   build-test-jruby-92:
     needs:
     - batch-jruby-92
