@@ -175,12 +175,22 @@ module Datadog
         super || (root_span && root_span.get_metric(key))
       end
 
+      def get_meta_struct(key)
+        super || (root_span && root_span.get_meta_struct(key))
+      end
+
       def tags
         all_tags = {}
         all_tags.merge!(root_span&.tags || {}) if root_span
         all_tags.merge!(super)
 
         all_tags
+      end
+
+      def meta_struct_size
+        size = super
+        size += root_span.meta_struct_size if root_span
+        size
       end
 
       # Returns true if the resource has been explicitly set

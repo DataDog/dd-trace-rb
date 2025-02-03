@@ -10,6 +10,14 @@ module Datadog
           self.meta_struct.merge!(meta_struct)
         end
 
+        def get_meta_struct(key)
+          meta_struct[key]
+        end
+
+        def meta_struct_size
+          meta_struct.size
+        end
+
         protected
 
         def meta_struct

@@ -4,6 +4,10 @@ module Datadog
       module MetaStruct
         def set_meta_struct: (Hash[String, untyped] meta_struct) -> void
 
+        def get_meta_struct: (String key) -> untyped
+
+        def meta_struct_size: () -> Integer
+
         def meta_struct: () -> Hash[String, untyped]
       end
     end
