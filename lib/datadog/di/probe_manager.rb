@@ -111,11 +111,11 @@ module Datadog
             # Always remove from pending list here because it makes the
             # API smaller and shouldn't cause any actual problems.
             @pending_probes.delete(probe.id)
-            logger.debug { "di: installed #{probe.type} probe at #{probe.location}" }
+            logger.debug { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
             true
           rescue Error::DITargetNotDefined
             @pending_probes[probe.id] = probe
-            logger.debug { "di: could not install #{probe.type} probe at #{probe.location} because its target is not defined, adding it to pending list" }
+            logger.debug { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
             false
           end
         rescue => exc
@@ -162,7 +162,7 @@ module Datadog
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
                 # Silence all exceptions?
                 # TODO should we propagate here and rescue upstream?
-                logger.debug { "di: error removing probe #{probe.id}: #{exc.class}: #{exc}" }
+                logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
                 telemetry&.report(exc, description: "Error removing probe")
               end
             end
@@ -192,7 +192,7 @@ module Datadog
                 rescue => exc
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error installing probe after class is defined: #{exc.class}: #{exc}" }
+                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
                   telemetry&.report(exc, description: "Error installing probe after class is defined")
                 end
               end
