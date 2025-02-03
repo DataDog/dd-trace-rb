@@ -13,7 +13,8 @@ RSpec.describe Datadog::Tracing::Metadata do
         expect(ancestors.first(5)).to include(
           described_class::Analytics,
           described_class::Tagging,
-          described_class::Errors
+          described_class::Errors,
+          described_class::MetaStruct
         )
       end
     end
