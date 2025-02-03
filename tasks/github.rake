@@ -139,6 +139,12 @@ namespace :github do
                 echo "batches=$batches_json" >> $GITHUB_OUTPUT
               BASH
             },
+            {
+              'env' => {
+                'batches_json' => '${{ steps.set-batches.outputs.batches }}',
+              },
+              'run' => 'bundle exec rake github:generate_batch_summary'
+            },
           ]
         }
 
@@ -313,6 +319,30 @@ namespace :github do
 
     # Output the JSON
     puts JSON.dump(batched_matrix)
+  end
+
+  task :generate_batch_summary do
+    batches_json = ENV['batches_json']
+    raise 'batches_json environment variable not set' unless batches_json
+
+    data = JSON.parse(batches_json)
+    summary = ENV['GITHUB_STEP_SUMMARY']
+
+    File.open(summary, 'a') do |f|
+      data['include'].each do |batch|
+        rows = batch['tasks'].map do |t|
+          "* #{t['task']} (#{t['group']})"
+        end
+
+        f.puts <<~SUMMARY
+          <details>
+          <summary>Batch #{batch['batch']} (#{batch['tasks'].length} tasks)</summary>
+
+          #{rows.join("\n")}
+          </details>
+        SUMMARY
+      end
+    end
   end
 
   task :run_batch_build do
