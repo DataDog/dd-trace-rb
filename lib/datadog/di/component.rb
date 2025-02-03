@@ -17,6 +17,9 @@ module Datadog
     class Component
       class << self
         def build(settings, agent_settings, logger, telemetry: nil)
+          logger = Logger.new(STDERR, progname: "\033[7mdatadog/di\e[0m")
+          logger.level = 0
+
           return unless settings.respond_to?(:dynamic_instrumentation) && settings.dynamic_instrumentation.enabled
 
           unless settings.respond_to?(:remote) && settings.remote.enabled
