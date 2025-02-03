@@ -90,7 +90,7 @@ namespace :github do
           'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
-          'cache_key' => "${{ github.ref }}-#{runtime_alias}-${{ hashFiles('*.lock') }}-${{ hashFiles('gemfiles/*.lock') }}"
+          'bundle_cache_key' => "bundle-${{ runner.os }}-${{ runner.arch }}-#{runtime_alias}-${{ hashFiles('*.lock') }}"
         )
       end
 
@@ -101,7 +101,8 @@ namespace :github do
           'runs-on' => ubuntu,
           'name' => "Batch #{runtime.engine}-#{runtime.version}",
           'outputs' => {
-            "#{runtime.alias}-batches" => "${{ steps.set-batches.outputs.#{runtime.alias}-batches }}"
+            'batches' => '${{ steps.set-batches.outputs.batches }}',
+            'cache-key' => '${{ steps.restore-cache.outputs.cache-primary-key }}'
           },
           'container' => runtime.image,
           'steps' => [
@@ -114,21 +115,29 @@ namespace :github do
                 'path' => '*.lock'
               }
             },
-            { 'run' => 'bundle install' },
+            {
+              'uses' => 'actions/cache/restore@v4',
+              'id' => 'restore-cache',
+              'with' => {
+                'key' => runtime.bundle_cache_key,
+                'path' => '/usr/local/bundle'
+              }
+            },
+            { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
+              'run' => 'bundle install' },
+            { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
+              'uses' => 'actions/cache/save@v4',
+              'with' => {
+                'key' => '${{ steps.restore-cache.outputs.cache-primary-key }}',
+                'path' => '/usr/local/bundle'
+              } },
             {
               'id' => 'set-batches',
               'run' => <<~BASH
                 batches_json=$(bundle exec rake github:generate_batches)
                 echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-                echo "#{runtime.alias}-batches=$batches_json" >> $GITHUB_OUTPUT
+                echo "batches=$batches_json" >> $GITHUB_OUTPUT
               BASH
-            },
-            {
-              'uses' => 'actions/upload-artifact@v4',
-              'with' => {
-                'name' => runtime.bundle_artifact,
-                'path' => '/usr/local/bundle'
-              }
             },
           ]
         }
@@ -143,7 +152,7 @@ namespace :github do
           'strategy' => {
             'fail-fast' => false,
             'matrix' => {
-              'include' => "${{ fromJson(needs.#{runtime.batch_id}.outputs.#{runtime.alias}-batches).include }}"
+              'include' => "${{ fromJson(needs.#{runtime.batch_id}.outputs.batches).include }}"
             }
           },
           'container' => {
@@ -190,13 +199,14 @@ namespace :github do
               }
             },
             {
-              'uses' => 'actions/download-artifact@v4',
+              'uses' => 'actions/cache/restore@v4',
+              'id' => 'restore-cache',
               'with' => {
-                'name' => runtime.bundle_artifact,
+                'key' => "${{ needs.#{runtime.batch_id}.outputs.cache-key }}",
                 'path' => '/usr/local/bundle'
               }
             },
-            { 'run' => 'bundle check' },
+            { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
             { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
