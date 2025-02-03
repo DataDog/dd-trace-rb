@@ -35,6 +35,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         profiling_enabled: profiling_enabled,
         tags: tags,
         metrics: metrics,
+        meta_struct: meta_struct,
         trace_state: trace_state,
         trace_state_unknown_fields: trace_state_unknown_fields,
         remote_parent: remote_parent,
@@ -56,6 +57,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     let(:profiling_enabled) { 'profiling_enabled' }
     let(:tags) { { 'foo' => 'bar' }.merge(distributed_tags) }
     let(:metrics) { { 'baz' => 42.0 } }
+    let(:meta_struct) { { 'foo' => 'bar' } }
     let(:trace_state) { 'my-trace-state' }
     let(:trace_state_unknown_fields) { 'any;field;really' }
 
@@ -98,6 +100,10 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
       it do
         expect(trace_op.send(:metrics)).to eq({})
+      end
+
+      it do
+        expect(trace_op.send(:meta_struct)).to eq({})
       end
 
       context 'when 128 bit trace id generation enabled' do
@@ -269,6 +275,13 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         let(:metrics) { { 'baz' => 42.0 } }
 
         it { expect(trace_op.send(:metrics)).to eq({ 'baz' => 42.0 }) }
+      end
+
+      context ':meta_struct' do
+        subject(:options) { { meta_struct: meta_struct } }
+        let(:meta_struct) { { 'foo' => 'bar' } }
+
+        it { expect(trace_op.send(:meta_struct)).to eq({ 'foo' => 'bar' }) }
       end
     end
   end
@@ -1159,6 +1172,17 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(final_flush.spans.map(&:name)).to include('grandparent')
         expect(final_flush.send(:meta)['foo']).to eq('bar')
       end
+    end
+  end
+
+  describe '#set_meta_struct' do
+    it 'sets meta_struct' do
+      trace_op.set_meta_struct({ 'foo' => 'bar', 'baz' => { 'value' => 42 } })
+      trace_op.measure('top') {}
+
+      trace = trace_op.flush!
+
+      expect(trace.send(:meta_struct)).to eq({ 'foo' => 'bar', 'baz' => { 'value' => 42 } })
     end
   end
 
