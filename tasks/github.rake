@@ -90,6 +90,7 @@ namespace :github do
           'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
+          'junit_artifact' => "junit-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'bundle_cache_key' => "bundle-${{ runner.os }}-${{ runner.arch }}-#{runtime_alias}-${{ hashFiles('*.lock') }}"
         )
       end
@@ -215,6 +216,7 @@ namespace :github do
             },
             { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
+            { 'run' => 'ln -s .rspec-local.example .rspec-local' },
             { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
@@ -222,7 +224,14 @@ namespace :github do
               'with' => {
                 'limit-access-to-actor' => true,
               }
-            }
+            },
+            {
+              'uses' => 'actions/upload-artifact@v4',
+              'with' => {
+                'name' => runtime.junit_artifact,
+                'path' => 'tmp/rspec/*.xml'
+              }
+            },
           ]
         }
       end
@@ -254,6 +263,35 @@ namespace :github do
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
               'run' => 'echo "DONE!"'
+            ]
+          },
+          'upload-junit' => {
+            'runs-on' => ubuntu,
+            'container' => {
+              'image' => 'datadog/ci',
+              'env' => {
+                'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+                'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+                'DD_ENV' => 'ci',
+                'DATADOG_SITE' => 'datadoghq.com'
+              }
+            },
+            'needs' => runtimes.map(&:build_test_id),
+            'steps' => [
+              { 'run' => 'mkdir rspec && datadog-ci version' },
+              {
+                'uses' => 'actions/download-artifact@v4',
+                'with' => {
+                  'pattern' => 'junit-*',
+                  'merge-multiple' => true
+                }
+              },
+              {
+                'run' => <<~BASH
+                  sed -i 's/file="\.\//file="/g' rspec/*.xml
+                BASH
+              },
+              { 'run' => 'datadog-ci junit upload --service dd-trace-rb rspec/' },
             ]
           }
         )

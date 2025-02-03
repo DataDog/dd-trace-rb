@@ -139,11 +139,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-33:
     runs-on: ubuntu-24.04
     name: Batch (ruby-3.3)
@@ -268,11 +273,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-33-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-32:
     runs-on: ubuntu-24.04
     name: Batch (ruby-3.2)
@@ -397,11 +407,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-31:
     runs-on: ubuntu-24.04
     name: Batch (ruby-3.1)
@@ -526,11 +541,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-31-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-30:
     runs-on: ubuntu-24.04
     name: Batch (ruby-3.0)
@@ -655,11 +675,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-27:
     runs-on: ubuntu-24.04
     name: Batch (ruby-2.7)
@@ -784,11 +809,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-27-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-26:
     runs-on: ubuntu-24.04
     name: Batch (ruby-2.6)
@@ -913,11 +943,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-ruby-25:
     runs-on: ubuntu-24.04
     name: Batch (ruby-2.5)
@@ -1042,11 +1077,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-ruby-25-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-jruby-94:
     runs-on: ubuntu-24.04
     name: Batch (jruby-9.4)
@@ -1171,11 +1211,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-jruby-93:
     runs-on: ubuntu-24.04
     name: Batch (jruby-9.3)
@@ -1300,11 +1345,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   batch-jruby-92:
     runs-on: ubuntu-24.04
     name: Batch (jruby-9.2)
@@ -1429,11 +1479,16 @@ jobs:
         path: "/usr/local/bundle"
     - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
+    - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - uses: actions/upload-artifact@v4
+      with:
+        name: junit-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
   unit-tests:
     runs-on: ubuntu-24.04
     needs:
@@ -1450,3 +1505,34 @@ jobs:
     - build-test-jruby-92
     steps:
     - run: echo "DONE!"
+  upload-junit:
+    runs-on: ubuntu-24.04
+    container:
+      image: datadog/ci
+      env:
+        DD_APP_KEY: "${{ secrets.DD_APP_KEY }}"
+        DD_API_KEY: "${{ secrets.DD_API_KEY }}"
+        DD_ENV: ci
+        DATADOG_SITE: datadoghq.com
+    needs:
+    - build-test-ruby-34
+    - build-test-ruby-33
+    - build-test-ruby-32
+    - build-test-ruby-31
+    - build-test-ruby-30
+    - build-test-ruby-27
+    - build-test-ruby-26
+    - build-test-ruby-25
+    - build-test-jruby-94
+    - build-test-jruby-93
+    - build-test-jruby-92
+    steps:
+    - run: mkdir rspec && datadog-ci version
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: junit-*
+        merge-multiple: true
+    - run: 'sed -i ''s/file=".//file="/g'' rspec/*.xml
+
+        '
+    - run: datadog-ci junit upload --service dd-trace-rb rspec/
