@@ -17,7 +17,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-3.4
     outputs:
-      ruby-34-batches: "${{ steps.set-batches.outputs.ruby-34-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.4
     steps:
     - uses: actions/checkout@v4
@@ -26,16 +27,23 @@ jobs:
       with:
         name: lockfile-ruby-34-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-34-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-34-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-34-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-34:
     needs:
     - batch-ruby-34
@@ -46,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-34.outputs.ruby-34-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-34.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.4
       env:
@@ -118,11 +126,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-34-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-34-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-34.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -133,7 +142,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-3.3
     outputs:
-      ruby-33-batches: "${{ steps.set-batches.outputs.ruby-33-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
     - uses: actions/checkout@v4
@@ -142,16 +152,23 @@ jobs:
       with:
         name: lockfile-ruby-33-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-33-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-33-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-33-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-33:
     needs:
     - batch-ruby-33
@@ -162,7 +179,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-33.outputs.ruby-33-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-33.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.3
       env:
@@ -234,11 +251,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-33-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-33-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-33.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -249,7 +267,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-3.2
     outputs:
-      ruby-32-batches: "${{ steps.set-batches.outputs.ruby-32-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
     - uses: actions/checkout@v4
@@ -258,16 +277,23 @@ jobs:
       with:
         name: lockfile-ruby-32-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-32-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-32-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-32-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-32:
     needs:
     - batch-ruby-32
@@ -278,7 +304,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-32.outputs.ruby-32-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-32.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.2
       env:
@@ -350,11 +376,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-32-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-32-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-32.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -365,7 +392,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-3.1
     outputs:
-      ruby-31-batches: "${{ steps.set-batches.outputs.ruby-31-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.1
     steps:
     - uses: actions/checkout@v4
@@ -374,16 +402,23 @@ jobs:
       with:
         name: lockfile-ruby-31-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-31-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-31-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-31-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-31:
     needs:
     - batch-ruby-31
@@ -394,7 +429,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-31.outputs.ruby-31-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-31.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.1
       env:
@@ -466,11 +501,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-31-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-31-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-31.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -481,7 +517,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-3.0
     outputs:
-      ruby-30-batches: "${{ steps.set-batches.outputs.ruby-30-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.0
     steps:
     - uses: actions/checkout@v4
@@ -490,16 +527,23 @@ jobs:
       with:
         name: lockfile-ruby-30-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-30-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-30-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-30-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-30:
     needs:
     - batch-ruby-30
@@ -510,7 +554,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-30.outputs.ruby-30-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-30.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:3.0
       env:
@@ -582,11 +626,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-30-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-30-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-30.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -597,7 +642,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-2.7
     outputs:
-      ruby-27-batches: "${{ steps.set-batches.outputs.ruby-27-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.7
     steps:
     - uses: actions/checkout@v4
@@ -606,16 +652,23 @@ jobs:
       with:
         name: lockfile-ruby-27-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-27-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-27-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-27-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-27:
     needs:
     - batch-ruby-27
@@ -626,7 +679,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-27.outputs.ruby-27-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-27.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.7
       env:
@@ -698,11 +751,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-27-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-27-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-27.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -713,7 +767,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-2.6
     outputs:
-      ruby-26-batches: "${{ steps.set-batches.outputs.ruby-26-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.6
     steps:
     - uses: actions/checkout@v4
@@ -722,16 +777,23 @@ jobs:
       with:
         name: lockfile-ruby-26-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-26-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-26-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-26-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-26:
     needs:
     - batch-ruby-26
@@ -742,7 +804,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-26.outputs.ruby-26-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-26.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.6
       env:
@@ -814,11 +876,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-26-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-26-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-26.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -829,7 +892,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch ruby-2.5
     outputs:
-      ruby-25-batches: "${{ steps.set-batches.outputs.ruby-25-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.5
     steps:
     - uses: actions/checkout@v4
@@ -838,16 +902,23 @@ jobs:
       with:
         name: lockfile-ruby-25-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-25-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "ruby-25-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-ruby-25-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-ruby-25:
     needs:
     - batch-ruby-25
@@ -858,7 +929,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-ruby-25.outputs.ruby-25-batches).include }}"
+        include: "${{ fromJson(needs.batch-ruby-25.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/ruby:2.5
       env:
@@ -930,11 +1001,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-ruby-25-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-ruby-25-${{ github.run_id }}
+        key: "${{ needs.batch-ruby-25.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -945,7 +1017,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch jruby-9.4
     outputs:
-      jruby-94-batches: "${{ steps.set-batches.outputs.jruby-94-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.4
     steps:
     - uses: actions/checkout@v4
@@ -954,16 +1027,23 @@ jobs:
       with:
         name: lockfile-jruby-94-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-94-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "jruby-94-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-jruby-94-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-jruby-94:
     needs:
     - batch-jruby-94
@@ -974,7 +1054,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-jruby-94.outputs.jruby-94-batches).include }}"
+        include: "${{ fromJson(needs.batch-jruby-94.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.4
       env:
@@ -1046,11 +1126,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-jruby-94-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-jruby-94-${{ github.run_id }}
+        key: "${{ needs.batch-jruby-94.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -1061,7 +1142,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch jruby-9.3
     outputs:
-      jruby-93-batches: "${{ steps.set-batches.outputs.jruby-93-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.3
     steps:
     - uses: actions/checkout@v4
@@ -1070,16 +1152,23 @@ jobs:
       with:
         name: lockfile-jruby-93-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-93-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "jruby-93-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-jruby-93-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-jruby-93:
     needs:
     - batch-jruby-93
@@ -1090,7 +1179,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-jruby-93.outputs.jruby-93-batches).include }}"
+        include: "${{ fromJson(needs.batch-jruby-93.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.3
       env:
@@ -1162,11 +1251,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-jruby-93-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-jruby-93-${{ github.run_id }}
+        key: "${{ needs.batch-jruby-93.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
@@ -1177,7 +1267,8 @@ jobs:
     runs-on: ubuntu-24.04
     name: Batch jruby-9.2
     outputs:
-      jruby-92-batches: "${{ steps.set-batches.outputs.jruby-92-batches }}"
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.2
     steps:
     - uses: actions/checkout@v4
@@ -1186,16 +1277,23 @@ jobs:
       with:
         name: lockfile-jruby-92-${{ github.run_id }}
         path: "*.lock"
-    - run: bundle install
+    - uses: actions/cache/restore@v4
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-92-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v4
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
     - id: set-batches
       run: |
         batches_json=$(bundle exec rake github:generate_batches)
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "jruby-92-batches=$batches_json" >> $GITHUB_OUTPUT
-    - uses: actions/upload-artifact@v4
-      with:
-        name: bundle-jruby-92-${{ github.run_id }}
-        path: "/usr/local/bundle"
   build-test-jruby-92:
     needs:
     - batch-jruby-92
@@ -1206,7 +1304,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include: "${{ fromJson(needs.batch-jruby-92.outputs.jruby-92-batches).include }}"
+        include: "${{ fromJson(needs.batch-jruby-92.outputs.batches).include }}"
     container:
       image: ghcr.io/datadog/images-rb/engines/jruby:9.2
       env:
@@ -1278,11 +1376,12 @@ jobs:
     - uses: actions/download-artifact@v4
       with:
         name: lockfile-jruby-92-${{ github.run_id }}
-    - uses: actions/download-artifact@v4
+    - uses: actions/cache/restore@v4
+      id: restore-cache
       with:
-        name: bundle-jruby-92-${{ github.run_id }}
+        key: "${{ needs.batch-jruby-92.outputs.cache-key }}"
         path: "/usr/local/bundle"
-    - run: bundle check
+    - run: bundle check || bundle install
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
