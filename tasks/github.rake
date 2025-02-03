@@ -232,7 +232,11 @@ namespace :github do
           'push' => {
             'branches' => [
               'master',
-              'poc/**',
+            ]
+          },
+          'pull_request' => {
+            'branches' => [
+              'master',
             ]
           },
           'schedule' => [
@@ -244,7 +248,7 @@ namespace :github do
           'cancel-in-progress' => '${{ github.ref != \'refs/heads/master\' }}'
         },
         'jobs' => jobs.merge(
-          'aggregate' => {
+          'unit-tests' => {
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
