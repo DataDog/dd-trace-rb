@@ -106,7 +106,7 @@ module Datadog
         # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
-        set_metastruct(metastruct) if metastruct
+        self.metastruct = metastruct if metastruct
 
         # State
         @root_span = nil
@@ -175,22 +175,12 @@ module Datadog
         super || (root_span && root_span.get_metric(key))
       end
 
-      def get_metastruct(key)
-        super || (root_span && root_span.get_metastruct(key))
-      end
-
       def tags
         all_tags = {}
         all_tags.merge!(root_span&.tags || {}) if root_span
         all_tags.merge!(super)
 
         all_tags
-      end
-
-      def metastruct_size
-        size = super
-        size += root_span.metastruct_size if root_span
-        size
       end
 
       # Returns true if the resource has been explicitly set

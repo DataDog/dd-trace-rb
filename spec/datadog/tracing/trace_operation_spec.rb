@@ -1175,17 +1175,6 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#set_metastruct' do
-    it 'sets metastruct' do
-      trace_op.set_metastruct({ 'foo' => 'bar', 'baz' => { 'value' => 42 } })
-      trace_op.measure('top') {}
-
-      trace = trace_op.flush!
-
-      expect(trace.send(:metastruct)).to eq({ 'foo' => 'bar', 'baz' => { 'value' => 42 } })
-    end
-  end
-
   describe '#build_span' do
     subject(:build_span) { trace_op.build_span(span_name, **span_options) }
     let(:span_name) { 'web.request' }
