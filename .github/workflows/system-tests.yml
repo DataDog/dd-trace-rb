@@ -24,7 +24,9 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  # Broken system-test: https://github.com/DataDog/system-tests/pull/3904
+  SYSTEM_TESTS_REF: 239c3eba6de0473817d3d88ebbc025c9d0c9574b
+  # SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
   build-harness:
