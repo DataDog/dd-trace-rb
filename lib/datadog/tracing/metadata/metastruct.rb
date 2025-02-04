@@ -21,10 +21,10 @@ module Datadog
               v2
             end
           end
-          metastruct.merge!(second.to_h, &merger)
+          metastruct.merge!(second.to_h, &merger) # steep:ignore BlockTypeMismatch
         end
 
-        def get_metastruct(key)
+        def get_metastruct_field(key)
           metastruct[key]
         end
 
