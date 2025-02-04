@@ -2,7 +2,7 @@
 
 require_relative 'metadata/analytics'
 require_relative 'metadata/tagging'
-require_relative 'metadata/meta_struct'
+require_relative 'metadata/metastruct'
 require_relative 'metadata/errors'
 
 module Datadog
@@ -12,7 +12,7 @@ module Datadog
       def self.included(base)
         base.include(Metadata::Tagging)
         base.include(Metadata::Errors)
-        base.include(Metadata::MetaStruct)
+        base.include(Metadata::Metastruct)
 
         # Additional extensions
         base.prepend(Metadata::Analytics)

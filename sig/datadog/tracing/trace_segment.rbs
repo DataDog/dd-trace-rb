@@ -22,7 +22,7 @@ module Datadog
       attr_reader sampling_priority: untyped
       attr_reader service: untyped
 
-      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?meta_struct: untyped?) -> void
+      def initialize: (untyped spans, ?agent_sample_rate: untyped?, ?hostname: untyped?, ?id: untyped?, ?lang: untyped?, ?name: untyped?, ?origin: untyped?, ?process_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?root_span_id: untyped?, ?rule_sample_rate: untyped?, ?runtime_id: untyped?, ?sample_rate: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?metastruct: untyped?) -> void
       def any?: () -> untyped
       def count: () -> untyped
       def empty?: () -> untyped
@@ -36,7 +36,7 @@ module Datadog
       attr_reader root_span_id: untyped
       attr_reader meta: untyped
       attr_reader metrics: untyped
-      attr_reader meta_struct: untyped
+      attr_reader metastruct: untyped
 
       private
 

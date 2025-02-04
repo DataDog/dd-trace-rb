@@ -6,7 +6,7 @@ module Datadog
       attr_accessor end_time: (Time | nil)
       attr_accessor id: Integer
       attr_accessor meta: Hash[String, String]
-      attr_accessor meta_struct: Hash[String, untyped]
+      attr_accessor metastruct: Hash[String, untyped]
       attr_accessor metrics: Hash[String, Float]
       attr_accessor name: String
       attr_accessor parent_id: Integer
@@ -26,7 +26,7 @@ module Datadog
           ?end_time: (Time | nil),
           ?id: (Integer | nil),
           ?meta: (Hash[String, String] | nil),
-          ?meta_struct: (Hash[String, untyped] | nil),
+          ?metastruct: (Hash[String, untyped] | nil),
           ?metrics: (Hash[String, Float] | nil),
           ?parent_id: Integer,
           ?resource: String,
