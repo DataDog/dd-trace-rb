@@ -1,0 +1,15 @@
+module Datadog
+  module Tracing
+    module Metadata
+      module Metastruct
+        def set_metastruct: (Hash[String, untyped] metastruct) -> void
+
+        def get_metastruct: (String key) -> untyped
+
+        def metastruct_size: () -> Integer
+
+        def metastruct: () -> Hash[String, untyped]
+      end
+    end
+  end
+end
