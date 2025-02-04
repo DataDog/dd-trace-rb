@@ -113,6 +113,7 @@ jobs:
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.3.7'
+      - run: bundle install
       - uses: rubygems/release-gem@v1
         with:
           attestations: false # PENDING decision for attestations
