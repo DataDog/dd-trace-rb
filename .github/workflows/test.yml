@@ -23,13 +23,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.4
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-34-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-34-${{ hashFiles('*.lock') }}
@@ -37,7 +37,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -125,13 +125,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-34-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-34.outputs.cache-key }}"
@@ -140,7 +140,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-33:
@@ -151,13 +151,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-33-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-33-${{ hashFiles('*.lock') }}
@@ -165,7 +165,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -253,13 +253,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-33-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-33.outputs.cache-key }}"
@@ -268,7 +268,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-32:
@@ -279,13 +279,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.2
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-32-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-32-${{ hashFiles('*.lock') }}
@@ -293,7 +293,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -381,13 +381,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-32-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-32.outputs.cache-key }}"
@@ -396,7 +396,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-31:
@@ -407,13 +407,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.1
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-31-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-31-${{ hashFiles('*.lock') }}
@@ -421,7 +421,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -509,13 +509,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-31-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-31.outputs.cache-key }}"
@@ -524,7 +524,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-30:
@@ -535,13 +535,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:3.0
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-30-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-30-${{ hashFiles('*.lock') }}
@@ -549,7 +549,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -637,13 +637,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-30-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-30.outputs.cache-key }}"
@@ -652,7 +652,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-27:
@@ -663,13 +663,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.7
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-27-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-27-${{ hashFiles('*.lock') }}
@@ -677,7 +677,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -765,13 +765,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-27-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-27.outputs.cache-key }}"
@@ -780,7 +780,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-26:
@@ -791,13 +791,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.6
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-26-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-26-${{ hashFiles('*.lock') }}
@@ -805,7 +805,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -893,13 +893,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-26-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-26.outputs.cache-key }}"
@@ -908,7 +908,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-ruby-25:
@@ -919,13 +919,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/ruby:2.5
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-ruby-25-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-ruby-25-${{ hashFiles('*.lock') }}
@@ -933,7 +933,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -1021,13 +1021,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-ruby-25-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-ruby-25.outputs.cache-key }}"
@@ -1036,7 +1036,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-jruby-94:
@@ -1047,13 +1047,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.4
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-jruby-94-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-94-${{ hashFiles('*.lock') }}
@@ -1061,7 +1061,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -1149,13 +1149,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-jruby-94-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-jruby-94.outputs.cache-key }}"
@@ -1164,7 +1164,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-jruby-93:
@@ -1175,13 +1175,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.3
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-jruby-93-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-93-${{ hashFiles('*.lock') }}
@@ -1189,7 +1189,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -1277,13 +1277,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-jruby-93-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-jruby-93.outputs.cache-key }}"
@@ -1292,7 +1292,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   batch-jruby-92:
@@ -1303,13 +1303,13 @@ jobs:
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
     container: ghcr.io/datadog/images-rb/engines/jruby:9.2
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - run: bundle lock
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
         name: lockfile-jruby-92-${{ github.run_id }}
         path: "*.lock"
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-jruby-92-${{ hashFiles('*.lock') }}
@@ -1317,7 +1317,7 @@ jobs:
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"
@@ -1405,13 +1405,13 @@ jobs:
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
     - name: Configure Git
       run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
       with:
         name: lockfile-jruby-92-${{ github.run_id }}
-    - uses: actions/cache/restore@v4
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
       id: restore-cache
       with:
         key: "${{ needs.batch-jruby-92.outputs.cache-key }}"
@@ -1420,7 +1420,7 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: bundle exec rake github:run_batch_tests
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
-      uses: mxschmitt/action-tmate@v3
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
       with:
         limit-access-to-actor: true
   unit-tests:
