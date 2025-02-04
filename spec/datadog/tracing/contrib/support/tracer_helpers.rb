@@ -14,6 +14,7 @@ module Contrib
     # Returns the current tracer instance
     def tracer
       Datadog::Tracing.send(:tracer)
+      @write_lock = Mutex.new
     end
 
     # Returns spans and caches it (similar to +let(:spans)+).
@@ -35,20 +36,24 @@ module Contrib
     # Retrieves and sorts all spans in the current tracer instance.
     # This method does not cache its results.
     def fetch_spans(tracer = self.tracer)
-      traces = fetch_traces(tracer)
-      traces.collect(&:spans).flatten.sort! do |a, b|
-        if a.name == b.name
-          if a.resource == b.resource
-            if a.start_time == b.start_time
-              a.end_time <=> b.end_time
+      lock = tracer.instance_variable_get(:@write_lock)
+      return [] if lock.nil?
+      lock.synchronize do
+        traces = fetch_traces(tracer)
+        traces.collect(&:spans).flatten.sort! do |a, b|
+          if a.name == b.name
+            if a.resource == b.resource
+              if a.start_time == b.start_time
+                a.end_time <=> b.end_time
+              else
+                a.start_time <=> b.start_time
+              end
             else
-              a.start_time <=> b.start_time
+              a.resource <=> b.resource
             end
           else
-            a.resource <=> b.resource
+            a.name <=> b.name
           end
-        else
-          a.name <=> b.name
         end
       end
     end
@@ -57,6 +62,7 @@ module Contrib
     # busts cache of +#spans+ and +#span+.
     def clear_traces!
       tracer.instance_variable_set(:@traces, [])
+      tracer.instance_variable_set(:@write_lock, Mutex.new)
 
       @traces = nil
       @trace = nil
@@ -73,10 +79,9 @@ module Contrib
           instance = method.call(**args, &block)
 
           # The mutex must be eagerly initialized to prevent race conditions on lazy initialization
-          write_lock = Mutex.new
           allow(instance).to receive(:write) do |trace|
             instance.instance_exec do
-              write_lock.synchronize do
+              tracer.instance_variable_get(:@write_lock).synchronize do
                 @traces ||= []
                 @traces << trace
               end
