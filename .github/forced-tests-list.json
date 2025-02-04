@@ -1,8 +1,4 @@
 {
-  "DEFAULT":
-  [
-    "tests/test_span_events.py::Test_SpanEvents_WithAgentSupport::test_v04_v07_default_format"
-  ],
   "AGENT_NOT_SUPPORTING_SPAN_EVENTS":
   [
     "tests/test_span_events.py"
