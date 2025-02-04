@@ -93,7 +93,7 @@ module Datadog
         def set_metastruct!
           return if partial?
 
-          root_span.set_metastruct(trace.send(:metastruct))
+          root_span.deep_merge_metastruct!(trace.send(:metastruct))
         end
 
         def tag_agent_sample_rate!
