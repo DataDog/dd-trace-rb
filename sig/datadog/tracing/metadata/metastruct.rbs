@@ -8,7 +8,7 @@ module Datadog
 
         def deep_merge_metastruct!: (metastruct second) -> void
 
-        def get_metastruct: (String key) -> untyped
+        def get_metastruct_field: (String key) -> untyped
 
         def metastruct: () -> metastruct
       end
