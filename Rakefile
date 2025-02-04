@@ -96,6 +96,11 @@ namespace :spec do
     t.rspec_opts = args.to_a.join(' ')
   end
 
+  RSpec::Core::RakeTask.new(:data_pipeline) do |t, args|
+    t.pattern = 'spec/datadog/tracing/transport/trace_exporter_spec.rb'
+    t.rspec_opts = args.to_a.join(' ')
+  end
+
   RSpec::Core::RakeTask.new(:graphql_trace_patcher) do |t, args|
     t.pattern = 'spec/datadog/tracing/contrib/graphql/trace_patcher_spec.rb'
     t.rspec_opts = args.to_a.join(' ')

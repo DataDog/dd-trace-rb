@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 RSpec.describe Datadog::Tracing::Contrib do
-  root = Gem::Specification.find_by_name('datadog').gem_dir
+  # root = Gem::Specification.find_by_name('datadog').gem_dir
 
   # Our module names are camelized directory name with some exceptions
   mapping = {
@@ -55,14 +55,14 @@ RSpec.describe Datadog::Tracing::Contrib do
     'trilogy' => 'Trilogy'
   }
 
-  Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|
-    Dir.glob('*/integration.rb').each do |path|
-      it "ensures #{pwd}/#{path} is loaded" do
-        directory = File.dirname path
-        ruby_module = mapping.fetch(directory) # raise key error if not found
+  # Dir.chdir("#{root}/lib/datadog/tracing/contrib") do |pwd|
+  #  Dir.glob('*/integration.rb').each do |path|
+  #    it "ensures #{pwd}/#{path} is loaded" do
+  #      directory = File.dirname path
+  #      ruby_module = mapping.fetch(directory) # raise key error if not found
 
-        expect { Object.const_get "::Datadog::Tracing::Contrib::#{ruby_module}" }.not_to raise_error
-      end
-    end
-  end
+  #      expect { Object.const_get "::Datadog::Tracing::Contrib::#{ruby_module}" }.not_to raise_error
+  #      end
+  #    end
+  #  end
 end

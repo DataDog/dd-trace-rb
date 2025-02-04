@@ -2,11 +2,9 @@
 #include <datadog/crashtracker.h>
 #include <datadog/data-pipeline.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "datadog_ruby_common.h"
-#include "ruby/internal/arithmetic/double.h"
-#include "ruby/internal/arithmetic/int.h"
-#include "ruby/internal/special_consts.h"
 
 static VALUE trace_exporter_class;
 static VALUE trace_exporter_config_class;
@@ -18,7 +16,12 @@ static VALUE _native_trace_exporter_send(VALUE self, VALUE payload, VALUE trace_
 static VALUE _native_trace_exporter_config_initialize(VALUE self);
 static VALUE _native_trace_exporter_config_set_url(VALUE self, VALUE url);
 static VALUE _native_trace_exporter_config_set_tracer_version(VALUE self, VALUE tracer_version);
+static VALUE _native_trace_exporter_config_set_language(VALUE self, VALUE language);
+static VALUE _native_trace_exporter_config_set_lang_version(VALUE self, VALUE lang_version);
+static VALUE _native_trace_exporter_config_set_lang_interpreter(VALUE self, VALUE lang_interpreter);
+static VALUE _native_trace_exporter_config_set_hostname(VALUE self, VALUE hostname);
 static VALUE _native_trace_exporter_config_set_env(VALUE self, VALUE env);
+static VALUE _native_trace_exporter_config_set_version(VALUE self, VALUE version);
 static VALUE _native_trace_exporter_config_set_service(VALUE self, VALUE service);
 
 static VALUE trace_exporter_alloc(VALUE klass);
@@ -51,18 +54,23 @@ void trace_exporter_init() {
   VALUE tracing_module = rb_define_module_under(datadog_module, "Tracing");
   VALUE transport_module = rb_define_module_under(tracing_module, "Transport");
   VALUE trace_exporter_module = rb_define_module_under(transport_module, "TraceExporter");
-  trace_exporter_class = rb_define_class_under(trace_exporter_module, "Component", rb_cObject);
-  trace_exporter_config_class = rb_define_class_under(trace_exporter_module, "TraceExporterConfig", rb_cObject);
+  trace_exporter_class = rb_define_class_under(trace_exporter_module, "Exporter", rb_cObject);
+  trace_exporter_config_class = rb_define_class_under(trace_exporter_module, "Config", rb_cObject);
   rb_eTraceExporterError = rb_define_class("TraceExporterError", rb_eStandardError);
   rb_define_alloc_func(trace_exporter_class, trace_exporter_alloc);
   rb_define_alloc_func(trace_exporter_config_class, trace_exporter_config_alloc);
-  rb_define_method(trace_exporter_class, "initialize", _native_trace_exporter_initialize, 1);
-  rb_define_method(trace_exporter_class, "send", _native_trace_exporter_send, 2);
-  rb_define_method(trace_exporter_config_class, "initialize", _native_trace_exporter_config_initialize, 0);
-  rb_define_method(trace_exporter_config_class, "set_url", _native_trace_exporter_config_set_url, 1);
-  rb_define_method(trace_exporter_config_class, "set_tracer_version", _native_trace_exporter_config_set_tracer_version, 1);
-  rb_define_method(trace_exporter_config_class, "set_env", _native_trace_exporter_config_set_env, 1);
-  rb_define_method(trace_exporter_config_class, "set_service", _native_trace_exporter_config_set_service, 1);
+  rb_define_method(trace_exporter_class, "_native_initialize", _native_trace_exporter_initialize, 1);
+  rb_define_method(trace_exporter_class, "_native_send", _native_trace_exporter_send, 2);
+  rb_define_method(trace_exporter_config_class, "_native_initialize", _native_trace_exporter_config_initialize, 0);
+  rb_define_method(trace_exporter_config_class, "_native_set_url", _native_trace_exporter_config_set_url, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_tracer_version", _native_trace_exporter_config_set_tracer_version, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_language", _native_trace_exporter_config_set_language, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_lang_version", _native_trace_exporter_config_set_lang_version, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_lang_interpreter", _native_trace_exporter_config_set_lang_interpreter, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_hostname", _native_trace_exporter_config_set_hostname, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_env", _native_trace_exporter_config_set_env, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_version", _native_trace_exporter_config_set_version, 1);
+  rb_define_method(trace_exporter_config_class, "_native_set_service", _native_trace_exporter_config_set_service, 1);
 }
 
 struct trace_exporter_object {
@@ -119,10 +127,45 @@ static VALUE _native_trace_exporter_config_set_tracer_version(VALUE self, VALUE 
   return self;
 }
 
+static VALUE _native_trace_exporter_config_set_language(VALUE self, VALUE language) {
+  trace_exporter_config_object *config_object;
+  GetTraceExporterConfig(self, config_object);
+  ddog_trace_exporter_config_set_language(config_object->inner, char_slice_from_ruby_string(language));
+  return self;
+}
+
+static VALUE _native_trace_exporter_config_set_lang_version(VALUE self, VALUE lang_version) {
+  trace_exporter_config_object *config_object;
+  GetTraceExporterConfig(self, config_object);
+  ddog_trace_exporter_config_set_lang_version(config_object->inner, char_slice_from_ruby_string(lang_version));
+  return self;
+}
+
+static VALUE _native_trace_exporter_config_set_lang_interpreter(VALUE self, VALUE lang_interpreter) {
+  trace_exporter_config_object *config_object;
+  GetTraceExporterConfig(self, config_object);
+  ddog_trace_exporter_config_set_lang_interpreter(config_object->inner, char_slice_from_ruby_string(lang_interpreter));
+  return self;
+}
+
+static VALUE _native_trace_exporter_config_set_hostname(VALUE self, VALUE hostname) {
+  trace_exporter_config_object *config_object;
+  GetTraceExporterConfig(self, config_object);
+  ddog_trace_exporter_config_set_hostname(config_object->inner, char_slice_from_ruby_string(hostname));
+  return self;
+}
+
 static VALUE _native_trace_exporter_config_set_env(VALUE self, VALUE env) {
   trace_exporter_config_object *config_object;
   GetTraceExporterConfig(self, config_object);
   ddog_trace_exporter_config_set_env(config_object->inner, char_slice_from_ruby_string(env));
+  return self;
+}
+
+static VALUE _native_trace_exporter_config_set_version(VALUE self, VALUE version) {
+  trace_exporter_config_object *config_object;
+  GetTraceExporterConfig(self, config_object);
+  ddog_trace_exporter_config_set_version(config_object->inner, char_slice_from_ruby_string(version));
   return self;
 }
 
@@ -139,8 +182,9 @@ static VALUE _native_trace_exporter_initialize(DDTRACE_UNUSED VALUE self, VALUE 
   GetTraceExporterConfig(config_instance, config_object);
   TypedData_Get_Struct(self, struct trace_exporter_object, &trace_exporter_type, exporter_object);
   ddog_TraceExporterError* err = ddog_trace_exporter_new(&exporter_object->inner, config_object->inner);
+  config_object->inner = NULL;
   if (err!=NULL) {
-    rb_raise(rb_eArgError,"TraceExporter error : %+"PRIsVALUE, INT2NUM(err->code));
+    rb_raise(rb_eArgError,"TraceExporter error [%d] : %s", err->code, err->msg);
   }
   return Qnil;
 }
@@ -150,21 +194,26 @@ static VALUE _native_trace_exporter_send(VALUE self, VALUE payload, VALUE trace_
   GetTraceExporter(self, exporter_object);
   char_slice_from_ruby_string(payload);
   ddog_AgentResponse response;
-  ddog_trace_exporter_send(exporter_object->inner, byte_slice_from_ruby_string(payload), NUM2INT(trace_count), &response);
+  ddog_TraceExporterError* err = ddog_trace_exporter_send(exporter_object->inner, byte_slice_from_ruby_string(payload), NUM2INT(trace_count), &response);
+  if (err!=NULL) {
+    rb_raise(rb_eArgError,"TraceExporter error [%d] : %s", err->code, err->msg);
+  }
   return rb_float_new(response.rate);
 }
 
 static void free_trace_exporter(void *ptr){
   trace_exporter_object *exporter = ptr;
-  if (exporter->inner != 0) {
+  if (exporter->inner != NULL) {
     ddog_trace_exporter_free(exporter->inner);
+    exporter->inner = NULL;
   }
   ruby_xfree(ptr);
 }
 static void free_trace_exporter_config(void *ptr){
   trace_exporter_config_object *config = ptr;
-  if (config->inner != 0) {
-  ddog_trace_exporter_config_free(config->inner);
+  if (config->inner != NULL) {
+    ddog_trace_exporter_config_free(config->inner);
+    config->inner = NULL;
   }
   ruby_xfree(ptr);
 }
