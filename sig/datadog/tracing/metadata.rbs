@@ -3,7 +3,7 @@ module Datadog
     module Metadata
       include Metadata::Tagging
       include Metadata::Errors
-      include Metadata::MetaStruct
+      include Metadata::Metastruct
       prepend Metadata::Analytics
     end
   end

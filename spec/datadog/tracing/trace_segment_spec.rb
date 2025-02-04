@@ -164,11 +164,11 @@ RSpec.describe Datadog::Tracing::TraceSegment do
         it { expect(trace_segment.send(:metrics)).to eq({ 'foo' => 42.0 }) }
       end
 
-      context ':meta_struct' do
-        let(:options) { { meta_struct: meta_struct } }
-        let(:meta_struct) { { 'foo' => 'bar' } }
+      context ':metastruct do
+        let(:options) { { metastruct: metastruct } }
+        let(:metastruct) { { 'foo' => 'bar' } }
 
-        it { expect(trace_segment.send(:meta_struct)).to eq({ 'foo' => 'bar' }) }
+        it { expect(trace_segment.send(:metastruct)).to eq({ 'foo' => 'bar' }) }
       end
 
       context ':profiling_enabled' do

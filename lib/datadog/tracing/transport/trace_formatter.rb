@@ -43,7 +43,7 @@ module Datadog
           # Apply generic trace tags. Any more specific value will be overridden
           # by the subsequent calls below.
           set_trace_tags!
-          set_meta_struct!
+          set_metastruct!
 
           set_resource!
 
@@ -90,10 +90,10 @@ module Datadog
           root_span.set_tags(trace.send(:metrics))
         end
 
-        def set_meta_struct!
+        def set_metastruct!
           return if partial?
 
-          root_span.set_meta_struct(trace.send(:meta_struct))
+          root_span.set_metastruct(trace.send(:metastruct))
         end
 
         def tag_agent_sample_rate!

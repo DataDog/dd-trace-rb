@@ -73,7 +73,7 @@ module Datadog
         profiling_enabled: nil,
         tags: nil,
         metrics: nil,
-        meta_struct: nil,
+        metastruct: nil,
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
@@ -106,7 +106,7 @@ module Datadog
         # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
-        set_meta_struct(meta_struct) if meta_struct
+        set_metastruct(metastruct) if metastruct
 
         # State
         @root_span = nil
@@ -175,8 +175,8 @@ module Datadog
         super || (root_span && root_span.get_metric(key))
       end
 
-      def get_meta_struct(key)
-        super || (root_span && root_span.get_meta_struct(key))
+      def get_metastruct(key)
+        super || (root_span && root_span.get_metastruct(key))
       end
 
       def tags
@@ -187,9 +187,9 @@ module Datadog
         all_tags
       end
 
-      def meta_struct_size
+      def metastruct_size
         size = super
-        size += root_span.meta_struct_size if root_span
+        size += root_span.metastruct_size if root_span
         size
       end
 
@@ -381,7 +381,7 @@ module Datadog
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
           metrics: metrics.dup,
-          meta_struct: meta_struct.dup,
+          metastruct: metastruct.dup,
           remote_parent: @remote_parent
         )
       end
@@ -521,7 +521,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          meta_struct: meta_struct,
+          metastruct: metastruct,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
         )
