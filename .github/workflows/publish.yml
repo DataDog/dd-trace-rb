@@ -158,7 +158,7 @@ jobs:
             --base release \
             --head master \
             --title "Update document v${GEM_VERSION}" \
-            --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please review the changes and merge when ready." \
+            --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
             --label "docs"
 
   # TODO: Close existing milestone and create next milestone
