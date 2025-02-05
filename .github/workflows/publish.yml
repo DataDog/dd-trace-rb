@@ -126,7 +126,6 @@ jobs:
       - rubygems-release
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      GH_REPO: ${{ github.repository }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     permissions:
       contents: write
@@ -138,5 +137,28 @@ jobs:
         run: |
           gh release upload "v${GEM_VERSION}" *.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
+
+  update-document:
+    if: github.ref_name == 'master'
+    runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - run: |
+          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs/${{ github.job }}"
+
+          gh pr create \
+            --base release \
+            --head master \
+            --title "Update document v${GEM_VERSION}" \
+            --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please review the changes and merge when ready." \
+            --label "docs"
 
   # TODO: Close existing milestone and create next milestone
