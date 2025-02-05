@@ -9,6 +9,8 @@ module Datadog
           module_function
 
           def detect_sql_injection(sql, adapter_name)
+            return unless AppSec.rasp_enabled?
+
             context = AppSec.active_context
             return unless context
 
@@ -25,7 +27,7 @@ module Datadog
             waf_timeout = Datadog.configuration.appsec.waf_timeout
             result = context.run_rasp(Ext::RASP_SQLI, {}, ephemeral_data, waf_timeout)
 
-            if result.status == :match
+            if result.match?
               Datadog::AppSec::Event.tag_and_keep!(context, result)
 
               event = {
@@ -35,7 +37,9 @@ module Datadog
                 sql: sql,
                 actions: result.actions
               }
-              context.waf_runner.events << event
+              context.events << event
+
+              ActionsHandler.handle(result.actions)
             end
           end
 

@@ -1,10 +1,11 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
+      logger
       msgpack
 
 GEM
@@ -22,7 +23,7 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
@@ -41,6 +42,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
+    logger (1.6.5)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.7.5)
@@ -55,7 +57,7 @@ GEM
     pry-stack_explorer (0.6.1)
       binding_of_caller (~> 1.0)
       pry (~> 0.13)
-    rack (3.1.8)
+    rack (3.1.9)
     rack-contrib (1.2.0)
       rack (>= 0.9.1)
     rack-test (2.1.0)
@@ -107,6 +109,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!

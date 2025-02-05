@@ -172,7 +172,9 @@ RSpec.describe Datadog::DI::Remote do
             expect(probe_manager).to receive(:add_probe).and_raise("Runtime error from test")
             expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
             expect(probe_notification_builder).to receive(:build_received)
+            expect(probe_notification_builder).to receive(:build_errored)
             expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
+            expect(probe_notifier_worker).to receive(:add_status)
             expect(probe_notifier_worker).to receive(:add_status)
             expect do
               receiver.call(repository, transaction)
@@ -191,7 +193,9 @@ RSpec.describe Datadog::DI::Remote do
           expect(component).to receive(:logger).and_return(logger)
           expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
           expect(probe_notification_builder).to receive(:build_received)
+          expect(probe_notification_builder).to receive(:build_errored)
           expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
+          expect(probe_notifier_worker).to receive(:add_status)
           expect(probe_notifier_worker).to receive(:add_status)
 
           expect(probe_manager).to receive(:remove_other_probes).with(['11'])
@@ -211,7 +215,9 @@ RSpec.describe Datadog::DI::Remote do
             expect(component).to receive(:logger).and_return(logger)
             expect(component).to receive(:probe_notification_builder).and_return(probe_notification_builder)
             expect(probe_notification_builder).to receive(:build_received)
+            expect(probe_notification_builder).to receive(:build_errored)
             expect(component).to receive(:probe_notifier_worker).and_return(probe_notifier_worker)
+            expect(probe_notifier_worker).to receive(:add_status)
             expect(probe_notifier_worker).to receive(:add_status)
 
             expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error 2 from test/)

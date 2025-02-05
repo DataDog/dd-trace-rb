@@ -332,22 +332,15 @@ static VALUE _native_new(VALUE klass) {
     .serialization_time_ns_min = INT64_MAX,
   };
 
-  // Note: At this point, slot_one_profile and slot_two_profile contain null pointers. Libdatadog validates pointers
+  // Note: At this point, slot_one_profile/slot_two_profile contain null pointers. Libdatadog validates pointers
   // before using them so it's ok for us to go ahead and create the StackRecorder object.
-
-  // Note: As of this writing, no new Ruby objects get created and stored in the state. If that ever changes, remember
-  // to keep them on the stack and mark them with RB_GC_GUARD -- otherwise it's possible for a GC to run and
-  // since the instance representing the state does not yet exist, such objects will not get marked.
 
   VALUE stack_recorder = TypedData_Wrap_Struct(klass, &stack_recorder_typed_data, state);
 
-  // NOTE: We initialize this because we want a new recorder to be operational even without initialization and our
+  // NOTE: We initialize this because we want a new recorder to be operational even before #initialize runs and our
   //       default is everything enabled. However, if during recording initialization it turns out we don't want
-  //       heap samples, we will free and reset heap_recorder to NULL, effectively disabling all behaviour specific
-  //       to heap profiling (all calls to heap_recorder_* with a NULL heap recorder are noops).
+  //       heap samples, we will free and reset heap_recorder back to NULL.
   state->heap_recorder = heap_recorder_new();
-
-  // Note: Don't raise exceptions after this point, since it'll lead to libdatadog memory leaking!
 
   initialize_profiles(state, sample_types);
 
@@ -372,22 +365,17 @@ static void initialize_profiles(stack_recorder_state *state, ddog_prof_Slice_Val
     rb_raise(rb_eRuntimeError, "Failed to initialize slot one profile: %"PRIsVALUE, get_error_details_and_drop(&slot_one_profile_result.err));
   }
 
+  state->profile_slot_one = (profile_slot) { .profile = slot_one_profile_result.ok };
+
   ddog_prof_Profile_NewResult slot_two_profile_result =
     ddog_prof_Profile_new(sample_types, NULL /* period is optional */, NULL /* start_time is optional */);
 
   if (slot_two_profile_result.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
-    // Uff! Though spot. We need to make sure to properly clean up the other profile as well first
-    ddog_prof_Profile_drop(&slot_one_profile_result.ok);
-    // And now we can raise...
+    // Note: No need to take any special care of slot one, it'll get cleaned up by stack_recorder_typed_data_free
     rb_raise(rb_eRuntimeError, "Failed to initialize slot two profile: %"PRIsVALUE, get_error_details_and_drop(&slot_two_profile_result.err));
   }
 
-  state->profile_slot_one = (profile_slot) {
-    .profile = slot_one_profile_result.ok,
-  };
-  state->profile_slot_two = (profile_slot) {
-    .profile = slot_two_profile_result.ok,
-  };
+  state->profile_slot_two = (profile_slot) { .profile = slot_two_profile_result.ok };
 }
 
 static void stack_recorder_typed_data_free(void *state_ptr) {
@@ -651,7 +639,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
   }
 }
 
-void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice *alloc_class) {
+void track_object(VALUE recorder_instance, VALUE new_object, unsigned int sample_weight, ddog_CharSlice alloc_class) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
   // FIXME: Heap sampling currently has to be done in 2 parts because the construction of locations is happening
@@ -926,8 +914,7 @@ static VALUE _native_record_endpoint(DDTRACE_UNUSED VALUE _self, VALUE recorder_
 
 static VALUE _native_track_object(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE new_obj, VALUE weight, VALUE alloc_class) {
   ENFORCE_TYPE(weight, T_FIXNUM);
-  ddog_CharSlice alloc_class_slice = char_slice_from_ruby_string(alloc_class);
-  track_object(recorder_instance, new_obj, NUM2UINT(weight), &alloc_class_slice);
+  track_object(recorder_instance, new_obj, NUM2UINT(weight), char_slice_from_ruby_string(alloc_class));
   return Qtrue;
 }
 

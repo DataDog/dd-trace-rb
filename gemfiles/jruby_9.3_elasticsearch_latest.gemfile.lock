@@ -1,10 +1,11 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
+      logger
       msgpack
 
 GEM
@@ -23,17 +24,17 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     diff-lcs (1.5.1)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
     elastic-transport (8.3.5)
       faraday (< 3)
       multi_json
-    elasticsearch (8.17.0)
+    elasticsearch (8.17.1)
       elastic-transport (~> 8.3)
-      elasticsearch-api (= 8.17.0)
-    elasticsearch-api (8.17.0)
+      elasticsearch-api (= 8.17.1)
+    elasticsearch-api (8.17.1)
       multi_json
     faraday (2.8.1)
       base64
@@ -47,6 +48,7 @@ GEM
     libdatadog (14.3.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
+    logger (1.6.5)
     memory_profiler (0.9.14)
     method_source (1.1.0)
     msgpack (1.7.5-java)

@@ -71,16 +71,22 @@ build-gem:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
+    - mkdir -p pkg tmp
     - |
-      if [ -z "$CI_COMMIT_TAG" ]; then
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        .gitlab/check_gem_presence.sh
+        VERSION=${CI_COMMIT_TAG#v}
+        gem fetch datadog --version $VERSION
+        mv datadog-*.gem pkg/
+        echo $VERSION > tmp/version
+      else
         echo CI_JOB_ID=$CI_JOB_ID
         echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
         echo CI_COMMIT_SHA=$CI_COMMIT_SHA
-
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
+        bundle install && chmod go-w -R . && bundle exec rake build
+        ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
       fi
-    - bundle install && chmod go-w -R . && bundle exec rake build
-    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
   artifacts:
     paths:
       - pkg

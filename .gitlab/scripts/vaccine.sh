@@ -3,7 +3,7 @@
 set -e
 
 GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token)
-REPO="TonyCTHsu/vaccine" # To be migrated
+REPO="Datadog/vaccine"
 POLL_INTERVAL=60  # seconds
 
 # Trigger workflow

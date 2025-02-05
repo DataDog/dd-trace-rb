@@ -275,6 +275,8 @@ orbs:
               name: Upload JUnit reports to Datadog
               when: always
               command: |
+                sed -i 's/file="\.\//file="/g' tmp/rspec/*.xml
+                
                 ls -l tmp/rspec/*.xml
 
                 curl -L --fail --retry 3 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci

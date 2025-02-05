@@ -1,14 +1,27 @@
 module Datadog
   module AppSec
     module Ext
-      RASP_SQLI: ::Symbol
+      type rasp_rule_type = ::String
+
+      RASP_SQLI: ::String
+
+      RASP_LFI: ::String
+
+      RASP_SSRF: ::String
+
       INTERRUPT: ::Symbol
+
       CONTEXT_KEY: ::String
+
       ACTIVE_CONTEXT_KEY: ::Symbol
 
       TAG_APPSEC_ENABLED: ::String
+
       TAG_APM_ENABLED: ::String
+
       TAG_DISTRIBUTED_APPSEC_EVENT: ::String
+
+      TELEMETRY_METRICS_NAMESPACE: ::String
     end
   end
 end

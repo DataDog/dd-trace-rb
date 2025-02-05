@@ -2,6 +2,11 @@
 
 set -e
 
+if [ "$OS" != "linux" ]; then
+  echo "Only linux packages are supported. Exiting"
+  exit 0
+fi
+
 mkdir sources
 
 cp ../lib-injection/host_inject.rb sources

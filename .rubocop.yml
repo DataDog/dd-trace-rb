@@ -425,6 +425,9 @@ Lint/UnusedBlockArgument:
 Style/TrailingCommaInArguments:
   Enabled: false
 
+Style/TrailingUnderscoreVariable:
+  Enabled: false
+
 Style/TrailingCommaInArrayLiteral:
   Enabled: false
 

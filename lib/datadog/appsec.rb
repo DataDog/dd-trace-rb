@@ -14,19 +14,24 @@ module Datadog
         Datadog.configuration.appsec.enabled
       end
 
+      def rasp_enabled?
+        Datadog.configuration.appsec.rasp_enabled
+      end
+
       def active_context
         Datadog::AppSec::Context.active
       end
 
-      def processor
-        appsec_component = components.appsec
+      def telemetry
+        components.appsec&.telemetry
+      end
 
-        appsec_component.processor if appsec_component
+      def processor
+        components.appsec&.processor
       end
 
       def reconfigure(ruleset:, telemetry:)
         appsec_component = components.appsec
-
         return unless appsec_component
 
         appsec_component.reconfigure(ruleset: ruleset, telemetry: telemetry)
@@ -34,10 +39,14 @@ module Datadog
 
       def reconfigure_lock(&block)
         appsec_component = components.appsec
-
         return unless appsec_component
 
         appsec_component.reconfigure_lock(&block)
+      end
+
+      def api_security_enabled?
+        Datadog.configuration.appsec.api_security.enabled &&
+          Datadog.configuration.appsec.api_security.sample_rate.sample?
       end
 
       private

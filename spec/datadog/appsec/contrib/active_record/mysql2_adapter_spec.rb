@@ -64,45 +64,80 @@ RSpec.describe 'AppSec ActiveRecord integration for Mysql2 adapter' do
     processor.finalize
   end
 
-  it 'calls waf with correct arguments when querying using .where' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).with(
-        Datadog::AppSec::Ext::RASP_SQLI,
-        {},
-        {
-          'server.db.statement' => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
-          'server.db.system' => 'mysql2'
-        },
-        Datadog.configuration.appsec.waf_timeout
-      ).and_call_original
-    )
+  context 'when RASP is disabled' do
+    before do
+      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(false)
+    end
 
-    User.where(name: 'Bob').to_a
+    it 'does not call waf when querying using .where' do
+      expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
+
+      User.where(name: 'Bob').to_a
+    end
+
+    it 'does not call waf when querying using .find_by_sql' do
+      expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
+
+      User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
+    end
   end
 
-  it 'calls waf with correct arguments when querying using .find_by_sql' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).with(
-        Datadog::AppSec::Ext::RASP_SQLI,
-        {},
-        {
-          'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
-          'server.db.system' => 'mysql2'
-        },
-        Datadog.configuration.appsec.waf_timeout
-      ).and_call_original
-    )
+  context 'when RASP is enabled' do
+    before do
+      allow(Datadog::AppSec).to receive(:rasp_enabled?).and_return(true)
+    end
 
-    User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
-  end
+    it 'calls waf with correct arguments when querying using .where' do
+      expect(Datadog::AppSec.active_context).to(
+        receive(:run_rasp).with(
+          Datadog::AppSec::Ext::RASP_SQLI,
+          {},
+          {
+            'server.db.statement' => "SELECT `users`.* FROM `users` WHERE `users`.`name` = 'Bob'",
+            'server.db.system' => 'mysql2'
+          },
+          Datadog.configuration.appsec.waf_timeout
+        ).and_call_original
+      )
 
-  it 'adds an event to processor context if waf status is :match' do
-    expect(Datadog::AppSec.active_context).to(
-      receive(:run_rasp).and_return(instance_double(Datadog::AppSec::WAF::Result, status: :match, actions: {}))
-    )
+      User.where(name: 'Bob').to_a
+    end
 
-    expect(Datadog::AppSec.active_context.waf_runner.events).to receive(:<<).and_call_original
+    it 'calls waf with correct arguments when querying using .find_by_sql' do
+      expect(Datadog::AppSec.active_context).to(
+        receive(:run_rasp).with(
+          Datadog::AppSec::Ext::RASP_SQLI,
+          {},
+          {
+            'server.db.statement' => "SELECT * FROM users WHERE name = 'Bob'",
+            'server.db.system' => 'mysql2'
+          },
+          Datadog.configuration.appsec.waf_timeout
+        ).and_call_original
+      )
 
-    User.where(name: 'Bob').to_a
+      User.find_by_sql("SELECT * FROM users WHERE name = 'Bob'").to_a
+    end
+
+    context 'when waf result is a match' do
+      let(:result) do
+        Datadog::AppSec::SecurityEngine::Result::Match.new(
+          events: [],
+          actions: { 'generate_stack' => { 'stack_id' => 'some-id' } },
+          derivatives: {},
+          timeout: false,
+          duration_ns: 0,
+          duration_ext_ns: 0
+        )
+      end
+
+      before do
+        allow(Datadog::AppSec.active_context).to receive(:run_rasp).and_return(result)
+      end
+
+      it 'adds an event to context events' do
+        expect { User.where(name: 'Bob').to_a }.to change(Datadog::AppSec.active_context.events, :size).by(1)
+      end
+    end
   end
 end

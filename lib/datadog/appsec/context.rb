@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'metrics'
+
 module Datadog
   module AppSec
     # This class accumulates the context over the request life-cycle and exposes
@@ -7,10 +9,7 @@ module Datadog
     class Context
       ActiveContextError = Class.new(StandardError)
 
-      attr_reader :trace, :span
-
-      # NOTE: This is an intermediate state and will be changed
-      attr_reader :waf_runner
+      attr_reader :trace, :span, :events
 
       class << self
         def activate(context)
@@ -34,16 +33,37 @@ module Datadog
       def initialize(trace, span, security_engine)
         @trace = trace
         @span = span
+        @events = []
         @security_engine = security_engine
-        @waf_runner = security_engine.new_context
+        @waf_runner = security_engine.new_runner
+        @metrics = Metrics::Collector.new
       end
 
       def run_waf(persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
-        @waf_runner.run(persistent_data, ephemeral_data, timeout)
+        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+
+        @metrics.record_waf(result)
+        result
       end
 
-      def run_rasp(_type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
-        @waf_runner.run(persistent_data, ephemeral_data, timeout)
+      def run_rasp(type, persistent_data, ephemeral_data, timeout = WAF::LibDDWAF::DDWAF_RUN_TIMEOUT)
+        result = @waf_runner.run(persistent_data, ephemeral_data, timeout)
+
+        Metrics::Telemetry.report_rasp(type, result)
+        @metrics.record_rasp(result)
+
+        result
+      end
+
+      def extract_schema
+        @waf_runner.run({ 'waf.context.processor' => { 'extract-schema' => true } }, {})
+      end
+
+      def export_metrics
+        return if @span.nil?
+
+        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
+        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
       end
 
       def finalize

@@ -30,7 +30,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Request.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -43,12 +43,13 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::Request.publish(engine, gateway_request)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::Request.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
@@ -61,7 +62,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::Response.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -74,12 +75,13 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::Response.publish(engine, gateway_response)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::Response.publish(engine, gateway_response)
 
                   stack.call(gateway_response.response)
                 end
@@ -92,7 +94,7 @@ module Datadog
                   engine = AppSec::Reactive::Engine.new
 
                   Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
-                    if result.status == :match
+                    if result.match?
                       # TODO: should this hash be an Event instance instead?
                       event = {
                         waf_result: result,
@@ -105,12 +107,13 @@ module Datadog
                       # We want to keep the trace in case of security event
                       context.trace.keep! if context.trace
                       Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.waf_runner.events << event
+                      context.events << event
+
+                      Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
                   end
 
-                  block = Rack::Reactive::RequestBody.publish(engine, gateway_request)
-                  throw(Datadog::AppSec::Ext::INTERRUPT, event[:actions]) if block
+                  Rack::Reactive::RequestBody.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
