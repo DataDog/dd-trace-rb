@@ -230,10 +230,10 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:payloads) { [] }
 
-  def do_rc(expect_hook: true)
+  def do_rc(expect_hook: :hook_method)
     expect(probe_manager).to receive(:add_probe).and_call_original
     if expect_hook
-      expect(instrumenter).to receive(:hook_method).and_call_original
+      expect(instrumenter).to receive(expect_hook).and_call_original
     end
     # Events can be batched, meaning +post+ could be called once or twice
     # depending on how threads are scheduled by the VM.
@@ -370,13 +370,22 @@ RSpec.describe 'DI integration from remote config' do
   context 'line probe' do
     with_code_tracking
 
-    context 'line probe received targeting loaded code not in code tracker' do
-      let(:probe_spec) do
-        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
-          sourceFile: 'instrumentation_integration_test_class.rb', lines: [22]
-        }}
-      end
+    shared_context 'targeting integration test class via load' do
+      before do
+        begin
+          Object.send(:remove_const, :InstrumentationIntegrationTestClass)
+        rescue
+          nil
+        end
+        load File.join(File.dirname(__FILE__), 'instrumentation_integration_test_class.rb')
 
+        # We want the probe status to be reported, therefore need to
+        # disable exception propagation.
+        settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
+      end
+    end
+
+    shared_context 'targeting integration test class via require' do
       before do
         begin
           Object.send(:remove_const, :InstrumentationIntegrationTestClass)
@@ -391,14 +400,46 @@ RSpec.describe 'DI integration from remote config' do
         expect($LOADED_FEATURES.detect do |path|
           File.basename(path) == 'instrumentation_integration_test_class.rb'
         end).to be_truthy
-        component.code_tracker.clear
 
         # We want the probe status to be reported, therefore need to
         # disable exception propagation.
         settings.dynamic_instrumentation.internal.propagate_all_exceptions = false
       end
+    end
+
+    context 'line probe with path containing extra prefix directories' do
+      let(:probe_spec) do
+        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
+          sourceFile: 'junk/prefix/instrumentation_integration_test_class.rb', lines: [22]
+        }}
+      end
+
+      include_context 'targeting integration test class via load'
 
       it 'instruments code and adds probe to installed list' do
+        expect_lazy_log(logger, :debug, /received probe from RC:/)
+
+        do_rc(expect_hook: :hook_line)
+        assert_received_and_installed
+
+        expect(probe_manager.installed_probes.length).to eq 1
+      end
+    end
+
+    context 'line probe received targeting loaded code not in code tracker' do
+      let(:probe_spec) do
+        {id: '11', name: 'bar', type: 'LOG_PROBE', where: {
+          sourceFile: 'instrumentation_integration_test_class.rb', lines: [22]
+        }}
+      end
+
+      include_context 'targeting integration test class via require'
+
+      before do
+        component.code_tracker.clear
+      end
+
+      it 'marks RC payload as errored' do
         expect_lazy_log_many(logger, :debug,
           /received probe from RC:/,
           /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,)
