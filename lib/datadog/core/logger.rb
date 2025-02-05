@@ -29,17 +29,23 @@ module Datadog
         if message.nil?
           if block
             super(severity, message, progname) do
-              "[#{self.progname}] #{where}#{yield}"
+              format_message(yield, where: where)
             end
           else
-            super(severity, message, "[#{self.progname}] #{where}#{progname}")
+            super(severity, message, format_message(progname, where: where))
           end
         else
-          super(severity, "[#{self.progname}] #{where}#{message}")
+          super(severity, format_message(message, where: where))
         end
       end
 
       alias log add
+
+      private
+
+      def format_message(message, where:, **_)
+        "[#{self.progname}] (pid: #{$$}) #{where}#{message}"
+      end
     end
   end
 end
