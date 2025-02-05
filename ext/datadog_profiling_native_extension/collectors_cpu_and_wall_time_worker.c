@@ -567,6 +567,8 @@ static VALUE stop(VALUE self_instance, VALUE optional_exception) {
 static void handle_sampling_signal(DDTRACE_UNUSED int _signal, DDTRACE_UNUSED siginfo_t *_info, DDTRACE_UNUSED void *_ucontext) {
   struct cpu_and_wall_time_worker_state *state = active_sampler_instance_state; // Read from global variable, see "sampler global state safety" note above
 
+  // TODO: Add note and validate that we don't touch errno and other things in here whenever we're gathering samples from the signal handler
+
   // This can potentially happen if the CpuAndWallTimeWorker was stopped while the signal delivery was happening; nothing to do
   if (state == NULL) return;
 
