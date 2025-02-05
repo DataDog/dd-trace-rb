@@ -5,6 +5,18 @@
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
 
+// Note on calloc vs ruby_xcalloc use:
+// * Whenever we're allocating memory after being called by the Ruby VM in a "regular" situation (e.g. initializer)
+//   we should use `ruby_xcalloc` to give the VM visibility into what we're doing + give it a chance to manage GC
+// * BUT, when we're being called during a sample, being in the middle of an object allocation is a very special
+//   situation for the VM to be in, and we've found the hard way (e.g. https://bugs.ruby-lang.org/issues/20629 and
+//   https://github.com/DataDog/dd-trace-rb/pull/4240 ) that it can be easy to do things the VM didn't expect.
+// * Thus, out of caution and to avoid future potential issues such as the ones above, whenever we allocate memory
+//   during **sampling** we use `calloc` instead of `ruby_xcalloc`. Note that we've never seen issues from using
+//   `ruby_xcalloc` at any time, so this is a **precaution** not a "we've seen it break". But it seems a harmless
+//   one to use.
+// This applies to both heap_recorder.c and collectors_thread_context.c
+
 // Minimum age (in GC generations) of heap objects we want to include in heap
 // recorder iterations. Object with age 0 represent objects that have yet to undergo
 // a GC and, thus, may just be noise/trash at instant of iteration and are usually not
@@ -755,7 +767,7 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
 // Object Record API
 // =================
 object_record* object_record_new(long obj_id, heap_record *heap_record, live_object_data object_data) {
-  object_record *record = ruby_xcalloc(1, sizeof(object_record));
+  object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
   record->obj_id = obj_id;
   record->heap_record = heap_record;
   record->object_data = object_data;
@@ -764,7 +776,7 @@ object_record* object_record_new(long obj_id, heap_record *heap_record, live_obj
 
 void object_record_free(heap_recorder *recorder, object_record *record) {
   unintern_or_raise(recorder, record->object_data.class);
-  ruby_xfree(record);
+  free(record); // See "note on calloc vs ruby_xcalloc use" above
 }
 
 VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
@@ -807,7 +819,7 @@ heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location l
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
     rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
-  heap_record *stack = ruby_xcalloc(1, sizeof(heap_record) + frames_len * sizeof(heap_frame));
+  heap_record *stack = calloc(1, sizeof(heap_record) + frames_len * sizeof(heap_frame)); // See "note on calloc vs ruby_xcalloc use" above
   stack->num_tracked_objects = 0;
   stack->frames_len = frames_len;
 
@@ -845,7 +857,7 @@ void heap_record_free(heap_recorder *recorder, heap_record *stack) {
   }
   unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
 
-  ruby_xfree(stack);
+  free(stack); // See "note on calloc vs ruby_xcalloc use" above
 }
 
 // The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
