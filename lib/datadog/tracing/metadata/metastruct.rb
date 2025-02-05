@@ -28,6 +28,10 @@ module Datadog
           metastruct[key]
         end
 
+        def set_metastruct_field(key, value)
+          metastruct[key] = value
+        end
+
         protected
 
         def metastruct
