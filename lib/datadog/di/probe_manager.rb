@@ -230,6 +230,7 @@ module Datadog
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
       def probe_executed_callback(probe:, **opts)
+        logger.debug { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload)
