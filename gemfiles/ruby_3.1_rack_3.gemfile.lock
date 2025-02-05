@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
+    datadog (2.10.0)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 14.3.1.1.0)
       libddwaf (~> 1.18.0.0.0)
@@ -72,7 +72,7 @@ GEM
     psych (5.2.3)
       date
       stringio
-    rack (3.1.8)
+    rack (3.1.9)
     rack-contrib (1.2.0)
       rack (>= 0.9.1)
     rack-test (2.1.0)

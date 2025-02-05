@@ -155,11 +155,8 @@ module Datadog
       # Returns whether the provided +path+ matches the user-designated
       # file (of a line probe).
       #
-      # If file is an absolute path (i.e., it starts with a slash), the file
-      # must be identical to path to match.
-      #
-      # If file is not an absolute path, the path matches if the file is its suffix,
-      # at a path component boundary.
+      # Delegates to Utils.path_can_match_spec? which performs fuzzy
+      # matching. See the comments in utils.rb for details.
       def file_matches?(path)
         if path.nil?
           raise ArgumentError, "Cannot match against a nil path"
@@ -167,7 +164,7 @@ module Datadog
         unless file
           raise ArgumentError, "Probe does not have a file to match against"
         end
-        Utils.path_matches_suffix?(path, file)
+        Utils.path_can_match_spec?(path, file)
       end
 
       # Instrumentation module for method probes.
