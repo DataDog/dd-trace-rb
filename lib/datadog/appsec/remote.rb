@@ -74,15 +74,12 @@ module Datadog
               case content.path.product
               when 'ASM_DD'
                 rules << parsed_content
-                content.applied
               when 'ASM_DATA'
                 data << parsed_content['rules_data'] if parsed_content['rules_data']
-                content.applied
               when 'ASM'
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
-                content.applied
               end
             end
 
@@ -107,6 +104,10 @@ module Datadog
             )
 
             Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
+
+            repository.contents.each do |content|
+              content.applied if ASM_PRODUCTS.include?(content.path.product)
+            end
           end
 
           [receiver]
