@@ -30,13 +30,13 @@ jobs:
       DD_INSTRUMENTATION_TELEMETRY_ENABLED: false
       DD_REMOTE_CONFIGURATION_ENABLED: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       # bundler appears to match both prerelease and release rubies when we
       # want the former only. relax the constraint to allow any version for
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@v1
+      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: ${{ matrix.ruby }}
           rubygems: 3.3.26

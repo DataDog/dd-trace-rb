@@ -14,8 +14,8 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: '3.3.7'
 
@@ -40,7 +40,7 @@ jobs:
       # Check if the commit has passed all Github checks
       # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
       - name: Verify check runs
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const checkRuns = await github.paginate(github.rest.checks.listForRef, {
@@ -64,7 +64,7 @@ jobs:
       # Check if the commit has passed external CI checks
       # API: https://docs.github.com/en/rest/commits/statuses?apiVersion=2022-11-28#get-the-combined-status-for-a-specific-reference
       - name: Verify commit status
-        uses: actions/github-script@v7
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
             const { data: status } = await github.rest.repos.getCombinedStatusForRef({
@@ -108,12 +108,13 @@ jobs:
     env:
       SKIP_SIMPLECOV: 1
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: '3.3.7'
-      - uses: rubygems/release-gem@v1
+      - run: bundle install
+      - uses: rubygems/release-gem@a25424ba2ba8b387abc8ef40807c2c85b96cbe32 # v1.1.1
         with:
           attestations: false # PENDING decision for attestations
 
