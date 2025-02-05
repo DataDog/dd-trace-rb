@@ -10,6 +10,8 @@ module Datadog
 
         def get_metastruct_field: (String key) -> untyped
 
+        def set_metastruct_field: (String key, untyped value) -> void
+
         def metastruct: () -> metastruct
       end
     end
