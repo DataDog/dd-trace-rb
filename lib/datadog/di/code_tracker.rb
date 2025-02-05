@@ -155,7 +155,7 @@ module Datadog
               return inexact.first
             end
             return nil unless suffix.include?('/')
-            suffix.sub!(%r,.*/+,, '')
+            suffix.sub!(%r{.*/+}, '')
           end
         end
       end

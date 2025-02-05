@@ -128,7 +128,7 @@ module Datadog
         spec = spec.dup
         loop do
           return false unless spec.include?('/')
-          spec.sub!(%r,.*/+,, '')
+          spec.sub!(%r{.*/+}, '')
           return true if path_matches_suffix?(path, spec)
         end
       end
