@@ -83,7 +83,12 @@ module Datadog
 
               # Also, pending line probes should only be installed for
               # non-eval'd code.
-              DI.current_component&.probe_manager&.install_pending_line_probes(path)
+              if component = DI.current_component
+                component.logger.debug { "di: installing pending probes for #{path}" }
+                component.probe_manager&.install_pending_line_probes(path)
+              else
+                Datadog.logger.debug { "di: loaded #{path}, but no DI component present" }
+              end
             end
           # Since this method normally is called from customer applications,
           # rescue any exceptions that might not be handled to not break said
