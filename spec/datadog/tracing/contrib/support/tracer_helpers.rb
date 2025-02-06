@@ -11,10 +11,6 @@ module Contrib
   # For contrib, we only allow one tracer to be active:
   # the global tracer in +Datadog::Tracing+.
   module TracerHelpers
-    def mutex
-      @mutex ||= Mutex.new
-    end
-
     # Returns the current tracer instance
     def tracer
       Datadog::Tracing.send(:tracer)
@@ -27,9 +23,7 @@ module Contrib
 
     # Returns spans and caches it (similar to +let(:spans)+).
     def spans
-      mutex.synchronize do
-        @spans ||= fetch_spans_without_sorting
-      end
+      @spans ||= fetch_spans
     end
 
     # Retrieves all traces in the current tracer instance.
@@ -41,44 +35,42 @@ module Contrib
     # Retrieves and sorts all spans in the current tracer instance.
     # This method does not cache its results.
     def fetch_spans(tracer = self.tracer)
-      mutex.synchronize do
-        traces = fetch_traces(tracer)
-        spans = traces.collect(&:spans)
-        spans.flatten.sort! do |a, b|
-          if a.name == b.name
-            if a.resource == b.resource
-              if a.start_time == b.start_time
-                a.end_time <=> b.end_time
-              else
-                a.start_time <=> b.start_time
-              end
+      traces = fetch_traces(tracer)
+      traces.collect(&:spans).flatten.sort! do |a, b|
+        if a.name == b.name
+          if a.resource == b.resource
+            if a.start_time == b.start_time
+              a.end_time <=> b.end_time
             else
-              a.resource <=> b.resource
+              a.start_time <=> b.start_time
             end
           else
-            a.name <=> b.name
+            a.resource <=> b.resource
           end
+        else
+          a.name <=> b.name
         end
       end
     end
 
-    def fetch_spans_without_sorting(tracer = self.tracer)
+    def get_spans_count(tracer = self.tracer)
+      count = 0
       traces = fetch_traces(tracer)
-      spans = traces.map { |trace| trace.instance_variable_get(:@spans) || [] }
-      spans.flatten # gets spans for every trace in the tracer instance
+      traces.each do |trace|
+        count += trace.instance_variable_get(:@spans).length
+      end
+      count
     end
 
     # Remove all traces from the current tracer instance and
     # busts cache of +#spans+ and +#span+.
     def clear_traces!
-      mutex.synchronize do
-        tracer.instance_variable_set(:@traces, [])
+      tracer.instance_variable_set(:@traces, [])
 
-        @traces = nil
-        @trace = nil
-        @spans = nil
-        @span = nil
-      end
+      @traces = nil
+      @trace = nil
+      @spans = nil
+      @span = nil
     end
 
     RSpec.configure do |config|
