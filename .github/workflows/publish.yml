@@ -138,7 +138,49 @@ jobs:
           gh release upload "v${GEM_VERSION}" *.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
 
-  update-document:
+  bump-version-pull-request:
+    if: github.ref_name == 'master'
+    runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: bundle install
+      - run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+      - run: |
+          git checkout -b version-bump-from-${{ github.job }}
+      - id: next_version
+        run: |
+          echo "next_version=$(bundle exec rake version:bump)" >> $GITHUB_OUTPUT
+      - name: Commit and push changes
+        run: |
+          git add .
+          git commit -m "Bump version to ${{ steps.next_version.outputs.next_version }}"
+          git push origin
+      - name: Create Pull Request
+        run: |
+          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs/${{ github.job }}"
+
+          gh pr create \
+            --title "Bump version to ${{ steps.next_version.outputs.next_version }}" \
+            --body "This is an auto-generated PR for bumping version from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
+            --base master \
+            --head version-bump-from-${{ github.job }}
+
+  document-pull-request:
     if: github.ref_name == 'master'
     runs-on: ubuntu-24.04
     needs:
