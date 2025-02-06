@@ -217,7 +217,7 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         context 'metastruct' do
           it 'sets root span metastruct from trace metastruct' do
             format!
-            expect(root_span.metastruct).to include(
+            expect(root_span.metastruct.to_h).to include(
               {
                 'foo' => 'bar',
                 'baz' => { 'value' => 42 }
@@ -239,8 +239,8 @@ RSpec.describe Datadog::Tracing::Transport::TraceFormatter do
         end
 
         context 'metastruct' do
-          it { expect(root_span.metastruct).to_not include('foo') }
-          it { expect(root_span.metastruct).to_not include('baz') }
+          it { expect(root_span.metastruct.to_h).to_not include('foo') }
+          it { expect(root_span.metastruct.to_h).to_not include('baz') }
         end
       end
 

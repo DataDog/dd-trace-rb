@@ -36,7 +36,7 @@ module Datadog
       attr_reader root_span_id: untyped
       attr_reader meta: untyped
       attr_reader metrics: untyped
-      attr_reader metastruct: Metadata::Metastruct::metastruct
+      attr_reader metastruct: Metadata::Metastruct
 
       private
 

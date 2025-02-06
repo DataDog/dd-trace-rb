@@ -14,7 +14,6 @@ RSpec.describe Datadog::Tracing::Metadata do
           described_class::Analytics,
           described_class::Tagging,
           described_class::Errors,
-          described_class::Metastruct
         )
       end
     end

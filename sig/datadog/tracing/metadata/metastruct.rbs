@@ -1,16 +1,20 @@
 module Datadog
   module Tracing
     module Metadata
-      module Metastruct
+      class Metastruct
         type metastruct = Hash[String, untyped]
 
-        def metastruct=: (metastruct second) -> void
+        def initialize: (metastruct? second) -> void
 
-        def deep_merge_metastruct!: (metastruct second) -> void
+        def deep_merge!: (metastruct second) -> void
 
-        def get_metastruct_field: (String key) -> untyped
+        def []: (String key) -> untyped
 
-        def set_metastruct_field: (String key, untyped value) -> void
+        def []=: (String key, untyped value) -> void
+
+        def to_h: () -> metastruct
+
+        private
 
         def metastruct: () -> metastruct
       end

@@ -6,7 +6,7 @@ module Datadog
       attr_accessor end_time: (Time | nil)
       attr_accessor id: Integer
       attr_accessor meta: Hash[String, String]
-      attr_accessor metastruct: Metadata::Metastruct::metastruct
+      attr_accessor metastruct: Metadata::Metastruct
       attr_accessor metrics: Hash[String, Float]
       attr_accessor name: String
       attr_accessor parent_id: Integer

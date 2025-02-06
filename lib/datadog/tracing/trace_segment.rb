@@ -69,7 +69,7 @@ module Datadog
         # The caller is expected to have done that
         @meta = (tags && tags.dup) || {}
         @metrics = (metrics && metrics.dup) || {}
-        @metastruct = (metastruct && metastruct.dup) || {}
+        @metastruct = Tracing::Metadata::Metastruct.new(metastruct)
 
         # Set well-known tags, defaulting to getting the values from tags
         @agent_sample_rate = agent_sample_rate || agent_sample_rate_tag
