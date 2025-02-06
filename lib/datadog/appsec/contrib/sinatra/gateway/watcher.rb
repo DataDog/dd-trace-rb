@@ -2,7 +2,6 @@
 
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../reactive/engine'
-require_relative '../../rack/reactive/request_body'
 require_relative '../reactive/routed'
 require_relative '../../../event'
 
@@ -23,31 +22,27 @@ module Datadog
 
               def watch_request_dispatch(gateway = Instrumentation.gateway)
                 gateway.watch('sinatra.request.dispatch', :appsec) do |stack, gateway_request|
-                  event = nil
                   context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
-                  engine = AppSec::Reactive::Engine.new
 
-                  Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
-                    if result.match?
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: context.trace,
-                        span: context.span,
-                        request: gateway_request,
-                        actions: result.actions
-                      }
+                  persistent_data = {
+                    'server.request.body' => gateway_request.form_hash
+                  }
 
-                      # We want to keep the trace in case of security event
-                      context.trace.keep! if context.trace
-                      Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.events << event
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                      Datadog::AppSec::ActionsHandler.handle(result.actions)
-                    end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
-
-                  Rack::Reactive::RequestBody.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
