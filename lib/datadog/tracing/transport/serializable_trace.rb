@@ -14,7 +14,7 @@ module Datadog
 
         # @param trace [Datadog::Trace] the trace to serialize
         # @param native_events_supported [Boolean] whether the agent supports span events as a top-level field
-        def initialize(trace, native_events_supported)
+        def initialize(trace, native_events_supported:)
           @trace = trace
           @native_events_supported = native_events_supported
         end
@@ -29,13 +29,17 @@ module Datadog
         # @param packer [MessagePack::Packer] serialization buffer, can be +nil+ with JRuby
         def to_msgpack(packer = nil)
           # As of 1.3.3, JRuby implementation doesn't pass an existing packer
-          trace.spans.map { |s| SerializableSpan.new(s, @native_events_supported) }.to_msgpack(packer)
+          trace.spans.map do |s|
+            SerializableSpan.new(s, native_events_supported: @native_events_supported)
+          end.to_msgpack(packer)
         end
 
         # JSON serializer interface.
         # Used by older version of the transport.
         def to_json(*args)
-          trace.spans.map { |s| SerializableSpan.new(s, @native_events_supported).to_hash }.to_json(*args)
+          trace.spans.map do |s|
+            SerializableSpan.new(s, native_events_supported: @native_events_supported).to_hash
+          end.to_json(*args)
         end
       end
 
@@ -46,7 +50,7 @@ module Datadog
 
         # @param span [Datadog::Span] the span to serialize
         # @param native_events_supported [Boolean] whether the agent supports span events as a top-level field
-        def initialize(span, native_events_supported)
+        def initialize(span, native_events_supported:)
           @span = span
           @trace_id = Tracing::Utils::TraceId.to_low_order(span.trace_id)
           @native_events_supported = native_events_supported

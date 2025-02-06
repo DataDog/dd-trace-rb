@@ -60,7 +60,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Response do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
-  let(:chunker) { described_class.new(encoder, native_events_supported, max_size: max_size) }
+  let(:chunker) { described_class.new(encoder, native_events_supported: native_events_supported, max_size: max_size) }
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:native_events_supported) { double }
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
@@ -73,9 +73,21 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
       let(:traces) { get_test_traces(3) }
 
       before do
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[0], native_events_supported).and_return('1')
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[1], native_events_supported).and_return('22')
-        allow(trace_encoder).to receive(:encode_trace).with(encoder, traces[2], native_events_supported).and_return('333')
+        allow(trace_encoder).to receive(:encode_trace).with(
+          encoder,
+          traces[0],
+          native_events_supported: native_events_supported
+        ).and_return('1')
+        allow(trace_encoder).to receive(:encode_trace).with(
+          encoder,
+          traces[1],
+          native_events_supported: native_events_supported
+        ).and_return('22')
+        allow(trace_encoder).to receive(:encode_trace).with(
+          encoder,
+          traces[2],
+          native_events_supported: native_events_supported
+        ).and_return('333')
         allow(encoder).to receive(:join) { |arr| arr.join(',') }
       end
 
@@ -178,8 +190,14 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     end
 
     before do
-      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v1, false).and_return(chunker)
-      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2, false).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+        encoder_v1,
+        native_events_supported: false
+      ).and_return(chunker)
+      allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+        encoder_v2,
+        native_events_supported: false
+      ).and_return(chunker)
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
@@ -272,7 +290,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'does not encode native span events' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
-              false
+              native_events_supported: false
             ).and_return(chunker)
             send_traces
           end
@@ -282,7 +300,10 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           let(:native_events_supported) { true }
 
           it 'encodes native span events' do
-            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(encoder_v2, true).and_return(chunker)
+            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+              encoder_v2,
+              native_events_supported: true
+            ).and_return(chunker)
             send_traces
           end
         end
@@ -293,7 +314,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'encodes native span events' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
-              false
+              native_events_supported: false
             ).and_return(chunker)
             send_traces
           end

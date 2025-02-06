@@ -28,7 +28,7 @@ module Datadog
 
           attr_reader max_size: untyped
 
-          def initialize: (untyped encoder, bool native_events_supported, ?max_size: untyped) -> void
+          def initialize: (untyped encoder, native_events_supported: bool, ?max_size: untyped) -> void
 
           def encode_in_chunks: (untyped traces) -> untyped
 
@@ -38,7 +38,7 @@ module Datadog
         end
 
         module Encoder
-          def self?.encode_trace: (untyped encoder, untyped trace, bool native_events_supported) -> untyped
+          def self?.encode_trace: (untyped encoder, untyped trace, native_events_supported: bool) -> untyped
         end
 
         class Transport
