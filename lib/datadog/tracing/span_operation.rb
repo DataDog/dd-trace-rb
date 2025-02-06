@@ -36,7 +36,8 @@ module Datadog
         :service,
         :start_time,
         :trace_id,
-        :type
+        :type,
+        :metastruct
       attr_accessor :links, :status, :span_events
 
       def initialize(
@@ -88,6 +89,7 @@ module Datadog
 
         # Set tags if provided.
         set_tags(tags) if tags
+        @metastruct = Tracing::Metadata::Metastruct.new # steep:ignore InsufficientPositionalArguments
 
         # Some other SpanOperation-specific behavior
         @events = events || Events.new
@@ -289,7 +291,7 @@ module Datadog
           id: @id,
           meta: meta,
           metrics: metrics,
-          metastruct: metastruct,
+          metastruct: @metastruct.to_h,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -335,7 +337,7 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metastruct: [', ']') do
+          q.group(2, 'Metastruct: ') do
             q.breakable
             q.pp metastruct
           end
@@ -461,7 +463,7 @@ module Datadog
           id: @id,
           meta: Core::Utils::SafeDup.frozen_or_dup(meta),
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
-          metastruct: Core::Utils::SafeDup.frozen_or_dup(metastruct),
+          metastruct: @metastruct.to_h.dup,
           parent_id: @parent_id,
           resource: @resource,
           service: @service,

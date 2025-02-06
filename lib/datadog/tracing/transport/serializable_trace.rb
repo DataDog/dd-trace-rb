@@ -119,7 +119,7 @@ module Datadog
           packer.write(span.metrics)
           packer.write('meta_struct')
           # We encapsulate the resulting msgpack in a binary msgpack
-          packer.write(span.metastruct.transform_values(&:to_msgpack))
+          packer.write(span.metastruct)
           packer.write('span_links')
           packer.write(span.links.map(&:to_hash))
           packer.write('error')
