@@ -12,6 +12,7 @@ require 'datadog/tracing/span_operation'
 require 'datadog/tracing/trace_operation'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/utils'
+require 'datadog/tracing/metadata/metastruct'
 
 RSpec.describe Datadog::Tracing::TraceOperation do
   subject(:trace_op) { described_class.new(**options) }
@@ -103,7 +104,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       end
 
       it do
-        expect(trace_op.send(:metastruct)).to eq({})
+        expect(trace_op.send(:metastruct).to_h).to eq({})
       end
 
       context 'when 128 bit trace id generation enabled' do
@@ -281,7 +282,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         subject(:options) { { metastruct: metastruct } }
         let(:metastruct) { { 'foo' => 'bar' } }
 
-        it { expect(trace_op.send(:metastruct)).to eq({ 'foo' => 'bar' }) }
+        it { expect(trace_op.send(:metastruct).to_h).to eq({ 'foo' => 'bar' }) }
       end
     end
   end

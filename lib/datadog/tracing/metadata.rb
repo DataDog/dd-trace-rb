@@ -12,7 +12,6 @@ module Datadog
       def self.included(base)
         base.include(Metadata::Tagging)
         base.include(Metadata::Errors)
-        base.include(Metadata::Metastruct)
 
         # Additional extensions
         base.prepend(Metadata::Analytics)

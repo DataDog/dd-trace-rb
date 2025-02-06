@@ -18,6 +18,7 @@ module Datadog
       attr_reader id: untyped
       attr_reader max_length: untyped
       attr_reader parent_span_id: untyped
+      attr_reader metastruct: Metadata::Metastruct
       attr_writer name: untyped
       attr_writer resource: untyped
       attr_writer sampled: untyped

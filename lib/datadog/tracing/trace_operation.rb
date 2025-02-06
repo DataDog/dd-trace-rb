@@ -46,7 +46,8 @@ module Datadog
         :max_length,
         :parent_span_id,
         :trace_state,
-        :trace_state_unknown_fields
+        :trace_state_unknown_fields,
+        :metastruct
 
       attr_writer \
         :name,
@@ -106,7 +107,7 @@ module Datadog
         # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
-        self.metastruct = metastruct if metastruct
+        @metastruct = Tracing::Metadata::Metastruct.new(metastruct)
 
         # State
         @root_span = nil
@@ -371,7 +372,7 @@ module Datadog
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
           metrics: metrics.dup,
-          metastruct: metastruct.dup,
+          metastruct: @metastruct.to_h.dup,
           remote_parent: @remote_parent
         )
       end
@@ -511,7 +512,7 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          metastruct: metastruct,
+          metastruct: @metastruct.to_h.dup,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
         )

@@ -28,6 +28,8 @@ module Datadog
 
       attr_reader type: untyped
 
+      attr_reader metastruct: Metadata::Metastruct
+
       attr_accessor status: untyped
 
       def initialize: (
