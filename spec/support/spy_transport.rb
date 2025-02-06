@@ -43,7 +43,13 @@ class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
 
   def send_traces(data)
     encoded_data = data.map do |trace|
-      @helper_encoder.join([Datadog::Tracing::Transport::Traces::Encoder.encode_trace(@helper_encoder, trace, true)])
+      @helper_encoder.join(
+        [Datadog::Tracing::Transport::Traces::Encoder.encode_trace(
+          @helper_encoder,
+          trace,
+          native_events_supported: true
+        )]
+      )
     end
 
     @helper_mutex.synchronize do
