@@ -53,7 +53,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
   def check_span_count_eq(count)
     mutex.synchronize do
-      try_wait_until { fetch_spans_without_sorting.length == count }
+      try_wait_until { fetch_spans.length == count }
     end
   end
 
