@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module ActionsHandler
+      module StackTrace
+        module Collector
+          def self.collect: (Array[Thread::Backtrace::Location] locations) -> Array[Datadog::AppSec::ActionsHandler::StackTrace::Frame]
+
+          private
+
+          def self.skip_frames: (Integer locations_size) -> (Range[Integer] | Array[untyped])
+
+          def self.file_path: (Thread::Backtrace::Location location) -> String?
+
+          def self.function_label: (Thread::Backtrace::Location location) -> String?
+        end
+      end
+    end
+  end
+end

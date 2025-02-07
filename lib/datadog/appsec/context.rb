@@ -60,10 +60,13 @@ module Datadog
       end
 
       def export_metrics
-        return if @span.nil?
+        # Required to satisfy steep, as @span is defined as nilable.
+        # According to soutaro, this is because instance variable can be changed by other threads.
+        span = @span
+        return if span.nil?
 
-        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
-        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+        Metrics::Exporter.export_waf_metrics(@metrics.waf, span)
+        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, span)
       end
 
       def finalize

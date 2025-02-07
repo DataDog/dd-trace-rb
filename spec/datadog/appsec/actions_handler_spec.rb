@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
+require 'ostruct'
+
+require 'datadog/appsec/ext'
 require 'datadog/appsec/spec_helper'
+require 'support/thread_backtrace_helpers'
 
 RSpec.describe Datadog::AppSec::ActionsHandler do
   describe '.handle' do
@@ -94,6 +98,54 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
 
       catch(Datadog::AppSec::Ext::INTERRUPT) do
         described_class.handle(generate_stack_action.merge(redirect_request_action))
+      end
+    end
+  end
+
+  describe '.generate_stack' do
+    let(:generate_stack_action) { { 'stack_id' => 'foo' } }
+    let(:trace_op) { Datadog::Tracing::TraceOperation.new }
+    let(:span_op) { Datadog::Tracing::SpanOperation.new('span_test') }
+    let(:context) { OpenStruct.new(trace: trace_op, span: span_op) }
+    let(:stack_trace_enabled) { true }
+
+    let(:stack_key) { Datadog::AppSec::Ext::TAG_STACK_TRACE }
+    let(:exploit_category) { Datadog::AppSec::Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY }
+
+    before do
+      allow(Datadog.configuration.appsec.stack_trace).to receive(:enabled).and_return(stack_trace_enabled)
+      allow(Datadog::AppSec::Context).to receive(:active).and_return(context)
+      allow(Datadog::AppSec::ActionsHandler::StackTrace).to receive(:collect_stack_frames).and_return(
+        ThreadBacktraceHelper.locations_inside_nested_blocks
+      )
+      described_class.generate_stack(generate_stack_action)
+    end
+
+    context 'when stack trace is enabled and context contains trace and span' do
+      it 'adds stack trace representation to the trace' do
+        test_result = trace_op.metastruct[stack_key][exploit_category]
+        expect(test_result.size).to eq(1)
+        expect(test_result.first.id).to eq('foo')
+        expect(test_result.first.frames.size).to eq(5)
+      end
+    end
+
+    context 'when stack trace is enabled and context contains only span' do
+      let(:context) { OpenStruct.new(span: span_op) }
+
+      it 'adds stack trace representation to the span' do
+        test_result = span_op.metastruct[stack_key][exploit_category]
+        expect(test_result.size).to eq(1)
+        expect(test_result.first.id).to eq('foo')
+        expect(test_result.first.frames.size).to eq(5)
+      end
+    end
+
+    context 'when stack trace is disabled' do
+      let(:stack_trace_enabled) { false }
+
+      it 'does not add stack trace representation to the trace' do
+        expect(trace_op.metastruct[stack_key]).to be_nil
       end
     end
   end
