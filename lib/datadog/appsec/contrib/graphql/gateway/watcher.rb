@@ -2,8 +2,6 @@
 
 require 'json'
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../reactive/engine'
-require_relative '../reactive/multiplex'
 
 module Datadog
   module AppSec
@@ -19,16 +17,21 @@ module Datadog
                 watch_multiplex(gateway)
               end
 
-              # This time we don't throw but use next
               def watch_multiplex(gateway = Instrumentation.gateway)
                 gateway.watch('graphql.multiplex', :appsec) do |stack, gateway_multiplex|
-                  event = nil
                   context = AppSec::Context.active
-                  engine = AppSec::Reactive::Engine.new
 
                   if context
-                    GraphQL::Reactive::Multiplex.subscribe(engine, context) do |result|
-                      event = {
+                    persistent_data = {
+                      'graphql.server.all_resolvers' => gateway_multiplex.arguments
+                    }
+
+                    result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
+
+                    if result.match?
+                      Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                      context.events << {
                         waf_result: result,
                         trace: context.trace,
                         span: context.span,
@@ -36,13 +39,8 @@ module Datadog
                         actions: result.actions
                       }
 
-                      Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.events << event
-
                       Datadog::AppSec::ActionsHandler.handle(result.actions)
                     end
-
-                    GraphQL::Reactive::Multiplex.publish(engine, gateway_multiplex)
                   end
 
                   stack.call(gateway_multiplex.arguments)
