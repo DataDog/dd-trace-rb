@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module ActionsHandler
+      module StackTrace
+        class Representor
+          attr_reader id: String?
+          attr_reader message: String?
+          attr_reader frames: Array[StackTrace::Frame]?
+
+          def initialize: (?id: String?, ?message: String?, ?frames: Array[StackTrace::Frame]?) -> void
+
+          def to_msgpack: ((::MessagePack::Packer | nil) packer) -> ::MessagePack::Packer
+        end
+      end
+    end
+  end
+end

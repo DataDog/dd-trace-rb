@@ -1,0 +1,13 @@
+module Datadog
+  module AppSec
+    module ActionsHandler
+      module StackTrace
+        def self.skip_stack_trace?: (Datadog::AppSec::Context context, group: String) -> bool
+
+        def self.collect_stack_frames: () -> Array[StackTrace::Frame]?
+
+        def self.add_stack_trace_to_context: (Datadog::AppSec::ActionsHandler::StackTrace::Representor stack_trace, Datadog::AppSec::Context context, group: String) -> void
+      end
+    end
+  end
+end

@@ -1,0 +1,19 @@
+module Datadog
+  module AppSec
+    module ActionsHandler
+      module StackTrace
+        class Frame
+          attr_reader id: Integer
+          attr_reader text: String?
+          attr_reader file: String?
+          attr_reader line: Integer?
+          attr_reader function: String?
+
+          def initialize: (?id: Integer, ?text: String?, ?file: String?, ?line: Integer?, ?function: String?) -> void
+
+          def to_msgpack: ((::MessagePack::Packer | nil) packer) -> ::MessagePack::Packer
+        end
+      end
+    end
+  end
+end
