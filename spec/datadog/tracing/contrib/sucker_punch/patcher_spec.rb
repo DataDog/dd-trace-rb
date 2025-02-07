@@ -50,6 +50,10 @@ RSpec.describe 'sucker_punch instrumentation' do
     end
   end
 
+  def get_spans_count(tracer = self.tracer)
+    fetch_traces(tracer).sum { |trace| trace.spans.length }
+  end
+
   context 'successful job' do
     subject(:dummy_worker_success) { worker_class.perform_async }
 

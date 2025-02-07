@@ -53,15 +53,6 @@ module Contrib
       end
     end
 
-    def get_spans_count(tracer = self.tracer)
-      count = 0
-      traces = fetch_traces(tracer)
-      traces.each do |trace|
-        count += trace.instance_variable_get(:@spans).length
-      end
-      count
-    end
-
     # Remove all traces from the current tracer instance and
     # busts cache of +#spans+ and +#span+.
     def clear_traces!
