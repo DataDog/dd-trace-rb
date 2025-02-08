@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../configuration'
 require_relative '../tracking'
 require_relative '../resource'
 require_relative '../event'
@@ -16,7 +17,7 @@ module Datadog
 
               track_user_events_configuration = Datadog.configuration.appsec.track_user_events
 
-              return super unless track_user_events_configuration.enabled
+              return super unless Configuration.auto_user_instrumentation_enabled?
 
               automated_track_user_events_mode = track_user_events_configuration.mode
 
