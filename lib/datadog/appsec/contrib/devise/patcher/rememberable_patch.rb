@@ -9,7 +9,7 @@ module Datadog
           # Rememberable strategy as Login Success events.
           module RememberablePatch
             def validate(*args)
-              @_datadog_skip_track_login_event = true
+              @_datadog_appsec_skip_track_login_event = true
 
               super
             end

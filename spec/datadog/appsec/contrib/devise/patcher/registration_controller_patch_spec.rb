@@ -67,7 +67,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
     end
   end
 
-  context 'when Automated user tracking is disabled' do
+  context 'when automated user tracking is disabled' do
     before do
       allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
 
@@ -140,7 +140,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
     end
   end
 
-  context 'when authentication defines current user as persisted resource' do
+  context 'when registration defines current user as persisted resource' do
     before do
       allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
       allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
@@ -313,7 +313,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
     end
   end
 
-  context 'when authentication defines current user as non-persisted resource' do
+  context 'when registration defines current user as non-persisted resource' do
     before do
       allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
       allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
