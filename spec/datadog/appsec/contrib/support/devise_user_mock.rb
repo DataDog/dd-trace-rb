@@ -5,7 +5,7 @@ module Datadog
     module Contrib
       module Support
         # A basic User model mock sufficient for devise testing
-        DeviseUserMock = Struct.new(:id, :email, :username, :persisted, keyword_init: true) do
+        DeviseUserMock = Struct.new(:id, :uuid, :email, :username, :persisted, keyword_init: true) do
           alias_method :persisted?, :persisted
         end
       end
