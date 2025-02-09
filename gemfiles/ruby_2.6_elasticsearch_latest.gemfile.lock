@@ -62,7 +62,7 @@ GEM
     logger (1.6.5)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.7.5)
+    msgpack (1.8.0)
     multi_json (1.15.0)
     os (1.1.4)
     pimpmychangelog (0.1.3)
