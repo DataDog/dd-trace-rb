@@ -87,7 +87,7 @@ module Datadog
         @probe_notifier_worker = ProbeNotifierWorker.new(settings, transport, logger, telemetry: telemetry)
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
         @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
-        probe_notifier_worker.start
+        #probe_notifier_worker.start
       end
 
       attr_reader :settings
