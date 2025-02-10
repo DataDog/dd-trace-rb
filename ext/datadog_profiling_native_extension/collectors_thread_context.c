@@ -908,6 +908,13 @@ static void trigger_sample_for_thread(
     };
   }
 
+  VALUE current_fiber = current_fiber_for(thread);
+  if (current_fiber != Qnil) {
+    VALUE opentelemetry_context = rb_ivar_get(current_fiber, rb_intern_const(":@opentelemetry_context"));
+    fprintf(stderr, "Got otel context!\n");
+    rb_p(opentelemetry_context);
+  }
+
   trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
   trace_identifiers_for(state, thread, &trace_identifiers_result, is_safe_to_allocate_objects);
 

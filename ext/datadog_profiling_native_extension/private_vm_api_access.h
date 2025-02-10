@@ -70,3 +70,5 @@ const char *imemo_kind(VALUE imemo);
   { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, RTYPEDDATA_TYPE(rb_thread_current())))) raise_unexpected_type(value, ADD_QUOTES(value), "Thread", __FILE__, __LINE__, __func__); }
 
 bool is_raised_flag_set(VALUE thread);
+
+VALUE current_fiber_for(VALUE thread);

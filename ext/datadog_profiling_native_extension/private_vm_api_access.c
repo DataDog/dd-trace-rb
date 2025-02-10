@@ -803,3 +803,9 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 
 // Is the VM smack in the middle of raising an exception?
 bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
+
+// May be nil if `rb_thread_current()` or similar has not been called (gets allocated lazily it looks like?)
+VALUE current_fiber_for(VALUE thread) {
+  // This doesn't work -- there's no Ruby header with the definition of the fiber structure :(
+  return thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
+}
