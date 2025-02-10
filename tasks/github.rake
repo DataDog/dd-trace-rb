@@ -356,20 +356,18 @@ namespace :github do
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
       cmd = 'bundle check || bundle install'
 
-      # For JRuby 9.2, the `bundle install` command failed ocassionally with the NameError.
-      #
-      # Mitigate the flakiness by retrying the command up to 3 times.
-      #
-      # https://github.com/jruby/jruby/issues/7508
-      # https://github.com/jruby/jruby/issues/3656
-      retries = 0
-      begin
+      if RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('9.2')
+        # For JRuby 9.2, the `bundle install` command failed ocassionally with the NameError.
+        #
+        # Mitigate the flakiness by retrying the command up to 3 times.
+        #
+        # https://github.com/jruby/jruby/issues/7508
+        # https://github.com/jruby/jruby/issues/3656
+        with_retry do
+          Bundler.with_unbundled_env { sh(env, cmd) }
+        end
+      else
         Bundler.with_unbundled_env { sh(env, cmd) }
-      rescue StandardError
-        sleep(2**retries)
-        retries += 1
-        retry if retries < 3
-        raise
       end
     end
   end
@@ -382,6 +380,22 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task['task']}"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
+    end
+  end
+
+  def with_retry(&block)
+    retries = 0
+    begin
+      yield
+    rescue StandardError => e
+      rake_output_message(
+        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
+        Source:\n#{Array(e.backtrace).join("\n")}"
+      )
+      sleep(2**retries)
+      retries += 1
+      retry if retries < 3
+      raise
     end
   end
 end
