@@ -36,6 +36,7 @@ module Datadog
         @sleep_remaining = nil
         @wake_scheduled = false
         @thread = nil
+        @pid = nil
         @flush = 0
       end
 
@@ -44,7 +45,7 @@ module Datadog
       attr_reader :telemetry
 
       def start
-        return if @thread
+        return if @thread && @pid == Process.pid
         logger.debug("di: starting probe notifier: pid #{$$}")
         @thread = Thread.new do
           loop do
@@ -87,6 +88,7 @@ module Datadog
             wake.wait(more ? min_send_interval : nil)
           end
         end
+        @pid = Process.pid
       end
 
       # Stops the background thread.
@@ -203,6 +205,10 @@ module Datadog
               wake.signal
             end
           end
+
+          # Worker could be not running if the process forked - check and
+          # start it again in this case.
+          start
         end
 
         # Determine how much longer the worker thread should sleep
