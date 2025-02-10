@@ -39,7 +39,9 @@ module Datadog
 
             boot = Datadog::Core::Remote::Tie.boot
 
-            if defined?(Datadog::DI)
+            if defined?(Datadog::DI.current_component)
+              # TODO: when would Datadog::DI be defined but
+              # Datadog::DI.current_component not be defined?
               Datadog::DI.current_component&.probe_notifier_worker&.start
             end
 

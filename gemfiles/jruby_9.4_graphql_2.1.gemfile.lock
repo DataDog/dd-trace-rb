@@ -3,7 +3,7 @@ PATH
   specs:
     datadog (2.10.0)
       datadog-ruby_core_source (~> 3.4)
-      libdatadog (~> 14.3.1.1.0)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -99,7 +99,7 @@ GEM
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0)
+    libdatadog (16.0.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     logger (1.6.5)
