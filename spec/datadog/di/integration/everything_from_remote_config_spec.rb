@@ -106,9 +106,6 @@ RSpec.describe 'DI integration from remote config' do
 
   before do
     expect(Datadog::DI).to receive(:component).at_least(:once).and_return(component)
-
-    # This is done by tracing Rack middleware in actual applications
-    component.probe_notifier_worker.start
   end
 
   let(:mock_response) do
