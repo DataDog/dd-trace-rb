@@ -240,7 +240,8 @@ orbs:
               command: |
                 DOCKERIZE_URL="https://github.com/powerman/dockerize/releases/download/v0.17.0/dockerize-$(uname -s | tr '[:upper:]' '[:lower:]')-$(arch | sed 's/aarch64/arm64/')"
                 DOCKERIZE_URL: $DOCKERIZE_URL
-                curl --silent --show-error --location --fail --retry 3 --output /usr/local/bin/dockerize $DOCKERIZE_URL
+                set -e
+                curl --silent --show-error --location --fail --retry 5 --output /usr/local/bin/dockerize $DOCKERIZE_URL
                 chmod +x /usr/local/bin/dockerize
                 dockerize --version
           # Wait for containers to start
@@ -275,11 +276,13 @@ orbs:
               name: Upload JUnit reports to Datadog
               when: always
               command: |
+                set -e
+                
                 sed -i 's/file="\.\//file="/g' tmp/rspec/*.xml
                 
                 ls -l tmp/rspec/*.xml
 
-                curl -L --fail --retry 3 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
+                curl -L --fail --retry 5 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
 
                 datadog-ci version
 

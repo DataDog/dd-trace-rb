@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../instrumentation/gateway'
-require_relative '../../reactive/engine'
-require_relative '../reactive/set_user'
 
 module Datadog
   module AppSec
@@ -19,31 +17,27 @@ module Datadog
 
             def watch_user_id(gateway = Instrumentation.gateway)
               gateway.watch('identity.set_user', :appsec) do |stack, user|
-                event = nil
                 context = Datadog::AppSec.active_context
-                engine = AppSec::Reactive::Engine.new
 
-                Monitor::Reactive::SetUser.subscribe(engine, context) do |result|
-                  if result.match?
-                    # TODO: should this hash be an Event instance instead?
-                    event = {
-                      waf_result: result,
-                      trace: context.trace,
-                      span: context.span,
-                      user: user,
-                      actions: result.actions
-                    }
+                persistent_data = {
+                  'usr.id' => user.id
+                }
 
-                    # We want to keep the trace in case of security event
-                    context.trace.keep! if context.trace
-                    Datadog::AppSec::Event.tag_and_keep!(context, result)
-                    context.events << event
+                result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                    Datadog::AppSec::ActionsHandler.handle(result.actions)
-                  end
+                if result.match?
+                  Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                  context.events << {
+                    waf_result: result,
+                    trace: context.trace,
+                    span: context.span,
+                    user: user,
+                    actions: result.actions
+                  }
+
+                  Datadog::AppSec::ActionsHandler.handle(result.actions)
                 end
-
-                Monitor::Reactive::SetUser.publish(engine, user)
 
                 stack.call(user)
               end

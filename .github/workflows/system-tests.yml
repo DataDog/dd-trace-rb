@@ -24,8 +24,7 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  # TODO: remove this change before merging to master
-  SYSTEM_TESTS_REF: enable-ip-blocking-for-ruby
+  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
   build-harness:
