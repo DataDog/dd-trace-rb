@@ -107,6 +107,9 @@ RSpec.describe 'Instrumentation integration' do
       allow(agent_settings).to receive(:ssl)
 
       allow(Datadog::DI).to receive(:current_component).and_return(component)
+
+      # This is done by tracing Rack middleware in actual applications
+      component.probe_notifier_worker.start
     end
 
     context 'method probe' do
