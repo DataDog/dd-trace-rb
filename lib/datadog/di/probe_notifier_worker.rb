@@ -186,8 +186,9 @@ module Datadog
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              logger.debug { "di: #{self.class.name}: dropping #{event_type} because queue is full" }
+              logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
             else
+              logger.debug { "di: #{self.class.name}: queueing #{event_type} event" }
               queue << event
             end
           end
