@@ -268,7 +268,7 @@ module Datadog
 
       def maybe_send
         rv = maybe_send_status
-        rv || maybe_send_snapshot
+        maybe_send_snapshot || rv
       end
     end
   end
