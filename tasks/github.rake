@@ -355,7 +355,22 @@ namespace :github do
     tasks.each do |task|
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
       cmd = 'bundle check || bundle install'
-      Bundler.with_unbundled_env { sh(env, cmd) }
+
+      # For JRuby 9.2, the `bundle install` command failed ocassionally with the NameError.
+      #
+      # Mitigate the flakiness by retrying the command up to 3 times.
+      #
+      # https://github.com/jruby/jruby/issues/7508
+      # https://github.com/jruby/jruby/issues/3656
+      retries = 0
+      begin
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      rescue StandardError
+        sleep(2**retries)
+        retries += 1
+        retry if retries < 3
+        raise
+      end
     end
   end
 
