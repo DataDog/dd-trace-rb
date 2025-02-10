@@ -678,7 +678,7 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const heap_frame *frame = &stack->frames[i];
     locations[i] = (ddog_prof_Location) {
-      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = {
         .name = {.ptr = frame->name, .len = strlen(frame->name)},
         .filename = {.ptr = frame->filename, .len = strlen(frame->filename)},
