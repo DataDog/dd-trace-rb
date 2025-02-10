@@ -267,8 +267,13 @@ module Datadog
       end
 
       def maybe_send
+      i=rand
+      logger.debug { "di: #{i} send status" }
         rv = maybe_send_status
-        maybe_send_snapshot || rv
+      logger.debug { "di: #{i} send snapshot" }
+        rv = maybe_send_snapshot || rv
+      logger.debug { "di: #{i} done" }
+        rv
       end
     end
   end
