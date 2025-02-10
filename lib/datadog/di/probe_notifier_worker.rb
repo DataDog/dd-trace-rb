@@ -241,6 +241,7 @@ module Datadog
             instance_variable_set("@#{event_type}_queue", [])
             @io_in_progress = batch.any? # steep:ignore
           end
+          logger.debug { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
           if batch.any? # steep:ignore
             begin
               logger.debug { "di: sending #{batch.length} #{event_type} event(s) to agent" }
