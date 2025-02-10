@@ -31,7 +31,17 @@ module Datadog
           end
 
           def self.to_rack_header(name)
-            "HTTP_#{name.to_s.upcase.gsub(/[-\s]/, '_')}"
+            key = name.to_s.upcase.gsub(/[-\s]/, '_')
+            case key
+            when 'CONTENT_TYPE', 'CONTENT_LENGTH'
+              # NOTE: The Rack spec says:
+              # > The environment must not contain the keys HTTP_CONTENT_TYPE or HTTP_CONTENT_LENGTH
+              # > (use the versions without HTTP_).
+              # See https://github.com/rack/rack/blob/e217a399eb116362710aac7c5b8dc691ea2189b3/SPEC.rdoc?plain=1#L119-L121
+              key
+            else
+              "HTTP_#{key}"
+            end
           end
         end
       end
