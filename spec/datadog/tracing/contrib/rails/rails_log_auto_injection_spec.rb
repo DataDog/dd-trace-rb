@@ -139,7 +139,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    if Rails.version >= '4'
+    # Lograge does not support tagged logging, the default logger since Rails 5
+    if Rails.version >= '4' &&  Rails.version < '5'
       context 'with Lograge' do
         # for log_injection testing
         require 'lograge'
@@ -488,7 +489,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    if Rails.version >= '4'
+    # Lograge does not support tagged logging, the default logger since Rails 5
+    if Rails.version >= '4' &&  Rails.version < '5'
       context 'with Lograge' do
         # for log_injection testing
         require 'lograge'
