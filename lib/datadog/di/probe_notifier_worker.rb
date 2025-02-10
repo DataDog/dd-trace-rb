@@ -229,6 +229,7 @@ module Datadog
         # types of events. Therefore on most wake-ups we expect to only
         # send one type of events.
         define_method("maybe_send_#{event_type}") do
+        logger.debug { "huh" }
         logger.debug { caller.join("\n") }
           batch = nil
           @lock.synchronize do
@@ -236,10 +237,10 @@ module Datadog
             instance_variable_set("@#{event_type}_queue", [])
             @io_in_progress = batch.any? # steep:ignore
           end
-          logger.debug { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
+          logger.debug { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries ???" }
           if batch.any? # steep:ignore
             begin
-              logger.debug { "di: sending #{batch.length} #{event_type} events to agent" }
+              logger.debug { "di: sending #{batch.length} #{event_type} events to agent ???" }
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
