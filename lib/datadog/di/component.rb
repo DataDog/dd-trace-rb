@@ -95,7 +95,7 @@ module Datadog
         # presently starts the remote config worker.
         #
         # DI is hacked into that middleware the same way.
-        #probe_notifier_worker.start
+        # probe_notifier_worker.start
       end
 
       attr_reader :settings
