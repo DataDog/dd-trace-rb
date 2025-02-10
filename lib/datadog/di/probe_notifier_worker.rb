@@ -229,7 +229,6 @@ module Datadog
         # types of events. Therefore on most wake-ups we expect to only
         # send one type of events.
         define_method("maybe_send_#{event_type}") do
-        logger.debug { caller.join("\n") }
           batch = nil
           @lock.synchronize do
             batch = instance_variable_get("@#{event_type}_queue")
