@@ -39,6 +39,10 @@ module Datadog
 
             boot = Datadog::Core::Remote::Tie.boot
 
+            if defined?(Datadog::DI)
+              Datadog::DI.current_component&.probe_notifier_worker&.start
+            end
+
             # Extract distributed tracing context before creating any spans,
             # so that all spans will be added to the distributed trace.
             if configuration[:distributed_tracing]

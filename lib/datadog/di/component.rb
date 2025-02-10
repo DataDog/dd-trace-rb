@@ -84,7 +84,18 @@ module Datadog
         @probe_notifier_worker = ProbeNotifierWorker.new(settings, transport, logger, telemetry: telemetry)
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
         @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
-        probe_notifier_worker.start
+
+        # If the worker is started here, it will be in the parent process
+        # of forking web servers like puma rather than in the worker processes
+        # that actually process HTTP requests, and thus DI will end up not
+        # sending any events to the agent.
+        #
+        # There is currently no "nice" way to handle this situation correctly -
+        # remote config has the same issue and the tracing Rack middleware
+        # presently starts the remote config worker.
+        #
+        # DI is hacked into that middleware the same way.
+        #probe_notifier_worker.start
       end
 
       attr_reader :settings
