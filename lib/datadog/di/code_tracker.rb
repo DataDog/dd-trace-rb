@@ -140,16 +140,23 @@ module Datadog
           exact = registry[suffix]
           return [suffix, exact] if exact
 
-          inexact = []
-          registry.each do |path, iseq|
-            if Utils.path_matches_suffix?(path, suffix)
-              inexact << [path, iseq]
+          suffix = suffix.dup
+          loop do
+            inexact = []
+            registry.each do |path, iseq|
+              if Utils.path_matches_suffix?(path, suffix)
+                inexact << [path, iseq]
+              end
             end
+            if inexact.length > 1
+              raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
+            end
+            if inexact.any?
+              return inexact.first
+            end
+            return nil unless suffix.include?('/')
+            suffix.sub!(%r{.*/+}, '')
           end
-          if inexact.length > 1
-            raise Error::MultiplePathsMatch, "Multiple paths matched requested suffix"
-          end
-          inexact.first
         end
       end
 

@@ -8,7 +8,7 @@ require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/serializable_trace'
 
 RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
-  subject(:serializable_trace) { described_class.new(trace, native_events_supported) }
+  subject(:serializable_trace) { described_class.new(trace, native_events_supported: native_events_supported) }
 
   let(:trace) { Datadog::Tracing::TraceSegment.new(spans) }
   let(:native_events_supported) { false }
