@@ -90,6 +90,7 @@ namespace :github do
           'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
+          'junit_artifact' => "junit-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'bundle_cache_key' => "bundle-${{ runner.os }}-${{ runner.arch }}-#{runtime_alias}-${{ hashFiles('*.lock') }}"
         )
       end
@@ -99,24 +100,24 @@ namespace :github do
       runtimes.each do |runtime|
         jobs[runtime.batch_id] = {
           'runs-on' => ubuntu,
-          'name' => "Batch #{runtime.engine}-#{runtime.version}",
+          'name' => "batch (#{runtime.engine}-#{runtime.version})",
           'outputs' => {
             'batches' => '${{ steps.set-batches.outputs.batches }}',
             'cache-key' => '${{ steps.restore-cache.outputs.cache-primary-key }}'
           },
           'container' => runtime.image,
           'steps' => [
-            { 'uses' => 'actions/checkout@v4' },
+            { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
             { 'run' => 'bundle lock' },
             {
-              'uses' => 'actions/upload-artifact@v4',
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.lockfile_artifact,
                 'path' => '*.lock'
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
+              'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
                 'key' => runtime.bundle_cache_key,
@@ -126,7 +127,7 @@ namespace :github do
             { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
               'run' => 'bundle install' },
             { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
-              'uses' => 'actions/cache/save@v4',
+              'uses' => 'actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'with' => {
                 'key' => '${{ steps.restore-cache.outputs.cache-primary-key }}',
                 'path' => '/usr/local/bundle'
@@ -153,7 +154,7 @@ namespace :github do
             runtime.batch_id,
           ],
           'runs-on' => ubuntu,
-          'name' => "Build & Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'name' => "build & test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
@@ -179,6 +180,7 @@ namespace :github do
               'DD_TRACE_AGENT_PORT' => '9126',
               'DATADOG_GEM_CI' => 'true',
               'TEST_DATADOG_INTEGRATION' => '1',
+              'JRUBY_OPTS' => '--dev', # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
             }
           },
           'services' => {
@@ -193,19 +195,19 @@ namespace :github do
             'agent' => agent,
           },
           'steps' => [
-            { 'uses' => 'actions/checkout@v4' },
+            { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
             {
               'name' => 'Configure Git',
               'run' => 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
             },
             {
-              'uses' => 'actions/download-artifact@v4',
+              'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
               'with' => {
                 'name' => runtime.lockfile_artifact,
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
+              'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
                 'key' => "${{ needs.#{runtime.batch_id}.outputs.cache-key }}",
@@ -214,14 +216,23 @@ namespace :github do
             },
             { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
+            { 'run' => 'ln -s .rspec-local.example .rspec-local' },
             { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
-              'uses' => 'mxschmitt/action-tmate@v3',
+              'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
               'with' => {
                 'limit-access-to-actor' => true,
               }
-            }
+            },
+            {
+              'if' => 'always()',
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
+              'with' => {
+                'name' => runtime.junit_artifact,
+                'path' => 'tmp/rspec/*.xml'
+              }
+            },
           ]
         }
       end
@@ -248,11 +259,59 @@ namespace :github do
           'cancel-in-progress' => '${{ github.ref != \'refs/heads/master\' }}'
         },
         'jobs' => jobs.merge(
-          'unit-tests' => {
+          'complete' => {
+            'name' => 'complete',
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
               'run' => 'echo "DONE!"'
+            ]
+          },
+          'upload-junit' => {
+            'name' => 'upload/junit',
+            'if' => '!cancelled()',
+            'runs-on' => ubuntu,
+            'env' => {
+              'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+              'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+              'DD_ENV' => 'ci',
+              'DATADOG_SITE' => 'datadoghq.com',
+              'DD_SERVICE' => 'dd-trace-rb',
+            },
+            # 'container' => {
+            #   'image' => 'datadog/ci',
+            #   'credentials' => {
+            #     'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
+            #     'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+            #   },
+            #   'env' => {
+            #     'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+            #     'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+            #     'DD_ENV' => 'ci',
+            #     'DATADOG_SITE' => 'datadoghq.com',
+            #     'DD_SERVICE' => 'dd-trace-rb',
+            #   }
+            # },
+            'needs' => runtimes.map(&:build_test_id),
+            'steps' => [
+              { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
+              {
+                'run' => <<~BASH
+                  curl -L --fail --retry 5 https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output /usr/local/bin/datadog-ci
+                  chmod +x /usr/local/bin/datadog-ci
+                BASH
+              },
+              { 'run' => 'mkdir -p tmp/rspec && datadog-ci version' },
+              {
+                'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
+                'with' => {
+                  'path' => 'tmp/rspec',
+                  'pattern' => 'junit-*',
+                  'merge-multiple' => true
+                }
+              },
+              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
+              { 'run' => 'datadog-ci junit upload --verbose --dry-run tmp/rspec/' },
             ]
           }
         )
@@ -355,7 +414,20 @@ namespace :github do
     tasks.each do |task|
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
       cmd = 'bundle check || bundle install'
-      Bundler.with_unbundled_env { sh(env, cmd) }
+
+      if RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('9.2')
+        # For JRuby 9.2, the `bundle install` command failed ocassionally with the NameError.
+        #
+        # Mitigate the flakiness by retrying the command up to 3 times.
+        #
+        # https://github.com/jruby/jruby/issues/7508
+        # https://github.com/jruby/jruby/issues/3656
+        with_retry do
+          Bundler.with_unbundled_env { sh(env, cmd) }
+        end
+      else
+        Bundler.with_unbundled_env { sh(env, cmd) }
+      end
     end
   end
 
@@ -367,6 +439,22 @@ namespace :github do
       cmd = "bundle exec rake spec:#{task['task']}"
 
       Bundler.with_unbundled_env { sh(env, cmd) }
+    end
+  end
+
+  def with_retry(&block)
+    retries = 0
+    begin
+      yield
+    rescue StandardError => e
+      rake_output_message(
+        "Bundle install failure (Attempt: #{retries + 1}): #{e.class.name}: #{e.message}, \
+        Source:\n#{Array(e.backtrace).join("\n")}"
+      )
+      sleep(2**retries)
+      retries += 1
+      retry if retries < 3
+      raise
     end
   end
 end

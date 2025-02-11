@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../configuration'
 require_relative '../tracking'
 require_relative '../resource'
 require_relative '../event'
@@ -14,33 +15,27 @@ module Datadog
             # rubocop:disable Metrics/MethodLength
             def validate(resource, &block)
               result = super
+
               return result unless AppSec.enabled?
-              return result if @_datadog_skip_track_login_event
-
-              track_user_events_configuration = Datadog.configuration.appsec.track_user_events
-
-              return result unless track_user_events_configuration.enabled
-
-              automated_track_user_events_mode = track_user_events_configuration.mode
-
-              appsec_context = Datadog::AppSec.active_context
-
-              return result unless appsec_context
+              return result if @_datadog_appsec_skip_track_login_event
+              return result unless Configuration.auto_user_instrumentation_enabled?
+              return result unless AppSec.active_context
 
               devise_resource = resource ? Resource.new(resource) : nil
-
-              event_information = Event.new(devise_resource, automated_track_user_events_mode)
+              event_information = Event.new(devise_resource, Configuration.auto_user_instrumentation_mode)
 
               if result
                 if event_information.user_id
-                  Datadog.logger.debug { 'User Login Event success' }
+                  Datadog.logger.debug { 'AppSec: User successful login event' }
                 else
-                  Datadog.logger.debug { 'User Login Event success, but can\'t extract user ID. Tracking empty event' }
+                  Datadog.logger.debug do
+                    "AppSec: User successful login event, but can't extract user ID. Tracking empty event"
+                  end
                 end
 
                 Tracking.track_login_success(
-                  appsec_context.trace,
-                  appsec_context.span,
+                  AppSec.active_context.trace,
+                  AppSec.active_context.span,
                   user_id: event_information.user_id,
                   **event_information.to_h
                 )
@@ -52,15 +47,15 @@ module Datadog
 
               if resource
                 user_exists = true
-                Datadog.logger.debug { 'User Login Event failure users exists' }
+                Datadog.logger.debug { 'AppSec: User failed login event, but user exists' }
               else
                 user_exists = false
-                Datadog.logger.debug { 'User Login Event failure user do not exists' }
+                Datadog.logger.debug { 'AppSec: User failed login event and user does not exist' }
               end
 
               Tracking.track_login_failure(
-                appsec_context.trace,
-                appsec_context.span,
+                AppSec.active_context.trace,
+                AppSec.active_context.span,
                 user_id: event_information.user_id,
                 user_exists: user_exists,
                 **event_information.to_h
