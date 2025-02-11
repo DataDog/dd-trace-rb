@@ -61,6 +61,8 @@ else
 
   pid = utils.pid
 
+  telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.start' }])
+
   if Process.respond_to?(:fork)
     utils.debug 'Starts injection'
 
