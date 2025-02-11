@@ -251,7 +251,7 @@ namespace :github do
             ]
           },
           'schedule' => [
-            { 'cron' => '0 7 * * *' }
+            { 'cron' => '0 * * * *' }
           ]
         },
         'concurrency' => {
