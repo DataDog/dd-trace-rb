@@ -31,6 +31,8 @@ module Datadog
                     Tracing::Distributed::Datadog.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT =>
                     Tracing::Distributed::TraceContext.new(fetcher: Fetcher),
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE =>
+                    Tracing::Distributed::Baggage.new(fetcher: Fetcher),
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_NONE => Tracing::Distributed::None.new
                 },
                 propagation_style_inject: propagation_style_inject,

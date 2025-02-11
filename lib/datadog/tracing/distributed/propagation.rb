@@ -4,6 +4,7 @@ require_relative '../configuration/ext'
 require_relative '../trace_digest'
 require_relative '../trace_operation'
 require_relative '../../core/telemetry/logger'
+require_relative 'baggage'
 
 module Datadog
   module Tracing
