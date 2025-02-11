@@ -29,6 +29,11 @@ module Datadog
 
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
           @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
+
+          # The baggage propagator is unique in that baggage should always be extracted, if present.
+          # Therefore we remove it from the `propagation_style_extract` list.
+          @baggage_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Baggage) }
+          @propagation_style_extract.delete(@baggage_propagator) if @baggage_propagator
         end
 
         # inject! populates the env with span ID, trace ID and sampling priority
@@ -138,11 +143,23 @@ module Datadog
               "Error extracting distributed trace data. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )
           end
+          # Handle baggage after all other styles if present
+          extracted_trace_digest = propagate_baggage(data, extracted_trace_digest) if @baggage_propagator
 
           extracted_trace_digest
         end
 
         private
+
+        def propagate_baggage(data, extracted_trace_digest)
+          if extracted_trace_digest
+            # Merge with baggage if present
+            TraceDigest.merge(extracted_trace_digest, @baggage_propagator.extract(data))
+          else
+            # Baggage is the only style
+            @baggage_propagator.extract(data)
+          end
+        end
 
         def last_datadog_parent_id(headers, tracecontext_tags)
           dd_propagator = @propagation_style_extract.find { |propagator| propagator.is_a?(Datadog) }

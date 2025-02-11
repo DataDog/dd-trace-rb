@@ -37,7 +37,8 @@ module Datadog
         :rule_sample_rate,
         :sample_rate,
         :sampling_priority,
-        :remote_parent
+        :remote_parent,
+        :baggage
 
       attr_reader \
         :active_span_count,
@@ -76,7 +77,8 @@ module Datadog
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
-        tracer: nil
+        tracer: nil,
+        baggage: nil
 
       )
         # Attributes
@@ -101,6 +103,7 @@ module Datadog
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
         @tracer = tracer
+        @baggage = baggage || {}
 
         # Generic tags
         set_tags(tags) if tags
@@ -332,6 +335,7 @@ module Datadog
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
           span_remote: (@remote_parent && @active_span.nil?),
+          baggage: @baggage,
         ).freeze
       end
 
