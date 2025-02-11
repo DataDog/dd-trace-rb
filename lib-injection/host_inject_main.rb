@@ -121,6 +121,10 @@ else
           Bundler.frozen_bundle?
         end
 
+        def bundle_path?
+          !Bundler.settings[:path].nil?
+        end
+
         def bundler_supported?
           Bundler::CLI.commands['add'] && Bundler::CLI.commands['add'].options.key?('require')
         end
@@ -147,6 +151,10 @@ else
       elsif precheck.frozen_bundle?
         utils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
         telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
+        exit!(1)
+      elsif precheck.bundle_path?
+        utils.error "Skip injection: bundler is configured with 'bundle_path"
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_bundle_path'] }])
         exit!(1)
       elsif !precheck.bundler_supported?
         utils.error "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
