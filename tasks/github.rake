@@ -99,24 +99,24 @@ namespace :github do
       runtimes.each do |runtime|
         jobs[runtime.batch_id] = {
           'runs-on' => ubuntu,
-          'name' => "Batch #{runtime.engine}-#{runtime.version}",
+          'name' => "Batch (#{runtime.engine}-#{runtime.version})",
           'outputs' => {
             'batches' => '${{ steps.set-batches.outputs.batches }}',
             'cache-key' => '${{ steps.restore-cache.outputs.cache-primary-key }}'
           },
           'container' => runtime.image,
           'steps' => [
-            { 'uses' => 'actions/checkout@v4' },
+            { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
             { 'run' => 'bundle lock' },
             {
-              'uses' => 'actions/upload-artifact@v4',
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.lockfile_artifact,
                 'path' => '*.lock'
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
+              'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
                 'key' => runtime.bundle_cache_key,
@@ -126,7 +126,7 @@ namespace :github do
             { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
               'run' => 'bundle install' },
             { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
-              'uses' => 'actions/cache/save@v4',
+              'uses' => 'actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'with' => {
                 'key' => '${{ steps.restore-cache.outputs.cache-primary-key }}',
                 'path' => '/usr/local/bundle'
@@ -153,7 +153,7 @@ namespace :github do
             runtime.batch_id,
           ],
           'runs-on' => ubuntu,
-          'name' => "Build & Test #{runtime.engine}-#{runtime.version}[${{ matrix.batch }}]",
+          'name' => "Build & Test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
@@ -179,6 +179,7 @@ namespace :github do
               'DD_TRACE_AGENT_PORT' => '9126',
               'DATADOG_GEM_CI' => 'true',
               'TEST_DATADOG_INTEGRATION' => '1',
+              'JRUBY_OPTS' => '--dev', # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
             }
           },
           'services' => {
@@ -193,19 +194,19 @@ namespace :github do
             'agent' => agent,
           },
           'steps' => [
-            { 'uses' => 'actions/checkout@v4' },
+            { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
             {
               'name' => 'Configure Git',
               'run' => 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
             },
             {
-              'uses' => 'actions/download-artifact@v4',
+              'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
               'with' => {
                 'name' => runtime.lockfile_artifact,
               }
             },
             {
-              'uses' => 'actions/cache/restore@v4',
+              'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
                 'key' => "${{ needs.#{runtime.batch_id}.outputs.cache-key }}",
@@ -217,7 +218,7 @@ namespace :github do
             { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
-              'uses' => 'mxschmitt/action-tmate@v3',
+              'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
               'with' => {
                 'limit-access-to-actor' => true,
               }
