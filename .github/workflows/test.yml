@@ -17,7 +17,7 @@ concurrency:
 jobs:
   batch-ruby-34:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-3.4)
+    name: batch (ruby-3.4)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -53,7 +53,7 @@ jobs:
     needs:
     - batch-ruby-34
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-3.4) [${{ matrix.batch }}]
+    name: build & test (ruby-3.4) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -152,7 +152,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-33:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-3.3)
+    name: batch (ruby-3.3)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -188,7 +188,7 @@ jobs:
     needs:
     - batch-ruby-33
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-3.3) [${{ matrix.batch }}]
+    name: build & test (ruby-3.3) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -287,7 +287,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-32:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-3.2)
+    name: batch (ruby-3.2)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -323,7 +323,7 @@ jobs:
     needs:
     - batch-ruby-32
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-3.2) [${{ matrix.batch }}]
+    name: build & test (ruby-3.2) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -422,7 +422,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-31:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-3.1)
+    name: batch (ruby-3.1)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -458,7 +458,7 @@ jobs:
     needs:
     - batch-ruby-31
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-3.1) [${{ matrix.batch }}]
+    name: build & test (ruby-3.1) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -557,7 +557,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-30:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-3.0)
+    name: batch (ruby-3.0)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -593,7 +593,7 @@ jobs:
     needs:
     - batch-ruby-30
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-3.0) [${{ matrix.batch }}]
+    name: build & test (ruby-3.0) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -692,7 +692,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-27:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-2.7)
+    name: batch (ruby-2.7)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -728,7 +728,7 @@ jobs:
     needs:
     - batch-ruby-27
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-2.7) [${{ matrix.batch }}]
+    name: build & test (ruby-2.7) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -827,7 +827,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-26:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-2.6)
+    name: batch (ruby-2.6)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -863,7 +863,7 @@ jobs:
     needs:
     - batch-ruby-26
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-2.6) [${{ matrix.batch }}]
+    name: build & test (ruby-2.6) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -962,7 +962,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-ruby-25:
     runs-on: ubuntu-24.04
-    name: Batch (ruby-2.5)
+    name: batch (ruby-2.5)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -998,7 +998,7 @@ jobs:
     needs:
     - batch-ruby-25
     runs-on: ubuntu-24.04
-    name: Build & Test (ruby-2.5) [${{ matrix.batch }}]
+    name: build & test (ruby-2.5) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1097,7 +1097,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-jruby-94:
     runs-on: ubuntu-24.04
-    name: Batch (jruby-9.4)
+    name: batch (jruby-9.4)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -1133,7 +1133,7 @@ jobs:
     needs:
     - batch-jruby-94
     runs-on: ubuntu-24.04
-    name: Build & Test (jruby-9.4) [${{ matrix.batch }}]
+    name: build & test (jruby-9.4) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1232,7 +1232,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-jruby-93:
     runs-on: ubuntu-24.04
-    name: Batch (jruby-9.3)
+    name: batch (jruby-9.3)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -1268,7 +1268,7 @@ jobs:
     needs:
     - batch-jruby-93
     runs-on: ubuntu-24.04
-    name: Build & Test (jruby-9.3) [${{ matrix.batch }}]
+    name: build & test (jruby-9.3) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1367,7 +1367,7 @@ jobs:
         path: tmp/rspec/*.xml
   batch-jruby-92:
     runs-on: ubuntu-24.04
-    name: Batch (jruby-9.2)
+    name: batch (jruby-9.2)
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
@@ -1403,7 +1403,7 @@ jobs:
     needs:
     - batch-jruby-92
     runs-on: ubuntu-24.04
-    name: Build & Test (jruby-9.2) [${{ matrix.batch }}]
+    name: build & test (jruby-9.2) [${{ matrix.batch }}]
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1501,7 +1501,7 @@ jobs:
         name: junit-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
   complete:
-    name: Complete
+    name: complete
     runs-on: ubuntu-24.04
     needs:
     - build-test-ruby-34
@@ -1518,19 +1518,15 @@ jobs:
     steps:
     - run: echo "DONE!"
   upload-junit:
-    name: Upload/JUnit reports
+    name: upload/junit
     if: "!cancelled()"
     runs-on: ubuntu-24.04
-    container:
-      image: datadog/ci
-      credentials:
-        username: "${{ secrets.DOCKERHUB_USERNAME }}"
-        password: "${{ secrets.DOCKERHUB_TOKEN }}"
-      env:
-        DD_APP_KEY: "${{ secrets.DD_APP_KEY }}"
-        DD_API_KEY: "${{ secrets.DD_API_KEY }}"
-        DD_ENV: ci
-        DATADOG_SITE: datadoghq.com
+    env:
+      DD_APP_KEY: "${{ secrets.DD_APP_KEY }}"
+      DD_API_KEY: "${{ secrets.DD_API_KEY }}"
+      DD_ENV: ci
+      DATADOG_SITE: datadoghq.com
+      DD_SERVICE: dd-trace-rb
     needs:
     - build-test-ruby-34
     - build-test-ruby-33
@@ -1544,11 +1540,15 @@ jobs:
     - build-test-jruby-93
     - build-test-jruby-92
     steps:
-    - run: mkdir rspec && datadog-ci version
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - run: |
+        curl -L --fail --retry 5 https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output /usr/local/bin/datadog-ci
+        chmod +x /usr/local/bin/datadog-ci
+    - run: mkdir -p tmp/rspec && datadog-ci version
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        path: rspec
+        path: tmp/rspec
         pattern: junit-*
         merge-multiple: true
-    - run: sed -i 's;file="./;file=";g' rspec/*.xml
-    - run: datadog-ci junit upload --service dd-trace-rb rspec/
+    - run: sed -i 's;file="./;file=";g' tmp/rspec/*.xml
+    - run: datadog-ci junit upload --verbose --dry-run tmp/rspec/

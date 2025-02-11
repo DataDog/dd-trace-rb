@@ -100,7 +100,7 @@ namespace :github do
       runtimes.each do |runtime|
         jobs[runtime.batch_id] = {
           'runs-on' => ubuntu,
-          'name' => "Batch (#{runtime.engine}-#{runtime.version})",
+          'name' => "batch (#{runtime.engine}-#{runtime.version})",
           'outputs' => {
             'batches' => '${{ steps.set-batches.outputs.batches }}',
             'cache-key' => '${{ steps.restore-cache.outputs.cache-primary-key }}'
@@ -154,7 +154,7 @@ namespace :github do
             runtime.batch_id,
           ],
           'runs-on' => ubuntu,
-          'name' => "Build & Test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
+          'name' => "build & test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
@@ -260,7 +260,7 @@ namespace :github do
         },
         'jobs' => jobs.merge(
           'complete' => {
-            'name' => 'Complete',
+            'name' => 'complete',
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
@@ -268,35 +268,50 @@ namespace :github do
             ]
           },
           'upload-junit' => {
-            'name' => 'Upload/JUnit reports',
+            'name' => 'upload/junit',
             'if' => '!cancelled()',
             'runs-on' => ubuntu,
-            'container' => {
-              'image' => 'datadog/ci',
-              'credentials' => {
-                'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
-                'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
-              },
-              'env' => {
-                'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
-                'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
-                'DD_ENV' => 'ci',
-                'DATADOG_SITE' => 'datadoghq.com'
-              }
+            'env' => {
+              'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+              'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+              'DD_ENV' => 'ci',
+              'DATADOG_SITE' => 'datadoghq.com',
+              'DD_SERVICE' => 'dd-trace-rb',
             },
+            # 'container' => {
+            #   'image' => 'datadog/ci',
+            #   'credentials' => {
+            #     'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
+            #     'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+            #   },
+            #   'env' => {
+            #     'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+            #     'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+            #     'DD_ENV' => 'ci',
+            #     'DATADOG_SITE' => 'datadoghq.com',
+            #     'DD_SERVICE' => 'dd-trace-rb',
+            #   }
+            # },
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
-              { 'run' => 'mkdir rspec && datadog-ci version' },
+              { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
+              {
+                'run' => <<~BASH
+                  curl -L --fail --retry 5 https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output /usr/local/bin/datadog-ci
+                  chmod +x /usr/local/bin/datadog-ci
+                BASH
+              },
+              { 'run' => 'mkdir -p tmp/rspec && datadog-ci version' },
               {
                 'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
                 'with' => {
-                  'path' => 'rspec',
+                  'path' => 'tmp/rspec',
                   'pattern' => 'junit-*',
                   'merge-multiple' => true
                 }
               },
-              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' rspec/*.xml" },
-              { 'run' => 'datadog-ci junit upload --service dd-trace-rb rspec/' },
+              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
+              { 'run' => 'datadog-ci junit upload --verbose --dry-run tmp/rspec/' },
             ]
           }
         )
