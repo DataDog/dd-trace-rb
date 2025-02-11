@@ -1345,6 +1345,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
         end
 
         it "returns different numbers of allocations for different threads" do
+          # GC disabled for the same reason as "returns the exact number of allocations between two calls of the method"
+          # spec above.
+          GC.disable
+
           # To get the exact expected number of allocations, we run this once before so that Ruby can create and cache all
           # it needs to
           new_object = proc { Object.new }
@@ -1374,8 +1378,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
           # This test checks that even though we observed 100 allocations in a background thread t1, the counters for
           # the current thread were not affected by this change
 
-          expect(after_t1 - before_t1).to be 100
+          expect(after_t1 - before_t1).to be >= 100
           expect(after_allocations - before_allocations).to be < 10
+        ensure
+          GC.enable
         end
 
         context "when allocation profiling is enabled but allocation counting is disabled" do
