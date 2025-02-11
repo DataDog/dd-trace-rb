@@ -90,6 +90,7 @@ namespace :github do
           'lockfile_artifact' => "lockfile-#{runtime_alias}-${{ github.run_id }}",
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
+          'junit_artifact' => "junit-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'bundle_cache_key' => "bundle-${{ runner.os }}-${{ runner.arch }}-#{runtime_alias}-${{ hashFiles('*.lock') }}"
         )
       end
@@ -99,7 +100,7 @@ namespace :github do
       runtimes.each do |runtime|
         jobs[runtime.batch_id] = {
           'runs-on' => ubuntu,
-          'name' => "Batch (#{runtime.engine}-#{runtime.version})",
+          'name' => "batch (#{runtime.engine}-#{runtime.version})",
           'outputs' => {
             'batches' => '${{ steps.set-batches.outputs.batches }}',
             'cache-key' => '${{ steps.restore-cache.outputs.cache-primary-key }}'
@@ -153,7 +154,7 @@ namespace :github do
             runtime.batch_id,
           ],
           'runs-on' => ubuntu,
-          'name' => "Build & Test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
+          'name' => "build & test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
@@ -215,6 +216,7 @@ namespace :github do
             },
             { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
+            { 'run' => 'ln -s .rspec-local.example .rspec-local' },
             { 'run' => 'bundle exec rake github:run_batch_tests' },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
@@ -222,7 +224,15 @@ namespace :github do
               'with' => {
                 'limit-access-to-actor' => true,
               }
-            }
+            },
+            {
+              'if' => 'always()',
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
+              'with' => {
+                'name' => runtime.junit_artifact,
+                'path' => 'tmp/rspec/*.xml'
+              }
+            },
           ]
         }
       end
@@ -249,11 +259,59 @@ namespace :github do
           'cancel-in-progress' => '${{ github.ref != \'refs/heads/master\' }}'
         },
         'jobs' => jobs.merge(
-          'unit-tests' => {
+          'complete' => {
+            'name' => 'complete',
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
               'run' => 'echo "DONE!"'
+            ]
+          },
+          'upload-junit' => {
+            'name' => 'upload/junit',
+            'if' => '!cancelled()',
+            'runs-on' => ubuntu,
+            'env' => {
+              'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+              'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+              'DD_ENV' => 'ci',
+              'DATADOG_SITE' => 'datadoghq.com',
+              'DD_SERVICE' => 'dd-trace-rb',
+            },
+            # 'container' => {
+            #   'image' => 'datadog/ci',
+            #   'credentials' => {
+            #     'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
+            #     'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+            #   },
+            #   'env' => {
+            #     'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
+            #     'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+            #     'DD_ENV' => 'ci',
+            #     'DATADOG_SITE' => 'datadoghq.com',
+            #     'DD_SERVICE' => 'dd-trace-rb',
+            #   }
+            # },
+            'needs' => runtimes.map(&:build_test_id),
+            'steps' => [
+              { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
+              {
+                'run' => <<~BASH
+                  curl -L --fail --retry 5 https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output /usr/local/bin/datadog-ci
+                  chmod +x /usr/local/bin/datadog-ci
+                BASH
+              },
+              { 'run' => 'mkdir -p tmp/rspec && datadog-ci version' },
+              {
+                'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
+                'with' => {
+                  'path' => 'tmp/rspec',
+                  'pattern' => 'junit-*',
+                  'merge-multiple' => true
+                }
+              },
+              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
+              { 'run' => 'datadog-ci junit upload --verbose --dry-run tmp/rspec/' },
             ]
           }
         )
