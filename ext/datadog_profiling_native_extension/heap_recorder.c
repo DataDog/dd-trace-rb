@@ -900,8 +900,8 @@ static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_Manag
 }
 
 static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
-  ddog_prof_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
-  if (get_string_result.tag == DDOG_PROF_STRING_WRAPPER_RESULT_ERR) {
+  ddog_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
+  if (get_string_result.tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
     rb_raise(rb_eRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
   }
   VALUE ruby_string = ruby_string_from_vec_u8(get_string_result.ok.message);
