@@ -150,7 +150,7 @@ else
         utils.debug 'Skip injection: already installed'
       elsif precheck.frozen_bundle?
         utils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
-        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_bundle_frozen'] }])
         exit!(1)
       elsif precheck.bundle_path?
         utils.error "Skip injection: bundler is configured with 'bundle_path"
