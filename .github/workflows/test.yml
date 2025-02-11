@@ -6,7 +6,6 @@ name: Unit Tests
   push:
     branches:
     - master
-    - tonycthsu/*
   pull_request:
     branches:
     - master
@@ -146,7 +145,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -280,7 +280,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-33-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -414,7 +415,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -548,7 +550,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-31-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -682,7 +685,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -816,7 +820,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-27-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -950,7 +955,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -1084,7 +1090,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-25-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -1218,7 +1225,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -1352,7 +1360,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
@@ -1486,11 +1495,13 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
-    - uses: actions/upload-artifact@v4
+    - if: always()
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
-  unit-tests:
+  complete:
+    name: Complete
     runs-on: ubuntu-24.04
     needs:
     - build-test-ruby-34
@@ -1507,9 +1518,14 @@ jobs:
     steps:
     - run: echo "DONE!"
   upload-junit:
+    name: Upload/JUnit reports
+    if: "!cancelled()"
     runs-on: ubuntu-24.04
     container:
       image: datadog/ci
+      credentials:
+        username: "${{ secrets.DOCKERHUB_USERNAME }}"
+        password: "${{ secrets.DOCKERHUB_TOKEN }}"
       env:
         DD_APP_KEY: "${{ secrets.DD_APP_KEY }}"
         DD_API_KEY: "${{ secrets.DD_API_KEY }}"
@@ -1529,10 +1545,10 @@ jobs:
     - build-test-jruby-92
     steps:
     - run: mkdir rspec && datadog-ci version
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         path: rspec
         pattern: junit-*
         merge-multiple: true
-    - run: sed -i 's/file="\.\/"/file="/g' rspec/*.xml
+    - run: sed -i 's;file="./;file=";g' rspec/*.xml
     - run: datadog-ci junit upload --service dd-trace-rb rspec/

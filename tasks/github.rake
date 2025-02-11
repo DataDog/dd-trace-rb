@@ -226,7 +226,8 @@ namespace :github do
               }
             },
             {
-              'uses' => 'actions/upload-artifact@v4',
+              'if' => 'always()',
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.junit_artifact,
                 'path' => 'tmp/rspec/*.xml'
@@ -242,7 +243,6 @@ namespace :github do
           'push' => {
             'branches' => [
               'master',
-              'tonycthsu/*'
             ]
           },
           'pull_request' => {
@@ -259,7 +259,8 @@ namespace :github do
           'cancel-in-progress' => '${{ github.ref != \'refs/heads/master\' }}'
         },
         'jobs' => jobs.merge(
-          'unit-tests' => {
+          'complete' => {
+            'name' => 'Complete',
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
@@ -267,9 +268,15 @@ namespace :github do
             ]
           },
           'upload-junit' => {
+            'name' => 'Upload/JUnit reports',
+            'if' => '!cancelled()',
             'runs-on' => ubuntu,
             'container' => {
               'image' => 'datadog/ci',
+              'credentials' => {
+                'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
+                'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+              },
               'env' => {
                 'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
                 'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
@@ -281,13 +288,14 @@ namespace :github do
             'steps' => [
               { 'run' => 'mkdir rspec && datadog-ci version' },
               {
-                'uses' => 'actions/download-artifact@v4',
+                'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
                 'with' => {
+                  'path' => 'rspec',
                   'pattern' => 'junit-*',
                   'merge-multiple' => true
                 }
               },
-              { 'run' => "sed -i 's/file=\"\.\//file=\"/g' rspec/*.xml" },
+              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' rspec/*.xml" },
               { 'run' => 'datadog-ci junit upload --service dd-trace-rb rspec/' },
             ]
           }

@@ -277,16 +277,16 @@ orbs:
               when: always
               command: |
                 set -e
-                
+
                 sed -i 's/file="\.\//file="/g' tmp/rspec/*.xml
-                
+
                 ls -l tmp/rspec/*.xml
 
                 curl -L --fail --retry 5 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
 
                 datadog-ci version
 
-                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --service dd-trace-rb tmp/rspec/
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --dry-run --verbose --service dd-trace-rb tmp/rspec/
           - store_test_results:
               path: tmp/rspec
           - persist_to_workspace:
