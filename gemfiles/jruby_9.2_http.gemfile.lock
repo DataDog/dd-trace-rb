@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -20,7 +20,7 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
@@ -71,7 +71,7 @@ GEM
     httpclient (2.8.3)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0)
+    libdatadog (16.0.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     logger (1.6.5)
@@ -80,7 +80,7 @@ GEM
     mime-types (3.5.1)
       mime-types-data (~> 3.2015)
     mime-types-data (3.2023.0808)
-    msgpack (1.7.5-java)
+    msgpack (1.8.0-java)
     multipart-post (2.3.0)
     netrc (0.11.0)
     os (1.1.4)

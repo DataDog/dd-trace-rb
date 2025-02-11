@@ -32,6 +32,12 @@ module Datadog
           status: 'EMITTING',)
       end
 
+      def build_errored(probe, exc)
+        build_status(probe,
+          message: "Instrumentation for probe #{probe.id} failed: #{exc}",
+          status: 'ERROR',)
+      end
+
       # Duration is in seconds.
       def build_executed(probe,
         trace_point: nil, rv: nil, duration: nil, caller_locations: nil,

@@ -16,6 +16,8 @@ require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../crashtracking/component'
 
+require_relative '../environment/agent_info'
+
 module Datadog
   module Core
     module Configuration
@@ -85,7 +87,8 @@ module Datadog
           :tracer,
           :crashtracker,
           :dynamic_instrumentation,
-          :appsec
+          :appsec,
+          :agent_info
 
         def initialize(settings)
           @logger = self.class.build_logger(settings)
@@ -95,6 +98,9 @@ module Datadog
           # agent_settings within a product outside of core you should extend
           # the Core resolver from within your product/component's namespace.
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
+
+          # Exposes agent capability information for detection by any components
+          @agent_info = Core::Environment::AgentInfo.new(agent_settings)
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 

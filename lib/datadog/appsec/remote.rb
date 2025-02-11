@@ -104,6 +104,10 @@ module Datadog
             )
 
             Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
+
+            repository.contents.each do |content|
+              content.applied if ASM_PRODUCTS.include?(content.path.product)
+            end
           end
 
           [receiver]

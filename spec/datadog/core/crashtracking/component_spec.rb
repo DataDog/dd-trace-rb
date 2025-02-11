@@ -212,7 +212,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
       let(:agent_base_url) { "http://#{hostname}:#{port}" }
 
       [:fiddle, :signal].each do |trigger|
-        it "reports crashes via http when app crashes with #{trigger}" do
+        it "reports crashes via http when app crashes with #{trigger}", skip: ENV['BATCHED_TASKS'] do
           fork_expectations = proc do |status:, stdout:, stderr:|
             expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
             expect(stderr).to include('[BUG] Segmentation fault')
@@ -232,7 +232,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
 
           expect(crash_report[:stack_trace]).to_not be_empty
-          expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
           crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 
@@ -269,7 +269,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           # Do nothing, it's ok
         end
 
-        it 'reports crashes via uds when app crashes with fiddle' do
+        it 'reports crashes via uds when app crashes with fiddle', skip: ENV['BATCHED_TASKS'] do
           fork_expectations = proc do |status:, stdout:, stderr:|
             expect(Signal.signame(status.termsig)).to eq('SEGV').or eq('ABRT')
             expect(stderr).to include('[BUG] Segmentation fault')
@@ -285,7 +285,7 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
           crash_report = JSON.parse(request.body, symbolize_names: true)[:payload].first
 
           expect(crash_report[:stack_trace]).to_not be_empty
-          expect(crash_report[:tags]).to include('signum:11', 'signame:SIGSEGV')
+          expect(crash_report[:tags]).to include('si_signo:11', 'si_signo_human_readable:SIGSEGV')
 
           crash_report_message = JSON.parse(crash_report[:message], symbolize_names: true)
 

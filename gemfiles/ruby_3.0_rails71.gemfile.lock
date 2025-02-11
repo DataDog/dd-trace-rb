@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -104,7 +104,7 @@ GEM
       bigdecimal
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     date (3.3.4)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
@@ -128,8 +128,8 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0-aarch64-linux)
-    libdatadog (14.3.1.1.0-x86_64-linux)
+    libdatadog (16.0.1.1.0-aarch64-linux)
+    libdatadog (16.0.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -148,7 +148,7 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.5)
     minitest (5.25.1)
-    msgpack (1.7.5)
+    msgpack (1.8.0)
     mutex_m (0.2.0)
     net-imap (0.4.14)
       date
@@ -277,6 +277,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!

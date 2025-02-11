@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -49,7 +49,7 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     diff-lcs (1.5.0)
     digest-crc (0.6.5)
       rake (>= 12.0.0, < 14.0.0)
@@ -89,7 +89,7 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (14.3.1.1.0)
+    libdatadog (16.0.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     logger (1.6.5)
@@ -105,7 +105,7 @@ GEM
     method_source (1.0.0)
     mini_portile2 (2.8.4)
     minitest (5.15.0)
-    msgpack (1.7.5-java)
+    msgpack (1.8.0-java)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)

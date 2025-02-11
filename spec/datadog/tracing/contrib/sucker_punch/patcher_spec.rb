@@ -50,6 +50,10 @@ RSpec.describe 'sucker_punch instrumentation' do
     end
   end
 
+  def get_spans_count(tracer = self.tracer)
+    fetch_traces(tracer).sum { |trace| trace.spans.length }
+  end
+
   context 'successful job' do
     subject(:dummy_worker_success) { worker_class.perform_async }
 
@@ -60,19 +64,19 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_success
-        try_wait_until { fetch_spans.length == 2 }
+        try_wait_until { get_spans_count == 2 }
       end
     end
 
     it 'generates two spans, one for pushing to enqueue and one for the job itself' do
       is_expected.to be true
-      try_wait_until { fetch_spans.length == 2 }
+      try_wait_until { get_spans_count == 2 }
       expect(spans.length).to eq(2)
     end
 
     it 'instruments successful job' do
       is_expected.to be true
-      try_wait_until { fetch_spans.length == 2 }
+      try_wait_until { get_spans_count == 2 }
 
       expect(job_span.service).to eq(tracer.default_service)
       expect(job_span.name).to eq('sucker_punch.perform')
@@ -85,7 +89,7 @@ RSpec.describe 'sucker_punch instrumentation' do
 
     it 'instruments successful enqueuing' do
       is_expected.to be true
-      try_wait_until { fetch_spans.length == 2 }
+      try_wait_until { get_spans_count == 2 }
 
       expect(enqueue_span.service).to eq(tracer.default_service)
       expect(enqueue_span.name).to eq('sucker_punch.perform_async')
@@ -106,13 +110,13 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_fail
-        try_wait_until { fetch_spans.length == 2 }
+        try_wait_until { get_spans_count == 2 }
       end
     end
 
     it 'instruments a failed job' do
       is_expected.to be true
-      try_wait_until { fetch_spans.length == 2 }
+      try_wait_until { get_spans_count == 2 }
 
       expect(job_span.service).to eq(tracer.default_service)
       expect(job_span.name).to eq('sucker_punch.perform')
@@ -133,13 +137,13 @@ RSpec.describe 'sucker_punch instrumentation' do
     it_behaves_like 'measured span for integration', true do
       before do
         dummy_worker_delay
-        try_wait_until { fetch_spans.length == 2 }
+        try_wait_until { get_spans_count == 2 }
       end
     end
 
     it 'instruments enqueuing for a delayed job' do
       dummy_worker_delay
-      try_wait_until { fetch_spans.length == 2 }
+      try_wait_until { get_spans_count == 2 }
 
       expect(enqueue_span.service).to eq(tracer.default_service)
       expect(enqueue_span.name).to eq('sucker_punch.perform_in')

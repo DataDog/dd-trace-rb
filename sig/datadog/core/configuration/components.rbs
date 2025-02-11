@@ -36,6 +36,8 @@ module Datadog
 
         attr_reader remote: Datadog::Core::Remote::Component
 
+        attr_reader agent_info: Datadog::Core::Environment::AgentInfo
+
         def initialize: (untyped settings) -> untyped
 
         def startup!: (untyped settings) -> untyped

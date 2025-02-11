@@ -31,6 +31,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
+  let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }
@@ -95,6 +96,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
       expect(components.profiler).to be profiler
       expect(components.runtime_metrics).to be runtime_metrics
       expect(components.health_metrics).to be health_metrics
+      expect(components.agent_info).to eq agent_info
     end
 
     describe '@environment_logger_extra' do
@@ -118,6 +120,12 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           settings.dynamic_instrumentation.enabled = true
+        end
+
+        after do
+          # Shutdown DI if present because it creates a background thread.
+          # On JRuby DI is not present.
+          components.dynamic_instrumentation&.shutdown!
         end
 
         context 'MRI' do

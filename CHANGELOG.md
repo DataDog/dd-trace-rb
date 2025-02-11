@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [2.10.0] - 2025-02-04
+
+### Added
+
+* AppSec: Add configuration option(`Datadog.configuration.appsec.rasp_enabled`) to enable/disable Runtime Application Self-Protection checks ([#4311][])
+* AppSec: Add stack trace when SQL Injection attack is detected ([#4321][])
+
+### Changed
+
+* Add `logger` gem as dependency ([#4257][])
+* Bump minimum version of `datadog-ruby_core_source` to 3.4 ([#4323][])
+
+### Fixed
+
+* Dynamic instrumentation: Fix report probe status when dynamic instrumentation probes fail to instrument ([#4301][])
+* Dynamic instrumentation: Include variables named `env` in probe snapshots ([#4292][])
+* Fix a concurrency issue during application boot ([#4303][])
+
 ## [2.9.0] - 2025-01-15
 
 ### Added
@@ -3079,7 +3097,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.9.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.10.0...master
+[2.10.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.8.0...v2.9.0
 [2.8.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.7.1...v2.8.0
 [2.7.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.6.0...v2.7.0
@@ -4550,10 +4569,17 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4239]: https://github.com/DataDog/dd-trace-rb/issues/4239
 [#4240]: https://github.com/DataDog/dd-trace-rb/issues/4240
 [#4249]: https://github.com/DataDog/dd-trace-rb/issues/4249
+[#4257]: https://github.com/DataDog/dd-trace-rb/issues/4257
 [#4266]: https://github.com/DataDog/dd-trace-rb/issues/4266
 [#4272]: https://github.com/DataDog/dd-trace-rb/issues/4272
 [#4285]: https://github.com/DataDog/dd-trace-rb/issues/4285
 [#4288]: https://github.com/DataDog/dd-trace-rb/issues/4288
+[#4292]: https://github.com/DataDog/dd-trace-rb/issues/4292
+[#4301]: https://github.com/DataDog/dd-trace-rb/issues/4301
+[#4303]: https://github.com/DataDog/dd-trace-rb/issues/4303
+[#4311]: https://github.com/DataDog/dd-trace-rb/issues/4311
+[#4321]: https://github.com/DataDog/dd-trace-rb/issues/4321
+[#4323]: https://github.com/DataDog/dd-trace-rb/issues/4323
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

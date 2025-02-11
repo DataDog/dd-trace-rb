@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -43,6 +43,7 @@ GEM
     binding_of_caller (0.8.0)
       debug_inspector (>= 0.0.1)
     builder (3.2.4)
+    byebug (11.1.3)
     case_transform (0.2)
       activesupport
     climate_control (0.2.0)
@@ -51,7 +52,7 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     digest-crc (0.6.5)
@@ -96,8 +97,8 @@ GEM
       addressable (>= 2.4)
     jsonapi-renderer (0.2.2)
     king_konf (1.0.1)
-    libdatadog (14.3.1.1.0-aarch64-linux)
-    libdatadog (14.3.1.1.0-x86_64-linux)
+    libdatadog (16.0.1.1.0-aarch64-linux)
+    libdatadog (16.0.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -115,7 +116,7 @@ GEM
     method_source (1.0.0)
     mini_portile2 (2.6.1)
     minitest (5.15.0)
-    msgpack (1.7.5)
+    msgpack (1.8.0)
     mustermann (2.0.2)
       ruby2_keywords (~> 0.0.1)
     mustermann-grape (1.0.2)
@@ -220,6 +221,7 @@ DEPENDENCIES
   activesupport (~> 5)
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
+  byebug
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!

@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -26,7 +26,11 @@ GEM
     crack (1.0.0)
       bigdecimal
       rexml
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
+    date (3.4.1)
+    debug (1.10.0)
+      irb (~> 1.10)
+      reline (>= 0.3.8)
     debug_inspector (1.2.0)
     diff-lcs (1.5.1)
     docile (1.4.1)
@@ -50,11 +54,16 @@ GEM
     ffi (1.17.1-x86_64-linux-gnu)
     google-protobuf (3.25.4)
     hashdiff (1.1.1)
+    io-console (0.8.0)
+    irb (1.15.1)
+      pp (>= 0.6.0)
+      rdoc (>= 4.0.0)
+      reline (>= 0.4.2)
     json (2.9.1)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0-aarch64-linux)
-    libdatadog (14.3.1.1.0-x86_64-linux)
+    libdatadog (16.0.1.1.0-aarch64-linux)
+    libdatadog (16.0.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -62,7 +71,7 @@ GEM
     logger (1.6.5)
     memory_profiler (0.9.14)
     method_source (1.1.0)
-    msgpack (1.7.5)
+    msgpack (1.8.0)
     multi_json (1.15.0)
     mutex_m (0.2.0)
     net-http (0.6.0)
@@ -70,16 +79,26 @@ GEM
     os (1.1.4)
     ostruct (0.6.1)
     pimpmychangelog (0.1.3)
+    pp (0.6.2)
+      prettyprint
+    prettyprint (0.2.0)
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
     pry-stack_explorer (0.6.1)
       binding_of_caller (~> 1.0)
       pry (~> 0.13)
+    psych (5.2.3)
+      date
+      stringio
     public_suffix (6.0.1)
     rake (13.2.1)
     rake-compiler (1.2.7)
       rake
+    rdoc (6.11.0)
+      psych (>= 4.0.0)
+    reline (0.6.0)
+      io-console (~> 0.5)
     rexml (3.3.7)
     rspec (3.13.0)
       rspec-core (~> 3.13.0)
@@ -109,6 +128,7 @@ GEM
       simplecov (~> 0.19)
     simplecov-html (0.13.1)
     simplecov_json_formatter (0.1.4)
+    stringio (3.1.2)
     uri (1.0.2)
     warning (1.4.0)
     webmock (3.23.1)
@@ -129,6 +149,7 @@ DEPENDENCIES
   climate_control (~> 0.2.0)
   concurrent-ruby
   datadog!
+  debug
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   elasticsearch
   extlz4 (~> 0.3, >= 0.3.3)

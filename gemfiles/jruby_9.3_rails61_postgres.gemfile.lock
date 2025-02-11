@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
-      datadog-ruby_core_source (~> 3.3, >= 3.3.7)
-      libdatadog (~> 14.3.1.1.0)
+    datadog (2.10.0)
+      datadog-ruby_core_source (~> 3.4)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -86,7 +86,7 @@ GEM
     crack (0.4.5)
       rexml
     crass (1.0.6)
-    datadog-ruby_core_source (3.3.7)
+    datadog-ruby_core_source (3.4.0)
     date (3.3.3-java)
     diff-lcs (1.5.0)
     docile (1.4.1)
@@ -101,7 +101,7 @@ GEM
     jdbc-postgres (42.2.25)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0)
+    libdatadog (16.0.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     logger (1.6.5)
@@ -123,7 +123,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.2)
     minitest (5.20.0)
-    msgpack (1.7.5-java)
+    msgpack (1.8.0-java)
     net-imap (0.3.4)
       date
       net-protocol
