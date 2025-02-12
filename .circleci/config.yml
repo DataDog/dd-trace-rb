@@ -307,8 +307,8 @@ orbs:
           - run:
               name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
-          - codecov/upload:
-              file: /tmp/workspace/coverage/report/coverage.xml
+          # - codecov/upload:
+          #     file: /tmp/workspace/coverage/report/coverage.xml
           - run:
               name: Generate individual coverage report for each Ruby version
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version
