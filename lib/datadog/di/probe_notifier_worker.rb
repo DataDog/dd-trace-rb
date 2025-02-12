@@ -241,10 +241,10 @@ module Datadog
             instance_variable_set("@#{event_type}_queue", [])
             @io_in_progress = batch.any? # steep:ignore
           end
-          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
+          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" } # steep:ignore
           if batch.any? # steep:ignore
             begin
-              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
+              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" } # steep:ignore
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
