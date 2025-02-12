@@ -13,8 +13,7 @@ variables:
   needs: []
   timeout: 1h
   rules:
-    - if: $CI_COMMIT_REF_NAME == "master"
-      when: always
+    - when: always
     - when: manual
   # If you have a problem with Gitlab cache, see Troubleshooting section in Benchmarking Platform docs
   image: $GITLAB_BENCHMARKS_CI_IMAGE
@@ -74,12 +73,6 @@ baseline:
   variables:
     DD_BENCHMARKS_CONFIGURATION: baseline
 
-only-tracing:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-tracing
-    DD_TRACE_ENABLED: "true"
-
 only-profiling:
   extends: .benchmarks
   variables:
@@ -87,15 +80,7 @@ only-profiling:
     DD_PROFILING_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-alloc:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
-
-only-profiling-heap:
+only-profiling-heap-mss:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
@@ -104,35 +89,15 @@ only-profiling-heap:
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-gvl:
+only-profiling-heap-mss-sr1:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_PREVIEW_GVL_ENABLED: "true"
+    DD_PROFILING_ALLOCATION_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE: "1"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
-
-profiling-and-tracing:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing
-    DD_TRACE_ENABLED: "true"
-    DD_PROFILING_ENABLED: "true"
-
-tracing-and-appsec:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: tracing-and-appsec
-    DD_TRACE_ENABLED: "true"
-    DD_APPSEC_ENABLED: "true"
-
-profiling-and-tracing-and-appsec:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: profiling-and-tracing-and-appsec
-    DD_TRACE_ENABLED: "true"
-    DD_PROFILING_ENABLED: "true"
-    DD_APPSEC_ENABLED: "true"
 
 # -----------------------------------------------------
 # Microbenchmarks that report to statsd
