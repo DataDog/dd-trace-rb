@@ -101,7 +101,7 @@ step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_result
   run:
     name: Get APM Test Agent Trace Check Results
     command: |
-      ruby .circleci/test_agent_check.rb
+      ruby .github/scripts/test_agent_check.rb
     when: always
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags

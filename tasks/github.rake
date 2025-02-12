@@ -227,6 +227,10 @@ namespace :github do
             },
             {
               'if' => 'always()',
+              'run' => 'ruby .github/scripts/test_agent_check.rb'
+            },
+            {
+              'if' => 'always()',
               'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.junit_artifact,
