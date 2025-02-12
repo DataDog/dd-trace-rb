@@ -146,6 +146,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
@@ -280,6 +282,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
     - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
@@ -416,6 +420,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
@@ -550,6 +556,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
     - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
@@ -686,6 +694,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
@@ -820,6 +830,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
     - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
@@ -956,6 +968,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
@@ -1090,6 +1104,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
     - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
@@ -1226,6 +1242,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
@@ -1361,6 +1379,8 @@ jobs:
       with:
         limit-access-to-actor: true
     - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
+    - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
@@ -1495,6 +1515,8 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+    - if: always()
+      run: ruby .github/scripts/test_agent_check.rb
     - if: always()
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
