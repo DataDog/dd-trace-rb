@@ -66,6 +66,9 @@ module Datadog
 
         def extract(data)
           fetcher = @fetcher.new(data)
+          data = fetcher[@baggage_key]
+          return unless data
+
           baggage = parse_baggage_header(fetcher[@baggage_key])
           return unless baggage
 
