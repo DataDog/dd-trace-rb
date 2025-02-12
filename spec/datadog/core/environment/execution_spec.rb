@@ -69,7 +69,6 @@ RSpec.describe Datadog::Core::Environment::Execution do
 
       context 'when in a Pry session' do
         it 'returns true' do
-          skip('Temporarily skipping for batched tests from Github Actions') if ENV['BATCHED_TASKS']
           Tempfile.create('test') do |f|
             f.write(repl_script)
             f.close
