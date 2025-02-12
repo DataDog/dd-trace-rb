@@ -23,25 +23,19 @@ module Datadog
               consumer = job.executor.topic.consumer
 
               action = case job_type
-                when 'Periodic'
-                  'tick'
-                when 'PeriodicNonBlocking'
-                  'tick'
-                when 'Shutdown'
-                  'shutdown'
-                when 'Revoked'
-                  'revoked'
-                when 'RevokedNonBlocking'
-                  'revoked'
-                when 'Idle'
-                  'idle'
-                when 'Eofed'
-                  'eofed'
-                when 'EofedNonBlocking'
-                  'eofed'
-                else
-                  'consume'
-                end
+                       when 'Periodic', 'PeriodicNonBlocking'
+                         'tick'
+                       when 'Shutdown'
+                         'shutdown'
+                       when 'Revoked', 'RevokedNonBlocking'
+                         'revoked'
+                       when 'Idle'
+                         'idle'
+                       when 'Eofed', 'EofedNonBlocking'
+                         'eofed'
+                       else
+                         'consume'
+                       end
 
               span.resource = "#{consumer}##{action}"
 
