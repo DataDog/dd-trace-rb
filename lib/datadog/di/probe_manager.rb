@@ -111,11 +111,11 @@ module Datadog
             # Always remove from pending list here because it makes the
             # API smaller and shouldn't cause any actual problems.
             @pending_probes.delete(probe.id)
-            logger.debug { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+            logger.trace { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
             true
           rescue Error::DITargetNotDefined
             @pending_probes[probe.id] = probe
-            logger.debug { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
+            logger.trace { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
             false
           end
         rescue => exc
@@ -230,7 +230,7 @@ module Datadog
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
       def probe_executed_callback(probe:, **opts)
-        logger.debug { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
+        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload)

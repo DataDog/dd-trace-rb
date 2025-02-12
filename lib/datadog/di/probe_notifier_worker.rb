@@ -46,7 +46,7 @@ module Datadog
 
       def start
         return if @thread && @pid == Process.pid
-        logger.debug("di: starting probe notifier: pid #{$$}")
+        logger.trace { "di: starting probe notifier: pid #{$$}" }
         @thread = Thread.new do
           loop do
             # TODO If stop is requested, we stop immediately without
@@ -97,7 +97,7 @@ module Datadog
       # to killing the thread using Thread#kill.
       def stop(timeout = 1)
         @stop_requested = true
-        logger.debug("di: stopping probe notifier: pid #{$$}")
+        logger.trace { "di: stopping probe notifier: pid #{$$}" }
         wake.signal
         if thread
           unless thread.join(timeout)
@@ -190,7 +190,7 @@ module Datadog
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
               logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
             else
-              logger.debug { "di: #{self.class.name}: queueing #{event_type} event" }
+              logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
               queue << event
             end
           end
@@ -241,10 +241,10 @@ module Datadog
             instance_variable_set("@#{event_type}_queue", [])
             @io_in_progress = batch.any? # steep:ignore
           end
-          logger.debug { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
+          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" }
           if batch.any? # steep:ignore
             begin
-              logger.debug { "di: sending #{batch.length} #{event_type} event(s) to agent" }
+              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" }
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
