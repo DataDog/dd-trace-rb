@@ -6,6 +6,8 @@ GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace
 REPO="Datadog/vaccine"
 POLL_INTERVAL=60  # seconds
 
+REF="${1:-master}"
+
 # Trigger workflow
 echo "Triggering workflow..."
 TRIGGER_RESPONSE=$(curl -X POST \
@@ -13,7 +15,7 @@ TRIGGER_RESPONSE=$(curl -X POST \
   -H "Authorization: token $GH_VACCINE_PAT" \
   -w "\n%{http_code}" \
   "https://api.github.com/repos/$REPO/actions/workflows/vaccine.yml/dispatches" \
-  -d '{"ref":"master", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}' 2>&1)
+  -d '{"ref":"'${REF}'", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}' 2>&1)
 
 HTTP_STATUS=$(echo "$TRIGGER_RESPONSE" | tail -n1)
 if [ "$HTTP_STATUS" -ne 204 ]; then
