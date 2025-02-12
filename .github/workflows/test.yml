@@ -6,6 +6,7 @@ name: Unit Tests
   push:
     branches:
     - master
+    - sarahchen6/*
   pull_request:
     branches:
     - master

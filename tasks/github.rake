@@ -247,6 +247,7 @@ namespace :github do
           'push' => {
             'branches' => [
               'master',
+              'sarahchen6/*'
             ]
           },
           'pull_request' => {
@@ -340,11 +341,13 @@ namespace :github do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
     exceptions = [
-      # 'sidekiq', # Connection refused - connect(2) for 127.0.0.1:6379 (RedisClient::CannotConnectError)
+      'sidekiq',
+      'crashtracking',
+      'main'
     ]
 
-    # candidates = exceptions
-    candidates = matrix.keys - exceptions
+    candidates = exceptions
+    # candidates = matrix.keys - exceptions
 
     raise 'No candidates.' if candidates.empty?
 
