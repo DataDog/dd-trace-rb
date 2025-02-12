@@ -41,6 +41,13 @@ typedef struct {
   int32_t line;
 } heap_frame;
 
+// We use memcmp/st_hash below to compare/hash an entire array of heap_frames, so want to make sure no padding is added
+// We could define the structure to be packed, but that seems even weirder across compilers, and this seems more portable?
+_Static_assert(
+    sizeof(heap_frame) == sizeof(ddog_prof_ManagedStringId) * 2 + sizeof(int32_t),
+    "Size of heap_frame does not match the sum of its members. Padding detected."
+);
+
 // A compact representation of a stacktrace for a heap allocation.
 // Used to dedup heap allocation stacktraces across multiple objects sharing the same allocation location.
 typedef struct {
