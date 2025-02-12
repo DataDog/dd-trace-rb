@@ -11,12 +11,19 @@ module Datadog
 
           # NOTE: DEV-3 Replace method use with `auto_user_instrumentation.enabled?`
           def auto_user_instrumentation_enabled?
-            Datadog.configuration.appsec.auto_user_instrumentation.enabled? &&
-              Datadog.configuration.appsec.track_user_events.enabled
+            unless Datadog.configuration.appsec.auto_user_instrumentation.options[:mode].default_precedence?
+              return Datadog.configuration.appsec.auto_user_instrumentation.enabled?
+            end
+
+            Datadog.configuration.appsec.track_user_events.enabled
           end
 
           # NOTE: DEV-3 Replace method use with `auto_user_instrumentation.mode`
           def auto_user_instrumentation_mode
+            unless Datadog.configuration.appsec.auto_user_instrumentation.options[:mode].default_precedence?
+              return Datadog.configuration.appsec.auto_user_instrumentation.mode
+            end
+
             case Datadog.configuration.appsec.track_user_events.mode
             when AppSec::Configuration::Settings::SAFE_TRACK_USER_EVENTS_MODE
               AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE

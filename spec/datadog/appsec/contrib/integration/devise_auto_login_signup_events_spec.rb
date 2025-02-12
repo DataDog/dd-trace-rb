@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
@@ -22,7 +23,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.responder.error_status = :unprocessable_entity
       config.responder.redirect_status = :see_other
       config.sign_out_all_scopes = false
-      config.parent_controller = 'TestBaseController'
+      config.parent_controller = 'TestApplicationController'
       config.paranoid = true
       config.stretches = 1
     end
@@ -47,7 +48,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       klass.count
     end
 
-    stub_const('TestBaseController', Class.new(ActionController::Base))
+    stub_const('TestApplicationController', Class.new(ActionController::Base))
 
     # NOTE: Unfortunately, can't figure out why devise receives 3 times `finalize!`
     #       of the RouteSet patch, hence it's bypassed with below hack.
@@ -64,9 +65,28 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.eager_load = false
       config.consider_all_requests_local = true
       config.logger = Rails.logger = Logger.new($stdout)
-      # config.enable_reloading = false
-      # config.action_controller.perform_caching = false
-      # config.cache_store = :null_store
+
+      config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
+        def initialize(files, dirs = {}, &block)
+          dirs = dirs.delete('') if dirs.include?('')
+
+          super(files, dirs, &block)
+        end
+      end
+    end
+
+    stub_const('RailsTest::Application', app)
+
+    Datadog.configure do |config|
+      config.tracing.enabled = true
+      config.tracing.instrument :rails
+      config.tracing.instrument :http
+
+      config.appsec.enabled = true
+      config.appsec.instrument :rails
+      config.appsec.instrument :devise
+
+      config.remote.enabled = false
     end
 
     app.initialize!
@@ -101,25 +121,19 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    Datadog.configure do |c|
-      c.tracing.enabled = true
-      c.tracing.instrument :rack
-
-      c.appsec.enabled = true
-      c.appsec.instrument :devise
-
-      c.remote.enabled = false
-    end
-
+    # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
+    allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
+      .and_return(true)
   end
 
   after do
+    clear_traces!
+
     Datadog.configuration.reset!
     Datadog.registry[:rack].reset_configuration!
 
     ActiveSupport::Dependencies.clear if Rails.application
-
     ActiveSupport::Dependencies.autoload_paths = []
     ActiveSupport::Dependencies.autoload_once_paths = []
     ActiveSupport::Dependencies._eager_load_paths = Set.new
@@ -135,15 +149,17 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
     # rubocop:enable Style/ClassVars
+
+    # Remnove Rails caches
+    Rails.app_class = nil
+    Rails.cache = nil
   end
+
+  let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
+  let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
   let(:response) { last_response }
   let(:app) { Rails.application }
-
-  let(:http_service_entry_span) do
-    Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
-  end
 
   context 'when user is not authenticated' do
     it 'allows unauthenticated user to visit public page' do
@@ -161,16 +177,59 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     end
   end
 
-  context 'when user loggin in' do
-    before { User.create!(name: 'John Doe', email: 'john.doe@example.com', password: '123456') }
+  context 'when user instrumentation mode set to identification' do
+    before { Datadog.configuration.appsec.auto_user_instrumentation.mode = 'identification' }
 
-    it 'tracks successful login event' do
-      post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+    context 'when user successfully loggin' do
+      before do
+        User.create!(name: 'John Doe', email: 'john.doe@example.com', password: '123456')
 
-      expect(response).to be_redirect
-      expect(response.location).to eq('http://example.org/')
+        post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      end
 
-      # TODO: Add tests for correct span tags
+      it 'tracks successful login event' do
+        expect(response).to be_redirect
+        expect(response.location).to eq('http://example.org/')
+
+        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['appsec.events.users.login.success.usr.login']).to eq('john.doe@example.com')
+        expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('identification')
+
+        expect(http_service_entry_span.tags['usr.id']).to eq('1')
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      end
     end
+
+    context 'when user unsuccessfully loggin because such user does not exist' do
+      before { post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } }) }
+
+      it 'tracks login failure event' do
+        expect(response).to be_unprocessable
+        expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
+
+        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.login']).to eq('john.doe@example.com')
+        expect(http_service_entry_span.tags['appsec.events.users.login.failure.track']).to eq('true')
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('identification')
+        expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.exists']).to eq('false')
+      end
+    end
+
+    # context 'when user unsuccessfully loggin because user not permitted by custom logic' do
+    # NOTE: When possible to have user and user exists, but for some validation
+    #       reasons it could not be authorized, we should report it
+    #       - `appsec.events.users.login.failure.usr.id`
+    #       - `_dd.appsec.usr.id`
+    # end
   end
 end
