@@ -180,4 +180,4 @@ vaccine:
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    .gitlab/scripts/vaccine.sh
+    .gitlab/scripts/vaccine.sh master
