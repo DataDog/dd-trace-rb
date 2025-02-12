@@ -34,12 +34,14 @@ module Datadog
         end
 
         def inject!(digest, data)
+          return if digest.nil? || digest.baggage.nil?
+
           baggage_items = digest.baggage.to_a
           return if baggage_items.empty?
 
           begin
             if baggage_items.size > DD_TRACE_BAGGAGE_MAX_ITEMS
-              Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
+              ::Datadog.logger.warn('Baggage item limit exceeded, dropping excess items')
               baggage_items = baggage_items.first(DD_TRACE_BAGGAGE_MAX_ITEMS)
             end
 
@@ -50,7 +52,7 @@ module Datadog
               item = "#{encode_key(key)}=#{encode_value(value)}"
               item_size = item.bytesize + (encoded_items.empty? ? 0 : 1) # +1 for comma if not first item
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
-                Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
+                ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
                 break # stop adding items when size limit is reached
               end
               encoded_items << item
@@ -58,9 +60,9 @@ module Datadog
             end
 
             header_value = encoded_items.join(',')
-            data[baggage_key] = header_value
+            data[@baggage_key] = header_value
           rescue => e
-            Datadog.logger.warn("Failed to encode and inject baggage header: #{e.message}")
+            ::Datadog.logger.warn("Failed to encode and inject baggage header: #{e.message}")
           end
         end
 

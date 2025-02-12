@@ -335,7 +335,7 @@ module Datadog
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
           span_remote: (@remote_parent && @active_span.nil?),
-          baggage: @baggage,
+          baggage: @baggage.nil? || @baggage.empty? ? nil : @baggage
         ).freeze
       end
 
