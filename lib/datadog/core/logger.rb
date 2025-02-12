@@ -29,13 +29,13 @@ module Datadog
         if message.nil?
           if block
             super(severity, message, progname) do
-              datadog_format_message(yield, where: where)
+              format_message(yield, where: where)
             end
           else
-            super(severity, message, datadog_format_message(progname, where: where))
+            super(severity, message, format_message(progname, where: where))
           end
         else
-          super(severity, datadog_format_message(message, where: where))
+          super(severity, format_message(message, where: where))
         end
       end
 
@@ -43,7 +43,7 @@ module Datadog
 
       private
 
-      def datadog_format_message(message, where:, **_)
+      def format_message(message, where:, **_)
         "[#{self.progname}] (pid: #{$$}) #{where}#{message}"
       end
     end
