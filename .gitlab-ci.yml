@@ -184,3 +184,5 @@ vaccine:
   after_script:
     # Revoke the token after usage
     - dd-octo-sts revoke -t $(cat token.txt)
+  script: |
+    .gitlab/scripts/vaccine.sh lloeki/ssi "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
