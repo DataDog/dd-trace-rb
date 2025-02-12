@@ -24,8 +24,8 @@ default:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
       changes:
-        - .gitlab/Dockerfile-*
-      when: manual
+        - .gitlab/Dockerfile-*   # these are direct dependencies
+        - .gitlab-ci.yml         # list of images is here so it is a dependency too
       allow_failure: true
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
@@ -54,7 +54,13 @@ build-image-arm64:
 
 promote-image:
   stage: manual-images
-  when: manual
+  rules:                         # same as build-image
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_PIPELINE_SOURCE == "push"
+      changes:
+        - .gitlab/Dockerfile-*   # these are direct dependencies
+        - .gitlab-ci.yml         # list of images is here so it is a dependency too
+      when: manual               # this one is manual, but it means that install-dependencies may be hitting the wrong <base>:current til this is run
+      allow_failure: true
   tags: ["runner:docker"]
   image: $DOCKER_REGISTRY/docker:20.10.13
   parallel:
