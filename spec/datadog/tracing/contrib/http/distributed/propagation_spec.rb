@@ -19,8 +19,8 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
     )
   end
 
-  let(:propagation_style_inject) { ['datadog', 'tracecontext'] }
-  let(:propagation_style_extract) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
+  let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
 
   let(:prepare_key) { RackSupport.method(:header_to_rack) }
@@ -64,6 +64,13 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
   context 'for None' do
     it_behaves_like 'None distributed format' do
       before { Datadog.configure { |c| c.tracing.propagation_style = ['none'] } }
+      let(:datadog) { propagation }
+    end
+  end
+
+  context 'for Baggage' do
+    it_behaves_like 'Baggage distributed format' do
+      before { Datadog.configure { |c| c.tracing.propagation_style = ['baggage'] } }
       let(:datadog) { propagation }
     end
   end

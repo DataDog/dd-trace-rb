@@ -19,12 +19,13 @@ RSpec.shared_examples 'Distributed tracing propagator' do
     {
       'datadog' => Datadog::Tracing::Distributed::Datadog.new(fetcher: fetcher_class),
       'tracecontext' => Datadog::Tracing::Distributed::TraceContext.new(fetcher: fetcher_class),
+      'baggage' => Datadog::Tracing::Distributed::Baggage.new(fetcher: fetcher_class),
     }
   end
   let(:fetcher_class) { Datadog::Tracing::Distributed::Fetcher }
 
-  let(:propagation_style_inject) { ['datadog', 'tracecontext'] }
-  let(:propagation_style_extract) { ['datadog', 'tracecontext'] }
+  let(:propagation_style_inject) { ['datadog', 'tracecontext', 'baggage'] }
+  let(:propagation_style_extract) { ['datadog', 'tracecontext', 'baggage'] }
   let(:propagation_extract_first) { false }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
