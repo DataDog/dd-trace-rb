@@ -7,6 +7,7 @@ REPO="Datadog/vaccine"
 POLL_INTERVAL=60  # seconds
 
 REF="${1:-master}"
+SHA="${2:-"$(git rev-parse HEAD)"}"
 
 # Trigger workflow
 echo "Triggering workflow..."

@@ -180,4 +180,4 @@ vaccine:
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    .gitlab/scripts/vaccine.sh lloeki/fix-cross-repo-race-condition
+    .gitlab/scripts/vaccine.sh lloeki/fix-cross-repo-race-condition "${CI_COMMIT_SHA}"
