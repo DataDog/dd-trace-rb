@@ -40,7 +40,7 @@ module Datadog
             return if trace.nil? || span.nil?
 
             span.set_tag("appsec.events.#{event}.track", 'true')
-            span.set_tag("_dd.appsec.events.#{event}.auto.mode", Configuration.auto_user_instrumentation_mode)
+            span.set_tag("_dd.appsec.events.#{event}.auto.mode", Configuration.track_user_events_mode)
 
             others.each do |k, v|
               raise ArgumentError, 'key cannot be :track' if k.to_sym == :track

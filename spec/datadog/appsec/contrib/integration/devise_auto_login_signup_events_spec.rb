@@ -203,7 +203,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
         expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('identification')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('extended')
         expect(http_service_entry_span.tags['usr.id']).to eq('1')
 
         # NOTE: not implemented yet
@@ -223,7 +223,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
         expect(http_service_entry_span.tags['appsec.events.users.login.failure.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('identification')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('extended')
         expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.exists']).to eq('false')
 
         # NOTE: not implemented yet
@@ -255,7 +255,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
         expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('extended')
 
         # NOTE: not implemented yet
         # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')

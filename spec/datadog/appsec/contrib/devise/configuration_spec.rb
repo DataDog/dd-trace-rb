@@ -12,21 +12,13 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Configuration do
 
   describe '.auto_user_instrumentation_enabled?' do
     context 'when auto_user_instrumentation is explicitly disabled and track_user_events is default' do
-      before do
-        settings.appsec.auto_user_instrumentation.mode = 'disabled'
-        # NOTE: triggering default value
-        settings.appsec.track_user_events.enabled
-      end
+      before { settings.appsec.auto_user_instrumentation.mode = 'disabled' }
 
       it { expect(described_class).not_to be_auto_user_instrumentation_enabled }
     end
 
     context 'when track_user_events is explicitly set and auto_user_instrumentation is default' do
-      before do
-        settings.appsec.track_user_events.enabled = false
-        # NOTE: triggering default value
-        settings.appsec.auto_user_instrumentation.mode
-      end
+      before { settings.appsec.track_user_events.enabled = false }
 
       it { expect(described_class).not_to be_auto_user_instrumentation_enabled }
     end
@@ -70,26 +62,18 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Configuration do
 
   describe '.auto_user_instrumentation_mode' do
     context 'when auto_user_instrumentation is explicitly set and track_user_events is default' do
-      before do
-        settings.appsec.auto_user_instrumentation.mode = 'identification'
-        # NOTE: triggering default value
-        settings.appsec.track_user_events.mode
-      end
+      before { settings.appsec.auto_user_instrumentation.mode = 'identification' }
 
       it { expect(described_class.auto_user_instrumentation_mode).to eq('identification') }
     end
 
     context 'when track_user_events is explicitly set and auto_user_instrumentation is default' do
-      before do
-        settings.appsec.track_user_events.mode = 'safe'
-        # NOTE: triggering default value
-        settings.appsec.auto_user_instrumentation.mode
-      end
+      before { settings.appsec.track_user_events.mode = 'safe' }
 
       it { expect(described_class.auto_user_instrumentation_mode).to eq('anonymization') }
     end
 
-    context 'when auto_user_instrumentation is identification and track_user_events is extended' do
+    context 'when auto_user_instrumentation is ident and track_user_events is extended' do
       before do
         settings.appsec.auto_user_instrumentation.mode = 'identification'
         settings.appsec.track_user_events.mode = 'extended'
@@ -98,7 +82,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Configuration do
       it { expect(described_class.auto_user_instrumentation_mode).to eq('identification') }
     end
 
-    context 'when auto_user_instrumentation is identification and track_user_events is safe' do
+    context 'when auto_user_instrumentation is ident and track_user_events is safe' do
       before do
         settings.appsec.auto_user_instrumentation.mode = 'identification'
         settings.appsec.track_user_events.mode = 'safe'
@@ -107,16 +91,16 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Configuration do
       it { expect(described_class.auto_user_instrumentation_mode).to eq('identification') }
     end
 
-    context 'when auto_user_instrumentation is anonymization and track_user_events is extended' do
+    context 'when auto_user_instrumentation is anon and track_user_events is extended' do
       before do
         settings.appsec.auto_user_instrumentation.mode = 'anonymization'
         settings.appsec.track_user_events.mode = 'extended'
       end
 
-      it { expect(described_class.auto_user_instrumentation_mode).to eq('anonymization') }
+      it { expect(described_class.auto_user_instrumentation_mode).to eq('identification') }
     end
 
-    context 'when auto_user_instrumentation is anonymization and track_user_events is safe' do
+    context 'when auto_user_instrumentation is anon and track_user_events is safe' do
       before do
         settings.appsec.auto_user_instrumentation.mode = 'anonymization'
         settings.appsec.track_user_events.mode = 'safe'
@@ -125,13 +109,46 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Configuration do
       it { expect(described_class.auto_user_instrumentation_mode).to eq('anonymization') }
     end
 
-    context 'when auto_user_instrumentation is identification and track_user_events is invalid' do
+    context 'when auto_user_instrumentation is ident and track_user_events is invalid' do
       before do
         settings.appsec.auto_user_instrumentation.mode = 'anonymization'
         settings.appsec.track_user_events.mode = 'unknown'
       end
 
       it { expect(described_class.auto_user_instrumentation_mode).to eq('anonymization') }
+    end
+  end
+
+  describe '.track_user_events_mode' do
+    context 'when track_user_events is default and auto_user_instrumentation is default' do
+      it { expect(described_class.track_user_events_mode).to eq('safe') }
+    end
+
+    context 'when track_user_events is explicitly set to safe and auto_user_instrumentation is set to ident' do
+      before do
+        settings.appsec.auto_user_instrumentation.mode = 'identification'
+        settings.appsec.track_user_events.mode = 'safe'
+      end
+
+      it { expect(described_class.track_user_events_mode).to eq('extended') }
+    end
+
+    context 'when auto_user_instrumentation is explicitly set to ident and track_user_events is default' do
+      before { settings.appsec.auto_user_instrumentation.mode = 'identification' }
+
+      it { expect(described_class.track_user_events_mode).to eq('extended') }
+    end
+
+    context 'when auto_user_instrumentation is explicitly set to anon and track_user_events is default' do
+      before { settings.appsec.auto_user_instrumentation.mode = 'anonymization' }
+
+      it { expect(described_class.track_user_events_mode).to eq('safe') }
+    end
+
+    context 'when track_user_events is explicitly set and auto_user_instrumentation is default' do
+      before { settings.appsec.track_user_events.mode = 'safe' }
+
+      it { expect(described_class.track_user_events_mode).to eq('safe') }
     end
   end
 end
