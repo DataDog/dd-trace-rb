@@ -24,8 +24,7 @@ module Datadog
             if defined?(::ActiveSupport::TaggedLogging::Formatter) &&
                 ::Lograge::LogSubscribers::ActionController
                     .logger&.formatter.is_a?(::ActiveSupport::TaggedLogging::Formatter)
-
-              Datadog.logger.error(
+              Datadog.logger.warn(
                 'Lograge and ActiveSupport::TaggedLogging (the default Rails log formatter) are not compatible: ' \
                   'Lograge does not account for Rails log tags, creating polluted logs and breaking log formatting. ' \
                   'Traces and Logs correlation may not work. ' \

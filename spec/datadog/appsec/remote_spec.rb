@@ -48,13 +48,15 @@ RSpec.describe Datadog::AppSec::Remote do
   end
 
   describe '.receivers' do
+    let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+
     context 'remote configuration disabled' do
       before do
         expect(described_class).to receive(:remote_features_enabled?).and_return(false)
       end
 
       it 'returns empty array' do
-        expect(described_class.receivers).to eq([])
+        expect(described_class.receivers(telemetry)).to eq([])
       end
     end
 
@@ -64,7 +66,7 @@ RSpec.describe Datadog::AppSec::Remote do
       end
 
       it 'returns receivers' do
-        receivers = described_class.receivers
+        receivers = described_class.receivers(telemetry)
         expect(receivers.size).to eq(1)
         expect(receivers.first).to be_a(Datadog::Core::Remote::Dispatcher::Receiver)
       end
@@ -106,7 +108,7 @@ RSpec.describe Datadog::AppSec::Remote do
           }.to_json
         end
 
-        let(:receiver) { described_class.receivers[0] }
+        let(:receiver) { described_class.receivers(telemetry)[0] }
 
         let(:target) do
           Datadog::Core::Remote::Configuration::Target.parse(
@@ -160,14 +162,21 @@ RSpec.describe Datadog::AppSec::Remote do
               'transformers' => [],
               'on_match' => ['block']
             }],
-            'processors' => Datadog::AppSec::Processor::RuleMerger::DEFAULT_WAF_PROCESSORS,
-            'scanners' => Datadog::AppSec::Processor::RuleMerger::DEFAULT_WAF_SCANNERS,
+            'processors' => Datadog::AppSec::Processor::RuleMerger.default_waf_processors,
+            'scanners' => Datadog::AppSec::Processor::RuleMerger.default_waf_scanners,
           }
 
-          expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: expected_ruleset, actions: [])
-            .and_return(nil)
+          expect(Datadog::AppSec).to receive(:reconfigure).with(
+            ruleset: expected_ruleset, telemetry: telemetry
+          ).and_return(nil)
           changes = transaction
           receiver.call(repository, changes)
+        end
+
+        it 'sets apply_state to ACKNOWLEDGED on content' do
+          receiver.call(repository, transaction)
+
+          expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
         end
 
         context 'content product' do
@@ -177,7 +186,9 @@ RSpec.describe Datadog::AppSec::Remote do
           end
 
           let(:default_ruleset) do
-            [Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)]
+            [Datadog::AppSec::Processor::RuleLoader.load_rules(
+              ruleset: Datadog.configuration.appsec.ruleset, telemetry: telemetry
+            )]
           end
 
           let(:target) do
@@ -283,21 +294,15 @@ RSpec.describe Datadog::AppSec::Remote do
             ]
           end
 
-          let(:actions) do
-            [
-              {
-                'id' => 'block',
-                'type' => 'block_request',
-                'parameters' => {
-                  'status_code' => 418,
-                  'type' => 'auto'
-                }
-              }
-            ]
-          end
-
           context 'ASM' do
             let(:path) { 'datadog/603646/ASM/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
 
             context 'overrides' do
               let(:data) do
@@ -313,6 +318,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [rules_override],
                   exclusions: [],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -334,6 +340,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [],
                   exclusions: [exclusions],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -354,26 +361,9 @@ RSpec.describe Datadog::AppSec::Remote do
                   data: [],
                   overrides: [],
                   exclusions: [],
-                  custom_rules: [custom_rules]
+                  custom_rules: [custom_rules],
+                  telemetry: telemetry
                 )
-
-                changes = transaction
-                receiver.call(repository, changes)
-              end
-            end
-
-            context 'actions' do
-              let(:data) do
-                {
-                  'actions' => actions
-                }
-              end
-
-              it 'pass the actions to reconfigure' do
-                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset)
-
-                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, actions: actions)
-                  .and_return(nil)
 
                 changes = transaction
                 receiver.call(repository, changes)
@@ -395,6 +385,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [rules_override],
                   exclusions: [exclusions],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -416,6 +407,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -426,6 +418,13 @@ RSpec.describe Datadog::AppSec::Remote do
 
           context 'ASM_DATA' do
             let(:path) { 'datadog/603646/ASM_DATA/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
 
             context 'with rules_data information' do
               let(:data) do
@@ -441,6 +440,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -462,6 +462,7 @@ RSpec.describe Datadog::AppSec::Remote do
                   overrides: [],
                   exclusions: [],
                   custom_rules: [],
+                  telemetry: telemetry
                 )
 
                 changes = transaction
@@ -475,17 +476,18 @@ RSpec.describe Datadog::AppSec::Remote do
               let(:transaction) { repository.transaction { |repository, transaction| } }
 
               it 'uses the rules from the appsec settings' do
-                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset)
+                ruleset = Datadog::AppSec::Processor::RuleMerger.merge(rules: default_ruleset, telemetry: telemetry)
 
                 changes = transaction
-                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, actions: [])
+                expect(Datadog::AppSec).to receive(:reconfigure).with(ruleset: ruleset, telemetry: telemetry)
                   .and_return(nil)
                 receiver.call(repository, changes)
               end
 
               it 'raises SyncError if no default rules available' do
                 expect(Datadog::AppSec::Processor::RuleLoader).to receive(:load_rules).with(
-                  ruleset: Datadog.configuration.appsec.ruleset
+                  ruleset: Datadog.configuration.appsec.ruleset,
+                  telemetry: telemetry
                 ).and_return(nil)
 
                 changes = transaction

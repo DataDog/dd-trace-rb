@@ -1,10 +1,19 @@
-require 'datadog/appsec/spec_helper'
+# frozen_string_literal: true
 
-require 'securerandom'
+require 'datadog/appsec/spec_helper'
+require 'datadog/appsec/contrib/support/devise_user_mock'
+
 require 'datadog/appsec/contrib/devise/patcher'
 require 'datadog/appsec/contrib/devise/patcher/registration_controller_patch'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationControllerPatch do
+  before do
+    allow(Datadog).to receive(:logger).and_return(instance_double(Datadog::Core::Logger).as_null_object)
+    allow(Datadog).to receive(:configuration).and_return(settings)
+  end
+
+  let(:settings) { Datadog::Core::Configuration::Settings.new }
+  # NOTE: This spec needs to be changed to use actual devise controller instead
   let(:mock_controller) do
     Class.new do
       prepend Datadog::AppSec::Contrib::Devise::Patcher::RegistrationControllerPatch
@@ -16,295 +25,355 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
 
       def create
         yield @resource if block_given?
+
         @result
       end
     end
   end
 
-  let(:mock_resource) do
-    Class.new do
-      attr_reader :id, :email, :username, :persisted
+  context 'when AppSec is disabled' do
+    before do
+      allow(Datadog::AppSec).to receive(:enabled?).and_return(false)
 
-      def initialize(id, email, username, persisted)
-        @id = id
-        @email = email
-        @username = username
-        @persisted = persisted
-      end
-
-      def persisted?
-        @persisted
-      end
-
-      def try(value)
-        send(value)
-      end
-    end
-  end
-
-  let(:non_persisted_resource) { mock_resource.new(nil, nil, nil, false) }
-  let(:persited_resource) { mock_resource.new(SecureRandom.uuid, 'hello@gmail.com', 'John', true) }
-  let(:automated_track_user_events) { double(enabled: track_user_events_enabled, mode: mode) }
-  let(:controller) { mock_controller.new(true, resource) }
-
-  let(:resource) { non_persisted_resource }
-
-  before do
-    expect(Datadog::AppSec).to receive(:enabled?).and_return(appsec_enabled)
-    if appsec_enabled
-      expect(Datadog.configuration.appsec).to receive(:track_user_events).and_return(automated_track_user_events)
-
-      expect(Datadog::AppSec).to receive(:active_scope).and_return(appsec_scope) if track_user_events_enabled
-    end
-  end
-
-  context 'AppSec disabled' do
-    let(:appsec_enabled) { false }
-    let(:track_user_events_enabled) { false }
-
-    it 'do not tracks event' do
-      expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-      expect(controller.create).to eq(true)
+      settings.appsec.track_user_events.enabled = false
+      settings.appsec.track_user_events.mode = 'safe'
     end
 
-    context 'and a block is given' do
-      let(:canary) { proc { |resource| } }
-      let(:block) { proc { |resource| canary.call(resource) } }
+    let(:controller) { mock_controller.new(true, resource) }
+    let(:resource) do
+      Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+        id: nil, email: nil, username: nil, persisted: false
+      )
+    end
 
-      it 'do not tracks event' do
+    context 'when no block is given to registration controller' do
+      it 'does not track signup event' do
         expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-        expect(canary).to receive(:call).with(resource)
-        expect(controller.create(&block)).to eq(true)
-      end
-    end
-  end
 
-  context 'Automated user tracking is disabled' do
-    let(:appsec_enabled) { true }
-    let(:track_user_events_enabled) { false }
-    let(:mode) { 'safe' }
-
-    it 'do not tracks event' do
-      expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-      expect(controller.create).to eq(true)
-    end
-
-    context 'and a block is given' do
-      let(:canary) { proc { |resource| } }
-      let(:block) { proc { |resource| canary.call(resource) } }
-
-      it 'do not tracks event' do
-        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-        expect(canary).to receive(:call).with(resource)
-        expect(controller.create(&block)).to eq(true)
-      end
-    end
-  end
-
-  context 'AppSec scope is nil ' do
-    let(:appsec_enabled) { true }
-    let(:track_user_events_enabled) { true }
-    let(:mode) { 'safe' }
-    let(:appsec_scope) { nil }
-
-    it 'do not tracks event' do
-      expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-      expect(controller.create).to eq(true)
-    end
-
-    context 'and a block is given' do
-      let(:canary) { proc { |resource| } }
-      let(:block) { proc { |resource| canary.call(resource) } }
-
-      it 'do not tracks event' do
-        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-        expect(canary).to receive(:call).with(resource)
-        expect(controller.create(&block)).to eq(true)
-      end
-    end
-  end
-
-  context 'with persisted resource' do
-    let(:appsec_enabled) { true }
-    let(:track_user_events_enabled) { true }
-    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
-
-    context 'with resource ID' do
-      let(:resource) { persited_resource }
-
-      context 'and a block is given' do
-        let(:canary) { proc { |resource| } }
-        let(:block) { proc { |resource| canary.call(resource) } }
-
-        context 'safe mode' do
-          let(:mode) { 'safe' }
-
-          it 'tracks event' do
-            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-              appsec_scope.trace,
-              appsec_scope.service_entry_span,
-              user_id: resource.id,
-              **{}
-            )
-            expect(canary).to receive(:call).with(resource)
-            expect(controller.create(&block)).to eq(true)
-          end
-        end
-
-        context 'extended mode' do
-          let(:mode) { 'extended' }
-
-          it 'tracks event' do
-            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-              appsec_scope.trace,
-              appsec_scope.service_entry_span,
-              user_id: resource.id,
-              **{ email: 'hello@gmail.com', username: 'John' }
-            )
-            expect(canary).to receive(:call).with(resource)
-            expect(controller.create(&block)).to eq(true)
-          end
-        end
-      end
-
-      context 'safe mode' do
-        let(:mode) { 'safe' }
-
-        it 'tracks event' do
-          expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
-            user_id: resource.id,
-            **{}
-          )
-          expect(controller.create).to eq(true)
-        end
-      end
-
-      context 'extended mode' do
-        let(:mode) { 'extended' }
-
-        it 'tracks event' do
-          expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
-            user_id: resource.id,
-            **{ email: 'hello@gmail.com', username: 'John' }
-          )
-          expect(controller.create).to eq(true)
-        end
-      end
-    end
-
-    context 'without resource ID' do
-      let(:resource) { mock_resource.new(nil, 'hello@gmail.com', 'John', true) }
-
-      context 'and a block is given' do
-        let(:canary) { proc { |resource| } }
-        let(:block) { proc { |resource| canary.call(resource) } }
-
-        context 'safe mode' do
-          let(:mode) { 'safe' }
-
-          it 'tracks event' do
-            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-              appsec_scope.trace,
-              appsec_scope.service_entry_span,
-              user_id: nil,
-              **{}
-            )
-            expect(canary).to receive(:call).with(resource)
-            expect(controller.create(&block)).to eq(true)
-          end
-        end
-
-        context 'extended mode' do
-          let(:mode) { 'extended' }
-
-          it 'tracks event' do
-            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-              appsec_scope.trace,
-              appsec_scope.service_entry_span,
-              user_id: nil,
-              **{ email: 'hello@gmail.com', username: 'John' }
-            )
-            expect(canary).to receive(:call).with(resource)
-            expect(controller.create(&block)).to eq(true)
-          end
-        end
-      end
-
-      context 'safe mode' do
-        let(:mode) { 'safe' }
-
-        it 'tracks event' do
-          expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
-            user_id: nil,
-            **{}
-          )
-          expect(controller.create).to eq(true)
-        end
-      end
-
-      context 'extended mode' do
-        let(:mode) { 'extended' }
-
-        it 'tracks event' do
-          expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup).with(
-            appsec_scope.trace,
-            appsec_scope.service_entry_span,
-            user_id: nil,
-            **{ email: 'hello@gmail.com', username: 'John' }
-          )
-          expect(controller.create).to eq(true)
-        end
-      end
-    end
-  end
-
-  context 'with non persisted resource' do
-    let(:appsec_enabled) { true }
-    let(:track_user_events_enabled) { true }
-    let(:appsec_scope) { instance_double(Datadog::AppSec::Scope, trace: double, service_entry_span: double) }
-    let(:resource) { non_persisted_resource }
-
-    context 'safe mode' do
-      let(:mode) { 'safe' }
-
-      it 'do not tracks event' do
-        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
         expect(controller.create).to eq(true)
       end
+    end
 
-      context 'and a block is given' do
-        let(:canary) { proc { |resource| } }
+    context 'when block is given to registration controller' do
+      let(:canary) { proc { |_resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'does not track signup event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+
+        expect(controller.create(&block)).to eq(true)
+      end
+    end
+  end
+
+  context 'when automated user tracking is disabled' do
+    before do
+      allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
+
+      settings.appsec.track_user_events.enabled = false
+      settings.appsec.track_user_events.mode = 'safe'
+    end
+
+    let(:controller) { mock_controller.new(true, resource) }
+    let(:resource) do
+      Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+        id: nil, email: nil, username: nil, persisted: false
+      )
+    end
+
+    context 'when no block is given to registration controller' do
+      it 'does not track signup event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+
+        expect(controller.create).to eq(true)
+      end
+    end
+
+    context 'when block is given to registration controller' do
+      let(:canary) { proc { |_resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'does not track signup event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+
+        expect(controller.create(&block)).to eq(true)
+      end
+    end
+  end
+
+  context 'when AppSec active context is not set' do
+    before do
+      allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
+      allow(Datadog::AppSec).to receive(:active_context).and_return(nil)
+
+      settings.appsec.track_user_events.enabled = true
+      settings.appsec.track_user_events.mode = 'safe'
+    end
+
+    let(:controller) { mock_controller.new(true, resource) }
+    let(:resource) do
+      Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+        id: nil, email: nil, username: nil, persisted: false
+      )
+    end
+
+    context 'when no block is given to registration controller' do
+      it 'does not track signup event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+
+        expect(controller.create).to eq(true)
+      end
+    end
+
+    context 'when block is given to registration controller' do
+      let(:canary) { proc { |_resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      it 'does not track signup event' do
+        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+        expect(canary).to receive(:call).with(resource)
+
+        expect(controller.create(&block)).to eq(true)
+      end
+    end
+  end
+
+  context 'when registration defines current user as persisted resource' do
+    before do
+      allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
+      allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
+
+      settings.appsec.track_user_events.enabled = true
+      settings.appsec.track_user_events.mode = 'safe'
+    end
+
+    let(:controller) { mock_controller.new(true, resource) }
+    let(:active_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
+
+    context 'when current user has an extractable ID' do
+      let(:resource) do
+        Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+          id: '00000000-0000-0000-0000-000000000000',
+          email: 'hello@gmail.com',
+          username: 'John',
+          persisted: true
+        )
+      end
+
+      context 'when no block is given to registration controller' do
+        context 'when tracking mode set to safe' do
+          before { settings.appsec.track_user_events.mode = 'safe' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(active_context.trace, active_context.span, user_id: resource.id, **{})
+
+            expect(controller.create).to eq(true)
+          end
+        end
+
+        context 'when tracking mode set to extended' do
+          before { settings.appsec.track_user_events.mode = 'extended' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: '00000000-0000-0000-0000-000000000000',
+                **{ email: 'hello@gmail.com', username: 'John' }
+              )
+
+            expect(controller.create).to eq(true)
+          end
+        end
+      end
+
+      context 'when block is given to registration controller' do
+        let(:canary) { proc { |_resource| } }
         let(:block) { proc { |resource| canary.call(resource) } }
 
-        it 'do not tracks event' do
+        context 'when tracking mode set to safe' do
+          before { settings.appsec.track_user_events.mode = 'safe' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: '00000000-0000-0000-0000-000000000000',
+                **{}
+              )
+            expect(canary).to receive(:call).with(resource)
+
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+
+        context 'when tracking mode set to extended' do
+          before { settings.appsec.track_user_events.mode = 'extended' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: '00000000-0000-0000-0000-000000000000',
+                **{ email: 'hello@gmail.com', username: 'John' }
+              )
+            expect(canary).to receive(:call).with(resource)
+
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+      end
+    end
+
+    context 'when current user does not have an extractable ID' do
+      let(:resource) do
+        Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+          id: nil, email: 'hello@gmail.com', username: 'John', persisted: true
+        )
+      end
+
+      context 'when block is given to registration controller' do
+        let(:canary) { proc { |_resource| } }
+        let(:block) { proc { |resource| canary.call(resource) } }
+
+        context 'when tracking mode set to safe' do
+          before { settings.appsec.track_user_events.mode = 'safe' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: nil,
+                **{}
+              )
+            expect(canary).to receive(:call).with(resource)
+
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+
+        context 'when tracking mode set to extended' do
+          before { settings.appsec.track_user_events.mode = 'extended' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: nil,
+                **{ email: 'hello@gmail.com', username: 'John' }
+              )
+            expect(canary).to receive(:call).with(resource)
+
+            expect(controller.create(&block)).to eq(true)
+          end
+        end
+      end
+
+      context 'when no block is given to registration controller' do
+        context 'when tracking mode set to safe' do
+          before { settings.appsec.track_user_events.mode = 'safe' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: nil,
+                **{}
+              )
+
+            expect(controller.create).to eq(true)
+          end
+        end
+
+        context 'when tracking mode set to extended' do
+          before { settings.appsec.track_user_events.mode = 'extended' }
+
+          it 'tracks signup event' do
+            expect(Datadog::AppSec::Contrib::Devise::Tracking).to receive(:track_signup)
+              .with(
+                active_context.trace,
+                active_context.span,
+                user_id: nil,
+                **{ email: 'hello@gmail.com', username: 'John' }
+              )
+
+            expect(controller.create).to eq(true)
+          end
+        end
+      end
+    end
+  end
+
+  context 'when registration defines current user as non-persisted resource' do
+    before do
+      allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
+      allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
+
+      settings.appsec.track_user_events.enabled = true
+      settings.appsec.track_user_events.mode = 'safe'
+    end
+
+    let(:active_context) { instance_double(Datadog::AppSec::Context, trace: double, span: double) }
+    let(:controller) { mock_controller.new(true, resource) }
+    let(:resource) do
+      Datadog::AppSec::Contrib::Support::DeviseUserMock.new(
+        id: nil, email: nil, username: nil, persisted: false
+      )
+    end
+
+    context 'when block is not given to registration controller' do
+      context 'when tracking mode set to safe' do
+        before { settings.appsec.track_user_events.mode = 'safe' }
+
+        it 'does not track signup event' do
+          expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+
+          expect(controller.create).to eq(true)
+        end
+      end
+
+      context 'when tracking mode set to extended' do
+        before { settings.appsec.track_user_events.mode = 'extended' }
+
+        it 'does not track signup event' do
+          expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
+
+          expect(controller.create).to eq(true)
+        end
+      end
+    end
+
+    context 'when block is given to registration controller' do
+      let(:canary) { proc { |_resource| } }
+      let(:block) { proc { |resource| canary.call(resource) } }
+
+      context 'when tracking mode set to safe' do
+        before { settings.appsec.track_user_events.mode = 'safe' }
+
+        it 'does not track signup event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
           expect(canary).to receive(:call).with(resource)
+
           expect(controller.create(&block)).to eq(true)
         end
       end
-    end
 
-    context 'extended mode' do
-      let(:mode) { 'extended' }
+      context 'when tracking mode set to extended' do
+        before { settings.appsec.track_user_events.mode = 'extended' }
 
-      it 'tracks event' do
-        expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
-        expect(controller.create).to eq(true)
-      end
-
-      context 'and a block is given' do
-        let(:canary) { proc { |resource| } }
-        let(:block) { proc { |resource| canary.call(resource) } }
-
-        it 'do not tracks event' do
+        it 'does not track signup event' do
           expect(Datadog::AppSec::Contrib::Devise::Tracking).to_not receive(:track_signup)
           expect(canary).to receive(:call).with(resource)
+
           expect(controller.create(&block)).to eq(true)
         end
       end

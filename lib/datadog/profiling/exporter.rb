@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'ext'
-require_relative 'tag_builder'
+require_relative "ext"
+require_relative "tag_builder"
 
 module Datadog
   module Profiling
@@ -61,7 +61,7 @@ module Datadog
         @last_flush_finish_at = finish
 
         if duration_below_threshold?(start, finish)
-          Datadog.logger.debug('Skipped exporting profiling events as profile duration is below minimum')
+          Datadog.logger.debug("Skipped exporting profiling events as profile duration is below minimum")
           return
         end
 

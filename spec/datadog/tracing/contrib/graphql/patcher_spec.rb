@@ -7,9 +7,14 @@ require 'datadog/tracing/contrib/graphql/unified_trace_patcher'
 require 'datadog'
 
 RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
+  before(:context) { load_test_schema }
+  after(:context) do
+    unload_test_schema
+    remove_patch!(:graphql)
+  end
+
   around do |example|
     remove_patch!(:graphql)
-    Datadog.configuration.reset!
     Datadog.configuration.tracing[:graphql].reset!
 
     without_warnings do
@@ -17,7 +22,6 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
     end
 
     remove_patch!(:graphql)
-    Datadog.configuration.reset!
     Datadog.configuration.tracing[:graphql].reset!
   end
 
@@ -26,10 +30,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with default configuration' do
         it 'patches GraphQL' do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql
@@ -40,10 +41,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_deprecated_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_deprecated_tracer: true
@@ -54,10 +52,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_deprecated_tracer disabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_deprecated_tracer: false
@@ -68,10 +63,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::UnifiedTracePatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::UnifiedTracePatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_unified_tracer: true
@@ -82,10 +74,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer disabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_unified_tracer: false
@@ -96,10 +85,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer enabled and with_deprecated_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_unified_tracer: true, with_deprecated_tracer: true
@@ -110,10 +96,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with given schema' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(true)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with(
-            [TestGraphQLSchema],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracePatcher).to receive(:patch!).with([TestGraphQLSchema])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, schemas: [TestGraphQLSchema]
@@ -126,10 +109,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with default configuration' do
         it 'patches GraphQL' do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
           expect_any_instance_of(Datadog::Core::Logger).to receive(:warn)
             .with(/Falling back to GraphQL::Tracing::DataDogTracing/)
 
@@ -142,10 +122,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_deprecated_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
           expect_any_instance_of(Datadog::Core::Logger).not_to receive(:warn)
 
           Datadog.configure do |c|
@@ -157,10 +134,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_deprecated_tracer disabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
           expect_any_instance_of(Datadog::Core::Logger).to receive(:warn)
             .with(/Falling back to GraphQL::Tracing::DataDogTracing/)
 
@@ -173,10 +147,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
           expect_any_instance_of(Datadog::Core::Logger).to receive(:warn)
             .with(/Falling back to GraphQL::Tracing::DataDogTracing/)
 
@@ -189,10 +160,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer disabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
           expect_any_instance_of(Datadog::Core::Logger).to receive(:warn)
             .with(/Falling back to GraphQL::Tracing::DataDogTracing/)
 
@@ -205,10 +173,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with with_unified_tracer enabled and with_deprecated_tracer enabled' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([])
 
           Datadog.configure do |c|
             c.tracing.instrument :graphql, with_unified_tracer: true, with_deprecated_tracer: true
@@ -219,10 +184,7 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Patcher do
       context 'with given schema' do
         it do
           allow(Datadog::Tracing::Contrib::GraphQL::Integration).to receive(:trace_supported?).and_return(false)
-          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with(
-            [TestGraphQLSchema],
-            hash_including(:analytics_enabled, :analytics_sample_rate, :service)
-          )
+          expect(Datadog::Tracing::Contrib::GraphQL::TracingPatcher).to receive(:patch!).with([TestGraphQLSchema])
           expect_any_instance_of(Datadog::Core::Logger).to receive(:warn)
             .with(/Falling back to GraphQL::Tracing::DataDogTracing/)
 

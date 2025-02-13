@@ -1,5 +1,6 @@
 require 'graphql'
 require 'json'
+require 'ostruct'
 
 module TestGraphQL
   class Case < GraphQL::Schema::Directive

@@ -95,15 +95,6 @@ only-profiling-alloc:
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
-only-profiling-alloc-ddprof:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_DDPROF: "true"
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    DD_PROFILING_ALLOCATION_ENABLED: "true"
-    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
-
 only-profiling-heap:
   extends: .benchmarks
   variables:
@@ -111,6 +102,14 @@ only-profiling-heap:
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
+
+only-profiling-gvl:
+  extends: .benchmarks
+  variables:
+    DD_BENCHMARKS_CONFIGURATION: only-profiling
+    DD_PROFILING_ENABLED: "true"
+    DD_PROFILING_PREVIEW_GVL_ENABLED: "true"
     ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
 profiling-and-tracing:
@@ -163,6 +162,7 @@ ddprof-benchmark:
 benchmarks:
   stage: benchmarks
   when: always
+  needs: []
   tags: ["runner:apm-k8s-tweaked-metal"]
   image: $BASE_CI_IMAGE
   interruptible: true
@@ -171,6 +171,9 @@ benchmarks:
     - export ARTIFACTS_DIR="$(pwd)/artifacts" && (mkdir "${ARTIFACTS_DIR}" || :)
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.ddbuild.io/DataDog/".insteadOf "https://github.com/DataDog/"
     - git clone --branch dd-trace-rb https://github.com/DataDog/benchmarking-platform benchmarking-platform && cd benchmarking-platform
+    - gem -v
+    - bundle -v
+    - gem list bundler
     - ./steps/capture-hardware-software-info.sh
     - ./steps/run-benchmarks.sh
     - ./steps/analyze-results.sh

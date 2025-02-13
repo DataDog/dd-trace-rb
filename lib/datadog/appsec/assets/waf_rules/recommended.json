@@ -1,7 +1,7 @@
 {
   "version": "2.2",
   "metadata": {
-    "rules_version": "1.8.0"
+    "rules_version": "1.13.3"
   },
   "rules": [
     {
@@ -9,7 +9,8 @@
       "name": "Block IP Addresses",
       "tags": {
         "type": "block_ip",
-        "category": "security_response"
+        "category": "security_response",
+        "module": "network-acl"
       },
       "conditions": [
         {
@@ -34,7 +35,8 @@
       "name": "Block User Addresses",
       "tags": {
         "type": "block_user",
-        "category": "security_response"
+        "category": "security_response",
+        "module": "authentication-acl"
       },
       "conditions": [
         {
@@ -64,7 +66,8 @@
         "tool_name": "Acunetix",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -98,7 +101,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -118,6 +122,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "list": [
@@ -138,7 +145,10 @@
               "appscan_fingerprint",
               "w00tw00t.at.isc.sans.dfind",
               "w00tw00t.at.blackhats.romanian.anti-sec"
-            ]
+            ],
+            "options": {
+              "enforce_word_boundary": true
+            }
           },
           "operator": "phrase_match"
         }
@@ -156,7 +166,8 @@
         "category": "attack_attempt",
         "cwe": "176",
         "capec": "1000/255/153/267/71",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -185,7 +196,8 @@
         "crs_id": "921110",
         "category": "attack_attempt",
         "cwe": "444",
-        "capec": "1000/210/272/220/33"
+        "capec": "1000/210/272/220/33",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -222,7 +234,8 @@
         "crs_id": "921160",
         "category": "attack_attempt",
         "cwe": "113",
-        "capec": "1000/210/272/220/105"
+        "capec": "1000/210/272/220/105",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -257,7 +270,8 @@
         "category": "attack_attempt",
         "cwe": "22",
         "capec": "1000/255/153/126",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -291,7 +305,8 @@
         "category": "attack_attempt",
         "cwe": "22",
         "capec": "1000/255/153/126",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -346,6 +361,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "list": [
@@ -1772,7 +1790,10 @@
               "windows\\win.ini",
               "default\\ntuser.dat",
               "/var/run/secrets/kubernetes.io/serviceaccount"
-            ]
+            ],
+            "options": {
+              "enforce_word_boundary": true
+            }
           },
           "operator": "phrase_match"
         }
@@ -1791,7 +1812,8 @@
         "category": "attack_attempt",
         "cwe": "98",
         "capec": "1000/152/175/253/193",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1819,7 +1841,8 @@
         "crs_id": "931120",
         "category": "attack_attempt",
         "cwe": "98",
-        "capec": "1000/152/175/253/193"
+        "capec": "1000/152/175/253/193",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1839,6 +1862,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^(?i:file|ftps?)://.*?\\?+$",
@@ -1861,7 +1887,8 @@
         "category": "attack_attempt",
         "cwe": "77",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -1881,8 +1908,14 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
+            "options": {
+              "enforce_word_boundary": true
+            },
             "list": [
               "${cdpath}",
               "${dirstack}",
@@ -1900,7 +1933,6 @@
               "$ifs",
               "$oldpwd",
               "$ostype",
-              "$path",
               "$pwd",
               "dev/fd/",
               "dev/null",
@@ -2368,7 +2400,8 @@
         "category": "attack_attempt",
         "cwe": "77",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2391,6 +2424,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^\\(\\s*\\)\\s+{",
@@ -2413,7 +2449,8 @@
         "category": "attack_attempt",
         "cwe": "706",
         "capec": "1000/225/122/17/177",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2456,7 +2493,10 @@
               "settings.local.php",
               "local.xml",
               ".env"
-            ]
+            ],
+            "options": {
+              "enforce_word_boundary": true
+            }
           },
           "operator": "phrase_match"
         }
@@ -2474,7 +2514,8 @@
         "category": "attack_attempt",
         "cwe": "434",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2527,7 +2568,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2547,8 +2589,14 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
+            "options": {
+              "enforce_word_boundary": true
+            },
             "list": [
               "$globals",
               "$_cookie",
@@ -2588,7 +2636,8 @@
         "crs_id": "933131",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/225/122/17/650"
+        "capec": "1000/225/122/17/650",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2608,6 +2657,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:HTTP_(?:ACCEPT(?:_(?:ENCODING|LANGUAGE|CHARSET))?|(?:X_FORWARDED_FO|REFERE)R|(?:USER_AGEN|HOS)T|CONNECTION|KEEP_ALIVE)|PATH_(?:TRANSLATED|INFO)|ORIG_PATH_INFO|QUERY_STRING|REQUEST_URI|AUTH_TYPE)",
@@ -2630,7 +2682,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2650,6 +2703,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "php://(?:std(?:in|out|err)|(?:in|out)put|fd|memory|temp|filter)",
@@ -2671,7 +2727,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/225/122/17/650",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2691,6 +2748,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "list": [
@@ -2738,7 +2798,10 @@
               "wp_safe_remote_post",
               "wp_safe_remote_request",
               "zlib_decode"
-            ]
+            ],
+            "options": {
+              "enforce_word_boundary": true
+            }
           },
           "operator": "phrase_match"
         }
@@ -2755,7 +2818,8 @@
         "crs_id": "933160",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/225/122/17/650"
+        "capec": "1000/225/122/17/650",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2775,9 +2839,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\b(?:s(?:e(?:t(?:_(?:e(?:xception|rror)_handler|magic_quotes_runtime|include_path)|defaultstub)|ssion_s(?:et_save_handler|tart))|qlite_(?:(?:(?:unbuffered|single|array)_)?query|create_(?:aggregate|function)|p?open|exec)|tr(?:eam_(?:context_create|socket_client)|ipc?slashes|rev)|implexml_load_(?:string|file)|ocket_c(?:onnect|reate)|h(?:ow_sourc|a1_fil)e|pl_autoload_register|ystem)|p(?:r(?:eg_(?:replace(?:_callback(?:_array)?)?|match(?:_all)?|split)|oc_(?:(?:terminat|clos|nic)e|get_status|open)|int_r)|o(?:six_(?:get(?:(?:e[gu]|g)id|login|pwnam)|mk(?:fifo|nod)|ttyname|kill)|pen)|hp(?:_(?:strip_whitespac|unam)e|version|info)|g_(?:(?:execut|prepar)e|connect|query)|a(?:rse_(?:ini_file|str)|ssthru)|utenv)|r(?:unkit_(?:function_(?:re(?:defin|nam)e|copy|add)|method_(?:re(?:defin|nam)e|copy|add)|constant_(?:redefine|add))|e(?:(?:gister_(?:shutdown|tick)|name)_function|ad(?:(?:gz)?file|_exif_data|dir))|awurl(?:de|en)code)|i(?:mage(?:createfrom(?:(?:jpe|pn)g|x[bp]m|wbmp|gif)|(?:jpe|pn)g|g(?:d2?|if)|2?wbmp|xbm)|s_(?:(?:(?:execut|write?|read)ab|fi)le|dir)|ni_(?:get(?:_all)?|set)|terator_apply|ptcembed)|g(?:et(?:_(?:c(?:urrent_use|fg_va)r|meta_tags)|my(?:[gpu]id|inode)|(?:lastmo|cw)d|imagesize|env)|z(?:(?:(?:defla|wri)t|encod|fil)e|compress|open|read)|lob)|a(?:rray_(?:u(?:intersect(?:_u?assoc)?|diff(?:_u?assoc)?)|intersect_u(?:assoc|key)|diff_u(?:assoc|key)|filter|reduce|map)|ssert(?:_options)?|tob)|h(?:tml(?:specialchars(?:_decode)?|_entity_decode|entities)|(?:ash(?:_(?:update|hmac))?|ighlight)_file|e(?:ader_register_callback|x2bin))|f(?:i(?:le(?:(?:[acm]tim|inod)e|(?:_exist|perm)s|group)?|nfo_open)|tp_(?:nb_(?:ge|pu)|connec|ge|pu)t|(?:unction_exis|pu)ts|write|open)|o(?:b_(?:get_(?:c(?:ontents|lean)|flush)|end_(?:clean|flush)|clean|flush|start)|dbc_(?:result(?:_all)?|exec(?:ute)?|connect)|pendir)|m(?:b_(?:ereg(?:_(?:replace(?:_callback)?|match)|i(?:_replace)?)?|parse_str)|(?:ove_uploaded|d5)_file|ethod_exists|ysql_query|kdir)|e(?:x(?:if_(?:t(?:humbnail|agname)|imagetype|read_data)|ec)|scapeshell(?:arg|cmd)|rror_reporting|val)|c(?:url_(?:file_create|exec|init)|onvert_uuencode|reate_function|hr)|u(?:n(?:serialize|pack)|rl(?:de|en)code|[ak]?sort)|b(?:(?:son_(?:de|en)|ase64_en)code|zopen|toa)|(?:json_(?:de|en)cod|debug_backtrac|tmpfil)e|var_dump)(?:\\s|/\\*.*\\*/|//.*|#.*|\\\"|')*\\((?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?,)*(?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?)?\\)",
+            "regex": "\\b(?:s(?:e(?:t(?:_(?:e(?:xception|rror)_handler|magic_quotes_runtime|include_path)|defaultstub)|ssion_s(?:et_save_handler|tart))|qlite_(?:(?:(?:unbuffered|single|array)_)?query|create_(?:aggregate|function)|p?open|exec)|tr(?:eam_(?:context_create|socket_client)|ipc?slashes|rev)|implexml_load_(?:string|file)|ocket_c(?:onnect|reate)|h(?:ow_sourc|a1_fil)e|pl_autoload_register|ystem)|p(?:r(?:eg_(?:replace(?:_callback(?:_array)?)?|match(?:_all)?|split)|oc_(?:(?:terminat|clos|nic)e|get_status|open)|int_r)|o(?:six_(?:get(?:(?:e[gu]|g)id|login|pwnam)|mk(?:fifo|nod)|ttyname|kill)|pen)|hp(?:_(?:strip_whitespac|unam)e|version|info)|g_(?:(?:execut|prepar)e|connect|query)|a(?:rse_(?:ini_file|str)|ssthru)|utenv)|r(?:unkit_(?:function_(?:re(?:defin|nam)e|copy|add)|method_(?:re(?:defin|nam)e|copy|add)|constant_(?:redefine|add))|e(?:(?:gister_(?:shutdown|tick)|name)_function|ad(?:(?:gz)?file|_exif_data|dir))|awurl(?:de|en)code)|i(?:mage(?:createfrom(?:(?:jpe|pn)g|x[bp]m|wbmp|gif)|(?:jpe|pn)g|g(?:d2?|if)|2?wbmp|xbm)|s_(?:(?:(?:execut|write?|read)ab|fi)le|dir)|ni_(?:get(?:_all)?|set)|terator_apply|ptcembed)|g(?:et(?:_(?:c(?:urrent_use|fg_va)r|meta_tags)|my(?:[gpu]id|inode)|(?:lastmo|cw)d|imagesize|env)|z(?:(?:(?:defla|wri)t|encod|fil)e|compress|open|read)|lob)|a(?:rray_(?:u(?:intersect(?:_u?assoc)?|diff(?:_u?assoc)?)|intersect_u(?:assoc|key)|diff_u(?:assoc|key)|filter|reduce|map)|ssert(?:_options)?|tob)|h(?:tml(?:specialchars(?:_decode)?|_entity_decode|entities)|(?:ash(?:_(?:update|hmac))?|ighlight)_file|e(?:ader_register_callback|x2bin))|f(?:i(?:le(?:(?:[acm]tim|inod)e|(?:_exist|perm)s|group)?|nfo_open)|tp_(?:nb_(?:ge|pu)|connec|ge|pu)t|(?:unction_exis|pu)ts|write|open)|o(?:b_(?:get_(?:c(?:ontents|lean)|flush)|end_(?:clean|flush)|clean|flush|start)|dbc_(?:result(?:_all)?|exec(?:ute)?|connect)|pendir)|m(?:b_(?:ereg(?:_(?:replace(?:_callback)?|match)|i(?:_replace)?)?|parse_str)|(?:ove_uploaded|d5)_file|ethod_exists|ysql_query|kdir)|e(?:x(?:if_(?:t(?:humbnail|agname)|imagetype|read_data)|ec)|scapeshell(?:arg|cmd)|rror_reporting|val)|c(?:url_(?:file_create|exec|init)|onvert_uuencode|reate_function|hr)|u(?:n(?:serialize|pack)|rl(?:de|en)code|[ak]?sort)|b(?:(?:son_(?:de|en)|ase64_en)code|zopen|toa)|(?:json_(?:de|en)cod|debug_backtrac|tmpfil)e|var_dump)(?:\\s|/\\*.*\\*/|//.*|#.*|\\\"|')*\\((?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?,)*(?:(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:\\$\\w+|[A-Z\\d]\\w*|\\w+\\(.*\\)|\\\\?\"(?:[^\"]|\\\\\"|\"\"|\"\\+\")*\\\\?\"|\\\\?'(?:[^']|''|'\\+')*\\\\?')(?:\\s|/\\*.*\\*/|//.*|#.*)*(?:(?:::|\\.|->)(?:\\s|/\\*.*\\*/|//.*|#.*)*\\w+(?:\\(.*\\))?)?)?\\)\\s*(?:[;\\.)}\\]|\\\\]|\\?>|%>|$)",
             "options": {
               "case_sensitive": true,
               "min_length": 5
@@ -2797,7 +2864,8 @@
         "category": "attack_attempt",
         "cwe": "502",
         "capec": "1000/152/586",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2820,6 +2888,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "[oOcC]:\\d+:\\\".+?\\\":\\d+:{[\\W\\w]*}",
@@ -2841,7 +2912,8 @@
         "crs_id": "933200",
         "category": "attack_attempt",
         "cwe": "502",
-        "capec": "1000/152/586"
+        "capec": "1000/152/586",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2861,6 +2933,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:(?:bzip|ssh)2|z(?:lib|ip)|(?:ph|r)ar|expect|glob|ogg)://",
@@ -2884,7 +2959,8 @@
         "crs_id": "934100",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2904,6 +2980,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\b(?:(?:l(?:(?:utimes|chmod)(?:Sync)?|(?:stat|ink)Sync)|w(?:rite(?:(?:File|v)(?:Sync)?|Sync)|atchFile)|u(?:n(?:watchFile|linkSync)|times(?:Sync)?)|s(?:(?:ymlink|tat)Sync|pawn(?:File|Sync))|ex(?:ec(?:File(?:Sync)?|Sync)|istsSync)|a(?:ppendFile|ccess)(?:Sync)?|(?:Caveat|Inode)s|open(?:dir)?Sync|new\\s+Function|Availability|\\beval)\\s*\\(|m(?:ain(?:Module\\s*(?:\\W*\\s*(?:constructor|require)|\\[)|\\s*(?:\\W*\\s*(?:constructor|require)|\\[))|kd(?:temp(?:Sync)?|irSync)\\s*\\(|odule\\.exports\\s*=)|c(?:(?:(?:h(?:mod|own)|lose)Sync|reate(?:Write|Read)Stream|p(?:Sync)?)\\s*\\(|o(?:nstructor\\s*(?:\\W*\\s*_load|\\[)|pyFile(?:Sync)?\\s*\\())|f(?:(?:(?:s(?:(?:yncS)?|tatS)|datas(?:yncS)?)ync|ch(?:mod|own)(?:Sync)?)\\s*\\(|u(?:nction\\s*\\(\\s*\\)\\s*{|times(?:Sync)?\\s*\\())|r(?:e(?:(?:ad(?:(?:File|link|dir)?Sync|v(?:Sync)?)|nameSync)\\s*\\(|quire\\s*(?:\\W*\\s*main|\\[))|m(?:Sync)?\\s*\\()|process\\s*(?:\\W*\\s*(?:mainModule|binding)|\\[)|t(?:his\\.constructor|runcateSync\\s*\\()|_(?:\\$\\$ND_FUNC\\$\\$_|_js_function)|global\\s*(?:\\W*\\s*process|\\[)|String\\s*\\.\\s*fromCharCode|binding\\s*\\[)",
@@ -2926,7 +3005,8 @@
         "category": "attack_attempt",
         "confidence": "1",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2942,10 +3022,10 @@
                 "address": "server.request.path_params"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\b(?:w(?:atch|rite)|(?:spaw|ope)n|exists|close|fork|read)\\s*\\(",
@@ -2968,7 +3048,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -2996,14 +3077,15 @@
                 "address": "server.request.path_params"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<script[^>]*>[\\s\\S]*?",
             "options": {
+              "case_sensitive": false,
               "min_length": 8
             }
           },
@@ -3024,7 +3106,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3056,6 +3139,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\bon(?:d(?:r(?:ag(?:en(?:ter|d)|leave|start|over)?|op)|urationchange|blclick)|s(?:e(?:ek(?:ing|ed)|arch|lect)|u(?:spend|bmit)|talled|croll|how)|m(?:ouse(?:(?:lea|mo)ve|o(?:ver|ut)|enter|down|up)|essage)|p(?:a(?:ge(?:hide|show)|(?:st|us)e)|lay(?:ing)?|rogress|aste|ointer(?:cancel|down|enter|leave|move|out|over|rawupdate|up))|c(?:anplay(?:through)?|o(?:ntextmenu|py)|hange|lick|ut)|a(?:nimation(?:iteration|start|end)|(?:fterprin|bor)t|uxclick|fterscriptexecute)|t(?:o(?:uch(?:cancel|start|move|end)|ggle)|imeupdate)|f(?:ullscreen(?:change|error)|ocus(?:out|in)?|inish)|(?:(?:volume|hash)chang|o(?:ff|n)lin)e|b(?:efore(?:unload|print)|lur)|load(?:ed(?:meta)?data|start|end)?|r(?:es(?:ize|et)|atechange)|key(?:press|down|up)|w(?:aiting|heel)|in(?:valid|put)|e(?:nded|rror)|unload)[\\s\\x0B\\x09\\x0C\\x3B\\x2C\\x28\\x3B]*?=[^=]",
@@ -3080,7 +3166,8 @@
         "category": "attack_attempt",
         "cwe": "84",
         "capec": "1000/152/242/63/591/244",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3112,6 +3199,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "[a-z]+=(?:[^:=]+:.+;)*?[^:=]+:url\\(javascript",
@@ -3136,7 +3226,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3168,6 +3259,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:\\W|^)(?:javascript:(?:[\\s\\S]+[=\\x5c\\(\\[\\.<]|[\\s\\S]*?(?:\\bname\\b|\\x5c[ux]\\d)))|@\\W*?i\\W*?m\\W*?p\\W*?o\\W*?r\\W*?t\\W*?(?:/\\*[\\s\\S]*?)?(?:[\\\"']|\\W*?u\\W*?r\\W*?l[\\s\\S]*?\\()|[^-]*?-\\W*?m\\W*?o\\W*?z\\W*?-\\W*?b\\W*?i\\W*?n\\W*?d\\W*?i\\W*?n\\W*?g[^:]*?:\\W*?u\\W*?r\\W*?l[\\s\\S]*?\\(",
@@ -3191,7 +3285,8 @@
         "crs_id": "941180",
         "category": "attack_attempt",
         "cwe": "79",
-        "capec": "1000/152/242/63/591"
+        "capec": "1000/152/242/63/591",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3211,8 +3306,14 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
+            "options": {
+              "enforce_word_boundary": true
+            },
             "list": [
               "document.cookie",
               "document.write",
@@ -3239,7 +3340,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3259,6 +3361,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:<.*[:]?vmlframe.*?[\\s/+]*?src[\\s/+]*=)",
@@ -3283,7 +3388,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3303,6 +3409,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:(?:j|&#x?0*(?:74|4A|106|6A);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:a|&#x?0*(?:65|41|97|61);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:v|&#x?0*(?:86|56|118|76);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:a|&#x?0*(?:65|41|97|61);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:s|&#x?0*(?:83|53|115|73);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:c|&#x?0*(?:67|43|99|63);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:r|&#x?0*(?:82|52|114|72);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:i|&#x?0*(?:73|49|105|69);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:p|&#x?0*(?:80|50|112|70);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:t|&#x?0*(?:84|54|116|74);?)(?:\\t|\\n|\\r|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?::|&(?:#x?0*(?:58|3A);?|colon;)).)",
@@ -3327,7 +3436,8 @@
         "category": "attack_attempt",
         "cwe": "80",
         "capec": "1000/152/242/63/591",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3347,6 +3457,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:(?:v|&#x?0*(?:86|56|118|76);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:b|&#x?0*(?:66|42|98|62);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:s|&#x?0*(?:83|53|115|73);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:c|&#x?0*(?:67|43|99|63);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:r|&#x?0*(?:82|52|114|72);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:i|&#x?0*(?:73|49|105|69);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:p|&#x?0*(?:80|50|112|70);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?:t|&#x?0*(?:84|54|116|74);?)(?:\\t|&(?:#x?0*(?:9|13|10|A|D);?|tab;|newline;))*(?::|&(?:#x?0*(?:58|3A);?|colon;)).)",
@@ -3371,7 +3484,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3391,6 +3505,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<EMBED[\\s/+].*?(?:src|type).*?=",
@@ -3414,7 +3531,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3434,6 +3552,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<[?]?import[\\s/+\\S]*?implementation[\\s/+]*?=",
@@ -3458,7 +3579,8 @@
         "crs_id": "941270",
         "category": "attack_attempt",
         "cwe": "83",
-        "capec": "1000/152/242/63/591/243"
+        "capec": "1000/152/242/63/591/243",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3474,10 +3596,10 @@
                 "address": "server.request.path_params"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<LINK[\\s/+].*?href[\\s/+]*=",
@@ -3501,7 +3623,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3521,6 +3644,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<BASE[\\s/+].*?href[\\s/+]*=",
@@ -3544,7 +3670,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3564,6 +3691,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<APPLET[\\s/+>]",
@@ -3587,7 +3717,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3607,6 +3738,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "<OBJECT[\\s/+].*?(?:type|codetype|classid|code|data)[\\s/+]*=",
@@ -3630,7 +3764,8 @@
         "category": "attack_attempt",
         "cwe": "87",
         "capec": "1000/152/242/63/591/199",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3650,6 +3785,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\+ADw-.*(?:\\+AD4-|>)|<.*\\+AD4-",
@@ -3671,7 +3809,8 @@
         "crs_id": "941360",
         "category": "attack_attempt",
         "cwe": "87",
-        "capec": "1000/152/242/63/591/199"
+        "capec": "1000/152/242/63/591/199",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3691,6 +3830,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "![!+ ]\\[\\]",
@@ -3713,7 +3855,8 @@
         "category": "attack_attempt",
         "confidence": "1",
         "cwe": "79",
-        "capec": "1000/152/242/63/591"
+        "capec": "1000/152/242/63/591",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3733,6 +3876,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\b(?i:eval|settimeout|setinterval|new\\s+Function|alert|prompt)[\\s+]*\\([^\\)]",
@@ -3754,7 +3900,8 @@
         "crs_id": "942100",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3770,10 +3917,10 @@
                 "address": "server.request.path_params"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ]
           },
@@ -3793,7 +3940,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3813,6 +3961,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:sleep\\(\\s*?\\d*?\\s*?\\)|benchmark\\(.*?\\,.*?\\))",
@@ -3835,7 +3986,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3855,6 +4007,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:[\\\"'`](?:;*?\\s*?waitfor\\s+(?:delay|time)\\s+[\\\"'`]|;.*?:\\s*?goto)|alter\\s*?\\w+.*?cha(?:racte)?r\\s+set\\s+\\w+)",
@@ -3875,7 +4030,8 @@
         "crs_id": "942250",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3895,6 +4051,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:merge.*?using\\s*?\\(|execute\\s*?immediate\\s*?[\\\"'`]|match\\s*?[\\w(?:),+-]+\\s*?against\\s*?\\()",
@@ -3916,7 +4075,8 @@
         "crs_id": "942270",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3936,6 +4096,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "union.*?select.*?from",
@@ -3957,7 +4120,8 @@
         "category": "attack_attempt",
         "cwe": "89",
         "capec": "1000/152/248/66/7",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -3977,6 +4141,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:;\\s*?shutdown\\s*?(?:[#;{]|\\/\\*|--)|waitfor\\s*?delay\\s?[\\\"'`]+\\s?\\d|select\\s*?pg_sleep)",
@@ -3997,7 +4164,8 @@
         "crs_id": "942290",
         "category": "attack_attempt",
         "cwe": "943",
-        "capec": "1000/152/248/676"
+        "capec": "1000/152/248/676",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4017,6 +4185,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:(?:\\[?\\$(?:(?:s(?:lic|iz)|wher)e|e(?:lemMatch|xists|q)|n(?:o[rt]|in?|e)|l(?:ike|te?)|t(?:ext|ype)|a(?:ll|nd)|jsonSchema|between|regex|x?or|div|mod)\\]?)\\b)",
@@ -4040,7 +4211,8 @@
         "crs_id": "942360",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66/470"
+        "capec": "1000/152/248/66/470",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4060,6 +4232,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:^[\\W\\d]+\\s*?(?:alter\\s*(?:a(?:(?:pplication\\s*rol|ggregat)e|s(?:ymmetric\\s*ke|sembl)y|u(?:thorization|dit)|vailability\\s*group)|c(?:r(?:yptographic\\s*provider|edential)|o(?:l(?:latio|um)|nversio)n|ertificate|luster)|s(?:e(?:rv(?:ice|er)|curity|quence|ssion|arch)|y(?:mmetric\\s*key|nonym)|togroup|chema)|m(?:a(?:s(?:ter\\s*key|k)|terialized)|e(?:ssage\\s*type|thod)|odule)|l(?:o(?:g(?:file\\s*group|in)|ckdown)|a(?:ngua|r)ge|ibrary)|t(?:(?:abl(?:espac)?|yp)e|r(?:igger|usted)|hreshold|ext)|p(?:a(?:rtition|ckage)|ro(?:cedur|fil)e|ermission)|d(?:i(?:mension|skgroup)|atabase|efault|omain)|r(?:o(?:l(?:lback|e)|ute)|e(?:sourc|mot)e)|f(?:u(?:lltext|nction)|lashback|oreign)|e(?:xte(?:nsion|rnal)|(?:ndpoi|ve)nt)|in(?:dex(?:type)?|memory|stance)|b(?:roker\\s*priority|ufferpool)|x(?:ml\\s*schema|srobject)|w(?:ork(?:load)?|rapper)|hi(?:erarchy|stogram)|o(?:perator|utline)|(?:nicknam|queu)e|us(?:age|er)|group|java|view)|union\\s*(?:(?:distin|sele)ct|all))\\b|\\b(?:(?:(?:trunc|cre|upd)at|renam)e|(?:inser|selec)t|de(?:lete|sc)|alter|load)\\s+(?:group_concat|load_file|char)\\b\\s*\\(?|[\\s(]load_file\\s*?\\(|[\\\"'`]\\s+regexp\\W)",
@@ -4080,7 +4255,8 @@
         "crs_id": "942500",
         "category": "attack_attempt",
         "cwe": "89",
-        "capec": "1000/152/248/66"
+        "capec": "1000/152/248/66",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4100,6 +4276,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:/\\*[!+](?:[\\w\\s=_\\-(?:)]+)?\\*/)",
@@ -4122,7 +4301,8 @@
         "category": "attack_attempt",
         "cwe": "384",
         "capec": "1000/225/21/593/61",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4142,6 +4322,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i:\\.cookie\\b.*?;\\W*?(?:expires|domain)\\W*?=|\\bhttp-equiv\\W+set-cookie\\b)",
@@ -4164,7 +4347,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4187,6 +4371,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "java\\.lang\\.(?:runtime|processbuilder)",
@@ -4207,10 +4394,10 @@
       "name": "Remote Command Execution: Java process spawn (CVE-2017-9805)",
       "tags": {
         "type": "java_code_injection",
-        "crs_id": "944110",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4233,50 +4420,21 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "(?:runtime|processbuilder)",
+            "regex": "(?:unmarshaller|base64data|java\\.).*(?:runtime|processbuilder)",
             "options": {
-              "case_sensitive": true,
-              "min_length": 7
-            }
-          },
-          "operator": "match_regex"
-        },
-        {
-          "parameters": {
-            "inputs": [
-              {
-                "address": "server.request.query"
-              },
-              {
-                "address": "server.request.body"
-              },
-              {
-                "address": "server.request.path_params"
-              },
-              {
-                "address": "server.request.headers.no_cookies"
-              },
-              {
-                "address": "grpc.server.request.message"
-              },
-              {
-                "address": "graphql.server.all_resolvers"
-              }
-            ],
-            "regex": "(?:unmarshaller|base64data|java\\.)",
-            "options": {
-              "case_sensitive": true,
-              "min_length": 5
+              "case_sensitive": false,
+              "min_length": 13
             }
           },
           "operator": "match_regex"
         }
       ],
-      "transformers": [
-        "lowercase"
-      ]
+      "transformers": []
     },
     {
       "id": "crs-944-130",
@@ -4286,7 +4444,8 @@
         "crs_id": "944130",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4309,6 +4468,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "list": [
@@ -4344,6 +4506,7 @@
               "java.lang.object",
               "java.lang.process",
               "java.lang.reflect",
+              "java.lang.runtime",
               "java.lang.string",
               "java.lang.stringbuilder",
               "java.lang.system",
@@ -4353,7 +4516,10 @@
               "org.apache.struts2",
               "org.omg.corba",
               "java.beans.xmldecode"
-            ]
+            ],
+            "options": {
+              "enforce_word_boundary": true
+            }
           },
           "operator": "phrase_match"
         }
@@ -4394,6 +4560,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:class\\.module\\.classLoader\\.resources\\.context\\.parent\\.pipeline|springframework\\.context\\.support\\.FileSystemXmlApplicationContext)",
@@ -4414,7 +4583,8 @@
         "type": "nosql_injection",
         "category": "attack_attempt",
         "cwe": "943",
-        "capec": "1000/152/248/676"
+        "capec": "1000/152/248/676",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4434,6 +4604,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               },
               {
                 "address": "server.request.headers.no_cookies"
@@ -4455,7 +4628,8 @@
         "type": "java_code_injection",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4475,10 +4649,13 @@
                 "address": "server.request.path_params"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
               }
             ],
             "regex": "[#%$]{(?:[^}]+[^\\w\\s}\\-_][^}]+|\\d+-\\d+)}",
@@ -4498,7 +4675,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4522,6 +4700,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "[@#]ognl",
@@ -4571,7 +4752,8 @@
         "category": "attack_attempt",
         "cwe": "1321",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4601,7 +4783,8 @@
         "category": "attack_attempt",
         "cwe": "1321",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4645,7 +4828,8 @@
         "category": "attack_attempt",
         "cwe": "1336",
         "capec": "1000/152/242/19",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4668,6 +4852,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "#(?:set|foreach|macro|parse|if)\\(.*\\)|<#assign.*>"
@@ -4686,7 +4873,8 @@
         "tool_name": "BurpCollaborator",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4709,6 +4897,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\b(?:burpcollaborator\\.net|oastify\\.com)\\b"
@@ -4727,7 +4918,8 @@
         "tool_name": "Qualys",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4750,9 +4942,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\bqualysperiscope\\.com\\b"
+            "regex": "\\bqualysperiscope\\.com\\b|\\.oscomm\\."
           },
           "operator": "match_regex"
         }
@@ -4768,7 +4963,8 @@
         "tool_name": "Probely",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4791,6 +4987,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\bprbly\\.win\\b"
@@ -4808,7 +5007,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4831,9 +5031,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\b(?:webhook\\.site|\\.canarytokens\\.com|vii\\.one|act1on3\\.ru|gdsburp\\.com)\\b"
+            "regex": "\\b(?:webhook\\.site|\\.canarytokens\\.com|vii\\.one|act1on3\\.ru|gdsburp\\.com|arcticwolf\\.net|oob\\.li|htbiw\\.com|h4\\.vc|mochan\\.cloud|imshopping\\.com|bootstrapnodejs\\.com|mooo-ng\\.com|securitytrails\\.com|canyouhackit\\.io|7bae\\.xyz)\\b"
           },
           "operator": "match_regex"
         }
@@ -4848,7 +5051,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4871,6 +5075,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\b(?:\\.ngrok\\.io|requestbin\\.com|requestbin\\.net)\\b"
@@ -4889,7 +5096,8 @@
         "tool_name": "Rapid7",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4912,6 +5120,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\bappspidered\\.rapid7\\."
@@ -4930,7 +5141,8 @@
         "tool_name": "interact.sh",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4953,9 +5165,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\b(?:interact\\.sh|oast\\.(?:pro|live|site|online|fun|me))\\b"
+            "regex": "\\b(?:interact\\.sh|oast\\.(?:pro|live|site|online|fun|me)|indusfacefinder\\.in|where\\.land|syhunt\\.net|tssrt\\.de|boardofcyber\\.io|assetnote-callback\\.com|praetorianlabs\\.dev|netspi\\.sh)\\b"
           },
           "operator": "match_regex"
         }
@@ -4971,7 +5186,8 @@
         "tool_name": "Netsparker",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -4994,12 +5210,246 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "\\b(?:\\.|(?:\\\\|&#)(?:0*46|x0*2e);)r87(?:\\.|(?:\\\\|&#)(?:0*46|x0*2e);)(?:me|com)\\b",
+            "regex": "\\b(?:\\.|(?:\\\\|&#)(?:0*46|x0*2e);)?r87(?:\\.|(?:\\\\|&#)(?:0*46|x0*2e);)(?:me|com)\\b",
             "options": {
               "case_sensitive": false,
               "min_length": 7
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-913-009",
+      "name": "WhiteHat Security OOB domain",
+      "tags": {
+        "type": "commercial_scanner",
+        "category": "attack_attempt",
+        "tool_name": "WhiteHatSecurity",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "regex": "\\bwhsec(?:\\.|(?:\\\\|&#)(?:0*46|x0*2e);)us\\b",
+            "options": {
+              "case_sensitive": false,
+              "min_length": 8
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-913-010",
+      "name": "Nessus OOB domain",
+      "tags": {
+        "type": "commercial_scanner",
+        "category": "attack_attempt",
+        "tool_name": "Nessus",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "regex": "\\b\\.nessus\\.org\\b",
+            "options": {
+              "case_sensitive": false,
+              "min_length": 8
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-913-011",
+      "name": "Watchtowr OOB domain",
+      "tags": {
+        "type": "commercial_scanner",
+        "category": "attack_attempt",
+        "tool_name": "Watchtowr",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "regex": "\\bwatchtowr\\.com\\b",
+            "options": {
+              "case_sensitive": false,
+              "min_length": 8
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-913-012",
+      "name": "AppCheck NG OOB domain",
+      "tags": {
+        "type": "commercial_scanner",
+        "category": "attack_attempt",
+        "tool_name": "AppCheckNG",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "regex": "\\bptst\\.io\\b",
+            "options": {
+              "case_sensitive": false,
+              "min_length": 7
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-920-001",
+      "name": "JWT authentication bypass",
+      "tags": {
+        "type": "http_protocol_violation",
+        "category": "attack_attempt",
+        "cwe": "287",
+        "capec": "1000/225/115",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.cookies"
+              },
+              {
+                "address": "server.request.headers.no_cookies",
+                "key_path": [
+                  "authorization"
+                ]
+              }
+            ],
+            "regex": "^(?:Bearer )?ey[A-Za-z0-9+_\\-/]*([QY][UW]x[Hn]Ij([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiAi[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]Ij([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDogI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]IiA6ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]Ij([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiAi[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciOiAi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciIDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgOiJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]IiA6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]Ij([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciOiJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgOiAi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]IjogI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]IiA6I[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6I[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6I[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciIDogI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]IiA6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]IiA6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ciO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6I[km]5[Pv][Tb][km][U-X]|[QY][UW]x[Hn]IiA6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ID([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gI[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yIgO([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[\\x2b\\x2f-9A-Za-z]ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*ICJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]I([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*IDoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]A6I[km]5[Pv][Tb][km][U-X]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]y([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiJ[Ou][Tb][02]5[Fl]|[QY][UW]x[Hn]Ijoi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z]{2}[159BFJNRVZdhlptx][Bh][Tb][EG]ci([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[048AEIMQUYcgkosw]gOiAi[Tb][km]9[Ou][RZ][Q-Za-f]|[\\x2b\\x2f-9A-Za-z][02EGUWkm]F[Ms][RZ]yI6([048ACEIMQSUYcgikoswy]|[\\x2b\\x2f-9A-Za-z]I)*[CSiy]Ai[Tb][km]9[Ou][RZ][Q-Za-f])[A-Za-z0-9+-/]*\\.[A-Za-z0-9+_\\-/]+\\.(?:[A-Za-z0-9+_\\-/]+)?$",
+            "options": {
+              "case_sensitive": true
             }
           },
           "operator": "match_regex"
@@ -5015,7 +5465,8 @@
         "category": "attack_attempt",
         "cwe": "98",
         "capec": "1000/152/175/253/193",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5035,12 +5486,63 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^(?i:file|ftps?|https?).*/rfiinc\\.txt\\?+$",
             "options": {
               "case_sensitive": true,
               "min_length": 17
+            }
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "dog-932-100",
+      "name": "Shell spawn executing network command",
+      "tags": {
+        "type": "command_injection",
+        "category": "attack_attempt",
+        "cwe": "77",
+        "capec": "1000/152/248/88",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "server.request.headers.no_cookies"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "regex": "(?:(?:['\"\\x60({|;&]|(?:^|['\"\\x60({|;&])(?:cmd(?:\\.exe)?\\s+(?:/\\w(?::\\w+)?\\s+)*))(?:ping|curl|wget|telnet)|\\bnslookup)[\\s,]",
+            "options": {
+              "case_sensitive": true,
+              "min_length": 5
             }
           },
           "operator": "match_regex"
@@ -5056,7 +5558,8 @@
         "category": "attack_attempt",
         "cwe": "91",
         "capec": "1000/152/248/250",
-        "confidence": "0"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5070,6 +5573,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?:<\\?xml[^>]*>.*)<!ENTITY[^>]+SYSTEM\\s+[^>]+>",
@@ -5091,7 +5597,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "0"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5123,9 +5630,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "<(?:iframe|esi:include)(?:(?:\\s|/)*\\w+=[\"'\\w]+)*(?:\\s|/)*src(?:doc)?=[\"']?(?:data:|javascript:|http:|//)[^\\s'\"]+['\"]?",
+            "regex": "<(?:iframe|esi:include)(?:(?:\\s|/)*\\w+=[\"'\\w]+)*(?:\\s|/)*src(?:doc)?=[\"']?(?:data:|javascript:|http:|dns:|//)[^\\s'\"]+['\"]?",
             "options": {
               "min_length": 14
             }
@@ -5146,7 +5656,8 @@
         "category": "attack_attempt",
         "cwe": "83",
         "capec": "1000/152/242/63/591/243",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5169,9 +5680,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "https?:\\/\\/(?:.*\\.)?(?:bxss\\.in|xss\\.ht|js\\.rip)",
+            "regex": "https?:\\/\\/(?:.*\\.)?(?:bxss\\.(?:in|me)|xss\\.ht|js\\.rip)",
             "options": {
               "case_sensitive": false
             }
@@ -5209,6 +5723,9 @@
         {
           "operator": "phrase_match",
           "parameters": {
+            "options": {
+              "enforce_word_boundary": true
+            },
             "inputs": [
               {
                 "address": "server.request.uri.raw"
@@ -5409,7 +5926,8 @@
               "/website.php",
               "/stats.php",
               "/assets/plugins/mp3_id/mp3_id.php",
-              "/siteminderagent/forms/smpwservices.fcc"
+              "/siteminderagent/forms/smpwservices.fcc",
+              "/eval-stdin.php"
             ]
           }
         }
@@ -5426,7 +5944,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5468,7 +5987,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5510,7 +6030,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5552,7 +6073,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5594,7 +6116,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5619,7 +6142,7 @@
                 "address": "server.request.uri.raw"
               }
             ],
-            "regex": "\\.(cgi|bat|dll|exe|key|cert|crt|pem|der|pkcs|pkcs|pkcs[0-9]*|nsf|jsa|war|java|class|vb|vba|so|git|svn|hg|cvs)([^a-zA-Z0-9_]|$)",
+            "regex": "\\.(cgi|bat|dll|exe|key|cert|crt|pem|der|pkcs|pkcs|pkcs[0-9]*|nsf|jsa|war|java|class|vb|vba|so|git|svn|hg|cvs)([?#&/]|$)",
             "options": {
               "case_sensitive": false
             }
@@ -5636,7 +6159,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5678,7 +6202,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5720,7 +6245,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5755,6 +6281,291 @@
       "transformers": []
     },
     {
+      "id": "nfd-000-010",
+      "name": "Detect failed attempts to find API documentation",
+      "tags": {
+        "type": "security_scanner",
+        "category": "attack_attempt",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "0",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "operator": "match_regex",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.response.status"
+              }
+            ],
+            "regex": "^404$",
+            "options": {
+              "case_sensitive": true
+            }
+          }
+        },
+        {
+          "operator": "match_regex",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.uri.raw"
+              }
+            ],
+            "regex": "(?:/swagger\\b|/api[-/]docs?\\b)",
+            "options": {
+              "case_sensitive": false
+            }
+          }
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "rasp-930-100",
+      "name": "Local file inclusion exploit",
+      "tags": {
+        "type": "lfi",
+        "category": "vulnerability_trigger",
+        "cwe": "22",
+        "capec": "1000/255/153/126",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.io.fs.file"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ]
+          },
+          "operator": "lfi_detector@v2"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
+      "id": "rasp-932-100",
+      "name": "Shell command injection exploit",
+      "tags": {
+        "type": "command_injection",
+        "category": "vulnerability_trigger",
+        "cwe": "77",
+        "capec": "1000/152/248/88",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.sys.shell.cmd"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ]
+          },
+          "operator": "shi_detector"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
+      "id": "rasp-932-110",
+      "name": "OS command injection exploit",
+      "tags": {
+        "type": "command_injection",
+        "category": "vulnerability_trigger",
+        "cwe": "77",
+        "capec": "1000/152/248/88",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.sys.exec.cmd"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ]
+          },
+          "operator": "cmdi_detector"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
+      "id": "rasp-934-100",
+      "name": "Server-side request forgery exploit",
+      "tags": {
+        "type": "ssrf",
+        "category": "vulnerability_trigger",
+        "cwe": "918",
+        "capec": "1000/225/115/664",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.io.net.url"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "grpc.server.request.message"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ]
+          },
+          "operator": "ssrf_detector"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
+      "id": "rasp-942-100",
+      "name": "SQL injection exploit",
+      "tags": {
+        "type": "sql_injection",
+        "category": "vulnerability_trigger",
+        "cwe": "89",
+        "capec": "1000/152/248/66",
+        "confidence": "0",
+        "module": "rasp"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "resource": [
+              {
+                "address": "server.db.statement"
+              }
+            ],
+            "params": [
+              {
+                "address": "server.request.query"
+              },
+              {
+                "address": "server.request.body"
+              },
+              {
+                "address": "server.request.path_params"
+              },
+              {
+                "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "db_type": [
+              {
+                "address": "server.db.system"
+              }
+            ]
+          },
+          "operator": "sqli_detector@v2"
+        }
+      ],
+      "transformers": [],
+      "on_match": [
+        "stack_trace"
+      ]
+    },
+    {
       "id": "sqr-000-001",
       "name": "SSRF: Try to access the credential manager of the main cloud services",
       "tags": {
@@ -5762,7 +6573,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5782,6 +6594,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i)^\\W*((http|ftp)s?://)?\\W*((::f{4}:)?(169|(0x)?0*a9|0+251)\\.?(254|(0x)?0*fe|0+376)[0-9a-fx\\.:]+|metadata\\.google\\.internal|metadata\\.goog)\\W*/",
@@ -5803,7 +6618,8 @@
         "type": "js_code_injection",
         "category": "attack_attempt",
         "cwe": "94",
-        "capec": "1000/152/242"
+        "capec": "1000/152/242",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5823,6 +6639,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "require\\(['\"][\\w\\.]+['\"]\\)|process\\.\\w+\\([\\w\\.]*\\)|\\.toString\\(\\)",
@@ -5845,7 +6664,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5868,6 +6688,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i)[&|]\\s*type\\s+%\\w+%\\\\+\\w+\\.ini\\s*[&|]"
@@ -5885,7 +6708,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5908,6 +6732,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i)[&|]\\s*cat\\s*\\/etc\\/[\\w\\.\\/]*passwd\\s*[&|]"
@@ -5927,7 +6754,8 @@
         "category": "attack_attempt",
         "cwe": "78",
         "capec": "1000/152/248/88",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5950,6 +6778,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "(?i)[&|]\\s*timeout\\s+/t\\s+\\d+\\s*[&|]"
@@ -5967,7 +6798,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -5987,6 +6819,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "http(s?):\\/\\/([A-Za-z0-9\\.\\-\\_]+|\\[[A-Fa-f0-9\\:]+\\]|):5986\\/wsman",
@@ -6007,7 +6842,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6027,6 +6863,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^(jar:)?(http|https):\\/\\/([0-9oq]{1,5}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}|[0-9]{1,10})(:[0-9]{1,5})?(\\/[^:@]*)?$"
@@ -6046,7 +6885,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6066,6 +6906,9 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^(jar:)?(http|https):\\/\\/((\\[)?[:0-9a-f\\.x]{2,}(\\])?)(:[0-9]{1,5})?(\\/[^:@]*)?$"
@@ -6085,7 +6928,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6108,9 +6952,12 @@
               },
               {
                 "address": "graphql.server.all_resolvers"
+              },
+              {
+                "address": "graphql.server.resolver"
               }
             ],
-            "regex": "(http|https):\\/\\/(?:.*\\.)?(?:burpcollaborator\\.net|localtest\\.me|mail\\.ebc\\.apple\\.com|bugbounty\\.dod\\.network|.*\\.[nx]ip\\.io|oastify\\.com|oast\\.(?:pro|live|site|online|fun|me)|sslip\\.io|requestbin\\.com|requestbin\\.net|hookbin\\.com|webhook\\.site|canarytokens\\.com|interact\\.sh|ngrok\\.io|bugbounty\\.click|prbly\\.win|qualysperiscope\\.com|vii.one|act1on3.ru)"
+            "regex": "(http|https):\\/\\/(?:.*\\.)?(?:burpcollaborator\\.net|localtest\\.me|mail\\.ebc\\.apple\\.com|bugbounty\\.dod\\.network|.*\\.[nx]ip\\.io|oastify\\.com|oast\\.(?:pro|live|site|online|fun|me)|sslip\\.io|requestbin\\.com|requestbin\\.net|hookbin\\.com|webhook\\.site|canarytokens\\.com|interact\\.sh|ngrok\\.io|bugbounty\\.click|prbly\\.win|qualysperiscope\\.com|vii\\.one|act1on3\\.ru)"
           },
           "operator": "match_regex"
         }
@@ -6125,7 +6972,8 @@
         "category": "attack_attempt",
         "cwe": "918",
         "capec": "1000/225/115/664",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6144,10 +6992,10 @@
                 "address": "server.request.headers.no_cookies"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "^(jar:)?((file|netdoc):\\/\\/[\\\\\\/]+|(dict|gopher|ldap|sftp|tftp):\\/\\/.*:[0-9]{1,5})"
@@ -6167,7 +7015,8 @@
         "category": "attack_attempt",
         "cwe": "94",
         "capec": "1000/152/242",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6189,10 +7038,10 @@
                 "address": "server.request.headers.no_cookies"
               },
               {
-                "address": "grpc.server.request.message"
+                "address": "graphql.server.all_resolvers"
               },
               {
-                "address": "graphql.server.all_resolvers"
+                "address": "graphql.server.resolver"
               }
             ],
             "regex": "\\${[^j]*j[^n]*n[^d]*d[^i]*i[^:]*:[^}]*}"
@@ -6213,7 +7062,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Joomla exploitation tool",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6242,7 +7092,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nessus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6271,7 +7122,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Arachni",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6300,7 +7152,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Jorgee",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6329,7 +7182,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Probely",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6358,7 +7212,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Metis",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6387,7 +7242,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLPowerInjector",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6416,7 +7272,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "N-Stealth",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6445,7 +7302,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Brutus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6473,7 +7331,8 @@
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6502,7 +7361,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Netsparker",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6531,7 +7391,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "JAASCois",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6560,7 +7421,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nsauditor",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6589,7 +7451,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Paros",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6618,7 +7481,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "DirBuster",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6647,7 +7511,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Pangolin",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6676,7 +7541,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Qualys",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6705,7 +7571,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLNinja",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6734,7 +7601,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nikto",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6763,7 +7631,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "BlackWidow",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6792,7 +7661,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Grendel-Scan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6821,7 +7691,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Havij",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6850,7 +7721,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "w3af",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6879,7 +7751,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nmap",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6908,7 +7781,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nessus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6937,7 +7811,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "EvilScanner",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6966,7 +7841,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "WebFuck",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -6995,7 +7871,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "OpenVAS",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7024,7 +7901,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Spider-Pig",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7053,7 +7931,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Zgrab",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7082,7 +7961,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Zmeu",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7111,7 +7991,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "GoogleSecurityScanner",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7140,7 +8021,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Commix",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7169,7 +8051,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Gobuster",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7198,7 +8081,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "CGIchk",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7227,7 +8111,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "FFUF",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7256,7 +8141,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nuclei",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7285,7 +8171,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Tsunami",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7314,7 +8201,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Nimbostratus",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7343,7 +8231,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Datadog Canary Test",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7378,7 +8267,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Datadog Canary Test",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7416,7 +8306,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "AlertLogic",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7445,7 +8336,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "wfuzz",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7474,7 +8366,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Detectify",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7503,7 +8396,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "BSQLBF",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7532,7 +8426,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "masscan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7561,7 +8456,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "WPScan",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7590,7 +8486,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Aon",
-        "confidence": "0"
+        "confidence": "0",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7611,14 +8508,16 @@
       "transformers": []
     },
     {
-      "id": "ua0-600-6xx",
-      "name": "Stealthy scanner",
+      "id": "ua0-600-63x",
+      "name": "FeroxBuster",
       "tags": {
-        "type": "security_scanner",
+        "type": "attack_tool",
         "category": "attack_attempt",
         "cwe": "200",
         "capec": "1000/118/169",
-        "confidence": "1"
+        "tool_name": "feroxbuster",
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7631,7 +8530,36 @@
                 ]
               }
             ],
-            "regex": "mozilla/4\\.0 \\(compatible(; msie (?:6\\.0; win32|4\\.0; Windows NT))?\\)",
+            "regex": "^feroxbuster/"
+          },
+          "operator": "match_regex"
+        }
+      ],
+      "transformers": []
+    },
+    {
+      "id": "ua0-600-6xx",
+      "name": "Stealthy scanner",
+      "tags": {
+        "type": "security_scanner",
+        "category": "attack_attempt",
+        "cwe": "200",
+        "capec": "1000/118/169",
+        "confidence": "1",
+        "module": "waf"
+      },
+      "conditions": [
+        {
+          "parameters": {
+            "inputs": [
+              {
+                "address": "server.request.headers.no_cookies",
+                "key_path": [
+                  "user-agent"
+                ]
+              }
+            ],
+            "regex": "mozilla/4\\.0 \\(compatible(; msie (?:6\\.0; (?:win32|Windows NT 5\\.0)|4\\.0; Windows NT))?\\)",
             "options": {
               "case_sensitive": false
             }
@@ -7650,7 +8578,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "SQLmap",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7679,7 +8608,8 @@
         "cwe": "200",
         "capec": "1000/118/169",
         "tool_name": "Skipfish",
-        "confidence": "1"
+        "confidence": "1",
+        "module": "waf"
       },
       "conditions": [
         {
@@ -7698,6 +8628,1350 @@
         }
       ],
       "transformers": []
+    }
+  ],
+  "processors": [
+    {
+      "id": "http-endpoint-fingerprint",
+      "generator": "http_endpoint_fingerprint",
+      "conditions": [
+        {
+          "operator": "exists",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.event"
+              },
+              {
+                "address": "server.business_logic.users.login.failure"
+              },
+              {
+                "address": "server.business_logic.users.login.success"
+              }
+            ]
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "method": [
+              {
+                "address": "server.request.method"
+              }
+            ],
+            "uri_raw": [
+              {
+                "address": "server.request.uri.raw"
+              }
+            ],
+            "body": [
+              {
+                "address": "server.request.body"
+              }
+            ],
+            "query": [
+              {
+                "address": "server.request.query"
+              }
+            ],
+            "output": "_dd.appsec.fp.http.endpoint"
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    },
+    {
+      "id": "extract-content",
+      "generator": "extract_schema",
+      "conditions": [
+        {
+          "operator": "equals",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.processor",
+                "key_path": [
+                  "extract-schema"
+                ]
+              }
+            ],
+            "type": "boolean",
+            "value": true
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "inputs": [
+              {
+                "address": "server.request.body"
+              }
+            ],
+            "output": "_dd.appsec.s.req.body"
+          },
+          {
+            "inputs": [
+              {
+                "address": "server.request.cookies"
+              }
+            ],
+            "output": "_dd.appsec.s.req.cookies"
+          },
+          {
+            "inputs": [
+              {
+                "address": "server.request.query"
+              }
+            ],
+            "output": "_dd.appsec.s.req.query"
+          },
+          {
+            "inputs": [
+              {
+                "address": "server.request.path_params"
+              }
+            ],
+            "output": "_dd.appsec.s.req.params"
+          },
+          {
+            "inputs": [
+              {
+                "address": "server.response.body"
+              }
+            ],
+            "output": "_dd.appsec.s.res.body"
+          },
+          {
+            "inputs": [
+              {
+                "address": "graphql.server.all_resolvers"
+              }
+            ],
+            "output": "_dd.appsec.s.graphql.all_resolvers"
+          },
+          {
+            "inputs": [
+              {
+                "address": "graphql.server.resolver"
+              }
+            ],
+            "output": "_dd.appsec.s.graphql.resolver"
+          }
+        ],
+        "scanners": [
+          {
+            "tags": {
+              "category": "payment"
+            }
+          },
+          {
+            "tags": {
+              "category": "pii"
+            }
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    },
+    {
+      "id": "extract-headers",
+      "generator": "extract_schema",
+      "conditions": [
+        {
+          "operator": "equals",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.processor",
+                "key_path": [
+                  "extract-schema"
+                ]
+              }
+            ],
+            "type": "boolean",
+            "value": true
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "inputs": [
+              {
+                "address": "server.request.headers.no_cookies"
+              }
+            ],
+            "output": "_dd.appsec.s.req.headers"
+          },
+          {
+            "inputs": [
+              {
+                "address": "server.response.headers.no_cookies"
+              }
+            ],
+            "output": "_dd.appsec.s.res.headers"
+          }
+        ],
+        "scanners": [
+          {
+            "tags": {
+              "category": "credentials"
+            }
+          },
+          {
+            "tags": {
+              "category": "pii"
+            }
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    },
+    {
+      "id": "http-header-fingerprint",
+      "generator": "http_header_fingerprint",
+      "conditions": [
+        {
+          "operator": "exists",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.event"
+              },
+              {
+                "address": "server.business_logic.users.login.failure"
+              },
+              {
+                "address": "server.business_logic.users.login.success"
+              }
+            ]
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "headers": [
+              {
+                "address": "server.request.headers.no_cookies"
+              }
+            ],
+            "output": "_dd.appsec.fp.http.header"
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    },
+    {
+      "id": "http-network-fingerprint",
+      "generator": "http_network_fingerprint",
+      "conditions": [
+        {
+          "operator": "exists",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.event"
+              },
+              {
+                "address": "server.business_logic.users.login.failure"
+              },
+              {
+                "address": "server.business_logic.users.login.success"
+              }
+            ]
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "headers": [
+              {
+                "address": "server.request.headers.no_cookies"
+              }
+            ],
+            "output": "_dd.appsec.fp.http.network"
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    },
+    {
+      "id": "session-fingerprint",
+      "generator": "session_fingerprint",
+      "conditions": [
+        {
+          "operator": "exists",
+          "parameters": {
+            "inputs": [
+              {
+                "address": "waf.context.event"
+              },
+              {
+                "address": "server.business_logic.users.login.failure"
+              },
+              {
+                "address": "server.business_logic.users.login.success"
+              }
+            ]
+          }
+        }
+      ],
+      "parameters": {
+        "mappings": [
+          {
+            "cookies": [
+              {
+                "address": "server.request.cookies"
+              }
+            ],
+            "session_id": [
+              {
+                "address": "usr.session_id"
+              }
+            ],
+            "user_id": [
+              {
+                "address": "usr.id"
+              }
+            ],
+            "output": "_dd.appsec.fp.session"
+          }
+        ]
+      },
+      "evaluate": false,
+      "output": true
+    }
+  ],
+  "scanners": [
+    {
+      "id": "406f8606-52c4-4663-8db9-df70f9e8766c",
+      "name": "ZIP Code",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:zip|postal)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^[0-9]{5}(?:-[0-9]{4})?$",
+          "options": {
+            "case_sensitive": true,
+            "min_length": 5
+          }
+        }
+      },
+      "tags": {
+        "type": "zipcode",
+        "category": "address"
+      }
+    },
+    {
+      "id": "JU1sRk3mSzqSUJn6GrVn7g",
+      "name": "American Express Card Scanner (4+4+4+3 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b3[47]\\d{2}(?:(?:\\s\\d{4}\\s\\d{4}\\s\\d{3})|(?:\\,\\d{4}\\,\\d{4}\\,\\d{3})|(?:-\\d{4}-\\d{4}-\\d{3})|(?:\\.\\d{4}\\.\\d{4}\\.\\d{3}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "amex",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "edmH513UTQWcRiQ9UnzHlw-mod",
+      "name": "American Express Card Scanner (4+6|5+5|6 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b3[47]\\d{2}(?:(?:\\s\\d{5,6}\\s\\d{5,6})|(?:\\.\\d{5,6}\\.\\d{5,6})|(?:-\\d{5,6}-\\d{5,6})|(?:,\\d{5,6},\\d{5,6}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 17
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "amex",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "e6K4h_7qTLaMiAbaNXoSZA",
+      "name": "American Express Card Scanner (8+7 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b3[47]\\d{6}(?:(?:\\s\\d{7})|(?:\\,\\d{7})|(?:-\\d{7})|(?:\\.\\d{7}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "amex",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "K2rZflWzRhGM9HiTc6whyQ",
+      "name": "American Express Card Scanner (1x15 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b3[47]\\d{13}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 15
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "amex",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "9d7756e343cefa22a5c098e1092590f806eb5446",
+      "name": "Basic Authentication Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bauthorization\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 13
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^basic\\s+[A-Za-z0-9+/=]+",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 7
+          }
+        }
+      },
+      "tags": {
+        "type": "basic_auth",
+        "category": "credentials"
+      }
+    },
+    {
+      "id": "mZy8XjZLReC9smpERXWnnw",
+      "name": "Bearer Authentication Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bauthorization\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 13
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^bearer\\s+[-a-z0-9._~+/]{4,}",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 11
+          }
+        }
+      },
+      "tags": {
+        "type": "bearer_token",
+        "category": "credentials"
+      }
+    },
+    {
+      "id": "450239afc250a19799b6c03dc0e16fd6a4b2a1af",
+      "name": "Canadian Social Insurance Number Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:social[\\s_]?(?:insurance(?:\\s+number)?)?|SIN|Canadian[\\s_]?(?:social[\\s_]?(?:insurance)?|insurance[\\s_]?number)?)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b\\d{3}-\\d{3}-\\d{3}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 11
+          }
+        }
+      },
+      "tags": {
+        "type": "canadian_sin",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "87a879ff33693b46c8a614d8211f5a2c289beca0",
+      "name": "Digest Authentication Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bauthorization\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 13
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^digest\\s+",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 7
+          }
+        }
+      },
+      "tags": {
+        "type": "digest_auth",
+        "category": "credentials"
+      }
+    },
+    {
+      "id": "qWumeP1GQUa_E4ffAnT-Yg",
+      "name": "American Express Card Scanner (1x14 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "(?:30[0-59]\\d|3[689]\\d{2})(?:\\d{10})",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 14
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "diners",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "NlTWWM5LS6W0GSqBLuvtRw",
+      "name": "Diners Card Scanner (4+4+4+2 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:30[0-59]\\d|3[689]\\d{2})(?:(?:\\s\\d{4}\\s\\d{4}\\s\\d{2})|(?:\\,\\d{4}\\,\\d{4}\\,\\d{2})|(?:-\\d{4}-\\d{4}-\\d{2})|(?:\\.\\d{4}\\.\\d{4}\\.\\d{2}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 17
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "diners",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "Xr5VdbQSTXitYGGiTfxBpw",
+      "name": "Diners Card Scanner (4+6+4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:30[0-59]\\d|3[689]\\d{2})(?:(?:\\s\\d{6}\\s\\d{4})|(?:\\.\\d{6}\\.\\d{4})|(?:-\\d{6}-\\d{4})|(?:,\\d{6},\\d{4}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "diners",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "gAbunN_WQNytxu54DjcbAA-mod",
+      "name": "Diners Card Scanner (8+6 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:30[0-59]\\d{5}|3[689]\\d{6})\\s?(?:(?:\\s\\d{6})|(?:\\,\\d{6})|(?:-\\d{6})|(?:\\.\\d{6}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 14
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "diners",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "9cs4qCfEQBeX17U7AepOvQ",
+      "name": "MasterCard Scanner (2x8 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:6221(?:2[6-9]|[3-9][0-9])\\d{2}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8})|6229(?:[01][0-9]|2[0-5])\\d{2}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8})|(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])\\d{4}(?:,\\d{8}|\\s\\d{8}|-\\d{8}|\\.\\d{8}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "discover",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "YBIDWJIvQWW_TFOyU0CGJg",
+      "name": "Discover Card Scanner (4x4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:(?:(?:6221(?:2[6-9]|[3-9][0-9])\\d{2}(?:,\\d{4}){2})|(?:6221\\s(?:2[6-9]|[3-9][0-9])\\d{2}(?:\\s\\d{4}){2})|(?:6221\\.(?:2[6-9]|[3-9][0-9])\\d{2}(?:\\.\\d{4}){2})|(?:6221-(?:2[6-9]|[3-9][0-9])\\d{2}(?:-\\d{4}){2}))|(?:(?:6229(?:[01][0-9]|2[0-5])\\d{2}(?:,\\d{4}){2})|(?:6229\\s(?:[01][0-9]|2[0-5])\\d{2}(?:\\s\\d{4}){2})|(?:6229\\.(?:[01][0-9]|2[0-5])\\d{2}(?:\\.\\d{4}){2})|(?:6229-(?:[01][0-9]|2[0-5])\\d{2}(?:-\\d{4}){2}))|(?:(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "discover",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "12cpbjtVTMaMutFhh9sojQ",
+      "name": "Discover Card Scanner (1x16 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:6221(?:2[6-9]|[3-9][0-9])\\d{10}|6229(?:[01][0-9]|2[0-5])\\d{10}|(?:6011|65\\d{2}|64[4-9]\\d|622[2-8])\\d{12})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "discover",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "PuXiVTCkTHOtj0Yad1ppsw",
+      "name": "Standard E-mail Address",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:(?:e[-\\s]?)?mail|address|sender|\\bto\\b|from|recipient)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 2
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b[\\w!#$%&'*+/=?`{|}~^-]+(?:\\.[\\w!#$%&'*+/=?`{|}~^-]+)*(%40|@)(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,6}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 5
+          }
+        }
+      },
+      "tags": {
+        "type": "email",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "8VS2RKxzR8a_95L5fuwaXQ",
+      "name": "IBAN",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:iban|account|sender|receiver)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:NO\\d{2}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{3}|BE\\d{2}(?:[ \\-]?\\d{4}){3}|(?:DK|FO|FI|GL|SD)\\d{2}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|NL\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{2}|MK\\d{2}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]\\d{2}|SI\\d{17}|(?:AT|BA|EE|LT|XK)\\d{18}|(?:LU|KZ|EE|LT)\\d{5}[A-Z0-9]{13}|LV\\d{2}[A-Z]{4}[A-Z0-9]{13}|(?:LI|CH)\\d{2}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]|HR\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d|GE\\d{2}[ \\-]?[A-Z0-9]{2}\\d{2}\\d{14}|VA\\d{20}|BG\\d{2}[A-Z]{4}\\d{6}[A-Z0-9]{8}|BH\\d{2}[A-Z]{4}[A-Z0-9]{14}|GB\\d{2}[A-Z]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|IE\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{2}|(?:CR|DE|ME|RS)\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d{2}|(?:AE|TL|IL)\\d{2}(?:[ \\-]?\\d{4}){4}[ \\-]?\\d{3}|GI\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){3}[ \\-]?[A-Z0-9]{3}|IQ\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){3}[ \\-]?\\d{3}|MD\\d{2}(?:[ \\-]?[A-Z0-9]{4}){5}|SA\\d{2}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){4}|RO\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){4}|(?:PK|VG)\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){4}|AD\\d{2}(?:[ \\-]?\\d{4}){2}(?:[ \\-]?[A-Z0-9]{4}){3}|(?:CZ|SK|ES|SE|TN)\\d{2}(?:[ \\-]?\\d{4}){5}|(?:LY|PT|ST)\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d|TR\\d{2}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{4}){3}[ \\-]?[A-Z0-9]{2}|IS\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{2}|(?:IT|SM)\\d{2}[ \\-]?[A-Z]\\d{3}[ \\-]?\\d{4}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]{3}|GR\\d{2}[ \\-]?\\d{4}[ \\-]?\\d{3}[A-Z0-9](?:[ \\-]?[A-Z0-9]{4}){3}[A-Z0-9]{3}|(?:FR|MC)\\d{2}(?:[ \\-]?\\d{4}){2}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){2}[ \\-]?[A-Z0-9]\\d{2}|MR\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{3}|(?:SV|DO)\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){5}|BY\\d{2}[ \\-]?[A-Z]{4}[ \\-]?\\d{4}(?:[ \\-]?[A-Z0-9]{4}){4}|GT\\d{2}(?:[ \\-]?[A-Z0-9]{4}){6}|AZ\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{5}){4}|LB\\d{2}[ \\-]?\\d{4}(?:[ \\-]?[A-Z0-9]{5}){4}|(?:AL|CY)\\d{2}(?:[ \\-]?\\d{4}){2}(?:[ \\-]?[A-Z0-9]{4}){4}|(?:HU|PL)\\d{2}(?:[ \\-]?\\d{4}){6}|QA\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){5}[ \\-]?[A-Z0-9]|PS\\d{2}[ \\-]?[A-Z0-9]{4}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d|UA\\d{2}[ \\-]?\\d{4}[ \\-]?\\d{2}[A-Z0-9]{2}(?:[ \\-]?[A-Z0-9]{4}){4}[ \\-]?[A-Z0-9]|BR\\d{2}(?:[ \\-]?\\d{4}){5}[ \\-]?\\d{3}[A-Z0-9][ \\-]?[A-Z0-9]|EG\\d{2}(?:[ \\-]?\\d{4}){6}\\d|MU\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){4}\\d{3}[A-Z][ \\-]?[A-Z]{2}|(?:KW|JO)\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){5}[ \\-]?[A-Z0-9]{2}|MT\\d{2}[ \\-]?[A-Z]{4}[ \\-]?\\d{4}[ \\-]?\\d[A-Z0-9]{3}(?:[ \\-]?[A-Z0-9]{3}){4}[ \\-]?[A-Z0-9]{3}|SC\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?\\d{4}){5}[ \\-]?[A-Z]{3}|LC\\d{2}[ \\-]?[A-Z]{4}(?:[ \\-]?[A-Z0-9]{4}){6})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 15
+          }
+        }
+      },
+      "tags": {
+        "type": "iban",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "h6WJcecQTwqvN9KeEtwDvg",
+      "name": "JCB Card Scanner (1x16 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b35(?:2[89]|[3-9][0-9])(?:\\d{12})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "jcb",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "gcEaMu_VSJ2-bGCEkgyC0w",
+      "name": "JCB Card Scanner (2x8 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b35(?:2[89]|[3-9][0-9])\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 17
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "jcb",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "imTliuhXT5GAeRNhqChXQQ",
+      "name": "JCB Card Scanner (4x4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b35(?:2[89]|[3-9][0-9])(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "jcb",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "9osY3xc9Q7ONAV0zw9Uz4A",
+      "name": "JSON Web Token",
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bey[I-L][\\w=-]+\\.ey[I-L][\\w=-]+(\\.[\\w.+\\/=-]+)?\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 20
+          }
+        }
+      },
+      "tags": {
+        "type": "json_web_token",
+        "category": "credentials"
+      }
+    },
+    {
+      "id": "d1Q9D3YMRxuVKf6CZInJPw",
+      "name": "Maestro Card Scanner (1x16 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:5[06-9]\\d{2}|6\\d{3})(?:\\d{12})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "maestro",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "M3YIQKKjRVmoeQuM3pjzrw",
+      "name": "Maestro Card Scanner (2x8 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:5[06-9]\\d{6}|6\\d{7})(?:\\s\\d{8}|\\.\\d{8}|-\\d{8}|,\\d{8})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 17
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "maestro",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "hRxiQBlSSVKcjh5U7LZYLA",
+      "name": "Maestro Card Scanner (4x4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:5[06-9]\\d{2}|6\\d{3})(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "maestro",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "NwhIYNS4STqZys37WlaIKA",
+      "name": "MasterCard Scanner (2x8 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:(?:\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "mastercard",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "axxJkyjhRTOuhjwlsA35Vw",
+      "name": "MasterCard Scanner (4x4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3}|(?:,\\d{4}){3})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "mastercard",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "76EhmoK3TPqJcpM-fK0pLw",
+      "name": "MasterCard Scanner (1x16 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:(?:5[1-5]\\d{2})|(?:222[1-9])|(?:22[3-9]\\d)|(?:2[3-6]\\d{2})|(?:27[0-1]\\d)|(?:2720))(?:\\d{12})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "mastercard",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "18b608bd7a764bff5b2344c0",
+      "name": "Phone number",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bphone|number|mobile\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^(?:\\(\\+\\d{1,3}\\)|\\+\\d{1,3}|00\\d{1,3})?[-\\s\\.]?(?:\\(\\d{3}\\)[-\\s\\.]?)?(?:\\d[-\\s\\.]?){6,10}$",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 6
+          }
+        }
+      },
+      "tags": {
+        "type": "phone",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "de0899e0cbaaa812bb624cf04c912071012f616d-mod",
+      "name": "UK National Insurance Number Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "^nin$|\\binsurance\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b[A-Z]{2}[\\s-]?\\d{6}[\\s-]?[A-Z]?\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 8
+          }
+        }
+      },
+      "tags": {
+        "type": "uk_nin",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "d962f7ddb3f55041e39195a60ff79d4814a7c331",
+      "name": "US Passport Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\bpassport\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 8
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b[0-9A-Z]{9}\\b|\\b[0-9]{6}[A-Z][0-9]{2}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 8
+          }
+        }
+      },
+      "tags": {
+        "type": "passport_number",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "7771fc3b-b205-4b93-bcef-28608c5c1b54",
+      "name": "United States Social Security Number Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:SSN|(?:(?:social)?[\\s_]?(?:security)?[\\s_]?(?:number)?)?)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b\\d{3}[-\\s\\.]{1}\\d{2}[-\\s\\.]{1}\\d{4}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 11
+          }
+        }
+      },
+      "tags": {
+        "type": "us_ssn",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "ac6d683cbac77f6e399a14990793dd8fd0fca333",
+      "name": "US Vehicle Identification Number Scanner",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:vehicle[_\\s-]*identification[_\\s-]*number|vin)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b[A-HJ-NPR-Z0-9]{17}\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 17
+          }
+        }
+      },
+      "tags": {
+        "type": "vin",
+        "category": "pii"
+      }
+    },
+    {
+      "id": "wJIgOygRQhKkR69b_9XbRQ",
+      "name": "Visa Card Scanner (2x8 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b4\\d{3}(?:(?:\\d{4}(?:(?:,\\d{8})|(?:-\\d{8})|(?:\\s\\d{8})|(?:\\.\\d{8}))))\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "visa",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "0o71SJxXQNK7Q6gMbBesFQ",
+      "name": "Visa Card Scanner (4x4 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b4\\d{3}(?:(?:,\\d{4}){3}|(?:\\s\\d{4}){3}|(?:\\.\\d{4}){3}|(?:-\\d{4}){3})\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 16
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "visa",
+        "category": "payment"
+      }
+    },
+    {
+      "id": "QrHD6AfgQm6z-j0wStxTvA",
+      "name": "Visa Card Scanner (1x15 & 1x16 & 1x19 digits)",
+      "key": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "\\b(?:card|cc|credit|debit|payment|amex|visa|mastercard|maestro|discover|jcb|diner)\\b",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 3
+          }
+        }
+      },
+      "value": {
+        "operator": "match_regex",
+        "parameters": {
+          "regex": "4[0-9]{12}(?:[0-9]{3})?",
+          "options": {
+            "case_sensitive": false,
+            "min_length": 13
+          }
+        }
+      },
+      "tags": {
+        "type": "card",
+        "card_type": "visa",
+        "category": "payment"
+      }
     }
   ]
 }

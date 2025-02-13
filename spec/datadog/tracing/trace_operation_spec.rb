@@ -136,6 +136,22 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'given' do
+      context ':trace_operation_samples' do
+        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
+        let(:trace_op) { described_class.new(tracer: tracer) }
+
+        describe '#to_digest' do
+          before do
+            allow(tracer).to receive(:sample_trace)
+          end
+
+          it 'calls tracer.sample_trace' do
+            expect(tracer).to receive(:sample_trace).with(trace_op)
+            trace_op.to_digest
+          end
+        end
+      end
+
       context ':agent_sample_rate' do
         subject(:options) { { agent_sample_rate: agent_sample_rate } }
         let(:agent_sample_rate) { 0.5 }
@@ -297,6 +313,57 @@ RSpec.describe Datadog::Tracing::TraceOperation do
           # When flushed
           trace_op.flush!
           expect(trace_op.full?).to be false
+        end
+      end
+    end
+
+    context 'when trace operation returns root span values as well' do
+      let(:options) { { tags: { ok: 'test' } } }
+      context 'for tags' do
+        it do
+          # When tags are added to the root span they should be accessible through the trace operation
+          span = trace_op.build_span('test', tags: { 'foo' => 'bar' })
+          span.start
+          expect(trace_op.get_tag('foo')).to eq('bar')
+          expect(trace_op.get_tag('ok')).to eq('test')
+          expect(trace_op.tags).to eq('foo' => 'bar', 'ok' => 'test')
+          span.finish
+        end
+
+        context 'trace operation tags take precedent over root span tags' do
+          it do
+            # When tags are added to the root span they should be accessible through the trace operation
+            span = trace_op.build_span('test', tags: { 'ok' => 'should_not_be' })
+            span.start
+            expect(trace_op.tags).to eq('ok' => 'test')
+            span.finish
+          end
+
+          context 'for metrics' do
+            let(:options) { { metrics: { metric1: 123 } } }
+            it do
+              # When tags are added to the root span they should be accessible through the trace operation
+              span = trace_op.build_span('test', tags: { 'metric2' => 456 })
+              span.start
+              expect(trace_op.get_metric('metric1')).to eq(123)
+              expect(trace_op.get_metric('metric2')).to eq(456)
+
+              span.finish
+            end
+          end
+
+          context 'for metrics override' do
+            let(:options) { { metrics: { metric1: 123 } } }
+
+            it do
+              # When tags are added to the root span they should be accessible through the trace operation
+              span = trace_op.build_span('test', tags: { 'metric1' => 456 })
+              span.start
+              expect(trace_op.get_metric('metric1')).to eq(123)
+              expect(trace_op.tags).to eq({ 'metric1' => 123 })
+              span.finish
+            end
+          end
         end
       end
     end

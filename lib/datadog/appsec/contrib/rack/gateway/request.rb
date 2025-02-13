@@ -45,12 +45,9 @@ module Datadog
               end
 
               result['content-type'] = request.content_type if request.content_type
-              result['content-length'] = request.content_length if request.content_length
+              # Since Rack 3.1, content-length is nil if the body is empty, but we still want to send it to the WAF.
+              result['content-length'] = request.content_length || '0'
               result
-            end
-
-            def body
-              request.body.read.tap { request.body.rewind }
             end
 
             def url

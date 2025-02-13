@@ -13,15 +13,15 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 
 static VALUE library_version_string = Qnil;
 
-struct call_exporter_without_gvl_arguments {
+typedef struct {
   ddog_prof_Exporter *exporter;
   ddog_prof_Exporter_Request_BuildResult *build_result;
   ddog_CancellationToken *cancel_token;
   ddog_prof_Exporter_SendResult result;
   bool send_ran;
-};
+} call_exporter_without_gvl_arguments;
 
-inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
+static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
 static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result);
@@ -57,7 +57,7 @@ void http_transport_init(VALUE profiling_module) {
   rb_global_variable(&library_version_string);
 }
 
-inline static ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
+static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
   ENFORCE_TYPE(string, T_STRING);
   ddog_ByteSlice byte_slice = {.ptr = (uint8_t *) StringValuePtr(string), .len = RSTRING_LEN(string)};
   return byte_slice;
@@ -75,6 +75,32 @@ static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporte
   ddog_prof_Exporter_drop(exporter_result.ok);
 
   return rb_ary_new_from_args(2, ok_symbol, Qnil);
+}
+
+static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
+  ENFORCE_TYPE(exporter_configuration, T_ARRAY);
+
+  VALUE exporter_working_mode = rb_ary_entry(exporter_configuration, 0);
+  ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
+  ID working_mode = SYM2ID(exporter_working_mode);
+
+  ID agentless_id = rb_intern("agentless");
+  ID agent_id = rb_intern("agent");
+
+  if (working_mode != agentless_id && working_mode != agent_id) {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
+  }
+
+  if (working_mode == agentless_id) {
+    VALUE site = rb_ary_entry(exporter_configuration, 1);
+    VALUE api_key = rb_ary_entry(exporter_configuration, 2);
+
+    return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
+  } else { // agent_id
+    VALUE base_url = rb_ary_entry(exporter_configuration, 1);
+
+    return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+  }
 }
 
 static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
@@ -115,8 +141,7 @@ static VALUE perform_export(
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
   ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
-  ddog_CharSlice info,
-  uint64_t timeout_milliseconds
+  ddog_CharSlice info
 ) {
   ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
   ddog_prof_Exporter_Request_BuildResult build_result = ddog_prof_Exporter_Request_build(
@@ -128,8 +153,7 @@ static VALUE perform_export(
     additional_tags,
     endpoints_stats,
     &internal_metadata,
-    &info,
-    timeout_milliseconds
+    &info
   );
 
   if (build_result.tag == DDOG_PROF_EXPORTER_REQUEST_BUILD_RESULT_ERR) {
@@ -141,7 +165,7 @@ static VALUE perform_export(
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
-  struct call_exporter_without_gvl_arguments args =
+  call_exporter_without_gvl_arguments args =
     {.exporter = exporter, .build_result = &build_result, .cancel_token = cancel_token, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
@@ -254,6 +278,15 @@ static VALUE _native_do_export(
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
+  ddog_prof_MaybeError timeout_result = ddog_prof_Exporter_set_timeout(exporter_result.ok, timeout_milliseconds);
+  if (timeout_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    // NOTE: Seems a bit harsh to fail the upload if we can't set a timeout. OTOH, this is only expected to fail
+    // if the exporter is not well built. Because such a situation should already be caught above I think it's
+    // preferable to leave this here as a virtually unreachable exception rather than ignoring it.
+    ddog_prof_Exporter_drop(exporter_result.ok);
+    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&timeout_result.some));
+  }
+
   return perform_export(
     exporter_result.ok,
     start,
@@ -262,13 +295,12 @@ static VALUE _native_do_export(
     files_to_export_unmodified,
     null_additional_tags,
     internal_metadata,
-    info,
-    timeout_milliseconds
+    info
   );
 }
 
 static void *call_exporter_without_gvl(void *call_args) {
-  struct call_exporter_without_gvl_arguments *args = (struct call_exporter_without_gvl_arguments*) call_args;
+  call_exporter_without_gvl_arguments *args = (call_exporter_without_gvl_arguments*) call_args;
 
   args->result = ddog_prof_Exporter_send(args->exporter, &args->build_result->ok, args->cancel_token);
   args->send_ran = true;

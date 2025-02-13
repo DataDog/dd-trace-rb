@@ -73,29 +73,19 @@ module Datadog
             def process_action(*args)
               env = request.env
 
-              context = env[Datadog::AppSec::Ext::SCOPE_KEY]
+              context = env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
               return super unless context
 
               # TODO: handle exceptions, except for super
 
               gateway_request = Gateway::Request.new(request)
-              request_return, request_response = Instrumentation.gateway.push('rails.request.action', gateway_request) do
+
+              http_response, _gateway_request = Instrumentation.gateway.push('rails.request.action', gateway_request) do
                 super
               end
 
-              if request_response
-                blocked_event = request_response.find { |action, _options| action == :block }
-                if blocked_event
-                  @_response = AppSec::Response.negotiate(
-                    env,
-                    blocked_event.last[:actions]
-                  ).to_action_dispatch_response
-                  request_return = @_response.body
-                end
-              end
-
-              request_return
+              http_response
             end
           end
 

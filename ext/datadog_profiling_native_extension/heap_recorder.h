@@ -17,7 +17,7 @@
 typedef struct heap_recorder heap_recorder;
 
 // Extra data associated with each live object being tracked.
-typedef struct live_object_data {
+typedef struct {
   // The weight of this object from a sampling perspective.
   //
   // A notion of weight is preserved for each tracked object to allow for an approximate
@@ -105,7 +105,7 @@ void heap_recorder_after_fork(heap_recorder *heap_recorder);
 //   The sampling weight of this object.
 //
 // WARN: It needs to be paired with a ::end_heap_allocation_recording call.
-void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice *alloc_class);
+void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj, unsigned int weight, ddog_CharSlice alloc_class);
 
 // End a previously started heap allocation recording on the heap recorder.
 //
@@ -117,6 +117,11 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // WARN: This method rescues exceptions with `rb_protect`, returning the exception state integer for the caller to handle.
 __attribute__((warn_unused_result))
 int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations);
+
+// Update the heap recorder, **checking young objects only**. The idea here is to align with GC: most young objects never
+// survive enough GC generations, and thus periodically running this method reduces memory usage (we get rid of
+// these objects quicker) and hopefully reduces tail latency (because there's less objects at serialization time to check).
+void heap_recorder_update_young_objects(heap_recorder *heap_recorder);
 
 // Update the heap recorder to reflect the latest state of the VM and prepare internal structures
 // for efficient iteration.
@@ -166,3 +171,9 @@ void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locatio
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
+
+// Check if a given object_id is being tracked or not
+VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VALUE obj_id);
+
+// Used to ensure that a GC actually triggers an update of the objects
+void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);

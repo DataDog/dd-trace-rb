@@ -131,6 +131,16 @@ appraise 'rails61-semantic-logger' do
   gem 'rails_semantic_logger', '~> 4.0'
 end
 
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+  gem 'net-smtp'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '~> 3.0'
   gem 'resque', '>= 2.0'
@@ -159,21 +169,12 @@ appraise 'http' do
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe', '~> 8.0'
   gem 'typhoeus'
 end
 
-[2, 3].each do |n|
-  appraise "opensearch-#{n}" do
-    gem 'opensearch-ruby', "~> #{n}"
-  end
-end
-
-[7, 8].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
-end
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', 7..8)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
@@ -182,7 +183,7 @@ appraise 'relational_db' do
   gem 'makara'
   gem 'activerecord-jdbcmysql-adapter', platform: :jruby
   gem 'activerecord-jdbcpostgresql-adapter', platform: :jruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'jdbc-sqlite3', '>= 3.28', platform: :jruby
 end
 
@@ -226,13 +227,7 @@ end
   end
 end
 
-[1, 2, 3].each do |n|
-  appraise "rack-#{n}" do
-    gem 'rack', "~> #{n}"
-    gem 'rack-contrib'
-    gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
+build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3].each do |n|
   appraise "sinatra-#{n}" do

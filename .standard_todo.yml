@@ -9,6 +9,7 @@ ignore:
   - Style/TrailingCommaInArguments
   - Style/TrailingCommaInArrayLiteral
   - Style/TrailingCommaInHashLiteral
+  - Style/StringLiterals
 
 # This disables standardrb for the rest of dd-trace-rb (other than profiling)
 - .pryrc
@@ -37,20 +38,10 @@ ignore:
 - spec/datadog/appsec/**/**
 - spec/datadog/benchmark/**/**
 - spec/datadog/core/**/**
+- spec/datadog/di/integration/*_test_class*.rb
 - spec/datadog/kit/**/**
 - spec/datadog/tracing/**/**
 - spec/support/**/**
 - tasks/**/**
+- tools/**/**
 - yard/**/**
-
-# These profiling ignores are ALL going to be fixed in separate PRs
-- lib/datadog/profiling/**/**:
-  - Style/StringLiterals
-- spec/datadog/profiling/**/**:
-  - Style/StringLiterals
-- ext/datadog_profiling_loader/extconf.rb:
-  - Style/StringLiterals
-- ext/datadog_profiling_native_extension/extconf.rb:
-  - Style/StringLiterals
-- ext/datadog_profiling_native_extension/native_extension_helpers.rb:
-  - Style/StringLiterals

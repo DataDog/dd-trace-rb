@@ -6,11 +6,13 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP do
   context 'integration test' do
     before { Datadog.configure {} }
 
-    let(:config) { Datadog.configuration }
-
     describe '#inject' do
       subject(:inject) { described_class.inject(digest, data) }
-      let(:digest) { Datadog::Tracing::TraceDigest.new }
+      let(:trace_id) { Datadog::Tracing::Utils::TraceId.next_id }
+      let(:span_id) { Datadog::Tracing::Utils.next_id }
+      let(:digest) do
+        Datadog::Tracing::TraceDigest.new(trace_id: trace_id, span_id: span_id)
+      end
       let(:data) { {} }
 
       it 'injects distributed headers' do

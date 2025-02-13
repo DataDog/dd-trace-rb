@@ -43,7 +43,7 @@ module Datadog
           traces = process_traces(traces)
           flush_traces(traces)
         rescue StandardError => e
-          Datadog.logger.error(
+          Datadog.logger.warn(
             "Error while writing traces: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
           )
         end

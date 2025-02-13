@@ -15,7 +15,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Patcher do
 
     context 'without Rails tagged logging' do
       it 'does not log incompatibility error' do
-        expect(Datadog.logger).to_not receive(:error)
+        expect(Datadog.logger).to_not receive(:warn)
 
         described_class.patch
       end
@@ -26,7 +26,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Patcher do
         logger = ActiveSupport::TaggedLogging.new(Logger.new(File::NULL))
         stub_const('Lograge::LogSubscribers::ActionController', double('controller', logger: logger))
 
-        expect(Datadog.logger).to receive(:error).with(/ActiveSupport::TaggedLogging/)
+        expect(Datadog.logger).to receive(:warn).with(/ActiveSupport::TaggedLogging/)
 
         described_class.patch
       end

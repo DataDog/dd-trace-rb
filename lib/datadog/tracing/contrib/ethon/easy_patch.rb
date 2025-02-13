@@ -110,6 +110,10 @@ module Datadog
 
               datadog_tag_request
 
+              if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(datadog_trace)
+                datadog_trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+              end
+
               if datadog_configuration[:distributed_tracing]
                 @datadog_original_headers ||= {}
                 Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)

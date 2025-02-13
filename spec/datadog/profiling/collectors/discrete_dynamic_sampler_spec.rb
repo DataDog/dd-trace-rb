@@ -1,7 +1,7 @@
-require 'datadog/profiling/spec_helper'
-require 'datadog/profiling'
+require "datadog/profiling/spec_helper"
+require "datadog/profiling"
 
-RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
+RSpec.describe "Datadog::Profiling::Collectors::DiscreteDynamicSampler" do
   let(:max_overhead_target) { 2.0 }
 
   before do
@@ -70,7 +70,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     sampler._native_state_snapshot.fetch(:events_per_sec)
   end
 
-  context 'when under a constant' do
+  context "when under a constant" do
     let(:stats) do
       # Warm things up a little to overcome the hardcoded starting parameters
       simulate_load(duration_seconds: 5, events_per_second: events_per_second, sampling_seconds: 0.01)
@@ -78,10 +78,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       simulate_load(duration_seconds: 60, events_per_second: events_per_second, sampling_seconds: 0.01)
     end
 
-    context 'low load' do
+    context "low load" do
       let(:events_per_second) { 1 }
 
-      it 'samples everything that comes' do
+      it "samples everything that comes" do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 1/sec we can sample all.
@@ -91,10 +91,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       end
     end
 
-    context 'moderate load' do
+    context "moderate load" do
       let(:events_per_second) { 8 }
 
-      it 'samples only as many samples as it can to keep to the overhead target' do
+      it "samples only as many samples as it can to keep to the overhead target" do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 8/sec we can sample 1/4 of total events.
@@ -104,10 +104,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       end
     end
 
-    context 'heavy load' do
+    context "heavy load" do
       let(:events_per_second) { 100 }
 
-      it 'will heavily restrict sampling' do
+      it "will heavily restrict sampling" do
         # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
         # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
         # At an event rate of 100/sec we can sample 2% of total events.
@@ -118,9 +118,9 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     end
   end
 
-  context 'when under a variable load' do
-    context 'containing lots of short spikes' do
-      it 'will readjust to decrease sampling rate' do
+  context "when under a variable load" do
+    context "containing lots of short spikes" do
+      it "will readjust to decrease sampling rate" do
         # Baseline
         simulate_load(duration_seconds: 10, events_per_second: 10, sampling_seconds: 0.01)
         p_baseline = sampler_current_probability
@@ -140,7 +140,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       end
     end
 
-    context 'with a big spike at the beginning' do
+    context "with a big spike at the beginning" do
       it "won't wait until the next sample to adjust" do
         # We'll start with a very big load at the beginning. This should move the sampler towards
         # having very low sampling probabilities (i.e. a big sampling interval). We want to validate
@@ -175,8 +175,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       end
     end
 
-    context 'with a big spike that fits within an adjustment window' do
-      it 'will readjust preemptively with smaller windows to prevent sampling overload' do
+    context "with a big spike that fits within an adjustment window" do
+      it "will readjust preemptively with smaller windows to prevent sampling overload" do
         # Start with a very small constant load during a long time. So low in fact that we'll
         # decide to sample everything
         simulate_load(duration_seconds: 60, events_per_second: 1, sampling_seconds: 0.0001)
@@ -198,8 +198,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     end
   end
 
-  context 'when sampling time worsens' do
-    it 'will readjust to decrease sampling rate' do
+  context "when sampling time worsens" do
+    it "will readjust to decrease sampling rate" do
       # Start with an initial load of 8 eps @ 0.01s sampling time should give us a sampling
       # probability of around 25% given our 2% overhead target (see similar test case above)
       stats = simulate_load(duration_seconds: 60, events_per_second: 8, sampling_seconds: 0.01)
@@ -212,8 +212,8 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     end
   end
 
-  context 'when sampling time improves' do
-    it 'will readjust to increase sampling rate' do
+  context "when sampling time improves" do
+    it "will readjust to increase sampling rate" do
       # Start with an initial load of 8 eps @ 0.01s sampling time should give us a sampling
       # probability of around 25% given our 2% overhead target (see similar test case above)
       stats = simulate_load(duration_seconds: 60, events_per_second: 8, sampling_seconds: 0.01)
@@ -226,7 +226,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     end
   end
 
-  context 'given a constant load' do
+  context "given a constant load" do
     it "the higher the target overhead, the more we'll sample" do
       # Warm-up to overcome initial hardcoded window
       simulate_load(duration_seconds: 5, events_per_second: 4, sampling_seconds: 0.01)
@@ -246,7 +246,7 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     end
   end
 
-  it 'disables sampling for next window if sampling overhead is deemed extremely high but relaxes over time' do
+  it "disables sampling for next window if sampling overhead is deemed extremely high but relaxes over time" do
     # Max overhead of 2% over 1 seconds means a max of 0.02 seconds of sampling each second. If each
     # of our samples takes 0.08 seconds, there's no way for us to sample and meet the target
     # so probability and intervals must go down to 0.
@@ -289,10 +289,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
     expect(stats[:num_samples]).to be >= 60
   end
 
-  describe '.state_snapshot' do
+  describe ".state_snapshot" do
     let(:state_snapshot) { sampler._native_state_snapshot }
 
-    it 'fills a Ruby hash with relevant data from a sampler instance' do
+    it "fills a Ruby hash with relevant data from a sampler instance" do
       # Max overhead of 2% over 1 second means a max of 0.02 seconds of sampling.
       # With each sample taking 0.01 seconds, we can afford to do 2 of these every second.
       # At an event rate of 8/sec we can sample 1/4 of total events.
@@ -314,10 +314,10 @@ RSpec.describe 'Datadog::Profiling::Collectors::DiscreteDynamicSampler' do
       )
     end
 
-    context 'in a situation that triggers our minimum sampling target mechanism' do
+    context "in a situation that triggers our minimum sampling target mechanism" do
       let(:max_overhead_target) { 1.0 }
 
-      it 'captures time clamps accurately' do
+      it "captures time clamps accurately" do
         # Max overhead of 1% over 1 second means a max of 0.01 seconds of sampling.
         # With each sample taking 0.02 seconds, we can in theory only do one sample every 2 seconds.
         # However, our minimum sampling target ensure we try at least one sample per window and we'll

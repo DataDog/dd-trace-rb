@@ -108,7 +108,7 @@ OR
 
 #### Other Ruby applications
 
-If your application does not use the supported gems (Rails or Hanami) above, you can set it up as follows:
+If your application does not use the above mentioned gems (Rails or Hanami), you can set it up as follows:
 
 1. Add the `datadog` gem to your Gemfile:
 
@@ -166,6 +166,24 @@ If your Agent runs on a different host or container than your application, or yo
 ### Final steps for installation
 
 After setting up, your services will appear on the [APM services page](https://app.datadoghq.com/apm/services) within a few minutes. Learn more about [using the APM UI][visualization docs].
+
+### Disabling during testing/specs and test optimization for Ruby
+
+Tracing is enabled by default; this includes:
+
+* When loading using `datadog/auto_instrument`
+* When activating integrations using `tracing.instrument` in the `Datadog.configure` block
+* When calling the `Datadog::Tracing.trace` method
+
+If you'd like to disable tracing when running your tests/specs, you can set the `DD_TRACE_ENABLED` environment variable to `false` or via code:
+
+```ruby
+Datadog.configure do |c|
+  c.tracing.enabled = false
+end
+```
+
+Furthermore, if you're trying to get more visibility into your tests or you're struggling with slow or flaky test suites, consider looking at Datadog's [Test optimization](https://docs.datadoghq.com/tests/) via the [`datadog-ci`](https://github.com/DataDog/datadog-ci-rb?tab=readme-ov-file#datadog-test-optimization-for-ruby) gem.
 
 ## Manual Instrumentation
 
@@ -294,10 +312,6 @@ end
 For a list of available integrations and their supported versions, see [Ruby Integration Compatibility][2].
 
 For a list of configuration options for the available integrations, refer to the following:
-
-#### CI Visibility
-
-Checkout [Datadog's Ruby Library for instrumenting your test and continuous integration pipeline](https://github.com/DataDog/datadog-ci-rb)
 
 ### Action Cable
 
@@ -677,6 +691,7 @@ Datadog.configure_onto(client.transport, **options)
 | `service_name` | `DD_TRACE_ELASTICSEARCH_SERVICE_NAME` | `String` | Name of application running the `elasticsearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `elasticsearch` |
 | `peer_service` | `DD_TRACE_ELASTICSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                              | `nil`           |
 | `quantize`     |                                       | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.       | `{}`            |
+| `on_error` | | `Proc` | Custom error handler invoked when a request raises an error. Provides `span` and `error` as arguments. Sets error on the span by default. Useful for ignoring transient errors. | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 
 ### Ethon
 
@@ -738,7 +753,7 @@ connection.get
 | `peer_service`        | `DD_TRACE_EXCON_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
 | `distributed_tracing` |                                     | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
 | `split_by_domain`     |                                     | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`                                                           |
-| `on_error`            |                                     | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by deault.                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error`            |                                     | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets error on the span by default.                                                                                                                                           | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `error_status_codes`  | `DD_TRACE_EXCON_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`                                                       |
 
 **Configuring connections to use different settings**
@@ -803,7 +818,7 @@ connection.get('/foo')
 | `peer_service`        | `DD_TRACE_FARADAY_PEER_SERVICE`       | `String`         | Name of external service the application connects to                                                                                                                                                                                                                               | `nil`                                                             |
 | `distributed_tracing` |                                       | `Bool`           | Enables [distributed tracing](#distributed-tracing)                                                                                                                                                                                                                                | `true`                                                            |
 | `split_by_domain`     |                                       | `Bool`           | Uses the request domain as the service name when set to `true`.                                                                                                                                                                                                                    | `false`                                                           |
-| `on_error`            |                                       | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by deault.                                                                                                                                        | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
+| `on_error`            |                                       | `Proc`           | Custom error handler invoked when a request raises an error. Provided `span` and `error` as arguments. Sets an error on the span by default.                                                                                                                                        | `proc { \|span, error\| span.set_error(error) unless span.nil? }` |
 | `error_status_codes`  | `DD_TRACE_FARADAY_ERROR_STATUS_CODES` | `Array`\|`Range` | Defines HTTP status codes that are traced as errors. Value can be a range (`400...600`), or an array of ranges/integers `[403, 500...600]`. If configured with environment variable, use dash for range (`'400-599'`) and comma for adding element into an array (`'403,500-599'`) | `400...600`                                                       |
 
 ### Grape
@@ -845,8 +860,14 @@ To activate your integration, use the `Datadog.configure` method:
 
 ```ruby
 # Inside Rails initializer or equivalent
+# For graphql >= v2.2
 Datadog.configure do |c|
-  c.tracing.instrument :graphql, schemas: [YourSchema], **options
+  c.tracing.instrument :graphql, with_unified_tracer: true, **options
+end
+
+# For graphql < v2.2
+Datadog.configure do |c|
+   c.tracing.instrument :graphql, **options
 end
 
 # Then run a GraphQL query
@@ -859,23 +880,22 @@ The `instrument :graphql` method accepts the following parameters. Additional op
 | ------------------------ | -------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
 | `enabled`                | `DD_TRACE_GRAPHQL_ENABLED` | `Bool`   | Whether the integration should create spans.                                                                                                                                                                    | `true`           |
 | `schemas`                |                            | `Array`  | Array of `GraphQL::Schema` objects (that support class-based schema only) to trace. If you do not provide any, then tracing will applied to all the schemas.                                                    | `[]`             |
-| `with_unified_tracer`    |                            | `Bool`   | Enable to instrument with `UnifiedTrace` tracer, enabling support for API Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` (Added in v2.2)  | `false`          |
-| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace`                               | `false`          |
+| `with_unified_tracer`    |                            | `Bool`   | (Recommended) Enable to instrument with `UnifiedTrace` tracer for `graphql` >= v2.2, **enabling support for Endpoints list** in the Service Catalog. `with_deprecated_tracer` has priority over this. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
+| `with_deprecated_tracer` |                            | `Bool`   | Enable to instrument with deprecated `GraphQL::Tracing::DataDogTracing`. This has priority over `with_unified_tracer`. Default is `false`, using `GraphQL::Tracing::DataDogTrace` instead | `false` |
 | `service_name`           |                            | `String` | Service name used for graphql instrumentation                                                                                                                                                                   | `'ruby-graphql'` |
+
+Once an instrumentation strategy is selected (`with_unified_tracer: true`, `with_deprecated_tracer: true`, or *no option set* which defaults to `GraphQL::Tracing::DataDogTrace`), it is not possible to change the instrumentation strategy in the same Ruby process.
+This is especially important for [auto instrumented applications](#rails-or-hanami-applications) because an automatic initial instrumentation is always applied at startup, thus such applications will always instrument GraphQL with the default strategy (`GraphQL::Tracing::DataDogTrace`).
 
 **Manually configuring GraphQL schemas**
 
-If you prefer to individually configure the tracer settings for a schema (e.g. you have multiple schemas), in the schema definition, you can add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
+If you prefer, you can individually configure the tracer settings per schema (e.g. you have multiple schemas with distinct instrumentation options).
 
-With `GraphQL::Tracing::DataDogTrace`
+Do _NOT_ `c.tracing.instrument :graphql` in `Datadog.configure` if you choose to configure schema settings manually, as to avoid double tracing. These two means of configuring GraphQL tracing are mutually exclusive.
 
-```ruby
-class YourSchema < GraphQL::Schema
-  trace_with GraphQL::Tracing::DataDogTrace
-end
-```
+To instrument each schema individually, you add the following [using the GraphQL API](http://graphql-ruby.org/queries/tracing.html):
 
-With `UnifiedTracer` (Added in v2.2)
+For `graphql` >= v2.2:
 
 ```ruby
 class YourSchema < GraphQL::Schema
@@ -883,7 +903,15 @@ class YourSchema < GraphQL::Schema
 end
 ```
 
-or with `GraphQL::Tracing::DataDogTracing` (deprecated)
+For `graphql` < v2.2:
+
+```ruby
+class YourSchema < GraphQL::Schema
+  trace_with GraphQL::Tracing::DataDogTrace
+end
+```
+
+Using the deprecated tracer GraphQL (`GraphQL::Tracing::DataDogTracing`):
 
 ```ruby
 class YourSchema < GraphQL::Schema
@@ -892,8 +920,6 @@ end
 ```
 
 **Note**: This integration does not support define-style schemas. Only class-based schemas are supported.
-
-Do _NOT_ `instrument :graphql` in `Datadog.configure` if you choose to configure manually, as to avoid double tracing. These two means of configuring GraphQL tracing are considered mutually exclusive.
 
 **Adding custom tags to Datadog spans**
 
@@ -907,7 +933,7 @@ class YourSchema < GraphQL::Schema
       span.set_tag("custom:#{trace_key}", data.keys.sort.join(","))
     end
   end
-  
+
   trace_with CustomTracing
 end
 ```
@@ -1521,11 +1547,10 @@ Rake::Task['my_task'].invoke
 
 | Key            | Env Var| Type     | Description                                                                                              | Default  |
 | -------------- | - | ------- | -------------------------------------------------------------------------------------------------------- | -------- |
-| `enabled`      | | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
+| `enabled`      | `DD_TRACE_RAKE_ENABLED` | `Bool`   | Defines whether Rake tasks should be traced. Useful for temporarily disabling tracing. `true` or `false` | `true`   |
 | `quantize`     | | `Hash`   | Hash containing options for quantization of task arguments. See below for more details and examples.     | `{}`     |
 | `service_name` | | `String` | Service name used for `rake` instrumentation                                                             | `'rake'` |
 | `tasks`        | | `Array`  | Names of the Rake tasks to instrument                                                                    | `[]`     |
-| `enabled` | `DD_TRACE_RAKE_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
 
 **Configuring task quantization behavior**
 
@@ -2009,7 +2034,6 @@ To change the default behavior of `datadog`, you can use, in order of priority, 
      c.env = ENV['RACK_ENV']
 
      c.tracing.report_hostname = true
-     c.tracing.test_mode.enabled = (ENV['RACK_ENV'] == 'test')
    end
    ```
 
@@ -2051,12 +2075,10 @@ For example, if `tracing.sampling.default_rate` is configured by [Remote Configu
 | `tracing.sampler`                                      |                                                         | `Datadog::Tracing::Sampling::Sampler` | `nil`                        | Advanced usage only. Sets a custom `Datadog::Tracing::Sampling::Sampler` instance. If provided, the tracer will use this sampler to determine sampling behavior. See [Custom sampling](#custom-sampling) for details.                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `tracing.sampling.default_rate`                        | `DD_TRACE_SAMPLE_RATE`                                  | `Float`                               | `nil`                        | Sets the trace sampling rate between `0.0` (0%) and `1.0` (100%).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `tracing.sampling.rate_limit`                          | `DD_TRACE_RATE_LIMIT`                                   | `Integer`                             | `100` (per second)           | Sets a maximum number of traces per second to sample. Set a rate limit to avoid the ingestion volume overages in the case of traffic spikes.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.sampling.rules`                               | `DD_TRACE_SAMPLING_RULES`                               | `String`                              | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name`, `service`, `resource`, and `tags` string attributes. `name`, `service`, `resource`, and `tags` control to which traces this sampling rule applies; if they are all absent, then this rule applies to all traces. Rules are evaluted in order of declartion in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
+| `tracing.sampling.rules`                               | `DD_TRACE_SAMPLING_RULES`                               | `String`                              | `nil`                        | Sets trace-level sampling rules, matching against the local root span. The format is a `String` with JSON, containing an Array of Objects. Each Object must have a float attribute `sample_rate` (between 0.0 and 1.0, inclusive), and optionally `name`, `service`, `resource`, and `tags` string attributes. `name`, `service`, `resource`, and `tags` control to which traces this sampling rule applies; if they are all absent, then this rule applies to all traces. Rules are evaluated in order of declaration in the array; only the first to match is applied. If none apply, then `tracing.sampling.default_rate` is applied. |
 | `tracing.sampling.span_rules`                          | `DD_SPAN_SAMPLING_RULES`,`ENV_SPAN_SAMPLING_RULES_FILE` | `String`                              | `nil`                        | Sets [Single Span Sampling](#single-span-sampling) rules. These rules allow you to keep spans even when their respective traces are dropped.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `tracing.trace_id_128_bit_generation_enabled`          | `DD_TRACE_128_BIT_TRACEID_GENERATION_ENABLED`           | `Bool`                                | `true`                       | `true` to generate 128 bits trace ID and `false` to generate 64 bits trace ID                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `tracing.report_hostname`                              | `DD_TRACE_REPORT_HOSTNAME`                              | `Bool`                                | `false`                      | Adds hostname tag to traces.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-| `tracing.test_mode.enabled`                            | `DD_TRACE_TEST_MODE_ENABLED`                            | `Bool`                                | `false`                      | Enables or disables test mode, for use of tracing in test suites.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
-| `tracing.test_mode.trace_flush`                        |                                                         | `Datadog::Tracing::TraceFlush`        | `nil`                        | Object that determines trace flushing behavior.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 
 #### Custom logging
 
@@ -2622,18 +2644,6 @@ DD_TRACE_AGENT_URL=unix:///tmp/ddagent/trace.sock
 
 Note: You cannot mix UDS and TCP configurations. If you set `c.agent.uds_path`, you must not set `c.agent.host`
 or `c.agent.port`.
-
-#### Transporting in Test Mode
-
-When test mode is enabled, the tracer uses a `Test` adapter for no-op transport that can optionally buffer requests in
-test suites or other non-production environments. It is configured by setting `c.tracing.test_mode.enabled` to true.
-This mode only works for tracing.
-
-```ruby
-Datadog.configure do |c|
-  c.tracing.test_mode.enabled = true
-end
-```
 
 ### Setting the time provider
 

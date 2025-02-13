@@ -1,4 +1,3 @@
-require 'byebug'
 require 'support/integration_helper'
 
 RSpec.configure do |config|

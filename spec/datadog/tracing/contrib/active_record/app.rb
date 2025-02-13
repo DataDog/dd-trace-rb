@@ -4,20 +4,6 @@ if PlatformHelpers.jruby?
   require 'activerecord-jdbc-adapter'
 else
   require 'mysql2'
-
-  # Fix for https://github.com/brianmario/mysql2/issues/784#issuecomment-414878642
-  # for Rails 3.2.
-  if ActiveRecord::VERSION::MAJOR < 4
-    require 'active_record/connection_adapters/mysql2_adapter'
-
-    module ActiveRecord
-      module ConnectionAdapters
-        class Mysql2Adapter
-          NATIVE_DATABASE_TYPES[:primary_key] = 'int(11) auto_increment PRIMARY KEY'
-        end
-      end
-    end
-  end
 end
 
 logger = Logger.new($stdout)

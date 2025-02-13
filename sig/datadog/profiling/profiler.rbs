@@ -7,14 +7,12 @@ module Datadog
 
       attr_reader worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker
       attr_reader scheduler: Datadog::Profiling::Scheduler
-      attr_reader optional_crashtracker: Datadog::Profiling::Crashtracker
 
       public
 
       def initialize: (
         worker: Datadog::Profiling::Collectors::CpuAndWallTimeWorker,
-        scheduler: Datadog::Profiling::Scheduler,
-        optional_crashtracker: Datadog::Profiling::Crashtracker?,
+        scheduler: Datadog::Profiling::Scheduler
       ) -> void
 
       def start: () -> void

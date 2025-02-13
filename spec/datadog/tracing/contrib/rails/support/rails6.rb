@@ -39,14 +39,16 @@ RSpec.shared_context 'Rails 6 test application' do
 
       instance_eval(&during_init)
 
-      config.active_job.queue_adapter = :inline
-      if ENV['USE_SIDEKIQ']
-        config.active_job.queue_adapter = :sidekiq
-        # add Sidekiq middleware
-        Sidekiq::Testing.server_middleware do |chain|
-          chain.add(
-            Datadog::Tracing::Contrib::Sidekiq::ServerTracer
-          )
+      if config.respond_to?(:active_job)
+        config.active_job.queue_adapter = :inline
+        if ENV['USE_SIDEKIQ']
+          config.active_job.queue_adapter = :sidekiq
+          # add Sidekiq middleware
+          Sidekiq::Testing.server_middleware do |chain|
+            chain.add(
+              Datadog::Tracing::Contrib::Sidekiq::ServerTracer
+            )
+          end
         end
       end
     end
@@ -67,11 +69,13 @@ RSpec.shared_context 'Rails 6 test application' do
         end
       end
 
-      Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
-                                                            :sidekiq
-                                                          else
-                                                            :inline
-                                                          end
+      if Rails.application.config.respond_to?(:active_job)
+        Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
+                                                              :sidekiq
+                                                            else
+                                                              :inline
+                                                            end
+      end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         # When running in full application mode, Rails tries to monitor
@@ -181,13 +185,11 @@ RSpec.shared_context 'Rails 6 test application' do
     # TODO: Remove this side-effect on missing log entries
     Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
 
-    if Module.const_defined?(:ActiveRecord)
-      reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options)
+    reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options) if Module.const_defined?(:ActiveRecord)
 
-      # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
-      if Rails::VERSION::MINOR < 1
-        ActiveRecord::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
-      end
+    # After `deep_dup`, the sentinel `NULL_OPTION` is inadvertently changed. We restore it here.
+    if Rails::VERSION::MINOR < 1
+      ActionView::Railtie.config.action_view.finalize_compiled_template_methods = ActionView::Railtie::NULL_OPTION
     end
 
     reset_class_variable(ActiveSupport::Dependencies, :@@autoload_paths)

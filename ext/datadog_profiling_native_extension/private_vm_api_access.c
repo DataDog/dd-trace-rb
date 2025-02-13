@@ -13,7 +13,7 @@
   #include RUBY_MJIT_HEADER
 #else
   // The MJIT header was introduced on 2.6 and removed on 3.3; for other Rubies we rely on
-  // the debase-ruby_core_source gem to get access to private VM headers.
+  // the datadog-ruby_core_source gem to get access to private VM headers.
 
   // We can't do anything about warnings in VM headers, so we just use this technique to suppress them.
   // See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
@@ -158,7 +158,7 @@ bool is_current_thread_holding_the_gvl(void) {
     //
     // Thus an incorrect `is_current_thread_holding_the_gvl` result may lead to issues inside `rb_postponed_job_register_one`.
     //
-    // For this reason we currently do not enable the new Ruby profiler on Ruby 2.5 by default, and we print a
+    // For this reason we default to use the "no signals workaround" on Ruby 2.5 by default, and we print a
     // warning when customers force-enable it.
     bool gvl_acquired = vm->gvl.acquired != 0;
     rb_thread_t *current_owner = vm->running_thread;
@@ -182,7 +182,7 @@ uint64_t native_thread_id_for(VALUE thread) {
   #if !defined(NO_THREAD_TID) && defined(RB_THREAD_T_HAS_NATIVE_ID)
     #ifndef NO_RB_NATIVE_THREAD
       struct rb_native_thread* native_thread = thread_struct_from_object(thread)->nt;
-      if (native_thread == NULL) rb_raise(rb_eRuntimeError, "BUG: rb_native_thread* is null. Is this Ruby running with RUBY_MN_THREADS=1?");
+      if (native_thread == NULL) return 0;
       return native_thread->tid;
     #else
       return thread_struct_from_object(thread)->tid;
@@ -311,7 +311,7 @@ VALUE thread_name_for(VALUE thread) {
 // with diagnostic stuff. See https://nelkinda.com/blog/suppress-warnings-in-gcc-and-clang/#d11e364 for details.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-inline static int
+static inline int
 calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 {
     VM_ASSERT(iseq);
@@ -364,7 +364,7 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
 // Copyright (C) 1993-2012 Yukihiro Matsumoto
 // to support our custom rb_profile_frames (see below)
 // Modifications: None
-inline static int
+static inline int
 calc_lineno(const rb_iseq_t *iseq, const VALUE *pc)
 {
     int lineno;
@@ -587,15 +587,12 @@ int ddtrace_rb_profile_frames(VALUE thread, int start, int limit, frame_info *st
 // Taken from upstream vm_insnhelper.c at commit 5f10bd634fb6ae8f74a4ea730176233b0ca96954 (March 2022, Ruby 3.2 trunk)
 // Copyright (C) 2007 Koichi Sasada
 // to support our custom rb_profile_frames (see above)
-// Modifications: None
+// Modifications:
+// * Removed debug checks (they were ifdef'd out anyway)
 static rb_callable_method_entry_t *
 check_method_entry(VALUE obj, int can_be_svar)
 {
     if (obj == Qfalse) return NULL;
-
-#if VM_CHECK_MODE > 0
-    if (!RB_TYPE_P(obj, T_IMEMO)) rb_bug("check_method_entry: unknown type: %s", rb_obj_info(obj));
-#endif
 
     switch (imemo_type(obj)) {
       case imemo_ment:
@@ -608,9 +605,6 @@ check_method_entry(VALUE obj, int can_be_svar)
         }
         // fallthrough
       default:
-#if VM_CHECK_MODE > 0
-        rb_bug("check_method_entry: svar should not be there:");
-#endif
         return NULL;
     }
 }
@@ -755,3 +749,57 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
     return GET_VM()->objspace;
   }
 #endif
+
+#ifdef USE_GVL_PROFILING_3_2_WORKAROUNDS // Ruby 3.2
+  #include "gvl_profiling_helper.h"
+
+  gvl_profiling_thread thread_from_thread_object(VALUE thread) {
+    return (gvl_profiling_thread) {.thread = thread_struct_from_object(thread)};
+  }
+
+  // Hack: In Ruby 3.3+ we attach gvl profiling state to Ruby threads using the
+  // rb_internal_thread_specific_* APIs. These APIs did not exist on Ruby 3.2. On Ruby 3.2 we instead store the
+  // needed data inside the `rb_thread_t` structure, specifically in `stat_insn_usage` as a Ruby FIXNUM.
+  //
+  // Why `stat_insn_usage`? We needed some per-thread storage, and while looking at the Ruby VM sources I noticed
+  // that `stat_insn_usage` has been in `rb_thread_t` for a long time, but is not used anywhere in the VM
+  // code. There's a comment attached to it "/* statistics data for profiler */" but other than marking this
+  // field for GC, I could not find any place in the VM commit history or on GitHub where this has ever been used.
+  //
+  // Thus, since this hack is only for 3.2, which presumably will never see this field either removed or used
+  // during its remaining maintenance release period we... kinda take it for our own usage. It's ugly, I know...
+  intptr_t gvl_profiling_state_get(gvl_profiling_thread thread) {
+    if (thread.thread == NULL) return 0;
+
+    VALUE current_value = ((rb_thread_t *)thread.thread)->stat_insn_usage;
+    intptr_t result = current_value == Qnil ? 0 : FIX2LONG(current_value);
+    return result;
+  }
+
+  void gvl_profiling_state_set(gvl_profiling_thread thread, intptr_t value) {
+    if (thread.thread == NULL) return;
+    ((rb_thread_t *)thread.thread)->stat_insn_usage = LONG2FIX(value);
+  }
+
+  // Because Ruby 3.2 does not give us the current thread when calling the RUBY_INTERNAL_THREAD_EVENT_READY and
+  // RUBY_INTERNAL_THREAD_EVENT_RESUMED APIs, we need to figure out this info ourselves.
+  //
+  // Specifically, this method was created to be called from a RUBY_INTERNAL_THREAD_EVENT_RESUMED callback --
+  // when it's triggered, we know the thread the code gets executed on is holding the GVL, so we use this
+  // opportunity to initialize our thread-local value.
+  gvl_profiling_thread gvl_profiling_state_maybe_initialize(void) {
+    gvl_profiling_thread current_thread = gvl_waiting_tls;
+
+    if (current_thread.thread == NULL) {
+      // threads.sched.running is the thread currently holding the GVL, which when this gets executed is the
+      // current thread!
+      current_thread = (gvl_profiling_thread) {.thread = (void *) rb_current_ractor()->threads.sched.running};
+      gvl_waiting_tls = current_thread;
+    }
+
+    return current_thread;
+  }
+#endif
+
+// Is the VM smack in the middle of raising an exception?
+bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }

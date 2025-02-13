@@ -11,6 +11,11 @@ gem 'dogstatsd-ruby'
 gem 'datadog', *Datadog::DemoEnv.gem_spec('datadog')
 
 # Development
+if RUBY_VERSION >= '3.1'
+  gem "debug", platforms: %i,mri mingw x64_mingw,
+else
+  gem "byebug", platforms: %w,mri,
+end
 gem 'pry-byebug'
 # gem 'pry-stack_explorer', platform: :ruby
 # gem 'rbtrace'

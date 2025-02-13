@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 
+require 'ostruct'
 require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
@@ -70,6 +71,14 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to have_attributes(:version => '42') }
       it { is_expected.to have_attributes(:endpoints => ['/info', '/v0/path']) }
       it { is_expected.to have_attributes(:config => { max_request_bytes: '1234' }) }
+
+      it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
+
+      context 'with ASM standalone enabled' do
+        before { expect(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true) }
+
+        it { expect(transport.client.api.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
+      end
     end
   end
 
@@ -201,6 +210,14 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
       it { is_expected.to have_attributes(:roots => be_a(Array)) }
       it { is_expected.to have_attributes(:targets => be_a(Hash)) }
       it { is_expected.to have_attributes(:target_files => be_a(Array)) }
+
+      it { expect(transport.client.api.headers).to_not include('Datadog-Client-Computed-Stats') }
+
+      context 'with ASM standalone enabled' do
+        before { expect(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true) }
+
+        it { expect(transport.client.api.headers['Datadog-Client-Computed-Stats']).to eq('yes') }
+      end
 
       context 'with a network error' do
         it 'raises a transport error' do

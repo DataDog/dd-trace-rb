@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../reactive/operation'
-require_relative '../reactive/request'
-require_relative '../reactive/request_body'
-require_relative '../reactive/response'
 require_relative '../../../event'
 
 module Datadog
@@ -25,132 +21,93 @@ module Datadog
 
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
-                  block = false
-                  event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
-                  AppSec::Reactive::Operation.new('rack.request') do |op|
-                    Rack::Reactive::Request.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          request: gateway_request,
-                          actions: result.actions
-                        }
+                  persistent_data = {
+                    'server.request.cookies' => gateway_request.cookies,
+                    'server.request.query' => gateway_request.query,
+                    'server.request.uri.raw' => gateway_request.fullpath,
+                    'server.request.headers' => gateway_request.headers,
+                    'server.request.headers.no_cookies' => gateway_request.headers.dup.tap { |h| h.delete('cookie') },
+                    'http.client_ip' => gateway_request.client_ip,
+                    'server.request.method' => gateway_request.method
+                  }
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                        scope.processor_context.events << event
-                      end
-                    end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
 
-                    block = Rack::Reactive::Request.publish(op, gateway_request)
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
 
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
 
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
-                  block = false
+                  context = gateway_response.context
 
-                  event = nil
-                  scope = gateway_response.scope
+                  persistent_data = {
+                    'server.response.status' => gateway_response.status.to_s,
+                    'server.response.headers' => gateway_response.headers,
+                    'server.response.headers.no_cookies' => gateway_response.headers.dup.tap { |h| h.delete('set-cookie') }
+                  }
 
-                  AppSec::Reactive::Operation.new('rack.response') do |op|
-                    Rack::Reactive::Response.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          response: gateway_response,
-                          actions: result.actions
-                        }
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
 
-                        scope.processor_context.events << event
-                      end
-                    end
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      response: gateway_response,
+                      actions: result.actions
+                    }
 
-                    block = Rack::Reactive::Response.publish(op, gateway_response)
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
 
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(gateway_response.response)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_response.response)
                 end
               end
 
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
-                  block = false
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
-                  event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  persistent_data = {
+                    'server.request.body' => gateway_request.form_hash
+                  }
 
-                  AppSec::Reactive::Operation.new('rack.request.body') do |op|
-                    Rack::Reactive::RequestBody.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          request: gateway_request,
-                          actions: result.actions
-                        }
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
 
-                        scope.processor_context.events << event
-                      end
-                    end
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
 
-                    block = Rack::Reactive::RequestBody.publish(op, gateway_request)
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
 
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
             end

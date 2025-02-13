@@ -31,7 +31,7 @@ default:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7"]
   script:
     - >
       docker build
@@ -60,7 +60,7 @@ promote-image:
   parallel:
     matrix:
       # ADD NEW RUBIES HERE
-      - RUBY_VERSION: ["3.2.2", "3.1.4", "3.0.6", "2.7.8"]
+      - RUBY_VERSION: ["3.4", "3.3", "3.2", "3.1", "3.0", "2.7"]
         ARCHITECTURE: ["amd64", "arm64"]
   script:
     - docker pull $RUBY_CUSTOM_IMAGE_BASE/$RUBY_VERSION-$ARCHITECTURE:$CI_PIPELINE_ID
@@ -71,16 +71,22 @@ build-gem:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
   stage: package
   script:
+    - mkdir -p pkg tmp
     - |
-      if [ -z "$CI_COMMIT_TAG" ]; then
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        .gitlab/check_gem_presence.sh
+        VERSION=${CI_COMMIT_TAG#v}
+        gem fetch datadog --version $VERSION
+        mv datadog-*.gem pkg/
+        echo $VERSION > tmp/version
+      else
         echo CI_JOB_ID=$CI_JOB_ID
         echo CI_COMMIT_REF_NAME=$CI_COMMIT_REF_NAME
         echo CI_COMMIT_SHA=$CI_COMMIT_SHA
-
         .gitlab/patch_gem_version.sh glci $CI_JOB_ID $CI_COMMIT_REF_NAME $CI_COMMIT_SHA
+        bundle install && chmod go-w -R . && bundle exec rake build
+        ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
       fi
-    - bundle install && chmod go-w -R . && bundle exec rake build
-    - mkdir -p tmp && ruby -Ilib -rdatadog/version -e 'puts Gem::Version.new(Datadog::VERSION::STRING).to_s' >> tmp/version
   artifacts:
     paths:
       - pkg
@@ -92,7 +98,8 @@ install-dependencies:
   tags: [ "arch:$ARCH" ]
   parallel:
     matrix:
-      - RUBY_VERSION: ["2.7.8", "3.0.6", "3.1.4", "3.2.2"]
+      # Promote again when adding 3.4 support
+      - RUBY_VERSION: ["3.3", "3.2", "3.1", "3.0", "2.7"]
         ARCH: [ "amd64", "arm64" ]
   stage: package
   needs:
@@ -115,6 +122,13 @@ package-oci:
     - build-gem
     - install-dependencies
 
+requirements_json_test:
+  rules:
+    - when: on_success
+  variables:
+    REQUIREMENTS_BLOCK_JSON_PATH: "lib-injection/test_block.json"
+    REQUIREMENTS_ALLOW_JSON_PATH: "lib-injection/test_allow.json"
+
 onboarding_tests_installer:
   parallel:
     matrix:
@@ -123,7 +137,9 @@ onboarding_tests_installer:
 onboarding_tests_k8s_injection:
   parallel:
     matrix:
-      - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+    - WEBLOG_VARIANT: [dd-lib-ruby-init-test-rails, dd-lib-ruby-init-test-rails-explicit,dd-lib-ruby-init-test-rails-gemsrb]
+      SCENARIO: [K8S_LIB_INJECTION, K8S_LIB_INJECTION_UDS, K8S_LIB_INJECTION_NO_AC, K8S_LIB_INJECTION_NO_AC_UDS, K8S_LIB_INJECTION_PROFILING_DISABLED, K8S_LIB_INJECTION_PROFILING_ENABLED, K8S_LIB_INJECTION_PROFILING_OVERRIDE]
+      K8S_CLUSTER_VERSION: ['7.56.2','7.59.0']
 
 save_versions:
   image: $DOCKER_REGISTRY/images/mirror/ruby:3.2.2
@@ -141,16 +157,21 @@ deploy_to_reliability_env:
   needs:
     - save_versions
 
+# Currently, the job is implemented with polling mechanism.
+#
+# Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
+# https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
+#
+# We fetch the latest workflow run from vaccine after 5 seconds of the dispatch event.
+# False positive/negative result can happen when multiple requests are made within the same window.
+#
+# TODO:
+# Replace polling implementation with reporting status to Github with Github App. This will allow us
+# to get a deterministic result without mismatched workflow run id.
 vaccine:
   image: $DOCKER_REGISTRY/docker:20.10.13
   tags: [ "arch:amd64" ]
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    GH_VACCINE_PAT=$(vault kv get -field=vaccine-token kv/k8s/gitlab-runner/dd-trace-rb/github-token)
-
-    curl -X POST \
-      -H "Accept: application/vnd.github.v3+json" \
-      -H "Authorization: token $GH_VACCINE_PAT" \
-      https://api.github.com/repos/TonyCTHsu/vaccine/actions/workflows/vaccine.yml/dispatches \
-      -d '{"ref":"master", "inputs": {"commit_sha": "'$CI_COMMIT_SHA'"}}'
+    .gitlab/scripts/vaccine.sh

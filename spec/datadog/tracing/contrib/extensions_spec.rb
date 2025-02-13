@@ -26,6 +26,10 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     before { registry.add(integration_name, integration) }
   end
 
+  before do
+    allow(Datadog.logger).to receive(:warn)
+  end
+
   context 'for' do
     describe Datadog do
       describe '#configure' do
@@ -267,6 +271,12 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
             end
           end
+        end
+
+        describe '#instrumented_integrations' do
+          subject(:instrumented_integrations) { settings.instrumented_integrations }
+
+          it { is_expected.to be_frozen }
         end
       end
     end

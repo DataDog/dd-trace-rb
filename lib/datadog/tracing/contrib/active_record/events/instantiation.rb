@@ -4,6 +4,7 @@ require_relative '../../../metadata/ext'
 require_relative '../../analytics'
 require_relative '../ext'
 require_relative '../event'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -48,7 +49,8 @@ module Datadog
               span.set_tag(Ext::TAG_INSTANTIATION_CLASS_NAME, payload.fetch(:class_name))
               span.set_tag(Ext::TAG_INSTANTIATION_RECORD_COUNT, payload.fetch(:record_count))
             rescue StandardError => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
           end
         end

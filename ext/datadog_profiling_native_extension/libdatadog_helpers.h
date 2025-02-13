@@ -3,7 +3,7 @@
 #include <datadog/profiling.h>
 #include "ruby_helpers.h"
 
-inline static VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
+static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
   return rb_str_new((char *) string.ptr, string.len);
 }
 
@@ -20,6 +20,6 @@ ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
 
 // Returns a dynamically allocated string from the provided char slice.
 // WARN: The returned string must be explicitly freed with ruby_xfree.
-inline static char* string_from_char_slice(ddog_CharSlice slice) {
+static inline char* string_from_char_slice(ddog_CharSlice slice) {
   return ruby_strndup(slice.ptr, slice.len);
 }

@@ -50,6 +50,23 @@ appraise 'rails61-trilogy' do
   gem 'net-smtp'
 end
 
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -72,21 +89,12 @@ appraise 'http' do
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
-  gem 'stripe'
   gem 'typhoeus'
 end
 
-[2, 3].each do |n|
-  appraise "opensearch-#{n}" do
-    gem 'opensearch-ruby', "~> #{n}"
-  end
-end
-
-[7, 8].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
-end
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', 7..8)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -96,7 +104,7 @@ appraise 'relational_db' do
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'trilogy'
 end
 
@@ -149,13 +157,7 @@ end
   end
 end
 
-[2, 3].each do |n|
-  appraise "rack-#{n}" do
-    gem 'rack', "~> #{n}"
-    gem 'rack-contrib'
-    gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
+build_coverage_matrix('rack', 2..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -169,14 +171,25 @@ appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
 end
 
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
-
-  gem 'racc' # Remove this once graphql resolves issue for ruby 3.3 preview. https://github.com/rmosolgo/graphql-ruby/issues/4650
 end
 
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'rack-activerecord' do
+  gem "rack", "~> 2"
+  gem 'rack-contrib'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem "activerecord", "~> 7"
+  gem "sqlite3", ">= 1.4.2", platform: :ruby
 end

@@ -13,9 +13,16 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
   it { is_expected.to have_attributes(statsd: statsd) }
 
-  shared_examples_for 'missing value arg' do
-    it 'logs an error without raising' do
-      expect(Datadog.logger).to receive(:error)
+  shared_examples_for 'logs an error without raising' do |action|
+    it do
+      expect(Datadog.logger).to receive(:error).with(
+        /Failed to send #{action} stat/
+      )
+      expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
+        a_kind_of(StandardError),
+        description: "Failed to send #{action} stat"
+      )
+
       expect { subject }.to_not raise_error
     end
   end
@@ -383,7 +390,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         context 'that does not yield args' do
           subject(:count) { metrics.count(stat) {} }
 
-          it_behaves_like 'missing value arg'
+          it_behaves_like 'logs an error without raising', 'count'
         end
 
         context 'that yields args' do
@@ -433,12 +440,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'which raises an error' do
-        before do
-          expect(statsd).to receive(:count).and_raise(StandardError)
-          expect(Datadog.logger).to receive(:error)
-        end
+        before { allow(statsd).to receive(:count).and_raise(StandardError) }
 
-        it { expect { count }.to_not raise_error }
+        it_behaves_like 'logs an error without raising', 'count'
       end
     end
   end
@@ -464,7 +468,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         context 'that does not yield args' do
           subject(:distribution) { metrics.distribution(stat) {} }
 
-          it_behaves_like 'missing value arg'
+          it_behaves_like 'logs an error without raising', 'distribution'
         end
 
         context 'that yields args' do
@@ -514,12 +518,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'which raises an error' do
-        before do
-          expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog.logger).to receive(:error)
-        end
+        before { allow(statsd).to receive(:distribution).and_raise(StandardError) }
 
-        it { expect { distribution }.to_not raise_error }
+        it_behaves_like 'logs an error without raising', 'distribution'
       end
     end
   end
@@ -545,7 +546,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         context 'that does not yield args' do
           subject(:gauge) { metrics.gauge(stat) {} }
 
-          it_behaves_like 'missing value arg'
+          it_behaves_like 'logs an error without raising', 'gauge'
         end
 
         context 'that yields args' do
@@ -595,12 +596,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'which raises an error' do
-        before do
-          expect(statsd).to receive(:gauge).and_raise(StandardError)
-          expect(Datadog.logger).to receive(:error)
-        end
+        before { allow(statsd).to receive(:gauge).and_raise(StandardError) }
 
-        it { expect { gauge }.to_not raise_error }
+        it_behaves_like 'logs an error without raising', 'gauge'
       end
     end
   end
@@ -622,6 +620,12 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
     context 'when #statsd is a Datadog::Statsd' do
       context 'and given a block' do
+        context 'when raise exception' do
+          subject(:increment) { metrics.increment(stat) { raise } }
+
+          it_behaves_like 'logs an error without raising', 'increment'
+        end
+
         context 'that yields args' do
           subject(:increment) { metrics.increment(stat) { stat_options } }
 
@@ -676,12 +680,9 @@ RSpec.describe Datadog::Core::Metrics::Client do
       end
 
       context 'which raises an error' do
-        before do
-          expect(statsd).to receive(:increment).and_raise(StandardError)
-          expect(Datadog.logger).to receive(:error)
-        end
+        before { allow(statsd).to receive(:increment).and_raise(StandardError) }
 
-        it { expect { increment }.to_not raise_error }
+        it_behaves_like 'logs an error without raising', 'increment'
       end
     end
   end
@@ -711,7 +712,10 @@ RSpec.describe Datadog::Core::Metrics::Client do
           let(:error) { RuntimeError.new }
           # Expect the given block to raise its errors through
 
-          it { expect { time }.to raise_error(error) }
+          it do
+            expect(Datadog.logger).not_to receive(:error)
+            expect { time }.to raise_error(error)
+          end
         end
       end
 

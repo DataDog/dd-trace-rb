@@ -1,0 +1,21 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module ActionPack
+        module ActionDispatch
+          module Instrumentation
+            def self?.set_http_route_tag: (untyped http_route) -> (nil | untyped)
+            module Journey
+              module Router
+                def find_routes: (untyped req) -> untyped
+              end
+              module LazyRouter
+                def serve: (untyped req) -> untyped
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+end

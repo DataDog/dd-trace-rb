@@ -2,13 +2,14 @@
 
 require 'spec_helper'
 
+require 'ostruct'
 require 'datadog/core/utils/base64'
 require 'datadog/core/remote/transport/http'
 require 'datadog/core/remote/transport/http/negotiation'
 require 'datadog/core/remote/transport/negotiation'
 
 RSpec.describe Datadog::Core::Remote::Transport::HTTP do
-  before { skip unless ENV['TEST_DATADOG_INTEGRATION'] }
+  skip_unless_integration_testing_enabled
 
   describe '.root' do
     subject(:transport) { described_class.root(&client_options) }

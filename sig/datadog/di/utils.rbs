@@ -1,0 +1,8 @@
+module Datadog
+  module DI
+    module Utils
+      def self?.path_matches_suffix?: (String path, String suffix) -> bool
+      def self?.path_can_match_spec?: (String path, String suffix) -> bool
+    end
+  end
+end

@@ -246,7 +246,10 @@ RSpec.describe Datadog::Tracing::Metadata::Tagging do
       end
 
       it 'does not support it - it sets stringified nested hash as value' do
-        expect { set_tags }.to change { test_object.get_tag('user') }.from(nil).to('{"id"=>123}')
+        expected_tag = ['{"id"=>123}', '{"id" => 123}']
+        expect { set_tags }
+          .to change { test_object.get_tag('user') }
+          .from(nil).to(satisfy { |tag| expected_tag.include?(tag) })
       end
     end
   end

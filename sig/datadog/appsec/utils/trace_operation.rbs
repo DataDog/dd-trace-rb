@@ -1,0 +1,9 @@
+module Datadog
+  module AppSec
+    module Utils
+      class TraceOperation
+        def self.appsec_standalone_reject?: (Datadog::Tracing::TraceOperation trace) -> bool
+      end
+    end
+  end
+end

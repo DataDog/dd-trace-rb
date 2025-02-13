@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-require_relative '../core/transport/ext'
+require_relative "../core/transport/ext"
+require_relative "../core/telemetry/logger"
 
 module Datadog
   module Profiling
@@ -12,13 +13,11 @@ module Datadog
       def initialize(agent_settings:, site:, api_key:, upload_timeout_seconds:)
         @upload_timeout_milliseconds = (upload_timeout_seconds * 1_000).to_i
 
-        validate_agent_settings(agent_settings)
-
         @exporter_configuration =
           if agentless?(site, api_key)
             [:agentless, site, api_key].freeze
           else
-            [:agent, base_url_from(agent_settings)].freeze
+            [:agent, agent_settings.url].freeze
           end
 
         status, result = validate_exporter(exporter_configuration)
@@ -53,45 +52,26 @@ module Datadog
 
         if status == :ok
           if (200..299).cover?(result)
-            Datadog.logger.debug('Successfully reported profiling data')
+            Datadog.logger.debug("Successfully reported profiling data")
             true
           else
             Datadog.logger.error(
               "Failed to report profiling data (#{config_without_api_key}): " \
               "server returned unexpected HTTP #{result} status code"
             )
+            Datadog::Core::Telemetry::Logger.error(
+              "Failed to report profiling data: unexpected HTTP #{result} status code"
+            )
             false
           end
         else
           Datadog.logger.error("Failed to report profiling data (#{config_without_api_key}): #{result}")
+          Datadog::Core::Telemetry::Logger.error("Failed to report profiling data")
           false
         end
       end
 
       private
-
-      def base_url_from(agent_settings)
-        case agent_settings.adapter
-        when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          "#{agent_settings.ssl ? "https" : "http"}://#{agent_settings.hostname}:#{agent_settings.port}/"
-        when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-          "unix://#{agent_settings.uds_path}"
-        else
-          raise ArgumentError, "Unexpected adapter: #{agent_settings.adapter}"
-        end
-      end
-
-      def validate_agent_settings(agent_settings)
-        supported_adapters = [
-          Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER,
-          Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-        ]
-        unless supported_adapters.include?(agent_settings.adapter)
-          raise ArgumentError,
-            "Unsupported transport configuration for profiling: Adapter #{agent_settings.adapter} " \
-                        ' is not supported'
-        end
-      end
 
       def agentless?(site, api_key)
         site && api_key && Core::Environment::VariableHelpers.env_to_bool(Profiling::Ext::ENV_AGENTLESS, false)
@@ -134,7 +114,7 @@ module Datadog
       end
 
       def config_without_api_key
-        [exporter_configuration[0..1]].to_h
+        "#{exporter_configuration[0]}: #{exporter_configuration[1]}"
       end
     end
   end

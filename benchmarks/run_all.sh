@@ -6,6 +6,7 @@
 set -ex
 
 for file in \
+  `dirname "$0"`/di_instrument.rb \
   `dirname "$0"`/library_gem_loading.rb \
   `dirname "$0"`/profiler_allocation.rb \
   `dirname "$0"`/profiler_gc.rb \
@@ -14,6 +15,7 @@ for file in \
   `dirname "$0"`/profiler_memory_sample_serialize.rb \
   `dirname "$0"`/profiler_sample_loop_v2.rb \
   `dirname "$0"`/profiler_sample_serialize.rb \
+  `dirname "$0"`/profiler_sample_gvl.rb \
   `dirname "$0"`/tracing_trace.rb;
 do
   bundle exec ruby "$file"

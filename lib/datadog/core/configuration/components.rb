@@ -13,6 +13,10 @@ require_relative '../remote/component'
 require_relative '../../tracing/component'
 require_relative '../../profiling/component'
 require_relative '../../appsec/component'
+require_relative '../../di/component'
+require_relative '../crashtracking/component'
+
+require_relative '../environment/agent_info'
 
 module Datadog
   module Core
@@ -58,6 +62,17 @@ module Datadog
           def build_telemetry(settings, agent_settings, logger)
             Telemetry::Component.build(settings, agent_settings, logger)
           end
+
+          def build_crashtracker(settings, agent_settings, logger:)
+            return unless settings.crashtracking.enabled
+
+            if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
+              logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+              return
+            end
+
+            Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
+          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -70,7 +85,10 @@ module Datadog
           :runtime_metrics,
           :telemetry,
           :tracer,
-          :appsec
+          :crashtracker,
+          :dynamic_instrumentation,
+          :appsec,
+          :agent_info
 
         def initialize(settings)
           @logger = self.class.build_logger(settings)
@@ -81,26 +99,34 @@ module Datadog
           # the Core resolver from within your product/component's namespace.
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings)
+          # Exposes agent capability information for detection by any components
+          @agent_info = Core::Environment::AgentInfo.new(agent_settings)
+
+          @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
+
+          @remote = Remote::Component.build(settings, agent_settings, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
+          @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
             agent_settings: agent_settings,
             optional_tracer: @tracer,
+            logger: @logger,
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
           @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
           @health_metrics = self.class.build_health_metrics(settings)
-          @telemetry = self.class.build_telemetry(settings, agent_settings, logger)
-          @appsec = Datadog::AppSec::Component.build_appsec_component(settings)
+          @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
+          @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
+          @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
 
           self.class.configure_tracing(settings)
         end
 
         # Starts up components
-        def startup!(settings)
+        def startup!(settings, old_state: nil)
           if settings.profiling.enabled
             if profiler
               profiler.start
@@ -109,6 +135,16 @@ module Datadog
               unsupported_reason = Profiling.unsupported_reason
               logger.warn("Profiling was requested but is not supported, profiling disabled: #{unsupported_reason}")
             end
+          end
+
+          if settings.remote.enabled && old_state&.[](:remote_started)
+            # The library was reconfigured and previously it already started
+            # the remote component (i.e., it received at least one request
+            # through the installed Rack middleware which started the remote).
+            # If the new configuration also has remote enabled, start the
+            # new remote right away.
+            # remote should always be not nil here but steep doesn't know this.
+            remote&.start
           end
 
           Core::Diagnostics::EnvironmentLogger.collect_and_log!(@environment_logger_extra)
@@ -120,6 +156,9 @@ module Datadog
         def shutdown!(replacement = nil)
           # Shutdown remote configuration
           remote.shutdown! if remote
+
+          # Shutdown DI after remote, since remote config triggers DI operations.
+          dynamic_instrumentation&.shutdown!
 
           # Decommission AppSec
           appsec.shutdown! if appsec

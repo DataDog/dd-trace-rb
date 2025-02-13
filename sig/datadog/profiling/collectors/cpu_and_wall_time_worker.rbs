@@ -16,20 +16,22 @@ module Datadog
           ?dynamic_sampling_rate_enabled: bool,
           allocation_profiling_enabled: bool,
           allocation_counting_enabled: bool,
+          gvl_profiling_enabled: bool,
           ?skip_idle_samples_for_testing: false,
         ) -> void
 
         def self._native_initialize: (
-          CpuAndWallTimeWorker self_instance,
-          ThreadContext thread_context_collector,
-          bool gc_profiling_enabled,
-          IdleSamplingHelper idle_sampling_helper,
-          bool no_signals_workaround_enabled,
-          bool dynamic_sampling_rate_enabled,
-          Float dynamic_sampling_rate_overhead_target_percentage,
-          bool allocation_profiling_enabled,
-          bool allocation_counting_enabled,
-          bool skip_idle_samples_for_testing,
+          self_instance: CpuAndWallTimeWorker,
+          thread_context_collector: ThreadContext,
+          gc_profiling_enabled: bool,
+          idle_sampling_helper: IdleSamplingHelper,
+          no_signals_workaround_enabled: bool,
+          dynamic_sampling_rate_enabled: bool,
+          dynamic_sampling_rate_overhead_target_percentage: Float,
+          allocation_profiling_enabled: bool,
+          allocation_counting_enabled: bool,
+          gvl_profiling_enabled: bool,
+          skip_idle_samples_for_testing: bool,
         ) -> true
 
         def start: (?on_failure_proc: ::Proc?) -> bool?

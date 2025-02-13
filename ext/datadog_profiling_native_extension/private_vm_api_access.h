@@ -18,7 +18,7 @@ typedef struct {
   rb_nativethread_id_t owner;
 } current_gvl_owner;
 
-typedef struct frame_info {
+typedef struct {
   union {
     struct {
       VALUE iseq;
@@ -65,3 +65,8 @@ const char *imemo_kind(VALUE imemo);
 #ifdef NO_POSTPONED_TRIGGER
   void *objspace_ptr_for_gc_finalize_deferred_workaround(void);
 #endif
+
+#define ENFORCE_THREAD(value) \
+  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, RTYPEDDATA_TYPE(rb_thread_current())))) raise_unexpected_type(value, ADD_QUOTES(value), "Thread", __FILE__, __LINE__, __func__); }
+
+bool is_raised_flag_set(VALUE thread);

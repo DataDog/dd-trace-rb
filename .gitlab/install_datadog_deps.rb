@@ -63,8 +63,32 @@ end
 
 puts gem_version_mapping
 
-gem_version_mapping.each do |gem, version|
-  env = {}
+ffi_version = gem_version_mapping.fetch('ffi')
+puts "=== ffi version ==="
+puts ffi_version
+
+libdatadog_version = gem_version_mapping.fetch('libdatadog')
+puts "=== libdatadog version ==="
+puts libdatadog_version
+
+
+env = {
+  'GEM_HOME' => versioned_path.to_s,
+  # Install `datadog` gem locally without its profiling native extension
+  'DD_PROFILING_NO_EXTENSION' => 'true',
+}
+
+# ADD NEW DEPENDENCIES HERE
+[
+  'datadog-ruby_core_source',
+  'ffi',
+  'libddwaf',
+  'msgpack',
+  'libdatadog', # libdatadog MUST be installed before datadog to ensure libdatadog native extension is compiled
+  'logger',
+  'datadog',
+].each do |gem|
+  version = gem_version_mapping.delete(gem)
 
   gem_install_cmd = "gem install #{gem} "\
     "--version #{version} "\
@@ -73,19 +97,13 @@ gem_version_mapping.each do |gem, version|
 
   case gem
   when 'ffi'
-    gem_install_cmd << "--install-dir #{versioned_path} "
     # Install `ffi` gem with its built-in `libffi` native extension instead of using system's `libffi`
     gem_install_cmd << '-- --disable-system-libffi '
   when 'datadog'
-    # Install `datadog` gem locally without its profiling native extension
-    env['DD_PROFILING_NO_EXTENSION'] = 'true'
     gem_install_cmd =
       "gem install --local #{ENV.fetch('DATADOG_GEM_LOCATION')} "\
       '--no-document '\
       '--ignore-dependencies '\
-      "--install-dir #{versioned_path} "
-  else
-    gem_install_cmd << "--install-dir #{versioned_path} "
   end
 
   puts "Execute: #{gem_install_cmd}"
@@ -98,6 +116,32 @@ gem_version_mapping.each do |gem, version|
     exit 1
   end
 end
+
+raise "#{gem_version_mapping.keys.join(',')} are not installed." if gem_version_mapping.any?
+
+datadog_gem_path = versioned_path.join("gems/datadog-#{ENV.fetch('RUBY_PACKAGE_VERSION')}")
+libdatadog_so_file = "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}.so"
+unless File.exist?("#{datadog_gem_path}/lib/#{libdatadog_so_file}")
+  raise "Missing #{libdatadog_so_file} in #{datadog_gem_path}."
+end
+
+cached_gems = Dir.glob(versioned_path.join("cache/*.gem"))
+
+libdatadog_musl = versioned_path +
+  "gems" +
+  "libdatadog-#{libdatadog_version}-#{RUBY_PLATFORM}" +
+  "vendor" +
+  "libdatadog-#{libdatadog_version.split(".").take(3).join(".")}" +
+  "#{RUBY_PLATFORM}-musl"
+
+FileUtils.rm_r(
+  [
+    *cached_gems,
+    versioned_path.join("gems/ffi-#{ffi_version}/ext"),
+    libdatadog_musl,
+  ],
+  verbose: true
+)
 
 FileUtils.cd(versioned_path.join("extensions/#{Gem::Platform.local}"), verbose: true) do
   # Symlink those directories to be utilized by Ruby compiled with shared libraries

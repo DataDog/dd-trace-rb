@@ -37,3 +37,5 @@
 # Ignore local variables
 /index.html*
 .envrc
+
+db/schema.rb

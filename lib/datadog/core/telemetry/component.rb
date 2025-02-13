@@ -5,6 +5,7 @@ require_relative 'event'
 require_relative 'http/transport'
 require_relative 'metrics_manager'
 require_relative 'worker'
+require_relative 'logging'
 
 require_relative '../configuration/ext'
 require_relative '../utils/forking'
@@ -13,10 +14,12 @@ module Datadog
   module Core
     module Telemetry
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
+      # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
       class Component
         attr_reader :enabled
 
         include Core::Utils::Forking
+        include Telemetry::Logging
 
         def self.build(settings, agent_settings, logger)
           enabled = settings.telemetry.enabled
@@ -50,6 +53,7 @@ module Datadog
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             dependency_collection: settings.telemetry.dependency_collection,
             shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
+            log_collection_enabled: settings.telemetry.log_collection_enabled
           )
         end
 
@@ -65,10 +69,11 @@ module Datadog
           http_transport:,
           shutdown_timeout_seconds:,
           enabled: true,
-          metrics_enabled: true
+          metrics_enabled: true,
+          log_collection_enabled: true
         )
           @enabled = enabled
-          @stopped = false
+          @log_collection_enabled = log_collection_enabled
 
           @metrics_manager = MetricsManager.new(
             enabled: enabled && metrics_enabled,
@@ -84,6 +89,9 @@ module Datadog
             dependency_collection: dependency_collection,
             shutdown_timeout: shutdown_timeout_seconds
           )
+
+          @stopped = false
+
           @worker.start
         end
 
@@ -109,6 +117,12 @@ module Datadog
           return if !@enabled || forked?
 
           @worker.enqueue(Event::AppIntegrationsChange.new)
+        end
+
+        def log!(event)
+          return if !@enabled || forked? || !@log_collection_enabled
+
+          @worker.enqueue(event)
         end
 
         # Report configuration changes caused by Remote Configuration.

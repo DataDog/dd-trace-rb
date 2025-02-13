@@ -3,41 +3,41 @@
 # Pprof encoding is taken care of by libdatadog, but we use this in our specs to be able to decode profiles and
 # assert on them
 
-require 'google/protobuf'
+require "google/protobuf"
 
 Google::Protobuf::DescriptorPool.generated_pool.build do
-  add_message 'perftools.profiles.Profile' do
-    repeated :sample_type, :message, 1, 'perftools.profiles.ValueType'
-    repeated :sample, :message, 2, 'perftools.profiles.Sample'
-    repeated :mapping, :message, 3, 'perftools.profiles.Mapping'
-    repeated :location, :message, 4, 'perftools.profiles.Location'
-    repeated :function, :message, 5, 'perftools.profiles.Function'
+  add_message "perftools.profiles.Profile" do
+    repeated :sample_type, :message, 1, "perftools.profiles.ValueType"
+    repeated :sample, :message, 2, "perftools.profiles.Sample"
+    repeated :mapping, :message, 3, "perftools.profiles.Mapping"
+    repeated :location, :message, 4, "perftools.profiles.Location"
+    repeated :function, :message, 5, "perftools.profiles.Function"
     repeated :string_table, :string, 6
     optional :drop_frames, :int64, 7
     optional :keep_frames, :int64, 8
     optional :time_nanos, :int64, 9
     optional :duration_nanos, :int64, 10
-    optional :period_type, :message, 11, 'perftools.profiles.ValueType'
+    optional :period_type, :message, 11, "perftools.profiles.ValueType"
     optional :period, :int64, 12
     repeated :comment, :int64, 13
     optional :default_sample_type, :int64, 14
   end
-  add_message 'perftools.profiles.ValueType' do
+  add_message "perftools.profiles.ValueType" do
     optional :type, :int64, 1
     optional :unit, :int64, 2
   end
-  add_message 'perftools.profiles.Sample' do
+  add_message "perftools.profiles.Sample" do
     repeated :location_id, :uint64, 1
     repeated :value, :int64, 2
-    repeated :label, :message, 3, 'perftools.profiles.Label'
+    repeated :label, :message, 3, "perftools.profiles.Label"
   end
-  add_message 'perftools.profiles.Label' do
+  add_message "perftools.profiles.Label" do
     optional :key, :int64, 1
     optional :str, :int64, 2
     optional :num, :int64, 3
     optional :num_unit, :int64, 4
   end
-  add_message 'perftools.profiles.Mapping' do
+  add_message "perftools.profiles.Mapping" do
     optional :id, :uint64, 1
     optional :memory_start, :uint64, 2
     optional :memory_limit, :uint64, 3
@@ -49,18 +49,18 @@ Google::Protobuf::DescriptorPool.generated_pool.build do
     optional :has_line_numbers, :bool, 9
     optional :has_inline_frames, :bool, 10
   end
-  add_message 'perftools.profiles.Location' do
+  add_message "perftools.profiles.Location" do
     optional :id, :uint64, 1
     optional :mapping_id, :uint64, 2
     optional :address, :uint64, 3
-    repeated :line, :message, 4, 'perftools.profiles.Line'
+    repeated :line, :message, 4, "perftools.profiles.Line"
     optional :is_folded, :bool, 5
   end
-  add_message 'perftools.profiles.Line' do
+  add_message "perftools.profiles.Line" do
     optional :function_id, :uint64, 1
     optional :line, :int64, 2
   end
-  add_message 'perftools.profiles.Function' do
+  add_message "perftools.profiles.Function" do
     optional :id, :uint64, 1
     optional :name, :int64, 2
     optional :system_name, :int64, 3
@@ -71,13 +71,13 @@ end
 
 module Perftools
   module Profiles
-    Profile = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Profile').msgclass
-    ValueType = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.ValueType').msgclass
-    Sample = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Sample').msgclass
-    Label = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Label').msgclass
-    Mapping = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Mapping').msgclass
-    Location = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Location').msgclass
-    Line = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Line').msgclass
-    Function = Google::Protobuf::DescriptorPool.generated_pool.lookup('perftools.profiles.Function').msgclass
+    Profile = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Profile").msgclass
+    ValueType = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.ValueType").msgclass
+    Sample = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Sample").msgclass
+    Label = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Label").msgclass
+    Mapping = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Mapping").msgclass
+    Location = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Location").msgclass
+    Line = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Line").msgclass
+    Function = Google::Protobuf::DescriptorPool.generated_pool.lookup("perftools.profiles.Function").msgclass
   end
 end

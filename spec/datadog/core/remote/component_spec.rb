@@ -6,7 +6,8 @@ require 'datadog/core/remote/component'
 RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings) }
+  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
+  let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
   let(:component) { described_class.new(settings, capabilities, agent_settings) }
 
   around do |example|
@@ -14,7 +15,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   end
 
   describe '.build' do
-    subject(:build) { described_class.build(settings, agent_settings) }
+    subject(:build) { described_class.build(settings, agent_settings, telemetry: telemetry) }
 
     after { build.shutdown! if build }
 
@@ -37,7 +38,10 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
       let(:component) { double('component', shutdown!: nil) }
 
       it 'initializes component' do
-        expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(settings).and_return(capabilities)
+        expect(Datadog::Core::Remote::Client::Capabilities).to receive(:new).with(
+          settings,
+          telemetry
+        ).and_return(capabilities)
         expect(described_class).to receive(:new).with(settings, capabilities, agent_settings).and_return(component)
 
         is_expected.to eq(component)
@@ -254,8 +258,26 @@ RSpec.describe Datadog::Core::Remote::Component::Barrier do
 
     context 'with waiters' do
       it 'unblocks waiters' do
+        skip('Known flaky (assertion below sometimes fails with timeout)')
+
         waiter_thread = Thread.new(record) do |record|
           record << :one
+          # Failures:
+          #
+          #   1) Datadog::Core::Remote::Component::Barrier#lift with waiters unblocks waiters
+          #      Failure/Error: expect(barrier.wait_once).to eq :lift
+          #
+          #        expected: :lift
+          #             got: :timeout
+          #
+          #        (compared using ==)
+          #
+          #        Diff:
+          #        @@ -1 +1 @@
+          #        -:lift
+          #        +:timeout
+          #      # ./spec/datadog/core/remote/component_spec.rb:263:in `block (5 levels) in <top (required)>'
+          #      # ./spec/spec_helper.rb:254:in `block in initialize'
           expect(barrier.wait_once).to eq :lift
           record << :two
         end.run

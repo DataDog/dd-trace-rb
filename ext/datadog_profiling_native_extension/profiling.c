@@ -11,6 +11,7 @@
 #include "ruby_helpers.h"
 #include "setup_signal_handler.h"
 #include "time_helpers.h"
+#include "unsafe_api_calls_check.h"
 
 // Each class/module here is implemented in their separate file
 void collectors_cpu_and_wall_time_worker_init(VALUE profiling_module);
@@ -37,8 +38,15 @@ static VALUE _native_trigger_holding_the_gvl_signal_handler_on(DDTRACE_UNUSED VA
 static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE with_gvl);
 static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
+static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
+  // The profiler still has a lot of limitations around being used in Ractors BUT for now we're choosing to take care of those
+  // on our side, rather than asking Ruby to block calling our APIs from Ractors.
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(true);
+  #endif
+
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
@@ -55,6 +63,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   collectors_thread_context_init(profiling_module);
   http_transport_init(profiling_module);
   stack_recorder_init(profiling_module);
+  unsafe_api_calls_check_init();
 
   // Hosts methods used for testing the native code using RSpec
   VALUE testing_module = rb_define_module_under(native_extension_module, "Testing");
@@ -72,6 +81,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_trigger_holding_the_gvl_signal_handler_on", _native_trigger_holding_the_gvl_signal_handler_on, 1);
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
+  rb_define_singleton_method(testing_module, "_native_safe_object_info", _native_safe_object_info, 1);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
@@ -81,16 +91,16 @@ static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   return Qtrue;
 }
 
-struct trigger_grab_gvl_and_raise_arguments {
+typedef struct {
   VALUE exception_class;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_arguments;
 
 static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE exception_class, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_arguments args;
+  trigger_grab_gvl_and_raise_arguments args;
 
   args.exception_class = exception_class;
   args.test_message = StringValueCStr(test_message);
@@ -106,7 +116,7 @@ static VALUE _native_grab_gvl_and_raise(DDTRACE_UNUSED VALUE _self, VALUE except
 }
 
 static void *trigger_grab_gvl_and_raise(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_arguments *args = (struct trigger_grab_gvl_and_raise_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_arguments *args = (trigger_grab_gvl_and_raise_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise(args->exception_class, "%s%d", args->test_message, args->test_message_arg);
@@ -117,16 +127,16 @@ static void *trigger_grab_gvl_and_raise(void *trigger_args) {
   return NULL;
 }
 
-struct trigger_grab_gvl_and_raise_syserr_arguments {
+typedef struct {
   int syserr_errno;
   char *test_message;
   int test_message_arg;
-};
+} trigger_grab_gvl_and_raise_syserr_arguments;
 
 static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE syserr_errno, VALUE test_message, VALUE test_message_arg, VALUE release_gvl) {
   ENFORCE_TYPE(test_message, T_STRING);
 
-  struct trigger_grab_gvl_and_raise_syserr_arguments args;
+  trigger_grab_gvl_and_raise_syserr_arguments args;
 
   args.syserr_errno = NUM2INT(syserr_errno);
   args.test_message = StringValueCStr(test_message);
@@ -142,7 +152,7 @@ static VALUE _native_grab_gvl_and_raise_syserr(DDTRACE_UNUSED VALUE _self, VALUE
 }
 
 static void *trigger_grab_gvl_and_raise_syserr(void *trigger_args) {
-  struct trigger_grab_gvl_and_raise_syserr_arguments *args = (struct trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
+  trigger_grab_gvl_and_raise_syserr_arguments *args = (trigger_grab_gvl_and_raise_syserr_arguments *) trigger_args;
 
   if (args->test_message_arg >= 0) {
     grab_gvl_and_raise_syserr(args->syserr_errno, "%s%d", args->test_message, args->test_message_arg);
@@ -253,7 +263,7 @@ static VALUE _native_enforce_success(DDTRACE_UNUSED VALUE _self, VALUE syserr_er
 
 static void *trigger_enforce_success(void *trigger_args) {
   intptr_t syserr_errno = (intptr_t) trigger_args;
-  ENFORCE_SUCCESS_NO_GVL(syserr_errno);
+  ENFORCE_SUCCESS_NO_GVL((int) syserr_errno);
   return NULL;
 }
 
@@ -264,4 +274,8 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self) {
   #else
     return Qfalse;
   #endif
+}
+
+static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj) {
+  return rb_str_new_cstr(safe_object_info(obj));
 }

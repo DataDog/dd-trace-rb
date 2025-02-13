@@ -9,21 +9,12 @@ require_relative 'benchmarks_helper'
 
 class ProfilerGcBenchmark
   def create_profiler
-    @recorder = Datadog::Profiling::StackRecorder.new(
-      cpu_time_enabled: true,
-      alloc_samples_enabled: false,
-      heap_samples_enabled: false,
-      heap_size_enabled: false,
-      heap_sample_every: 1,
-      timeline_enabled: true,
-    )
-    @collector = Datadog::Profiling::Collectors::ThreadContext.new(
-      recorder: @recorder, max_frames: 400, tracer: nil, endpoint_collection_enabled: false, timeline_enabled: true
-    )
+    @recorder = Datadog::Profiling::StackRecorder.for_testing(timeline_enabled: true)
+    @collector = Datadog::Profiling::Collectors::ThreadContext.for_testing(recorder: @recorder, timeline_enabled: true)
 
     # We take a dummy sample so that the context for the main thread is created, as otherwise the GC profiling methods do
     # not create it (because we don't want to do memory allocations in the middle of GC)
-    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current)
+    Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample(@collector, Thread.current, false)
   end
 
   def run_benchmark
@@ -38,7 +29,7 @@ class ProfilerGcBenchmark
       x.report('profiler gc') do
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
         Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+        Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false, false)
       end
 
       x.save! "#{File.basename(__FILE__)}-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -61,7 +52,7 @@ class ProfilerGcBenchmark
         estimated_gc_per_minute.times do
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_start(@collector)
           Datadog::Profiling::Collectors::ThreadContext::Testing._native_on_gc_finish(@collector)
-          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector)
+          Datadog::Profiling::Collectors::ThreadContext::Testing._native_sample_after_gc(@collector, false, false)
         end
 
         @recorder.serialize

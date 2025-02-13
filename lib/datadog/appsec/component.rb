@@ -3,17 +3,18 @@
 require_relative 'processor'
 require_relative 'processor/rule_merger'
 require_relative 'processor/rule_loader'
-require_relative 'processor/actions'
+require_relative 'actions_handler'
 
 module Datadog
   module AppSec
     # Core-pluggable component for AppSec
     class Component
       class << self
-        def build_appsec_component(settings)
-          return unless settings.respond_to?(:appsec) && settings.appsec.enabled
+        def build_appsec_component(settings, telemetry:)
+          return if !settings.respond_to?(:appsec) || !settings.appsec.enabled
+          return if incompatible_ffi_version?
 
-          processor = create_processor(settings)
+          processor = create_processor(settings, telemetry)
 
           # We want to always instrument user events when AppSec is enabled.
           # There could be cases in which users use the DD_APPSEC_ENABLED Env variable to
@@ -23,18 +24,33 @@ module Datadog
           devise_integration = Datadog::AppSec::Contrib::Devise::Integration.new
           settings.appsec.instrument(:devise) unless devise_integration.patcher.patched?
 
-          new(processor: processor)
+          new(processor, telemetry)
         end
 
         private
 
-        def create_processor(settings)
-          rules = AppSec::Processor::RuleLoader.load_rules(ruleset: settings.appsec.ruleset)
+        def incompatible_ffi_version?
+          ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
+          return true unless ffi_version
+
+          return false unless Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.3') &&
+            ffi_version < Gem::Version.new('1.16.0')
+
+          Datadog.logger.warn(
+            'AppSec is not supported in Ruby versions above 3.3.0 when using `ffi` versions older than 1.16.0, ' \
+            'and will be forcibly disabled due to a memory leak in `ffi`. ' \
+            'Please upgrade your `ffi` version to 1.16.0 or higher.'
+          )
+
+          true
+        end
+
+        def create_processor(settings, telemetry)
+          rules = AppSec::Processor::RuleLoader.load_rules(
+            telemetry: telemetry,
+            ruleset: settings.appsec.ruleset
+          )
           return nil unless rules
-
-          actions = rules['actions']
-
-          AppSec::Processor::Actions.merge(actions) if actions
 
           data = AppSec::Processor::RuleLoader.load_data(
             ip_denylist: settings.appsec.ip_denylist,
@@ -47,32 +63,36 @@ module Datadog
             rules: [rules],
             data: data,
             exclusions: exclusions,
+            telemetry: telemetry
           )
 
-          processor = Processor.new(ruleset: ruleset)
+          processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
           return nil unless processor.ready?
 
           processor
         end
       end
 
-      attr_reader :processor
+      attr_reader :processor, :telemetry
 
-      def initialize(processor:)
+      def initialize(processor, telemetry)
         @processor = processor
+        @telemetry = telemetry
+
         @mutex = Mutex.new
       end
 
-      def reconfigure(ruleset:, actions:)
+      def reconfigure(ruleset:, telemetry:)
         @mutex.synchronize do
-          AppSec::Processor::Actions.merge(actions)
+          new_processor = Processor.new(ruleset: ruleset, telemetry: telemetry)
 
-          new = Processor.new(ruleset: ruleset)
+          if new_processor && new_processor.ready?
+            old_processor = @processor
 
-          if new && new.ready?
-            old = @processor
-            @processor = new
-            old.finalize if old
+            @telemetry = telemetry
+            @processor = new_processor
+
+            old_processor.finalize if old_processor
           end
         end
       end
