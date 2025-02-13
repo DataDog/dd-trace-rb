@@ -156,7 +156,6 @@ GEM
       racc (~> 1.4)
     os (1.1.4)
     ostruct (0.6.1)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -290,7 +289,6 @@ DEPENDENCIES
   net-smtp
   os (~> 1.1)
   ostruct
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
   rails (~> 6.1.0)

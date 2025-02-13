@@ -52,7 +52,6 @@ GEM
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -141,7 +140,6 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug
   pry-stack_explorer
