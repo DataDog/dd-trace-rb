@@ -76,7 +76,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
       # TODO: This tests doesn't work if TEST_MONGODB_HOST is set to anything other than 127.0.0.1
       #       We should fix this... maybe do a more clever IP resolve or something?
-      let(:secondary_host) { 'mongodb-secondary-host' }
+      let(:secondary_host) { 'localhost' }
 
       before do
         Datadog.configure do |c|
@@ -110,7 +110,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       # service, causing the test to timeout while waiting for "primary server [to be] available in cluster".
       # One solution is to pull a second MongoDB service and set the secondary client accordingly. However,
       # given the large amount of services already being pulled, this spec remains skipped on GHA for now.
-      context 'secondary client' do
+      context 'secondary client', skip: ENV['BATCHED_TASKS'] do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
