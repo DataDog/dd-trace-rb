@@ -1,5 +1,3 @@
-# frozen_string_literal: true
-
 require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
@@ -19,11 +17,6 @@ module Datadog
         DD_TRACE_BAGGAGE_MAX_BYTES = 8192
         SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'*+-.^_`|~"
         SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'()*+-./:<>?@[]^_`{|}~"
-        private_constant :BAGGAGE_KEY,
-          :DD_TRACE_BAGGAGE_MAX_ITEMS,
-          :DD_TRACE_BAGGAGE_MAX_BYTES,
-          :SAFE_CHARACTERS_KEY,
-          :SAFE_CHARACTERS_VALUE
 
         def initialize(
           fetcher:,
@@ -59,6 +52,9 @@ module Datadog
               total_size += item_size
             end
 
+            # edge case where a single item is too large
+            return if encoded_items.empty?
+
             header_value = encoded_items.join(',')
             data[@baggage_key] = header_value
           rescue => e
@@ -82,15 +78,23 @@ module Datadog
         private
 
         def encode_key(key)
-          URI.encode_www_form_component(key.strip).gsub(/[^#{Regexp.escape(SAFE_CHARACTERS_KEY)}]/o) do |char|
-            "%#{char.ord.to_s(16).upcase}"
-          end
+          key.strip.chars.map do |char|
+            if SAFE_CHARACTERS_KEY.include?(char)
+              char
+            else
+              "%#{char.ord.to_s(16).upcase}"
+            end
+          end.join
         end
 
         def encode_value(value)
-          URI.encode_www_form_component(value.strip).gsub(/[^#{Regexp.escape(SAFE_CHARACTERS_VALUE)}]/o) do |char|
-            "%#{char.ord.to_s(16).upcase}"
-          end
+          value.strip.chars.map do |char|
+            if SAFE_CHARACTERS_VALUE.include?(char)
+              char
+            else
+              "%#{char.ord.to_s(16).upcase}"
+            end
+          end.join
         end
 
         def parse_baggage_header(baggage_header)
@@ -100,13 +104,36 @@ module Datadog
             next unless key_value.include?('=')
 
             key, value = key_value.split('=', 2)
-            key = URI.decode_www_form_component(key.strip)
-            value = URI.decode_www_form_component(value.strip)
+            key = decode_and_preserve_safe_characters(key.strip, SAFE_CHARACTERS_KEY)
+            value = decode_and_preserve_safe_characters(value.strip, SAFE_CHARACTERS_VALUE)
             next if key.empty? || value.empty?
 
             baggage[key] = value
           end
           baggage
+        end
+
+        def decode_and_preserve_safe_characters(str, safe_characters)
+          decoded_str = ''
+          i = 0
+
+          while i < str.length
+            if str[i] == '%' && i + 2 < str.length
+              hex = str[i + 1, 2]
+              char = [hex].pack('H*')
+              decoded_str << if safe_characters.include?(char)
+                               str[i, 3] # Preserve the percent-encoded sequence
+                             else
+                               char
+                             end
+              i += 3
+            else
+              decoded_str << str[i]
+              i += 1
+            end
+          end
+
+          decoded_str
         end
       end
     end
