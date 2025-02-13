@@ -21,7 +21,7 @@ jobs:
 
           echo "[DEBUG] Fetching cache list..."
           # Get full cache details
-          CACHE_LIST=$(gh cache list --ref $BRANCH --limit 100 --json key,sizeInBytes,createdAt,id)
+          CACHE_LIST=$(gh cache list --ref $BRANCH --limit 100 --json key,sizeInBytes,id)
 
           if [ -z "$CACHE_LIST" ] || [ "$CACHE_LIST" = "[]" ]; then
             echo "[DEBUG] No caches found"
@@ -30,11 +30,11 @@ jobs:
           fi
 
           # Create table header
-          echo "| Cache ID | Cache Key | Size | Created At | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|----------|-----------|------|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Cache ID | Cache Key | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----------|------|" >> $GITHUB_STEP_SUMMARY
 
           # Extract IDs and process deletions
-          echo "$CACHE_LIST" | jq -r '.[] | [.id, .key, .sizeInBytes, .createdAt] | @tsv' | while IFS=$'\t' read -r id key size created; do
+          echo "$CACHE_LIST" | jq -r '.[] | [.id, .key, .sizeInBytes] | @tsv' | while IFS=$'\t' read -r id key size; do
             # Convert size to human readable format
             if [ $size -ge 1048576 ]; then
               readable_size=$(echo "scale=2; $size/1048576" | bc)"MB"
@@ -43,16 +43,11 @@ jobs:
             fi
 
             echo "[DELETE] Processing cache ID: $id"
-            if gh cache delete $id > /dev/null 2>&1; then
-              status="✅ Deleted"
-              echo "[SUCCESS] Cache $id deleted"
-            else
-              status="❌ Failed"
-              echo "[ERROR] Failed to delete cache $id"
-            fi
+            gh cache delete $id
+            echo "[INFO] Processed cache $id"
 
             # Add row to summary table
-            echo "| \`$id\` | \`$key\` | $readable_size | $created | $status |" >> $GITHUB_STEP_SUMMARY
+            echo "| \`$id\` | \`$key\` | $readable_size |" >> $GITHUB_STEP_SUMMARY
           done
 
           # Add completion timestamp
