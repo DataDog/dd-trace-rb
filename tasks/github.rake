@@ -1,4 +1,3 @@
-require 'pry'
 require 'json'
 require 'psych'
 require 'ostruct'
@@ -397,16 +396,13 @@ namespace :github do
   task :generate_batches do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    exceptions = [
+    # Uncomment to only runs the specified candidates
+    candidates = [
       # 'sidekiq', # Connection refused - connect(2) for 127.0.0.1:6379 (RedisClient::CannotConnectError)
+      # 'mongodb', # Connection issue with multi db and process hang
     ]
 
-    # candidates = exceptions
-    candidates = matrix.keys - exceptions
-
-    raise 'No candidates.' if candidates.empty?
-
-    matrix = matrix.slice(*candidates)
+    matrix = matrix.slice(*candidates) unless candidates.empty?
 
     ruby_version = RUBY_VERSION[0..2]
 
