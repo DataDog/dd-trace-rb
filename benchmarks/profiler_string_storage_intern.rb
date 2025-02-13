@@ -7,11 +7,6 @@ require_relative 'benchmarks_helper'
 
 # This benchmark measures the performance of string storage-related APIs
 
-# Temporary hack to make CI happy. Our CI tries to compare benchmarks between master and branches, and if benchmarks
-# are not backwards-compatible between them (e.g. a new API was added...) it breaks. As a workaround, I'm disabling this
-# benchmark so we can merge it to master, and then I'll follow up with a micro-PR to re-enable it.
-TEMPORARY_DISABLE_BENCHMARK = true
-
 class ProfilerStringStorageIntern
   def initialize
     @recorder = Datadog::Profiling::StackRecorder.for_testing(heap_samples_enabled: true)
@@ -24,7 +19,7 @@ class ProfilerStringStorageIntern
         **benchmark_time,
       )
       x.report('intern_all 1000 repeated strings') do
-        Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(@recorder, "hello, world!", 1000, true) unless TEMPORARY_DISABLE_BENCHMARK
+        Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(@recorder, "hello, world!", 1000, true)
       end
 
       x.save! "#{File.basename(__FILE__)}-1-results.json" unless VALIDATE_BENCHMARK_MODE
@@ -45,11 +40,11 @@ class ProfilerStringStorageIntern
         new_strings = strings_to_intern - existing_strings
 
         new_strings.times do |i|
-          Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(recorder, ("%010d" % i), 1, false) unless TEMPORARY_DISABLE_BENCHMARK
+          Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(recorder, ("%010d" % i), 1, false)
         end
 
         existing_strings.times do |i|
-          Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(recorder, "hello, world!", 1, false) unless TEMPORARY_DISABLE_BENCHMARK
+          Datadog::Profiling::StackRecorder::Testing._native_benchmark_intern(recorder, "hello, world!", 1, false)
         end
       end
 
