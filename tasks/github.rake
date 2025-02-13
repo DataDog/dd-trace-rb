@@ -224,7 +224,6 @@ namespace :github do
                 'COVERAGE_DIR' => "coverage/versions/#{runtime.alias}/${{ matrix.batch }}"
               }
             },
-            # { 'run' => 'apt-get update && apt-get install tree && tree -a coverage' }, # Uncomment for debugging
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
@@ -262,7 +261,6 @@ namespace :github do
           'push' => {
             'branches' => [
               'master',
-              'tonycthsu/*',
             ]
           },
           'pull_request' => {
@@ -369,7 +367,6 @@ namespace :github do
                 }
               },
               { 'run' => 'bundle exec rake coverage:report' },
-              # { 'run' => 'apt-get update && apt-get install tree && tree -a coverage' }, # Uncomment for debugging
               {
                 'uses' => 'codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3',
                 'with' => {

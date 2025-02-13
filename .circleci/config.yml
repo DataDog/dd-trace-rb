@@ -307,6 +307,7 @@ orbs:
           - run:
               name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
+          # Migrate to Github Actions
           # - codecov/upload:
           #     file: /tmp/workspace/coverage/report/coverage.xml
           - run:
