@@ -142,6 +142,8 @@ services:
     environment:
       <<: *common-environment
       BUNDLE_GEMFILE: /app/ruby-3.4.gemfile
+    links:
+      - "mongodb:mongodb-secondary-host"
     stdin_open: true
     tty: true
     volumes:
