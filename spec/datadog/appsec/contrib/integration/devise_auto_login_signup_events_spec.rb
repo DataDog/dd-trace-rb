@@ -26,13 +26,14 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.parent_controller = 'TestApplicationController'
       config.paranoid = true
       config.stretches = 1
+      config.password_length = 6..8
     end
 
     # app/models
     stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
       klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
       klass.connection.create_table 'users', force: :cascade do |t|
-        t.string :name, null: false
+        t.string :username, null: false
         t.string :email, default: '', null: false
         t.string :encrypted_password, default: '', null: false
         t.datetime :remember_created_at
@@ -41,14 +42,22 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
 
       klass.class_eval do
-        devise :database_authenticatable, :rememberable
+        devise :database_authenticatable, :registerable, :validatable, :rememberable
       end
 
       # prevent internal sql requests from showing up
       klass.count
     end
 
-    stub_const('TestApplicationController', Class.new(ActionController::Base))
+    stub_const('TestApplicationController', Class.new(ActionController::Base)).class_eval do
+      before_action :configure_permitted_parameters, if: :devise_controller?
+
+      def configure_permitted_parameters
+        devise_parameter_sanitizer.permit(:sign_up) do |user|
+          user.permit(:username, :email, :password, :password_confirmation)
+        end
+      end
+    end
 
     # NOTE: Unfortunately, can't figure out why devise receives 3 times `finalize!`
     #       of the RouteSet patch, hence it's bypassed with below hack.
@@ -182,26 +191,24 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     context 'when user successfully loggin' do
       before do
-        User.create!(name: 'John Doe', email: 'john.doe@example.com', password: '123456')
+        User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
 
         post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
       end
 
-      it 'tracks successful login event' do
+      it 'tracks successfull login event' do
         expect(response).to be_redirect
         expect(response.location).to eq('http://example.org/')
 
         expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
+        expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('identification')
+        expect(http_service_entry_span.tags['usr.id']).to eq('1')
+
         # NOTE: not implemented yet
         # expect(http_service_entry_span.tags['appsec.events.users.login.success.usr.login']).to eq('john.doe@example.com')
-        expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
-        # NOTE: not implemented yet
         # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('identification')
-
-        expect(http_service_entry_span.tags['usr.id']).to eq('1')
-        # NOTE: not implemented yet
         # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
       end
     end
@@ -215,21 +222,47 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
         expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.login']).to eq('john.doe@example.com')
         expect(http_service_entry_span.tags['appsec.events.users.login.failure.track']).to eq('true')
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
         expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('identification')
         expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.exists']).to eq('false')
+
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+        # expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.login']).to eq('john.doe@example.com')
       end
     end
 
-    # context 'when user unsuccessfully loggin because user not permitted by custom logic' do
+    # context 'when user unsuccessfully loggin because it is not permitted by custom logic' do
     # NOTE: When possible to have user and user exists, but for some validation
     #       reasons it could not be authorized, we should report it
     #       - `appsec.events.users.login.failure.usr.id`
     #       - `_dd.appsec.usr.id`
     # end
+
+    context 'when user successfully signed up' do
+      before do
+        form_data = {
+          user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
+        }
+
+        post('/users', form_data)
+      end
+
+      it 'tracks successfull sign up event' do
+        expect(response).to be_redirect
+        expect(response.location).to eq('http://example.org/')
+
+        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+
+        expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
+        expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
+
+        # NOTE: not implemented yet
+        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('1')
+        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      end
+    end
   end
 end
