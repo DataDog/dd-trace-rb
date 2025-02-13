@@ -180,4 +180,4 @@ vaccine:
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    .gitlab/scripts/vaccine.sh lloeki/ssi
+    .gitlab/scripts/vaccine.sh lloeki/ssi "${CI_COMMIT_SHA}"
