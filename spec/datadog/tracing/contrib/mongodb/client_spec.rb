@@ -76,7 +76,7 @@ RSpec.describe 'Mongo::Client instrumentation' do
       let(:secondary_client) { Mongo::Client.new(["#{secondary_host}:#{port}"], client_options) }
       # TODO: This tests doesn't work if TEST_MONGODB_HOST is set to anything other than 127.0.0.1
       #       We should fix this... maybe do a more clever IP resolve or something?
-      let(:secondary_host) { 'localhost' }
+      let(:secondary_host) { 'host.docker.internal' }
 
       before do
         Datadog.configure do |c|
