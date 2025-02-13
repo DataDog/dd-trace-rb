@@ -78,7 +78,6 @@ GEM
       uri
     os (1.1.4)
     ostruct (0.6.1)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -159,7 +158,6 @@ DEPENDENCIES
   mutex_m
   os (~> 1.1)
   ostruct
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
   rake (>= 10.5)
