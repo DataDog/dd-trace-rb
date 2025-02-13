@@ -9,6 +9,9 @@ module SynchronizationHelpers
     fork_stdout = Tempfile.new('datadog-rspec-expect-in-fork-stdout')
     fork_stderr = Tempfile.new('datadog-rspec-expect-in-fork-stderr')
     begin
+      # Ensure all telemetry worker threads are stopped before forking
+      telemetry&.stop! if defined?(telemetry)
+
       # Start in fork
       pid = fork do
         # Capture forked output
@@ -24,6 +27,9 @@ module SynchronizationHelpers
       # Wait for fork to finish, retrieve its status.
       # Enforce timeout to ensure test fork doesn't hang the test suite.
       _, status = try_wait_until(seconds: timeout_seconds) { Process.wait2(pid, Process::WNOHANG) }
+
+      # Add a short delay before reading files
+      sleep(0.1)
 
       stdout = File.read(fork_stdout.path)
       stderr = File.read(fork_stderr.path)
