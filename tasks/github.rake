@@ -91,6 +91,7 @@ namespace :github do
           'bundle_artifact' => "bundle-#{runtime_alias}-${{ github.run_id }}",
           'dependencies_artifact' => "bundled-dependencies-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'junit_artifact' => "junit-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
+          'coverage_artifact' => "coverage-#{runtime_alias}-${{ matrix.batch }}-${{ github.run_id }}",
           'bundle_cache_key' => "bundle-${{ runner.os }}-${{ runner.arch }}-#{runtime_alias}-${{ hashFiles('*.lock') }}"
         )
       end
@@ -217,7 +218,12 @@ namespace :github do
             { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
             { 'run' => 'ln -s .rspec-local.example .rspec-local' },
-            { 'run' => 'bundle exec rake github:run_batch_tests' },
+            {
+              'run' => 'bundle exec rake github:run_batch_tests',
+              'env' => {
+                'COVERAGE_DIR' => "coverage/versions/#{runtime.alias}/${{ matrix.batch }}"
+              }
+            },
             {
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
@@ -235,6 +241,14 @@ namespace :github do
               'with' => {
                 'name' => runtime.junit_artifact,
                 'path' => 'tmp/rspec/*.xml'
+              }
+            },
+            {
+              'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
+              'with' => {
+                'name' => runtime.coverage_artifact,
+                'path' => 'coverage',
+                'include-hidden-files' => true
               }
             },
           ]
@@ -316,6 +330,50 @@ namespace :github do
               },
               { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
               { 'run' => 'datadog-ci junit upload --verbose --dry-run tmp/rspec/' },
+            ]
+          },
+          'coverage' => {
+            'name' => 'upload/coverage',
+            'runs-on' => ubuntu,
+            'needs' => runtimes.map(&:build_test_id) + [runtimes.first.batch_id],
+            'container' => {
+              'image' => runtimes.first.image,
+            },
+            'steps' => [
+              {
+                'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
+              },
+              {
+                'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
+                'with' => {
+                  'name' => runtimes.first.lockfile_artifact,
+                }
+              },
+              {
+                'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
+                'id' => 'restore-cache',
+                'with' => {
+                  'key' => "${{ needs.#{runtimes.first.batch_id}.outputs.cache-key }}",
+                  'path' => '/usr/local/bundle'
+                }
+              },
+              { 'run' => 'bundle check || bundle install' },
+              {
+                'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
+                'with' => {
+                  'path' => 'coverage',
+                  'pattern' => 'coverage-*',
+                  'merge-multiple' => true
+                }
+              },
+              { 'run' => 'bundle exec rake coverage:report' },
+              {
+                'uses' => 'codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3',
+                'with' => {
+                  'verbose' => true,
+                  'files' => 'coverage/report/coverage.xml'
+                }
+              }
             ]
           }
         )

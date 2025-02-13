@@ -141,6 +141,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-34/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -152,6 +154,11 @@ jobs:
       with:
         name: junit-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-33:
     runs-on: ubuntu-24.04
     name: batch (ruby-3.3)
@@ -278,6 +285,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-33/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -289,6 +298,11 @@ jobs:
       with:
         name: junit-ruby-33-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-33-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-32:
     runs-on: ubuntu-24.04
     name: batch (ruby-3.2)
@@ -415,6 +429,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-32/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -426,6 +442,11 @@ jobs:
       with:
         name: junit-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-31:
     runs-on: ubuntu-24.04
     name: batch (ruby-3.1)
@@ -552,6 +573,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-31/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -563,6 +586,11 @@ jobs:
       with:
         name: junit-ruby-31-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-31-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-30:
     runs-on: ubuntu-24.04
     name: batch (ruby-3.0)
@@ -689,6 +717,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-30/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -700,6 +730,11 @@ jobs:
       with:
         name: junit-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-27:
     runs-on: ubuntu-24.04
     name: batch (ruby-2.7)
@@ -826,6 +861,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-27/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -837,6 +874,11 @@ jobs:
       with:
         name: junit-ruby-27-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-27-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-26:
     runs-on: ubuntu-24.04
     name: batch (ruby-2.6)
@@ -963,6 +1005,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-26/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -974,6 +1018,11 @@ jobs:
       with:
         name: junit-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-ruby-25:
     runs-on: ubuntu-24.04
     name: batch (ruby-2.5)
@@ -1100,6 +1149,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/ruby-25/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -1111,6 +1162,11 @@ jobs:
       with:
         name: junit-ruby-25-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-ruby-25-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-jruby-94:
     runs-on: ubuntu-24.04
     name: batch (jruby-9.4)
@@ -1237,6 +1293,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/jruby-94/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -1248,6 +1306,11 @@ jobs:
       with:
         name: junit-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-jruby-93:
     runs-on: ubuntu-24.04
     name: batch (jruby-9.3)
@@ -1374,6 +1437,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/jruby-93/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -1385,6 +1450,11 @@ jobs:
       with:
         name: junit-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   batch-jruby-92:
     runs-on: ubuntu-24.04
     name: batch (jruby-9.2)
@@ -1511,6 +1581,8 @@ jobs:
     - run: bundle exec rake github:run_batch_build
     - run: ln -s .rspec-local.example .rspec-local
     - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/jruby-92/${{ matrix.batch }}
     - if: "${{ failure() && env.RUNNER_DEBUG == '1' }}"
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
@@ -1522,6 +1594,11 @@ jobs:
       with:
         name: junit-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
         path: tmp/rspec/*.xml
+    - uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      with:
+        name: coverage-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true
   complete:
     name: complete
     runs-on: ubuntu-24.04
@@ -1574,3 +1651,42 @@ jobs:
         merge-multiple: true
     - run: sed -i 's;file="./;file=";g' tmp/rspec/*.xml
     - run: datadog-ci junit upload --verbose --dry-run tmp/rspec/
+  coverage:
+    name: upload/coverage
+    runs-on: ubuntu-24.04
+    needs:
+    - build-test-ruby-34
+    - build-test-ruby-33
+    - build-test-ruby-32
+    - build-test-ruby-31
+    - build-test-ruby-30
+    - build-test-ruby-27
+    - build-test-ruby-26
+    - build-test-ruby-25
+    - build-test-jruby-94
+    - build-test-jruby-93
+    - build-test-jruby-92
+    - batch-ruby-34
+    container:
+      image: ghcr.io/datadog/images-rb/engines/ruby:3.4
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: lockfile-ruby-34-${{ github.run_id }}
+    - uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57
+      id: restore-cache
+      with:
+        key: "${{ needs.batch-ruby-34.outputs.cache-key }}"
+        path: "/usr/local/bundle"
+    - run: bundle check || bundle install
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        path: coverage
+        pattern: coverage-*
+        merge-multiple: true
+    - run: bundle exec rake coverage:report
+    - uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
+      with:
+        verbose: true
+        files: coverage/report/coverage.xml
