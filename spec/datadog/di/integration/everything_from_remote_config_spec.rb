@@ -261,7 +261,7 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'adds a probe to pending list' do
-      expect_lazy_log(logger, :debug, /received probe from RC:/)
+      expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
       do_rc
 
@@ -303,7 +303,7 @@ RSpec.describe 'DI integration from remote config' do
     end
 
     it 'instruments code and adds probe to installed list' do
-      expect_lazy_log(logger, :debug, /received probe from RC:/)
+      expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
       do_rc
       assert_received_and_installed
@@ -313,7 +313,7 @@ RSpec.describe 'DI integration from remote config' do
 
     context 'and target method is invoked' do
       it 'notifies about execution' do
-        expect_lazy_log(logger, :debug, /received probe from RC:/)
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc
         assert_received_and_installed
@@ -357,7 +357,7 @@ RSpec.describe 'DI integration from remote config' do
 
       it 'installs the second, known, probe' do
         expect_lazy_log(logger, :debug, /Unrecognized probe type:/)
-        expect_lazy_log(logger, :debug, /received probe from RC:/)
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc
         assert_received_and_installed
@@ -417,7 +417,7 @@ RSpec.describe 'DI integration from remote config' do
       include_context 'targeting integration test class via load'
 
       it 'instruments code and adds probe to installed list' do
-        expect_lazy_log(logger, :debug, /received probe from RC:/)
+        expect_lazy_log(logger, :debug, /received log probe at .+ via RC/)
 
         do_rc(expect_hook: :hook_line)
         assert_received_and_installed
@@ -441,7 +441,7 @@ RSpec.describe 'DI integration from remote config' do
 
       it 'marks RC payload as errored' do
         expect_lazy_log_many(logger, :debug,
-          /received probe from RC:/,
+          /received log probe at .+ via RC/,
           /error processing probe configuration:.*File matching probe path.*was loaded and is not in code tracker registry/,)
 
         do_rc(expect_hook: false)

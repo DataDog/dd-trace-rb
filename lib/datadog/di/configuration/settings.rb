@@ -188,6 +188,20 @@ module Datadog
                   o.type :bool
                   o.default false
                 end
+
+                # Enable logging of dynamic instrumentation activity.
+                # This is quite verbose.
+                option :trace_logging do |o|
+                  o.type :bool
+                  o.default false
+
+                  # Use the same environment variable as the rest of
+                  # dd-trace-rb logging for now. Could change to a
+                  # dedicated environment variable in the future but
+                  # will likely need a way to turn on remote config
+                  # debugging (since DI uses RC for configuration).
+                  o.env 'DD_TRACE_DEBUG'
+                end
               end
             end
           end
