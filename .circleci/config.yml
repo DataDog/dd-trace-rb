@@ -286,7 +286,7 @@ orbs:
 
                 datadog-ci version
 
-                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --verbose --service dd-trace-rb tmp/rspec/
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --dry-run --verbose --service dd-trace-rb tmp/rspec/
           - store_test_results:
               path: tmp/rspec
           - persist_to_workspace:

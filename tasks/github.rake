@@ -288,36 +288,22 @@ namespace :github do
             'name' => 'upload/junit',
             'if' => '!cancelled()',
             'runs-on' => ubuntu,
-            'env' => {
-              'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
-              'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
-              'DD_ENV' => 'ci',
-              'DATADOG_SITE' => 'datadoghq.com',
-              'DD_SERVICE' => 'dd-trace-rb',
+            'container' => {
+              'image' => 'datadog/ci',
+              'credentials' => {
+                'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
+                'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
+              },
+              'env' => {
+                'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
+                'DD_ENV' => 'ci',
+                'DATADOG_SITE' => 'datadoghq.com',
+                'DD_SERVICE' => 'dd-trace-rb',
+                'DD_GIT_REPOSITORY_URL' => '${{ github.repositoryUrl }}',
+              }
             },
-            # 'container' => {
-            #   'image' => 'datadog/ci',
-            #   'credentials' => {
-            #     'username' => '${{ secrets.DOCKERHUB_USERNAME }}',
-            #     'password' => '${{ secrets.DOCKERHUB_TOKEN }}'
-            #   },
-            #   'env' => {
-            #     'DD_APP_KEY' => '${{ secrets.DD_APP_KEY }}',
-            #     'DD_API_KEY' => '${{ secrets.DD_API_KEY }}',
-            #     'DD_ENV' => 'ci',
-            #     'DATADOG_SITE' => 'datadoghq.com',
-            #     'DD_SERVICE' => 'dd-trace-rb',
-            #   }
-            # },
             'needs' => runtimes.map(&:build_test_id),
             'steps' => [
-              { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
-              {
-                'run' => <<~BASH
-                  curl -L --fail --retry 5 https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output /usr/local/bin/datadog-ci
-                  chmod +x /usr/local/bin/datadog-ci
-                BASH
-              },
               { 'run' => 'mkdir -p tmp/rspec && datadog-ci version' },
               {
                 'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
@@ -328,7 +314,16 @@ namespace :github do
                 }
               },
               { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
-              { 'run' => 'datadog-ci junit upload --verbose --dry-run tmp/rspec/' },
+              {
+                'if' => "github.event_name == 'pull_request'",
+                'run' => 'echo "DD_GIT_COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV'
+              },
+              {
+                'if' => "github.event_name != 'pull_request'",
+                'run' => 'echo "DD_GIT_COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV'
+              },
+              { 'run' => 'echo $DD_GIT_COMMIT_SHA' },
+              { 'run' => 'datadog-ci junit upload --verbose tmp/rspec/' },
             ]
           },
           'coverage' => {
