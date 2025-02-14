@@ -151,7 +151,7 @@ namespace :template do
             },
             {
               'name' => 'Generate batch summary',
-              'run' => 'bunsle exec rake github:generate_batch_summary',
+              'run' => 'bundle exec rake github:generate_batch_summary',
               'env' => {
                 'batches_json' => '${{ steps.set-batches.outputs.batches }}',
               },

@@ -52,7 +52,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-34:
@@ -211,7 +211,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-33:
@@ -370,7 +370,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-32:
@@ -529,7 +529,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-31:
@@ -688,7 +688,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-30:
@@ -847,7 +847,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-27:
@@ -1006,7 +1006,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-26:
@@ -1165,7 +1165,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-ruby-25:
@@ -1324,7 +1324,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-jruby-94:
@@ -1483,7 +1483,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-jruby-93:
@@ -1642,7 +1642,7 @@ jobs:
         echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
         echo "batches=$batches_json" >> $GITHUB_OUTPUT
     - name: Generate batch summary
-      run: bunsle exec rake github:generate_batch_summary
+      run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
   build-test-jruby-92:
@@ -1867,5 +1867,4 @@ jobs:
     - name: Upload coverage report
       uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       with:
-        verbose: true
         files: coverage/report/coverage.xml
