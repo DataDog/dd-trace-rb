@@ -48,7 +48,6 @@ namespace :template do
           'cluster.routing.allocation.disk.threshold_enabled' => 'false',
         }
       }
-      # Rubocop
       agent = {
         'image' => 'ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0',
         'env' => {
@@ -107,8 +106,12 @@ namespace :template do
           'container' => runtime.image,
           'steps' => [
             { 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683' },
-            { 'run' => 'bundle lock' },
             {
+              'name' => 'Generate lockfile',
+              'run' => 'bundle lock'
+            },
+            {
+              'name' => 'Upload lockfile',
               'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.lockfile_artifact,
@@ -116,6 +119,7 @@ namespace :template do
               }
             },
             {
+              'name' => 'Restore cache',
               'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
@@ -123,16 +127,22 @@ namespace :template do
                 'path' => '/usr/local/bundle'
               }
             },
-            { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
-              'run' => 'bundle install' },
-            { 'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
+            {
+              'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
+              'run' => 'bundle install'
+            },
+            {
+              'if' => "steps.restore-cache.outputs.cache-hit != 'true'",
+              'name' => 'Save cache',
               'uses' => 'actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'with' => {
                 'key' => '${{ steps.restore-cache.outputs.cache-primary-key }}',
                 'path' => '/usr/local/bundle'
-              } },
+              }
+            },
             {
               'id' => 'set-batches',
+              'name' => 'Distribute tasks into batches',
               'run' => <<~BASH
                 batches_json=$(bundle exec rake github:generate_batches)
                 echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
@@ -140,10 +150,11 @@ namespace :template do
               BASH
             },
             {
+              'name' => 'Generate batch summary',
+              'run' => 'bunsle exec rake github:generate_batch_summary',
               'env' => {
                 'batches_json' => '${{ steps.set-batches.outputs.batches }}',
               },
-              'run' => 'bundle exec rake github:generate_batch_summary'
             },
           ]
         }
@@ -200,12 +211,14 @@ namespace :template do
               'run' => 'git config --global --add safe.directory "$GITHUB_WORKSPACE"'
             },
             {
+              'name' => 'Download lockfile',
               'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
               'with' => {
                 'name' => runtime.lockfile_artifact,
               }
             },
             {
+              'name' => 'Restore cache',
               'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
               'id' => 'restore-cache',
               'with' => {
@@ -215,7 +228,10 @@ namespace :template do
             },
             { 'run' => 'bundle check || bundle install' },
             { 'run' => 'bundle exec rake github:run_batch_build' },
-            { 'run' => 'ln -s .rspec-local.example .rspec-local' },
+            {
+              'name' => 'Configure RSpec',
+              'run' => 'ln -s .rspec-local.example .rspec-local'
+            },
             {
               'run' => 'bundle exec rake github:run_batch_tests',
               'env' => {
@@ -223,6 +239,7 @@ namespace :template do
               }
             },
             {
+              'name' => 'Debug with SSH connection',
               'if' => "${{ failure() && env.RUNNER_DEBUG == '1' }}",
               'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
               'with' => {
@@ -230,10 +247,12 @@ namespace :template do
               }
             },
             {
+              'name' => 'Validate test agent data',
               'if' => 'always()',
               'run' => 'ruby .github/scripts/test_agent_check.rb'
             },
             {
+              'name' => 'Upload junit reports',
               'if' => 'always()',
               'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
@@ -242,6 +261,7 @@ namespace :template do
               }
             },
             {
+              'name' => 'Upload coverage data',
               'uses' => 'actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08',
               'with' => {
                 'name' => runtime.coverage_artifact,
@@ -305,6 +325,7 @@ namespace :template do
             'steps' => [
               { 'run' => 'mkdir -p tmp/rspec && datadog-ci version' },
               {
+                'name' => 'Download all junit reports',
                 'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
                 'with' => {
                   'path' => 'tmp/rspec',
@@ -312,7 +333,10 @@ namespace :template do
                   'merge-multiple' => true
                 }
               },
-              { 'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml" },
+              {
+                'name' => 'Format file paths',
+                'run' => "sed -i 's;file=\"\.\/;file=\";g' tmp/rspec/*.xml"
+              },
               {
                 'if' => "github.event_name == 'pull_request'",
                 'run' => 'echo "DD_GIT_COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV'
@@ -322,7 +346,10 @@ namespace :template do
                 'run' => 'echo "DD_GIT_COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV'
               },
               { 'run' => 'echo $DD_GIT_COMMIT_SHA' },
-              { 'run' => 'datadog-ci junit upload --verbose tmp/rspec/' },
+              {
+                'name' => 'Upload junit reports',
+                'run' => 'datadog-ci junit upload --verbose tmp/rspec/'
+              },
             ]
           },
           'coverage' => {
@@ -337,12 +364,14 @@ namespace :template do
                 'uses' => 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683'
               },
               {
+                'name' => 'Download lockfile',
                 'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
                 'with' => {
                   'name' => runtimes.first.lockfile_artifact,
                 }
               },
               {
+                'name' => 'Restore cache',
                 'uses' => 'actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57',
                 'id' => 'restore-cache',
                 'with' => {
@@ -352,6 +381,7 @@ namespace :template do
               },
               { 'run' => 'bundle check || bundle install' },
               {
+                'name' => 'Download all coverage data',
                 'uses' => 'actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16',
                 'with' => {
                   'path' => 'coverage',
@@ -359,8 +389,12 @@ namespace :template do
                   'merge-multiple' => true
                 }
               },
-              { 'run' => 'bundle exec rake coverage:report' },
               {
+                'name' => 'Generate coverage report',
+                'run' => 'bundle exec rake coverage:report'
+              },
+              {
+                'name' => 'Upload coverage report',
                 'uses' => 'codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3',
                 'with' => {
                   'verbose' => true,
