@@ -29,6 +29,7 @@ services:
       TEST_POSTGRES_HOST: postgres
       TEST_PRESTO_HOST: presto
       TEST_REDIS_HOST: redis
+      REDIS_URL: redis://redis:6379/0
       DATADOG_GEM_CI: 'true'
     stdin_open: true
     tty: true
