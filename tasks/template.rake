@@ -245,6 +245,7 @@ namespace :template do
               'uses' => 'mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48',
               'with' => {
                 'limit-access-to-actor' => true,
+                'detached' => true,
               }
             },
             {

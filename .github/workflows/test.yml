@@ -158,6 +158,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -316,6 +317,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -474,6 +476,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -632,6 +635,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -790,6 +794,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -948,6 +953,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -1106,6 +1112,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -1264,6 +1271,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -1422,6 +1430,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -1580,6 +1589,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
@@ -1738,6 +1748,7 @@ jobs:
       uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48
       with:
         limit-access-to-actor: true
+        detached: true
     - name: Validate test agent data
       if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
