@@ -208,11 +208,11 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
           a_span_event_with(
             name: 'dd.graphql.query.error',
             attributes: {
+              'path' => ['err1'],
+              'locations' => ['1:14'],
               'message' => 'GraphQL error',
               'type' => 'GraphQL::ExecutionError',
               'stacktrace' => include(__FILE__),
-              'locations' => ['1:14'],
-              'path' => ['graphqlError'],
               'extensions.int' => 1,
               'extensions.bool' => true,
               'extensions.str' => '1',
