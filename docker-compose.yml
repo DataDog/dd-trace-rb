@@ -301,6 +301,7 @@ services:
       - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
     image: redis:6.2
+    command: ["redis-server", "--bind", "redis", "--port", "6379"]
     expose:
       - "6379"
     ports:
