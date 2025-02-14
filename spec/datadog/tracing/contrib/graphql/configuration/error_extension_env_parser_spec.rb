@@ -4,13 +4,6 @@ RSpec.describe Datadog::Tracing::Contrib::GraphQL::Configuration::ErrorExtension
   describe '.call' do
     subject(:call) { described_class.call(value) }
 
-    context 'when value is nil' do
-      let(:value) { nil }
-      it 'returns nil' do
-        is_expected.to be_nil
-      end
-    end
-
     context 'when value is an empty string' do
       let(:value) { '' }
       it 'returns an empty array' do

@@ -9,8 +9,6 @@ module Datadog
           class ErrorExtensionEnvParser
             # Parses the environment variable `DD_TRACE_GRAPHQL_ERROR_EXTENSIONS` into an array of error extension names.
             def self.call(values)
-              return unless values
-
               # Split by comma, remove leading and trailing whitespaces,
               # remove empty values, and remove repeated values.
               values.split(',').each(&:strip!).reject(&:empty?).uniq
