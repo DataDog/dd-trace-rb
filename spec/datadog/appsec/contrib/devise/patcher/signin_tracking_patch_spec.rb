@@ -3,7 +3,6 @@
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/support/devise_user_mock'
 
-require 'datadog/appsec/contrib/devise/patcher'
 require 'datadog/appsec/contrib/devise/patcher/signin_tracking_patch'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
@@ -95,7 +94,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
     end
   end
 
-  context 'when successfully signin via Rememberable strategy' do
+  context 'when successfully signin via rememberable strategy' do
     before do
       allow(Datadog::AppSec).to receive(:enabled?).and_return(true)
       allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
@@ -117,7 +116,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
         end
 
         prepend Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch
-        prepend Datadog::AppSec::Contrib::Devise::Patcher::RememberablePatch
+        prepend Datadog::AppSec::Contrib::Devise::Patcher::SkipSigninTrackingPatch
       end
     end
     let(:resource) do
