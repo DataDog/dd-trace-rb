@@ -60,6 +60,7 @@ jobs:
     - batch-ruby-34
     runs-on: ubuntu-24.04
     name: build & test (ruby-3.4) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -217,6 +218,7 @@ jobs:
     - batch-ruby-33
     runs-on: ubuntu-24.04
     name: build & test (ruby-3.3) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -374,6 +376,7 @@ jobs:
     - batch-ruby-32
     runs-on: ubuntu-24.04
     name: build & test (ruby-3.2) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -531,6 +534,7 @@ jobs:
     - batch-ruby-31
     runs-on: ubuntu-24.04
     name: build & test (ruby-3.1) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -688,6 +692,7 @@ jobs:
     - batch-ruby-30
     runs-on: ubuntu-24.04
     name: build & test (ruby-3.0) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -845,6 +850,7 @@ jobs:
     - batch-ruby-27
     runs-on: ubuntu-24.04
     name: build & test (ruby-2.7) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1002,6 +1008,7 @@ jobs:
     - batch-ruby-26
     runs-on: ubuntu-24.04
     name: build & test (ruby-2.6) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1159,6 +1166,7 @@ jobs:
     - batch-ruby-25
     runs-on: ubuntu-24.04
     name: build & test (ruby-2.5) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1316,6 +1324,7 @@ jobs:
     - batch-jruby-94
     runs-on: ubuntu-24.04
     name: build & test (jruby-9.4) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1473,6 +1482,7 @@ jobs:
     - batch-jruby-93
     runs-on: ubuntu-24.04
     name: build & test (jruby-9.3) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:
@@ -1630,6 +1640,7 @@ jobs:
     - batch-jruby-92
     runs-on: ubuntu-24.04
     name: build & test (jruby-9.2) [${{ matrix.batch }}]
+    timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
     strategy:

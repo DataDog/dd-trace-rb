@@ -165,6 +165,7 @@ namespace :template do
           ],
           'runs-on' => ubuntu,
           'name' => "build & test (#{runtime.engine}-#{runtime.version}) [${{ matrix.batch }}]",
+          'timeout-minutes' => 30,
           'env' => { 'BATCHED_TASKS' => '${{ toJSON(matrix.tasks) }}' },
           'strategy' => {
             'fail-fast' => false,
