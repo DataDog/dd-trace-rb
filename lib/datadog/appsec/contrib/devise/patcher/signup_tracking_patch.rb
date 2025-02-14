@@ -11,7 +11,7 @@ module Datadog
       module Devise
         module Patcher
           # Hook in devise registration controller
-          module RegistrationControllerPatch
+          module SignupTrackingPatch
             def create
               return super unless AppSec.enabled?
               return super unless Configuration.auto_user_instrumentation_enabled?
