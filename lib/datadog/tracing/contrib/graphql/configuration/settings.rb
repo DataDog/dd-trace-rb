@@ -2,6 +2,7 @@
 
 require_relative '../../configuration/settings'
 require_relative '../ext'
+require_relative 'error_extension_env_parser'
 
 module Datadog
   module Tracing
@@ -47,6 +48,15 @@ module Datadog
               o.env Ext::ENV_WITH_UNIFIED_TRACER
               o.type :bool
               o.default false
+            end
+
+            # Capture error extensions provided by the user in their GraphQL error responses.
+            # The extensions can be anything, so the user is responsible for ensuring they are safe to capture.
+            option :error_extensions do |o|
+              o.env Ext::ENV_ERROR_EXTENSIONS
+              o.type :array, nilable: false
+              o.default []
+              o.env_parser { |v| ErrorExtensionEnvParser.call(v) }
             end
           end
         end

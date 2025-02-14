@@ -199,23 +199,42 @@ module Datadog
           # These are represented in the Datadog App as special GraphQL errors,
           # given their event name `dd.graphql.query.error`.
           def add_query_error_events(span, errors)
+            capture_extensions = Datadog.configuration.tracing[:graphql][:error_extensions]
             errors.each do |error|
-              e = Core::Error.build_from(error)
+              extensions = if !capture_extensions.empty? && (extensions = error.extensions)
+                             # Capture extensions, ensuring all values are primitives
+                             extensions.each_with_object({}) do |(key, value), hash|
+                               next unless capture_extensions.include?(key.to_s)
+
+                               value = case value
+                                       when TrueClass, FalseClass, Integer, Float
+                                         value
+                                       else
+                                         # Stringify anything that is not a boolean or a number
+                                         value.to_s
+                                       end
+
+                               hash["extensions.#{key}"] = value
+                             end
+                           else
+                             {}
+                           end
 
               # {::GraphQL::Error#to_h} returns the error formatted in compliance with the GraphQL spec.
               # This is an unwritten contract in the `graphql` library.
               # See for an example: https://github.com/rmosolgo/graphql-ruby/blob/0afa241775e5a113863766cce126214dee093464/lib/graphql/execution_error.rb#L32
-              err = error.to_h
+              graphql_error = error.to_h
+              error = Core::Error.build_from(error)
 
               span.span_events << Datadog::Tracing::SpanEvent.new(
                 Ext::EVENT_QUERY_ERROR,
-                attributes: {
-                  message: err['message'],
-                  type: e.type,
-                  stacktrace: e.backtrace,
-                  locations: serialize_error_locations(err['locations']),
-                  path: err['path'],
-                }
+                attributes: extensions.merge!(
+                  message: graphql_error['message'],
+                  type: error.type,
+                  stacktrace: error.backtrace,
+                  locations: serialize_error_locations(graphql_error['locations']),
+                  path: graphql_error['path'],
+                )
               )
             end
           end
