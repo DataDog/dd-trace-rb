@@ -35,9 +35,16 @@ module Datadog
 
               config.server_middleware do |chain|
                 chain.add(Sidekiq::ServerTracer)
+
+                # Patch late to ensure `Sidekiq::Processor` is loaded.
+                # Used for log correlation.
+                ::Sidekiq::Processor.prepend(Sidekiq::ServerTracer::Processor)
               end
 
               patch_server_internals if Integration.compatible_with_server_internal_tracing?
+
+              # Patch for log correlation
+              ::Sidekiq::Logger::Formatters::JSON.prepend(Sidekiq::ServerTracer::JSONFormatter)
             end
           end
 
