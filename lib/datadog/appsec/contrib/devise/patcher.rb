@@ -2,7 +2,7 @@
 
 require_relative 'patcher/authenticatable_patch'
 require_relative 'patcher/rememberable_patch'
-require_relative 'patcher/registration_controller_patch'
+require_relative 'patcher/signup_tracking_patch'
 
 module Datadog
   module AppSec
@@ -21,29 +21,19 @@ module Datadog
           end
 
           def patch
-            patch_authenticatable_strategy
-            patch_rememberable_strategy
-            patch_registration_controller
+            ::ActiveSupport.on_load(:after_initialize) do
+              ::Devise::RegistrationsController.prepend(SignupTrackingPatch)
+            end
+
+            ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
+
+            if ::Devise::STRATEGIES.include?(:rememberable)
+              # Rememberable strategy is required in autoloaded Rememberable model
+              require 'devise/models/rememberable'
+              ::Devise::Strategies::Rememberable.prepend(RememberablePatch)
+            end
 
             Patcher.instance_variable_set(:@patched, true)
-          end
-
-          def patch_authenticatable_strategy
-            ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
-          end
-
-          def patch_rememberable_strategy
-            return unless ::Devise::STRATEGIES.include?(:rememberable)
-
-            # Rememberable strategy is required in autoloaded Rememberable model
-            ::Devise::Models::Rememberable # rubocop:disable Lint/Void
-            ::Devise::Strategies::Rememberable.prepend(RememberablePatch)
-          end
-
-          def patch_registration_controller
-            ::ActiveSupport.on_load(:after_initialize) do
-              ::Devise::RegistrationsController.prepend(RegistrationControllerPatch)
-            end
           end
         end
       end

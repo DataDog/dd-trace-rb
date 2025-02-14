@@ -4,9 +4,9 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/support/devise_user_mock'
 
 require 'datadog/appsec/contrib/devise/patcher'
-require 'datadog/appsec/contrib/devise/patcher/registration_controller_patch'
+require 'datadog/appsec/contrib/devise/patcher/signup_tracking_patch'
 
-RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationControllerPatch do
+RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SignupTrackingPatch do
   before do
     allow(Datadog).to receive(:logger).and_return(instance_double(Datadog::Core::Logger).as_null_object)
     allow(Datadog).to receive(:configuration).and_return(settings)
@@ -16,7 +16,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::RegistrationController
   # NOTE: This spec needs to be changed to use actual devise controller instead
   let(:mock_controller) do
     Class.new do
-      prepend Datadog::AppSec::Contrib::Devise::Patcher::RegistrationControllerPatch
+      prepend Datadog::AppSec::Contrib::Devise::Patcher::SignupTrackingPatch
 
       def initialize(result, resource)
         @resource = resource
