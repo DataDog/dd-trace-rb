@@ -29,6 +29,7 @@ services:
       TEST_POSTGRES_HOST: postgres
       TEST_PRESTO_HOST: presto
       TEST_REDIS_HOST: redis
+      # Ensure use of the hostname "redis" instead of the default "localhost" inside Docker.
       REDIS_URL: redis://redis:6379/0
       DATADOG_GEM_CI: 'true'
     stdin_open: true
@@ -302,8 +303,8 @@ services:
       - "127.0.0.1:${TEST_PRESTO_PORT}:8080"
   redis:
     image: redis:6.2
-    # Explicitly bind server to the hostname "redis" instead of localhost.
-    # This prevents connection issues inside Docker by connecting to redis at `redis:6379` instead of `127.0.0.1:6379`.
+    # Explicitly bind server to the hostname "redis" instead of the default "localhost".
+    # This prevents connection issues inside Docker by connecting at `redis:6379` instead of `127.0.0.1:6379`.
     command: ["redis-server", "--bind", "redis", "--port", "6379"]
     expose:
       - "6379"
