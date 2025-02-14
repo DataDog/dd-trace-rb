@@ -306,7 +306,12 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
           end
           workers.each(&:start)
 
-          try_wait_until { heartbeat_events >= 3 }
+          begin
+            try_wait_until { heartbeat_events >= 3 }
+          rescue => e
+            puts "Test failed. Heartbeat events received: #{heartbeat_events}"
+            raise e
+          end
 
           expect(started_events).to be(1)
 
