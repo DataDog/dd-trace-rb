@@ -158,10 +158,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-34-${{ matrix.batch }}-${{ github.run_id }}
@@ -315,10 +315,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-33-${{ matrix.batch }}-${{ github.run_id }}
@@ -472,10 +472,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-32-${{ matrix.batch }}-${{ github.run_id }}
@@ -629,10 +629,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-31-${{ matrix.batch }}-${{ github.run_id }}
@@ -786,10 +786,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-30-${{ matrix.batch }}-${{ github.run_id }}
@@ -943,10 +943,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-27-${{ matrix.batch }}-${{ github.run_id }}
@@ -1100,10 +1100,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-26-${{ matrix.batch }}-${{ github.run_id }}
@@ -1257,10 +1257,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-ruby-25-${{ matrix.batch }}-${{ github.run_id }}
@@ -1414,10 +1414,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-94-${{ matrix.batch }}-${{ github.run_id }}
@@ -1571,10 +1571,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-93-${{ matrix.batch }}-${{ github.run_id }}
@@ -1728,10 +1728,10 @@ jobs:
       with:
         limit-access-to-actor: true
     - name: Validate test agent data
-      if: always()
+      if: "!cancelled()"
       run: ruby .github/scripts/test_agent_check.rb
     - name: Upload junit reports
-      if: always()
+      if: "!cancelled()"
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: junit-jruby-92-${{ matrix.batch }}-${{ github.run_id }}
