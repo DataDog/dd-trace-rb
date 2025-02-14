@@ -35,11 +35,13 @@ def load_test_schema(prefix: '')
 
       rescue_from(RuntimeError) do |err, obj, args, ctx, field|
         raise GraphQL::ExecutionError.new(err.message, extensions: {
-          'int-1': 1,
-          'str-1': '1',
-          'array-1-2': [1,'2'],
-          '': 'empty string',
-          ',': 'comma',
+          'int': 1,
+          'bool': true,
+          'str': '1',
+          'array-1-2': [1, '2'],
+          'hash-a-b': {a: 'b'},
+          'object': ::Object.new,
+          'extra-int': 2, # This should not be included
         })
       end
     end
@@ -192,6 +194,37 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
           }
         )
       )
+    end
+
+    context 'with error extension capture enabled' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int,str,bool,array-1-2,hash-a-b,object') { ex.run }
+      end
+
+      it 'creates query span for error with extensions' do
+        expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+
+        expect(graphql_execute.events[0]).to match(
+          a_span_event_with(
+            name: 'dd.graphql.query.error',
+            attributes: {
+              'path' => ['err1'],
+              'locations' => ['1:14'],
+              'message' => 'GraphQL error',
+              'type' => 'GraphQL::ExecutionError',
+              'stacktrace' => include(__FILE__),
+              'extensions.int' => 1,
+              'extensions.bool' => true,
+              'extensions.str' => '1',
+              'extensions.array-1-2' => '[1, "2"]',
+              'extensions.hash-a-b' => { a: 'b' }.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
+              'extensions.object' => start_with('#<Object:'),
+            }
+          )
+        )
+
+        expect(graphql_execute.events[0].attributes).to_not include('extensions.extra-int')
+      end
     end
   end
 end
