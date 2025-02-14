@@ -4,42 +4,17 @@ name: Lock Dependency
 # TODO: Make this on workflow_dispatch
 
 on:
-  # Limitation about `paths` types:
-  # > https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#git-diff-comparisons
-  push:
-    branches-ignore:
-      - master
-      - release
-      - '*-stable'
   pull_request:
-    # Run this job when a PR is opened, covering the scenario where branch is ready and pushed before PR is opened.
-    types:
-      - opened
+    branches:
+    - master
 
-
-# TODO: Improve concurrency between push event and pull_request event
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  pr:
-    name: Pull Request attached
-    runs-on: ubuntu-22.04
-    outputs:
-      pr_found: ${{ steps.pr.outputs.pr_found }}
-      pr_base_ref: ${{ steps.pr.outputs.pr.base.ref }}
-    steps:
-      # Limitation with pull_request trigger: https://github.com/8BitJonny/gh-get-current-pr/tree/3.0.0/?tab=readme-ov-file#limitations
-      - uses: 8BitJonny/gh-get-current-pr@08e737c57a3a4eb24cec6487664b243b77eb5e36 # v3.0.0
-        id: pr
-        with:
-          filterOutClosed: true # Don't trigger on commits with closed PRs, including merges into `master`.
-
   dependency:
     name: Depenedency changes
-    needs: pr
-    if: ${{ needs.pr.outputs.pr_found == 'true' }}
     runs-on: ubuntu-22.04
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
@@ -48,12 +23,6 @@ jobs:
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
         with:
-          # This is the best effort to get the diff comparison.
-          # The result remains time-sensitive since the `base` is constantly changing and
-          # the PR cannot be guaranteed to be up-to-date.
-          #
-          # Unless enable `Require branches to be up to date before merging` in the repository rule settings
-          base: ${{ needs.pr.outputs.pr_base_ref }}
           filters: .github/dependency_filters.yml
 
   lock:

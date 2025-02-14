@@ -6,7 +6,7 @@ gem 'base64'
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
 gem 'bigdecimal'
-gem 'climate_control', '~> 0.2.0'
+gem 'climate_control', '~> 1.2.0'
 gem 'concurrent-ruby'
 
 # Optional extensions
