@@ -44,6 +44,7 @@ module Datadog
             end
 
             option :with_unified_tracer do |o|
+              o.env Ext::ENV_WITH_UNIFIED_TRACER
               o.type :bool
               o.default false
             end
