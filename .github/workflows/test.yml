@@ -1782,7 +1782,7 @@ jobs:
     steps:
     - run: echo "DONE!"
   upload-junit:
-    name: upload/junit
+    name: dd/junit
     if: "!cancelled()"
     runs-on: ubuntu-24.04
     container:
@@ -1826,7 +1826,7 @@ jobs:
     - name: Upload junit reports
       run: datadog-ci junit upload --verbose tmp/rspec/
   coverage:
-    name: upload/coverage
+    name: codecov/upload
     runs-on: ubuntu-24.04
     needs:
     - build-test-ruby-34

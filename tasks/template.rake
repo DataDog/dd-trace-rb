@@ -309,7 +309,7 @@ namespace :template do
             ]
           },
           'upload-junit' => {
-            'name' => 'upload/junit',
+            'name' => 'dd/junit',
             'if' => '!cancelled()',
             'runs-on' => ubuntu,
             'container' => {
@@ -364,7 +364,7 @@ namespace :template do
             ]
           },
           'coverage' => {
-            'name' => 'upload/coverage',
+            'name' => 'codecov/upload',
             'runs-on' => ubuntu,
             'needs' => runtimes.map(&:build_test_id) + [runtimes.first.batch_id],
             'container' => {
