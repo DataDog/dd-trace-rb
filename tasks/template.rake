@@ -5,6 +5,7 @@ require 'ostruct'
 # rubocop:disable Metrics/BlockLength
 namespace :template do
   namespace :github do
+    desc 'Generate Github Actions workflow (.github/workflows/test.yml) for testing'
     task :test do |t|
       ubuntu = 'ubuntu-24.04'
 
