@@ -28,7 +28,6 @@ gem 'memory_profiler', '~> 0.9'
 gem 'mutex_m'
 gem 'os', '~> 1.1'
 gem 'ostruct'
-gem 'pimpmychangelog', '>= 0.1.2'
 gem 'debug'
 gem 'pry'
 gem 'pry-stack_explorer'
@@ -63,4 +62,5 @@ end
 group :dev do
   gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
+  gem 'pimpmychangelog', '~> 0.1.3', require: false
 end

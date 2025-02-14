@@ -111,9 +111,11 @@ module Datadog
             # Always remove from pending list here because it makes the
             # API smaller and shouldn't cause any actual problems.
             @pending_probes.delete(probe.id)
+            logger.trace { "di: installed #{probe.type} probe at #{probe.location} (#{probe.id})" }
             true
           rescue Error::DITargetNotDefined
             @pending_probes[probe.id] = probe
+            logger.trace { "di: could not install #{probe.type} probe at #{probe.location} (#{probe.id}) because its target is not defined, adding it to pending list" }
             false
           end
         rescue => exc
@@ -160,7 +162,7 @@ module Datadog
                 raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
                 # Silence all exceptions?
                 # TODO should we propagate here and rescue upstream?
-                logger.debug { "di: error removing probe #{probe.id}: #{exc.class}: #{exc}" }
+                logger.debug { "di: error removing #{probe.type} probe at #{probe.location} (#{probe.id}): #{exc.class}: #{exc}" }
                 telemetry&.report(exc, description: "Error removing probe")
               end
             end
@@ -190,7 +192,7 @@ module Datadog
                 rescue => exc
                   raise if settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                  logger.debug { "di: error installing probe after class is defined: #{exc.class}: #{exc}" }
+                  logger.debug { "di: error installing #{probe.type} probe at #{probe.location} (#{probe.id}) after class is defined: #{exc.class}: #{exc}" }
                   telemetry&.report(exc, description: "Error installing probe after class is defined")
                 end
               end
@@ -228,6 +230,7 @@ module Datadog
       # backend (once per the probe's lifetime) and a snapshot corresponding
       # to the current invocation.
       def probe_executed_callback(probe:, **opts)
+        logger.trace { "di: executed #{probe.type} probe at #{probe.location} (#{probe.id})" }
         unless probe.emitting_notified?
           payload = probe_notification_builder.build_emitting(probe)
           probe_notifier_worker.add_status(payload)

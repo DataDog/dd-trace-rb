@@ -1,4 +1,12 @@
 {
+  "AGENT_NOT_SUPPORTING_SPAN_EVENTS":
+  [
+    "tests/test_span_events.py"
+  ],
+  "PARAMETRIC":
+  [
+    "tests/parametric/test_span_events.py"
+  ],
   "DEFAULT": [
     "tests/test_graphql.py"
   ]

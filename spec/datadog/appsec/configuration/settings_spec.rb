@@ -469,6 +469,8 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
     end
 
     describe 'track_user_events' do
+      before { allow(Datadog).to receive(:logger).and_return(spy(Datadog::Core::Logger)) }
+
       describe '#enabled' do
         subject(:enabled) { settings.appsec.track_user_events.enabled }
 
@@ -476,6 +478,17 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           around do |example|
             ClimateControl.modify('DD_APPSEC_AUTOMATED_USER_EVENTS_TRACKING' => track_user_events_enabled) do
               example.run
+            end
+          end
+
+          context 'when deprication message should be emitted' do
+            let(:track_user_events_enabled) { 'true' }
+
+            it 'writes the deprication message' do
+              expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
+                expect(block.call).to match(/setting has been deprecated for removal/)
+              end
+              expect(enabled).to eq(true)
             end
           end
 
@@ -562,6 +575,18 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           settings.appsec.track_user_events.mode = track_user_events_mode
         end
 
+        context 'when deprication message should be emitted' do
+          let(:track_user_events_mode) { 'extended' }
+
+          it 'writes the deprication message' do
+            expect(Datadog::Core).to receive(:log_deprecation) do |_, &block|
+              expect(block.call).to match(/setting has been deprecated for removal/)
+            end
+
+            set_appsec_track_user_events_mode
+          end
+        end
+
         context 'when given a supported value' do
           let(:track_user_events_mode) { 'extended' }
 
@@ -579,6 +604,92 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
             expect(settings.appsec.track_user_events.mode).to eq('safe')
           }
         end
+      end
+    end
+
+    describe 'auto_user_instrumentation.mode' do
+      before { allow(Datadog).to receive(:logger).and_return(logger) }
+
+      let(:logger) { instance_double(Datadog::Core::Logger) }
+
+      context 'when valid value is set' do
+        before { settings.appsec.auto_user_instrumentation.mode = 'disabled' }
+
+        it { expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled') }
+      end
+
+      context 'when valid short value is set' do
+        before { settings.appsec.auto_user_instrumentation.mode = 'anon' }
+
+        it 'expands the alias value to the long version' do
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('anonymization')
+        end
+      end
+
+      context 'when invalid value is set' do
+        it 'sets the value to the default and writes a warning message' do
+          expect(logger).to receive(:warn).with(/value provided is not supported/)
+          settings.appsec.auto_user_instrumentation.mode = 'unknown'
+
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+        end
+      end
+
+      context 'when valid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE is set' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'disabled') do
+            example.run
+          end
+        end
+
+        it { expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled') }
+      end
+
+      context 'when valid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE short value is set' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'anon') do
+            example.run
+          end
+        end
+
+        it 'expands the alias value to the long version' do
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('anonymization')
+        end
+      end
+
+      context 'when invalid DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE is set' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_AUTO_USER_INSTRUMENTATION_MODE' => 'unknown') do
+            example.run
+          end
+        end
+
+        it 'sets the value to the default and writes a warning message' do
+          expect(logger).to receive(:warn).with(/value provided is not supported/)
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+        end
+      end
+
+      context 'when no value or env variable is set' do
+        it { expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification') }
+      end
+    end
+
+    describe 'auto_user_instrumentation.enabled?' do
+      context 'when explicitly disabled' do
+        before { settings.appsec.auto_user_instrumentation.mode = 'disabled' }
+
+        it { expect(settings.appsec.auto_user_instrumentation).not_to be_enabled }
+      end
+
+      context 'when explicitly enabled' do
+        before { settings.appsec.auto_user_instrumentation.mode = 'identification' }
+
+        it { expect(settings.appsec.auto_user_instrumentation).to be_enabled }
+      end
+
+      context 'when default value is used' do
+        it { expect(settings.appsec.auto_user_instrumentation).to be_enabled }
       end
     end
 

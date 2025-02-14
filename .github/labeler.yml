@@ -18,7 +18,7 @@ dev/testing:
 # Changes to Profiling
 profiling:
 - changed-files:
-  - any-glob-to-any-file: [ '{lib/datadog/profiling/**,ext/datadog_profiling_loader/**,ext/datadog_profiling_native_extension/**}' ]
+  - any-glob-to-any-file: [ '{lib/datadog/profiling/**,ext/datadog_profiling_native_extension/**}' ]
 
 # Changes to CI-App
 ci-app:

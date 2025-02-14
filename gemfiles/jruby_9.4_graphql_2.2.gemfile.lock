@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
+    datadog (2.10.0)
       datadog-ruby_core_source (~> 3.4)
-      libdatadog (~> 14.3.1.1.0)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -99,7 +99,7 @@ GEM
       concurrent-ruby (~> 1.0)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0)
+    libdatadog (16.0.1.1.0)
     libddwaf (1.18.0.0.0-java)
       ffi (~> 1.0)
     logger (1.6.5)
@@ -121,7 +121,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.5)
     minitest (5.24.0)
-    msgpack (1.7.5-java)
+    msgpack (1.8.0-java)
     net-imap (0.4.14)
       date
       net-protocol
@@ -135,7 +135,6 @@ GEM
     nokogiri (1.16.6-java)
       racc (~> 1.4)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pry (0.14.2-java)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -253,7 +252,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-debugger-jruby
   rails (~> 6.1.0)

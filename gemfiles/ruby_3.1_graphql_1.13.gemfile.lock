@@ -1,9 +1,9 @@
 PATH
   remote: ..
   specs:
-    datadog (2.9.0)
+    datadog (2.10.0)
       datadog-ruby_core_source (~> 3.4)
-      libdatadog (~> 14.3.1.1.0)
+      libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
@@ -114,8 +114,8 @@ GEM
       reline (>= 0.4.2)
     json-schema (2.8.1)
       addressable (>= 2.4)
-    libdatadog (14.3.1.1.0-aarch64-linux)
-    libdatadog (14.3.1.1.0-x86_64-linux)
+    libdatadog (16.0.1.1.0-aarch64-linux)
+    libdatadog (16.0.1.1.0-x86_64-linux)
     libddwaf (1.18.0.0.0-aarch64-linux)
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
@@ -139,7 +139,7 @@ GEM
     method_source (1.0.0)
     mini_mime (1.1.5)
     minitest (5.24.0)
-    msgpack (1.7.5)
+    msgpack (1.8.0)
     net-imap (0.4.14)
       date
       net-protocol
@@ -155,7 +155,6 @@ GEM
     nokogiri (1.16.6-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -287,7 +286,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-byebug
   pry-stack_explorer

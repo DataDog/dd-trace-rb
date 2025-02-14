@@ -74,6 +74,7 @@ module Datadog
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
+        logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
         @code_tracker = code_tracker

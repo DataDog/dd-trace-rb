@@ -105,7 +105,12 @@ RSpec.describe 'Mongo::Client instrumentation' do
         end
       end
 
-      context 'secondary client' do
+      # Our GHA Unit Tests run in docker containers, where "localhost" refers to the container itself.
+      # As a result, the secondary client (with host "localhost") cannot connect to the primary MongoDB
+      # service, causing the test to timeout while waiting for "primary server [to be] available in cluster".
+      # One solution is to pull a second MongoDB service and set the secondary client accordingly. However,
+      # given the large amount of services already being pulled, this spec remains skipped on GHA for now.
+      context 'secondary client', skip: ENV['BATCHED_TASKS'] do
         around do |example|
           without_warnings do
             # Reset before and after each example; don't allow global state to linger.
