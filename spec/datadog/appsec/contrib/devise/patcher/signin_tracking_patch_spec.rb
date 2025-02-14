@@ -4,9 +4,9 @@ require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/contrib/support/devise_user_mock'
 
 require 'datadog/appsec/contrib/devise/patcher'
-require 'datadog/appsec/contrib/devise/patcher/authenticatable_patch'
+require 'datadog/appsec/contrib/devise/patcher/signin_tracking_patch'
 
-RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch do
+RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
   before do
     allow(Datadog).to receive(:logger).and_return(instance_double(Datadog::Core::Logger).as_null_object)
     allow(Datadog).to receive(:configuration).and_return(settings)
@@ -24,7 +24,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
         @success
       end
 
-      prepend Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch
+      prepend Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch
     end
   end
 
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch d
           @result
         end
 
-        prepend Datadog::AppSec::Contrib::Devise::Patcher::AuthenticatablePatch
+        prepend Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch
         prepend Datadog::AppSec::Contrib::Devise::Patcher::RememberablePatch
       end
     end

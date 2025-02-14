@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'patcher/authenticatable_patch'
-require_relative 'patcher/rememberable_patch'
+require_relative 'patcher/signin_tracking_patch'
 require_relative 'patcher/signup_tracking_patch'
+require_relative 'patcher/rememberable_patch'
 
 module Datadog
   module AppSec
@@ -25,7 +25,7 @@ module Datadog
               ::Devise::RegistrationsController.prepend(SignupTrackingPatch)
             end
 
-            ::Devise::Strategies::Authenticatable.prepend(AuthenticatablePatch)
+            ::Devise::Strategies::Authenticatable.prepend(SigninTrackingPatch)
 
             if ::Devise::STRATEGIES.include?(:rememberable)
               # Rememberable strategy is required in autoloaded Rememberable model
