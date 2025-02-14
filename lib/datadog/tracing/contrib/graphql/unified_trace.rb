@@ -165,6 +165,9 @@ module Datadog
                 Contrib::Analytics.set_sample_rate(span, config[:analytics_sample_rate])
               end
 
+              # A sanity check for us.
+              raise 'Please provide either `before` or a block, but not both' if before && before_block
+
               if (before_callable = before || before_block)
                 before_callable.call(span)
               end
@@ -198,6 +201,10 @@ module Datadog
           def add_query_error_events(span, errors)
             errors.each do |error|
               e = Core::Error.build_from(error)
+
+              # {::GraphQL::Error#to_h} returns the error formatted in compliance with the GraphQL spec.
+              # This is an unwritten contract in the `graphql` library.
+              # See for an example: https://github.com/rmosolgo/graphql-ruby/blob/0afa241775e5a113863766cce126214dee093464/lib/graphql/execution_error.rb#L32
               err = error.to_h
 
               span.span_events << Datadog::Tracing::SpanEvent.new(

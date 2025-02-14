@@ -152,20 +152,20 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
     end
   end
 
-  describe 'query with a GraphQL error' do
-    subject(:result) { schema.execute(query: 'query Error{ graphqlError }', variables: { var: 1 }) }
+  describe 'query with GraphQL errors' do
+    subject(:result) { schema.execute(query: 'query Error{ err1: graphqlError err2: graphqlError }') }
 
     let(:graphql_execute) { spans.find { |s| s.name == 'graphql.execute' } }
 
     it 'creates query span for error' do
       expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
-      expect(result.to_h['data']).to eq('graphqlError' => nil)
+      expect(result.to_h['data']).to eq('err1' => nil, 'err2' => nil)
 
       expect(graphql_execute.resource).to eq('Error')
       expect(graphql_execute.service).to eq(service)
       expect(graphql_execute.type).to eq('graphql')
 
-      expect(graphql_execute.get_tag('graphql.source')).to eq('query Error{ graphqlError }')
+      expect(graphql_execute.get_tag('graphql.source')).to eq('query Error{ err1: graphqlError err2: graphqlError }')
 
       expect(graphql_execute.get_tag('graphql.operation.type')).to eq('query')
       expect(graphql_execute.get_tag('graphql.operation.name')).to eq('Error')
@@ -174,11 +174,21 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
         a_span_event_with(
           name: 'dd.graphql.query.error',
           attributes: {
+            'path' => ['err1'],
+            'locations' => ['1:14'],
             'message' => 'GraphQL error',
             'type' => 'GraphQL::ExecutionError',
             'stacktrace' => include(__FILE__),
-            'locations' => ['1:14'],
-            'path' => ['graphqlError'],
+          }
+        ),
+        a_span_event_with(
+          name: 'dd.graphql.query.error',
+          attributes: {
+            'path' => ['err2'],
+            'locations' => ['1:33'],
+            'message' => 'GraphQL error',
+            'type' => 'GraphQL::ExecutionError',
+            'stacktrace' => include(__FILE__),
           }
         )
       )
