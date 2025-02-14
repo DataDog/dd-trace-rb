@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Faraday
+        module Patcher
+          include Datadog::AppSec::Contrib::Patcher
+
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> ::Gem::Version
+
+          def self?.patch: () -> bool
+
+          def self?.register_middleware!: () -> void
+
+          def self?.add_default_middleware!: () -> void
+        end
+      end
+    end
+  end
+end
