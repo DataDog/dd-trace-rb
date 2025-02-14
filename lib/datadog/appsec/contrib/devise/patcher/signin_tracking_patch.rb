@@ -11,7 +11,7 @@ module Datadog
       module Devise
         module Patcher
           # Hook in devise validate method
-          module AuthenticatablePatch
+          module SigninTrackingPatch
             # rubocop:disable Metrics/MethodLength
             def validate(resource, &block)
               result = super
