@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Devise
         module Patcher
-          module RegistrationControllerPatch
+          module SignupTrackingPatch
             def create: () -> untyped
           end
         end
