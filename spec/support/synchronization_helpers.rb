@@ -1,7 +1,7 @@
 require 'English'
 
 module SynchronizationHelpers
-  def expect_in_fork(fork_expectations: nil, timeout_seconds: 30)
+  def expect_in_fork(fork_expectations: nil, timeout_seconds: 10)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
       expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
     }
