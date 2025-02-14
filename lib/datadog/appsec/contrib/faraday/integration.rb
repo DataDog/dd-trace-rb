@@ -8,7 +8,7 @@ module Datadog
   module AppSec
     module Contrib
       module Faraday
-        # Description of Devise integration
+        # This class provides helper methods that are used when patching Faraday
         class Integration
           include Datadog::AppSec::Contrib::Integration
 
