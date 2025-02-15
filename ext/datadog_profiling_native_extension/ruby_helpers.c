@@ -103,16 +103,6 @@ void raise_syserr(
   }
 }
 
-char* ruby_strndup(const char *str, size_t size) {
-  char *dup;
-
-  dup = xmalloc(size + 1);
-  memcpy(dup, str, size);
-  dup[size] = '\0';
-
-  return dup;
-}
-
 static VALUE _id2ref(VALUE obj_id) {
   // Call ::ObjectSpace._id2ref natively. It will raise if the id is no longer valid
   return rb_funcall(module_object_space, _id2ref_id, 1, obj_id);
