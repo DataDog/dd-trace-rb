@@ -51,7 +51,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.5)
+    logger (1.6.6)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     msgpack (1.8.0)
@@ -71,7 +71,7 @@ GEM
     psych (5.2.3)
       date
       stringio
-    rack (3.1.9)
+    rack (3.1.10)
     rack-contrib (1.2.0)
       rack (>= 0.9.1)
     rack-test (2.1.0)
