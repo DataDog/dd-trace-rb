@@ -2,7 +2,6 @@
 
 require_relative '../../../core/utils/only_once'
 
-require_relative '../patcher'
 require_relative 'framework'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
@@ -18,8 +17,6 @@ module Datadog
       module Rails
         # Patcher for AppSec on Rails
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           BEFORE_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
           AFTER_INITIALIZE_ONLY_ONCE_PER_APP = Hash.new { |h, key| h[key] = Datadog::Core::Utils::OnlyOnce.new }
 
