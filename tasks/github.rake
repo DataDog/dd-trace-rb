@@ -1,3 +1,4 @@
+require 'json'
 require_relative 'appraisal_conversion'
 
 # rubocop:disable Metrics/BlockLength
