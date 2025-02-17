@@ -12,7 +12,6 @@ module Datadog
         module Patcher
           # Hook in devise validate method
           module SigninTrackingPatch
-            # rubocop:disable Metrics/MethodLength
             def validate(resource, &block)
               result = super
 
@@ -21,49 +20,73 @@ module Datadog
               return result unless Configuration.auto_user_instrumentation_enabled?
               return result unless AppSec.active_context
 
-              devise_resource = resource ? Resource.new(resource) : nil
-              event_information = Event.new(devise_resource, Configuration.auto_user_instrumentation_mode)
+              context = AppSec.active_context
+              context.trace.keep!
 
               if result
-                if event_information.user_id
-                  Datadog.logger.debug { 'AppSec: User successful login event' }
-                else
-                  Datadog.logger.debug do
-                    "AppSec: User successful login event, but can't extract user ID. Tracking empty event"
-                  end
-                end
+                id = resource.id.to_s if resource.respond_to?(:id)
+                login = if resource.respond_to?(:email)
+                          resource.email
+                        elsif resource.respond_to?(:username)
+                          resource.username
+                        elsif resource.respond_to?(:login)
+                          resource.login
+                        else
+                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
+                          resource.send(attribute)
+                        end
 
-                Tracking.track_login_success(
-                  AppSec.active_context.trace,
-                  AppSec.active_context.span,
-                  user_id: event_information.user_id,
-                  **event_information.to_h
+                context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
+                context.span.set_tag('appsec.events.users.login.success.usr.login', login)
+                context.span.set_tag('appsec.events.users.login.success.track', 'true')
+                context.span.set_tag('_dd.appsec.usr.id', id)
+                context.span.set_tag('_dd.appsec.usr.login', login)
+                context.span.set_tag(
+                  '_dd.appsec.events.users.login.success.auto.mode',
+                  Configuration.auto_user_instrumentation_mode
                 )
 
                 return result
               end
 
-              user_exists = nil
+              context.span.set_tag('appsec.events.users.login.failure.track', 'true')
+              context.span.set_tag(
+                '_dd.appsec.events.users.login.failure.auto.mode',
+                Configuration.auto_user_instrumentation_mode
+              )
 
               if resource
-                user_exists = true
-                Datadog.logger.debug { 'AppSec: User failed login event, but user exists' }
-              else
-                user_exists = false
-                Datadog.logger.debug { 'AppSec: User failed login event and user does not exist' }
-              end
+                id = resource.id.to_s if resource.respond_to?(:id)
+                login = if resource.respond_to?(:email)
+                          resource.email
+                        elsif resource.respond_to?(:username)
+                          resource.username
+                        elsif resource.respond_to?(:login)
+                          resource.login
+                        else
+                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
+                          resource.send(attribute)
+                        end
 
-              Tracking.track_login_failure(
-                AppSec.active_context.trace,
-                AppSec.active_context.span,
-                user_id: event_information.user_id,
-                user_exists: user_exists,
-                **event_information.to_h
-              )
+                unless id.nil?
+                  context.span.set_tag('_dd.appsec.usr.id', id)
+                  context.span.set_tag('appsec.events.users.login.failure.usr.id', id)
+                end
+
+                context.span.set_tag('_dd.appsec.usr.login', login)
+                context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
+                context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'true')
+              else
+                login = authentication_hash[:email] || authentication_hash[:username] ||
+                  authentication_hash[:login] || authentication_hash.values[0]
+
+                context.span.set_tag('_dd.appsec.usr.login', login)
+                context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
+                context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'false')
+              end
 
               result
             end
-            # rubocop:enable Metrics/MethodLength
           end
         end
       end
