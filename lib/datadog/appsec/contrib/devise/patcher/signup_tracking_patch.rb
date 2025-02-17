@@ -17,23 +17,47 @@ module Datadog
               return super unless Configuration.auto_user_instrumentation_enabled?
               return super unless AppSec.active_context
 
+              context = AppSec.active_context
               super do |resource|
-                if resource.persisted?
-                  devise_resource = Resource.new(resource)
-                  event_information = Event.new(devise_resource, Configuration.auto_user_instrumentation_mode)
+                if !resource.persisted? || context.trace.nil? || context.span.nil?
+                  yield(resource) if block_given?
 
-                  if event_information.user_id
-                    Datadog.logger.debug { 'AppSec: User signup event' }
-                  else
-                    Datadog.logger.warn { "AppSec: User signup event, but can't extract user ID. Tracking empty event" }
-                  end
+                  next
+                end
 
-                  Tracking.track_signup(
-                    AppSec.active_context.trace,
-                    AppSec.active_context.span,
-                    user_id: event_information.user_id,
-                    **event_information.to_h
-                  )
+                id = resource.id.to_s if resource.respond_to?(:id)
+                login = if resource.respond_to?(:email)
+                          resource.email
+                        elsif resource.respond_to?(:username)
+                          resource.username
+                        elsif resource.respond_to?(:login)
+                          resource.login
+                        else
+                          # NOTE: Devise `authentication_keys` does not provide informatino
+                          #       on what was used to sign up if you have unified virtual
+                          #       field which combines multiple database fields.
+                          #       Hence we check most possible fields one-by-one.
+                          #
+                          #       See: https://github.com/heartcombo/devise/wiki/How-To:-Allow-users-to-sign-in-using-their-username-or-email-address
+                          # TODO: Add generic extraction based on authentication keys
+                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
+                          resource.send(attribute)
+                        end
+
+                context.trace.keep!
+                context.span.set_tag('appsec.events.users.signup.usr.login', login)
+                context.span.set_tag('appsec.events.users.signup.track', 'true')
+                context.span.set_tag('_dd.appsec.usr.id', id)
+                context.span.set_tag('_dd.appsec.usr.login', login)
+                context.span.set_tag(
+                  '_dd.appsec.events.users.signup.auto.mode',
+                  Configuration.auto_user_instrumentation_mode
+                )
+
+                if resource.active_for_authentication?
+                  context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
+                else
+                  context.span.set_tag('appsec.events.users.signup.usr.id', id)
                 end
 
                 yield resource if block_given?
