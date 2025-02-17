@@ -14,9 +14,7 @@ module Datadog
                 'server.io.net.url' => request_env.url.to_s
               }
 
-              result = AppSec.active_context.run_rasp(
-                Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout
-              )
+              result = context.run_rasp(Ext::RASP_SSRF, {}, ephemeral_data, Datadog.configuration.appsec.waf_timeout)
 
               if result.match?
                 Datadog::AppSec::Event.tag_and_keep!(context, result)
