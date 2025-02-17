@@ -4,13 +4,8 @@ require 'datadog/appsec/spec_helper'
 require 'faraday'
 
 RSpec.describe 'AppSec Faraday integration' do
-  let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
-  let(:ruleset) { Datadog::AppSec::Processor::RuleLoader.load_rules(ruleset: :recommended, telemetry: telemetry) }
-  let(:processor) { Datadog::AppSec::Processor.new(ruleset: ruleset, telemetry: telemetry) }
-  let(:context) { Datadog::AppSec::Context.new(trace, span, processor) }
-
-  let(:span) { Datadog::Tracing::SpanOperation.new('root') }
-  let(:trace) { Datadog::Tracing::TraceOperation.new }
+  let(:waf_response_double) { double(match?: false) }
+  let(:active_context) { stub_const('Datadog::AppSec::Context', double(run_rasp: waf_response_double)) }
 
   let(:client) do
     ::Faraday.new('http://example.com') do |faraday|
@@ -26,14 +21,11 @@ RSpec.describe 'AppSec Faraday integration' do
       c.appsec.instrument :faraday
     end
 
-    Datadog::AppSec::Context.activate(context)
+    allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
   end
 
   after do
     Datadog.configuration.reset!
-
-    Datadog::AppSec::Context.deactivate
-    processor.finalize
   end
 
   context 'when RASP is disabled' do
@@ -46,31 +38,15 @@ RSpec.describe 'AppSec Faraday integration' do
 
       client.get('/success')
     end
-
-    it 'returns the http response' do
-      response = client.get('/success')
-
-      expect(response.status).to eq(200)
-      expect(response.body).to eq('OK')
-    end
   end
 
   context 'when there is no active context' do
-    before do
-      Datadog::AppSec::Context.deactivate
-    end
+    let(:active_context) { nil }
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
       client.get('/success')
-    end
-
-    it 'returns the http response' do
-      response = client.get('/success')
-
-      expect(response.status).to eq(200)
-      expect(response.body).to eq('OK')
     end
   end
 
@@ -80,13 +56,13 @@ RSpec.describe 'AppSec Faraday integration' do
     end
 
     it 'calls waf with correct arguments when making a request' do
-      expect(Datadog::AppSec.active_context).to(
+      expect(active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
           { 'server.io.net.url' => 'http://example.com/success' },
           Datadog.configuration.appsec.waf_timeout
-        ).and_call_original
+        )
       )
 
       client.get('/success')
