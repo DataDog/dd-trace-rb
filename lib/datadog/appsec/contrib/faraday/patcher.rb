@@ -1,15 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
-
 module Datadog
   module AppSec
     module Contrib
       module Faraday
         # Patcher for Faraday
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?
@@ -21,36 +17,33 @@ module Datadog
           end
 
           def patch
-            require_relative 'middleware'
-            require_relative 'connection'
+            require_relative 'ssrf_detection_middleware'
+            require_relative 'connection_patch'
+            require_relative 'rack_builder_patch'
 
-            register_middleware!
-            add_default_middleware!
+            ::Faraday::Middleware.register_middleware(datadog_appsec: SSRFDetectionMiddleware)
+            configure_default_faraday_connection
 
             Patcher.instance_variable_set(:@patched, true)
           end
 
-          def register_middleware!
-            ::Faraday::Middleware.register_middleware(datadog_appsec: Middleware)
-          end
-
-          def add_default_middleware!
+          def configure_default_faraday_connection
             if target_version >= Gem::Version.new('1.0.0')
               # Patch the default connection (e.g. +Faraday.get+)
               ::Faraday.default_connection.use(:datadog_appsec)
 
               # Patch new connection instances (e.g. +Faraday.new+)
-              ::Faraday::Connection.prepend(Connection)
+              ::Faraday::Connection.prepend(ConnectionPatch)
             else
               # Patch the default connection (e.g. +Faraday.get+)
               #
               # We insert our middleware before the 'adapter', which is
               # always the last handler.
               idx = ::Faraday.default_connection.builder.handlers.size - 1
-              ::Faraday.default_connection.builder.insert(idx, Middleware)
+              ::Faraday.default_connection.builder.insert(idx, SSRFDetectionMiddleware)
 
               # Patch new connection instances (e.g. +Faraday.new+)
-              ::Faraday::RackBuilder.prepend(RackBuilder)
+              ::Faraday::RackBuilder.prepend(RackBuilderPatch)
             end
           end
         end

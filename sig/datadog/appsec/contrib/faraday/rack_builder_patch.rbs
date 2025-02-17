@@ -2,8 +2,8 @@ module Datadog
   module AppSec
     module Contrib
       module Faraday
-        class Connection
-          def initialize: (*untyped args) ?{ () -> untyped } -> void
+        module RackBuilder
+          def adapter: (*untyped args) -> untyped
         end
       end
     end
