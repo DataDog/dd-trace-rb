@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
 require_relative 'gateway/watcher'
 
 if Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version >= Gem::Version.new('2.0.19')
@@ -13,8 +12,6 @@ module Datadog
       module GraphQL
         # Patcher for AppSec on GraphQL
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?

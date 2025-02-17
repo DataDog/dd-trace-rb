@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
 require_relative 'patcher/authenticatable_patch'
 require_relative 'patcher/rememberable_patch'
 require_relative 'patcher/registration_controller_patch'
@@ -11,8 +10,6 @@ module Datadog
       module Devise
         # Patcher for AppSec on Devise
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?
