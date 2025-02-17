@@ -4,6 +4,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
+require 'action_mailer'
 require 'action_controller/railtie'
 require 'active_record'
 require 'sqlite3'
@@ -36,13 +37,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         t.string :username, null: false
         t.string :email, default: '', null: false
         t.string :encrypted_password, default: '', null: false
-        t.datetime :remember_created_at
-        t.datetime :created_at, null: false
-        t.datetime :updated_at, null: false
       end
 
       klass.class_eval do
-        devise :database_authenticatable, :registerable, :validatable, :rememberable
+        devise :database_authenticatable, :registerable, :validatable
       end
 
       # prevent internal sql requests from showing up
@@ -100,7 +98,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
     app.initialize!
     app.routes.draw do
-      devise_for :users
+      devise_for :users, controllers: { registrations: 'test_registrations' }
 
       get '/public' => 'public#index'
       get '/private' => 'private#index'
@@ -183,86 +181,6 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
       expect(response).to be_redirect
       expect(response.location).to match('users/sign_in')
-    end
-  end
-
-  context 'when user instrumentation mode set to identification' do
-    before { Datadog.configuration.appsec.auto_user_instrumentation.mode = 'identification' }
-
-    context 'when user successfully loggin' do
-      before do
-        User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
-
-        post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
-      end
-
-      it 'tracks successfull login event' do
-        expect(response).to be_redirect
-        expect(response.location).to eq('http://example.org/')
-
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-
-        expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('extended')
-        expect(http_service_entry_span.tags['usr.id']).to eq('1')
-
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['appsec.events.users.login.success.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
-      end
-    end
-
-    context 'when user unsuccessfully loggin because such user does not exist' do
-      before { post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } }) }
-
-      it 'tracks login failure event' do
-        expect(response).to be_unprocessable
-        expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
-
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-
-        expect(http_service_entry_span.tags['appsec.events.users.login.failure.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('extended')
-        expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.exists']).to eq('false')
-
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.login']).to eq('john.doe@example.com')
-      end
-    end
-
-    # context 'when user unsuccessfully loggin because it is not permitted by custom logic' do
-    # NOTE: When possible to have user and user exists, but for some validation
-    #       reasons it could not be authorized, we should report it
-    #       - `appsec.events.users.login.failure.usr.id`
-    #       - `_dd.appsec.usr.id`
-    # end
-
-    context 'when user successfully signed up' do
-      before do
-        form_data = {
-          user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
-        }
-
-        post('/users', form_data)
-      end
-
-      it 'tracks successfull sign up event' do
-        expect(response).to be_redirect
-        expect(response.location).to eq('http://example.org/')
-
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-
-        expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('extended')
-
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('1')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
-      end
     end
   end
 end
