@@ -97,7 +97,7 @@ RSpec.describe 'Faraday SSRF Injection' do
     spans.find { |s| s.name == 'rack.request' }
   end
 
-  context 'when RASP check was positive for http request' do
+  context 'when request params contain SSRF attack' do
     before do
       get('/ssrf', { 'url' => '169.254.169.254' }, { 'REMOTE_ADDR' => '127.0.0.1' })
     end
@@ -105,7 +105,7 @@ RSpec.describe 'Faraday SSRF Injection' do
     it { expect(last_response).to be_forbidden }
   end
 
-  context 'when RASP check was negative for http request' do
+  context 'when request params do not contain SSRF attack' do
     before do
       get('/ssrf', { 'url' => 'example.com' }, { 'REMOTE_ADDR' => '127.0.0.1' })
     end

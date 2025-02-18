@@ -4,8 +4,8 @@ require 'datadog/appsec/spec_helper'
 require 'faraday'
 
 RSpec.describe 'AppSec Faraday integration' do
-  let(:waf_response_double) { double(match?: false) }
-  let(:active_context) { stub_const('Datadog::AppSec::Context', double(run_rasp: waf_response_double)) }
+  let(:context) { instance_double(Datadog::AppSec::Context, run_rasp: waf_response) }
+  let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
 
   let(:client) do
     ::Faraday.new('http://example.com') do |faraday|
@@ -21,7 +21,7 @@ RSpec.describe 'AppSec Faraday integration' do
       c.appsec.instrument :faraday
     end
 
-    allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
+    allow(Datadog::AppSec).to receive(:active_context).and_return(context)
   end
 
   after do
@@ -41,7 +41,7 @@ RSpec.describe 'AppSec Faraday integration' do
   end
 
   context 'when there is no active context' do
-    let(:active_context) { nil }
+    let(:context) { nil }
 
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
@@ -56,7 +56,7 @@ RSpec.describe 'AppSec Faraday integration' do
     end
 
     it 'calls waf with correct arguments when making a request' do
-      expect(active_context).to(
+      expect(Datadog::AppSec.active_context).to(
         receive(:run_rasp).with(
           Datadog::AppSec::Ext::RASP_SSRF,
           {},
