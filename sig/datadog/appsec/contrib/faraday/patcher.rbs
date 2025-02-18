@@ -9,9 +9,7 @@ module Datadog
 
           def self?.patch: () -> bool
 
-          def self?.register_middleware!: () -> void
-
-          def self?.add_default_middleware!: () -> void
+          def self?.configure_default_faraday_connection: () -> void
         end
       end
     end
