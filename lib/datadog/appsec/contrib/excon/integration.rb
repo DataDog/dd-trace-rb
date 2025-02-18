@@ -9,7 +9,7 @@ module Datadog
       module Excon
         # This class provides helper methods that are used when patching Excon
         class Integration
-          include Contrib::Integration
+          include Datadog::AppSec::Contrib::Integration
 
           MINIMUM_VERSION = Gem::Version.new('0.50.0')
 
