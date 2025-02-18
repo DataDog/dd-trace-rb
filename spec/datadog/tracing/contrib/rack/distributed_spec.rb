@@ -69,6 +69,8 @@ RSpec.describe 'Rack integration distributed tracing' do
 
   shared_examples_for 'a Rack request without distributed tracing' do
     it 'produces a non-distributed Rack trace' do
+      expect(Datadog::Tracing).not_to receive(:continue_trace!)
+
       is_expected.to be_ok
       expect(span).to_not be nil
       expect(span.name).to eq('rack.request')
