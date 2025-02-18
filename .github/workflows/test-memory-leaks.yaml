@@ -2,10 +2,7 @@ name: Test for memory leaks
 on:
   push:
     branches:
-    - master
-  pull_request:
-    branches:
-    - master
+      - "**"
 jobs:
   test-asan:
     runs-on: ubuntu-24.04
