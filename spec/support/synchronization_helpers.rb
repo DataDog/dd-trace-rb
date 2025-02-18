@@ -36,11 +36,11 @@ module SynchronizationHelpers
 
       result
     rescue => e
-      stdout ||= File.read(fork_stdout.path)
-      stderr ||= File.read(fork_stderr.path)
+      # stdout ||= File.read(fork_stdout.path)
+      # stderr ||= File.read(fork_stderr.path)
 
-      puts stdout
-      warn stderr
+      # puts stdout
+      # warn stderr
 
       raise e
     ensure
