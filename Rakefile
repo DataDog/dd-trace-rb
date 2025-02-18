@@ -276,7 +276,7 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql, :integration]
+    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql, :http, :integration]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -302,6 +302,7 @@ namespace :spec do
       :rails,
       :devise,
       :graphql,
+      :http
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
