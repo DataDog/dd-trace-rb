@@ -13,7 +13,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('0.50.0')
 
-          register_as :excon, auto_patch: true
+          register_as :excon
 
           def self.version
             Gem.loaded_specs['excon'] && Gem.loaded_specs['excon'].version
