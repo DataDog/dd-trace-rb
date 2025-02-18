@@ -50,13 +50,13 @@ variables:
     ADD_TO_GEMFILE: "gem 'datadog', require: 'datadog/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
-    K6_OPTIONS_NORMAL_OPERATION_DURATION: 10m
+    K6_OPTIONS_NORMAL_OPERATION_DURATION: 3m
     K6_OPTIONS_NORMAL_OPERATION_GRACEFUL_STOP: 1m
     K6_OPTIONS_NORMAL_OPERATION_PRE_ALLOCATED_VUS: 4
     K6_OPTIONS_NORMAL_OPERATION_MAX_VUS: 4
 
     K6_OPTIONS_HIGH_LOAD_RATE: 200
-    K6_OPTIONS_HIGH_LOAD_DURATION: 5m
+    K6_OPTIONS_HIGH_LOAD_DURATION: 15m
     K6_OPTIONS_HIGH_LOAD_GRACEFUL_STOP: 30s
     K6_OPTIONS_HIGH_LOAD_PRE_ALLOCATED_VUS: 4
     K6_OPTIONS_HIGH_LOAD_MAX_VUS: 4
@@ -75,21 +75,15 @@ baseline:
   variables:
     DD_BENCHMARKS_CONFIGURATION: baseline
 
-only-profiling:
-  extends: .benchmarks
-  variables:
-    DD_BENCHMARKS_CONFIGURATION: only-profiling
-    DD_PROFILING_ENABLED: "true"
-    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
-
-only-profiling-heap-mss:
+only-profiling-heap-sr1-master:
   extends: .benchmarks
   variables:
     DD_BENCHMARKS_CONFIGURATION: only-profiling
     DD_PROFILING_ENABLED: "true"
     DD_PROFILING_ALLOCATION_ENABLED: "true"
     DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED: "true"
-    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
+    DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE: "1"
+    ADD_TO_GEMFILE: "gem 'datadog', github: 'datadog/dd-trace-rb', ref: '89e208239fb394d20e514849e7a7fb70c0e6a7fc'"
 
 only-profiling-heap-mss-sr1:
   extends: .benchmarks
