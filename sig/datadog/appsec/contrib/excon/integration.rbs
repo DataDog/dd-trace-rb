@@ -1,0 +1,22 @@
+
+module Datadog
+  module AppSec
+    module Contrib
+      module Excon
+        class Integration
+          include Datadog::AppSec::Contrib::Integration
+
+          MINIMUM_VERSION: ::Gem::Version
+
+          def self.version: () -> ::Gem::Version?
+
+          def self.loaded?: () -> bool
+
+          def self.compatible?: () -> bool
+
+          def patcher: () -> Datadog::AppSec::Contrib::GraphQL::Patcher
+        end
+      end
+    end
+  end
+end
