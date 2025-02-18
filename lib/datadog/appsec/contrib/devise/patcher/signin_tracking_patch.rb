@@ -1,9 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../configuration'
-require_relative '../tracking'
-require_relative '../resource'
-require_relative '../event'
 
 module Datadog
   module AppSec
