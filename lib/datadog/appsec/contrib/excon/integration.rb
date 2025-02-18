@@ -27,6 +27,10 @@ module Datadog
             super && version >= MINIMUM_VERSION
           end
 
+          def self.auto_instrument?
+            false
+          end
+
           def patcher
             Patcher
           end

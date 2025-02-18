@@ -13,6 +13,8 @@ module Datadog
 
           def self.compatible?: () -> bool
 
+          def self.auto_instrument?: () -> bool
+
           def patcher: () -> Datadog::AppSec::Contrib::GraphQL::Patcher
         end
       end
