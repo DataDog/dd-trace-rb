@@ -5,7 +5,6 @@
 [![YARD documentation](https://img.shields.io/badge/YARD-documentation-blue)][api docs]
 
 ``datadog`` is Datadog's client library for Ruby. It includes a suite of tools which provide visibility into the performance and security of Ruby applications, to enable Ruby developers to identify bottlenecks and other issues.
-
 ## Getting started
 
 **If you're upgrading from a 1.x version, check out the [upgrade guide](https://github.com/DataDog/dd-trace-rb/blob/release/docs/UpgradeGuide2.md).**
