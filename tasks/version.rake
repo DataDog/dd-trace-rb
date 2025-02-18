@@ -1,9 +1,8 @@
-namespace :version do
-  task :bump do
-    gemspec = Gem::Specification.load(Dir.glob('*.gemspec').first)
+require 'open3'
 
-    gem_name = gemspec.name
-    current_version = gemspec.version
+namespace :version do
+  task :next do
+    current_version = load_gemspec_version
 
     next_version =
       if current_version.prerelease?
@@ -14,6 +13,13 @@ namespace :version do
         major, minor, = current_version.segments
         Gem::Version.new([major, minor.succ, 0].join(".")).to_s
       end
+
+    $stdout.puts next_version
+  end
+
+  task :bump do |_t, args|
+    input = args.extras.first || raise(ArgumentError, 'Please provide a version to bump')
+    next_version = Gem::Version.new(input)
 
     major, minor, patch, pre = next_version.to_s.split(".")
 
@@ -27,10 +33,29 @@ namespace :version do
       replace_version(/PRE = \S+/, "PRE = nil")
     end
 
+    updated_version = load_gemspec_version
+
+    raise "Version mismatch: #{updated_version} != #{next_version}" if updated_version != next_version
+
+    gem_name = load_gemspec_name
+
     # Update the versions under gemfiles/
     sh "perl -p -i -e 's/\\b#{gem_name} \\(\\d+\\.\\d+\\.\\d+[^)]*\\)/#{gem_name} (#{next_version})/' gemfiles/*.lock"
+  end
 
-    $stdout.puts next_version
+  # `Gem::Specification.load` has side effects
+  # - it pollutes the global namespace with constants defined in the gemspec or its dependencies
+  # - it populates @loaded_cache with the path of the loaded gemspec
+  #
+  # Causing stale constants or objects being retained in memory
+  def load_gemspec_name(path = 'datadog.gemspec')
+    stdout, _stderr, _status = Open3.capture3("ruby -e 'print Gem::Specification.load(\"#{path}\").name'")
+    stdout
+  end
+
+  def load_gemspec_version(path = 'datadog.gemspec')
+    stdout, _stderr, _status = Open3.capture3("ruby -e 'print Gem::Specification.load(\"#{path}\").version'")
+    Gem::Version.new(stdout)
   end
 
   def replace_version(find_pattern, replace_str)

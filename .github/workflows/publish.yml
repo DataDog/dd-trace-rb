@@ -140,43 +140,23 @@ jobs:
 
   update-gem-version:
     if: github.ref_name == 'master'
-    name: Pull request to update gem version
+    name: Prepare next gem version
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     env:
-      GITHUB_TOKEN: ${{ secrets.GHA_PAT }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     outputs:
       next_version: ${{ steps.next_version.outputs.next_version }}
-    permissions:
-      contents: write
-      pull-requests: write
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
       - run: bundle install
-      - run: |
-          git checkout -b version-bump-from-${{ github.job }}
       - id: next_version
         run: |
-          echo "next_version=$(bundle exec rake version:bump)" >> $GITHUB_OUTPUT
-      - name: Commit and push changes
-        run: |
-          git add .
-          git commit -m "Bump version to ${{ steps.next_version.outputs.next_version }}"
-          git push origin
-      - name: Create Pull Request
-        run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs/${{ github.job }}"
-
-          gh pr create \
-            --title "Bump version to ${{ steps.next_version.outputs.next_version }}" \
-            --body "This is an auto-generated PR for bumping version from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
-            --base master \
-            --head version-bump-from-${{ github.job }}
+          echo "next_version=$(bundle exec rake version:next)" >> $GITHUB_OUTPUT
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
