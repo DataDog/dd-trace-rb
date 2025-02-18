@@ -106,11 +106,7 @@ namespace :github do
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
       cmd = "bundle exec rake spec:#{task['task']}"
 
-      25.times do |i|
-        puts "Running iteration #{i + 1}/25."
-        tests_passed = Bundler.with_unbundled_env { system(env, cmd) }
-        break unless tests_passed
-      end
+      Bundler.with_unbundled_env { sh(env, cmd) }
     end
   end
 
