@@ -45,6 +45,8 @@ variables:
     DD_PROFILING_ENABLED: "false"
     DD_APPSEC_ENABLED: "false"
 
+    DD_BENCHMARKS_DDPROF: "true"
+
     ADD_TO_GEMFILE: "gem 'datadog', require: 'datadog/auto_instrument', github: 'DataDog/dd-trace-rb', ref: '$CI_COMMIT_SHA'"
 
     K6_OPTIONS_NORMAL_OPERATION_RATE: 30
