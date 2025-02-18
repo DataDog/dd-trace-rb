@@ -79,7 +79,7 @@ GEM
     binding_of_caller (1.0.0)
       debug_inspector (>= 0.0.1)
     builder (3.2.4)
-    climate_control (0.2.0)
+    climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.3)
     crack (0.4.5)
@@ -119,7 +119,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.5)
+    logger (1.6.6)
     lograge (0.14.0)
       actionpack (>= 4)
       activesupport (>= 4)
@@ -154,7 +154,6 @@ GEM
     nokogiri (1.16.6-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
@@ -271,7 +270,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  climate_control (~> 0.2.0)
+  climate_control (~> 1.2.0)
   concurrent-ruby
   datadog!
   debug
@@ -283,7 +282,6 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-stack_explorer
   rails (~> 6.1.0)

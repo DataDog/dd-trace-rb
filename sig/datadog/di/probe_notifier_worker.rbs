@@ -22,15 +22,15 @@ module Datadog
 
       @stop_requested: bool
       
-      @logger: Core::Logger
+      @logger: DI::Logger
       
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (untyped settings, Transport transport, Core::Logger logger, ?telemetry: Core::Telemetry::Component) -> void
+      def initialize: (untyped settings, Transport transport, DI::Logger logger, ?telemetry: Core::Telemetry::Component) -> void
 
       attr_reader settings: untyped
       
-      attr_reader logger: Core::Logger
+      attr_reader logger: DI::Logger
       
       attr_reader telemetry: Core::Telemetry::Component?
 

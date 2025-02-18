@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative '../patcher'
 require_relative 'instrumentation'
 
 module Datadog
@@ -9,8 +8,6 @@ module Datadog
       module ActiveRecord
         # AppSec patcher module for ActiveRecord
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?

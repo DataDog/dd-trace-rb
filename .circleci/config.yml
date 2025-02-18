@@ -101,7 +101,7 @@ step_get_test_agent_trace_check_results: &step_get_test_agent_trace_check_result
   run:
     name: Get APM Test Agent Trace Check Results
     command: |
-      ruby .circleci/test_agent_check.rb
+      ruby .github/scripts/test_agent_check.rb
     when: always
 
 filters_all_branches_and_tags: &filters_all_branches_and_tags
@@ -277,16 +277,16 @@ orbs:
               when: always
               command: |
                 set -e
-                
+
                 sed -i 's/file="\.\//file="/g' tmp/rspec/*.xml
-                
+
                 ls -l tmp/rspec/*.xml
 
                 curl -L --fail --retry 5 "https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64" --output "/usr/local/bin/datadog-ci" && chmod +x /usr/local/bin/datadog-ci
 
                 datadog-ci version
 
-                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --service dd-trace-rb tmp/rspec/
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --dry-run --verbose --service dd-trace-rb tmp/rspec/
           - store_test_results:
               path: tmp/rspec
           - persist_to_workspace:
@@ -307,8 +307,9 @@ orbs:
           - run:
               name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
-          - codecov/upload:
-              file: /tmp/workspace/coverage/report/coverage.xml
+          # Migrate to Github Actions
+          # - codecov/upload:
+          #     file: /tmp/workspace/coverage/report/coverage.xml
           - run:
               name: Generate individual coverage report for each Ruby version
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version

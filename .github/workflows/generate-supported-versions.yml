@@ -2,7 +2,6 @@ name: "Generate Supported Versions"
 
 on:
   workflow_dispatch:
-  
 
 concurrency:
   group: ${{ github.workflow }}
@@ -20,7 +19,6 @@ jobs:
       - name: Set up Ruby
         uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
-          bundler-cache: true # runs bundle install
           ruby-version: "3.3"
 
       - name: Update latest
@@ -45,6 +43,6 @@ jobs:
             as defined from the `gemfile.lock` gem declarations.
 
             Workflow run: [Generate Supported Versions](https://github.com/DataDog/dd-trace-rb/actions/workflows/generate-supported-versions.yml)
-            
+
             This should be tied to tracer releases, or triggered manually.
 

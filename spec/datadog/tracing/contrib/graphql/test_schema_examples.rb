@@ -22,10 +22,28 @@ def load_test_schema(prefix: '')
       def user(id:)
         OpenStruct.new(id: id, name: 'Bits')
       end
+
+      field :graphql_error, ::GraphQL::Types::Int, description: 'Raises error'
+
+      def graphql_error
+        raise 'GraphQL error'
+      end
     end
 
     class #{prefix}TestGraphQLSchema < ::GraphQL::Schema
       query(#{prefix}TestGraphQLQuery)
+
+      rescue_from(RuntimeError) do |err, obj, args, ctx, field|
+        raise GraphQL::ExecutionError.new(err.message, extensions: {
+          'int': 1,
+          'bool': true,
+          'str': '1',
+          'array-1-2': [1, '2'],
+          'hash-a-b': {a: 'b'},
+          'object': ::Object.new,
+          'extra-int': 2, # This should not be included
+        })
+      end
     end
   RUBY
   # rubocop:enable Style/DocumentDynamicEvalDefinition
@@ -76,10 +94,11 @@ RSpec.shared_examples 'graphql default instrumentation' do
 end
 
 RSpec.shared_examples 'graphql instrumentation with unified naming convention trace' do |prefix: ''|
+  let(:schema) { Object.const_get("#{prefix}TestGraphQLSchema") }
+  let(:service) { defined?(super) ? super() : tracer.default_service }
+
   describe 'query trace' do
     subject(:result) { schema.execute(query: 'query Users($var: ID!){ user(id: $var) { name } }', variables: { var: 1 }) }
-    let(:schema) { Object.const_get("#{prefix}TestGraphQLSchema") }
-    let(:service) { defined?(super) ? super() : tracer.default_service }
 
     matrix = [
       ['graphql.analyze', 'query Users($var: ID!){ user(id: $var) { name } }'],
@@ -131,6 +150,80 @@ RSpec.shared_examples 'graphql instrumentation with unified naming convention tr
           # During graphql.resolve, it converts it to string (as it builds an SQL query for example)
           expect(span.get_tag('graphql.variables.id')).to eq('1')
         end
+      end
+    end
+  end
+
+  describe 'query with GraphQL errors' do
+    subject(:result) { schema.execute(query: 'query Error{ err1: graphqlError err2: graphqlError }') }
+
+    let(:graphql_execute) { spans.find { |s| s.name == 'graphql.execute' } }
+
+    it 'creates query span for error' do
+      expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+      expect(result.to_h['data']).to eq('err1' => nil, 'err2' => nil)
+
+      expect(graphql_execute.resource).to eq('Error')
+      expect(graphql_execute.service).to eq(service)
+      expect(graphql_execute.type).to eq('graphql')
+
+      expect(graphql_execute.get_tag('graphql.source')).to eq('query Error{ err1: graphqlError err2: graphqlError }')
+
+      expect(graphql_execute.get_tag('graphql.operation.type')).to eq('query')
+      expect(graphql_execute.get_tag('graphql.operation.name')).to eq('Error')
+
+      expect(graphql_execute.events).to contain_exactly(
+        a_span_event_with(
+          name: 'dd.graphql.query.error',
+          attributes: {
+            'path' => ['err1'],
+            'locations' => ['1:14'],
+            'message' => 'GraphQL error',
+            'type' => 'GraphQL::ExecutionError',
+            'stacktrace' => include(__FILE__),
+          }
+        ),
+        a_span_event_with(
+          name: 'dd.graphql.query.error',
+          attributes: {
+            'path' => ['err2'],
+            'locations' => ['1:33'],
+            'message' => 'GraphQL error',
+            'type' => 'GraphQL::ExecutionError',
+            'stacktrace' => include(__FILE__),
+          }
+        )
+      )
+    end
+
+    context 'with error extension capture enabled' do
+      around do |ex|
+        ClimateControl.modify('DD_TRACE_GRAPHQL_ERROR_EXTENSIONS' => 'int,str,bool,array-1-2,hash-a-b,object') { ex.run }
+      end
+
+      it 'creates query span for error with extensions' do
+        expect(result.to_h['errors'][0]['message']).to eq('GraphQL error')
+
+        expect(graphql_execute.events[0]).to match(
+          a_span_event_with(
+            name: 'dd.graphql.query.error',
+            attributes: {
+              'path' => ['err1'],
+              'locations' => ['1:14'],
+              'message' => 'GraphQL error',
+              'type' => 'GraphQL::ExecutionError',
+              'stacktrace' => include(__FILE__),
+              'extensions.int' => 1,
+              'extensions.bool' => true,
+              'extensions.str' => '1',
+              'extensions.array-1-2' => '[1, "2"]',
+              'extensions.hash-a-b' => { a: 'b' }.to_s, # Hash#to_s changes per Ruby version: 3.3: '{:a=>1}', 3.4: '{a: 1}'
+              'extensions.object' => start_with('#<Object:'),
+            }
+          )
+        )
+
+        expect(graphql_execute.events[0].attributes).to_not include('extensions.extra-int')
       end
     end
   end

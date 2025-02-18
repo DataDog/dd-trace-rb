@@ -2,7 +2,6 @@
 
 require_relative '../../../tracing/contrib'
 
-require_relative '../patcher'
 require_relative '../../response'
 require_relative '../rack/request_middleware'
 require_relative 'framework'
@@ -102,8 +101,6 @@ module Datadog
 
         # Patcher for AppSec on Sinatra
         module Patcher
-          include Datadog::AppSec::Contrib::Patcher
-
           module_function
 
           def patched?

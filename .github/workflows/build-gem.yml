@@ -10,7 +10,10 @@ on:
         default: true
   push:
     branches:
-      - "**"
+    - master
+  pull_request:
+    branches:
+    - master
 
 env:
   GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'

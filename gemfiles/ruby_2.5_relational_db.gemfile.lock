@@ -31,7 +31,7 @@ GEM
     binding_of_caller (0.8.0)
       debug_inspector (>= 0.0.1)
     byebug (11.1.3)
-    climate_control (0.2.0)
+    climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
@@ -62,7 +62,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.5)
+    logger (1.6.6)
     makara (0.5.1)
       activerecord (>= 5.2.0)
     memory_profiler (0.9.14)
@@ -72,7 +72,6 @@ GEM
     mysql2 (0.5.5)
     os (1.1.4)
     pg (1.5.4)
-    pimpmychangelog (0.1.3)
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
@@ -136,7 +135,7 @@ DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
   byebug
-  climate_control (~> 0.2.0)
+  climate_control (~> 1.2.0)
   concurrent-ruby
   datadog!
   delayed_job
@@ -150,7 +149,6 @@ DEPENDENCIES
   mysql2 (< 1)
   os (~> 1.1)
   pg (>= 0.18.4)
-  pimpmychangelog (>= 0.1.2)
   pry
   pry-nav
   pry-stack_explorer
