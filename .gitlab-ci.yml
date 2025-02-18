@@ -168,16 +168,11 @@ deploy_to_reliability_env:
 # Due to the constraints of Github workflow dispatch endpoint, it does not return the workflow run id.
 # https://docs.github.com/en/rest/actions/workflows?apiVersion=2022-11-28#create-a-workflow-dispatch-event
 #
-# We fetch the latest workflow run from vaccine after 5 seconds of the dispatch event.
-# False positive/negative result can happen when multiple requests are made within the same window.
-#
-# TODO:
-# Replace polling implementation with reporting status to Github with Github App. This will allow us
-# to get a deterministic result without mismatched workflow run id.
+# We fetch the latest workflow runs from vaccine then match against the run name, polling until we find it.
 vaccine:
   image: $DOCKER_REGISTRY/docker:20.10.13
   tags: [ "arch:amd64" ]
   stage: vaccine
   needs: [create-multiarch-lib-injection-image]
   script: |
-    .gitlab/scripts/vaccine.sh lloeki/fix-cross-repo-race-condition "${CI_COMMIT_SHA}"
+    .gitlab/scripts/vaccine.sh lloeki/fix-cross-repo-race-condition "${CI_COMMIT_SHA}" "glci:${CI_PIPELINE_ID}"
