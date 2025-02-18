@@ -12,7 +12,6 @@ require 'devise'
 
 RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   include Rack::Test::Methods
-  include Warden::Test::Helpers
 
   before do
     Devise.setup do |config|
