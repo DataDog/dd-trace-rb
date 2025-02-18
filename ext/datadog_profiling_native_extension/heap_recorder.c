@@ -41,9 +41,15 @@ typedef struct {
   int32_t line;
 } heap_frame;
 
+// We use memcmp/st_hash below to compare/hash an entire array of heap_frames, so want to make sure no padding is added
+// We could define the structure to be packed, but that seems even weirder across compilers, and this seems more portable?
+_Static_assert(
+    sizeof(heap_frame) == sizeof(ddog_prof_ManagedStringId) * 2 + sizeof(int32_t),
+    "Size of heap_frame does not match the sum of its members. Padding detected."
+);
+
 // A compact representation of a stacktrace for a heap allocation.
-// Used to dedup
-// heap allocation stacktraces across multiple objects sharing the same allocation location.
+// Used to dedup heap allocation stacktraces across multiple objects sharing the same allocation location.
 typedef struct {
   // How many objects are currently tracked in object_records recorder for this heap record.
   uint32_t num_tracked_objects;
@@ -83,6 +89,11 @@ struct heap_recorder {
   // NOTE: This table is currently only protected by the GVL since we never interact with it
   // outside the GVL.
   // NOTE: This table has ownership of its heap_records.
+  //
+  // This is a cpu/memory trade-off: Maintaining the "heap_records" map means we spend extra CPU when sampling as we need
+  // to do de-duplication, but we reduce the memory footprint of the heap profiler.
+  // In the future, it may be worth revisiting if we can move this inside libdatadog: if libdatadog was able to track
+  // entire stacks for us, then we wouldn't need to do it on the Ruby side.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
@@ -718,6 +729,7 @@ static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_
 }
 
 static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+  // See note on "heap_records" definition for why we keep this map.
   heap_record *stack = heap_record_new(heap_recorder, locations);
 
   heap_record *new_or_existing_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation

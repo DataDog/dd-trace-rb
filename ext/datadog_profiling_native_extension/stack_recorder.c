@@ -232,6 +232,7 @@ typedef struct {
   ddog_prof_Profile_SerializeResult result;
   long heap_profile_build_time_ns;
   long serialize_no_gvl_time_ns;
+  ddog_prof_MaybeError advance_gen_result;
 
   // Set by both
   bool serialize_ran;
@@ -539,7 +540,7 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   call_serialize_without_gvl_arguments args = {
     .state = state,
     .finish_timestamp = finish_timestamp,
-    .serialize_ran = false
+    .serialize_ran = false,
   };
 
   while (!args.serialize_ran) {
@@ -563,13 +564,9 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
   //       really cover the full serialization process but it gives a more useful number since it bypasses
   //       the noise of acquiring GVLs and dealing with interruptions which is highly specific to runtime
   //       conditions and over which we really have no control about.
-  long serialization_time_ns = args.serialize_no_gvl_time_ns;
-  if (serialization_time_ns >= 0) {
-    // Only update stats if our serialization time is valid.
-    state->stats_lifetime.serialization_time_ns_max = long_max_of(state->stats_lifetime.serialization_time_ns_max, serialization_time_ns);
-    state->stats_lifetime.serialization_time_ns_min = long_min_of(state->stats_lifetime.serialization_time_ns_min, serialization_time_ns);
-    state->stats_lifetime.serialization_time_ns_total += serialization_time_ns;
-  }
+  state->stats_lifetime.serialization_time_ns_max = long_max_of(state->stats_lifetime.serialization_time_ns_max, args.serialize_no_gvl_time_ns);
+  state->stats_lifetime.serialization_time_ns_min = long_min_of(state->stats_lifetime.serialization_time_ns_min, args.serialize_no_gvl_time_ns);
+  state->stats_lifetime.serialization_time_ns_total += args.serialize_no_gvl_time_ns;
 
   ddog_prof_Profile_SerializeResult serialized_profile = args.result;
 
@@ -578,7 +575,8 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&serialized_profile.err));
   }
 
-  // Note: Don't raise exceptions until `ddog_prof_EncodedProfile_drop` gets called, as otherwise the memory will leak.
+  // Note: If we got here, the profile serialized correctly. Don't raise exceptions until
+  // `ddog_prof_EncodedProfile_drop` gets called, as otherwise the memory will leak, and profiles can be a few megabytes.
 
   state->stats_lifetime.serialization_successes++;
 
@@ -591,15 +589,14 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   // It's now OK to again do things that can trigger exceptions
 
-  // @ivoanjo: Maybe this could be done without the GVL being held?
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_advance_gen(state->string_storage);
+  ddog_prof_MaybeError result = args.advance_gen_result;
   if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
     rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
-  VALUE profile_stats = build_profile_stats(args.slot, serialization_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
+  VALUE profile_stats = build_profile_stats(args.slot, args.serialize_no_gvl_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
 
   return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_pprof, profile_stats));
 }
@@ -796,8 +793,10 @@ static void *call_serialize_without_gvl(void *call_args) {
 
   // Note: The profile gets reset by the serialize call
   args->result = ddog_prof_Profile_serialize(&args->slot->profile, &args->finish_timestamp, NULL /* duration_nanos is optional */, NULL /* start_time is optional */);
+  args->advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(args->state->string_storage);
+
   args->serialize_ran = true;
-  args->serialize_no_gvl_time_ns = monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns;
+  args->serialize_no_gvl_time_ns = long_max_of(0, monotonic_wall_time_now_ns(DO_NOT_RAISE_ON_FAILURE) - serialize_no_gvl_start_time_ns);
 
   return NULL; // Unused
 }
