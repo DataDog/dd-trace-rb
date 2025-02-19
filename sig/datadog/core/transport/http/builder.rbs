@@ -3,9 +3,7 @@ module Datadog
     module Transport
       module HTTP
         class Builder
-          REGISTRY: untyped
-
-          attr_reader api_instance_class: untyped
+          REGISTRY: Datadog::Core::Transport::HTTP::Adapters::Registry
 
           attr_reader apis: untyped
 
@@ -30,6 +28,8 @@ module Datadog
           def to_transport: (untyped klass) -> untyped
 
           def to_api_instances: () -> untyped
+
+          def api_instance_class: () -> untyped
 
           class UnknownApiError < StandardError
             attr_reader key: untyped
