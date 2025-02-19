@@ -11,11 +11,17 @@ module SynchronizationHelpers
     begin
       # Start in fork
       pid = fork do
-        # Capture forked output
-        $stdout.reopen(fork_stdout)
-        $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
+        begin
+          # Capture forked output
+          $stdout.reopen(fork_stdout)
+          $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
 
-        yield
+          yield
+        rescue => e
+          puts "Error in fork: #{e.message}"
+        ensure
+          exit(0)
+        end
       end
 
       fork_stderr.close
