@@ -164,7 +164,6 @@ end
 appraise 'http' do
   gem 'ethon'
   gem 'excon'
-  gem 'faraday'
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
@@ -174,6 +173,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday', 2)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'

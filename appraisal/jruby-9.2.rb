@@ -192,7 +192,6 @@ appraise 'http' do
   # either the upstream issues are fixed OR we end up moving to Java 11.
   gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
   gem 'excon'
-  gem 'faraday'
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'rest-client'
@@ -202,6 +201,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday', 2)
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
