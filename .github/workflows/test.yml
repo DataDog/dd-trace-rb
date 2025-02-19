@@ -200,7 +200,7 @@ jobs:
         # verbose: true
 
   complete:
-    name: complete
+    name: Unit Tests (complete)
     runs-on: ubuntu-24.04
     needs:
       - ruby-34
@@ -215,4 +215,4 @@ jobs:
       - jruby-93
       - jruby-92
     steps:
-    - run: echo "DONE!"
+      - run: echo "DONE!"

@@ -44,3 +44,11 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@dd746615b3b9d728a6a37ca2045b68ca76d4841a # v3.28.8
+
+  complete:
+    name: CodeQL (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - analyze
+    steps:
+      - run: echo "DONE!"
