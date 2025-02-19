@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative 'actions_handler/rasp_stack_trace'
+require_relative 'actions_handler/stack_trace_collection'
+
 module Datadog
   module AppSec
     # this module encapsulates functions for handling actions that libddawf returns
@@ -19,7 +22,31 @@ module Datadog
         throw(Datadog::AppSec::Ext::INTERRUPT, action_params)
       end
 
-      def generate_stack(_action_params); end
+      def generate_stack(action_params)
+        return unless Datadog.configuration.appsec.stack_trace.enabled
+
+        context = AppSec.active_context
+        if context.nil? || context.trace.nil? && context.span.nil?
+          Datadog.logger.debug { 'Cannot find trace or service entry span to add stack trace' }
+          return
+        end
+
+        config = Datadog.configuration.appsec.stack_trace
+
+        # Check that the sum of stack_trace count in trace and entry_span does not exceed configuration
+        span_stack = ActionsHandler::RaspStackTrace.new(context.span&.metastruct)
+        trace_stack = ActionsHandler::RaspStackTrace.new(context.trace&.metastruct)
+        return if config.max_collect != 0 && span_stack.count + trace_stack.count >= config.max_collect
+
+        # Generate stacktrace
+        utf8_stack_id = action_params['stack_id'].encode('UTF-8') if action_params['stack_id']
+        stack_frames = ActionsHandler::StackTraceCollection.collect(config.max_depth, config.max_depth_top_percent)
+        stack_trace = { language: 'ruby', id: utf8_stack_id, frames: stack_frames }
+
+        # Add newly created stacktrace to metastruct
+        stack = context.trace.nil? ? span_stack : trace_stack
+        stack.push(stack_trace)
+      end
 
       def generate_schema(_action_params); end
     end
