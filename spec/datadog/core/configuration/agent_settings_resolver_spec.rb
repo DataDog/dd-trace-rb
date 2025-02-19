@@ -55,7 +55,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
       let(:uds_path) { '/var/run/datadog/apm.socket' }
       let(:hostname) { nil }
       let(:port) { nil }
-      let(:timeout_seconds) { 10 }
+      let(:timeout_seconds) { 30 }
 
       it 'configures the agent to connect to unix:///var/run/datadog/apm.socket' do
         expect(resolver).to have_attributes(
@@ -677,7 +677,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
 
     context 'when the uri scheme is unix' do
       let(:environment) { { 'DD_TRACE_AGENT_URL' => 'unix:///path/to/apm.socket' } }
-      let(:timeout_seconds) { 10 }
+      let(:timeout_seconds) { 30 }
 
       it 'contacts the agent via a unix domain socket' do
         expect(resolver).to have_attributes(
@@ -712,7 +712,7 @@ RSpec.describe Datadog::Core::Configuration::AgentSettingsResolver do
   describe 'uds_path' do
     let(:hostname) { nil }
     let(:port) { nil }
-    let(:timeout_seconds) { 10 }
+    let(:timeout_seconds) { 30 }
     let(:adapter) { :unix }
 
     context 'when a custom path is specified via code using "agent.uds_path ="' do
