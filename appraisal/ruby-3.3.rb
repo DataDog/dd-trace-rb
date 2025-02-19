@@ -84,8 +84,6 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
@@ -95,6 +93,8 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday')
+build_coverage_matrix('excon')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -187,10 +187,13 @@ appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 
-appraise 'rack-activerecord' do
-  gem "rack", "~> 2"
-  gem 'rack-contrib'
+appraise 'rails-app' do
+  gem 'devise', '~> 4.9'
+  gem 'faraday', '~> 2.0'
+  gem 'excon', '~> 1.2'
+  gem 'rack', '~> 2'
+  gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
-  gem "activerecord", "~> 7"
-  gem "sqlite3", ">= 1.4.2", platform: :ruby
+  gem 'rails', '~> 7.0'
+  gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end

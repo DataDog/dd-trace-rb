@@ -8,9 +8,6 @@ module Datadog
         class Event
           UUID_REGEX = /^\h{8}-\h{4}-\h{4}-\h{4}-\h{12}$/.freeze
 
-          SAFE_MODE = 'safe'
-          EXTENDED_MODE = 'extended'
-
           attr_reader :user_id
 
           def initialize(resource, mode)
@@ -38,15 +35,15 @@ module Datadog
             @user_id = @resource.id
 
             case @mode
-            when EXTENDED_MODE
+            when AppSec::Configuration::Settings::IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
               @email = @resource.email
               @username = @resource.username
-            when SAFE_MODE
+            when AppSec::Configuration::Settings::ANONYMIZATION_AUTO_USER_INSTRUMENTATION_MODE
               @user_id = nil unless @user_id && @user_id.to_s =~ UUID_REGEX
             else
               Datadog.logger.warn(
-                "Invalid automated user evenst mode: `#{@mode}`. "\
-                              'Supported modes are: `safe` and `extended`.'
+                "Invalid auto_user_instrumentation.mode: `#{@mode}`. " \
+                "Supported modes are: #{AppSec::Configuration::Settings::AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}."
               )
             end
           end

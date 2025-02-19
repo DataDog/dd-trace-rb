@@ -276,7 +276,18 @@ namespace :spec do
   end
 
   namespace :appsec do
-    task all: [:main, :active_record, :rack, :rails, :sinatra, :devise, :graphql, :integration]
+    task all: [
+      :main,
+      :active_record,
+      :rack,
+      :rails,
+      :sinatra,
+      :devise,
+      :graphql,
+      :faraday,
+      :excon,
+      :integration
+    ]
 
     # Datadog AppSec main specs
     desc '' # "Explicitly hiding from `rake -T`"
@@ -302,6 +313,8 @@ namespace :spec do
       :rails,
       :devise,
       :graphql,
+      :faraday,
+      :excon
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|
@@ -433,10 +446,6 @@ end
 NATIVE_EXTS = [
   Rake::ExtensionTask.new("datadog_profiling_native_extension.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
     ext.ext_dir = 'ext/datadog_profiling_native_extension'
-  end,
-
-  Rake::ExtensionTask.new("datadog_profiling_loader.#{RUBY_VERSION}_#{RUBY_PLATFORM}") do |ext|
-    ext.ext_dir = 'ext/datadog_profiling_loader'
   end,
 
   Rake::ExtensionTask.new("libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}") do |ext|

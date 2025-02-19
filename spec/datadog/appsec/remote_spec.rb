@@ -173,6 +173,12 @@ RSpec.describe Datadog::AppSec::Remote do
           receiver.call(repository, changes)
         end
 
+        it 'sets apply_state to ACKNOWLEDGED on content' do
+          receiver.call(repository, transaction)
+
+          expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+        end
+
         context 'content product' do
           before do
             # Stub the reconfigure method, so we do not trigger background reconfiguration
@@ -290,6 +296,13 @@ RSpec.describe Datadog::AppSec::Remote do
 
           context 'ASM' do
             let(:path) { 'datadog/603646/ASM/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
 
             context 'overrides' do
               let(:data) do
@@ -405,6 +418,13 @@ RSpec.describe Datadog::AppSec::Remote do
 
           context 'ASM_DATA' do
             let(:path) { 'datadog/603646/ASM_DATA/whatevername/config' }
+            let(:data) { {} }
+
+            it 'sets apply_state to ACKNOWLEDGED on content' do
+              receiver.call(repository, transaction)
+
+              expect(content.apply_state).to eq(Datadog::Core::Remote::Configuration::Content::ApplyState::ACKNOWLEDGED)
+            end
 
             context 'with rules_data information' do
               let(:data) do

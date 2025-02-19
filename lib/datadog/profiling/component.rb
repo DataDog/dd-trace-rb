@@ -435,17 +435,11 @@ module Datadog
       end
 
       private_class_method def self.enable_gvl_profiling?(settings, logger)
-        if RUBY_VERSION < "3.2"
-          if settings.profiling.advanced.preview_gvl_enabled
-            logger.warn("GVL profiling is currently not supported in Ruby < 3.2 and will not be enabled.")
-          end
-
-          return false
-        end
+        return false if RUBY_VERSION < "3.2"
 
         # GVL profiling only makes sense in the context of timeline. We could emit a warning here, but not sure how
         # useful it is -- if a customer disables timeline, there's nowhere to look for GVL profiling anyway!
-        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.preview_gvl_enabled
+        settings.profiling.advanced.timeline_enabled && settings.profiling.advanced.gvl_enabled
       end
     end
   end

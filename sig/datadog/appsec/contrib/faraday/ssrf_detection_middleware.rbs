@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Faraday
+        class SSRFDetectionMiddleware < ::Faraday::Middleware
+          def call: (untyped env) -> void
+
+          private
+
+          attr_reader app: untyped
+        end
+      end
+    end
+  end
+end

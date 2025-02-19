@@ -147,7 +147,7 @@ RSpec.describe Datadog::DI::Remote do
 
         it 'calls probe manager to add a probe' do
           expect(component).to receive(:logger).and_return(logger)
-          expect_lazy_log(logger, :debug, /received probe/)
+          expect_lazy_log(logger, :debug, /received log probe/)
 
           expect(probe_manager).to receive(:add_probe) do |probe|
             expect(probe.id).to eq('11')
@@ -163,7 +163,7 @@ RSpec.describe Datadog::DI::Remote do
           it 'logs warning and consumes the exception' do
             expect(component).to receive(:telemetry).and_return(telemetry)
             expect(component).to receive(:logger).and_return(logger)
-            expect_lazy_log(logger, :debug, /received probe/)
+            expect_lazy_log(logger, :debug, /received log probe/)
 
             expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error from test/)
             expect(component).to receive(:logger).and_return(logger)
@@ -185,7 +185,7 @@ RSpec.describe Datadog::DI::Remote do
         it 'calls probe manager to remove stale probes' do
           allow(component).to receive(:telemetry)
           expect(component).to receive(:logger).and_return(logger)
-          expect_lazy_log(logger, :debug, /received probe/)
+          expect_lazy_log(logger, :debug, /received log probe/)
 
           expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error from test/)
 
@@ -206,7 +206,7 @@ RSpec.describe Datadog::DI::Remote do
           it 'logs warning and consumes the exception' do
             expect(component).to receive(:telemetry).and_return(telemetry).at_least(:once)
             expect(component).to receive(:logger).and_return(logger)
-            expect_lazy_log(logger, :debug, /received probe/)
+            expect_lazy_log(logger, :debug, /received log probe/)
 
             expect_lazy_log(logger, :debug, /unhandled exception.*Runtime error 1 from test/)
             expect(telemetry).to receive(:report)

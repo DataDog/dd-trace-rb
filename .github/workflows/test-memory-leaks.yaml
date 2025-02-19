@@ -1,11 +1,17 @@
 name: Test for memory leaks
-on: [push]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
   test-memcheck:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: 3.4.1
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
@@ -17,11 +23,20 @@ jobs:
   test-asan:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: asan
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v2 # bump this to invalidate cache
       - run: env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:main
+
+  complete:
+    name: Test for memory leaks (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test-memcheck
+      - test-asan
+    steps:
+      - run: echo "DONE!"

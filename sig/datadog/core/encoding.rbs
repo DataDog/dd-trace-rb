@@ -5,39 +5,43 @@ module Datadog
       # Encoder interface that provides the logic to encode traces and service
       # @abstract
       module Encoder
-        def content_type: () -> untyped
+        def content_type: () -> String
 
-        # Concatenates a list of elements previously encoded by +#encode+.
-        def join: (untyped encoded_elements) -> untyped
+        def encode: (untyped obj) -> String
 
-        # Serializes a single trace into a String suitable for network transmission.
-        def encode: (untyped _) -> untyped
+        def join: (Array[untyped] encoded_data) -> String
+
+        def decode: (String obj)-> untyped
       end
 
       # Encoder for the JSON format
       module JSONEncoder
         extend Encoder
 
-        CONTENT_TYPE: "application/json"
+        CONTENT_TYPE: String
 
-        def self?.content_type: () -> untyped
+        def self?.content_type: () -> String
 
-        def self?.encode: (untyped obj) -> untyped
+        def self?.encode: (untyped obj) -> String
 
-        def self?.join: (untyped encoded_data) -> ::String
+        def self?.join: (Array[untyped] encoded_data) -> String
+
+        def self?.decode: (String obj)-> untyped
       end
 
       # Encoder for the Msgpack format
       module MsgpackEncoder
         extend Encoder
 
-        CONTENT_TYPE: "application/msgpack"
+        CONTENT_TYPE: String
 
-        def self?.content_type: () -> untyped
+        def self?.content_type: () -> String
 
-        def self?.encode: (untyped obj) -> untyped
+        def self?.encode: (untyped obj) -> String
 
-        def self?.join: (untyped encoded_data) -> untyped
+        def self?.join: (Array[untyped] encoded_data) -> String
+
+        def self?.decode: (String obj)-> untyped
       end
     end
   end

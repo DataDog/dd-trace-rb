@@ -10,20 +10,52 @@ on:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: write
     steps:
       - name: Cleanup
         run: |
-          echo "Fetching list of cache key"
-          cacheKeysForPR=$(gh cache list --ref $BRANCH --limit 100 --json id --jq '.[].id')
+          echo "# Cache Cleanup Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**PR Number:** #${{ github.event.pull_request.number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`$BRANCH\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
 
-          ## Setting this to not fail the workflow while deleting cache keys.
-          set +e
-          echo "Deleting caches..."
-          for cacheKey in $cacheKeysForPR
-          do
-              gh cache delete $cacheKey
+          echo "[DEBUG] Fetching cache list..."
+          # Get full cache details
+          CACHE_LIST=$(gh cache list --ref $BRANCH --limit 100 --json key,sizeInBytes,id)
+
+          if [ -z "$CACHE_LIST" ] || [ "$CACHE_LIST" = "[]" ]; then
+            echo "[DEBUG] No caches found"
+            echo "No caches found for this PR" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Create table header
+          echo "| Cache ID | Cache Key | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-----------|------|" >> $GITHUB_STEP_SUMMARY
+
+          # Extract IDs and process deletions
+          echo "$CACHE_LIST" | jq -r '.[] | [.id, .key, .sizeInBytes] | @tsv' | while IFS=$'\t' read -r id key size; do
+            # Convert size to human readable format
+            if [ $size -ge 1048576 ]; then
+              readable_size=$(echo "scale=2; $size/1048576" | bc)"MB"
+            else
+              readable_size=$(echo "scale=2; $size/1024" | bc)"KB"
+            fi
+
+            echo "[DELETE] Processing cache ID: $id"
+            gh cache delete $id
+            echo "[INFO] Processed cache $id"
+
+            # Add row to summary table
+            echo "| \`$id\` | \`$key\` | $readable_size |" >> $GITHUB_STEP_SUMMARY
           done
-          echo "Done"
+
+          # Add completion timestamp
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Cleanup completed at: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}

@@ -32,7 +32,19 @@ module Datadog
 
           # Negotiation response
           module Response
-            attr_reader :version, :endpoints, :config
+            # @!attribute [r] version
+            #   The version of the agent.
+            #   @return [String]
+            # @!attribute [r] endpoints
+            #   The HTTP endpoints the agent supports.
+            #   @return [Array<String>]
+            # @!attribute [r] config
+            #   The agent configuration. These are configured by the user when starting the agent, as well as any defaults.
+            #   @return [Hash]
+            # @!attribute [r] span_events
+            #   Whether the agent supports the top-level span events field in flushed spans.
+            #   @return [Boolean,nil]
+            attr_reader :version, :endpoints, :config, :span_events
           end
 
           # Negotiation transport

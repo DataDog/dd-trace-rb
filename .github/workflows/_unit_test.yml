@@ -1,0 +1,191 @@
+name: Unit Test Template
+
+on:
+  workflow_call:
+    inputs:
+      # TODO: Provides concurrency control for each ruby version
+      engine:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      alias:
+        required: true
+        type: string
+    outputs:
+      lockfile:
+        description: "The lockfile artifact"
+        value: ${{ jobs.batch.outputs.lockfile }}
+      cache-key:
+        description: "The cache key for bundle"
+        value: ${{ jobs.batch.outputs.cache-key }}
+
+jobs:
+  batch:
+    runs-on: ubuntu-24.04
+    name: batch
+    outputs:
+      batches: "${{ steps.set-batches.outputs.batches }}"
+      cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+      lockfile: "${{ steps.lockfile.outputs.lockfile }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: Generate lockfile
+      id: lockfile
+      run: |
+        bundle lock
+        echo "lockfile=lockfile-${{ inputs.alias }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+    - name: Upload lockfile
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      with:
+        name: ${{ steps.lockfile.outputs.lockfile }}
+        path: "*.lock"
+    - name: Restore cache
+      uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      id: restore-cache
+      with:
+        key: bundle-${{ runner.os }}-${{ runner.arch }}-${{ inputs.alias }}-${{ hashFiles('*.lock') }}
+        path: "/usr/local/bundle"
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      run: bundle install
+    - if: steps.restore-cache.outputs.cache-hit != 'true'
+      name: Save cache
+      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      with:
+        key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
+        path: "/usr/local/bundle"
+    - id: set-batches
+      name: Distribute tasks into batches
+      run: |
+        batches_json=$(bundle exec rake github:generate_batches)
+        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+        echo "batches=$batches_json" >> $GITHUB_OUTPUT
+    - name: Generate batch summary
+      run: bundle exec rake github:generate_batch_summary
+      env:
+        batches_json: "${{ steps.set-batches.outputs.batches }}"
+  build-test:
+    needs:
+    - batch
+    runs-on: ubuntu-24.04
+    name: build & test [${{ matrix.batch }}]
+    timeout-minutes: 30
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.batch.outputs.batches).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
+        TEST_POSTGRES_HOST: postgres
+        TEST_REDIS_HOST: redis
+        TEST_ELASTICSEARCH_HOST: elasticsearch
+        TEST_MEMCACHED_HOST: memcached
+        TEST_MONGODB_HOST: mongodb
+        TEST_MYSQL_HOST: mysql
+        TEST_OPENSEARCH_HOST: opensearch
+        TEST_OPENSEARCH_PORT: '9200'
+        TEST_PRESTO_HOST: presto
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+        JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+    services:
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+      elasticsearch:
+        image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          ES_JAVA_OPTS: "-Xms750m -Xmx750m"
+      memcached:
+        image: ghcr.io/datadog/images-rb/services/memcached:1.5-alpine
+      mongodb:
+        image: ghcr.io/datadog/images-rb/services/mongo:3.6
+      opensearch:
+        image: ghcr.io/datadog/images-rb/services/opensearchproject/opensearch:2.8.0
+        env:
+          discovery.type: single-node
+          DISABLE_SECURITY_PLUGIN: 'true'
+          DISABLE_PERFORMANCE_ANALYZER_AGENT_CLI: 'true'
+          cluster.routing.allocation.disk.watermark.low: 3gb
+          cluster.routing.allocation.disk.watermark.high: 2gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+      presto:
+        image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: Configure Git
+      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+    - name: Download lockfile
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+      with:
+        name: lockfile-${{ inputs.alias }}-${{ github.run_id }}
+    - name: Restore cache
+      uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      id: restore-cache
+      with:
+        key: "${{ needs.batch.outputs.cache-key }}"
+        path: "/usr/local/bundle"
+    - run: bundle check || bundle install
+    - run: bundle exec rake github:run_batch_build
+    - name: Configure RSpec
+      run: ln -s .rspec-local.example .rspec-local
+    - run: bundle exec rake github:run_batch_tests
+      env:
+        COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ matrix.batch }}
+    - name: Debug with SSH connection
+      if: ${{ failure() && runner.debug == '1' }}
+      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
+      with:
+        limit-access-to-actor: true
+        # This mode will wait at the end of the job for a user to connect and then to terminate the tmate session.
+        # If no user has connected within 10 minutes after the post-job step started,
+        # it will terminate the tmate session and quit gracefully.
+        detached: true
+    - name: Validate test agent data
+      if: ${{ !cancelled() }}
+      run: ruby .github/scripts/test_agent_check.rb
+    - name: Upload junit reports
+      if: ${{ !cancelled() }}
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      with:
+        name: junit-${{ inputs.alias }}-${{ matrix.batch }}-${{ github.run_id }}
+        path: tmp/rspec/*.xml
+    - name: Upload coverage data
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      with:
+        name: coverage-${{ inputs.alias }}-${{ matrix.batch }}-${{ github.run_id }}
+        path: coverage
+        include-hidden-files: true # Coverage data generated by SimpleCov are hidden

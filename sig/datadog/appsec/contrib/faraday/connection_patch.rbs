@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Faraday
+        class ConnectionPatch
+          def initialize: (*untyped args) ?{ () -> untyped } -> void
+        end
+      end
+    end
+  end
+end

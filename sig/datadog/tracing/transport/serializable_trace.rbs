@@ -4,9 +4,9 @@ module Datadog
       class SerializableTrace
         @native_events_supported: bool
 
-        attr_reader trace: Span
+        attr_reader trace: TraceSegment
 
-        def initialize: (untyped trace, bool native_events_supported) -> void
+        def initialize: (untyped trace, native_events_supported: bool) -> void
 
         def to_msgpack: (?untyped? packer) -> untyped
 
@@ -19,7 +19,7 @@ module Datadog
 
         attr_reader span: Span
 
-        def initialize: (untyped span, bool native_events_supported) -> void
+        def initialize: (untyped span, native_events_supported: bool) -> void
 
         def to_msgpack: (?untyped? packer) -> untyped
 
