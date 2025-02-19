@@ -95,6 +95,7 @@ build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
+build_coverage_matrix('mongo', min: '2.1.0')
 
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
@@ -132,7 +133,7 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
   # gem 'grpc', '>= 1.38.0', platform: :ruby
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
