@@ -126,6 +126,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         telemetry
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
+          exit(0)
         end
       end
     end
@@ -176,6 +177,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         telemetry
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
+          exit(0)
         end
       end
     end
@@ -216,6 +218,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         telemetry
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
+          exit(0)
         end
       end
     end
@@ -253,6 +256,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
             telemetry.log!(event)
 
             expect(worker).not_to have_received(:enqueue)
+            exit(0)
           end
         end
       end
