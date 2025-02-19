@@ -18,11 +18,8 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
 const char *ruby_value_type_to_string(enum ruby_value_type type);
 ddog_CharSlice ruby_value_type_to_char_slice(enum ruby_value_type type);
 
-ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string);
-
-void intern_all_or_raise(
-  ddog_prof_ManagedStringStorage string_storage,
-  ddog_prof_Slice_CharSlice strings,
-  ddog_prof_ManagedStringId *output_ids,
-  uintptr_t output_ids_size
-);
+// Returns a dynamically allocated string from the provided char slice.
+// WARN: The returned string must be explicitly freed with ruby_xfree.
+static inline char* string_from_char_slice(ddog_CharSlice slice) {
+  return ruby_strndup(slice.ptr, slice.len);
+}

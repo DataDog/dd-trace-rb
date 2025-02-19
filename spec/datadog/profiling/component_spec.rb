@@ -331,14 +331,8 @@ RSpec.describe Datadog::Profiling::Component do
               settings.profiling.allocation_enabled = false
             end
 
-            it "initializes StackRecorder without heap sampling support and warns" do
-              expect(Datadog::Profiling::StackRecorder).to receive(:new)
-                .with(hash_including(heap_samples_enabled: false, heap_size_enabled: false))
-                .and_call_original
-
-              expect(logger).to receive(:warn).with(/allocation profiling is not enabled/)
-
-              build_profiler_component
+            it "raises an ArgumentError during component initialization" do
+              expect { build_profiler_component }.to raise_error(ArgumentError, /requires allocation profiling/)
             end
           end
 
@@ -356,7 +350,8 @@ RSpec.describe Datadog::Profiling::Component do
 
               expect(logger).to receive(:info).with(/Ractors.+stopping/)
               expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
-              expect(logger).to receive(:debug).with(/Enabled heap profiling/)
+              expect(logger).to receive(:warn).with(/experimental heap profiling/)
+              expect(logger).to receive(:warn).with(/experimental heap size profiling/)
 
               build_profiler_component
             end
@@ -373,7 +368,8 @@ RSpec.describe Datadog::Profiling::Component do
 
                 expect(logger).to receive(:info).with(/Ractors.+stopping/)
                 expect(logger).to receive(:debug).with(/Enabled allocation profiling/)
-                expect(logger).to receive(:debug).with(/Enabled heap profiling/)
+                expect(logger).to receive(:warn).with(/experimental heap profiling/)
+                expect(logger).not_to receive(:warn).with(/experimental heap size profiling/)
 
                 build_profiler_component
               end
