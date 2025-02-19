@@ -4,7 +4,7 @@ gemspec
 
 gem 'benchmark-ips', '~> 2.8'
 gem 'benchmark-memory', '< 0.2' # V0.2 only works with 2.5+
-gem 'climate_control', '~> 0.2.0'
+gem 'climate_control', '~> 1.2.0'
 gem 'concurrent-ruby'
 
 # Optional extensions
@@ -24,7 +24,7 @@ gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
 gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
-gem 'pimpmychangelog', '>= 0.1.2'
+
 gem 'byebug'
 gem 'pry'
 gem 'pry-byebug'
@@ -56,4 +56,5 @@ end
 
 group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
+  gem 'pimpmychangelog', '~> 0.1.3', require: false
 end

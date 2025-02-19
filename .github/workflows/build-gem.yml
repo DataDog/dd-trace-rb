@@ -10,7 +10,10 @@ on:
         default: true
   push:
     branches:
-      - "**"
+    - master
+  pull_request:
+    branches:
+    - master
 
 env:
   GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
@@ -127,3 +130,11 @@ jobs:
       - name: Clean up credentials
         run: |
           rm -rvf ~/.gem/credentials
+
+  complete:
+    name: Build Gem (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test
+    steps:
+      - run: echo "DONE!"

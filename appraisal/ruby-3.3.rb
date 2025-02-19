@@ -84,8 +84,6 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
@@ -95,6 +93,9 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday')
+build_coverage_matrix('excon')
+build_coverage_matrix('mongo', min: '2.1.0')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -124,7 +125,7 @@ appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -186,10 +187,13 @@ appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
 end
 
-appraise 'rack-activerecord' do
-  gem "rack", "~> 2"
-  gem 'rack-contrib'
+appraise 'rails-app' do
+  gem 'devise', '~> 4.9'
+  gem 'faraday', '~> 2.0'
+  gem 'excon', '~> 1.2'
+  gem 'rack', '~> 2'
+  gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
-  gem "activerecord", "~> 7"
-  gem "sqlite3", ">= 1.4.2", platform: :ruby
+  gem 'rails', '~> 7.0'
+  gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end

@@ -65,8 +65,12 @@ module Datadog
           type traceKwargsValues = GraphQL::Query | GraphQL::Schema::Union | GraphQL::Schema::Object | GraphQL::Schema::Field | GraphQL::Execution::Multiplex | GraphQL::Language::Nodes::Field | Hash[Symbol, String] | String | bool | nil
 
           type traceResult = lexerArray | GraphQL::Language::Nodes::Document | { remaining_timeout: Float?, error: Array[StandardError] } | Array[Object] | GraphQL::Schema::Object? | [GraphQL::Schema::Object, nil]
-          
-          def trace: (Proc callable, String trace_key, String resource, **Hash[Symbol, traceKwargsValues ] kwargs) ?{ (Datadog::Tracing::SpanOperation) -> void } -> traceResult
+
+          def add_query_error_events: (SpanOperation span, Array[::GraphQL::Error] errors) -> void
+
+          def serialize_error_locations: (Array[{"line" => Integer, "column" => Integer}] locations)-> Array[String]
+
+          def trace: (Proc callable, String trace_key, String resource, ?Hash[Symbol, traceKwargsValues ] kwargs, ?before: ^(SpanOperation)-> void, ?after: ^(SpanOperation)-> void) ?{ (SpanOperation) -> void } -> traceResult
 
           def multiplex_resource: (GraphQL::Execution::Multiplex multiplex) -> String?
         end

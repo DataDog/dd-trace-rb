@@ -17,9 +17,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     instance_double(Datadog::DI::Transport)
   end
 
-  let(:logger) do
-    instance_double(Logger)
-  end
+  di_logger_double
 
   let(:worker) { described_class.new(settings, transport, logger) }
 

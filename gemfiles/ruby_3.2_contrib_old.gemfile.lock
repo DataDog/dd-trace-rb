@@ -20,7 +20,7 @@ GEM
       memory_profiler (~> 0.9)
     binding_of_caller (1.0.0)
       debug_inspector (>= 0.0.1)
-    climate_control (0.2.0)
+    climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.2.2)
     crack (0.4.5)
@@ -61,7 +61,7 @@ GEM
       ffi (~> 1.0)
     libddwaf (1.18.0.0.0-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.5)
+    logger (1.6.6)
     memory_profiler (0.9.14)
     method_source (1.0.0)
     metriks (0.9.9.8)
@@ -73,7 +73,6 @@ GEM
     mustermann (1.1.2)
       ruby2_keywords (~> 0.0.1)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     presto-client (0.6.6)
@@ -175,7 +174,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  climate_control (~> 0.2.0)
+  climate_control (~> 1.2.0)
   concurrent-ruby
   dalli (< 3.0.0)
   datadog!
@@ -186,7 +185,6 @@ DEPENDENCIES
   json-schema (< 3)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   presto-client (>= 0.5.14)
   pry
   pry-stack_explorer

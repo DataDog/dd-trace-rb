@@ -53,7 +53,7 @@ module Datadog
                     payload = probe_notification_builder.build_received(probe)
                     probe_notifier_worker = component.probe_notifier_worker
                     probe_notifier_worker.add_status(payload)
-                    component.logger.debug { "di: received probe from RC: #{probe.type} #{probe.location}" }
+                    component.logger.debug { "di: received #{probe.type} probe at #{probe.location} (#{probe.id}) via RC" }
 
                     begin
                       # TODO test exception capture
@@ -76,7 +76,7 @@ module Datadog
                     rescue => exc
                       raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                      component.logger.debug { "di: unhandled exception adding probe in DI remote receiver: #{exc.class}: #{exc}" }
+                      component.logger.debug { "di: unhandled exception adding #{probe.type} probe at #{probe.location} (#{probe.id}) in DI remote receiver: #{exc.class}: #{exc}" }
                       component.telemetry&.report(exc, description: "Unhandled exception adding probe in DI remote receiver")
 
                       # TODO test this path
@@ -101,7 +101,7 @@ module Datadog
                   rescue => exc
                     raise if component.settings.dynamic_instrumentation.internal.propagate_all_exceptions
 
-                    component.logger.debug { "di: unhandled exception handling probe in DI remote receiver: #{exc.class}: #{exc}" }
+                    component.logger.debug { "di: unhandled exception handling a probe in DI remote receiver: #{exc.class}: #{exc}" }
                     component.telemetry&.report(exc, description: "Unhandled exception handling probe in DI remote receiver")
 
                     # TODO assert content state (errored for this example)

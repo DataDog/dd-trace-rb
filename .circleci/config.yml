@@ -286,7 +286,7 @@ orbs:
 
                 datadog-ci version
 
-                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --verbose --service dd-trace-rb tmp/rspec/
+                DD_ENV=ci DATADOG_API_KEY=$JUNIT_UPLOAD_API_KEY DATADOG_SITE=datadoghq.com datadog-ci junit upload --dry-run --verbose --service dd-trace-rb tmp/rspec/
           - store_test_results:
               path: tmp/rspec
           - persist_to_workspace:
@@ -307,8 +307,9 @@ orbs:
           - run:
               name: Generate combined coverage report for all tests
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report
-          - codecov/upload:
-              file: /tmp/workspace/coverage/report/coverage.xml
+          # Migrate to Github Actions
+          # - codecov/upload:
+          #     file: /tmp/workspace/coverage/report/coverage.xml
           - run:
               name: Generate individual coverage report for each Ruby version
               command: COVERAGE_DIR=/tmp/workspace/coverage bundle exec rake coverage:report_per_ruby_version

@@ -10,7 +10,7 @@ module Datadog
     # The loop inside the worker rescues all exceptions to prevent termination
     # due to unhandled exceptions raised by any downstream code.
     # This includes communication and protocol errors when sending the
-    # payloads to the agent.
+    # events to the agent.
     #
     # The worker groups the data to send into batches. The goal is to perform
     # no more than one network operation per event type per second.
@@ -46,6 +46,7 @@ module Datadog
 
       def start
         return if @thread && @pid == Process.pid
+        logger.trace { "di: starting probe notifier: pid #{$$}" }
         @thread = Thread.new do
           loop do
             # TODO If stop is requested, we stop immediately without
@@ -96,6 +97,7 @@ module Datadog
       # to killing the thread using Thread#kill.
       def stop(timeout = 1)
         @stop_requested = true
+        logger.trace { "di: stopping probe notifier: pid #{$$}" }
         wake.signal
         if thread
           unless thread.join(timeout)
@@ -186,8 +188,9 @@ module Datadog
           @lock.synchronize do
             queue = send("#{event_type}_queue")
             if queue.length > settings.dynamic_instrumentation.internal.snapshot_queue_capacity
-              logger.debug { "di: #{self.class.name}: dropping #{event_type} because queue is full" }
+              logger.debug { "di: #{self.class.name}: dropping #{event_type} event because queue is full" }
             else
+              logger.trace { "di: #{self.class.name}: queueing #{event_type} event" }
               queue << event
             end
           end
@@ -238,8 +241,10 @@ module Datadog
             instance_variable_set("@#{event_type}_queue", [])
             @io_in_progress = batch.any? # steep:ignore
           end
+          logger.trace { "di: #{self.class.name}: checking #{event_type} queue - #{batch.length} entries" } # steep:ignore
           if batch.any? # steep:ignore
             begin
+              logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" } # steep:ignore
               transport.public_send("send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
