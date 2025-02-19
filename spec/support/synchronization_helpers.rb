@@ -16,9 +16,9 @@ module SynchronizationHelpers
           $stdout.reopen(fork_stdout)
           $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
 
-          yield
-        rescue => e
-          puts "Error in fork: #{e.message}"
+          Timeout.timeout(5) { yield }
+        rescue Timeout::Error
+          puts "Timeout error."
         ensure
           exit(0)
         end
