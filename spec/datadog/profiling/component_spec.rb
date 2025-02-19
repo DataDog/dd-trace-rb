@@ -636,7 +636,7 @@ RSpec.describe Datadog::Profiling::Component do
 
       context "when GVL profiling is requested" do
         before do
-          settings.profiling.advanced.preview_gvl_enabled = true
+          settings.profiling.advanced.gvl_enabled = true
           # This triggers a warning in some Rubies so it's easier for testing to disable it
           settings.profiling.advanced.gc_enabled = false
         end
@@ -645,16 +645,8 @@ RSpec.describe Datadog::Profiling::Component do
           before { skip "Behavior does not apply to current Ruby version" if RUBY_VERSION >= "3.2." }
 
           it "does not enable GVL profiling" do
-            allow(logger).to receive(:warn)
-
             expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
               .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
-
-            build_profiler_component
-          end
-
-          it "logs a warning" do
-            expect(logger).to receive(:warn).with(/GVL profiling is currently not supported/)
 
             build_profiler_component
           end
@@ -683,6 +675,23 @@ RSpec.describe Datadog::Profiling::Component do
 
               build_profiler_component
             end
+          end
+        end
+      end
+
+      context "when GVL profiling is disabled" do
+        before do
+          settings.profiling.advanced.gvl_enabled = false
+        end
+
+        context "on Ruby >= 3.2" do
+          before { skip "On Ruby < 3.2 you can't enable the feature, it's always disabled" if RUBY_VERSION < "3.2." }
+
+          it "disables GVL profiling" do
+            expect(Datadog::Profiling::Collectors::CpuAndWallTimeWorker)
+              .to receive(:new).with(hash_including(gvl_profiling_enabled: false))
+
+            build_profiler_component
           end
         end
       end
