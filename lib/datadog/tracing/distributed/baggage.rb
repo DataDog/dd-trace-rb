@@ -103,20 +103,16 @@ module Datadog
           baggage = {}
           baggages = baggage_header.split(',')
           baggages.each do |key_value|
-            next unless key_value.include?('=')
-
             key, value = key_value.split('=', 2)
-            key = decode_and_preserve_safe_characters(key.strip, SAFE_CHARACTERS_KEY)
-            value = decode_and_preserve_safe_characters(value.strip, SAFE_CHARACTERS_VALUE)
+            next unless key && value
+
+            key = URI.decode_www_form_component(key.strip)
+            value = URI.decode_www_form_component(value.strip)
             next if key.empty? || value.empty?
 
             baggage[key] = value
           end
           baggage
-        end
-
-        def decode_and_preserve_safe_characters(str, _safe_characters)
-          URI.decode_www_form_component(str)
         end
       end
     end
