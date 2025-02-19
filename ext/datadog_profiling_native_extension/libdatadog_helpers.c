@@ -60,25 +60,3 @@ size_t read_ddogerr_string_and_drop(ddog_Error *error, char *string, size_t capa
   ddog_Error_drop(error);
   return error_msg_size;
 }
-
-ddog_prof_ManagedStringId intern_or_raise(ddog_prof_ManagedStringStorage string_storage, ddog_CharSlice string) {
-  if (string.len == 0) return (ddog_prof_ManagedStringId) { 0 }; // Id 0 is always an empty string, no need to ask
-
-  ddog_prof_ManagedStringStorageInternResult intern_result = ddog_prof_ManagedStringStorage_intern(string_storage, string);
-  if (intern_result.tag == DDOG_PROF_MANAGED_STRING_STORAGE_INTERN_RESULT_ERR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&intern_result.err));
-  }
-  return intern_result.ok;
-}
-
-void intern_all_or_raise(
-  ddog_prof_ManagedStringStorage string_storage,
-  ddog_prof_Slice_CharSlice strings,
-  ddog_prof_ManagedStringId *output_ids,
-  uintptr_t output_ids_size
-) {
-  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_intern_all(string_storage, strings, output_ids, output_ids_size);
-  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
-    rb_raise(rb_eRuntimeError, "Failed to intern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
-  }
-}

@@ -341,19 +341,17 @@ module Datadog
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
-            # The higher the value, the less accuracy in heap tracking but the smaller the overhead.
-            #
-            # If you needed to tweak this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
-            # so we can fix it!
+            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
+            # value of 1 will track ALL allocations samples for heap profiles.
             #
             # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
             # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `1`.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
             option :experimental_heap_sample_rate do |o|
               o.type :int
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
-              o.default 1
+              o.default 10
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.

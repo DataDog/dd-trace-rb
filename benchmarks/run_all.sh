@@ -16,7 +16,6 @@ for file in \
   `dirname "$0"`/profiler_sample_loop_v2.rb \
   `dirname "$0"`/profiler_sample_serialize.rb \
   `dirname "$0"`/profiler_sample_gvl.rb \
-  `dirname "$0"`/profiler_string_storage_intern.rb \
   `dirname "$0"`/tracing_trace.rb;
 do
   bundle exec ruby "$file"
