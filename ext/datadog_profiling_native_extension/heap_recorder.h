@@ -34,7 +34,7 @@ typedef struct {
 
   // The class of the object that we're tracking.
   // NOTE: This is optional and will be set to NULL if not set.
-  ddog_prof_ManagedStringId class;
+  char* class;
 
   // The GC allocation gen in which we saw this object being allocated.
   //
@@ -59,7 +59,7 @@ typedef struct {
 } heap_recorder_iteration_data;
 
 // Initialize a new heap recorder.
-heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage);
+heap_recorder* heap_recorder_new(void);
 
 // Free a previously initialized heap recorder.
 void heap_recorder_free(heap_recorder *heap_recorder);
@@ -164,6 +164,10 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder);
 
 // v--- TEST-ONLY APIs ---v
 
+// Assert internal hashing logic is valid for the provided locations and its
+// corresponding internal representations in heap recorder.
+void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations);
+
 // Returns a Ruby string with a representation of internal data helpful to
 // troubleshoot issues such as unexpected test failures.
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder);
@@ -173,5 +177,3 @@ VALUE heap_recorder_testonly_is_object_recorded(heap_recorder *heap_recorder, VA
 
 // Used to ensure that a GC actually triggers an update of the objects
 void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder);
-
-void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all);

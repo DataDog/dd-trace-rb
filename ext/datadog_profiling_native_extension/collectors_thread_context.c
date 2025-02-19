@@ -1024,7 +1024,7 @@ static per_thread_context *get_or_create_context_for(VALUE thread, thread_contex
   if (st_lookup(state->hash_map_per_thread_context, (st_data_t) thread, &value_context)) {
     thread_context = (per_thread_context*) value_context;
   } else {
-    thread_context = calloc(1, sizeof(per_thread_context)); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
+    thread_context = ruby_xcalloc(1, sizeof(per_thread_context));
     initialize_context(thread, thread_context, state);
     st_insert(state->hash_map_per_thread_context, (st_data_t) thread, (st_data_t) thread_context);
   }
@@ -1123,7 +1123,7 @@ static void initialize_context(VALUE thread, per_thread_context *thread_context,
 
 static void free_context(per_thread_context* thread_context) {
   sampling_buffer_free(thread_context->sampling_buffer);
-  free(thread_context); // See "note on calloc vs ruby_xcalloc use" in heap_recorder.c
+  ruby_xfree(thread_context);
 }
 
 static VALUE _native_inspect(DDTRACE_UNUSED VALUE _self, VALUE collector_instance) {
