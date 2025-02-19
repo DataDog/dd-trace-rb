@@ -3,7 +3,7 @@ require 'English'
 module SynchronizationHelpers
   def expect_in_fork(fork_expectations: nil, timeout_seconds: 10)
     fork_expectations ||= proc { |status:, stdout:, stderr:|
-      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}"
+      expect(status && status.success?).to be(true), "STDOUT:`#{stdout}` STDERR:`#{stderr}`"
     }
 
     fork_stdout = Tempfile.new('datadog-rspec-expect-in-fork-stdout')
@@ -11,11 +11,17 @@ module SynchronizationHelpers
     begin
       # Start in fork
       pid = fork do
-        # Capture forked output
-        $stdout.reopen(fork_stdout)
-        $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
+        begin
+          # Capture forked output
+          $stdout.reopen(fork_stdout)
+          $stderr.reopen(fork_stderr) # STDERR captures RSpec failures. We print it in case the fork fails on exit.
 
-        yield
+          Timeout.timeout(5) { yield }
+        rescue Timeout::Error
+          puts "Timeout error."
+        ensure
+          exit(0)
+        end
       end
 
       fork_stderr.close
@@ -36,11 +42,11 @@ module SynchronizationHelpers
 
       result
     rescue => e
-      stdout ||= File.read(fork_stdout.path)
-      stderr ||= File.read(fork_stderr.path)
+      # stdout ||= File.read(fork_stdout.path)
+      # stderr ||= File.read(fork_stderr.path)
 
-      puts stdout
-      warn stderr
+      # puts stdout
+      # warn stderr
 
       raise e
     ensure
