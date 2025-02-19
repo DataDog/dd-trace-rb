@@ -216,15 +216,11 @@ appraise 'http' do
   gem 'typhoeus'
 end
 
-appraise 'excon' do
-  gem 'excon'
-end
-
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 build_coverage_matrix('faraday', min: '0.14.0')
-build_coverage_matrix('excon', min: '0.50.0')
+build_coverage_matrix('excon')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
