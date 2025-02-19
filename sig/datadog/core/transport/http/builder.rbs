@@ -15,7 +15,7 @@ module Datadog
 
           attr_reader default_headers: untyped
 
-          def initialize: (api_instance_class: untyped) { (untyped) -> untyped? } -> void
+          def initialize: (api_instance_class: untyped) ?{ (untyped) -> untyped } -> void
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 
