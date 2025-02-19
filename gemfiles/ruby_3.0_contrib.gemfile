@@ -29,7 +29,6 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.7.0"
 gem "dalli", ">= 3.0.0"
 gem "grpc", ">= 1.38.0", platform: :ruby
-gem "mongo", ">= 2.8.0", "< 2.15.0"
 gem "rack-test"
 gem "resque"
 gem "roda", ">= 2.0.0"

@@ -18,7 +18,6 @@ GEM
       memory_profiler (~> 0.9)
     binding_of_caller (1.0.0)
       debug_inspector (>= 0.0.1)
-    bson (4.15.0)
     bunny (2.20.3)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -69,8 +68,6 @@ GEM
     logger (1.6.6)
     memory_profiler (0.9.14)
     method_source (1.0.0)
-    mongo (2.14.1)
-      bson (>= 4.8.2, < 5.0.0)
     mono_logger (1.1.1)
     msgpack (1.8.0)
     multi_json (1.15.0)
@@ -205,7 +202,6 @@ DEPENDENCIES
   grpc (>= 1.38.0)
   json-schema (< 3)
   memory_profiler (~> 0.9)
-  mongo (>= 2.8.0, < 2.15.0)
   os (~> 1.1)
   pry
   pry-byebug
