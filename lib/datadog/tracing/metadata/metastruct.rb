@@ -44,6 +44,10 @@ module Datadog
           metastruct[key] = value
         end
 
+        def dig(*keys)
+          metastruct.dig(*keys)
+        end
+
         def pretty_print(q)
           q.seplist metastruct.each do |key, value|
             q.text "#{key} => #{value}\n"
@@ -55,6 +59,8 @@ module Datadog
         end
 
         def to_msgpack(packer = nil)
+          packer ||= MessagePack::Packer.new
+
           packer.write(metastruct.transform_values(&:to_msgpack))
         end
 
