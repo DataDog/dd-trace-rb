@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../metadata/ext'
 require_relative '../trace_digest'
 require_relative 'datadog_tags_codec'
@@ -15,8 +17,8 @@ module Datadog
         BAGGAGE_KEY = 'baggage'
         DD_TRACE_BAGGAGE_MAX_ITEMS = 64
         DD_TRACE_BAGGAGE_MAX_BYTES = 8192
-        SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'*+-.^_`|~"
-        SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&'()*+-./:<>?@[]^_`{|}~"
+        SAFE_CHARACTERS_KEY = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'*+-.^_`|~"
+        SAFE_CHARACTERS_VALUE = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789$!#&'()*+-./:<>?@[]^_`{|}~"
 
         def initialize(
           fetcher:,
@@ -113,27 +115,8 @@ module Datadog
           baggage
         end
 
-        def decode_and_preserve_safe_characters(str, safe_characters)
-          decoded_str = ''
-          i = 0
-
-          while i < str.length
-            if str[i] == '%' && i + 2 < str.length
-              hex = str[i + 1, 2]
-              char = [hex].pack('H*')
-              decoded_str << if safe_characters.include?(char)
-                               str[i, 3] # Preserve the percent-encoded sequence
-                             else
-                               char
-                             end
-              i += 3
-            else
-              decoded_str << str[i]
-              i += 1
-            end
-          end
-
-          decoded_str
+        def decode_and_preserve_safe_characters(str, _safe_characters)
+          URI.decode_www_form_component(str)
         end
       end
     end

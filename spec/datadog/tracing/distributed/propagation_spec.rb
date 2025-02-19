@@ -44,8 +44,14 @@ RSpec.shared_examples 'Distributed tracing propagator' do
       let(:span_id) { 9876543210 }
       let(:sampling_priority) { nil }
       let(:origin) { nil }
+      let(:baggage) { { 'key' => 'value', 'key2' => 'value2' } }
 
       it { is_expected.to eq(true) }
+
+      it 'injects the baggage' do
+        inject!
+        expect(data).to include('baggage' => 'key=value,key2=value2')
+      end
 
       it 'injects the trace id' do
         inject!
@@ -124,7 +130,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           span_id: span_id,
           trace_id: trace_id,
           trace_origin: origin,
-          trace_sampling_priority: sampling_priority
+          trace_sampling_priority: sampling_priority,
+          baggage: baggage
         )
       end
 
@@ -140,6 +147,16 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           end
         end
       end
+      it_behaves_like 'trace injection' do
+        context 'with only baggage' do
+          let(:propagation_style_inject) { ['baggage'] }
+
+          it 'does inject only baggage data' do
+            inject!
+            expect(data).to include('baggage' => 'key=value,key2=value2')
+          end
+        end
+      end
     end
 
     context 'given a TraceOperation and env' do
@@ -148,7 +165,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           id: trace_id,
           origin: origin,
           parent_span_id: span_id,
-          sampling_priority: sampling_priority
+          sampling_priority: sampling_priority,
+          baggage: baggage
         )
       end
 
@@ -382,14 +400,15 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         end
       end
 
-      context 'datadog, b3, and b3 single header' do
+      context 'datadog, b3, and b3 single header, and baggage' do
         let(:data) do
           {
             prepare_key['x-datadog-trace-id'] => '61185',
             prepare_key['x-datadog-parent-id'] => '73456',
             prepare_key['x-b3-traceid'] => '00ef01',
             prepare_key['x-b3-spanid'] => '011ef0',
-            prepare_key['b3'] => '00ef01-011ef0'
+            prepare_key['b3'] => '00ef01-011ef0',
+            prepare_key['baggage'] => 'key=value'
           }
         end
 
@@ -398,6 +417,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest.span_id).to eq(73456)
           expect(trace_digest.trace_id).to eq(61185)
           expect(trace_digest.trace_sampling_priority).to be nil
+          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
         end
 
         context 'and sampling priority' do
@@ -409,7 +429,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
               prepare_key['x-b3-traceid'] => '00ef01',
               prepare_key['x-b3-spanid'] => '011ef0',
               prepare_key['x-b3-sampled'] => '1',
-              prepare_key['b3'] => '00ef01-011ef0-1'
+              prepare_key['b3'] => '00ef01-011ef0-1',
+              prepare_key['baggage'] => 'key=value'
             }
           end
 
@@ -418,16 +439,18 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.span_id).to eq(73456)
             expect(trace_digest.trace_id).to eq(61185)
             expect(trace_digest.trace_sampling_priority).to eq(1)
+            expect(trace_digest.baggage).to eq({ 'key' => 'value' })
           end
         end
       end
 
-      context 'datadog, and b3 single header' do
+      context 'datadog, and b3 single header and baggage' do
         let(:data) do
           {
             prepare_key['x-datadog-trace-id'] => '61185',
             prepare_key['x-datadog-parent-id'] => '73456',
-            prepare_key['b3'] => '00ef01-011ef0'
+            prepare_key['b3'] => '00ef01-011ef0',
+            prepare_key['baggage'] => 'key=value'
           }
         end
 
@@ -436,6 +459,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest.span_id).to eq(73456)
           expect(trace_digest.trace_id).to eq(61185)
           expect(trace_digest.trace_sampling_priority).to be nil
+          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
         end
 
         context 'and sampling priority' do
@@ -444,7 +468,8 @@ RSpec.shared_examples 'Distributed tracing propagator' do
               prepare_key['x-datadog-trace-id'] => '61185',
               prepare_key['x-datadog-parent-id'] => '73456',
               prepare_key['x-datadog-sampling-priority'] => '1',
-              prepare_key['b3'] => '00ef01-011ef0-1'
+              prepare_key['b3'] => '00ef01-011ef0-1',
+              prepare_key['baggage'] => 'key=value'
             }
           end
 
@@ -453,6 +478,7 @@ RSpec.shared_examples 'Distributed tracing propagator' do
             expect(trace_digest.span_id).to eq(73456)
             expect(trace_digest.trace_id).to eq(61185)
             expect(trace_digest.trace_sampling_priority).to eq(1)
+            expect(trace_digest.baggage).to eq({ 'key' => 'value' })
           end
         end
       end
@@ -465,12 +491,14 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         let(:tracecontext_span_id) { 0x1111111 }
 
         let(:tracecontext_trace_flags) { 0x01 }
+        let(:baggage) { { 'key' => 'value' } }
 
         let(:data) do
           {
             prepare_key['x-datadog-trace-id'] => datadog_trace_id.to_s(10),
             prepare_key['x-datadog-parent-id'] => datadog_span_id.to_s(10),
             prepare_key['traceparent'] => traceparent,
+            prepare_key['baggage'] => 'key=value'
           }
         end
 
@@ -482,6 +510,10 @@ RSpec.shared_examples 'Distributed tracing propagator' do
           expect(trace_digest).to be_a_kind_of(Datadog::Tracing::TraceDigest)
           expect(trace_digest.trace_id).to eq(datadog_trace_id)
           expect(trace_digest.span_id).to eq(0xfffffff)
+        end
+
+        it 'contains baggage' do
+          expect(trace_digest.baggage).to eq({ 'key' => 'value' })
         end
       end
     end

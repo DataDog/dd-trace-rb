@@ -51,7 +51,8 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with special allowed characters' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&\'*+-.^_`|~' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&\'()*+-./:<>?@[]^_`{|}~',
+            baggage: { 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^_`|~' =>
+            'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~',
                        'key2' => 'value2' },
           )
         end
@@ -59,7 +60,8 @@ RSpec.shared_examples 'Baggage distributed format' do
         it do
           inject!
           expect(data).to eq(
-            'baggage' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&\'*+-.^_`|~=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$%&\'()*+-./:<>?@[]^_`{|}~,key2=value2',
+            'baggage' => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'*+-.^' \
+            '_`|~=ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!#$&\'()*+-./:<>?@[]^_`{|}~,key2=value2',
           )
         end
       end
@@ -67,14 +69,14 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'with special disallowed characters' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key with=spaces' => 'value with=spaces' },
+            baggage: { 'key with=spacesand%' => 'value with=spaces' },
           )
         end
 
         it do
           inject!
           expect(data).to eq(
-            'baggage' => 'key%20with%3Dspaces=value%20with%3Dspaces',
+            'baggage' => 'key%20with%3Dspacesand%25=value%20with%3Dspaces',
           )
         end
       end
@@ -98,14 +100,15 @@ RSpec.shared_examples 'Baggage distributed format' do
       context 'when baggage size exceeds maximum bytes' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            baggage: { 'key' => 'a' * (Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_BYTES + 1) }
+            baggage: { 'key1' => 'value1',
+                       'key' => 'a' * (Datadog::Tracing::Distributed::Baggage::DD_TRACE_BAGGAGE_MAX_BYTES + 1) }
           )
         end
 
         it 'logs a warning and stops injecting excess items' do
           expect(Datadog.logger).to receive(:warn).with('Baggage header size exceeded, dropping excess items')
           inject!
-          expect(data['baggage']).to be_nil
+          expect(data['baggage']).to eq('key1=value1')
         end
       end
     end
@@ -139,23 +142,20 @@ RSpec.shared_examples 'Baggage distributed format' do
 
     context 'with special allowed characters' do
       let(:data) do
-        { prepare_key['baggage'] => '%&\'*`|~=$%&\'()*,key2=value2' }
+        { prepare_key['baggage'] => '&\'*`|~=$&\'()*,key2=value2' }
       end
 
       it {
-        expect(digest.baggage).to eq(
-                    { '%&\'*`|~' => '$%&\'()*',
-                      'key2' => 'value2' }
-                  )
+        expect(digest.baggage).to eq({ '&\'*`|~' => '$&\'()*', 'key2' => 'value2' })
       }
     end
 
     context 'with special disallowed characters and trimming whitespace on ends' do
       let(:data) do
-        { prepare_key['baggage'] => ' key%20with%3Dspaces=value%20with%3Dspaces' }
+        { prepare_key['baggage'] => ' key%20with%3Dspacesand%25 = value%20with%3Dspaces , key2=value2' }
       end
 
-      it { expect(digest.baggage).to eq({ 'key with=spaces' => 'value with=spaces' }) }
+      it { expect(digest.baggage).to eq({ 'key with=spacesand%' => 'value with=spaces', 'key2' => 'value2' }) }
     end
   end
 end
