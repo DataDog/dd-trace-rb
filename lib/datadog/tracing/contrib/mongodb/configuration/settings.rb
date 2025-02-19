@@ -48,6 +48,11 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :json_resource do |o|
+              o.type :bool
+              o.default false
+            end
           end
         end
       end

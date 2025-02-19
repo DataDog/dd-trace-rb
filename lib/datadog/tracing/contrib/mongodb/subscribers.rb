@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+
 require_relative '../analytics'
 require_relative 'ext'
 require_relative '../ext'
@@ -30,7 +32,14 @@ module Datadog
 
             # build a quantized Query using the Parser module
             query = MongoDB.query_builder(event.command_name, event.database_name, event.command)
-            serialized_query = query.to_s
+            serialized_query = if datadog_configuration[:json_resource]
+                                 query.to_json
+                               else
+                                 # Incorrect Hash serialization. The resource should be encoded as JSON.
+                                 # This is kept for backward compatibility.
+                                 # DEV-3.0: Should be removed in 3.0.0, making JSON the only serialization format.
+                                 query.to_s
+                               end
 
             if datadog_configuration[:peer_service]
               span.set_tag(

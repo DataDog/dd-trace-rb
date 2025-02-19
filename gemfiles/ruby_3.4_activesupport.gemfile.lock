@@ -53,6 +53,7 @@ GEM
     bigdecimal (3.1.8)
     binding_of_caller (1.0.1)
       debug_inspector (>= 1.2.0)
+    bson (3.2.7)
     builder (3.3.0)
     case_transform (0.2)
       activesupport
@@ -131,6 +132,8 @@ GEM
     method_source (1.1.0)
     mini_portile2 (2.8.7)
     minitest (5.24.0)
+    mongo (2.1.2)
+      bson (~> 3.0)
     msgpack (1.8.0)
     mustermann (3.0.0)
       ruby2_keywords (~> 0.0.1)
@@ -261,6 +264,7 @@ DEPENDENCIES
   json-schema (< 3)
   lograge
   memory_profiler (~> 0.9)
+  mongo (~> 2.1.0)
   mutex_m
   os (~> 1.1)
   ostruct
