@@ -9,6 +9,7 @@ require_relative '../../../distributed/datadog_spec'
 require_relative '../../../distributed/none_spec'
 require_relative '../../../distributed/propagation_spec'
 require_relative '../../../distributed/trace_context_spec'
+require_relative '../../../distributed/baggage_spec'
 
 RSpec.describe Datadog::Tracing::Contrib::HTTP::Distributed::Propagation do
   subject(:propagation) do

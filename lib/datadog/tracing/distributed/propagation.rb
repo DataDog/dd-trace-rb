@@ -27,7 +27,6 @@ module Datadog
         )
           @propagation_styles = propagation_styles
           @propagation_extract_first = propagation_extract_first
-
           @propagation_style_inject = propagation_style_inject.map { |style| propagation_styles[style] }
           @propagation_style_extract = propagation_style_extract.map { |style| propagation_styles[style] }
 
@@ -63,8 +62,8 @@ module Datadog
           end
 
           digest = digest.to_digest if digest.respond_to?(:to_digest)
-
-          if digest.trace_id.nil?
+          # it's right here we drop out because there's no trace id in the digest, just a baggage object
+          if digest.trace_id.nil? && digest.baggage.nil?
             ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id is nil.')
             return nil
           end
