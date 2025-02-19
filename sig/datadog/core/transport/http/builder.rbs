@@ -1,9 +1,11 @@
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         class Builder
           REGISTRY: untyped
+
+          attr_reader api_instance_class: untyped
 
           attr_reader apis: untyped
 
@@ -15,7 +17,7 @@ module Datadog
 
           attr_reader default_headers: untyped
 
-          def initialize: () { (untyped) -> untyped } -> void
+          def initialize: (api_instance_class: untyped) { (untyped) -> untyped? } -> void
 
           def adapter: (untyped config, *untyped args, **untyped kwargs) -> untyped
 
@@ -25,11 +27,9 @@ module Datadog
 
           def default_api=: (untyped key) -> untyped
 
-          def to_transport: () -> untyped
+          def to_transport: (untyped klass) -> untyped
 
           def to_api_instances: () -> untyped
-
-          def api_instance_class: () -> untyped
 
           class UnknownApiError < StandardError
             attr_reader key: untyped
