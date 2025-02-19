@@ -7,7 +7,14 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
 
   describe '#initialize' do
     context 'given a block' do
-      it { expect { |b| described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance, &b) }.to yield_with_args(kind_of(described_class)) }
+      it {
+        expect do |b|
+          described_class.new(
+            api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance,
+            &b
+          )
+        end.to yield_with_args(kind_of(described_class))
+      }
     end
   end
 

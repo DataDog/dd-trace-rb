@@ -6,7 +6,9 @@ require 'uri'
 RSpec.describe Datadog::Tracing::Transport::HTTP do
   describe '.new' do
     context 'given a block' do
-      subject(:new_http) { described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance, &block) }
+      subject(:new_http) do
+        described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance, &block)
+      end
 
       let(:block) { proc {} }
 

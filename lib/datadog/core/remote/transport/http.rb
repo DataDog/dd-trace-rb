@@ -49,7 +49,8 @@ module Datadog
           # Builds a new Transport::HTTP::Client
           def new(klass, &block)
             Core::Transport::HTTP::Builder.new(
-              api_instance_class: API::Instance, &block).to_transport(klass)
+              api_instance_class: API::Instance, &block
+            ).to_transport(klass)
           end
 
           # Builds a new Transport::HTTP::Client with default settings
