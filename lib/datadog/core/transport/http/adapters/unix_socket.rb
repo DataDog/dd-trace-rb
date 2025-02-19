@@ -49,7 +49,7 @@ module Datadog
 
             # Re-implements Net:HTTP with underlying Unix socket
             class HTTP < ::Net::HTTP
-              DEFAULT_TIMEOUT = 1
+              DEFAULT_TIMEOUT = 10
 
               attr_reader \
                 :filepath, # DEV(1.0): Rename to `uds_path`
