@@ -243,6 +243,7 @@ RSpec.describe Datadog::Tracing::Span do
         resource: 'my.span',
         type: nil,
         meta: {},
+        meta_struct: {},
         metrics: {},
         span_links: [],
         error: 0
