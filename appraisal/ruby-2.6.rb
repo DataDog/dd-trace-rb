@@ -173,7 +173,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
-build_coverage_matrix('faraday', 2)
+build_coverage_matrix('faraday', min: '0.14.0')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
@@ -254,7 +254,6 @@ end
 
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
-  gem 'faraday', '0.17'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
 end

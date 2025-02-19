@@ -94,7 +94,7 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
-build_coverage_matrix('faraday', 2)
+build_coverage_matrix('faraday', min: '0.14.0')
 
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
