@@ -28,6 +28,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.paranoid = true
       config.stretches = 1
       config.password_length = 6..8
+      config.http_authenticatable = true
     end
 
     # app/models
@@ -152,10 +153,11 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         t.string :username, null: false
         t.string :email, default: '', null: false
         t.string :encrypted_password, default: '', null: false
+        t.datetime :remembered_at
       end
 
       klass.class_eval do
-        devise :database_authenticatable, :registerable, :validatable
+        devise :database_authenticatable, :registerable, :validatable, :rememberable
       end
 
       # prevent internal sql requests from showing up
@@ -192,6 +194,30 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     end
   end
 
+  context 'when user request page via HTTP-based authentication' do
+    before do
+      User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+
+      basic_authorize('john.doe@example.com', '123456')
+      get('/private')
+    end
+
+    it 'tracks successfull login event' do
+      expect(response).to be_ok
+      expect(response.body).to eq('This is private page')
+
+      expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+
+      expect(http_service_entry_span.tags['usr.id']).to eq('1')
+      expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
+      expect(http_service_entry_span.tags['appsec.events.users.login.success.usr.login']).to eq('john.doe@example.com')
+
+      expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('identification')
+      expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+      expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+    end
+  end
+
   context 'when user successfully loggin in via remember me functionality' do
     before do
       user = User.create!(
@@ -203,25 +229,6 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       login_as(user)
 
       get('/private')
-    end
-
-    let(:user_model) do
-      stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
-        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
-        klass.connection.create_table 'users', force: :cascade do |t|
-          t.string :username, null: false
-          t.string :email, default: '', null: false
-          t.string :encrypted_password, default: '', null: false
-          t.datetime :remembered_at
-        end
-
-        klass.class_eval do
-          devise :database_authenticatable, :registerable, :validatable, :rememberable
-        end
-
-        # prevent internal sql requests from showing up
-        klass.count
-      end
     end
 
     it 'does not track successfull login event' do
