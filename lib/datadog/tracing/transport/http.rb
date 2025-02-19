@@ -8,8 +8,9 @@ require_relative '../../core/transport/ext'
 require_relative '../../core/transport/http/adapters/net'
 require_relative '../../core/transport/http/adapters/test'
 require_relative '../../core/transport/http/adapters/unix_socket'
+require_relative '../../core/transport/http/builder'
 require_relative 'http/api'
-require_relative 'http/builder'
+require_relative 'http/api/instance'
 require_relative '../../../datadog/version'
 
 module Datadog
@@ -30,8 +31,9 @@ module Datadog
         module_function
 
         # Builds a new Transport::HTTP::Client
-        def new(&block)
-          Builder.new(&block).to_transport
+        def new(klass, &block)
+          Core::Transport::HTTP::Builder.new(
+            api_instance_class: API::Instance, &block).to_transport(klass)
         end
 
         # Builds a new Transport::HTTP::Client with default settings
@@ -40,7 +42,7 @@ module Datadog
           agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
           **options
         )
-          new do |transport|
+          new(Transport::Traces::Transport) do |transport|
             transport.adapter(agent_settings)
             transport.headers default_headers
 
@@ -86,12 +88,12 @@ module Datadog
         end
 
         # Add adapters to registry
-        Builder::REGISTRY.set(
+        Core::Transport::HTTP::Builder::REGISTRY.set(
           Datadog::Core::Transport::HTTP::Adapters::Net,
           Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
         )
-        Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Core::Transport::Ext::Test::ADAPTER)
-        Builder::REGISTRY.set(
+        Core::Transport::HTTP::Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Core::Transport::Ext::Test::ADAPTER)
+        Core::Transport::HTTP::Builder::REGISTRY.set(
           Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
           Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
         )

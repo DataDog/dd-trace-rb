@@ -1,13 +1,11 @@
 # frozen_string_literal: true
 
-require_relative '../../../core/configuration/agent_settings_resolver'
-require_relative '../../../core/transport/http/adapters/registry'
-require_relative '../../../core/transport/http/api/map'
-require_relative 'api/instance'
-require_relative 'client'
+require_relative '../../configuration/agent_settings_resolver'
+require_relative 'adapters/registry'
+require_relative 'api/map'
 
 module Datadog
-  module Tracing
+  module Core
     module Transport
       module HTTP
         # Builds new instances of Transport::HTTP::Client
@@ -15,13 +13,14 @@ module Datadog
           REGISTRY = Datadog::Core::Transport::HTTP::Adapters::Registry.new
 
           attr_reader \
+            :api_instance_class,
             :apis,
             :api_options,
             :default_adapter,
             :default_api,
             :default_headers
 
-          def initialize
+          def initialize(api_instance_class:)
             # Global settings
             @default_adapter = nil
             @default_headers = {}
@@ -32,6 +31,8 @@ module Datadog
 
             # API settings
             @api_options = {}
+
+            @api_instance_class = api_instance_class
 
             yield(self) if block_given?
           end
@@ -82,11 +83,10 @@ module Datadog
             @default_api = key
           end
 
-          def to_transport
+          def to_transport(klass)
             raise NoDefaultApiError if @default_api.nil?
 
-            # DEV: Should not be specific to traces
-            Transport::Traces::Transport.new(to_api_instances, @default_api)
+            klass.new(to_api_instances, @default_api)
           end
 
           def to_api_instances
@@ -117,28 +117,48 @@ module Datadog
             end
           end
 
-          def api_instance_class
-            API::Instance
-          end
-
           # Raised when the API key does not match known APIs.
           class UnknownApiError < StandardError
+            attr_reader :key
+
             def initialize(key)
-              super("Unknown transport API '#{key}'!")
+              super()
+
+              @key = key
+            end
+
+            def message
+              "Unknown transport API '#{key}'!"
             end
           end
 
           # Raised when the identifier cannot be matched to an adapter.
           class UnknownAdapterError < StandardError
+            attr_reader :type
+
             def initialize(type)
-              super("Unknown transport adapter '#{type}'!")
+              super()
+
+              @type = type
+            end
+
+            def message
+              "Unknown transport adapter '#{type}'!"
             end
           end
 
           # Raised when an adapter cannot be resolved for an API instance.
           class NoAdapterForApiError < StandardError
+            attr_reader :key
+
             def initialize(key)
-              super("No adapter resolved for transport API '#{key}'!")
+              super()
+
+              @key = key
+            end
+
+            def message
+              "No adapter resolved for transport API '#{key}'!"
             end
           end
 
