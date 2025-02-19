@@ -688,18 +688,50 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         end
       end
 
-      describe '#preview_gvl_enabled' do
-        subject(:preview_gvl_enabled) { settings.profiling.advanced.preview_gvl_enabled }
+      describe '#preview_gvl_enabled=' do
+        it 'logs a warning informing customers this no longer does anything' do
+          expect(Datadog.logger).to receive(:warn).with(/no longer does anything/)
 
-        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_PREVIEW_GVL_ENABLED', default: false
+          settings.profiling.advanced.preview_gvl_enabled = true
+        end
       end
 
-      describe '#preview_gvl_enabled=' do
-        it 'updates the #preview_gvl_enabled setting' do
-          expect { settings.profiling.advanced.preview_gvl_enabled = true }
-            .to change { settings.profiling.advanced.preview_gvl_enabled }
-            .from(false)
-            .to(true)
+      describe '#gvl_enabled' do
+        subject(:gvl_enabled) { settings.profiling.advanced.gvl_enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_PROFILING_GVL_ENABLED', default: true
+
+        context 'when DD_PROFILING_PREVIEW_GVL_ENABLED' do
+          around do |example|
+            ClimateControl.modify('DD_PROFILING_PREVIEW_GVL_ENABLED' => environment) do
+              example.run
+            end
+          end
+
+          context 'is not defined' do
+            let(:environment) { nil }
+
+            it { is_expected.to be true }
+          end
+
+          [true, false].each do |value|
+            context "is defined as #{value}" do
+              let(:environment) { value.to_s }
+
+              before { expect(Datadog::Core).to receive(:log_deprecation) }
+
+              it { is_expected.to be value }
+            end
+          end
+        end
+      end
+
+      describe '#gvl_enabled=' do
+        it 'updates the #gvl_enabled setting' do
+          expect { settings.profiling.advanced.gvl_enabled = false }
+            .to change { settings.profiling.advanced.gvl_enabled }
+            .from(true)
+            .to(false)
         end
       end
 
