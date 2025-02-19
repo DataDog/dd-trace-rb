@@ -112,7 +112,8 @@ jobs:
         env:
           SEMGREP_RULES: p/default
 
-  static-analysis:
+  complete:
+    name: Static Analysis (complete)
     needs:
       - 'steep'
       - 'rubocop'

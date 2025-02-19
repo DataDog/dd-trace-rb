@@ -1,4 +1,4 @@
-name: Lock Dependency
+name: Lock Dependencies
 
 # TODO: Make this job mandatory
 # TODO: Make this on workflow_dispatch
@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   dependency:
-    name: Depenedency changes
+    name: Dependency changes
     runs-on: ubuntu-22.04
     outputs:
       changes: ${{ steps.changes.outputs.dependencies }}
@@ -94,3 +94,11 @@ jobs:
         with:
           file_pattern: 'gemfiles/*'
           commit_message: "[🤖] Lock Dependency: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+  complete:
+    name: Lock Dependencies (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - commit
+    steps:
+      - run: echo "DONE!"

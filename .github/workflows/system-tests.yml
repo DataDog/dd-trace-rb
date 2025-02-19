@@ -457,3 +457,11 @@ jobs:
           package-name: "system-tests/${{ matrix.image }}"
           package-type: "container"
         continue-on-error: true
+
+  complete:
+    name: System Tests (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test
+    steps:
+      - run: echo "DONE!"
