@@ -189,6 +189,7 @@ end
 appraise 'rails-app' do
   gem 'devise', '~> 4.9'
   gem 'faraday', '~> 2.0'
+  gem 'excon', '~> 1.2'
   gem 'rack', '~> 2'
   gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
