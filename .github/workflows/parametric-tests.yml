@@ -1,0 +1,49 @@
+name: Parametric Tests
+
+on:
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - ".circleci/**"
+      - ".gitlab/**"
+      - "appraisal/**"
+      - "benchmarks/**"
+      - "docs/**"
+      - "gemfiles/**"
+      - "integration/**"
+      - "sig/**"
+      - "spec/**"
+      - "suppressions/**"
+      - "tools/**"
+      - "vendor/**"
+  workflow_dispatch: {}
+  schedule:
+    - cron: "00 04 * * 2-6"
+
+jobs:
+  build-artifacts:
+    runs-on: ubuntu-22.04
+    permissions:
+      packages: write
+    steps:
+      - run: mkdir binaries/
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          path: binaries/dd-trace-rb/
+      - name: Upload artifact
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        with:
+          name: system_tests_binaries
+          path: binaries/
+
+  parametric:
+    needs:
+      - build-artifacts
+    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
+    secrets: inherit
+    with:
+      library: ruby
+      binaries_artifact: system_tests_binaries
+      job_count: 8
+      job_matrix: "[1,2,3,4,5,6,7,8]"
