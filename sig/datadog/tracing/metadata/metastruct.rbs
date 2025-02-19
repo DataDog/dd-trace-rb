@@ -8,6 +8,8 @@ module Datadog
 
         def deep_merge!: (metastruct second) -> void
 
+        def dig: (*String keys) -> untyped
+
         def []: (String key) -> untyped
 
         def []=: (String key, untyped value) -> void
