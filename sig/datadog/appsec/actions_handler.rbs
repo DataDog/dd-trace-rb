@@ -8,6 +8,12 @@ module Datadog
       def generate_stack: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
 
       def generate_schema: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
+
+      private
+
+      def generate_stack_trace: (Integer max_depth, Float top_percent) -> (Hash[Symbol, String | Integer | Array[Hash[Symbol, String | Integer | nil]] | nil ])
+
+
     end
   end
 end

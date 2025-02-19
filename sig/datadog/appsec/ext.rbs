@@ -14,6 +14,7 @@ module Datadog
       CONTEXT_KEY: ::String
 
       ACTIVE_CONTEXT_KEY: ::Symbol
+      EXPLOIT_PREVENTION_EVENT_CATEGORY: ::String
 
       TAG_APPSEC_ENABLED: ::String
 
@@ -22,6 +23,7 @@ module Datadog
       TAG_DISTRIBUTED_APPSEC_EVENT: ::String
 
       TELEMETRY_METRICS_NAMESPACE: ::String
+      TAG_STACK_TRACE: ::String
     end
   end
 end

@@ -62,8 +62,8 @@ module Datadog
       def export_metrics
         return if @span.nil?
 
-        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span)
-        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span)
+        Metrics::Exporter.export_waf_metrics(@metrics.waf, @span) # steep:ignore ArgumentTypeMismatch
+        Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span) # steep:ignore ArgumentTypeMismatch
       end
 
       def finalize

@@ -267,6 +267,55 @@ module Datadog
                   o.default false
                 end
               end
+
+              settings :stack_trace do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_APPSEC_STACK_TRACE_ENABLED'
+                  o.default true
+                end
+
+                # The maximum number of stack frames to collect for each stack trace.
+                # If the number of frames in a stack trace exceeds this value,
+                # max_depth / 4 frames will be collected from the top, and max_depth * 3 / 4 from the bottom.
+                option :max_depth do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH'
+                  o.default 32
+                  # 0 means no limit
+                  o.setter do |value|
+                    value = 0 if value.negative?
+                    value
+                  end
+                end
+
+                # The percentage that decides the number of top stack frame to collect
+                # for each stack trace if there is more stack frames than max_depth.
+                # number_of_top_frames = max_depth * max_depth_top_percent / 100
+                # Default is 75
+                option :max_depth_top_percent do |o|
+                  o.type :float
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT'
+                  o.default 75
+                  o.setter do |value|
+                    value = 100 if value > 100
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+
+                # The maximum number of stack traces to collect for each exploit prevention event.
+                option :max_collect do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACES'
+                  o.default 2
+                  # 0 means no limit
+                  o.setter do |value|
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+              end
             end
           end
         end

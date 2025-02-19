@@ -3,9 +3,9 @@ module Datadog
     class Context
       type input_data = SecurityEngine::Runner::input_data
 
-      @trace: Tracing::TraceOperation
+      @trace: Tracing::TraceOperation?
 
-      @span: Tracing::SpanOperation
+      @span: Tracing::SpanOperation?
 
       @events: ::Array[untyped]
 
@@ -17,9 +17,9 @@ module Datadog
 
       ActiveContextError: ::StandardError
 
-      attr_reader trace: Tracing::TraceOperation
+      attr_reader trace: Tracing::TraceOperation?
 
-      attr_reader span: Tracing::SpanOperation
+      attr_reader span: Tracing::SpanOperation?
 
       attr_reader events: ::Array[untyped]
 
@@ -27,7 +27,7 @@ module Datadog
 
       def self.deactivate: () -> void
 
-      def self.active: () -> Context
+      def self.active: () -> Context?
 
       def initialize: (Tracing::TraceOperation trace, Tracing::SpanOperation span, AppSec::Processor security_engine) -> void
 

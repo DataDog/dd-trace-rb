@@ -24,7 +24,7 @@ module Datadog
 
       def self.gzip: (untyped value) -> untyped
 
-      def self.add_distributed_tags: (Tracing::TraceOperation trace) -> void
+      def self.add_distributed_tags: (Tracing::TraceOperation? trace) -> void
     end
   end
 end
