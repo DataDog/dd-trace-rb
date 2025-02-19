@@ -1,22 +1,24 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'excon'
+require 'faraday'
 
-RSpec.describe 'AppSec excon integration' do
+RSpec.describe 'AppSec Faraday SSRF detection middleware' do
   let(:context) { instance_double(Datadog::AppSec::Context, run_rasp: waf_response) }
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
 
   let(:client) do
-    ::Excon.new('http://example.com', mock: true).tap do
-      ::Excon.stub({ method: :get, path: '/success' }, body: 'OK', status: 200)
+    ::Faraday.new('http://example.com') do |faraday|
+      faraday.adapter(:test) do |stub|
+        stub.get('/success') { |_| [200, {}, 'OK'] }
+      end
     end
   end
 
   before do
     Datadog.configure do |c|
       c.appsec.enabled = true
-      c.appsec.instrument :excon
+      c.appsec.instrument :faraday
     end
 
     allow(Datadog::AppSec).to receive(:active_context).and_return(context)
@@ -34,7 +36,7 @@ RSpec.describe 'AppSec excon integration' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      client.get(path: '/success')
+      client.get('/success')
     end
   end
 
@@ -44,7 +46,7 @@ RSpec.describe 'AppSec excon integration' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      client.get(path: '/success')
+      client.get('/success')
     end
   end
 
@@ -63,11 +65,11 @@ RSpec.describe 'AppSec excon integration' do
         )
       )
 
-      client.get(path: '/success')
+      client.get('/success')
     end
 
     it 'returns the http response' do
-      response = client.get(path: '/success')
+      response = client.get('/success')
 
       expect(response.status).to eq(200)
       expect(response.body).to eq('OK')
