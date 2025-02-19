@@ -96,6 +96,7 @@ build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
 build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli', [2])
 
 appraise 'relational_db' do
   # ActiveRecord locked because tests are failing with 7.1, which was attempted as a part of Ruby 3.4 testing in CI.
@@ -130,7 +131,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
   # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
   # gem 'grpc', '>= 1.38.0', platform: :ruby
 
@@ -190,7 +190,6 @@ appraise 'opentelemetry_otlp' do
 end
 
 appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
 end

@@ -80,6 +80,7 @@ build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
 build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli', [2])
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.1.0'
@@ -106,7 +107,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
 
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
@@ -151,7 +151,6 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
 end
 
 appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
   gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
