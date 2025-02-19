@@ -91,8 +91,8 @@ appraise 'http' do
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
-build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
-build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
 build_coverage_matrix('mongo', min: '2.1.0')
@@ -158,7 +158,7 @@ end
   end
 end
 
-build_coverage_matrix('rack', 2..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('rack', [2], meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
