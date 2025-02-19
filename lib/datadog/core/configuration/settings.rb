@@ -313,7 +313,7 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap profiles.
             #
-            # This feature is in preview and disabled by default. Requires Ruby 3.1+.
+            # This feature is alpha and disabled by default
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
             #
@@ -326,12 +326,12 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap size profiles.
             #
-            # This feature is in preview and by default is enabled whenever heap profiling is enabled.
+            # This feature is alpha and enabled by default when heap profiling is enabled.
             #
-            # @warn Heap size profiling depends on allocation and heap profiling, so they must be enabled as well.
+            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise it
-            # follows the value of `experimental_heap_enabled`.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
+            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
             option :experimental_heap_size_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
