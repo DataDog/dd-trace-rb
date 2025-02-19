@@ -40,6 +40,7 @@ namespace :edge do
       'elasticsearch' => 'elasticsearch',
       'opensearch' => 'opensearch-ruby',
       'rack' => 'rack',
+      'faraday' => 'faraday',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 
