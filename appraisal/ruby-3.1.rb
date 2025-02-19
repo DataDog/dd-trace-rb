@@ -84,16 +84,20 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
   gem 'http'
   gem 'httpclient'
   gem 'rest-client'
   gem 'typhoeus'
 end
 
+appraise 'excon' do
+  gem 'excon'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday')
 build_coverage_matrix('faraday')
 
 appraise 'relational_db' do

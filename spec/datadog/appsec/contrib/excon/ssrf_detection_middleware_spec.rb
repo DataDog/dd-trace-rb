@@ -3,7 +3,7 @@
 require 'datadog/appsec/spec_helper'
 require 'excon'
 
-RSpec.describe 'AppSec excon integration' do
+RSpec.describe 'AppSec excon SSRF detection middleware' do
   let(:context) { instance_double(Datadog::AppSec::Context, run_rasp: waf_response) }
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
 

@@ -191,17 +191,21 @@ appraise 'http' do
   # Thus let's keep our JRuby testing on 9.2.18.0 with Java 8, and avoid pulling in newer ethon versions until
   # either the upstream issues are fixed OR we end up moving to Java 11.
   gem 'ethon', (RUBY_PLATFORM == 'java' ? '< 0.15.0' : '>= 0')
-  gem 'excon'
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'rest-client'
   gem 'typhoeus'
 end
 
+appraise 'excon' do
+  gem 'excon'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 build_coverage_matrix('faraday', min: '0.14.0')
+build_coverage_matrix('excon', min: '0.50.0')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'

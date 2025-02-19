@@ -68,17 +68,21 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
   gem 'http', '~> 4' # TODO: Completely broken with this JRuby version, this has not be validate on CI
   gem 'httpclient'
   gem 'rest-client'
   gem 'typhoeus'
 end
 
+appraise 'excon' do
+  gem 'excon'
+end
+
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
 build_coverage_matrix('faraday')
+build_coverage_matrix('excon')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.1.0'
