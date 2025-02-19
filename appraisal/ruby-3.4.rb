@@ -132,6 +132,7 @@ appraise 'contrib' do
   gem 'dalli', '>= 3.0.0'
   # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
   # gem 'grpc', '>= 1.38.0', platform: :ruby
+  gem 'karafka'
   gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
