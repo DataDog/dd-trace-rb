@@ -3,7 +3,10 @@ name: System Tests
 on:
   push:
     branches:
-      - "**"
+    - master
+  pull_request:
+    branches:
+    - master
   workflow_dispatch: {}
   schedule:
     - cron: "00 04 * * 2-6"
