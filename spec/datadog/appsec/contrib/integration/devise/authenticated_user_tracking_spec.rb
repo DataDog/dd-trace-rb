@@ -4,8 +4,8 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
-require 'action_mailer'
 require 'action_controller/railtie'
+require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
@@ -15,6 +15,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   include Warden::Test::Helpers
 
   before do
+    # NOTE: By doing this we are emulating the initilial load of the devise rails
+    #       engine. It will install the required middleware.
+    #       WARNING: This is a hack!
+    Devise.send(:remove_const, :Engine)
+    load Gem.loaded_specs['devise'].full_gem_path + '/lib/devise/rails.rb'
+
     Devise.setup do |config|
       config.secret_key = 'test-secret-key'
 
@@ -28,6 +34,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.paranoid = true
       config.stretches = 1
       config.password_length = 6..8
+      config.http_authenticatable = true
     end
 
     # app/models
@@ -71,7 +78,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.hosts.clear
       config.eager_load = false
       config.consider_all_requests_local = true
-      config.logger = Rails.logger = Logger.new($stdout)
+      # NOTE: For debugging replace with $stdout
+      config.logger = Rails.logger = Logger.new(StringIO.new)
 
       config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         def initialize(files, dirs = {}, &block)
@@ -92,6 +100,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.appsec.enabled = true
       config.appsec.instrument :rails
       config.appsec.instrument :devise
+      config.appsec.auto_user_instrumentation.mode = 'identification'
 
       config.remote.enabled = false
     end
@@ -111,6 +120,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Devise.configure_warden!
 
     # app/controllers
+    public_controller
     stub_const('PrivateController', Class.new(ActionController::Base)).class_eval do
       before_action :authenticate_user!
 
@@ -120,13 +130,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         end
       end
     end
-    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
-      def index
-        respond_to do |format|
-          format.html { render plain: 'This is public page' }
-        end
-      end
-    end
+
+    allow(Rails).to receive(:application).and_return(app)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -150,16 +155,24 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
-      Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
-    end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
     # rubocop:enable Style/ClassVars
 
     # Remnove Rails caches
     Rails.app_class = nil
     Rails.cache = nil
+  end
+
+  let(:public_controller) do
+    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
+      def index
+        respond_to do |format|
+          format.html { render plain: 'This is public page' }
+        end
+      end
+    end
   end
 
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
@@ -169,18 +182,91 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   let(:app) { Rails.application }
 
   context 'when user is not authenticated' do
-    it 'allows unauthenticated user to visit public page' do
+    it 'allows unauthenticated user to visit public page and does not track it' do
       get('/public')
 
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span.tags).not_to have_key('usr.id')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
     end
 
-    it 'forbids unauthenticated user to visit private page' do
+    it 'forbids unauthenticated user to visit private page and does not track it' do
       get('/private')
 
       expect(response).to be_redirect
       expect(response.location).to match('users/sign_in')
+
+      expect(http_service_entry_span.tags).not_to have_key('usr.id')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
+    end
+  end
+
+  context 'when user is authenticated' do
+    before do
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
+
+    it 'allows authenticated user to visit public page and tracks it' do
+      get('/public')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span['usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+    end
+
+    it 'allows authenticated user to visit private page and tracks it' do
+      get('/private')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is private page')
+
+      expect(http_service_entry_span['usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+    end
+  end
+
+  context 'when user is authenticated and customer already uses SDK to set user' do
+    before do
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
+
+    let(:public_controller) do
+      stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
+        def index
+          span = Datadog::Tracing.active_span
+          trace = Datadog::Tracing.active_trace
+
+          Datadog::Kit::Identity.set_user(trace, span, id: '42', email: 'hello@gmail.com')
+
+          respond_to do |format|
+            format.html { render plain: 'This is public page' }
+          end
+        end
+      end
+    end
+
+    it 'allows authenticated user to visit public page and tracks it with SDK values' do
+      get('/public')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span['usr.id']).to eq('42')
+      expect(http_service_entry_span['usr.email']).to eq('hello@gmail.com')
+      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('sdk')
     end
   end
 end
