@@ -164,12 +164,7 @@ end
   end
 end
 
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
-  end
-end
-
+build_coverage_matrix('redis', [3, 4])
 build_coverage_matrix('rack', [2], meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|

@@ -255,6 +255,7 @@ end
   end
 end
 
+build_coverage_matrix('redis', [3, 4])
 build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2].each do |n|
@@ -262,12 +263,6 @@ build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' =
     gem 'sinatra', "~> #{n}"
     gem 'rack-contrib'
     gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
-
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
   end
 end
 
