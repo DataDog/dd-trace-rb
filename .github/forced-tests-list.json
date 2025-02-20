@@ -6,5 +6,8 @@
   "PARAMETRIC":
   [
     "tests/parametric/test_span_events.py"
+  ],
+  "DEFAULT": [
+    "tests/test_graphql.py"
   ]
 }

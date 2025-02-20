@@ -79,6 +79,8 @@ module Datadog
             @deprecated_env = value
           end
 
+          # Invoked when the option is first read, and {#env} is defined.
+          # The block provided is only invoked if the environment variable is present (not-nil).
           def env_parser(&block)
             @env_parser = block
           end

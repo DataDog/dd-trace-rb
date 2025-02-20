@@ -3,7 +3,10 @@ name: Test Nix
 on:
   push:
     branches:
-      - "**"
+    - master
+  pull_request:
+    branches:
+    - master
 
 jobs:
   test:
@@ -52,3 +55,11 @@ jobs:
         run: nix develop --command bundle install
       - name: Run spec:main
         run: nix develop --command bundle exec rake spec:main
+
+  complete:
+    name: Nix (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test
+    steps:
+      - run: echo "DONE!"

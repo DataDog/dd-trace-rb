@@ -2,10 +2,10 @@ name: Test macOS
 on:
   push:
     branches:
-      - "**"
+    - master
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ master ]
+    branches:
+    - master
 jobs:
   test-macos:
     strategy:
@@ -47,3 +47,11 @@ jobs:
         run: gem update --system 3.5.21
       - run: bundle install
       - run: bundle exec rake spec:main
+
+  complete:
+    name: Test macOS (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test-macos
+    steps:
+      - run: echo "DONE!"

@@ -1,5 +1,11 @@
 name: Test YJIT
-on: [push]
+on:
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 jobs:
   test-yjit:
     strategy:
@@ -43,3 +49,11 @@ jobs:
           bundler: latest # needed to fix issue with steep on Ruby 3.0/3.1
           cache-version: v2 # bump this to invalidate cache
       - run: bundle exec rake spec:yjit
+
+  complete:
+    name: Test YJIT (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test-yjit
+    steps:
+      - run: echo "DONE!"

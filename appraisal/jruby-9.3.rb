@@ -164,8 +164,6 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
   gem 'http', '~> 4' # TODO: Fix test breakage and flakiness for 5+
   gem 'httpclient'
   gem 'rest-client'
@@ -175,6 +173,9 @@ end
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
 build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('faraday', min: '0.14.0')
+build_coverage_matrix('excon')
+build_coverage_matrix('mongo', min: '2.1.0')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
@@ -202,7 +203,7 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'dalli', '>= 3.0.0'
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'redis', '~> 4'
@@ -245,7 +246,6 @@ end
 
 appraise 'contrib-old' do
   gem 'dalli', '< 3.0.0'
-  gem 'faraday', '0.17'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 
   gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby

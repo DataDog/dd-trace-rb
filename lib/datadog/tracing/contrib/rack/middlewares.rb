@@ -43,7 +43,7 @@ module Datadog
             # so that all spans will be added to the distributed trace.
             if configuration[:distributed_tracing]
               trace_digest = Contrib::HTTP.extract(env)
-              Tracing.continue_trace!(trace_digest)
+              Tracing.continue_trace!(trace_digest) if trace_digest
             end
 
             TraceProxyMiddleware.call(env, configuration) do
