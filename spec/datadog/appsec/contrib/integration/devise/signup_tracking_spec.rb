@@ -4,8 +4,8 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
-require 'action_mailer'
 require 'action_controller/railtie'
+require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
@@ -14,6 +14,12 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   include Rack::Test::Methods
 
   before do
+    # NOTE: By doing this we are emulating the initilial load of the devise rails
+    #       engine. It will install the required middleware.
+    #       WARNING: This is a hack!
+    Devise.send(:remove_const, :Engine)
+    load Gem.loaded_specs['devise'].full_gem_path + '/lib/devise/rails.rb'
+
     Devise.setup do |config|
       config.secret_key = 'test-secret-key'
 
@@ -96,6 +102,8 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     # app/controllers
     registrations_controller
 
+    allow(Rails).to receive(:application).and_return(app)
+
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
@@ -118,14 +126,12 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
-      Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
-    end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
     # rubocop:enable Style/ClassVars
 
-    # Remnove Rails caches
+    # Remove Rails caches
     Rails.app_class = nil
     Rails.cache = nil
   end
