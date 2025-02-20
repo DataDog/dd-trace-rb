@@ -103,9 +103,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         expect(trace_op.send(:metrics)).to eq({})
       end
 
-      it do
-        expect(trace_op.send(:metastruct).to_h).to eq({})
-      end
+      it { expect(trace_op.send(:metastruct).to_h).to eq({}) }
 
       context 'when 128 bit trace id generation enabled' do
         before do

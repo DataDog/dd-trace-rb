@@ -4,9 +4,11 @@ module Datadog
       class Metastruct
         type metastruct = Hash[String, untyped]
 
-        def initialize: (metastruct? second) -> void
+        @metastruct: metastruct
 
-        def deep_merge!: (metastruct second) -> void
+        def initialize: (metastruct? metastruct) -> void
+
+        def deep_merge!: (Metastruct second) -> void
 
         def dig: (*String keys) -> untyped
 
