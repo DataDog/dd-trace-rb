@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/utils/only_once'
+
+require_relative 'tracking_middleware'
 require_relative 'patches/signup_tracking_patch'
 require_relative 'patches/signin_tracking_patch'
 require_relative 'patches/skip_signin_tracking_patch'
@@ -10,6 +13,10 @@ module Datadog
       module Devise
         # Devise patcher
         module Patcher
+          GUARD_ONCE_PER_APP = Hash.new do |hash, key|
+            hash[key] = Datadog::Core::Utils::OnlyOnce.new
+          end
+
           module_function
 
           def patched?
@@ -21,6 +28,12 @@ module Datadog
           end
 
           def patch
+            ::ActiveSupport.on_load(:before_initialize) do |app|
+              GUARD_ONCE_PER_APP[app].run do
+                app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
+              end
+            end
+
             ::ActiveSupport.on_load(:after_initialize) do
               ::Devise::RegistrationsController.prepend(Patches::SignupTrackingPatch)
             end
