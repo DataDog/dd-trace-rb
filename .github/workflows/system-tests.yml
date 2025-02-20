@@ -411,7 +411,7 @@ jobs:
       - build-apps
       - test
       - changes
-    if: ${{ needs.changes.outputs.changes == 'true' && always() }}
+    if: ${{ needs.changes.outputs.changes == 'true' && !cancelled() }}
     name: Aggregate (${{ matrix.app }})
     steps:
       - name: Setup python 3.12
