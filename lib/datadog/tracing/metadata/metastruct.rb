@@ -6,7 +6,7 @@ module Datadog
       # Adds complex structures tagging behavior through metastruct
       class Metastruct
         def initialize(metastruct = nil)
-          @metastruct = metastruct
+          @metastruct = metastruct || {}
         end
 
         # Deep merge two metastructs
@@ -33,41 +33,35 @@ module Datadog
               v2
             end
           end
-          metastruct.merge!(second.to_h, &merger) # steep:ignore BlockTypeMismatch
+          @metastruct.merge!(second.to_h, &merger) # steep:ignore BlockTypeMismatch
         end
 
         def [](key)
-          metastruct[key]
+          @metastruct[key]
         end
 
         def []=(key, value)
-          metastruct[key] = value
+          @metastruct[key] = value
         end
 
         def dig(*keys)
-          metastruct.dig(*keys)
+          @metastruct.dig(*keys)
         end
 
         def pretty_print(q)
-          q.seplist metastruct.each do |key, value|
+          q.seplist @metastruct.each do |key, value|
             q.text "#{key} => #{value}\n"
           end
         end
 
         def to_h
-          metastruct.to_h
+          @metastruct.to_h
         end
 
         def to_msgpack(packer = nil)
           packer ||= MessagePack::Packer.new
 
-          packer.write(metastruct.transform_values(&:to_msgpack))
-        end
-
-        private
-
-        def metastruct
-          @metastruct ||= {}
+          packer.write(@metastruct.transform_values(&:to_msgpack))
         end
       end
     end

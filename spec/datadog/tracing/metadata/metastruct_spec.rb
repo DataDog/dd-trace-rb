@@ -1,7 +1,7 @@
 require 'datadog/tracing/metadata/metastruct'
 
 RSpec.describe Datadog::Tracing::Metadata::Metastruct do
-  subject(:metastruct) { test_object.send(:metastruct) }
+  subject(:metastruct) { test_object.instance_variable_get(:@metastruct) }
   let(:test_object) { described_class.new(preexisting_metastruct) }
   let(:preexisting_metastruct) { nil }
 
