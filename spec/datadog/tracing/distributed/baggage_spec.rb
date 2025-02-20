@@ -81,6 +81,21 @@ RSpec.shared_examples 'Baggage distributed format' do
         end
       end
 
+      context 'with other special disallowed characters' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            baggage: { 'userId' => 'Amélie' },
+          )
+        end
+
+        it do
+          inject!
+          expect(data).to eq(
+            'baggage' => 'userId=Am%C3%A9lie',
+          )
+        end
+      end
+
       context 'when baggage size exceeds maximum items' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(

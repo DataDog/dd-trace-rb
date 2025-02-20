@@ -6,6 +6,7 @@ require_relative 'datadog_tags_codec'
 require_relative '../utils'
 require_relative 'helpers'
 require 'uri'
+require 'cgi'
 
 module Datadog
   module Tracing
@@ -79,24 +80,19 @@ module Datadog
 
         private
 
+        # We can't use uri encode because it incorrectly encodes some characters
         def encode_key(key)
-          key.strip.chars.map do |char|
-            if SAFE_CHARACTERS_KEY.include?(char)
-              char
-            else
-              "%#{char.ord.to_s(16).upcase}"
-            end
-          end.join
+          CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+            char = [encoded[1..2].hex].pack('C')
+            SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
+          end
         end
 
         def encode_value(value)
-          value.strip.chars.map do |char|
-            if SAFE_CHARACTERS_VALUE.include?(char)
-              char
-            else
-              "%#{char.ord.to_s(16).upcase}"
-            end
-          end.join
+          CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+            char = [encoded[1..2].hex].pack('C')
+            SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
+          end
         end
 
         def parse_baggage_header(baggage_header)
