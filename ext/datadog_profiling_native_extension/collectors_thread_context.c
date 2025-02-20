@@ -102,6 +102,7 @@ static ID at_kind_id;     // id of :@kind in Ruby
 static ID at_name_id;     // id of :@name in Ruby
 static ID server_id;      // id of :server in Ruby
 static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
+static ID otel_wip_id;
 
 // This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
 // it's safe to access the state of the thread context collector, we store this setting as a global value. This does
@@ -910,9 +911,11 @@ static void trigger_sample_for_thread(
 
   VALUE current_fiber = current_fiber_for(thread);
   if (current_fiber != Qnil) {
-    VALUE opentelemetry_context = rb_ivar_get(current_fiber, rb_intern_const(":@opentelemetry_context"));
-    fprintf(stderr, "Got otel context!\n");
-    rb_p(opentelemetry_context);
+    VALUE opentelemetry_context = rb_ivar_get(current_fiber, rb_intern_const("@opentelemetry_context"));
+    if (opentelemetry_context != Qnil) {
+      fprintf(stderr, "Got otel context!\n");
+      rb_p(opentelemetry_context);
+    }
   }
 
   trace_identifiers trace_identifiers_result = {.valid = false, .trace_endpoint = Qnil};
