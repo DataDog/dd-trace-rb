@@ -128,8 +128,10 @@ module Datadog
       end
 
       def baggage
-        trace = active_trace
-        active_trace.baggage if trace
+        # Baggage should not be dependent on there being an active trace.
+        # So we create a new TraceOperation if there isn't one.
+        active_trace ||= TraceOperation.new
+        active_trace.baggage
       end
 
       # Gracefully shuts down the tracer.
