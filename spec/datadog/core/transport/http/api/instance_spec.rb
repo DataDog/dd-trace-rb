@@ -1,11 +1,11 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/api/instance'
+require 'datadog/core/transport/http/api/instance'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
+RSpec.describe Datadog::Core::Transport::HTTP::API::Instance do
   subject(:instance) { described_class.new(spec, adapter, options) }
 
-  let(:spec) { double(Datadog::Tracing::Transport::HTTP::API::Spec, encoder: encoder) }
+  let(:spec) { double(Datadog::Core::Transport::HTTP::API::Spec, encoder: encoder) }
   let(:encoder) { double }
   let(:adapter) { spy('adapter') }
   let(:options) { {} }

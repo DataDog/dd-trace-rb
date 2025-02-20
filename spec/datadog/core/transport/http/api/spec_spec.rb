@@ -1,8 +1,8 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/api/spec'
+require 'datadog/core/transport/http/api/spec'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
+RSpec.describe Datadog::Core::Transport::HTTP::API::Spec do
   subject(:spec) { described_class.new }
 
   describe '#initialize' do

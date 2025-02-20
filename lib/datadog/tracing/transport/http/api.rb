@@ -3,7 +3,8 @@
 require_relative '../../../core/encoding'
 
 require_relative '../../../core/transport/http/api/map'
-require_relative 'api/spec'
+require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/api/spec'
 
 require_relative 'traces'
 
@@ -20,7 +21,7 @@ module Datadog
           module_function
 
           def defaults
-            Datadog::Core::Transport::HTTP::API::Map[
+            Core::Transport::HTTP::API::Map[
               V4 => Spec.new do |s|
                 s.traces = Traces::API::Endpoint.new(
                   '/v0.4/traces',
@@ -35,6 +36,14 @@ module Datadog
                 )
               end,
             ].with_fallbacks(V4 => V3)
+          end
+
+          class Instance < Core::Transport::HTTP::API::Instance
+            include Traces::API::Instance
+          end
+
+          class Spec < Core::Transport::HTTP::API::Spec
+            include Traces::API::Spec
           end
         end
       end
