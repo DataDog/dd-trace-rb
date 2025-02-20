@@ -4,8 +4,8 @@ require 'datadog/tracing/contrib/support/spec_helper'
 require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
-require 'action_mailer'
 require 'action_controller/railtie'
+require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
@@ -15,6 +15,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   include Warden::Test::Helpers
 
   before do
+    # NOTE: By doing this we are emulating the initilial load of the devise rails
+    #       engine. It will install the required middleware.
+    #       WARNING: This is a hack!
+    Devise.send(:remove_const, :Engine)
+    load Gem.loaded_specs['devise'].full_gem_path + '/lib/devise/rails.rb'
+
     Devise.setup do |config|
       config.secret_key = 'test-secret-key'
 
@@ -69,7 +75,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
-    stub_const('RailsTest::Application', app)
+    stub_const('TestRails::Application', app)
 
     Datadog.configure do |config|
       config.tracing.enabled = true
@@ -108,6 +114,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       end
     end
 
+    allow(Rails).to receive(:application).and_return(app)
+
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
     allow_any_instance_of(Datadog::Tracing::Transport::Traces::Transport).to receive(:native_events_supported?)
@@ -130,14 +138,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
-      Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
-    end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
     # rubocop:enable Style/ClassVars
 
-    # Remnove Rails caches
+    # Remove Rails caches
     Rails.app_class = nil
     Rails.cache = nil
   end
@@ -153,11 +159,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         t.string :username, null: false
         t.string :email, default: '', null: false
         t.string :encrypted_password, default: '', null: false
-        t.datetime :remembered_at
       end
 
       klass.class_eval do
-        devise :database_authenticatable, :registerable, :validatable, :rememberable
+        devise :database_authenticatable, :registerable, :validatable
       end
 
       # prevent internal sql requests from showing up
@@ -224,11 +229,37 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         username: 'JohnDoe',
         email: 'john.doe@example.com',
         password: '123456',
-        remembered_at: Time.now
+        remembered_at: Time.now,
+        remember_created_at: Time.now - 60
       )
-      login_as(user)
+
+      signed_cookies = ActionDispatch::Request.new(Rails.application.env_config.deep_dup).cookie_jar
+      signed_cookies['remember_user_token'] = User.serialize_into_cookie(user)
+
+      allow_any_instance_of(ActionDispatch::Cookies::CookieJar).to receive(:signed)
+        .and_return(signed_cookies)
 
       get('/private')
+    end
+
+    let(:user_model) do
+      stub_const('User', Class.new(ActiveRecord::Base)).tap do |klass|
+        klass.establish_connection({ adapter: 'sqlite3', database: ':memory:' })
+        klass.connection.create_table 'users', force: :cascade do |t|
+          t.string :username, null: false
+          t.string :email, default: '', null: false
+          t.string :encrypted_password, default: '', null: false
+          t.datetime :remembered_at
+          t.datetime :remember_created_at
+        end
+
+        klass.class_eval do
+          devise :database_authenticatable, :registerable, :validatable, :rememberable
+        end
+
+        # prevent internal sql requests from showing up
+        klass.count
+      end
     end
 
     it 'does not track successfull login event' do
