@@ -1,13 +1,20 @@
 require 'spec_helper'
 
-require 'datadog/tracing/transport/http/builder'
+require 'datadog/core/transport/http/builder'
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::Builder do
-  subject(:builder) { described_class.new }
+RSpec.describe Datadog::Core::Transport::HTTP::Builder do
+  subject(:builder) { described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance) }
 
   describe '#initialize' do
     context 'given a block' do
-      it { expect { |b| described_class.new(&b) }.to yield_with_args(kind_of(described_class)) }
+      it {
+        expect do |b|
+          described_class.new(
+            api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance,
+            &b
+          )
+        end.to yield_with_args(kind_of(described_class))
+      }
     end
   end
 
@@ -301,7 +308,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Builder do
   end
 
   describe '#to_transport' do
-    subject(:transport) { builder.to_transport }
+    subject(:transport) { builder.to_transport(Datadog::Tracing::Transport::Traces::Transport) }
 
     context 'when no default API has been defined' do
       it { expect { transport }.to raise_error(described_class::NoDefaultApiError) }

@@ -228,6 +228,7 @@ end
   end
 end
 
+build_coverage_matrix('redis', [3, 4])
 build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3].each do |n|
@@ -245,12 +246,6 @@ end
 appraise 'opentelemetry_otlp' do
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
-end
-
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
-  end
 end
 
 appraise 'contrib-old' do

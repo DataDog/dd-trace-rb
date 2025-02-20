@@ -5,6 +5,7 @@ require 'uri'
 require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../transport/ext'
+require_relative '../../transport/http/builder'
 require_relative '../../transport/http/adapters/net'
 require_relative '../../transport/http/adapters/unix_socket'
 require_relative '../../transport/http/adapters/test'
@@ -19,13 +20,7 @@ require_relative '../../transport/http/adapters/test'
 # require_relative '../../transport/http/api'
 require_relative 'http/api'
 
-# TODO: Decouple transport/http/builder
-#
-# See http/builder
-#
-# Below should be:
-# require_relative '../../transport/http/builder'
-require_relative 'http/builder'
+require_relative 'http/api/instance'
 
 # TODO: Decouple transport/http
 #
@@ -53,7 +48,9 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client
           def new(klass, &block)
-            Builder.new(&block).to_transport(klass)
+            Core::Transport::HTTP::Builder.new(
+              api_instance_class: API::Instance, &block
+            ).to_transport(klass)
           end
 
           # Builds a new Transport::HTTP::Client with default settings
@@ -133,15 +130,15 @@ module Datadog
           end
 
           # Add adapters to registry
-          Builder::REGISTRY.set(
+          Core::Transport::HTTP::Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::Net,
             Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           )
-          Builder::REGISTRY.set(
+          Core::Transport::HTTP::Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::Test,
             Datadog::Core::Transport::Ext::Test::ADAPTER
           )
-          Builder::REGISTRY.set(
+          Core::Transport::HTTP::Builder::REGISTRY.set(
             Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
             Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
           )
