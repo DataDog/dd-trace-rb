@@ -20,7 +20,6 @@ GEM
     concurrent-ruby (1.1.10)
     crack (0.4.5)
       rexml
-    dalli (2.7.11)
     datadog-ruby_core_source (3.4.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
@@ -108,7 +107,6 @@ DEPENDENCIES
   benchmark-memory (< 0.2)
   climate_control (~> 1.2.0)
   concurrent-ruby
-  dalli (< 3.0.0)
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)

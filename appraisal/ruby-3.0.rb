@@ -91,10 +91,12 @@ appraise 'http' do
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
-build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
-build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
+build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli', [2])
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -122,10 +124,8 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
   gem 'karafka'
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -158,7 +158,7 @@ end
   end
 end
 
-build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -178,7 +178,6 @@ appraise 'opentelemetry_otlp' do
 end
 
 appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
   gem 'qless', '0.12.0'
 end
