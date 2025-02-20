@@ -127,6 +127,11 @@ module Datadog
         correlation.to_log_format
       end
 
+      def baggage
+        trace = active_trace
+        active_trace.baggage if trace
+      end
+
       # Gracefully shuts down the tracer.
       #
       # The public tracing API will still respond to method calls as usual
