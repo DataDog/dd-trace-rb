@@ -28,6 +28,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.paranoid = true
       config.stretches = 1
       config.password_length = 6..8
+      config.http_authenticatable = true
     end
 
     # app/models
@@ -169,18 +170,55 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   let(:app) { Rails.application }
 
   context 'when user is not authenticated' do
-    it 'allows unauthenticated user to visit public page' do
+    it 'allows unauthenticated user to visit public page and does not track it' do
       get('/public')
 
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
     end
 
-    it 'forbids unauthenticated user to visit private page' do
+    it 'forbids unauthenticated user to visit private page and does not track it' do
       get('/private')
 
       expect(response).to be_redirect
       expect(response.location).to match('users/sign_in')
+
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
     end
   end
+
+  context 'when user is authenticated' do
+    before do
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
+
+    it 'allows authenticated user to visit public page and tracks it' do
+      get('/public')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span['usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+    end
+
+    it 'allows authenticated user to visit private page and tracks it' do
+      get('/private')
+
+      expect(response).to be_ok
+      expect(response.body).to eq('This is private page')
+
+      expect(http_service_entry_span['usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+    end
+  end
+
+  # TODO: Add user fetch from session?
 end
