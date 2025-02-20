@@ -52,12 +52,9 @@ GEM
     pry-debugger-jruby (2.1.1-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
-    qless (0.10.0)
-      redis (>= 2.2)
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
-    redis (3.3.5)
     rexml (3.2.8)
       strscan (>= 3.0.9)
     rspec (3.13.0)
@@ -114,10 +111,8 @@ DEPENDENCIES
   presto-client (>= 0.5.14)
   pry
   pry-debugger-jruby
-  qless (= 0.10.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redis (< 4)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

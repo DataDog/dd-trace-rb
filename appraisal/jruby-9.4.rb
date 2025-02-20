@@ -152,9 +152,6 @@ end
 
 appraise 'contrib-old' do
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-
-  gem 'qless', '0.10.0' # Newer releases require `rusage`, which is not available for JRuby
-  gem 'redis', '< 4' # Missing redis version cap for `qless`
 end
 
 appraise 'core-old' do
