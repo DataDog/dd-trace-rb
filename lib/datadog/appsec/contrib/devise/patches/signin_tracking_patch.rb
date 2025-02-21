@@ -6,7 +6,7 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module Patcher
+        module Patches
           # Hook in devise validate method
           module SigninTrackingPatch
             def validate(resource, &block)

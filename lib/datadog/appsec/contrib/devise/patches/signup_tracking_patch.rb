@@ -6,7 +6,7 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module Patcher
+        module Patches
           # Hook in devise registration controller
           module SignupTrackingPatch
             def create

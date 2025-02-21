@@ -4,7 +4,7 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module Patcher
+        module Patches
           # To avoid tracking new sessions that are created by
           # Rememberable strategy as Login Success events.
           module SkipSigninTrackingPatch
