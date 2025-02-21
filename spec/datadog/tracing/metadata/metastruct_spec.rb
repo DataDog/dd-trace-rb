@@ -3,7 +3,13 @@ require 'datadog/tracing/metadata/metastruct'
 RSpec.describe Datadog::Tracing::Metadata::Metastruct do
   subject(:metastruct) { test_object.instance_variable_get(:@metastruct) }
   let(:test_object) { described_class.new(preexisting_metastruct) }
-  let(:preexisting_metastruct) { nil }
+  let(:preexisting_metastruct) { {} }
+
+  describe '.empty' do
+    let(:test_object) { described_class.empty }
+
+    it { is_expected.to eq({}) }
+  end
 
   describe '#initialize' do
     context 'when setting meta struct' do
@@ -24,8 +30,6 @@ RSpec.describe Datadog::Tracing::Metadata::Metastruct do
       before do
         test_object.deep_merge!(new_metastruct)
       end
-
-      let(:preexisting_metastruct) { nil }
 
       context 'with empty preexisting metastruct' do
         let(:new_metastruct) { { 'key' => 'value' } }

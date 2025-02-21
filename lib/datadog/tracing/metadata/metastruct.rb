@@ -1,12 +1,32 @@
 # frozen_string_literal: true
 
+require 'forwardable'
+
 module Datadog
   module Tracing
     module Metadata
       # Adds complex structures tagging behavior through metastruct
       class Metastruct
-        def initialize(metastruct = nil)
-          @metastruct = metastruct || {}
+        extend Forwardable
+
+        MERGER = proc do |_, v1, v2|
+          if v1.is_a?(Hash) && v2.is_a?(Hash)
+            v1.merge(v2, &MERGER)
+          elsif v1.is_a?(Array) && v2.is_a?(Array)
+            v1.concat(v2)
+          elsif v2.nil?
+            v1
+          else
+            v2
+          end
+        end
+
+        def self.empty
+          new({})
+        end
+
+        def initialize(metastruct)
+          @metastruct = metastruct
         end
 
         # Deep merge two metastructs
@@ -22,40 +42,15 @@ module Datadog
         # second = { a: { b: [2, 3] } }
         # result = { a: { b: [2, 3] } }
         def deep_merge!(second)
-          merger = proc do |_, v1, v2|
-            if v1.is_a?(Hash) && v2.is_a?(Hash)
-              v1.merge(v2, &merger)
-            elsif v1.is_a?(Array) && v2.is_a?(Array)
-              v1.concat(v2)
-            elsif v2.nil?
-              v1
-            else
-              v2
-            end
-          end
-          @metastruct.merge!(second.to_h, &merger) # steep:ignore BlockTypeMismatch
+          @metastruct.merge!(second.to_h, &MERGER)
         end
 
-        def [](key)
-          @metastruct[key]
-        end
-
-        def []=(key, value)
-          @metastruct[key] = value
-        end
-
-        def dig(*keys)
-          @metastruct.dig(*keys)
-        end
+        def_delegators :@metastruct, :[], :[]=, :dig, :to_h
 
         def pretty_print(q)
           q.seplist @metastruct.each do |key, value|
             q.text "#{key} => #{value}\n"
           end
-        end
-
-        def to_h
-          @metastruct.to_h
         end
 
         def to_msgpack(packer = nil)

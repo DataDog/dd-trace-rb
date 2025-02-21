@@ -74,7 +74,7 @@ module Datadog
         profiling_enabled: nil,
         tags: nil,
         metrics: nil,
-        metastruct: nil,
+        metastruct: {},
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,

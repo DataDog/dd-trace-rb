@@ -58,7 +58,7 @@ module Datadog
         service: nil,
         tags: nil,
         metrics: nil,
-        metastruct: nil,
+        metastruct: {},
         profiling_enabled: nil
       )
         @id = id
