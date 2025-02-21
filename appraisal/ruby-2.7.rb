@@ -176,6 +176,7 @@ build_coverage_matrix('faraday', min: '0.14.0')
 build_coverage_matrix('excon')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
+build_coverage_matrix('karafka', min: '2.0.41')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.1.0'
@@ -203,7 +204,6 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'grpc'
-  gem 'karafka'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'

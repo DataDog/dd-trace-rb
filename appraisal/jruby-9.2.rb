@@ -204,6 +204,7 @@ build_coverage_matrix('faraday', min: '0.14.0')
 build_coverage_matrix('excon')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
+build_coverage_matrix('karafka', min: '2.0.41')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
