@@ -7,7 +7,8 @@ module Datadog
     module Contrib
       module Karafka
         # Custom monitor for Karafka.
-        # Creating a custom monitor, instead of subscribing to an event (e.g. `Karafka.monitor.subscribe 'worker.processed'`),
+        # Creating a custom monitor, instead of subscribing to an event
+        # (e.g. `Karafka.monitor.subscribe 'worker.processed'`),
         # is required because event subscriptions cannot wrap the event execution (`yield`).
         class Monitor < ::Karafka::Instrumentation::Monitor
           TRACEABLE_EVENTS = %w[

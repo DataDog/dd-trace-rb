@@ -28,9 +28,8 @@ RSpec.describe 'Karafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_MESSAGE_CONSUME }
 
     it 'is expected to send a span' do
-      metadata = ::Karafka::Messages::Metadata.new.tap do |metadata|
-        metadata['offset'] = 412
-      end
+      metadata = ::Karafka::Messages::Metadata.new
+      metadata['offset'] = 412
       raw_payload = rand.to_s
 
       message = Karafka::Messages::Message.new(raw_payload, metadata)
@@ -41,9 +40,7 @@ RSpec.describe 'Karafka patcher' do
 
       messages = Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
 
-      messages.each do |msg|
-        expect(msg).to be_a(Karafka::Messages::Message)
-      end
+      expect(messages).to all(be_a(Karafka::Messages::Message))
 
       expect(spans).to have(1).items
       expect(span).to_not be nil
@@ -59,9 +56,8 @@ RSpec.describe 'Karafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_WORKER_PROCESS }
 
     it 'is expected to send a span' do
-      metadata = ::Karafka::Messages::Metadata.new.tap do |metadata|
-        metadata['offset'] = 412
-      end
+      metadata = ::Karafka::Messages::Metadata.new
+      metadata['offset'] = 412
       raw_payload = rand.to_s
 
       message = Karafka::Messages::Message.new(raw_payload, metadata)
