@@ -1,12 +1,9 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/contrib/support/devise_user_mock'
+require 'datadog/appsec/contrib/devise/patches/signup_tracking_patch'
 
-require 'datadog/appsec/contrib/devise/patcher'
-require 'datadog/appsec/contrib/devise/patcher/signup_tracking_patch'
-
-RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SignupTrackingPatch do
+RSpec.describe Datadog::AppSec::Contrib::Devise::Patches::SignupTrackingPatch do
   before { allow(Datadog).to receive(:configuration).and_return(settings) }
 
   let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
@@ -14,7 +11,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SignupTrackingPatch do
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:devise_controller) do
     Class.new do
-      prepend Datadog::AppSec::Contrib::Devise::Patcher::SignupTrackingPatch
+      prepend Datadog::AppSec::Contrib::Devise::Patches::SignupTrackingPatch
 
       def create
         'no-op'
