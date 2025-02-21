@@ -803,3 +803,50 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 
 // Is the VM smack in the middle of raising an exception?
 bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
+
+#ifndef NO_CURRENT_FIBER_FOR
+  // The following three declarations are all
+  // taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
+  // (See the Ruby project copyright and license above)
+  // to enable building `current_fiber_for`.
+  //
+  // We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
+  // @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
+  // structures have not changed in many years (in fact, last change I spotted was for 2.7).
+  enum context_type {
+      CONTINUATION_CONTEXT = 0,
+      FIBER_CONTEXT = 1
+  };
+
+  typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
+      enum context_type type;
+      int argc;
+      int kw_splat;
+      VALUE self;
+  } rb_context_t;
+
+  struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
+    rb_context_t cont;
+  };
+
+  VALUE current_fiber_for(VALUE thread) {
+    VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
+    return self == 0 ? Qnil : self;
+  }
+
+  void self_test_current_fiber_for(void) {
+    VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
+    VALUE actual_current_fiber = rb_fiber_current();
+
+    if (expected_current_fiber == Qnil) {
+      // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
+      // But now it should be there.
+      expected_current_fiber = current_fiber_for(rb_thread_current());
+    }
+
+    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+  }
+#else
+  VALUE current_fiber_for(VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+  void self_test_current_fiber_for(void) { } // Nothing to do
+#endif
