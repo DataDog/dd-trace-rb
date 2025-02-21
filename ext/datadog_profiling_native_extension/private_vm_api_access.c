@@ -40,6 +40,13 @@
   #endif
 #endif
 
+// This file can't include datadog_ruby_common.h so we replicate this here
+#ifdef __GNUC__
+  #define DDTRACE_UNUSED  __attribute__((unused))
+#else
+  #define DDTRACE_UNUSED
+#endif
+
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
@@ -847,6 +854,8 @@ bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)
     if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
   }
 #else
-  VALUE current_fiber_for(VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+  NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
+
+  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
   void self_test_current_fiber_for(void) { } // Nothing to do
 #endif

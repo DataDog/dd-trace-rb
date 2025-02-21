@@ -1,5 +1,6 @@
 #include <ruby.h>
 
+#include "datadog_ruby_common.h"
 #include "collectors_thread_context.h"
 #include "clock_id.h"
 #include "collectors_stack.h"
@@ -1688,35 +1689,41 @@ static VALUE _native_sample_skipped_allocation_samples(DDTRACE_UNUSED VALUE self
   return Qtrue;
 }
 
-static VALUE otel_context_storage_for(thread_context_collector_state *state, VALUE thread) {
-  if (state->otel_context_source == OTEL_CONTEXT_SOURCE_FIBER_IVAR) { // otel-api 1.5+
-    VALUE current_fiber = current_fiber_for(thread);
-    return current_fiber == Qnil ? Qnil : rb_ivar_get(current_fiber, otel_fiber_context_storage_id /* @opentelemetry_context */);
-  }
+#ifndef NO_CURRENT_FIBER_FOR // Ruby 3.1+
+  static VALUE otel_context_storage_for(thread_context_collector_state *state, VALUE thread) {
+    if (state->otel_context_source == OTEL_CONTEXT_SOURCE_FIBER_IVAR) { // otel-api 1.5+
+      VALUE current_fiber = current_fiber_for(thread);
+      return current_fiber == Qnil ? Qnil : rb_ivar_get(current_fiber, otel_fiber_context_storage_id /* @opentelemetry_context */);
+    }
 
-  if (state->otel_context_source == OTEL_CONTEXT_SOURCE_FIBER_LOCAL) { // otel-api < 1.5
+    if (state->otel_context_source == OTEL_CONTEXT_SOURCE_FIBER_LOCAL) { // otel-api < 1.5
+      return rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
+    }
+
+    // If we got here, it means we never observed a context being set. Let's probe which one to use.
+    VALUE current_fiber = current_fiber_for(thread);
+    if (current_fiber != Qnil) {
+      VALUE context_storage = rb_ivar_get(current_fiber, otel_fiber_context_storage_id /* @opentelemetry_context */);
+      if (context_storage != Qnil) {
+        state->otel_context_source = OTEL_CONTEXT_SOURCE_FIBER_IVAR; // Remember for next time
+        return context_storage;
+      }
+    } else {
+      VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
+      if (context_storage != Qnil) {
+        state->otel_context_source = OTEL_CONTEXT_SOURCE_FIBER_LOCAL; // Remember for next time
+        return context_storage;
+      }
+    }
+
+    // There's no context storage attached to the current thread
+    return Qnil;
+  }
+#else
+  static inline VALUE otel_context_storage_for(DDTRACE_UNUSED thread_context_collector_state *state, VALUE thread) {
     return rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
   }
-
-  // If we got here, it means we never observed a context being set. Let's probe which one to use.
-  VALUE current_fiber = current_fiber_for(thread);
-  if (current_fiber != Qnil) {
-    VALUE context_storage = rb_ivar_get(current_fiber, otel_fiber_context_storage_id /* @opentelemetry_context */);
-    if (context_storage != Qnil) {
-      state->otel_context_source = OTEL_CONTEXT_SOURCE_FIBER_IVAR; // Remember for next time
-      return context_storage;
-    }
-  } else {
-    VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
-    if (context_storage != Qnil) {
-      state->otel_context_source = OTEL_CONTEXT_SOURCE_FIBER_LOCAL; // Remember for next time
-      return context_storage;
-    }
-  }
-
-  // There's no context storage attached to the current thread
-  return Qnil;
-}
+#endif
 
 // This method differs from trace_identifiers_for/ddtrace_otel_trace_identifiers_for to support the situation where
 // the opentelemetry ruby library is being used for tracing AND the ddtrace tracing bits are not involved at all.
