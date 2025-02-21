@@ -89,7 +89,7 @@ module Datadog
 
         # Set tags if provided.
         set_tags(tags) if tags
-        @metastruct = Tracing::Metadata::Metastruct.new # steep:ignore InsufficientPositionalArguments
+        @metastruct = Tracing::Metadata::Metastruct.empty
 
         # Some other SpanOperation-specific behavior
         @events = events || Events.new

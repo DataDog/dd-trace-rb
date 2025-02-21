@@ -54,7 +54,7 @@ module Datadog
         end_time: nil,
         id: nil,
         meta: nil,
-        metastruct: nil,
+        metastruct: {},
         metrics: nil,
         parent_id: 0,
         resource: name,
