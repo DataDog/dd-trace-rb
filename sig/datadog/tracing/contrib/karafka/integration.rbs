@@ -12,9 +12,9 @@ module Datadog
 
           def self.compatible?: () -> bool
 
-          def new_configuration: () -> DataDog::Tracing::Contrib::Karafka::Configuration::Settings
+          def new_configuration: () -> Karafka::Configuration::Settings
 
-          def patcher: () -> Datadog::Tracing::Contrib::Karafka::Patcher
+          def patcher: () -> Patcher
         end
       end
     end
