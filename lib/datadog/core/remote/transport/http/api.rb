@@ -2,24 +2,9 @@
 
 require_relative '../../../encoding'
 require_relative '../../../transport/http/api/map'
-
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/traces includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../../datadog/core/transport/http/api/spec'
-require_relative 'api/spec'
-
-# TODO: only needed for Negotiation::API::Endpoint
+require_relative '../../../transport/http/api/instance'
+require_relative '../../../transport/http/api/spec'
 require_relative 'negotiation'
-
-# TODO: only needed for Config::API::Endpoint
 require_relative 'config'
 
 module Datadog
@@ -36,7 +21,7 @@ module Datadog
             module_function
 
             def defaults
-              Datadog::Core::Transport::HTTP::API::Map[
+              Core::Transport::HTTP::API::Map[
                 ROOT => Spec.new do |s|
                   s.info = Negotiation::API::Endpoint.new(
                     '/info',
@@ -49,6 +34,16 @@ module Datadog
                   )
                 end,
               ]
+            end
+
+            class Instance < Core::Transport::HTTP::API::Instance
+              include Config::API::Instance
+              include Negotiation::API::Instance
+            end
+
+            class Spec < Core::Transport::HTTP::API::Spec
+              include Config::API::Spec
+              include Negotiation::API::Spec
             end
           end
         end

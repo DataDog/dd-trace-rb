@@ -10,7 +10,6 @@ require_relative '../../core/transport/http/adapters/test'
 require_relative '../../core/transport/http/adapters/unix_socket'
 require_relative '../../core/transport/http/builder'
 require_relative 'http/api'
-require_relative 'http/api/instance'
 require_relative '../../../datadog/version'
 
 module Datadog
