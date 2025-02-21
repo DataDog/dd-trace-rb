@@ -247,13 +247,6 @@ appraise 'opentelemetry' do
 end
 
 appraise 'opentelemetry_otlp' do
-  gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
-  gem 'opentelemetry-sdk', '~> 1.1'
-  gem 'opentelemetry-exporter-otlp'
-end
-
-appraise 'opentelemetry_otlp_1_5' do
-  gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
 end
