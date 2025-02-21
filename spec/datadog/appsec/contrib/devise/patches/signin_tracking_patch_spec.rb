@@ -1,11 +1,9 @@
 # frozen_string_literal: true
 
 require 'datadog/appsec/spec_helper'
-require 'datadog/appsec/contrib/support/devise_user_mock'
+require 'datadog/appsec/contrib/devise/patches/signin_tracking_patch'
 
-require 'datadog/appsec/contrib/devise/patcher/signin_tracking_patch'
-
-RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
+RSpec.describe Datadog::AppSec::Contrib::Devise::Patches::SigninTrackingPatch do
   before { allow(Datadog).to receive(:configuration).and_return(settings) }
 
   let(:user) { double('ActiveRecord::BaseModel') }
@@ -14,7 +12,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch do
   let(:context) { instance_double(Datadog::AppSec::Context, trace: trace) }
   let(:devise_strategy) do
     Class.new do
-      prepend Datadog::AppSec::Contrib::Devise::Patcher::SigninTrackingPatch
+      prepend Datadog::AppSec::Contrib::Devise::Patches::SigninTrackingPatch
 
       def validate(resource, &block)
         true
