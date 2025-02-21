@@ -1,12 +1,20 @@
 module Datadog
   module AppSec
     module ActionsHandler
-      class RaspStackTrace
+      class StackTraceInMetastruct
         type stack_trace = Hash[Symbol, String | nil | Array[Datadog::AppSec::ActionsHandler::StackTraceCollection::stack_frame]]
 
-        @metastruct: Datadog::Tracing::Metadata::Metastruct?
+        class Noop
+          def count: () -> Integer
 
-        def initialize: (Datadog::Tracing::Metadata::Metastruct? metastruct) -> void
+          def push: (stack_trace stack_trace) -> void
+        end
+
+        @metastruct: Datadog::Tracing::Metadata::Metastruct
+
+        def self.create: (Datadog::Tracing::Metadata::Metastruct? metastruct) -> (StackTraceInMetastruct::Noop | StackTraceInMetastruct)
+
+        def initialize: (Datadog::Tracing::Metadata::Metastruct metastruct) -> void
 
         def count: () -> Integer
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'actions_handler/rasp_stack_trace'
+require_relative 'actions_handler/stack_trace_in_metastruct'
 require_relative 'actions_handler/stack_trace_collection'
 
 module Datadog
@@ -34,8 +34,8 @@ module Datadog
         config = Datadog.configuration.appsec.stack_trace
 
         # Check that the sum of stack_trace count in trace and entry_span does not exceed configuration
-        span_stack = ActionsHandler::RaspStackTrace.new(context.span&.metastruct)
-        trace_stack = ActionsHandler::RaspStackTrace.new(context.trace&.metastruct)
+        span_stack = ActionsHandler::StackTraceInMetastruct.create(context.span&.metastruct)
+        trace_stack = ActionsHandler::StackTraceInMetastruct.create(context.trace&.metastruct)
         return if config.max_collect != 0 && span_stack.count + trace_stack.count >= config.max_collect
 
         # Generate stacktrace

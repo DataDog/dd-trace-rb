@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
-require 'datadog/appsec/actions_handler/rasp_stack_trace'
+require 'datadog/appsec/actions_handler/stack_trace_in_metastruct'
 require 'datadog/tracing/metadata/metastruct'
 
-RSpec.describe Datadog::AppSec::ActionsHandler::RaspStackTrace do
-  subject(:rasp_stack_trace) { described_class.new(metastruct) }
+RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceInMetastruct do
+  subject(:stack_trace_in_metastruct) { described_class.create(metastruct) }
   let(:metastruct) { Datadog::Tracing::Metadata::Metastruct.new(metastruct_hash) }
   let(:metastruct_hash) { {} }
 
   describe '.count' do
-    subject(:count) { rasp_stack_trace.count }
+    subject(:count) { stack_trace_in_metastruct.count }
 
     context 'with nil as metastruct' do
       let(:metastruct) { nil }
@@ -48,7 +48,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::RaspStackTrace do
 
   describe '.push' do
     before do
-      rasp_stack_trace.push({ language: 'ruby', stack_id: 'foo', frames: [] })
+      stack_trace_in_metastruct.push({ language: 'ruby', stack_id: 'foo', frames: [] })
     end
 
     context 'with empty metastruct' do

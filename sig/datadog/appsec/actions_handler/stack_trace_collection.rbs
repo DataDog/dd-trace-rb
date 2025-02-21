@@ -4,6 +4,8 @@ module Datadog
       module StackTraceCollection
         type stack_frame = Hash[Symbol, String | Integer | nil]
 
+        def self.convert: (Array[::Thread::Backtrace::Location] locations) -> Array[stack_frame]
+
         def self.collect: (Integer max_depth, Float top_percent) -> Array[stack_frame]
       end
     end

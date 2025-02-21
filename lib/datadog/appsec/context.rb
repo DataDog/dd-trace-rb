@@ -62,6 +62,10 @@ module Datadog
       def export_metrics
         return if @span.nil?
 
+        # This does not caused a steep error previously because
+        # @span was wrongly defined as a SpanOperation that cannot be nil in context.rbs.
+        # Even though we check that @span is not nil, steep consideres that the thread can pause after that check,
+        # and another thread change it to nil. This does not happen in our case, which is why steep:ignore has been added.
         Metrics::Exporter.export_waf_metrics(@metrics.waf, @span) # steep:ignore ArgumentTypeMismatch
         Metrics::Exporter.export_rasp_metrics(@metrics.rasp, @span) # steep:ignore ArgumentTypeMismatch
       end

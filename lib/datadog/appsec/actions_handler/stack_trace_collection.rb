@@ -8,19 +8,20 @@ module Datadog
         module_function
 
         def collect(max_depth, top_percent)
-          filtered_locations = caller_locations&.reject { |location| location.to_s.include?('lib/datadog') } || []
+          locations = (caller_locations || []).reject { |location| location.to_s.include?('lib/datadog') }
 
-          skip_locations =
-            if max_depth == 0 || filtered_locations.size <= max_depth
-              (0...0)
-            else
-              top_limit = (max_depth * top_percent / 100.0).round
-              bottom_limit = filtered_locations.size - (max_depth - top_limit)
-              (top_limit...bottom_limit)
-            end
-          filtered_locations.slice!(skip_locations)
+          return [] if locations.empty?
+          return StackTraceCollection.convert(locations) if max_depth.zero? || locations.size <= max_depth
 
-          filtered_locations.map.with_index do |location, index|
+          top_limit = (max_depth * top_percent / 100.0).round
+          bottom_limit = locations.size - (max_depth - top_limit)
+
+          locations.slice!(top_limit...bottom_limit)
+          StackTraceCollection.convert(locations)
+        end
+
+        def convert(locations)
+          locations.map.with_index do |location, index|
             {
               id: index,
               text: location.to_s.encode('UTF-8'),
