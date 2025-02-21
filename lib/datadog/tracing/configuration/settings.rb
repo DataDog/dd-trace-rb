@@ -42,7 +42,7 @@ module Datadog
               #
               # The tracer will try to find distributed headers in the order they are present in the list provided to this option.
               # The first format to have valid data present will be used.
-              #
+              # Baggage style is a special case, as it will always be extracted in addition if present.
               # @default `DD_TRACE_PROPAGATION_STYLE_EXTRACT` environment variable (comma-separated list),
               #   otherwise `['datadog','b3multi','b3']`.
               # @return [Array<String>]
@@ -53,6 +53,7 @@ module Datadog
                   [
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                     Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                    Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                   ]
                 )
                 o.after_set do |styles|
@@ -74,6 +75,7 @@ module Datadog
                 o.default [
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
                   Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
+                  Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE,
                 ]
                 o.after_set do |styles|
                   # Make values case-insensitive
