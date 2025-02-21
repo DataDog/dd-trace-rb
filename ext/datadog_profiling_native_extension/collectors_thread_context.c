@@ -102,6 +102,7 @@ static ID at_kind_id;     // id of :@kind in Ruby
 static ID at_name_id;     // id of :@name in Ruby
 static ID server_id;      // id of :server in Ruby
 static ID otel_context_storage_id; // id of :__opentelemetry_context_storage__ in Ruby
+static ID otel_fiber_context_storage_id; // id of :@opentelemetry_context in Ruby
 
 // This is used by `thread_context_collector_on_gvl_running`. Because when that method gets called we're not sure if
 // it's safe to access the state of the thread context collector, we store this setting as a global value. This does
@@ -348,6 +349,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   at_name_id = rb_intern_const("@name");
   server_id = rb_intern_const("server");
   otel_context_storage_id = rb_intern_const("__opentelemetry_context_storage__");
+  otel_fiber_context_storage_id = rb_intern_const("@opentelemetry_context");
 
   #ifndef NO_GVL_INSTRUMENTATION
     // This will raise if Ruby already ran out of thread-local keys
@@ -1709,7 +1711,19 @@ static void otel_without_ddtrace_trace_identifiers_for(
   trace_identifiers *trace_identifiers_result,
   bool is_safe_to_allocate_objects
 ) {
-  VALUE context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
+  VALUE context_storage = Qnil;
+
+  // otel-api 1.5+, try to read context as instance variable in current fiber
+  VALUE current_fiber = current_fiber_for(thread);
+  if (current_fiber != Qnil) {
+    context_storage = rb_ivar_get(current_fiber, otel_fiber_context_storage_id /* @opentelemetry_context */);
+  }
+
+  // Fall back to checking fiber-local storage for otel < 1.5
+  // TODO: Deprecate support for otel < 1.5
+  if (context_storage == Qnil) {
+    context_storage = rb_thread_local_aref(thread, otel_context_storage_id /* __opentelemetry_context_storage__ */);
+  }
 
   // If it exists, context_storage is expected to be an Array[OpenTelemetry::Context]
   if (context_storage == Qnil || !RB_TYPE_P(context_storage, T_ARRAY)) return;
