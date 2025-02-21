@@ -20,8 +20,6 @@ require_relative '../../transport/http/adapters/test'
 # require_relative '../../transport/http/api'
 require_relative 'http/api'
 
-require_relative 'http/api/instance'
-
 # TODO: Decouple transport/http
 #
 # Because a new transport is required for every (API, Client, Transport)
