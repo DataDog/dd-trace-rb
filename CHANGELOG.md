@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Added
+
+* Tracing: Added support for Opentelemetry Baggage extraction and injection by default.
+
 ## [2.10.0] - 2025-02-04
 
 ### Added
