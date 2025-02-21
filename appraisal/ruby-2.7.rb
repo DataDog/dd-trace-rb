@@ -203,7 +203,7 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'grpc'
-
+  gem 'karafka'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'

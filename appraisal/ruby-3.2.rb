@@ -125,7 +125,7 @@ end
 appraise 'contrib' do
   gem 'concurrent-ruby'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
-
+  gem 'karafka'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'

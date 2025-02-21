@@ -133,7 +133,7 @@ appraise 'contrib' do
   gem 'concurrent-ruby'
   # Temporarily disable for Ruby 3.4: No binaries causing build time takes more than 10 minutes
   # gem 'grpc', '>= 1.38.0', platform: :ruby
-
+  gem 'karafka'
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'

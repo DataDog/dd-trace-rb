@@ -1,0 +1,25 @@
+module Datadog
+  module Tracing
+    module Contrib
+      module Karafka
+        module MessagesPatch
+          @propagation: untyped
+
+          def configuration: () -> untyped
+
+          def propagation: () -> DataDog::Tracing::Contrib::Karafka::Distributed::Propagation
+
+          def each: () { (untyped) -> untyped } -> void
+        end
+
+        module Patcher
+          include Contrib::Patcher
+
+          def self?.target_version: () -> untyped
+
+          def self?.patch: () -> void
+        end
+      end
+    end
+  end
+end
