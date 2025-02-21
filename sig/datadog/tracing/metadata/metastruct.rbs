@@ -1,0 +1,31 @@
+module Datadog
+  module Tracing
+    module Metadata
+      class Metastruct
+        extend Forwardable
+
+        type metastruct = Hash[String, untyped]
+
+        type merger_value = Hash[untyped, untyped] | Array[untyped] | nil
+
+        MERGER: ^(untyped, merger_value, merger_value) -> merger_value
+
+        @metastruct: metastruct
+
+        def self.empty: () -> Metastruct
+
+        def initialize: (metastruct metastruct) -> void
+
+        def deep_merge!: (Metastruct second) -> void
+
+        def dig: (*String keys) -> untyped
+
+        def []: (String key) -> untyped
+
+        def []=: (String key, untyped value) -> void
+
+        def to_h: () -> metastruct
+      end
+    end
+  end
+end
