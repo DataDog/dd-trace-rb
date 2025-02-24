@@ -269,11 +269,16 @@ jobs:
         with:
           fetch-depth: 0
       - run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs/${{ github.job }}"
+          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEMP_BRANCH="update-document-v${GEM_VERSION}"
+
+          # Create and checkout a new branch from the tag
+          git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
+          git push origin "${TEMP_BRANCH}"
 
           gh pr create \
             --base release \
-            --head master \
+            --head "${TEMP_BRANCH}" \
             --title "Update document v${GEM_VERSION}" \
             --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
             --label "docs"
