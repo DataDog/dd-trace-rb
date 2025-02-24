@@ -62,7 +62,7 @@ module Datadog
 
               def call(env, &block)
                 event_payload = Core::Vendor::Multipart::Post::UploadIO.new(
-                  StringIO.new(JSON.dump(env.request.parcel.data)), 'application/json', 'event.json'
+                  StringIO.new(env.request.parcel.data), 'application/json', 'event.json'
                 )
                 env.form = {'event' => event_payload}
 
