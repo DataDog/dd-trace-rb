@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails Log Auto Injection' do
+RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
   include Rack::Test::Methods
   include_context 'Rails test application'
 

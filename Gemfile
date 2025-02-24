@@ -5,3 +5,5 @@ gem 'pg'
 gem 'lograge'
 
 gem 'forking_test_runner'
+
+gem 'rails_semantic_logger'

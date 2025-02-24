@@ -2,6 +2,7 @@ require 'datadog/tracing/contrib/support/spec_helper'
 
 require 'datadog/tracing/contrib/rails/integration'
 
+# Safe
 RSpec.describe Datadog::Tracing::Contrib::Rails::Integration do
   let(:integration) { described_class.new(:rails) }
 
