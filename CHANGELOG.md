@@ -7,6 +7,7 @@
 ### Added
 
 * Tracing: Support `graphql` multiple query errors report via Span Events ([#4177][])
+* Profiling: Enable GVL profiling by default on Ruby 3.2+ ([#4406][])
 * Profiling: Support correlating profiling with OTel API 1.5+ ([#4425][])
 * AppSec: Add detection of Server-Side Request Forgery attacks for `excon` ([#4399][])
 * AppSec: Add detection of Server-Side Request Forgery attacks for `faraday` ([#4391][])
@@ -4620,6 +4621,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4391]: https://github.com/DataDog/dd-trace-rb/issues/4391
 [#4398]: https://github.com/DataDog/dd-trace-rb/issues/4398
 [#4399]: https://github.com/DataDog/dd-trace-rb/issues/4399
+[#4406]: https://github.com/DataDog/dd-trace-rb/issues/4406
 [#4411]: https://github.com/DataDog/dd-trace-rb/issues/4411
 [#4422]: https://github.com/DataDog/dd-trace-rb/issues/4422
 [#4425]: https://github.com/DataDog/dd-trace-rb/issues/4425
