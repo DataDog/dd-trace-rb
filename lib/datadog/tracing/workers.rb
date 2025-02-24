@@ -18,8 +18,7 @@ module Datadog
         BACK_OFF_MAX = 5
         DEFAULT_SHUTDOWN_TIMEOUT = 1
 
-        attr_reader \
-          :trace_buffer
+        attr_reader :trace_buffer, :logger
 
         def initialize(options = {})
           @transport = options[:transport]
@@ -45,8 +44,6 @@ module Datadog
 
           @logger = options.fetch(:logger)
         end
-
-        attr_reader :logger
 
         # Callback function that process traces and executes the +send_traces()+ method.
         def callback_traces

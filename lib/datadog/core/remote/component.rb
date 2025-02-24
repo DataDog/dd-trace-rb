@@ -13,8 +13,7 @@ module Datadog
       # Configures the HTTP transport to communicate with the agent
       # to fetch and sync the remote configuration
       class Component
-        attr_reader :logger
-        attr_reader :client, :healthy
+        attr_reader :logger, :client, :healthy
 
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger
