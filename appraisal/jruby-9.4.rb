@@ -70,7 +70,6 @@ appraise 'http' do
   gem 'ethon'
   gem 'http', '~> 4' # TODO: Completely broken with this JRuby version, this has not be validate on CI
   gem 'httpclient'
-  gem 'rest-client'
   gem 'typhoeus'
 end
 
@@ -79,6 +78,7 @@ build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 
