@@ -13,11 +13,14 @@ module Datadog
     # @public_api
     class Writer
       attr_reader \
+        :logger,
         :transport,
         :worker,
         :events
 
       def initialize(options = {})
+        @logger = options[:logger] || Datadog.logger
+
         # writer and transport parameters
         @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
         @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
@@ -119,7 +122,7 @@ module Datadog
         if worker_local
           worker_local.enqueue_trace(trace)
         elsif !@stopped
-          Datadog.logger.debug('Writer either failed to start or was stopped before #write could complete')
+          logger.debug('Writer either failed to start or was stopped before #write could complete')
         end
       end
 
@@ -160,7 +163,8 @@ module Datadog
           buffer_size: @buff_size,
           on_trace: @trace_handler,
           interval: @flush_interval,
-          shutdown_timeout: @shutdown_timeout
+          shutdown_timeout: @shutdown_timeout,
+          logger: logger,
         )
 
         @worker.start
