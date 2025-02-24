@@ -18,25 +18,14 @@ module Datadog
           module API
             module Instance
               def send_diagnostics(env)
-                raise TracesNotSupportedError, spec unless spec.is_a?(Diagnostics::API::Spec)
+                raise DiagnosticsNotSupportedError, spec unless spec.is_a?(Diagnostics::API::Spec)
 
                 spec.send_diagnostics(env) do |request_env|
                   call(request_env)
                 end
               end
-            end
 
-            module Spec
-              attr_accessor :diagnostics
-
-              def send_diagnostics(env, &block)
-                raise NoTraceEndpointDefinedError, self if diagnostics.nil?
-
-                diagnostics.call(env, &block)
-              end
-
-              # Raised when traces sent but no traces endpoint is defined
-              class NoTraceEndpointDefinedError < StandardError
+              class DiagnosticsNotSupportedError < StandardError
                 attr_reader :spec
 
                 def initialize(spec)
@@ -46,7 +35,31 @@ module Datadog
                 end
 
                 def message
-                  'No trace endpoint is defined for API specification!'
+                  'Diagnostics not supported for this API!'
+                end
+              end
+            end
+
+            module Spec
+              attr_accessor :diagnostics
+
+              def send_diagnostics(env, &block)
+                raise NoDiagnosticsEndpointDefinedError, self if diagnostics.nil?
+
+                diagnostics.call(env, &block)
+              end
+
+              class NoDiagnosticsEndpointDefinedError < StandardError
+                attr_reader :spec
+
+                def initialize(spec)
+                  super
+
+                  @spec = spec
+                end
+
+                def message
+                  'No diagnostics endpoint is defined for API specification!'
                 end
               end
             end

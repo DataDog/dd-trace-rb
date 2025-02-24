@@ -12,7 +12,7 @@ module Datadog
   module DI
     module Transport
       module HTTP
-        # Routes, encodes, and sends tracer data to the trace agent via HTTP.
+        # Routes, encodes, and sends DI data to the trace agent via HTTP.
         class Client
           attr_reader :api
 

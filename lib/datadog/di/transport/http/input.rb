@@ -18,25 +18,14 @@ module Datadog
           module API
             module Instance
               def send_input(env)
-                raise TracesNotSupportedError, spec unless spec.is_a?(Input::API::Spec)
+                raise InputNotSupportedError, spec unless spec.is_a?(Input::API::Spec)
 
                 spec.send_input(env) do |request_env|
                   call(request_env)
                 end
               end
-            end
 
-            module Spec
-              attr_accessor :input
-
-              def send_input(env, &block)
-                raise NoTraceEndpointDefinedError, self if input.nil?
-
-                input.call(env, &block)
-              end
-
-              # Raised when traces sent but no traces endpoint is defined
-              class NoTraceEndpointDefinedError < StandardError
+              class InputNotSupportedError < StandardError
                 attr_reader :spec
 
                 def initialize(spec)
@@ -46,7 +35,31 @@ module Datadog
                 end
 
                 def message
-                  'No trace endpoint is defined for API specification!'
+                  'Input not supported for this API!'
+                end
+              end
+            end
+
+            module Spec
+              attr_accessor :input
+
+              def send_input(env, &block)
+                raise NoInputEndpointDefinedError, self if input.nil?
+
+                input.call(env, &block)
+              end
+
+              class NoInputEndpointDefinedError < StandardError
+                attr_reader :spec
+
+                def initialize(spec)
+                  super
+
+                  @spec = spec
+                end
+
+                def message
+                  'No input endpoint is defined for API specification!'
                 end
               end
             end
@@ -64,9 +77,6 @@ module Datadog
               end
 
               def call(env, &block)
-                # Add trace count header
-                # env.headers[HEADER_TRACE_COUNT] = env.request.parcel.trace_count.to_s
-
                 # Encode body & type
                 env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                 env.body = env.request.parcel.data
