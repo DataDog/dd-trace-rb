@@ -12,7 +12,6 @@ module Datadog
       ACTIVE_CONTEXT_KEY = :datadog_appsec_active_context
 
       TAG_APPSEC_ENABLED = '_dd.appsec.enabled'
-      TAG_APM_ENABLED = '_dd.apm.enabled'
       TAG_DISTRIBUTED_APPSEC_EVENT = '_dd.p.appsec'
 
       TELEMETRY_METRICS_NAMESPACE = 'appsec'

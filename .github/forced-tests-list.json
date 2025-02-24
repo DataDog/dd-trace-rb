@@ -1,3 +1,16 @@
 {
-  
+  "AGENT_NOT_SUPPORTING_SPAN_EVENTS":
+  [
+    "tests/test_span_events.py"
+  ],
+  "PARAMETRIC":
+  [
+    "tests/parametric/test_span_events.py"
+  ],
+  "DEFAULT": [
+    "tests/test_graphql.py"
+  ],
+  "SCA_STANDALONE": [
+    "tests/appsec/test_asm_standalone.py::Test_SCAStandalone_Telemetry"
+  ]
 }

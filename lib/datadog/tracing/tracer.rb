@@ -341,6 +341,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            apm_tracing_disabled: apm_tracing_disabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
@@ -356,6 +357,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
+            apm_tracing_disabled: apm_tracing_disabled,
             remote_parent: false,
             tracer: self
           )
@@ -548,6 +550,10 @@ module Datadog
       def profiling_enabled
         @profiling_enabled ||=
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
+      end
+
+      def apm_tracing_disabled
+        @apm_tracing_disabled ||= Datadog.configuration.appsec.standalone.enabled
       end
     end
   end
