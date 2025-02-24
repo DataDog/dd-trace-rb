@@ -286,6 +286,7 @@ namespace :spec do
       :graphql,
       :faraday,
       :excon,
+      :rest_client,
       :integration
     ]
 
@@ -314,7 +315,8 @@ namespace :spec do
       :devise,
       :graphql,
       :faraday,
-      :excon
+      :excon,
+      :rest_client
     ].each do |contrib|
       desc '' # "Explicitly hiding from `rake -T`"
       RSpec::Core::RakeTask.new(contrib) do |t, args|

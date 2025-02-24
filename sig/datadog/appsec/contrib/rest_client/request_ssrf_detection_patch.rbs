@@ -1,0 +1,11 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module RestClient
+        module RequestSSRFDetectionPatch
+          def self?.execute: () -> void
+        end
+      end
+    end
+  end
+end
