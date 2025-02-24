@@ -49,11 +49,11 @@ end
 
 # Builds a matrix of versions to test for a given integration
 
-# `range`: the range of versions to test
+# `range`: optional, the range of versions to test
 # `gem`  : optional, gem name to test (gem name can be different from the integration name)
 # `min`  : optional, minimum version to test
 # `meta` : optional, additional metadata (development dependencies, etc.) for the group
-def build_coverage_matrix(integration, range, gem: nil, min: nil, meta: {})
+def build_coverage_matrix(integration, range = [], gem: nil, min: nil, meta: {})
   gem ||= integration
 
   if min

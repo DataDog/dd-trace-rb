@@ -68,4 +68,10 @@ RSpec.describe Datadog::Core::Transport::InternalErrorResponse do
 
     it { is_expected.to be true }
   end
+
+  describe '#to_s' do
+    it 'includes the causing exception' do
+      expect(response.to_s).to match(/StandardError/)
+    end
+  end
 end

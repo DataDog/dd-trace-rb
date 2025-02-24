@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        module Configuration
+          def self?.auto_user_instrumentation_enabled?: () -> bool
+
+          def self?.auto_user_instrumentation_mode: () -> ::String
+
+          def self?.track_user_events_mode_mode: () -> ::String
+        end
+      end
+    end
+  end
+end

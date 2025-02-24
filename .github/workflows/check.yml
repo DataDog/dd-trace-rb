@@ -1,6 +1,11 @@
 name: Static Analysis
 on:
   push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -107,7 +112,8 @@ jobs:
         env:
           SEMGREP_RULES: p/default
 
-  static-analysis:
+  complete:
+    name: Static Analysis (complete)
     needs:
       - 'steep'
       - 'rubocop'

@@ -3,20 +3,10 @@ name: System Tests
 on:
   push:
     branches:
-      - "**"
-    paths-ignore:
-      - ".circleci/**"
-      - ".gitlab/**"
-      - "appraisal/**"
-      - "benchmarks/**"
-      - "docs/**"
-      - "gemfiles/**"
-      - "integration/**"
-      - "sig/**"
-      - "spec/**"
-      - "suppressions/**"
-      - "tools/**"
-      - "vendor/**"
+    - master
+  pull_request:
+    branches:
+    - master
   workflow_dispatch: {}
   schedule:
     - cron: "00 04 * * 2-6"
@@ -24,12 +14,36 @@ on:
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  # Broken system-test: https://github.com/DataDog/system-tests/pull/3904
-  SYSTEM_TESTS_REF: 239c3eba6de0473817d3d88ebbc025c9d0c9574b
-  # SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
+  SYSTEM_TESTS_REF: main # This must always be set to `main` on dd-trace-rb's master branch
 
 jobs:
+  changes:
+    name: Changes
+    runs-on: ubuntu-24.04
+    outputs:
+      changes: ${{ steps.changes.outputs.src }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: changes
+        with:
+          filters: |
+            src:
+              - '.github/workflows/**'
+              - 'lib/**'
+              - 'ext/**'
+              - '*.gemspec'
+              - 'Gemfile'
+              - '*.gemfile'
+              - 'lib-injection/**'
+              - 'tasks/**'
+
   build-harness:
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -94,6 +108,9 @@ jobs:
           docker push ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:latest
 
   build-apps:
+    needs:
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' }}
     strategy:
       fail-fast: false
       matrix:
@@ -393,7 +410,8 @@ jobs:
       - build-harness
       - build-apps
       - test
-    if: ${{ always() }}
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' && !cancelled() }}
     name: Aggregate (${{ matrix.app }})
     steps:
       - name: Setup python 3.12
@@ -447,7 +465,8 @@ jobs:
     runs-on: ubuntu-22.04
     needs:
       - test
-    if: ${{ always() }}
+      - changes
+    if: ${{ needs.changes.outputs.changes == 'true' && always() }}
     name: Cleanup (${{ matrix.image }})
     steps:
       - name: Log in to the Container registry
@@ -460,28 +479,10 @@ jobs:
           package-type: "container"
         continue-on-error: true
 
-  build-artifacts:
-    runs-on: ubuntu-22.04
-    permissions:
-      packages: write
-    steps:
-      - run: mkdir binaries/
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          path: binaries/dd-trace-rb/
-      - name: Upload artifact
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-        with:
-          name: system_tests_binaries
-          path: binaries/
-
-  parametric:
+  complete:
+    name: System Tests (complete)
+    runs-on: ubuntu-24.04
     needs:
-      - build-artifacts
-    uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
-    secrets: inherit
-    with:
-      library: ruby
-      binaries_artifact: system_tests_binaries
-      job_count: 8
-      job_matrix: "[1,2,3,4,5,6,7,8]"
+      - test
+    steps:
+      - run: echo "DONE!"

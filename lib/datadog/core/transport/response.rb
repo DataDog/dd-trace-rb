@@ -55,6 +55,10 @@ module Datadog
           true
         end
 
+        def to_s
+          "#{super}, error_type:#{error.class} error:#{error}"
+        end
+
         def inspect
           "#{super}, error_type:#{error.class} error:#{error}"
         end

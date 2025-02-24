@@ -1,0 +1,17 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Faraday
+        module Patcher
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> ::Gem::Version
+
+          def self?.patch: () -> bool
+
+          def self?.configure_default_faraday_connection: () -> void
+        end
+      end
+    end
+  end
+end

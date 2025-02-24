@@ -13,7 +13,6 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/api'
-require 'datadog/tracing/transport/http/builder'
 require 'datadog/tracing/transport/io'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/traces'
@@ -867,6 +866,83 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  shared_examples 'flushes traces with span events' do |native_span_events_support: true|
+    context 'a trace with span events' do
+      subject(:trace_with_event) do
+        tracer.trace('parent_span') do |span|
+          span.span_events << Datadog::Tracing::SpanEvent.new(
+            'event_name',
+            time_unix_nano: 123,
+            attributes: { 'key' => 'value' }
+          )
+        end
+
+        try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
+      end
+
+      before do
+        allow_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response)
+          .to receive(:span_events).and_return(span_events_support)
+
+        allow(encoder).to receive(:encode).and_wrap_original do |m, *args|
+          encoded = m.call(*args)
+          traces = encoder.decode(encoded)
+
+          traces = traces['traces'].first if traces.is_a?(Hash) # For Transport::IO
+
+          expect(traces).to have(1).item
+          @flushed_trace = traces.first
+
+          encoded
+        end
+      end
+
+      let(:flushed_trace) { @flushed_trace }
+
+      context 'with agent supporting native span events' do
+        before do
+          skip 'Environment does not support native span events' unless native_span_events_support
+        end
+
+        let(:span_events_support) { true }
+
+        it 'flushes events using the span_events field' do
+          trace_with_event
+
+          expect(flushed_trace['meta']).to_not have_key('events')
+          expect(flushed_trace['span_events']).to eq(
+            [
+              { 'name' => 'event_name',
+                'time_unix_nano' => 123,
+                'attributes' => { 'key' => {
+                  'string_value' => 'value', 'type' => 0
+                } }, }
+            ]
+          )
+        end
+      end
+
+      context 'with agent not supporting native span events' do
+        let(:span_events_support) { false }
+
+        it 'flushes events using the span_events field' do
+          trace_with_event
+
+          expect(flushed_trace['meta']['events']).to eq(
+            JSON.dump(
+              [
+                { 'name' => 'event_name',
+                  'time_unix_nano' => 123,
+                  'attributes' => { 'key' => 'value' } }
+              ]
+            )
+          )
+          expect(flushed_trace).to_not have_key('span_events')
+        end
+      end
+    end
+  end
+
   describe 'Transport::IO' do
     include_context 'agent-based test'
 
@@ -921,6 +997,10 @@ RSpec.describe 'Tracer integration tests' do
 
       expect(out).to have_received(:puts)
     end
+
+    it_behaves_like 'flushes traces with span events', native_span_events_support: false do
+      let(:encoder) { Datadog.send(:components).tracer.writer.transport.encoder }
+    end
   end
 
   describe 'Transport::HTTP' do
@@ -964,6 +1044,10 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
       end
+    end
+
+    it_behaves_like 'flushes traces with span events' do
+      let(:encoder) { Datadog.send(:components).tracer.writer.transport.current_api.encoder }
     end
   end
 

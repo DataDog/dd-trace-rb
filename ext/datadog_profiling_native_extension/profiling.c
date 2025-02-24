@@ -41,6 +41,12 @@ static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
+  // The profiler still has a lot of limitations around being used in Ractors BUT for now we're choosing to take care of those
+  // on our side, rather than asking Ruby to block calling our APIs from Ractors.
+  #ifdef HAVE_RB_EXT_RACTOR_SAFE
+    rb_ext_ractor_safe(true);
+  #endif
+
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
   VALUE native_extension_module = rb_define_module_under(profiling_module, "NativeExtension");
@@ -80,6 +86,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
   self_test_clock_id();
+  self_test_current_fiber_for();
   self_test_mn_enabled();
 
   return Qtrue;

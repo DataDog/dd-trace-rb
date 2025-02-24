@@ -1,10 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../reactive/engine'
-require_relative '../reactive/request'
-require_relative '../reactive/request_body'
-require_relative '../reactive/response'
 require_relative '../../../event'
 
 module Datadog
@@ -25,31 +21,33 @@ module Datadog
 
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
-                  event = nil
                   context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
-                  engine = AppSec::Reactive::Engine.new
 
-                  Rack::Reactive::Request.subscribe(engine, context) do |result|
-                    if result.match?
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: context.trace,
-                        span: context.span,
-                        request: gateway_request,
-                        actions: result.actions
-                      }
+                  persistent_data = {
+                    'server.request.cookies' => gateway_request.cookies,
+                    'server.request.query' => gateway_request.query,
+                    'server.request.uri.raw' => gateway_request.fullpath,
+                    'server.request.headers' => gateway_request.headers,
+                    'server.request.headers.no_cookies' => gateway_request.headers.dup.tap { |h| h.delete('cookie') },
+                    'http.client_ip' => gateway_request.client_ip,
+                    'server.request.method' => gateway_request.method
+                  }
 
-                      # We want to keep the trace in case of security event
-                      context.trace.keep! if context.trace
-                      Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.events << event
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                      Datadog::AppSec::ActionsHandler.handle(result.actions)
-                    end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
-
-                  Rack::Reactive::Request.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end
@@ -57,31 +55,29 @@ module Datadog
 
               def watch_response(gateway = Instrumentation.gateway)
                 gateway.watch('rack.response', :appsec) do |stack, gateway_response|
-                  event = nil
                   context = gateway_response.context
-                  engine = AppSec::Reactive::Engine.new
 
-                  Rack::Reactive::Response.subscribe(engine, context) do |result|
-                    if result.match?
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: context.trace,
-                        span: context.span,
-                        response: gateway_response,
-                        actions: result.actions
-                      }
+                  persistent_data = {
+                    'server.response.status' => gateway_response.status.to_s,
+                    'server.response.headers' => gateway_response.headers,
+                    'server.response.headers.no_cookies' => gateway_response.headers.dup.tap { |h| h.delete('set-cookie') }
+                  }
 
-                      # We want to keep the trace in case of security event
-                      context.trace.keep! if context.trace
-                      Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.events << event
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                      Datadog::AppSec::ActionsHandler.handle(result.actions)
-                    end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      response: gateway_response,
+                      actions: result.actions
+                    }
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
-
-                  Rack::Reactive::Response.publish(engine, gateway_response)
 
                   stack.call(gateway_response.response)
                 end
@@ -89,31 +85,27 @@ module Datadog
 
               def watch_request_body(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.body', :appsec) do |stack, gateway_request|
-                  event = nil
                   context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
-                  engine = AppSec::Reactive::Engine.new
 
-                  Rack::Reactive::RequestBody.subscribe(engine, context) do |result|
-                    if result.match?
-                      # TODO: should this hash be an Event instance instead?
-                      event = {
-                        waf_result: result,
-                        trace: context.trace,
-                        span: context.span,
-                        request: gateway_request,
-                        actions: result.actions
-                      }
+                  persistent_data = {
+                    'server.request.body' => gateway_request.form_hash
+                  }
 
-                      # We want to keep the trace in case of security event
-                      context.trace.keep! if context.trace
-                      Datadog::AppSec::Event.tag_and_keep!(context, result)
-                      context.events << event
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                      Datadog::AppSec::ActionsHandler.handle(result.actions)
-                    end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
+
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
+
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
-
-                  Rack::Reactive::RequestBody.publish(engine, gateway_request)
 
                   stack.call(gateway_request.request)
                 end

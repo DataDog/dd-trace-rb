@@ -6,7 +6,6 @@ require_relative '../traces'
 require_relative 'client'
 require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
-require_relative 'api/instance'
 
 module Datadog
   module Tracing
@@ -143,8 +142,6 @@ module Datadog
 
           # Add traces behavior to transport components
           HTTP::Client.include(Traces::Client)
-          HTTP::API::Spec.include(Traces::API::Spec)
-          HTTP::API::Instance.include(Traces::API::Instance)
         end
       end
     end

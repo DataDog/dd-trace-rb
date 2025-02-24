@@ -37,7 +37,7 @@ module Datadog
           module UnixSocket
             ADAPTER = :unix
             DEFAULT_PATH = '/var/run/datadog/apm.socket'
-            DEFAULT_TIMEOUT_SECONDS = 1
+            DEFAULT_TIMEOUT_SECONDS = 30
           end
         end
       end
