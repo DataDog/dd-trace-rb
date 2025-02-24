@@ -4,10 +4,10 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module Patcher
+        module Patches
           # To avoid tracking new sessions that are created by
           # Rememberable strategy as Login Success events.
-          module RememberablePatch
+          module SkipSigninTrackingPatch
             def validate(*args)
               @_datadog_appsec_skip_track_login_event = true
 
