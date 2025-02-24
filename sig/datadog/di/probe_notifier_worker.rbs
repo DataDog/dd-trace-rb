@@ -10,7 +10,7 @@ module Datadog
 
       @snapshot_queue: Array[Hash[String, untyped]]
 
-      @transport: Transport
+      @agent_settings: untyped
 
       @lock: Mutex
 
@@ -26,7 +26,7 @@ module Datadog
       
       @telemetry: Core::Telemetry::Component?
 
-      def initialize: (untyped settings, Transport transport, DI::Logger logger, ?telemetry: Core::Telemetry::Component) -> void
+      def initialize: (untyped settings, DI::Logger logger, agent_settings: untyped, ?telemetry: Core::Telemetry::Component) -> void
 
       attr_reader settings: untyped
       
@@ -40,6 +40,9 @@ module Datadog
       
       def add_status: (Hash[Symbol, untyped]) -> void
       def add_snapshot: (Hash[Symbol, untyped]) -> void
+      
+      def status_transport: () -> DI::Transport::Diagnostics::Transport
+      def snapshot_transport: () -> DI::Transport::Input::Transport
 
       private
       
@@ -51,7 +54,7 @@ module Datadog
 
       def snapshot_queue: () -> Array[Hash[String, untyped]]
 
-      attr_reader transport: Transport
+      attr_reader agent_settings: untyped
 
       attr_reader wake: Core::Semaphore
 

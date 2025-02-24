@@ -230,24 +230,35 @@ RSpec.describe 'DI integration from remote config' do
 
   let(:payloads) { [] }
 
+  let(:diagnostics_transport) do
+    double(Datadog::DI::Transport::Diagnostics::Transport)
+  end
+
+  let(:input_transport) do
+    double(Datadog::DI::Transport::Input::Transport)
+  end
+
   def do_rc(expect_hook: :hook_method)
     expect(probe_manager).to receive(:add_probe).and_call_original
     if expect_hook
       expect(instrumenter).to receive(expect_hook).and_call_original
     end
-    # Events can be batched, meaning +post+ could be called once or twice
-    # depending on how threads are scheduled by the VM.
-    expect(component.transport.send(:client)).to receive(:post).at_least(:once) do |env|
-      notify_payload = if env.path == '/debugger/v1/diagnostics'
-        JSON.parse(env.form.fetch('event').io.read, symbolize_names: true)
-      else
-        JSON.parse(env.body)
-      end
+
+    expect(Datadog::DI::Transport::HTTP).to receive(:diagnostics).and_return(diagnostics_transport)
+    allow(Datadog::DI::Transport::HTTP).to receive(:input).and_return(input_transport)
+    expect(diagnostics_transport).to receive(:send_diagnostics).at_least(:once) do |notify_payload|
       expect(notify_payload).to be_a(Array)
       notify_payload.each do |payload|
-        payloads << payload.merge(path: env.path)
+        payloads << payload.merge(path: '/debugger/v1/diagnostics')
       end
-      mock_response
+    end
+    allow(input_transport).to receive(:send_input) do |notify_payload|
+      expect(notify_payload).to be_a(Array)
+      notify_payload.each do |payload|
+        # Quick hack to deep stringify keys
+        payload = JSON.parse(payload.to_json)
+        payloads << payload.merge(path: '/debugger/v1/input')
+      end
     end
 
     receiver.call(repository, transaction)
