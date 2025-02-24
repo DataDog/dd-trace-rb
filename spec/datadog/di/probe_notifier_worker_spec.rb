@@ -45,6 +45,10 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
       end
 
       it 'adds snapshot to queue' do
+        # Depending on scheduling, the worker thread may attempt to
+        # invoke the transport to send the snapshot.
+        allow(input_transport).to receive(:send_input)
+
         expect(worker.send(:snapshot_queue)).to be_empty
 
         worker.add_snapshot(snapshot)
