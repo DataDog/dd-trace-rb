@@ -291,6 +291,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
+          logger: logger,
           log_collection_enabled: log_collection_enabled, }
       end
       let(:enabled) { true }
@@ -323,6 +324,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
+              logger: logger,
               log_collection_enabled: true, }
           end
           let(:agent_settings) do
@@ -346,6 +348,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:transport) { instance_double(Datadog::Core::Telemetry::Http::Transport) }
         let(:expected_options) do
           { enabled: enabled, http_transport: transport,
+            logger: logger,
             metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
@@ -366,6 +369,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:api_key) { nil }
           let(:expected_options) do
             { enabled: false, http_transport: transport,
+              logger: logger,
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
@@ -553,6 +557,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             sampler: sampler,
             span_sampler: span_sampler,
             writer: writer,
+            logger: logger,
           }
         end
 
