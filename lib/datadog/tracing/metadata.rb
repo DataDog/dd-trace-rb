@@ -2,6 +2,7 @@
 
 require_relative 'metadata/analytics'
 require_relative 'metadata/tagging'
+require_relative 'metadata/metastruct'
 require_relative 'metadata/errors'
 
 module Datadog
