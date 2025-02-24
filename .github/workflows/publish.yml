@@ -126,6 +126,7 @@ jobs:
       - rubygems-release
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     permissions:
       contents: write
@@ -153,6 +154,10 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
+        with:
+          ruby-version: '3.3.7'
       - run: bundle install
       - id: next_version
         run: |
