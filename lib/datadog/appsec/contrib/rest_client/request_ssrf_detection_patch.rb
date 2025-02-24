@@ -1,3 +1,4 @@
+# rubocop:disable Naming/FileName
 # frozen_string_literal: true
 
 module Datadog
@@ -35,3 +36,4 @@ module Datadog
     end
   end
 end
+# rubocop:enable Naming/FileName
