@@ -84,11 +84,6 @@ RSpec.describe 'Excon SSRF Injection' do
     stack.to_app
   end
 
-  let(:http_service_entry_span) do
-    Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
-  end
-
   context 'when request params contain SSRF attack' do
     before do
       get('/ssrf', { 'url' => '169.254.169.254' }, { 'REMOTE_ADDR' => '127.0.0.1' })

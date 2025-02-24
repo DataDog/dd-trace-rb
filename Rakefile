@@ -279,6 +279,7 @@ namespace :spec do
     task all: [
       :main,
       :active_record,
+      :active_record_autoinstrument,
       :rack,
       :rails,
       :sinatra,
@@ -287,7 +288,8 @@ namespace :spec do
       :faraday,
       :excon,
       :rest_client,
-      :integration
+      :integration,
+      :integration_autoinstrument
     ]
 
     # Datadog AppSec main specs
@@ -323,6 +325,14 @@ namespace :spec do
         t.pattern = "spec/datadog/appsec/contrib/#{contrib}/**/*_spec.rb"
         t.rspec_opts = args.to_a.join(' ')
       end
+    end
+
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new(:integration_autoinstrument) do |t, args|
+      t.pattern = 'spec/datadog/appsec/contrib/integration_autoinstrument/**/*_spec.rb'
+      t.rspec_opts = args.to_a.join(' ')
+
+      ENV['DD_APPSEC_ENABLED'] = 'true'
     end
   end
 

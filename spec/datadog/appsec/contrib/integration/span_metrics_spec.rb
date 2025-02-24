@@ -27,7 +27,6 @@ RSpec.describe 'Span metrics integration test' do
     Datadog.configure do |c|
       c.tracing.enabled = true
       c.tracing.instrument :rack
-      c.tracing.instrument :http
 
       c.appsec.enabled = true
       c.appsec.instrument :rack

@@ -16,7 +16,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('1.1.0')
 
-          register_as :rack, auto_patch: false
+          register_as :rack, auto_patch: true
 
           def self.version
             Gem.loaded_specs['rack'] && Gem.loaded_specs['rack'].version
@@ -31,7 +31,7 @@ module Datadog
           end
 
           def self.auto_instrument?
-            false
+            true
           end
 
           def patcher

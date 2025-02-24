@@ -6,10 +6,9 @@ require 'rack/test'
 
 require 'active_record'
 require 'sqlite3'
-require 'datadog/tracing'
-require 'datadog/appsec'
+require 'datadog/auto_instrument'
 
-RSpec.describe 'ActiveRecord SQL Injection' do
+RSpec.describe 'ActiveRecord auto-instrumentation' do
   include Rack::Test::Methods
 
   before do
@@ -25,13 +24,6 @@ RSpec.describe 'ActiveRecord SQL Injection' do
     end
 
     Datadog.configure do |c|
-      c.tracing.enabled = true
-      c.tracing.instrument :rack
-
-      c.appsec.enabled = true
-      c.appsec.instrument :rack
-      c.appsec.instrument :active_record
-
       c.appsec.ruleset = {
         rules: [
           {

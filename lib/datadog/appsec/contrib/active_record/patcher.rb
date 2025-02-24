@@ -19,39 +19,42 @@ module Datadog
           end
 
           def patch
-            if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
-              instrumentation_module = Instrumentation::InternalExecQueryAdapterPatch
+            patch_proc = lambda do |adapter_class, is_postgres: false|
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+                                         Instrumentation::InternalExecQueryAdapterPatch
+                                       else
+                                         Instrumentation::ExecQueryAdapterPatch
+                                       end
 
-              # Load Hooks for all adapters are present starting with ActiveRecord 7.1
-              ActiveSupport.on_load :active_record_sqlite3adapter do
-                ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(instrumentation_module)
+              if is_postgres && !defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
+                instrumentation_module = Instrumentation::ExecuteAndClearAdapterPatch
               end
 
-              ActiveSupport.on_load :active_record_mysql2adapter do
-                ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(instrumentation_module)
-              end
+              adapter_class.prepend(instrumentation_module)
+            end
 
-              ActiveSupport.on_load :active_record_postgresqladapter do
-                ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
-              end
-            else
-              instrumentation_module = Instrumentation::ExecQueryAdapterPatch
-
-              ActiveSupport.on_load :active_record do
-                if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
-                  ::ActiveRecord::ConnectionAdapters::SQLite3Adapter.prepend(instrumentation_module)
+            ActiveSupport.on_load :active_record do
+              if defined?(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
+                patch_proc.call(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
+              else
+                ActiveSupport.on_load :active_record_sqlite3adapter do
+                  patch_proc.call(::ActiveRecord::ConnectionAdapters::SQLite3Adapter)
                 end
+              end
 
-                if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
-                  ::ActiveRecord::ConnectionAdapters::Mysql2Adapter.prepend(instrumentation_module)
+              if defined?(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
+                patch_proc.call(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
+              else
+                ActiveSupport.on_load :active_record_mysql2adapter do
+                  patch_proc.call(::ActiveRecord::ConnectionAdapters::Mysql2Adapter)
                 end
+              end
 
-                if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
-                  unless defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-                    instrumentation_module = Instrumentation::ExecuteAndClearAdapterPatch
-                  end
-
-                  ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
+              if defined?(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter)
+                patch_proc.call(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter, is_postgres: true)
+              else
+                ActiveSupport.on_load :active_record_postgresqladapter do
+                  patch_proc.call(::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter, is_postgres: true)
                 end
               end
             end

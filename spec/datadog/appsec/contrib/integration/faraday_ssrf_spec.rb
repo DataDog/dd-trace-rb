@@ -15,7 +15,6 @@ RSpec.describe 'Faraday SSRF Injection' do
     Datadog.configure do |c|
       c.tracing.enabled = true
       c.tracing.instrument :rack
-      c.tracing.instrument :http
 
       c.appsec.enabled = true
       c.appsec.instrument :rack
@@ -90,11 +89,6 @@ RSpec.describe 'Faraday SSRF Injection' do
     end
 
     stack.to_app
-  end
-
-  let(:http_service_entry_span) do
-    Datadog::Tracing::Transport::TraceFormatter.format!(trace)
-    spans.find { |s| s.name == 'rack.request' }
   end
 
   context 'when request params contain SSRF attack' do

@@ -15,7 +15,6 @@ RSpec.describe 'RestClient SSRF Injection' do
     Datadog.configure do |c|
       c.tracing.enabled = true
       c.tracing.instrument :rack
-      c.tracing.instrument :http
 
       c.appsec.enabled = true
       c.appsec.instrument :rack
@@ -57,6 +56,7 @@ RSpec.describe 'RestClient SSRF Injection' do
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
 
     stub_request(:get, 'http://example.com').to_return(status: 200, body: 'OK')
+    stub_request(:get, 'http://169.254.169.254').to_return(status: 200, body: 'OK')
   end
 
   after do

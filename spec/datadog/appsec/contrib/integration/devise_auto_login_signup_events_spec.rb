@@ -89,7 +89,6 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Datadog.configure do |config|
       config.tracing.enabled = true
       config.tracing.instrument :rails
-      config.tracing.instrument :http
 
       config.appsec.enabled = true
       config.appsec.instrument :rails
