@@ -80,7 +80,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   context 'probe status' do
-
     let(:installed_payload) do
       {ddsource: 'dd_debugger',
        debugger: {
@@ -117,7 +116,6 @@ Content-Transfer-Encoding: binary
   end
 
   context 'probe snapshot' do
-
     let(:snapshot_payload) do
       {
         path: '/debugger/v1/input',
@@ -163,7 +161,7 @@ Content-Transfer-Encoding: binary
 
       expect(input_payloads.length).to be 1
       # deep stringify keys
-      expect(input_payloads.first).to eq([JSON.load(snapshot_payload.to_json)])
+      expect(input_payloads.first).to eq([JSON.parse(snapshot_payload.to_json)])
     end
   end
 end
