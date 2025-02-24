@@ -981,6 +981,31 @@ module Datadog
           end
         end
 
+        settings :errortracking do
+          option :enabled do |o|
+            o.type :bool
+            o.default false
+            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS'
+          end
+
+          option :instrument_user_code do |o|
+            o.type :bool
+            o.default false
+            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_USER'
+          end
+
+          option :instrument_third_party do |o|
+            o.type :bool
+            o.default false
+            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_THIRD_PARTY'
+          end
+
+          option :instrument_modules do |o|
+            o.type :array
+            o.default []
+            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_MODULES'
+          end
+        end
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings

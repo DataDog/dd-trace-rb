@@ -15,6 +15,7 @@ require_relative '../../profiling/component'
 require_relative '../../appsec/component'
 require_relative '../../di/component'
 require_relative '../crashtracking/component'
+require_relative '../errortracking/component'
 
 require_relative '../environment/agent_info'
 
@@ -75,6 +76,12 @@ module Datadog
 
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
+
+          def build_errortracker(settings, agent_settings, tracer)
+            return unless settings.errortracking.enabled
+
+            Core::ErrorTracking::Component.build(settings, agent_settings, tracer)
+          end
         end
 
         include Datadog::Tracing::Component::InstanceMethods
@@ -88,6 +95,7 @@ module Datadog
           :telemetry,
           :tracer,
           :crashtracker,
+          :errortracker,
           :dynamic_instrumentation,
           :appsec,
           :agent_info
@@ -109,6 +117,7 @@ module Datadog
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
+          @errortracker = self.class.build_errortracker(settings, agent_settings, tracer: @tracer)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,
@@ -203,6 +212,8 @@ module Datadog
           # enqueue closing event before stopping telemetry so it will be send out on shutdown
           telemetry.emit_closing! unless replacement
           telemetry.stop!
+
+          # errortracker.stop
         end
       end
     end

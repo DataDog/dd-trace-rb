@@ -37,7 +37,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status, :span_events
+      attr_accessor :links, :status, :span_events, :exception_events
 
       def initialize(
         name,
@@ -73,6 +73,8 @@ module Datadog
         @links = links || []
         # stores array of span events
         @span_events = span_events || []
+        # stores array of exceptions events
+        @exception_events = {}
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -130,6 +132,10 @@ module Datadog
         @resource = resource.nil? ? nil : Core::Utils.utf8_encode(resource) # Allow this to be explicitly set to nil
       end
 
+      def add_exception_event(exception, event)
+        @exception_events[exception] = event
+      end
+
       def measure
         raise ArgumentError, 'Must provide block to measure!' unless block_given?
         # TODO: Should we just invoke the block and skip tracing instead?
@@ -162,6 +168,8 @@ module Datadog
           # If the span failed to start, timing may be inaccurate,
           # but this is not really a serious concern.
           stop
+
+          @exception_events.delete(e) unless @exception_events.empty?
 
           # Trigger the on_error event
           events.on_error.publish(self, e)
@@ -470,7 +478,7 @@ module Datadog
           type: @type,
           trace_id: @trace_id,
           links: @links,
-          events: @span_events,
+          events: @span_events + @exception_events.values,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end
