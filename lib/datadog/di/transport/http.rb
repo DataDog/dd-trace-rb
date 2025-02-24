@@ -19,11 +19,6 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
-          Datadog::Core::Configuration::Settings.new,
-          logger: nil,
-        )
-
         module_function
 
         # Builds a new Transport::HTTP::Client
@@ -36,7 +31,7 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def diagnostics(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings:,
           **options
         )
           new(DI::Transport::Diagnostics::Transport) do |transport|
@@ -61,7 +56,7 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def input(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings:,
           **options
         )
           new(DI::Transport::Input::Transport) do |transport|
