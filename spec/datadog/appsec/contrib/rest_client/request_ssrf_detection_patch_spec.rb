@@ -7,8 +7,6 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
   let(:context) { instance_double(Datadog::AppSec::Context, run_rasp: waf_response) }
   let(:waf_response) { instance_double(Datadog::AppSec::SecurityEngine::Result::Ok, match?: false) }
 
-  let(:request_url) { 'http://example.com/success' }
-
   before do
     Datadog.configure do |c|
       c.appsec.enabled = true
@@ -20,7 +18,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     WebMock.disable_net_connect!(allow: agent_url)
     WebMock.enable!(allow: agent_url)
 
-    stub_request(:get, request_url).to_return(status: 200, body: 'OK')
+    stub_request(:get, 'http://example.com/success').to_return(status: 200, body: 'OK')
   end
 
   after do
@@ -35,7 +33,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get(request_url)
+      RestClient.get('http://example.com/success')
     end
   end
 
@@ -45,7 +43,7 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
     it 'does not call waf when making a request' do
       expect(Datadog::AppSec.active_context).not_to receive(:run_rasp)
 
-      RestClient.get(request_url)
+      RestClient.get('http://example.com/success')
     end
   end
 
@@ -64,11 +62,11 @@ RSpec.describe 'RestClient::Request patch for SSRF detection' do
         )
       )
 
-      RestClient.get(request_url)
+      RestClient.get('http://example.com/success')
     end
 
     it 'returns the http response' do
-      response = RestClient.get(request_url)
+      response = RestClient.get('http://example.com/success')
 
       expect(response.code).to eq(200)
       expect(response.body).to eq('OK')

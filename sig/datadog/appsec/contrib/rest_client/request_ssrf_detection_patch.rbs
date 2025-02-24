@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module Contrib
       module RestClient
-        module RequestPatch
+        module RequestSSRFDetectionPatch
           def self?.execute: () -> void
         end
       end

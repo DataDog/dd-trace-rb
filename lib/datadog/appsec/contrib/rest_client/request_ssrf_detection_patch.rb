@@ -5,7 +5,7 @@ module Datadog
     module Contrib
       module RestClient
         # Module that adds SSRF detection to RestClient::Request#execute
-        module RequestPatch
+        module RequestSSRFDetectionPatch
           def execute(&block)
             return super unless AppSec.rasp_enabled? && AppSec.active_context
 

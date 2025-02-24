@@ -17,9 +17,9 @@ module Datadog
           end
 
           def patch
-            require_relative 'request_patch'
+            require_relative 'request_ssrf_detection_patch'
 
-            ::RestClient::Request.prepend(RequestPatch)
+            ::RestClient::Request.prepend(RequestSSRFDetectionPatch)
           end
         end
       end

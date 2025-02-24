@@ -4,7 +4,7 @@ PATH
     datadog (2.11.0)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.18.0.0.1)
+      libddwaf (~> 1.18.0.0.0)
       logger
       msgpack
 
