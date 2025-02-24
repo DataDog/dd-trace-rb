@@ -35,22 +35,6 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   di_logger_double
 
-  let(:installed_payload) do
-    {ddsource: 'dd_debugger',
-     debugger: {
-       diagnostics: {
-         parentId: nil,
-         probeId: String,
-         probeVersion: 0,
-         runtimeId: 'test runtime id',
-         status: 'INSTALLED',
-       }
-     },
-     message: 'test message',
-     service: 'rspec',
-     timestamp: 1234567890,}.freeze
-  end
-
   let(:diagnostics_payloads) { [] }
   let(:input_payloads) { [] }
 
@@ -96,6 +80,23 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   end
 
   context 'probe status' do
+
+    let(:installed_payload) do
+      {ddsource: 'dd_debugger',
+       debugger: {
+         diagnostics: {
+           parentId: nil,
+           probeId: String,
+           probeVersion: 0,
+           runtimeId: 'test runtime id',
+           status: 'INSTALLED',
+         }
+       },
+       message: 'test message',
+       service: 'rspec',
+       timestamp: 1234567890,}.freeze
+    end
+
     it 'sends expected payload' do
       worker.add_status(installed_payload)
       worker.flush
@@ -112,6 +113,57 @@ Content-Transfer-Encoding: binary
 \[{"ddsource":"dd_debugger","debugger":{"diagnostics":{"parentId":null,"probeId":"String","probeVersion":0,"runtimeId":"test runtime id","status":"INSTALLED"}},"message":"test message","service":"rspec","timestamp":1234567890}\]
 ----[-\w]+\
 ~)
+    end
+  end
+
+  context 'probe snapshot' do
+
+    let(:snapshot_payload) do
+      {
+        path: '/debugger/v1/input',
+        # We do not have active span/trace in the test.
+        "dd.span_id": nil,
+        "dd.trace_id": nil,
+        "debugger.snapshot": {
+          captures: nil,
+          evaluationErrors: [],
+          id: 'test id',
+          language: 'ruby',
+          probe: {
+            id: '11',
+            location: {
+              method: 'target_method',
+              type: 'EverythingFromRemoteConfigSpecTestClass',
+            },
+            version: 0,
+          },
+          stack: ['test entry'],
+          timestamp: 1234567890,
+        },
+        ddsource: 'dd_debugger',
+        duration: 123.45,
+        host: nil,
+        logger: {
+          method: 'target_method',
+          name: nil,
+          thread_id: nil,
+          thread_name: 'Thread.main',
+          version: 2,
+        },
+        message: nil,
+        service: 'rspec',
+        timestamp: 1234567890,
+      }.freeze
+    end
+
+    it 'sends expected payload' do
+      worker.add_snapshot(snapshot_payload)
+      worker.flush
+      expect(worker.send(:thread)).to be_alive
+
+      expect(input_payloads.length).to be 1
+      # deep stringify keys
+      expect(input_payloads.first).to eq([JSON.load(snapshot_payload.to_json)])
     end
   end
 end
