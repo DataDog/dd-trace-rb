@@ -2,6 +2,10 @@ require "datadog/di/spec_helper"
 require 'datadog/di'
 require 'webrick'
 
+# standard tries to wreck regular expressions in this fiel
+# rubocop:disable Style/PercentLiteralDelimiters
+# rubocop:disable Layout/LineContinuationSpacing
+
 RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:worker) do
     described_class.new(settings, logger, agent_settings: agent_settings)
@@ -111,3 +115,6 @@ Content-Transfer-Encoding: binary
     end
   end
 end
+
+# rubocop:enable Style/PercentLiteralDelimiters
+# rubocop:enable Layout/LineContinuationSpacing
