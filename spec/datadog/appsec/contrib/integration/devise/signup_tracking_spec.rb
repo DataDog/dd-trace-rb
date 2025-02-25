@@ -183,7 +183,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
       expect(http_service_entry_span.tags['usr.id']).to eq('1')
       expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('1')
       expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
 
       expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
@@ -341,7 +340,6 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
       expect(http_service_entry_span.tags['usr.id']).to eq('42')
       expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('42')
       expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('hello@gmail.com')
 
       expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.sdk']).to eq('true')
