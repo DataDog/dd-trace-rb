@@ -38,10 +38,11 @@ module Datadog
             end
 
             if id
-              context.span.set_tag('usr.id', id.to_s) # TODO: unless set via SDK
+              context.span.set_tag('usr.id', id.to_s) unless context.span.has_tag?('usr.id')
               context.span.set_tag('_dd.appsec.usr.id', id.to_s)
-              # TODO: unless set via SDK
-              context.span.set_tag('_dd.appsec.user.collection_mode', Configuration.auto_user_instrumentation_mode)
+              unless context.span.has_tag?('_dd.appsec.user.collection_mode')
+                context.span.set_tag('_dd.appsec.user.collection_mode', Configuration.auto_user_instrumentation_mode)
+              end
             end
 
             @app.call(env)

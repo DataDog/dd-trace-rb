@@ -22,7 +22,7 @@ module Datadog
                   next
                 end
 
-                id = resource.id.to_s if resource.respond_to?(:id)
+                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
                 login = if resource.respond_to?(:email)
                           resource.email
                         elsif resource.respond_to?(:username)
@@ -42,19 +42,27 @@ module Datadog
                         end
 
                 context.trace.keep!
-                context.span.set_tag('appsec.events.users.signup.usr.login', login)
                 context.span.set_tag('appsec.events.users.signup.track', 'true')
-                context.span.set_tag('_dd.appsec.usr.id', id)
                 context.span.set_tag('_dd.appsec.usr.login', login)
                 context.span.set_tag(
                   '_dd.appsec.events.users.signup.auto.mode',
                   Configuration.auto_user_instrumentation_mode
                 )
 
-                if resource.active_for_authentication?
-                  context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
-                else
-                  context.span.set_tag('appsec.events.users.signup.usr.id', id)
+                unless context.span.has_tag?('appsec.events.users.signup.usr.login')
+                  context.span.set_tag('appsec.events.users.signup.usr.login', login)
+                end
+
+                if id
+                  context.span.set_tag('_dd.appsec.usr.id', id)
+
+                  if resource.active_for_authentication?
+                    context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
+                  else
+                    unless context.span.has_tag?('appsec.events.users.signup.usr.id')
+                      context.span.set_tag('appsec.events.users.signup.usr.id', id)
+                    end
+                  end
                 end
 
                 yield resource if block_given?

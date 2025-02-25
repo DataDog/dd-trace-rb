@@ -20,8 +20,9 @@ module Datadog
               context = AppSec.active_context
               context.trace.keep!
 
+              # Success
               if result
-                id = resource.id.to_s if resource.respond_to?(:id)
+                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
                 login = if resource.respond_to?(:email)
                           resource.email
                         elsif resource.respond_to?(:username)
@@ -33,11 +34,16 @@ module Datadog
                           resource.send(attribute)
                         end
 
-                # FIXME: Check that ID is available
-                context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
-                context.span.set_tag('appsec.events.users.login.success.usr.login', login)
+                if id
+                  context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
+                  context.span.set_tag('_dd.appsec.usr.id', id)
+                end
+
+                unless context.span.has_tag?('appsec.events.users.login.success.usr.login')
+                  context.span.set_tag('appsec.events.users.login.success.usr.login', login)
+                end
+
                 context.span.set_tag('appsec.events.users.login.success.track', 'true')
-                context.span.set_tag('_dd.appsec.usr.id', id)
                 context.span.set_tag('_dd.appsec.usr.login', login)
                 context.span.set_tag(
                   '_dd.appsec.events.users.login.success.auto.mode',
@@ -47,6 +53,8 @@ module Datadog
                 return result
               end
 
+              # Failure
+
               context.span.set_tag('appsec.events.users.login.failure.track', 'true')
               context.span.set_tag(
                 '_dd.appsec.events.users.login.failure.auto.mode',
@@ -54,7 +62,7 @@ module Datadog
               )
 
               if resource
-                id = resource.id.to_s if resource.respond_to?(:id)
+                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
                 login = if resource.respond_to?(:email)
                           resource.email
                         elsif resource.respond_to?(:username)
@@ -66,21 +74,29 @@ module Datadog
                           resource.send(attribute)
                         end
 
-                unless id.nil?
+                if id
                   context.span.set_tag('_dd.appsec.usr.id', id)
-                  context.span.set_tag('appsec.events.users.login.failure.usr.id', id)
+                  unless context.span.has_tag?('appsec.events.users.login.failure.usr.id')
+                    context.span.set_tag('appsec.events.users.login.failure.usr.id', id)
+                  end
                 end
 
                 context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
                 context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'true')
+
+                unless context.span.has_tag?('appsec.events.users.login.failure.usr.login')
+                  context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
+                end
               else
                 login = authentication_hash[:email] || authentication_hash[:username] ||
                   authentication_hash[:login] || authentication_hash.values[0]
 
                 context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
                 context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'false')
+
+                unless context.span.has_tag?('appsec.events.users.login.failure.usr.login')
+                  context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
+                end
               end
 
               result
