@@ -27,6 +27,7 @@ jobs:
     name: batch
     outputs:
       batches: "${{ steps.set-batches.outputs.batches }}"
+      misc: "${{ steps.set-batches.outputs.misc }}"
       cache-key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
       lockfile: "${{ steps.lockfile.outputs.lockfile }}"
     container:
@@ -60,18 +61,47 @@ jobs:
     - id: set-batches
       name: Distribute tasks into batches
       run: |
-        batches_json=$(bundle exec rake github:generate_batches)
-        echo "$batches_json" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
-        echo "batches=$batches_json" >> $GITHUB_OUTPUT
+        data=$(bundle exec rake github:generate_batches)
+        echo "$data" | ruby -rjson -e 'puts JSON.pretty_generate(JSON.parse(STDIN.read))'
+
+        # Extract each key and set it as a separate output
+        batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
+        misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
+
+        echo "batches=$batches_data" >> $GITHUB_OUTPUT
+        echo "misc=$misc_data" >> $GITHUB_OUTPUT
     - name: Generate batch summary
       run: bundle exec rake github:generate_batch_summary
       env:
         batches_json: "${{ steps.set-batches.outputs.batches }}"
-  build-test:
+
+  # `Initialize containers` step becomes quite heavily when many services are used.
+  #
+  # The job can failed with timeout because it takes a long time pulling the image or waiting for the service to be ready).
+  #
+  # `build-test-standard` job is used to run most of our tasks and configured with the following services:
+  #   - mysql
+  #   - postgres
+  #   - redis
+  #
+  # `build-test-misc` job is extracted to run specific tasks that requires the following services:
+  #   - elasticsearch
+  #   - memcached
+  #   - mongodb
+  #   - opensearch
+  #   - presto
+  #
+  #  Benefit of this optimization:
+  #  - Unnecessary services are not started
+  #  - Reduce the overhead for pulling images
+  #  - Improve reliability for starting dependent services
+  #
+  # In the future, we could consider to extract jobs to run database dependent tasks to optimize the workflow.
+  build-test-standard:
     needs:
     - batch
     runs-on: ubuntu-24.04
-    name: build & test [${{ matrix.batch }}]
+    name: build & test (standard) [${{ matrix.batch }}]
     timeout-minutes: 30
     env:
       BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
@@ -86,10 +116,69 @@ jobs:
         DD_REMOTE_CONFIGURATION_ENABLED: 'false'
         TEST_POSTGRES_HOST: postgres
         TEST_REDIS_HOST: redis
+        TEST_MYSQL_HOST: mysql
+        DD_AGENT_HOST: agent
+        DD_TRACE_AGENT_PORT: '9126'
+        DATADOG_GEM_CI: 'true'
+        TEST_DATADOG_INTEGRATION: '1'
+        JRUBY_OPTS: "--dev" # Faster JVM startup: https://github.com/jruby/jruby/wiki/Improving-startup-time#use-the---dev-flag
+    services:
+      agent:
+        image: ghcr.io/datadog/dd-apm-test-agent/ddapm-test-agent:v1.18.0
+        env:
+          LOG_LEVEL: DEBUG
+          TRACE_LANGUAGE: ruby
+          PORT: '9126'
+          DD_POOL_TRACE_CHECK_FAILURES: 'true'
+          DD_DISABLE_ERROR_RESPONSES: 'true'
+          ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
+      mysql:
+        image: ghcr.io/datadog/images-rb/services/mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_PASSWORD: mysql
+          MYSQL_USER: mysql
+      postgres:
+        image: ghcr.io/datadog/images-rb/services/postgres:9.6
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+      redis:
+        image: ghcr.io/datadog/images-rb/services/redis:6.2
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - name: Restore bundle cache
+      uses: ./.github/actions/bundle-restore
+      with:
+        lockfile-name: ${{ needs.batch.outputs.lockfile }}
+        cache-key: ${{ needs.batch.outputs.cache-key }}
+    - name: Build & Test
+      uses: ./.github/actions/build-test
+      with:
+        alias: ${{ inputs.alias }}
+        container-id: "standard-${{ matrix.batch }}"
+
+  build-test-misc:
+    needs:
+    - batch
+    runs-on: ubuntu-24.04
+    name: build & test (misc) [${{ matrix.batch }}]
+    timeout-minutes: 30
+    env:
+      BATCHED_TASKS: "${{ toJSON(matrix.tasks) }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        include: "${{ fromJson(needs.batch.outputs.misc).include }}"
+    container:
+      image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
+      env:
+        DD_INSTRUMENTATION_TELEMETRY_ENABLED: 'false'
+        DD_REMOTE_CONFIGURATION_ENABLED: 'false'
         TEST_ELASTICSEARCH_HOST: elasticsearch
         TEST_MEMCACHED_HOST: memcached
         TEST_MONGODB_HOST: mongodb
-        TEST_MYSQL_HOST: mysql
         TEST_OPENSEARCH_HOST: opensearch
         TEST_OPENSEARCH_PORT: '9200'
         TEST_PRESTO_HOST: presto
@@ -108,14 +197,6 @@ jobs:
           DD_POOL_TRACE_CHECK_FAILURES: 'true'
           DD_DISABLE_ERROR_RESPONSES: 'true'
           ENABLED_CHECKS: trace_content_length,trace_stall,meta_tracer_version_header,trace_count_header,trace_peer_service,trace_dd_service
-      postgres:
-        image: ghcr.io/datadog/images-rb/services/postgres:9.6
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_USER: postgres
-          POSTGRES_DB: postgres
-      redis:
-        image: ghcr.io/datadog/images-rb/services/redis:6.2
       elasticsearch:
         image: ghcr.io/datadog/images-rb/services/elasticsearch:8.1.3
         env:
@@ -138,54 +219,15 @@ jobs:
           cluster.routing.allocation.disk.threshold_enabled: 'false'
       presto:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
-      mysql:
-        image: ghcr.io/datadog/images-rb/services/mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: root
-          MYSQL_PASSWORD: mysql
-          MYSQL_USER: mysql
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - name: Configure Git
-      run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-    - name: Download lockfile
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+    - name: Restore bundle cache
+      uses: ./.github/actions/bundle-restore
       with:
-        name: lockfile-${{ inputs.alias }}-${{ github.run_id }}
-    - name: Restore cache
-      uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
-      id: restore-cache
+        lockfile-name: ${{ needs.batch.outputs.lockfile }}
+        cache-key: ${{ needs.batch.outputs.cache-key }}
+    - name: Build & Test
+      uses: ./.github/actions/build-test
       with:
-        key: "${{ needs.batch.outputs.cache-key }}"
-        path: "/usr/local/bundle"
-    - run: bundle check || bundle install
-    - run: bundle exec rake github:run_batch_build
-    - name: Configure RSpec
-      run: ln -s .rspec-local.example .rspec-local
-    - run: bundle exec rake github:run_batch_tests
-      env:
-        COVERAGE_DIR: coverage/versions/${{ inputs.alias }}/${{ matrix.batch }}
-    - name: Debug with SSH connection
-      if: ${{ failure() && runner.debug == '1' }}
-      uses: mxschmitt/action-tmate@e5c7151931ca95bad1c6f4190c730ecf8c7dde48 # v3.19.0
-      with:
-        limit-access-to-actor: true
-        # This mode will wait at the end of the job for a user to connect and then to terminate the tmate session.
-        # If no user has connected within 10 minutes after the post-job step started,
-        # it will terminate the tmate session and quit gracefully.
-        detached: true
-    - name: Validate test agent data
-      if: ${{ !cancelled() }}
-      run: ruby .github/scripts/test_agent_check.rb
-    - name: Upload junit reports
-      if: ${{ !cancelled() }}
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-      with:
-        name: junit-${{ inputs.alias }}-${{ matrix.batch }}-${{ github.run_id }}
-        path: tmp/rspec/*.xml
-    - name: Upload coverage data
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
-      with:
-        name: coverage-${{ inputs.alias }}-${{ matrix.batch }}-${{ github.run_id }}
-        path: coverage
-        include-hidden-files: true # Coverage data generated by SimpleCov are hidden
+        alias: ${{ inputs.alias }}
+        container-id: "misc-${{ matrix.batch }}"
