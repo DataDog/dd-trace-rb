@@ -16,7 +16,6 @@ module Datadog
       end
 
       # Auto-instrumentation for security integrations
-      # TODO: this implementation is trivial, check for shareable code with tracer
       module AutoInstrument
         module_function
 

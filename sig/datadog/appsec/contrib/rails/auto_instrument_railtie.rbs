@@ -1,0 +1,10 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Rails
+        class AutoInstrumentRailtie < Rails::Railtie
+        end
+      end
+    end
+  end
+end
