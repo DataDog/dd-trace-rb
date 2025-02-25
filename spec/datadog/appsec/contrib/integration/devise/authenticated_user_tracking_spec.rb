@@ -16,10 +16,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
 
   before do
     # NOTE: By doing this we are emulating the initilial load of the devise rails
-    #       engine. It will install the required middleware.
+    #       engine for every test case. It will install the required middleware.
     #       WARNING: This is a hack!
     Devise.send(:remove_const, :Engine)
-    load Gem.loaded_specs['devise'].full_gem_path + '/lib/devise/rails.rb'
+    load File.join(Gem.loaded_specs['devise'].full_gem_path, 'lib/devise/rails.rb')
 
     Devise.setup do |config|
       config.secret_key = 'test-secret-key'
