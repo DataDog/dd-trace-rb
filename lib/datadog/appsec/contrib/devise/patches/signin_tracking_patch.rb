@@ -33,6 +33,7 @@ module Datadog
                           resource.send(attribute)
                         end
 
+                # FIXME: Check that ID is available
                 context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
                 context.span.set_tag('appsec.events.users.login.success.usr.login', login)
                 context.span.set_tag('appsec.events.users.login.success.track', 'true')
