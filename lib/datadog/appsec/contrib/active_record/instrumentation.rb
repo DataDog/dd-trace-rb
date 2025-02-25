@@ -67,6 +67,11 @@ module Datadog
             def exec_query(sql, *args, **rest)
               Instrumentation.detect_sql_injection(sql, adapter_name)
 
+              # Rails 5 instruduces `prepare:` keyword argument in exec_query method.
+              # Ruby 2.5 expands empty keyword arguments to empty hash,
+              # which raises ArgumentError due to incorrect number of arguments.
+              return super(sql, *args) if Gem.loaded_specs['activerecord'].version < Gem::Version.new('5.0')
+
               super
             end
           end
