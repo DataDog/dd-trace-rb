@@ -8,6 +8,7 @@ require_relative 'http/adapters/test'
 module Datadog
   module Core
     module Transport
+      # HTTP transport
       module HTTP
         # Add adapters to registry
         Builder::REGISTRY.set(
