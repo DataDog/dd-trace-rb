@@ -28,7 +28,8 @@ module Datadog
         :provider,
         :sampler,
         :span_sampler,
-        :tags
+        :tags,
+        :logger
 
       attr_accessor \
         :default_service,
@@ -52,17 +53,19 @@ module Datadog
         context_provider: DefaultContextProvider.new,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
+        logger: Datadog.logger,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new
+        writer: Writer.new(logger: logger)
       )
         @trace_flush = trace_flush
         @default_service = default_service
         @enabled = enabled
+        @logger = logger
         @provider = context_provider
         @sampler = sampler
         @span_sampler = span_sampler
@@ -146,7 +149,7 @@ module Datadog
                     active_trace
                   end
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -268,7 +271,7 @@ module Datadog
           @sampler.sample!(trace_op)
         rescue StandardError => e
           SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -488,7 +491,7 @@ module Datadog
           @span_sampler.sample!(trace_op, span)
         rescue StandardError => e
           SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -504,7 +507,7 @@ module Datadog
           write(trace) if trace && !trace.empty?
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -518,7 +521,7 @@ module Datadog
         return unless trace && @writer
 
         if Datadog.configuration.diagnostics.debug
-          Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
+          logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
         end
 
         @writer.write(trace)

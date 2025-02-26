@@ -10,7 +10,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       emitter: emitter,
       metrics_manager: metrics_manager,
-      dependency_collection: dependency_collection
+      dependency_collection: dependency_collection,
+      logger: logger,
     )
   end
 
@@ -20,6 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
+  let(:logger) { double(Datadog::Core::Logger) }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
@@ -31,9 +33,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   end
 
   before do
-    logger = double(Datadog::Core::Logger)
     allow(logger).to receive(:debug).with(any_args)
-    allow(Datadog).to receive(:logger).and_return(logger)
 
     @received_started = false
     @received_heartbeat = false
@@ -80,7 +80,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
 
           try_wait_until { !worker.enabled? }
 
-          expect(Datadog.logger).to have_received(:debug).with(
+          expect(logger).to have_received(:debug).with(
             'Agent does not support telemetry; disabling future telemetry events.'
           )
           expect(@received_started).to be(true)
@@ -301,7 +301,8 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               emitter: emitter,
               metrics_manager: metrics_manager,
-              dependency_collection: dependency_collection
+              dependency_collection: dependency_collection,
+              logger: logger,
             )
           end
           workers.each(&:start)

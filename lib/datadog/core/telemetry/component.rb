@@ -16,7 +16,7 @@ module Datadog
       # Telemetry entrypoint, coordinates sending telemetry events at various points in app lifecycle.
       # Note: Telemetry does not spawn its worker thread in fork processes, thus no telemetry is sent in forked processes.
       class Component
-        attr_reader :enabled
+        attr_reader :enabled, :logger
 
         include Core::Utils::Forking
         include Telemetry::Logging
@@ -52,6 +52,7 @@ module Datadog
             heartbeat_interval_seconds: settings.telemetry.heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: settings.telemetry.metrics_aggregation_interval_seconds,
             dependency_collection: settings.telemetry.dependency_collection,
+            logger: logger,
             shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
             log_collection_enabled: settings.telemetry.log_collection_enabled
           )
@@ -66,6 +67,7 @@ module Datadog
           heartbeat_interval_seconds:,
           metrics_aggregation_interval_seconds:,
           dependency_collection:,
+          logger:,
           http_transport:,
           shutdown_timeout_seconds:,
           enabled: true,
@@ -74,6 +76,7 @@ module Datadog
         )
           @enabled = enabled
           @log_collection_enabled = log_collection_enabled
+          @logger = logger
 
           @metrics_manager = MetricsManager.new(
             enabled: enabled && metrics_enabled,
@@ -87,6 +90,7 @@ module Datadog
             emitter: Emitter.new(http_transport: http_transport),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection,
+            logger: logger,
             shutdown_timeout: shutdown_timeout_seconds
           )
 

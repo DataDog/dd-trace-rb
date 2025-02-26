@@ -20,6 +20,7 @@ RSpec.describe Datadog::Tracing::Writer do
 
     let(:options) { { transport: transport } }
     let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
+    let(:logger) { Datadog.logger }
 
     describe 'behavior' do
       describe '#initialize' do
@@ -66,6 +67,7 @@ RSpec.describe Datadog::Tracing::Writer do
         let(:async_transport_params) do
           {
             transport: transport,
+            logger: logger,
             buffer_size: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE,
             on_trace: anything,
             interval: Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL,
