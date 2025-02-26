@@ -15,7 +15,7 @@ module Datadog
 
           def self.auto_instrument?: () -> bool
 
-          def patcher: () -> Datadog::AppSec::Contrib::GraphQL::Patcher
+          def patcher: () -> Datadog::AppSec::Contrib::Excon::Patcher
         end
       end
     end

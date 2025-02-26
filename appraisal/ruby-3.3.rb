@@ -86,7 +86,6 @@ appraise 'http' do
   gem 'ethon'
   gem 'http'
   gem 'httpclient'
-  gem 'rest-client'
   gem 'typhoeus'
 end
 
@@ -95,6 +94,7 @@ build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
 build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday')
 build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('karafka', min: '2.0.41')
@@ -168,6 +168,13 @@ appraise 'opentelemetry' do
 end
 
 appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
+appraise 'opentelemetry_otlp_1_5' do
+  gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
   gem 'opentelemetry-sdk', '~> 1.1'
   gem 'opentelemetry-exporter-otlp'
 end
@@ -184,6 +191,7 @@ appraise 'rails-app' do
   gem 'devise', '~> 4.9'
   gem 'faraday', '~> 2.0'
   gem 'excon', '~> 1.2'
+  gem 'rest-client'
   gem 'rack', '~> 2'
   gem 'rack-contrib', '~> 2'
   gem 'rack-test' # Dev dependencies for testing rack-based code
