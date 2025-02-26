@@ -9,13 +9,6 @@ module Datadog
   module Core
     module Transport
       module HTTP
-        # Helper function that delegates to Builder.new
-        # but is under HTTP namespace so that client code requires this file
-        # to get the adapters configured, and not the builder directly.
-        module_function def build(api_instance_class:, &block)
-          Builder.new(api_instance_class: api_instance_class, &block)
-        end
-
         # Add adapters to registry
         Builder::REGISTRY.set(
           Transport::HTTP::Adapters::Net,
@@ -29,6 +22,15 @@ module Datadog
           Transport::HTTP::Adapters::UnixSocket,
           Transport::Ext::UnixSocket::ADAPTER
         )
+
+        module_function
+
+        # Helper function that delegates to Builder.new
+        # but is under HTTP namespace so that client code requires this file
+        # to get the adapters configured, and not the builder directly.
+        def build(api_instance_class:, &block)
+          Builder.new(api_instance_class: api_instance_class, &block)
+        end
       end
     end
   end
