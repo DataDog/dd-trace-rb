@@ -65,7 +65,7 @@ namespace :steep do
         $stdout.write("\n")
       end
 
-      # append ignored files from Steepfile
+      # Append ignored files from Steepfile to the end of the steep/typecheck summary
       steepfile_path = 'Steepfile'
       ignored_files = []
 
@@ -80,17 +80,17 @@ namespace :steep do
 
       ignored_files.each do |file|
         $stdout.write('|')
-        $stdout.write('datadog')
+        $stdout.write('datadog') # header: Target
         $stdout.write('|')
-        $stdout.write(file)
+        $stdout.write(file) # header: File
         $stdout.write('|')
-        $stdout.write('ignored')
-        $stdout.write('|')
-        $stdout.write('|')
-        $stdout.write('0')
+        $stdout.write('ignored') # header: Status
         $stdout.write('|')
         $stdout.write('|')
-        $stdout.write('0')
+        $stdout.write('0') # header: Untyped calls
+        $stdout.write('|')
+        $stdout.write('|')
+        $stdout.write('0') # header: Typed %
         $stdout.write('|')
         $stdout.write("\n")
       end
