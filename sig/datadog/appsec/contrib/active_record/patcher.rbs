@@ -8,6 +8,12 @@ module Datadog
           def self?.target_version: () -> Gem::Version?
 
           def self?.patch: () -> void
+
+          def self?.patch_sqlite3_adapter: () -> void
+
+          def self?.patch_mysql2_adapter: () -> void
+
+          def self?.patch_postgresql_adapter: () -> void
         end
       end
     end

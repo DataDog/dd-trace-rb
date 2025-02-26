@@ -16,6 +16,14 @@ module Datadog
           module ExecQueryAdapterPatch
             def exec_query: (String sql, *untyped args, **untyped rest) -> untyped
           end
+
+          module Rails4ExecuteAndClearAdapterPatch
+            def execute_and_clear: (String sql, String name, untyped binds) -> untyped
+          end
+
+          module Rails4ExecQueryAdapterPatch
+            def exec_query: (String sql, *untyped args) -> untyped
+          end
         end
       end
     end
