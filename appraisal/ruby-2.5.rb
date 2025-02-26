@@ -224,10 +224,6 @@ build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli')
 
-appraise 'karafka-min' do
-  gem 'karafka', '= 2.0.41'
-end
-
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
   gem 'delayed_job'
