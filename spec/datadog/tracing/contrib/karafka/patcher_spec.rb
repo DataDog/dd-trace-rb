@@ -32,15 +32,15 @@ RSpec.describe 'Karafka patcher' do
       metadata['offset'] = 412
       raw_payload = rand.to_s
 
-      message = Karafka::Messages::Message.new(raw_payload, metadata)
+      message = ::Karafka::Messages::Message.new(raw_payload, metadata)
       allow(message).to receive(:timestamp).and_return(Time.now)
       allow(message).to receive(:topic).and_return('topic_a')
 
-      topic = Karafka::Routing::Topic.new('topic_a', double(id: 0))
+      topic = ::Karafka::Routing::Topic.new('topic_a', double(id: 0))
 
-      messages = Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
+      messages = ::Karafka::Messages::Builders::Messages.call([message], topic, 0, Time.now)
 
-      expect(messages).to all(be_a(Karafka::Messages::Message))
+      expect(messages).to all(be_a(::Karafka::Messages::Message))
 
       expect(spans).to have(1).items
       expect(span).to_not be nil
@@ -60,7 +60,7 @@ RSpec.describe 'Karafka patcher' do
       metadata['offset'] = 412
       raw_payload = rand.to_s
 
-      message = Karafka::Messages::Message.new(raw_payload, metadata)
+      message = ::Karafka::Messages::Message.new(raw_payload, metadata)
       job = double(executor: double(topic: double(name: 'topic_a', consumer: 'ABC'), partition: 0), messages: [message])
 
       Karafka.monitor.instrument('worker.processed', { job: job }) do

@@ -10,10 +10,6 @@ module Datadog
       module Karafka
         # Patch to add tracing to Karafka::Messages::Messages
         module MessagesPatch
-          def configuration
-            Datadog.configuration.tracing[:karafka]
-          end
-
           def propagation
             @propagation ||= Contrib::Karafka::Distributed::Propagation.new
           end
@@ -24,7 +20,7 @@ module Datadog
           # @see https://github.com/karafka/karafka/blob/b06d1f7c17818e1605f80c2bb573454a33376b40/README.md?plain=1#L29-L35
           def each(&block)
             @messages_array.each do |message|
-              if configuration[:distributed_tracing]
+              if Datadog.configuration.tracing[:karafka][:distributed_tracing]
                 trace_digest = Karafka.extract(message.metadata.headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
