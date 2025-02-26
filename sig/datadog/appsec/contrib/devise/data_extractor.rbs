@@ -1,0 +1,23 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class DataExtractor
+          @mode: ::String
+
+          def initialize: (::String mode) -> void
+
+          def extract_id: (untyped object) -> ::String?
+
+          def extract_login: (untyped object) -> ::String?
+
+          private
+
+          def transform: (untyped value) -> ::String?
+
+          def anonymize?: () -> bool
+        end
+      end
+    end
+  end
+end

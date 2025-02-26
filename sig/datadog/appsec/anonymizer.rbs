@@ -1,0 +1,7 @@
+module Datadog
+  module AppSec
+    module Anonymizer
+      def self.anonymize: (untyped payload) -> ::String
+    end
+  end
+end
