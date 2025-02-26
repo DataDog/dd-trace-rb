@@ -73,26 +73,13 @@ namespace :steep do
         File.readlines(steepfile_path).each do |line|
           if line.strip.start_with?('ignore')
             file = line.strip.match(/^ignore\s+'([^']+)'/)
-            ignored_files << file[1]
+            ignored_files << file[1] if file
           end
         end
       end
 
       ignored_files.each do |file|
-        $stdout.write('|')
-        $stdout.write('datadog') # header: Target
-        $stdout.write('|')
-        $stdout.write(file) # header: File
-        $stdout.write('|')
-        $stdout.write('ignored') # header: Status
-        $stdout.write('|')
-        $stdout.write('|')
-        $stdout.write('0') # header: Untyped calls
-        $stdout.write('|')
-        $stdout.write('|')
-        $stdout.write('0') # header: Typed %
-        $stdout.write('|')
-        $stdout.write("\n")
+        $stdout.write("|N/A|#{file}|ignored|N/A|N/A|N/A|N/A|\n")
       end
     else
       sh "steep stats --format=#{format}"
