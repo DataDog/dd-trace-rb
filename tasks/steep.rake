@@ -72,13 +72,15 @@ namespace :steep do
       if File.exist?(steepfile_path)
         File.readlines(steepfile_path).each do |line|
           if line.strip.start_with?('ignore')
-            ignored_files << line.strip.sub('/^ignore /', '')
+            file = line.strip.match(/^ignore\s+'([^']+)'/)
+            ignored_files << file[1]
           end
         end
       end
 
       ignored_files.each do |file|
         $stdout.write('|')
+        $stdout.write('datadog')
         $stdout.write('|')
         $stdout.write(file)
         $stdout.write('|')
