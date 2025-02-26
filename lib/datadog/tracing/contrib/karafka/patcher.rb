@@ -24,7 +24,12 @@ module Datadog
           def each(&block)
             @messages_array.each do |message|
               if configuration[:distributed_tracing]
-                trace_digest = Karafka.extract(message.metadata.headers)
+                headers = if message.metadata.respond_to?(:raw_headers)
+                            message.metadata.raw_headers
+                          else
+                            message.metadata.headers
+                          end
+                trace_digest = Karafka.extract(headers)
                 Datadog::Tracing.continue_trace!(trace_digest) if trace_digest
               end
 

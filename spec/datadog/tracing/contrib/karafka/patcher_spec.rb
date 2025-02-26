@@ -5,7 +5,7 @@ require 'karafka'
 require 'datadog'
 
 RSpec.describe 'Karafka patcher' do
-  let(:configuration_options) { {} }
+  let(:configuration_options) { { distributed_tracing: true } }
   let(:client_id) { SecureRandom.uuid }
   let(:span) do
     spans.find { |s| s.name == span_name }
@@ -28,11 +28,7 @@ RSpec.describe 'Karafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_MESSAGE_CONSUME }
 
     it 'is expected to send a span' do
-      metadata = ::Karafka::Messages::Metadata.new.tap do |m|
-        m['deserializers'] = ::Karafka::Routing::Features::Deserializers::Config.new(
-          headers: ->(_) { {} }
-        )
-      end
+      metadata = ::Karafka::Messages::Metadata.new
       metadata['offset'] = 412
       raw_payload = rand.to_s
 
