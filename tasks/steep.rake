@@ -64,6 +64,34 @@ namespace :steep do
         $stdout.write('|')
         $stdout.write("\n")
       end
+
+      # append ignored files from Steepfile
+      steepfile_path = 'Steepfile'
+      ignored_files = []
+
+      if File.exist?(steepfile_path)
+        File.readlines(steepfile_path).each do |line|
+          if line.strip.start_with?('ignore')
+            ignored_files << line.strip.sub('/^ignore /', '')
+          end
+        end
+      end
+
+      ignored_files.each do |file|
+        $stdout.write('|')
+        $stdout.write('|')
+        $stdout.write(file)
+        $stdout.write('|')
+        $stdout.write('ignored')
+        $stdout.write('|')
+        $stdout.write('|')
+        $stdout.write('0')
+        $stdout.write('|')
+        $stdout.write('|')
+        $stdout.write('0')
+        $stdout.write('|')
+        $stdout.write("\n")
+      end
     else
       sh "steep stats --format=#{format}"
     end
