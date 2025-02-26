@@ -28,7 +28,11 @@ RSpec.describe 'Karafka patcher' do
     let(:span_name) { Datadog::Tracing::Contrib::Karafka::Ext::SPAN_MESSAGE_CONSUME }
 
     it 'is expected to send a span' do
-      metadata = ::Karafka::Messages::Metadata.new
+      metadata = ::Karafka::Messages::Metadata.new.tap do |m|
+        m['deserializers'] = ::Karafka::Routing::Features::Deserializers::Config.new(
+          headers: ->(_) { {} }
+        )
+      end
       metadata['offset'] = 412
       raw_payload = rand.to_s
 
