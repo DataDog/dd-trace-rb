@@ -1076,4 +1076,25 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       end
     end
   end
+
+  context "libdatadog managed string storage regression test" do
+    context "when reusing managed string ids across multiple profiles" do
+      it "produces correct profiles" do
+        profile1, profile2 = described_class::Testing._native_test_managed_string_storage_produces_valid_profiles
+
+        decoded_profile1 = decode_profile(profile1)
+
+        expect(decoded_profile1.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile1) }.to_not raise_error
+
+        # Early versions of the managed string storage in datadog mistakenly omitted the strings from the string table,
+        # see https://github.com/DataDog/libdatadog/pull/896 for details.
+
+        decoded_profile2 = decode_profile(profile2)
+
+        expect(decoded_profile2.string_table).to include("key", "hello", "world")
+        expect { samples_from_pprof(profile2) }.to_not raise_error
+      end
+    end
+  end
 end

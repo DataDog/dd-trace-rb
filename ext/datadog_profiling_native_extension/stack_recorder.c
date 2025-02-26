@@ -268,6 +268,7 @@ static VALUE _native_is_object_recorded(DDTRACE_UNUSED VALUE _self, VALUE record
 static VALUE _native_heap_recorder_reset_last_update(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_recorder_after_gc_step(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance);
 static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder_instance, VALUE string, VALUE times, VALUE use_all);
+static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self);
 
 void stack_recorder_init(VALUE profiling_module) {
   VALUE stack_recorder_class = rb_define_class_under(profiling_module, "StackRecorder", rb_cObject);
@@ -303,6 +304,7 @@ void stack_recorder_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_heap_recorder_reset_last_update", _native_heap_recorder_reset_last_update, 1);
   rb_define_singleton_method(testing_module, "_native_recorder_after_gc_step", _native_recorder_after_gc_step, 1);
   rb_define_singleton_method(testing_module, "_native_benchmark_intern", _native_benchmark_intern, 4);
+  rb_define_singleton_method(testing_module, "_native_test_managed_string_storage_produces_valid_profiles", _native_test_managed_string_storage_produces_valid_profiles, 0);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -1050,4 +1052,93 @@ static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder
   heap_recorder_testonly_benchmark_intern(state->heap_recorder, char_slice_from_ruby_string(string), FIX2INT(times), use_all == Qtrue);
 
   return Qtrue;
+}
+
+// See comments in rspec test for details on what we're testing here.
+static VALUE _native_test_managed_string_storage_produces_valid_profiles(DDTRACE_UNUSED VALUE _self) {
+  ddog_prof_ManagedStringStorageNewResult string_storage = ddog_prof_ManagedStringStorage_new();
+
+  if (string_storage.tag == DDOG_PROF_MANAGED_STRING_STORAGE_NEW_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize string storage: %"PRIsVALUE, get_error_details_and_drop(&string_storage.err));
+  }
+
+  ddog_prof_Slice_ValueType sample_types = {.ptr = all_value_types, .len = ALL_VALUE_TYPES_COUNT};
+  ddog_prof_Profile_NewResult profile = ddog_prof_Profile_with_string_storage(sample_types, NULL, NULL, string_storage.ok);
+
+  if (profile.tag == DDOG_PROF_PROFILE_NEW_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to initialize profile: %"PRIsVALUE, get_error_details_and_drop(&profile.err));
+  }
+
+  ddog_prof_ManagedStringId hello = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("hello"));
+  ddog_prof_ManagedStringId world = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("world"));
+  ddog_prof_ManagedStringId key   = intern_or_raise(string_storage.ok, DDOG_CHARSLICE_C("key"));
+
+  int64_t metric_values[] = {1, 2, 3, 4, 5, 6, 7, 8};
+  ddog_prof_Label labels[] = {{.key_id = key, .str_id = key}};
+
+  ddog_prof_Location locations[] = {
+    (ddog_prof_Location) {
+      .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
+      .function = {
+        .name = DDOG_CHARSLICE_C(""),
+        .name_id = hello,
+        .filename = DDOG_CHARSLICE_C(""),
+        .filename_id = world,
+      },
+      .line = 1,
+    }
+  };
+
+  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
+    &profile.ok,
+    (ddog_prof_Sample) {
+      .locations = (ddog_prof_Slice_Location) { .ptr = locations, .len = 1},
+      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = 8},
+      .labels = (ddog_prof_Slice_Label) { .ptr = labels, .len = 1 }
+    },
+    0
+  );
+
+  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  ddog_Timespec finish_timestamp = system_epoch_now_timespec();
+  ddog_prof_Profile_SerializeResult serialize_result = ddog_prof_Profile_serialize(&profile.ok, &finish_timestamp, NULL, NULL);
+
+  if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
+  }
+
+  ddog_prof_MaybeError advance_gen_result = ddog_prof_ManagedStringStorage_advance_gen(string_storage.ok);
+
+  if (advance_gen_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to advance string storage gen: %"PRIsVALUE, get_error_details_and_drop(&advance_gen_result.some));
+  }
+
+  VALUE encoded_pprof_1 = ruby_string_from_vec_u8(serialize_result.ok.buffer);
+
+  result = ddog_prof_Profile_add(
+    &profile.ok,
+    (ddog_prof_Sample) {
+      .locations = (ddog_prof_Slice_Location) { .ptr = locations, .len = 1},
+      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = 8},
+      .labels = (ddog_prof_Slice_Label) { .ptr = labels, .len = 1 }
+    },
+    0
+  );
+
+  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+    rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  serialize_result = ddog_prof_Profile_serialize(&profile.ok, &finish_timestamp, NULL, NULL);
+
+  if (serialize_result.tag == DDOG_PROF_PROFILE_SERIALIZE_RESULT_ERR) {
+    rb_raise(rb_eArgError, "Failed to serialize: %"PRIsVALUE, get_error_details_and_drop(&serialize_result.err));
+  }
+
+  VALUE encoded_pprof_2 = ruby_string_from_vec_u8(serialize_result.ok.buffer);
+
+  return rb_ary_new_from_args(2, encoded_pprof_1, encoded_pprof_2);
 }
