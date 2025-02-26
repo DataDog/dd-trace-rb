@@ -11,7 +11,7 @@ require 'datadog/tracing/workers'
 require 'datadog/tracing/writer'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
-  let(:logger) { double(Datadog::Core::Logger) }
+  let(:logger) { logger_allowing_debug }
 
   let(:hostname) { 'http://127.0.0.1' }
   let(:writer) do
@@ -47,8 +47,6 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   let(:tracer) { Datadog::Tracing.send(:tracer) }
 
   before do
-    allow(logger).to receive(:debug)
-
     Datadog.configure do |c|
       c.tracing.writer = writer
     end
