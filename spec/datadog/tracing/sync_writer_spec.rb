@@ -14,7 +14,7 @@ require 'datadog/tracing/transport/traces'
 RSpec.describe Datadog::Tracing::SyncWriter do
   subject(:sync_writer) { described_class.new(transport: transport) }
 
-  let(:transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test, buffer } }
+  let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) { |t| t.adapter :test, buffer } }
   let(:buffer) { [] }
 
   describe '::new' do

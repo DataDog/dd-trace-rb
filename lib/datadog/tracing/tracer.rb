@@ -60,7 +60,9 @@ module Datadog
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new(logger: logger)
+        # writer is not defaulted because creating it requires agent_settings,
+        # which we do not have here and otherwise do not need.
+        writer:
       )
         @trace_flush = trace_flush
         @default_service = default_service
