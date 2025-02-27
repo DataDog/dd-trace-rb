@@ -42,6 +42,7 @@ namespace :edge do
       'rack' => 'rack',
       'faraday' => 'faraday',
       'excon' => 'excon',
+      'rest-client' => 'rest-client',
       'mongodb' => 'mongo',
       'dalli' => 'dalli',
       'redis' => 'redis',

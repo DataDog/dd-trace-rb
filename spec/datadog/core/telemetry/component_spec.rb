@@ -5,6 +5,7 @@ require 'datadog/core/telemetry/component'
 RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
+      logger: logger,
       enabled: enabled,
       http_transport: http_transport,
       metrics_enabled: metrics_enabled,
@@ -27,8 +28,13 @@ RSpec.describe Datadog::Core::Telemetry::Component do
   let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
   let(:not_found) { false }
 
+  let(:logger) do
+    instance_double(Logger)
+  end
+
   before do
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
+      logger: logger,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
       metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
@@ -52,6 +58,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     context 'with default parameters' do
       subject(:telemetry) do
         described_class.new(
+          logger: logger,
           http_transport: http_transport,
           heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,

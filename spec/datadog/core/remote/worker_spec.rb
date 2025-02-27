@@ -5,7 +5,12 @@ require 'datadog/core/remote/worker'
 
 RSpec.describe Datadog::Core::Remote::Worker do
   let(:task) { proc { 1 + 1 } }
-  subject(:worker) { described_class.new(interval: 1, &task) }
+  let(:logger) { double(Datadog::Core::Logger) }
+  subject(:worker) { described_class.new(interval: 1, logger: logger, &task) }
+
+  before do
+    allow(logger).to receive(:debug)
+  end
 
   describe '#initialize' do
     it 'raises ArgumentError when no block is provided' do

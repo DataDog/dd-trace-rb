@@ -8,14 +8,20 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
   let(:telemetry) { instance_double(Datadog::Core::Telemetry::Component) }
   let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
-  let(:component) { described_class.new(settings, capabilities, agent_settings) }
+  let(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
+
+  let(:logger) do
+    instance_double(Logger).tap do |logger|
+      allow(logger).to receive(:debug)
+    end
+  end
 
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
   end
 
   describe '.build' do
-    subject(:build) { described_class.build(settings, agent_settings, telemetry: telemetry) }
+    subject(:build) { described_class.build(settings, agent_settings, logger: logger, telemetry: telemetry) }
 
     after { build.shutdown! if build }
 
@@ -42,7 +48,12 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           settings,
           telemetry
         ).and_return(capabilities)
-        expect(described_class).to receive(:new).with(settings, capabilities, agent_settings).and_return(component)
+        expect(described_class).to receive(:new).with(
+          settings,
+          capabilities,
+          agent_settings,
+          logger: logger
+        ).and_return(component)
 
         is_expected.to eq(component)
       end
@@ -50,7 +61,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   end
 
   describe '#initialize' do
-    subject(:component) { described_class.new(settings, capabilities, agent_settings) }
+    subject(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
 
     after do
       component.shutdown!
@@ -79,7 +90,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
         end
 
         it 'does not log any error' do
-          expect(Datadog.logger).to_not receive(:error)
+          expect(logger).to_not receive(:error)
 
           component.barrier(:once)
         end
@@ -90,7 +101,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           expect(negotiation).to receive(:endpoint?).and_return(true)
           expect(worker).to receive(:call).and_call_original
           expect(client).to receive(:sync).and_raise(exception, 'test')
-          allow(Datadog.logger).to receive(:error).and_return(nil)
+          allow(logger).to receive(:error).and_return(nil)
         end
 
         context 'StandardError' do
@@ -100,7 +111,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           it 'logs an error' do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
-            expect(Datadog.logger).to receive(:error).and_return(nil)
+            expect(logger).to receive(:error).and_return(nil)
 
             component.barrier(:once)
           end
@@ -138,7 +149,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
           it 'logs an error' do
             allow(Datadog::Core::Remote::Client).to receive(:new).and_return(client)
 
-            expect(Datadog.logger).to receive(:error).and_return(nil)
+            expect(logger).to receive(:error).and_return(nil)
 
             component.barrier(:once)
           end
