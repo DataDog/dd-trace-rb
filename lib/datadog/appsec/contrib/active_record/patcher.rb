@@ -76,15 +76,21 @@ module Datadog
           end
 
           def patch_postgresql_adapter
-            jdbc_defined = defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
-
-            instrumentation_module = if jdbc_defined && ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
-                                       Instrumentation::InternalExecQueryAdapterPatch
-                                     elsif jdbc_defined && ::ActiveRecord.gem_version.segments.first == 4
+            instrumentation_module = if ::ActiveRecord.gem_version.segments.first == 4
                                        Instrumentation::Rails4ExecuteAndClearAdapterPatch
                                      else
                                        Instrumentation::ExecuteAndClearAdapterPatch
                                      end
+
+            if defined?(::ActiveRecord::ConnectionAdapters::JdbcAdapter)
+              instrumentation_module = if ::ActiveRecord.gem_version >= Gem::Version.new('7.1')
+                                         Instrumentation::InternalExecQueryAdapterPatch
+                                       elsif ::ActiveRecord.gem_version.segments.first == 4
+                                         Instrumentation::Rails4ExecQueryAdapterPatch
+                                       else
+                                         Instrumentation::ExecQueryAdapterPatch
+                                       end
+            end
 
             ::ActiveRecord::ConnectionAdapters::PostgreSQLAdapter.prepend(instrumentation_module)
           end
