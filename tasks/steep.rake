@@ -67,20 +67,10 @@ namespace :steep do
 
       # Append ignored files from Steepfile to the end of the steep/typecheck summary
       steepfile_path = 'Steepfile'
-      ignored_files = []
-
-      if File.exist?(steepfile_path)
-        File.readlines(steepfile_path).each do |line|
-          if line.strip.start_with?('ignore')
-            file = line.strip.match(/^ignore\s+'([^']+)'/)
-            ignored_files << file[1] if file
-          end
-        end
-      end
-
-      ignored_files.each do |file|
-        $stdout.write("|N/A|#{file}|ignored|N/A|N/A|N/A|N/A|\n")
-      end
+      File
+        .foreach(steepfile_path)
+        .with_object([]) { |line, ignored_files| line =~ /^\s*ignore\s+(["'])(.*?(?:\\?.)*?)\1/ && ignored_files << $2 }
+        .each { |file| $stdout.write("|N/A|#{file}|ignored|N/A|N/A|N/A|N/A|\n") }
     else
       sh "steep stats --format=#{format}"
     end
