@@ -40,12 +40,14 @@ module Datadog
 
         # Generate stacktrace
         utf8_stack_id = action_params['stack_id'].encode('UTF-8') if action_params['stack_id']
-        stack_frames = ActionsHandler::StackTraceCollection.collect(config.max_depth, config.max_depth_top_percent)
-        stack_trace = { language: 'ruby', id: utf8_stack_id, frames: stack_frames }
+        stack_frames = ActionsHandler::StackTraceCollection.collect(
+          max_depth: config.max_depth,
+          top_percent: config.max_depth_top_percent
+        )
 
         # Add newly created stacktrace to metastruct
         stack = context.trace.nil? ? span_stack : trace_stack
-        stack.push(stack_trace)
+        stack.push({ language: 'ruby', id: utf8_stack_id, frames: stack_frames })
       end
 
       def generate_schema(_action_params); end
