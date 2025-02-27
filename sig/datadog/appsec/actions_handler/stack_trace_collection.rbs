@@ -6,7 +6,7 @@ module Datadog
 
         def self.convert: (Array[::Thread::Backtrace::Location] locations) -> Array[stack_frame]
 
-        def self.collect: (Integer max_depth, Float top_percent) -> Array[stack_frame]
+        def self.collect: (max_depth: Integer, top_percent: Float) -> Array[stack_frame]
       end
     end
   end

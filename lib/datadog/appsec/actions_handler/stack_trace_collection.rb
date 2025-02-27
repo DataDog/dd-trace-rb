@@ -7,7 +7,7 @@ module Datadog
       module StackTraceCollection
         module_function
 
-        def collect(max_depth, top_percent)
+        def collect(max_depth:, top_percent:)
           locations = (caller_locations || []).reject { |location| location.to_s.include?('lib/datadog') }
 
           return [] if locations.empty?
