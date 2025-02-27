@@ -200,7 +200,7 @@ jobs:
           script: |
             const milestones = ${{steps.milestones.outputs.result}}
 
-            const milestone = milestones.data.find(
+            const milestone = milestones.find(
               m => m.title === process.env.GEM_VERSION
             );
 
@@ -229,7 +229,7 @@ jobs:
           script: |
             const milestones = ${{steps.milestones.outputs.result}}
 
-            const milestone = milestones.data.find(
+            const milestone = milestones.find(
               m => m.title === process.env.NEXT_VERSION
             );
 
@@ -267,6 +267,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          token: ${{ secrets.GHA_PAT }}
           fetch-depth: 0
       - run: |
           JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
