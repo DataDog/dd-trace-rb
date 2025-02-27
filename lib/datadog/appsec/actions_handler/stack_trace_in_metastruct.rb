@@ -5,6 +5,7 @@ module Datadog
     module ActionsHandler
       # Object that holds a metastruct, and modify the exploit group stack traces
       class StackTraceInMetastruct
+        # Implementation with empty metastruct
         class Noop
           def count
             0

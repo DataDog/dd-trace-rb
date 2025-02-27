@@ -5,12 +5,6 @@ require 'support/thread_backtrace_helpers'
 
 RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
   describe '.collect' do
-    subject(:collection) { described_class.collect(max_depth, top_percent) }
-
-    # Default values in config
-    let(:max_depth) { 32 }
-    let(:top_percent) { 75 }
-
     # "/app/spec/support/thread_backtrace_helpers.rb:12:in `block in locations_inside_nested_blocks'",
     # "/app/spec/support/thread_backtrace_helpers.rb:14:in `block (2 levels) in locations_inside_nested_blocks'",
     # "/app/spec/support/thread_backtrace_helpers.rb:16:in `block (3 levels) in locations_inside_nested_blocks'",
@@ -19,20 +13,24 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
     let(:frames) { ThreadBacktraceHelper.locations_inside_nested_blocks }
 
     before do
-      # Hack to get caller_locations to return a known set of frames
+      # Hack to get caller_locations to return a known set of frames (we are not testing caller_locations here)
       allow_any_instance_of(Array).to receive(:reject).and_return(frames.clone)
     end
 
-    it 'returns stack frames excluding those from datadog' do
-      expect(collection.any? { |loc| loc[:text].include?('lib/datadog') }).to be false
-    end
+    context 'with values larger than stack trace' do
+      subject(:collection) { described_class.collect(max_depth: 10, top_percent: 75) }
 
-    it 'returns the correct number of stack frames' do
-      expect(collection.size).to eq(5)
+      it 'returns stack frames excluding those from datadog' do
+        expect(collection.any? { |loc| loc[:text].include?('lib/datadog') }).to be false
+      end
+
+      it 'returns the correct number of stack frames' do
+        expect(collection.size).to eq(5)
+      end
     end
 
     context 'with max_depth set to 4' do
-      let(:max_depth) { 4 }
+      subject(:collection) { described_class.collect(max_depth: 4, top_percent: 75) }
 
       it 'creates a stack trace with 4 frames, 3 top' do
         expect(collection.count).to eq(4)
@@ -41,7 +39,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
       end
 
       context 'with max_depth_top_percent set to 25' do
-        let(:top_percent) { 25 }
+        subject(:collection) { described_class.collect(max_depth: 4, top_percent: 25) }
 
         it 'creates a stack trace with 4 frames, 1 top' do
           expect(collection.count).to eq(4)
@@ -51,7 +49,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
       end
 
       context 'with max_depth_top_percent set to 100' do
-        let(:top_percent) { 100 }
+        subject(:collection) { described_class.collect(max_depth: 4, top_percent: 100) }
 
         it 'creates a stack trace with 4 top frames' do
           expect(collection.count).to eq(4)
@@ -61,7 +59,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
       end
 
       context 'with max_depth_top_percent set to 0' do
-        let(:top_percent) { 0 }
+        subject(:collection) { described_class.collect(max_depth: 4, top_percent: 0) }
 
         it 'creates a stack trace with 4 bottom frames' do
           expect(collection.count).to eq(4)
@@ -71,17 +69,13 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
       end
     end
 
-    context 'with max_depth set to 3' do
-      let(:max_depth) { 3 }
+    context 'with max_depth set to 3 and max_depth_top_percent set to 66.67' do
+      subject(:collection) { described_class.collect(max_depth: 3, top_percent: 200 / 3.0) }
 
-      context 'with max_depth_top_percent set to 66.67' do
-        let(:top_percent) { 200 / 3.0 }
-
-        it 'creates a stack trace with 3 frames, 2 top' do
-          expect(collection.count).to eq(3)
-          expect(collection[1][:text]).to eq(frames[1].to_s)
-          expect(collection[2][:text]).to eq(frames[4].to_s)
-        end
+      it 'creates a stack trace with 3 frames, 2 top' do
+        expect(collection.count).to eq(3)
+        expect(collection[1][:text]).to eq(frames[1].to_s)
+        expect(collection[2][:text]).to eq(frames[4].to_s)
       end
     end
   end
