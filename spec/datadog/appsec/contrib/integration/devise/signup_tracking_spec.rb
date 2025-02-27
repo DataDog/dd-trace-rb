@@ -131,6 +131,8 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
+    Devise.class_variable_set(:@@mappings, {})
+    Devise.class_variable_set(:@@warden_configured, nil)
     # rubocop:enable Style/ClassVars
 
     # Remove Rails caches

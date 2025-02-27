@@ -1,71 +1,56 @@
 # frozen_string_literal: true
 
 require_relative '../configuration'
+require_relative '../data_extractor'
 
 module Datadog
   module AppSec
     module Contrib
       module Devise
         module Patches
-          # Hook in devise registration controller
+          # A patch for Devise::RegistrationsController with tracking functionality
           module SignupTrackingPatch
             def create
               return super unless AppSec.enabled?
               return super unless Configuration.auto_user_instrumentation_enabled?
               return super unless AppSec.active_context
 
-              context = AppSec.active_context
               super do |resource|
+                context = AppSec.active_context
+
                 if !resource.persisted? || context.trace.nil? || context.span.nil?
                   yield(resource) if block_given?
 
                   next
                 end
 
-                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
-                login = if resource.respond_to?(:email)
-                          resource.email
-                        elsif resource.respond_to?(:username)
-                          resource.username
-                        elsif resource.respond_to?(:login)
-                          resource.login
-                        else
-                          # NOTE: Devise `authentication_keys` does not provide informatino
-                          #       on what was used to sign up if you have unified virtual
-                          #       field which combines multiple database fields.
-                          #       Hence we check most possible fields one-by-one.
-                          #
-                          #       See: https://github.com/heartcombo/devise/wiki/How-To:-Allow-users-to-sign-in-using-their-username-or-email-address
-                          # TODO: Add generic extraction based on authentication keys
-                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
-                          resource.send(attribute)
-                        end
-
                 context.trace.keep!
-                context.span.set_tag('appsec.events.users.signup.track', 'true')
-                context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag(
-                  '_dd.appsec.events.users.signup.auto.mode',
-                  Configuration.auto_user_instrumentation_mode
-                )
-
-                unless context.span.has_tag?('appsec.events.users.signup.usr.login')
-                  context.span.set_tag('appsec.events.users.signup.usr.login', login)
-                end
-
-                if id
-                  context.span.set_tag('_dd.appsec.usr.id', id)
-
-                  if resource.active_for_authentication?
-                    context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
-                  else
-                    unless context.span.has_tag?('appsec.events.users.signup.usr.id')
-                      context.span.set_tag('appsec.events.users.signup.usr.id', id)
-                    end
-                  end
-                end
+                record_successfull_signup(context, resource)
 
                 yield resource if block_given?
+              end
+            end
+
+            private
+
+            def record_successfull_signup(context, resource)
+              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+
+              id = extractor.extract_id(resource)
+              login = extractor.extract_login(resource_params) || extractor.extract_login(resource)
+
+              context.span['appsec.events.users.signup.track'] = 'true'
+              context.span['_dd.appsec.usr.login'] = login
+              context.span['_dd.appsec.events.users.signup.auto.mode'] = Configuration.auto_user_instrumentation_mode
+              context.span['appsec.events.users.signup.usr.login'] ||= login
+
+              return if id.nil?
+
+              context.span.set_tag('_dd.appsec.usr.id', id)
+              if resource.active_for_authentication?
+                context.span['usr.id'] ||= id
+              else
+                context.span['appsec.events.users.signup.usr.id'] ||= id
               end
             end
           end
