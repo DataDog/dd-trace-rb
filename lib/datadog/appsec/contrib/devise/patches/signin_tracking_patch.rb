@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
 require_relative '../configuration'
+require_relative '../data_extractor'
 
 module Datadog
   module AppSec
     module Contrib
       module Devise
         module Patches
-          # Hook in devise validate method
+          # A patch for Devise::Authenticatable strategy with tracking functionality
           module SigninTrackingPatch
             def validate(resource, &block)
               result = super
@@ -17,89 +18,67 @@ module Datadog
               return result unless Configuration.auto_user_instrumentation_enabled?
               return result unless AppSec.active_context
 
+              # TODO: Add check for trace and span nil here
+
               context = AppSec.active_context
               context.trace.keep!
 
-              # Success
               if result
-                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
-                login = if resource.respond_to?(:email)
-                          resource.email
-                        elsif resource.respond_to?(:username)
-                          resource.username
-                        elsif resource.respond_to?(:login)
-                          resource.login
-                        else
-                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
-                          resource.send(attribute)
-                        end
-
-                if id
-                  context.span.set_tag('usr.id', id) unless context.span.has_tag?('usr.id')
-                  context.span.set_tag('_dd.appsec.usr.id', id)
-                end
-
-                unless context.span.has_tag?('appsec.events.users.login.success.usr.login')
-                  context.span.set_tag('appsec.events.users.login.success.usr.login', login)
-                end
-
-                context.span.set_tag('appsec.events.users.login.success.track', 'true')
-                context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag(
-                  '_dd.appsec.events.users.login.success.auto.mode',
-                  Configuration.auto_user_instrumentation_mode
-                )
+                record_successfull_signin(context, resource)
 
                 return result
               end
 
-              # Failure
+              record_failed_signin(context, resource)
+              result
+            end
 
-              context.span.set_tag('appsec.events.users.login.failure.track', 'true')
-              context.span.set_tag(
-                '_dd.appsec.events.users.login.failure.auto.mode',
-                Configuration.auto_user_instrumentation_mode
-              )
+            private
 
-              if resource
-                id = resource.id.to_s if resource.respond_to?(:id) && !resource.id.nil?
-                login = if resource.respond_to?(:email)
-                          resource.email
-                        elsif resource.respond_to?(:username)
-                          resource.username
-                        elsif resource.respond_to?(:login)
-                          resource.login
-                        else
-                          attribute = authentication_keys.find { |attr| resource.respond_to?(attr) }
-                          resource.send(attribute)
-                        end
+            def record_successfull_signin(context, resource)
+              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
 
-                if id
-                  context.span.set_tag('_dd.appsec.usr.id', id)
-                  unless context.span.has_tag?('appsec.events.users.login.failure.usr.id')
-                    context.span.set_tag('appsec.events.users.login.failure.usr.id', id)
-                  end
-                end
+              id = extractor.extract_id(resource)
+              login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
-                context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'true')
-
-                unless context.span.has_tag?('appsec.events.users.login.failure.usr.login')
-                  context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
-                end
-              else
-                login = authentication_hash[:email] || authentication_hash[:username] ||
-                  authentication_hash[:login] || authentication_hash.values[0]
-
-                context.span.set_tag('_dd.appsec.usr.login', login)
-                context.span.set_tag('appsec.events.users.login.failure.usr.exists', 'false')
-
-                unless context.span.has_tag?('appsec.events.users.login.failure.usr.login')
-                  context.span.set_tag('appsec.events.users.login.failure.usr.login', login)
-                end
+              if id
+                context.span['usr.id'] ||= id
+                context.span['_dd.appsec.usr.id'] = id
               end
 
-              result
+              context.span['appsec.events.users.login.success.usr.login'] ||= login
+              context.span['appsec.events.users.login.success.track'] = 'true'
+              context.span['_dd.appsec.usr.login'] = login
+              context.span['_dd.appsec.events.users.login.success.auto.mode'] = Configuration.auto_user_instrumentation_mode
+            end
+
+            def record_failed_signin(context, resource)
+              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+
+              context.span['appsec.events.users.login.failure.track'] = 'true'
+              context.span['_dd.appsec.events.users.login.failure.auto.mode'] = Configuration.auto_user_instrumentation_mode
+
+              unless resource
+                login = extractor.extract_login(authentication_hash)
+
+                context.span['_dd.appsec.usr.login'] = login
+                context.span['appsec.events.users.login.failure.usr.login'] ||= login
+                context.span['appsec.events.users.login.failure.usr.exists'] = 'false'
+
+                return
+              end
+
+              id = extractor.extract_id(resource)
+              login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
+
+              if id
+                context.span['_dd.appsec.usr.id'] = id
+                context.span['appsec.events.users.login.failure.usr.id'] ||= id
+              end
+
+              context.span['_dd.appsec.usr.login'] = login
+              context.span['appsec.events.users.login.failure.usr.login'] ||= login
+              context.span['appsec.events.users.login.failure.usr.exists'] = 'true'
             end
           end
         end
