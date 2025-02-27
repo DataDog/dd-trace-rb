@@ -143,6 +143,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
+    Devise.class_variable_set(:@@mappings, {})
+    Devise.class_variable_set(:@@warden_configured, nil)
     # rubocop:enable Style/ClassVars
 
     # Remove Rails caches
