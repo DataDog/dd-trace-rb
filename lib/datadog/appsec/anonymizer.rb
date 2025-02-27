@@ -7,7 +7,9 @@ module Datadog
     # Manual anonymization of the potential PII data
     module Anonymizer
       def self.anonymize(payload)
-        "anon_#{Digest::SHA256.hexdigest(payload.to_s)[0, 32]}"
+        raise ArgumentError, "expected String, received #{payload.class}" unless payload.is_a?(String)
+
+        "anon_#{Digest::SHA256.hexdigest(payload)[0, 32]}"
       end
     end
   end
