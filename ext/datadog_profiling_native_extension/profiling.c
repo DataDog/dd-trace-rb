@@ -39,6 +39,157 @@ static void *trigger_enforce_success(void *trigger_args);
 static VALUE _native_malloc_stats(DDTRACE_UNUSED VALUE _self);
 static VALUE _native_safe_object_info(DDTRACE_UNUSED VALUE _self, VALUE obj);
 
+static inline VALUE ruby_string_from_vec_u8(ddog_Vec_U8 string) {
+  return rb_str_new((char *) string.ptr, string.len);
+}
+
+static VALUE _native_replay(DDTRACE_UNUSED VALUE _self, VALUE sample_types, VALUE locations, VALUE functions, VALUE samples) {
+  ENFORCE_TYPE(sample_types, T_ARRAY);
+  ENFORCE_TYPE(locations, T_ARRAY);
+  ENFORCE_TYPE(functions, T_ARRAY);
+  ENFORCE_TYPE(samples, T_ARRAY);
+
+  ddog_prof_ValueType types[RARRAY_LEN(sample_types)];
+  for (int i = 0; i < RARRAY_LEN(sample_types); i++) {
+    VALUE sample_type = rb_ary_entry(sample_types, i);
+    ENFORCE_TYPE(sample_type, T_ARRAY);
+
+    types[i] = (ddog_prof_ValueType) {
+      .type_ = char_slice_from_ruby_string(rb_ary_entry(sample_type, 0)),
+      .unit = char_slice_from_ruby_string(rb_ary_entry(sample_type, 1))
+    };
+  }
+
+  ddog_prof_Profile_NewResult new_result = ddog_prof_Profile_new((ddog_prof_Slice_ValueType) {types, RARRAY_LEN(sample_types)}, NULL, NULL);
+
+  if (new_result.tag != DDOG_PROF_PROFILE_NEW_RESULT_OK) {
+    ddog_CharSlice message = ddog_Error_message(&new_result.err);
+    fprintf(stderr, "%.*s\n", (int)message.len, message.ptr);
+    abort();
+  }
+
+  ddog_prof_Profile *profile = &new_result.ok;
+  VALUE end_timestamp_ns_string = rb_str_new_cstr("end_timestamp_ns");
+
+  for (int i = 0; i < RARRAY_LEN(samples); i++) {
+    VALUE sample = rb_ary_entry(samples, i);
+    ENFORCE_TYPE(sample, T_ARRAY);
+
+    VALUE sample_locs = rb_ary_entry(sample, 0);
+    ENFORCE_TYPE(sample_locs, T_ARRAY);
+    VALUE sample_values = rb_ary_entry(sample, 1);
+    ENFORCE_TYPE(sample_values, T_ARRAY);
+    VALUE sample_labels = rb_ary_entry(sample, 2);
+    ENFORCE_TYPE(sample_labels, T_ARRAY);
+
+    // Needs special treatment
+    VALUE end_timestamp_ns = Qnil;
+
+    ddog_prof_Label prof_labels[RARRAY_LEN(sample_labels)];
+    for (int j = 0; j < RARRAY_LEN(sample_labels); j++) {
+      VALUE label = rb_ary_entry(sample_labels, j);
+      ENFORCE_TYPE(label, T_ARRAY);
+
+      VALUE key = rb_ary_entry(label, 0);
+      ENFORCE_TYPE(key, T_STRING);
+      VALUE str = rb_ary_entry(label, 1);
+      if (str != Qnil) ENFORCE_TYPE(str, T_STRING);
+      VALUE num = rb_ary_entry(label, 2);
+      if (!RB_TYPE_P(num, T_FIXNUM) && !RB_TYPE_P(num, T_BIGNUM)) ENFORCE_TYPE(num, T_FIXNUM);
+
+      if (rb_str_equal(key, end_timestamp_ns_string) == Qtrue) {
+        end_timestamp_ns = num;
+        continue;
+      }
+
+      prof_labels[j] = (ddog_prof_Label) {
+        .key = char_slice_from_ruby_string(key),
+        .str = str != Qnil ? char_slice_from_ruby_string(str) : DDOG_CHARSLICE_C(""),
+        .num = NUM2LL(num)
+      };
+    }
+
+    int64_t prof_values[RARRAY_LEN(sample_values)];
+    for (int j = 0; j < RARRAY_LEN(sample_values); j++) {
+      ENFORCE_TYPE(rb_ary_entry(sample_values, j), T_FIXNUM);
+      prof_values[j] = NUM2LL(rb_ary_entry(sample_values, j));
+    }
+
+    ddog_prof_Location prof_locations[RARRAY_LEN(sample_locs)];
+    VALUE previous_loc = Qnil;
+    for (int j = 0; j < RARRAY_LEN(sample_locs); j++) {
+      VALUE loc = rb_ary_entry(sample_locs, j);
+      ENFORCE_TYPE(loc, T_FIXNUM);
+
+      if (NUM2ULL(loc) > 0 && NUM2ULL(loc) <= RARRAY_LEN(locations)) {
+        // id is correct!
+      } else {
+        if (previous_loc == Qnil) {
+          abort();
+        } else {
+          // Try to follow previous
+          loc = INT2NUM(NUM2INT(previous_loc) + 1);
+        }
+
+        fprintf(stderr, "Invalid location id: %lld, corrected to %d\n", NUM2ULL(rb_ary_entry(sample_locs, j)), NUM2INT(loc));
+      }
+      previous_loc = loc;
+
+      VALUE location_entry = rb_ary_entry(locations, NUM2INT(loc));
+      ENFORCE_TYPE(location_entry, T_ARRAY);
+
+      VALUE function_id = rb_ary_entry(location_entry, 0);
+      ENFORCE_TYPE(function_id, T_FIXNUM);
+      VALUE line = rb_ary_entry(location_entry, 1);
+      ENFORCE_TYPE(line, T_FIXNUM);
+
+      VALUE function = rb_ary_entry(functions, NUM2INT(function_id));
+      ENFORCE_TYPE(function, T_ARRAY);
+
+      VALUE function_name = rb_ary_entry(function, 0);
+      ENFORCE_TYPE(function_name, T_STRING);
+      VALUE function_filename = rb_ary_entry(function, 1);
+      ENFORCE_TYPE(function_filename, T_STRING);
+
+      prof_locations[j] = (ddog_prof_Location) {
+        .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C("")},
+        .function = {
+          .name = char_slice_from_ruby_string(function_name),
+          .filename = char_slice_from_ruby_string(function_filename),
+        },
+        .line = NUM2INT(line)
+      };
+    }
+
+    ddog_prof_Profile_Result add_result = ddog_prof_Profile_add(
+      profile,
+      (ddog_prof_Sample) {
+        .locations = {prof_locations, RARRAY_LEN(sample_locs)},
+        .values = {prof_values, RARRAY_LEN(sample_values)},
+        .labels = {prof_labels, RARRAY_LEN(sample_labels) - (end_timestamp_ns != Qnil ? 1 : 0)}
+      },
+      end_timestamp_ns != Qnil ? NUM2LL(end_timestamp_ns) : 0
+    );
+
+    if (add_result.tag != DDOG_PROF_PROFILE_RESULT_OK) {
+      ddog_CharSlice message = ddog_Error_message(&add_result.err);
+      fprintf(stderr, "%.*s\n", (int)message.len, message.ptr);
+      abort();
+    }
+  }
+
+  ddog_prof_Profile_SerializeResult serialized_profile = ddog_prof_Profile_serialize(profile, NULL, NULL, NULL);
+  if (serialized_profile.tag != DDOG_PROF_PROFILE_SERIALIZE_RESULT_OK) {
+    ddog_CharSlice message = ddog_Error_message(&serialized_profile.err);
+    fprintf(stderr, "%.*s\n", (int)message.len, message.ptr);
+    abort();
+  }
+
+  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
+  ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
+  return encoded_pprof;
+}
+
 void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   VALUE datadog_module = rb_define_module("Datadog");
   VALUE profiling_module = rb_define_module_under(datadog_module, "Profiling");
@@ -74,6 +225,7 @@ void DDTRACE_EXPORT Init_datadog_profiling_native_extension(void) {
   rb_define_singleton_method(testing_module, "_native_enforce_success", _native_enforce_success, 2);
   rb_define_singleton_method(testing_module, "_native_malloc_stats", _native_malloc_stats, 0);
   rb_define_singleton_method(testing_module, "_native_safe_object_info", _native_safe_object_info, 1);
+  rb_define_singleton_method(testing_module, "_native_replay", _native_replay, 4);
 }
 
 static VALUE native_working_p(DDTRACE_UNUSED VALUE _self) {
