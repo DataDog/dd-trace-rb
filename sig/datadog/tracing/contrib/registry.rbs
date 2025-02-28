@@ -11,8 +11,6 @@ module Datadog
         def each: () ?{ () -> untyped } -> untyped
 
         def []: (untyped name) -> untyped
-
-        def to_h: () -> untyped
       end
     end
   end

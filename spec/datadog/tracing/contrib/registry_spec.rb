@@ -33,13 +33,6 @@ RSpec.describe Datadog::Tracing::Contrib::Registry do
           expect(spy).to include(entry_one, entry_two)
         end
       end
-
-      describe '#to_h' do
-        it do
-          registry.add(:foo, double('foo class'), true)
-          expect(registry.to_h).to match a_hash_including(foo: true)
-        end
-      end
     end
   end
 

@@ -38,14 +38,6 @@ module Datadog
             entry.klass if entry
           end
         end
-
-        def to_h
-          @mutex.synchronize do
-            @data.each_with_object({}) do |(_, entry), hash|
-              hash[entry.name] = entry.auto_patch
-            end
-          end
-        end
       end
     end
   end
