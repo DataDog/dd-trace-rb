@@ -47,10 +47,13 @@ module Datadog
               return if id.nil?
 
               context.span.set_tag('_dd.appsec.usr.id', id)
-              if resource.active_for_authentication?
-                context.span['usr.id'] ||= id
-              else
-                context.span['appsec.events.users.signup.usr.id'] ||= id
+              return context.span['appsec.events.users.signup.usr.id'] ||= id unless resource.active_for_authentication?
+
+              unless context.span.has_tag?('usr.id')
+                context.span['usr.id'] = id
+                AppSec::Instrumentation.gateway.push(
+                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
+                )
               end
             end
           end

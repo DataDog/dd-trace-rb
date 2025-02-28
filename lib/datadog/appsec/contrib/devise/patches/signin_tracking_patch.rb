@@ -18,9 +18,12 @@ module Datadog
               return result unless Configuration.auto_user_instrumentation_enabled?
               return result unless AppSec.active_context
 
-              # TODO: Add check for trace and span nil here
-
               context = AppSec.active_context
+              if context.trace.nil? || context.span.nil?
+                # TODO: Add debug message
+                return result
+              end
+
               context.trace.keep!
 
               if result
@@ -42,8 +45,14 @@ module Datadog
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
               if id
-                context.span['usr.id'] ||= id
                 context.span['_dd.appsec.usr.id'] = id
+
+                unless context.span.has_tag?('usr.id')
+                  context.span['usr.id'] = id
+                  AppSec::Instrumentation.gateway.push(
+                    'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
+                  )
+                end
               end
 
               context.span['appsec.events.users.login.success.usr.login'] ||= login
