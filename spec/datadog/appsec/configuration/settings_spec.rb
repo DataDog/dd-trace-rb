@@ -631,7 +631,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
           expect(logger).to receive(:warn).with(/value provided is not supported/)
           settings.appsec.auto_user_instrumentation.mode = 'unknown'
 
-          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled')
         end
       end
 
@@ -666,7 +666,7 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
         it 'sets the value to the default and writes a warning message' do
           expect(logger).to receive(:warn).with(/value provided is not supported/)
-          expect(settings.appsec.auto_user_instrumentation.mode).to eq('identification')
+          expect(settings.appsec.auto_user_instrumentation.mode).to eq('disabled')
         end
       end
 
