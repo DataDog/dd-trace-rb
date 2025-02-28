@@ -27,7 +27,13 @@ module Datadog
             id = transform(extract_id(env['warden']))
 
             if id
-              context.span['usr.id'] ||= id.to_s
+              unless context.span.has_tag?('usr.id')
+                context.span['usr.id'] = id
+                AppSec::Instrumentation.gateway.push(
+                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
+                )
+              end
+
               context.span['_dd.appsec.usr.id'] = id.to_s
               context.span['_dd.appsec.user.collection_mode'] ||= Configuration.auto_user_instrumentation_mode
             end
