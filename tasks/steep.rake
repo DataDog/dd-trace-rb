@@ -66,9 +66,8 @@ namespace :steep do
       end
 
       # Append ignored files from Steepfile to the end of the steep/typecheck summary
-      steepfile_path = 'Steepfile'
       File
-        .foreach(steepfile_path)
+        .foreach('Steepfile')
         .with_object([]) { |line, ignored_files| line =~ /^\s*ignore\s+(["'])(.*?(?:\\?.)*?)\1/ && ignored_files << $2 }
         .each { |file| $stdout.write("|datadog|#{file}|ignored|N/A|N/A|N/A|0|\n") }
     else
