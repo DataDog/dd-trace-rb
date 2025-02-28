@@ -70,7 +70,7 @@ namespace :steep do
       File
         .foreach(steepfile_path)
         .with_object([]) { |line, ignored_files| line =~ /^\s*ignore\s+(["'])(.*?(?:\\?.)*?)\1/ && ignored_files << $2 }
-        .each { |file| $stdout.write("|N/A|#{file}|ignored|N/A|N/A|N/A|N/A|\n") }
+        .each { |file| $stdout.write("|datadog|#{file}|ignored|N/A|N/A|N/A|0|\n") }
     else
       sh "steep stats --format=#{format}"
     end
