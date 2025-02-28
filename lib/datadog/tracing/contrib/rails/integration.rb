@@ -20,7 +20,7 @@ module Datadog
           MINIMUM_VERSION = Ext::MINIMUM_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :rails, auto_patch: false
+          register_as :rails
 
           def self.version
             Gem.loaded_specs['railties'] && Gem.loaded_specs['railties'].version

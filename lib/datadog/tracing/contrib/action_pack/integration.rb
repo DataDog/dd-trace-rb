@@ -17,7 +17,7 @@ module Datadog
           MINIMUM_VERSION = Contrib::Rails::Ext::MINIMUM_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :action_pack, auto_patch: false
+          register_as :action_pack
           def self.gem_name
             'actionpack'
           end

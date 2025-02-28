@@ -25,13 +25,12 @@ module Datadog
           # @param [Symbol] name integration name. Used during activation.
           # @param [Datadog::Tracing::Contrib::Registry] registry a custom registry.
           #        Defaults to the global tracing registry.
-          # @param [Boolean] auto_patch will this integration be activated during
           #   {file:docs/AutoInstrumentation.md Auto Instrumentation}?
           # @param [Hash] options additional keyword options passed to the initializer of
           #   a custom {Registerable} instrumentation
           # @see Datadog::Tracing::Contrib::Integration
-          def register_as(name, registry: Contrib::REGISTRY, auto_patch: false, **options)
-            registry.add(name, new(name, **options), auto_patch)
+          def register_as(name, registry: Contrib::REGISTRY, **options)
+            registry.add(name, new(name, **options))
           end
         end
 

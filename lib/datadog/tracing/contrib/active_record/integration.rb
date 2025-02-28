@@ -20,7 +20,7 @@ module Datadog
           MINIMUM_VERSION = Contrib::Rails::Ext::MINIMUM_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :active_record, auto_patch: false
+          register_as :active_record
 
           def self.gem_name
             'activerecord'

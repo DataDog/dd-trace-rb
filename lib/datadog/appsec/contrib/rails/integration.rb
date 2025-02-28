@@ -15,7 +15,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('4')
 
-          register_as :rails, auto_patch: false
+          register_as :rails
 
           def self.version
             Gem.loaded_specs['railties'] && Gem.loaded_specs['railties'].version

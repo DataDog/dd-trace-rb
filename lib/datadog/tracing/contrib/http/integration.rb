@@ -21,7 +21,7 @@ module Datadog
           MINIMUM_VERSION = Datadog::VERSION::MINIMUM_RUBY_VERSION
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :http, auto_patch: true
+          register_as :http
           def self.gem_name
             'net-http'
           end

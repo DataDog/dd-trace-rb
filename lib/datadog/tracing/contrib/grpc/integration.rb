@@ -15,7 +15,7 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('1.7.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :grpc, auto_patch: true
+          register_as :grpc
 
           def self.version
             Gem.loaded_specs['grpc'] && Gem.loaded_specs['grpc'].version

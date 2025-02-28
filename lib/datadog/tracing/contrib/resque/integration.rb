@@ -15,7 +15,7 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('1.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :resque, auto_patch: true
+          register_as :resque
 
           def self.version
             Gem.loaded_specs['resque'] && Gem.loaded_specs['resque'].version

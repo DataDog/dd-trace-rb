@@ -6,7 +6,7 @@ module Datadog
 
         Entry: untyped
         def initialize: () -> void
-        def add: (untyped name, untyped klass, ?bool auto_patch) -> untyped
+        def add: (untyped name, untyped klass) -> untyped
 
         def each: () ?{ () -> untyped } -> untyped
 

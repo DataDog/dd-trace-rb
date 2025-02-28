@@ -16,7 +16,7 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('1.0.0.beta2')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :que, auto_patch: true
+          register_as :que
 
           def self.version
             Gem.loaded_specs['que'] && Gem.loaded_specs['que'].version

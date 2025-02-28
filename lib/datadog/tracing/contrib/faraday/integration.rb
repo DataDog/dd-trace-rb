@@ -16,7 +16,7 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('0.14.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :faraday, auto_patch: true
+          register_as :faraday
 
           def self.version
             Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version

@@ -13,7 +13,7 @@ module Datadog
           include Contrib::Integration
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :graphql, auto_patch: true
+          register_as :graphql
 
           def self.version
             Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version

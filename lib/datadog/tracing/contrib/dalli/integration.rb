@@ -16,7 +16,7 @@ module Datadog
           DALLI_PROTOCOL_BINARY_VERSION = Gem::Version.new('3.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :dalli, auto_patch: true
+          register_as :dalli
 
           def self.version
             Gem.loaded_specs['dalli'] && Gem.loaded_specs['dalli'].version

@@ -12,11 +12,10 @@ RSpec.describe Datadog::Tracing::Contrib::Registry do
       describe '#add' do
         let(:name) { 'foo' }
         let(:klass) { Class.new }
-        let(:auto_patch) { false }
 
         context 'when given an entry to the registry' do
           it do
-            entry = registry.add(name, klass, auto_patch)
+            entry = registry.add(name, klass)
             expect(entry).to be_an_instance_of(described_class::Entry)
             expect(registry[name]).to eq(klass)
           end
@@ -27,8 +26,8 @@ RSpec.describe Datadog::Tracing::Contrib::Registry do
         let(:spy) { [] }
 
         it do
-          entry_one = registry.add(:foo, double('foo class'), true)
-          entry_two = registry.add(:bar, double('bar class'), true)
+          entry_one = registry.add(:foo, double('foo class'))
+          entry_two = registry.add(:bar, double('bar class'))
           registry.each { |entry| spy << entry }
           expect(spy).to include(entry_one, entry_two)
         end
@@ -38,11 +37,10 @@ RSpec.describe Datadog::Tracing::Contrib::Registry do
 
   describe Datadog::Tracing::Contrib::Registry::Entry do
     describe 'instance' do
-      subject(:entry) { described_class.new(name, klass, auto_patch) }
+      subject(:entry) { described_class.new(name, klass) }
 
       let(:name) { :foo }
       let(:klass) { double('class') }
-      let(:auto_patch) { true }
 
       describe 'behavior' do
         describe '#initialize' do
@@ -57,12 +55,6 @@ RSpec.describe Datadog::Tracing::Contrib::Registry do
               subject { entry.klass }
 
               it { is_expected.to be(klass) }
-            end
-
-            describe '#auto_patch' do
-              subject { entry.auto_patch }
-
-              it { is_expected.to eq(auto_patch) }
             end
           end
         end

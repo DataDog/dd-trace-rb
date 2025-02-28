@@ -16,7 +16,7 @@ module Datadog
           MINIMUM_VERSION = Gem::Version.new('5.0.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :action_cable, auto_patch: false
+          register_as :action_cable
           def self.gem_name
             'actioncable'
           end

@@ -20,7 +20,7 @@ module Datadog
             input_object: 'GraphQL::Language::Nodes::InputObject',
           }.freeze
 
-          register_as :graphql, auto_patch: false
+          register_as :graphql
 
           def self.version
             Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version

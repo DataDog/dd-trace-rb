@@ -4,7 +4,7 @@ module Datadog
       module Registerable
         def self.included: (untyped base) -> untyped
         module ClassMethods
-          def register_as: (untyped name, ?registry: untyped, ?auto_patch: bool, **untyped options) -> untyped
+          def register_as: (untyped name, ?registry: untyped, **untyped options) -> untyped
         end
         module InstanceMethods
           attr_reader name: untyped

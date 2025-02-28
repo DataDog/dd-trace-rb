@@ -19,7 +19,7 @@ module Datadog
           REDISCLIENT_MINIMUM_VERSION = Gem::Version.new('0.11.0')
 
           # @public_api Changing the integration name or integration options can cause breaking changes
-          register_as :redis, auto_patch: true
+          register_as :redis
 
           # Until Redis 4, all instrumentation happened in one gem: redis.
           # Since Redis 5, instrumentation happens in a separate gem: redis-client.
