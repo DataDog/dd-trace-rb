@@ -22,6 +22,9 @@ module Datadog
             id = object.id if object.respond_to?(:id)
             id ||= object.uuid if object.respond_to?(:uuid)
 
+            scope = find_devise_scope(object)
+            id = "#{scope}:#{id}" if scope
+
             transform(id)
           end
 
@@ -41,6 +44,12 @@ module Datadog
           end
 
           private
+
+          def find_devise_scope(object)
+            return if ::Devise.mappings.count == 1
+
+            ::Devise.mappings.each_value.find { |mapping| mapping.class_name == object.class.name }&.name
+          end
 
           def transform(value)
             return if value.nil?
