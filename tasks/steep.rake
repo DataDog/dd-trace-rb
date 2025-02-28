@@ -69,7 +69,13 @@ namespace :steep do
       File
         .foreach('Steepfile')
         .with_object([]) { |line, ignored_files| line =~ /^\s*ignore\s+(["'])(.*?(?:\\?.)*?)\1/ && ignored_files << $2 }
-        .each { |file| $stdout.write("|datadog|#{file}|ignored|N/A|N/A|N/A|0|\n") }
+        .each do |file|
+          if File.exist?(file)
+            $stdout.write("|datadog|#{file}|ignored|N/A|N/A|N/A|0|\n")
+          else
+            warn "Ignored file '#{file}' does not exist. Please remove it from the Steepfile."
+          end
+        end
     else
       sh "steep stats --format=#{format}"
     end
