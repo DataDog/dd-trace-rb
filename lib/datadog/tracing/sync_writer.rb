@@ -32,9 +32,7 @@ module Datadog
         @agent_settings = agent_settings
 
         @transport = transport || begin
-          if agent_settings
-            transport_options = transport_options.merge(agent_settings: agent_settings)
-          end
+          transport_options = transport_options.merge(agent_settings: agent_settings) if agent_settings
           Transport::HTTP.default(**transport_options)
         end
 

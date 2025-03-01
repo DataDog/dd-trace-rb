@@ -16,7 +16,7 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
   describe 'instance' do
-    subject(:writer) { described_class.new({agent_settings: test_agent_settings}.update(options)) }
+    subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
     let(:options) { { transport: transport } }
     let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
