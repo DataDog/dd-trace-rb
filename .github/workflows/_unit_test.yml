@@ -40,12 +40,12 @@ jobs:
         bundle lock
         echo "lockfile=lockfile-${{ inputs.alias }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
     - name: Upload lockfile
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1 # v4.6.1
       with:
         name: ${{ steps.lockfile.outputs.lockfile }}
         path: "*.lock"
     - name: Restore cache
-      uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       id: restore-cache
       with:
         key: bundle-${{ runner.os }}-${{ runner.arch }}-${{ inputs.alias }}-${{ hashFiles('*.lock') }}
@@ -54,7 +54,7 @@ jobs:
       run: bundle install
     - if: steps.restore-cache.outputs.cache-hit != 'true'
       name: Save cache
-      uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+      uses: actions/cache/save@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
       with:
         key: "${{ steps.restore-cache.outputs.cache-primary-key }}"
         path: "/usr/local/bundle"

@@ -36,7 +36,7 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
+      - uses: ruby/setup-ruby@32110d4e311bd8996b2a82bf2a43b714ccc91777 # v1.221.0
         with:
           ruby-version: ${{ matrix.ruby }}
           rubygems: 3.3.26
