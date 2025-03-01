@@ -61,6 +61,8 @@ else
 
   pid = utils.pid
 
+  telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.start' }])
+
   if Process.respond_to?(:fork)
     utils.debug 'Starts injection'
 
@@ -87,7 +89,7 @@ else
           major, minor, = RUBY_VERSION.split('.')
           ruby_api_version = "#{major}.#{minor}.0"
 
-          supported_ruby_api_versions = ['2.7.0', '3.0.0', '3.1.0', '3.2.0', '3.3.0'].freeze
+          supported_ruby_api_versions = ['2.6.0', '2.7.0', '3.0.0', '3.1.0', '3.2.0', '3.3.0', '3.4.0'].freeze
 
           RUBY_ENGINE == 'ruby' && supported_ruby_api_versions.any? { |v| ruby_api_version == v }
         end
@@ -121,6 +123,10 @@ else
           Bundler.frozen_bundle?
         end
 
+        def bundle_path?
+          !Bundler.settings[:path].nil?
+        end
+
         def bundler_supported?
           Bundler::CLI.commands['add'] && Bundler::CLI.commands['add'].options.key?('require')
         end
@@ -146,7 +152,11 @@ else
         utils.debug 'Skip injection: already installed'
       elsif precheck.frozen_bundle?
         utils.error "Skip injection: bundler is configured with 'deployment' or 'frozen'"
-        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler'] }])
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_bundle_frozen'] }])
+        exit!(1)
+      elsif precheck.bundle_path?
+        utils.error "Skip injection: bundler is configured with 'bundle_path"
+        telemetry.emit(pid, utils.version, [{ name: 'library_entrypoint.abort', tags: ['reason:bundler_bundle_path'] }])
         exit!(1)
       elsif !precheck.bundler_supported?
         utils.error "Skip injection: bundler version #{Bundler::VERSION} is not supported, please upgrade to >= 2.3."
