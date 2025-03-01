@@ -16,7 +16,8 @@ module Datadog
         :logger,
         :transport,
         :worker,
-        :events
+        :events,
+        :agent_settings
 
       def initialize(options = {})
         @logger = options[:logger] || Datadog.logger
@@ -26,7 +27,10 @@ module Datadog
         @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
         transport_options = options.fetch(:transport_options, {})
 
-        transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+        if options.key?(:agent_settings)
+          @agent_settings = options[:agent_settings]
+          transport_options = transport_options.merge(agent_settings: @agent_settings)
+        end
 
         # transport and buffers
         @transport = options.fetch(:transport) do

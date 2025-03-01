@@ -18,7 +18,7 @@ RSpec.describe 'Microbenchmark Transport' do
       # in a single method call. This would translate to
       # up to 1000 spans per second in a real application.
       let(:steps) { [1, 10, 100, 1000] }
-      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) }
 
       include_examples 'benchmark'
 

@@ -16,7 +16,7 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::Writer do
   describe 'instance' do
-    subject(:writer) { described_class.new(options) }
+    subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
     let(:options) { { transport: transport } }
     let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Writer do
         context 'and default transport options' do
           it do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to be_empty
+              expect(options).to eq(agent_settings: test_agent_settings)
             end
 
             writer

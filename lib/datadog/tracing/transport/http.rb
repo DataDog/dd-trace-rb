@@ -17,16 +17,6 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        # NOTE: Due to... legacy reasons... This class likes having a default `AgentSettings` instance to fall back to.
-        # Because we generate this instance with an empty instance of `Settings`, the resulting `AgentSettings` below
-        # represents only settings specified via environment variables + the usual defaults.
-        #
-        # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
-          Datadog::Core::Configuration::Settings.new,
-          logger: nil,
-        )
-
         module_function
 
         # Builds a new Transport::HTTP::Client
@@ -39,7 +29,7 @@ module Datadog
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def default(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings:,
           **options
         )
           new(Transport::Traces::Transport) do |transport|

@@ -533,7 +533,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new tracer' do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
-        let(:writer) { Datadog::Tracing::Writer.new }
+        let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
         let(:sampler) do
           if defined?(super)
@@ -852,7 +852,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             context 'and :async' do
               context 'is set' do
-                let(:writer) { Datadog::Tracing::Writer.new }
+                let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
                 let(:writer_options) { { transport_options: :bar } }
                 let(:writer_options_test_mode) { { transport_options: :baz } }
 
@@ -878,7 +878,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               end
 
               context 'is not set' do
-                let(:sync_writer) { Datadog::Tracing::SyncWriter.new }
+                let(:sync_writer) { Datadog::Tracing::SyncWriter.new(agent_settings: test_agent_settings) }
 
                 before do
                   expect(Datadog::Tracing::SyncWriter)
@@ -986,7 +986,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'that publishes events' do
           it_behaves_like 'new tracer' do
             let(:options) { { writer: writer } }
-            let(:writer) { Datadog::Tracing::Writer.new }
+            let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
             after { writer.stop }
 
             it_behaves_like 'event publishing writer and priority sampler'

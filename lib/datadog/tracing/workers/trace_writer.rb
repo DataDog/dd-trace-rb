@@ -18,7 +18,8 @@ module Datadog
       class TraceWriter < Core::Worker
         attr_reader \
           :logger,
-          :transport
+          :transport,
+          :agent_settings
 
         # rubocop:disable Lint/MissingSuper
         def initialize(options = {})
@@ -26,7 +27,10 @@ module Datadog
 
           transport_options = options.fetch(:transport_options, {})
 
-          transport_options[:agent_settings] = options[:agent_settings] if options.key?(:agent_settings)
+          if options.key?(:agent_settings)
+            @agent_settings = options[:agent_settings]
+            transport_options = transport_options.merge(agent_settings: @agent_settings)
+          end
 
           @transport = options.fetch(:transport) do
             Datadog::Tracing::Transport::HTTP.default(**transport_options)

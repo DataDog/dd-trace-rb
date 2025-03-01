@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   end
 
   let(:http_connection) { instance_double(::Net::HTTP) }
-  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(&proc { |_client| }) }
+  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: test_agent_settings, &proc { |_client| }) }
   let(:roots) do
     [
       {

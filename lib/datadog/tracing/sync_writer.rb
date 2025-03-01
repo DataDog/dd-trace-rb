@@ -19,7 +19,8 @@ module Datadog
       attr_reader \
         :logger,
         :events,
-        :transport
+        :transport,
+        :agent_settings
 
       # @param [Datadog::Tracing::Transport::Traces::Transport] transport a custom transport instance.
       #   If provided, overrides `transport_options` and `agent_settings`.
@@ -28,9 +29,10 @@ module Datadog
       #   the default transport instance.
       def initialize(transport: nil, transport_options: {}, agent_settings: nil, logger: Datadog.logger)
         @logger = logger
+        @agent_settings = agent_settings
 
         @transport = transport || begin
-          transport_options[:agent_settings] = agent_settings if agent_settings
+          transport_options = transport_options.merge(agent_settings: agent_settings) if agent_settings
           Transport::HTTP.default(**transport_options)
         end
 

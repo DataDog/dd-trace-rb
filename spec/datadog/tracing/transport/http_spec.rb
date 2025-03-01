@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'datadog/tracing/transport/http'
-require 'uri'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP do
   describe '.new' do
@@ -30,15 +29,17 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
   end
 
   describe '.default' do
-    subject(:default) { described_class.default }
-    let(:env_agent_settings) { described_class::DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS }
+    subject(:default) { described_class.default(agent_settings: default_agent_settings) }
+    let(:default_agent_settings) do
+      Datadog::Core::Configuration::AgentSettingsResolver.call(
+        Datadog::Core::Configuration::Settings.new,
+        logger: nil,
+      )
+    end
 
     # This test changes based on the environment tests are running. We have other
     # tests around each specific environment scenario, while this one specifically
     # ensures that we are matching the default environment settings.
-    #
-    # TODO: we should deprecate the use of DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS
-    # and thus remove this test scenario.
     it 'returns a transport with default configuration' do
       is_expected.to be_a_kind_of(Datadog::Tracing::Transport::Traces::Transport)
       expect(default.current_api_id).to eq(Datadog::Tracing::Transport::HTTP::API::V4)
@@ -54,17 +55,17 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
         expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::API::Instance)
         expect(api.headers).to include(described_class.default_headers)
 
-        case env_agent_settings.adapter
+        case default_agent_settings.adapter
         when :net_http
           expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::Net)
-          expect(api.adapter.hostname).to eq(env_agent_settings.hostname)
-          expect(api.adapter.port).to eq(env_agent_settings.port)
-          expect(api.adapter.ssl).to be(env_agent_settings.ssl)
+          expect(api.adapter.hostname).to eq(default_agent_settings.hostname)
+          expect(api.adapter.port).to eq(default_agent_settings.port)
+          expect(api.adapter.ssl).to be(default_agent_settings.ssl)
         when :unix
           expect(api.adapter).to be_a_kind_of(Datadog::Core::Transport::HTTP::Adapters::UnixSocket)
-          expect(api.adapter.filepath).to eq(env_agent_settings.uds_path)
+          expect(api.adapter.filepath).to eq(default_agent_settings.uds_path)
         else
-          raise("Unknown default adapter: #{env_agent_settings.adapter}")
+          raise("Unknown default adapter: #{default_agent_settings.adapter}")
         end
       end
     end
@@ -111,7 +112,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when given options' do
-      subject(:default) { described_class.default(**options) }
+      subject(:default) { described_class.default(agent_settings: default_agent_settings, **options) }
 
       context 'that specify an API version' do
         let(:options) { { api_version: api_version } }
@@ -144,7 +145,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
     context 'when given a block' do
       it do
-        expect { |b| described_class.default(&b) }.to yield_with_args(
+        expect { |b| described_class.default(agent_settings: default_agent_settings, &b) }.to yield_with_args(
           kind_of(Datadog::Core::Transport::HTTP::Builder)
         )
       end
