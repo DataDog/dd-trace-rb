@@ -82,11 +82,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
-        .with(settings)
+        .with(settings, logger)
         .and_return(runtime_metrics)
 
       expect(described_class).to receive(:build_health_metrics)
-        .with(settings)
+        .with(settings, logger)
         .and_return(health_metrics)
     end
 
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_health_metrics' do
-    subject(:build_health_metrics) { described_class.build_health_metrics(settings) }
+    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new health metrics' do
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(health_metrics)
         end
 
@@ -386,7 +386,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_runtime_metrics' do
-    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings) }
+    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics' do
@@ -396,7 +396,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Runtime::Metrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(runtime_metrics)
         end
 
@@ -452,7 +452,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_runtime_metrics_worker' do
-    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings) }
+    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics worker' do
@@ -468,11 +468,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           allow(described_class).to receive(:build_runtime_metrics)
-            .with(settings)
+            .with(settings, logger)
             .and_return(runtime_metrics)
 
           expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(runtime_metrics_worker)
         end
 

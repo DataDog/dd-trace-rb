@@ -248,7 +248,9 @@ RSpec.describe Datadog::Core::Remote::Client do
     capabilities
   end
 
-  subject(:client) { described_class.new(transport, capabilities, repository: repository) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:client) { described_class.new(transport, capabilities, repository: repository, logger: logger) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'

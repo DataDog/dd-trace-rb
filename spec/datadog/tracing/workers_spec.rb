@@ -18,11 +18,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     )
   end
 
-  let(:logger) do
-    instance_double(Logger).tap do |logger|
-      allow(logger).to receive(:debug)
-    end
-  end
+  let(:logger) { logger_allowing_debug }
 
   after do
     worker.stop
