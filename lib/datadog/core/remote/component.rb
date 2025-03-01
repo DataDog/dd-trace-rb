@@ -22,7 +22,7 @@ module Datadog
           transport_options[:agent_settings] = agent_settings if agent_settings
 
           negotiation = Negotiation.new(settings, agent_settings)
-          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options)
+          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(**transport_options) # steep:ignore
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
