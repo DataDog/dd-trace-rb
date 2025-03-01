@@ -51,12 +51,14 @@ group :check do
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
 
-  # 1.50 is the last version to support Ruby 2.6
-  gem 'rubocop', '~> 1.50.0', require: false
+  # Rubocop version must be pinned to major.minor because its demanded
+  # style changes between minor versions.
+  # Most recent standard as of this writing (1.45) depends on rubocop 1.71.
+  # There is rubocop 1.73 but that downgrades standard to 1.35.
+  gem 'rubocop', '~> 1.71.0', require: false
   gem 'rubocop-packaging', '~> 0.5.2', require: false
-  gem 'rubocop-performance', '~> 1.9', require: false
-  # 2.20 is the last version to support Ruby 2.6
-  gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
+  gem 'rubocop-performance', '~> 1.23', require: false
+  gem 'rubocop-rspec', '~> 2.31', require: false
 end
 
 group :dev do
