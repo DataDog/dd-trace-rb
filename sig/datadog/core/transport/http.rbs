@@ -1,0 +1,9 @@
+module Datadog
+  module Core
+    module Transport
+      module HTTP
+        def self?.build: (api_instance_class: untyped) ?{ (untyped) -> untyped } -> HTTP::Builder
+      end
+    end
+  end
+end

@@ -1,14 +1,9 @@
 # frozen_string_literal: true
 
-require 'uri'
-
 require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../transport/ext'
-require_relative '../../transport/http/builder'
-require_relative '../../transport/http/adapters/net'
-require_relative '../../transport/http/adapters/unix_socket'
-require_relative '../../transport/http/adapters/test'
+require_relative '../../transport/http'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #
@@ -46,7 +41,7 @@ module Datadog
 
           # Builds a new Transport::HTTP::Client
           def new(klass, &block)
-            Core::Transport::HTTP::Builder.new(
+            Core::Transport::HTTP.build(
               api_instance_class: API::Instance, &block
             ).to_transport(klass)
           end
@@ -126,20 +121,6 @@ module Datadog
           def default_adapter
             Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
-
-          # Add adapters to registry
-          Core::Transport::HTTP::Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::Net,
-            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          )
-          Core::Transport::HTTP::Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::Test,
-            Datadog::Core::Transport::Ext::Test::ADAPTER
-          )
-          Core::Transport::HTTP::Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-          )
         end
       end
     end
