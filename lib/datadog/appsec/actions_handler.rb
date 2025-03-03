@@ -31,23 +31,22 @@ module Datadog
           return
         end
 
-        config = Datadog.configuration.appsec.stack_trace
-
         # Check that the sum of stack_trace count in trace and entry_span does not exceed configuration
-        span_stack = ActionsHandler::StackTraceInMetastruct.create(context.span&.metastruct)
-        trace_stack = ActionsHandler::StackTraceInMetastruct.create(context.trace&.metastruct)
+        span_stack = StackTraceInMetastruct.create(context.span&.metastruct)
+        trace_stack = StackTraceInMetastruct.create(context.trace&.metastruct)
+        config = Datadog.configuration.appsec.stack_trace
         return if config.max_collect != 0 && span_stack.count + trace_stack.count >= config.max_collect
 
         # Generate stacktrace
-        utf8_stack_id = action_params['stack_id'].encode('UTF-8') if action_params['stack_id']
-        stack_frames = ActionsHandler::StackTraceCollection.collect(
+        stack_id = action_params['stack_id'].encode('UTF-8')
+        stack_frames = StackTraceCollection.collect(
           max_depth: config.max_depth,
           top_percent: config.max_depth_top_percent
         )
 
         # Add newly created stacktrace to metastruct
         stack = context.trace.nil? ? span_stack : trace_stack
-        stack.push({ language: 'ruby', id: utf8_stack_id, frames: stack_frames })
+        stack.push({ language: 'ruby', id: stack_id, frames: stack_frames })
       end
 
       def generate_schema(_action_params); end

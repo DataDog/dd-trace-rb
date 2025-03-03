@@ -1,6 +1,8 @@
 module Datadog
   module AppSec
     module ActionsHandler
+      type stack_value = String | Integer | nil
+
       def handle: (Datadog::AppSec::SecurityEngine::Result::actions actions_hash) -> void
 
       def interrupt_execution: (Datadog::AppSec::SecurityEngine::Result::action action_params) -> void
@@ -11,9 +13,7 @@ module Datadog
 
       private
 
-      def generate_stack_trace: (Integer max_depth, Float top_percent) -> (Hash[Symbol, String | Integer | Array[Hash[Symbol, String | Integer | nil]] | nil ])
-
-
+      def generate_stack_trace: (Integer max_depth, Float top_percent) -> (Hash[Symbol, stack_value | Array[Hash[Symbol, stack_value]]])
     end
   end
 end

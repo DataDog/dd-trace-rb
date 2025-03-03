@@ -36,23 +36,24 @@ module ThreadBacktraceHelper
     [first_level_location, second_level_location, third_level_location, fourth_level_location, fifth_level_location]
   end
 
-  def self.thousand_locations
-    locations = []
-    1000.times do
-      locations << self.locations.first
-    end
-    locations
-  end
-
-  LocationASCII8Bit = Struct.new(:text, :path, :lineno, :label, keyword_init: true) do
+  CustomLocation = Struct.new(:text, :path, :lineno, :label, keyword_init: true) do
     def to_s
       text
     end
   end
 
+  def self.locations_inside_nested_blocks_with_datadog_frame
+    locations_inside_nested_blocks << CustomLocation.new(
+      text: '/app/lib/datadog/appsec/actions_handler/stack_trace_collection.rb:12:in `block in locations_inside_nested_blocks', # rubocop:disable Layout/LineLength
+      path: '/app/lib/datadog/appsec/actions_handler/stack_trace_collection',
+      lineno: 12,
+      label: 'block in locations_inside_nested_blocks'
+    )
+  end
+
   def self.location_ascii_8bit
     location = locations.first
-    LocationASCII8Bit.new(
+    CustomLocation.new(
       text: location.to_s.encode('ASCII-8BIT'),
       path: (location.absolute_path || location.path).encode('ASCII-8BIT'),
       lineno: location.lineno,

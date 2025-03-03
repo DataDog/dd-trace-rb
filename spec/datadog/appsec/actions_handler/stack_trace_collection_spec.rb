@@ -9,12 +9,14 @@ RSpec.describe Datadog::AppSec::ActionsHandler::StackTraceCollection do
     # "/app/spec/support/thread_backtrace_helpers.rb:14:in `block (2 levels) in locations_inside_nested_blocks'",
     # "/app/spec/support/thread_backtrace_helpers.rb:16:in `block (3 levels) in locations_inside_nested_blocks'",
     # "/app/spec/support/thread_backtrace_helpers.rb:16:in `block (4 levels) in locations_inside_nested_blocks'",
-    # "/app/spec/support/thread_backtrace_helpers.rb:16:in `block (5 levels) in locations_inside_nested_blocks'"
-    let(:frames) { ThreadBacktraceHelper.locations_inside_nested_blocks }
+    # "/app/spec/support/thread_backtrace_helpers.rb:16:in `block (5 levels) in locations_inside_nested_blocks'",
+    # "/app/lib/datadog/appsec/actions_handler/stack_trace_collection.rb:12:in `block in locations_inside_nested_blocks"
+    let(:frames) { ThreadBacktraceHelper.locations_inside_nested_blocks_with_datadog_frame }
 
     before do
-      # Hack to get caller_locations to return a known set of frames (we are not testing caller_locations here)
-      allow_any_instance_of(Array).to receive(:reject).and_return(frames.clone)
+      allow(described_class).to receive(:filter_map_datadog_locations).and_return(
+        described_class.filter_map_datadog_locations(frames)
+      )
     end
 
     context 'with values larger than stack trace' do

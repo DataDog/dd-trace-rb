@@ -933,184 +933,150 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
 
     describe 'stack_trace' do
       describe '#enabled' do
-        subject(:enabled) { settings.appsec.stack_trace.enabled }
-
         context 'when DD_APPSEC_STACK_TRACE_ENABLED' do
           around do |example|
-            ClimateControl.modify('DD_APPSEC_STACK_TRACE_ENABLED' => stack_trace_enabled) do
+            ClimateControl.modify('DD_APPSEC_STACK_TRACE_ENABLED' => enabled_env_var) do
               example.run
             end
           end
 
           context 'is not defined' do
-            let(:stack_trace_enabled) { nil }
-
-            it { is_expected.to eq true }
+            let(:enabled_env_var) { nil }
+            it { expect(settings.appsec.stack_trace.enabled).to eq true }
           end
 
           [true, false].each do |value|
             context "is defined as #{value}" do
-              let(:stack_trace_enabled) { value.to_s }
-
-              it { is_expected.to eq value }
+              let(:enabled_env_var) { value.to_s }
+              it { expect(settings.appsec.stack_trace.enabled).to eq(value) }
             end
           end
         end
       end
 
       describe '#enabled=' do
-        subject(:set_stack_trace_enabled) { settings.appsec.stack_trace.enabled = stack_trace_enabled }
-
         [true, false].each do |value|
           context "when given #{value}" do
-            let(:stack_trace_enabled) { value }
-
-            before { set_stack_trace_enabled }
-
-            it { expect(settings.appsec.stack_trace.enabled).to eq(value) }
+            it "sets enabled to #{value}" do
+              settings.appsec.stack_trace.enabled = value
+              expect(settings.appsec.stack_trace.enabled).to eq(value)
+            end
           end
         end
       end
 
       describe '#max_depth' do
-        subject(:max_depth) { settings.appsec.stack_trace.max_depth }
-
         context 'when DD_APPSEC_MAX_STACK_TRACE_DEPTH' do
           around do |example|
-            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACE_DEPTH' => stack_trace_max_depth) do
+            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACE_DEPTH' => max_depth_env_var) do
               example.run
             end
           end
 
           context 'is not defined' do
-            let(:stack_trace_max_depth) { nil }
-
-            it { is_expected.to eq 32 }
+            let(:max_depth_env_var) { nil }
+            it { expect(settings.appsec.stack_trace.max_depth).to eq(32) }
           end
 
           context 'is defined' do
-            let(:stack_trace_max_depth) { '64' }
-
-            it { is_expected.to eq(64) }
+            let(:max_depth_env_var) { '64' }
+            it { expect(settings.appsec.stack_trace.max_depth).to eq(64) }
           end
         end
       end
 
       describe '#max_depth=' do
-        subject(:set_stack_trace_max_depth) { settings.appsec.stack_trace.max_depth = stack_trace_max_depth }
-
         context 'when given a value' do
-          let(:stack_trace_max_depth) { 64 }
-
-          before { set_stack_trace_max_depth }
-
-          it { expect(settings.appsec.stack_trace.max_depth).to eq(64) }
+          it 'sets max_depth to given value' do
+            settings.appsec.stack_trace.max_depth = 64
+            expect(settings.appsec.stack_trace.max_depth).to eq(64)
+          end
         end
 
         context 'when given a negative value' do
-          let(:stack_trace_max_depth) { -1 }
-
-          before { set_stack_trace_max_depth }
-
-          it { expect(settings.appsec.stack_trace.max_depth).to eq(0) }
+          it 'sets max_depth to 0' do
+            settings.appsec.stack_trace.max_depth = -1
+            expect(settings.appsec.stack_trace.max_depth).to eq(0)
+          end
         end
       end
 
       describe '#max_depth_top_percent' do
-        subject(:max_depth_top_percent) { settings.appsec.stack_trace.max_depth_top_percent }
-
         context 'when DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT' do
           around do |example|
-            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT' => stack_trace_max_depth_top_percent) do
+            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT' => max_depth_top_percent_env_var) do
               example.run
             end
           end
 
           context 'is not defined' do
-            let(:stack_trace_max_depth_top_percent) { nil }
-
-            it { is_expected.to eq 75 }
+            let(:max_depth_top_percent_env_var) { nil }
+            it { expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(75) }
           end
 
           context 'is defined' do
-            let(:stack_trace_max_depth_top_percent) { '50' }
-
-            it { is_expected.to eq(50) }
+            let(:max_depth_top_percent_env_var) { '50' }
+            it { expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(50) }
           end
         end
       end
 
       describe '#max_depth_top_percent=' do
-        subject(:set_stack_trace_max_depth_top_percent) do
-          settings.appsec.stack_trace.max_depth_top_percent = stack_trace_max_depth_top_percent
-        end
-
         context 'when given a value' do
-          let(:stack_trace_max_depth_top_percent) { 50 }
-
-          before { set_stack_trace_max_depth_top_percent }
-
-          it { expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(50) }
+          it 'sets max_depth_top_percent to given value' do
+            settings.appsec.stack_trace.max_depth_top_percent = 50
+            expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(50)
+          end
         end
 
         context 'when given a negative value' do
-          let(:stack_trace_max_depth_top_percent) { -1 }
-
-          before { set_stack_trace_max_depth_top_percent }
-
-          it { expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(0) }
+          it 'sets max_depth_top_percent to 0' do
+            settings.appsec.stack_trace.max_depth_top_percent = -1
+            expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(0)
+          end
         end
 
         context 'when given a value higher than 100' do
-          let(:stack_trace_max_depth_top_percent) { 101 }
-
-          before { set_stack_trace_max_depth_top_percent }
-
-          it { expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(100) }
+          it 'sets max_depth_top_percent to 100' do
+            settings.appsec.stack_trace.max_depth_top_percent = 101
+            expect(settings.appsec.stack_trace.max_depth_top_percent).to eq(100)
+          end
         end
       end
 
       describe '#max_collect' do
-        subject(:max_collect) { settings.appsec.stack_trace.max_collect }
-
         context 'when DD_APPSEC_MAX_STACK_TRACES' do
           around do |example|
-            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACES' => stack_trace_max_collect) do
+            ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACES' => max_collect_env_var) do
               example.run
             end
           end
 
           context 'is not defined' do
-            let(:stack_trace_max_collect) { nil }
-
-            it { is_expected.to eq 2 }
+            let(:max_collect_env_var) { nil }
+            it { expect(settings.appsec.stack_trace.max_collect).to eq(2) }
           end
 
           context 'is defined' do
-            let(:stack_trace_max_collect) { '4' }
-
-            it { is_expected.to eq(4) }
+            let(:max_collect_env_var) { '4' }
+            it { expect(settings.appsec.stack_trace.max_collect).to eq(4) }
           end
         end
       end
 
       describe '#max_collect=' do
-        subject(:set_stack_trace_max_collect) { settings.appsec.stack_trace.max_collect = stack_trace_max_collect }
-
         context 'when given a value' do
-          let(:stack_trace_max_collect) { 4 }
-
-          before { set_stack_trace_max_collect }
-
-          it { expect(settings.appsec.stack_trace.max_collect).to eq(4) }
+          it 'sets max_collect to given value' do
+            settings.appsec.stack_trace.max_collect = 4
+            expect(settings.appsec.stack_trace.max_collect).to eq(4)
+          end
         end
 
         context 'when given a negative value' do
-          let(:stack_trace_max_collect) { -1 }
-
-          before { set_stack_trace_max_collect }
-
-          it { expect(settings.appsec.stack_trace.max_collect).to eq(0) }
+          it 'sets max_collect to 0' do
+            settings.appsec.stack_trace.max_collect = -1
+            expect(settings.appsec.stack_trace.max_collect).to eq(0)
+          end
         end
       end
     end
