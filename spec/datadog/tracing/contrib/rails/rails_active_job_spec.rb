@@ -10,6 +10,7 @@ end
 
 begin
   require 'active_job'
+  require 'active_job/test_helper'
 rescue LoadError
   puts 'ActiveJob not supported in this version of Rails'
 end
@@ -18,6 +19,7 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/active_job/integration'
 
 RSpec.describe 'ActiveJob' do
+  include ::ActiveJob::TestHelper if defined? ::ActiveJob
   before { skip unless defined? ::ActiveJob }
   after { remove_patch!(:active_job) }
   include_context 'Rails test application'
@@ -58,19 +60,6 @@ RSpec.describe 'ActiveJob' do
 
       # initialize the application
       app
-
-      # Override inline adapter to execute scheduled jobs for testingrails_active_job_spec
-      if ActiveJob::QueueAdapters::InlineAdapter.respond_to?(:enqueue_at)
-        allow(ActiveJob::QueueAdapters::InlineAdapter)
-          .to receive(:enqueue_at) do |job, _timestamp, *job_args|
-            ActiveJob::QueueAdapters::InlineAdapter.enqueue(job, *job_args)
-          end
-      else
-        allow_any_instance_of(ActiveJob::QueueAdapters::InlineAdapter)
-          .to receive(:enqueue_at) do |adapter, job, _timestamp|
-            adapter.enqueue(job)
-          end
-      end
     end
 
     it 'instruments enqueue' do
@@ -79,7 +68,7 @@ RSpec.describe 'ActiveJob' do
       span = spans.find { |s| s.name == 'active_job.enqueue' }
       expect(span.name).to eq('active_job.enqueue')
       expect(span.resource).to eq('ExampleJob')
-      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('mice')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -95,11 +84,12 @@ RSpec.describe 'ActiveJob' do
     it 'instruments enqueue_at under the "enqueue" span' do
       scheduled_at = 1.minute.from_now
       job_class.set(queue: :mice, priority: -10, wait_until: scheduled_at).perform_later
+      perform_enqueued_jobs
 
       span = spans.find { |s| s.name == 'active_job.enqueue' }
       expect(span.name).to eq('active_job.enqueue')
       expect(span.resource).to eq('ExampleJob')
-      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('mice')
       expect(span.get_tag('active_job.job.scheduled_at').to_time).to be_within(1).of(scheduled_at)
@@ -115,11 +105,12 @@ RSpec.describe 'ActiveJob' do
 
     it 'instruments perform' do
       job_class.set(queue: :elephants, priority: -10).perform_later
+      perform_enqueued_jobs
 
       span = spans.find { |s| s.name == 'active_job.perform' }
       expect(span.name).to eq('active_job.perform')
       expect(span.resource).to eq('ExampleJob')
-      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
@@ -138,11 +129,13 @@ RSpec.describe 'ActiveJob' do
       end
 
       job_class.set(queue: :elephants, priority: -10).perform_later(test_retry: true)
+      perform_enqueued_jobs
+      perform_enqueued_jobs
 
       enqueue_retry_span = spans.find { |s| s.name == 'active_job.enqueue_retry' }
       expect(enqueue_retry_span.name).to eq('active_job.enqueue_retry')
       expect(enqueue_retry_span.resource).to eq('ExampleJob')
-      expect(enqueue_retry_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(enqueue_retry_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(enqueue_retry_span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(enqueue_retry_span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(enqueue_retry_span.get_tag('active_job.job.error')).to eq('JobRetryError')
@@ -161,7 +154,7 @@ RSpec.describe 'ActiveJob' do
       retry_stopped_span = spans.find { |s| s.name == 'active_job.retry_stopped' }
       expect(retry_stopped_span.name).to eq('active_job.retry_stopped')
       expect(retry_stopped_span.resource).to eq('ExampleJob')
-      expect(retry_stopped_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(retry_stopped_span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(retry_stopped_span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(retry_stopped_span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(retry_stopped_span.get_tag('active_job.job.error')).to eq('JobRetryError')
@@ -181,11 +174,12 @@ RSpec.describe 'ActiveJob' do
       end
 
       job_class.set(queue: :elephants, priority: -10).perform_later(test_discard: true)
+      perform_enqueued_jobs
 
       span = spans.find { |s| s.name == 'active_job.discard' }
       expect(span.name).to eq('active_job.discard')
       expect(span.resource).to eq('ExampleJob')
-      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::InlineAdapter')
+      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('elephants')
       expect(span.get_tag('active_job.job.error')).to eq('JobDiscardError')
@@ -209,6 +203,7 @@ RSpec.describe 'ActiveJob' do
 
         it 'injects trace correlation' do
           perform_later
+          perform_enqueued_jobs
           expect(output).to include('my-log')
           expect(output).to include(low_order_trace_id(span.trace_id).to_s)
         end
@@ -219,6 +214,7 @@ RSpec.describe 'ActiveJob' do
 
         it 'does not inject trace correlation' do
           perform_later
+          perform_enqueued_jobs
           expect(output).to include('my-log')
           expect(output).to_not include(span.trace_id.to_s)
         end

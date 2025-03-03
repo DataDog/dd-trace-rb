@@ -41,7 +41,7 @@ RSpec.shared_context 'Rails 7 test application' do
       instance_eval(&during_init)
 
       if config.respond_to?(:active_job)
-        config.active_job.queue_adapter = :inline
+        config.active_job.queue_adapter = :test
         if ENV['USE_SIDEKIQ']
           config.active_job.queue_adapter = :sidekiq
           # add Sidekiq middleware
@@ -71,7 +71,7 @@ RSpec.shared_context 'Rails 7 test application' do
       end
 
       if Rails.application.config.respond_to?(:active_job)
-        Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :inline
+        Rails.application.config.active_job.queue_adapter = ENV['USE_SIDEKIQ'] ? :sidekiq : :test
       end
 
       Rails.application.config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do

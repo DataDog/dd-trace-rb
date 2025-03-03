@@ -40,7 +40,7 @@ RSpec.shared_context 'Rails 6 test application' do
       instance_eval(&during_init)
 
       if config.respond_to?(:active_job)
-        config.active_job.queue_adapter = :inline
+        config.active_job.queue_adapter = :test
         if ENV['USE_SIDEKIQ']
           config.active_job.queue_adapter = :sidekiq
           # add Sidekiq middleware
@@ -73,7 +73,7 @@ RSpec.shared_context 'Rails 6 test application' do
         Rails.application.config.active_job.queue_adapter = if ENV['USE_SIDEKIQ']
                                                               :sidekiq
                                                             else
-                                                              :inline
+                                                              :test
                                                             end
       end
 
