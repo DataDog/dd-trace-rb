@@ -103,6 +103,29 @@ RSpec.describe 'ActiveJob' do
       end
     end
 
+    it 'instruments scheduled_at under the "perform" span' do
+      scheduled_at = 1.minute.from_now
+      job_class.set(queue: :elephants, priority: -10, wait_until: scheduled_at).perform_later
+      perform_enqueued_jobs
+
+      span = spans.find { |s| s.name == 'active_job.perform' }
+      expect(span.name).to eq('active_job.perform')
+      expect(span.resource).to eq('ExampleJob')
+      expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
+      expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
+      expect(span.get_tag('active_job.job.queue')).to eq('elephants')
+      expect(span.get_tag('active_job.job.scheduled_at').to_time).to be_within(1).of(scheduled_at)
+
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
+        .to eq('active_job')
+      expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
+        .to eq('perform')
+
+      if Datadog::Tracing::Contrib::ActiveJob::Integration.version >= Gem::Version.new('5.0')
+        expect(span.get_tag('active_job.job.priority')).to eq(-10)
+      end
+    end
+
     it 'instruments perform' do
       job_class.set(queue: :elephants, priority: -10).perform_later
       perform_enqueued_jobs
@@ -113,6 +136,8 @@ RSpec.describe 'ActiveJob' do
       expect(span.get_tag('active_job.adapter')).to eq('ActiveJob::QueueAdapters::TestAdapter')
       expect(span.get_tag('active_job.job.id')).to match(/[0-9a-f-]{32}/)
       expect(span.get_tag('active_job.job.queue')).to eq('elephants')
+      expect(span.get_tag('active_job.job.scheduled_at').to_time).to be_within(1).of(Time.now)
+
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT))
         .to eq('active_job')
       expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))

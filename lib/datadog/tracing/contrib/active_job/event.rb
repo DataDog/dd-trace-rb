@@ -43,11 +43,12 @@ module Datadog
               span.set_tag(Ext::TAG_JOB_PRIORITY, job.priority) if job.respond_to?(:priority)
               span.set_tag(Ext::TAG_JOB_EXECUTIONS, job.executions) if job.respond_to?(:executions)
 
-              job_scheduled_at = if job.respond_to?(:scheduled_at)
-                                   job.scheduled_at
-                                 elsif job.respond_to?(:enqueued_at)
-                                   job.enqueued_at
-                                 end
+              job_scheduled_at = job.scheduled_at if job.respond_to?(:scheduled_at)
+              job_scheduled_at ||= job.enqueued_at if job.respond_to?(:enqueued_at)
+
+              job_scheduled_at = Time.at(job_scheduled_at) if job_scheduled_at.is_a?(Numeric)
+              job_scheduled_at = Time.parse(job_scheduled_at) if job_scheduled_at.is_a?(String)
+
               span.set_tag(Ext::TAG_JOB_SCHEDULED_AT, Time.at(job_scheduled_at)) if job_scheduled_at
             end
           end
