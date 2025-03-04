@@ -26,7 +26,7 @@ module Datadog
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
-          @client = Client.new(transport_v7, capabilities)
+          @client = Client.new(transport_v7, capabilities, logger: logger)
           @healthy = false
           logger.debug { "new remote configuration client: #{@client.id}" }
 
@@ -58,7 +58,7 @@ module Datadog
               end
 
               # client state is unknown, state might be corrupted
-              @client = Client.new(transport_v7, capabilities)
+              @client = Client.new(transport_v7, capabilities, logger: logger)
               @healthy = false
               logger.debug { "new remote configuration client: #{@client.id}" }
 

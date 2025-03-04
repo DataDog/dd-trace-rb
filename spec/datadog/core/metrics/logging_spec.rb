@@ -121,7 +121,7 @@ RSpec.describe Datadog::Core::Metrics::Logging::Adapter do
   end
 
   context 'when used in Datadog::Metrics' do
-    subject(:metrics) { Datadog::Core::Metrics::Client.new(statsd: adapter) }
+    subject(:metrics) { Datadog::Core::Metrics::Client.new(statsd: adapter, logger: logger) }
 
     describe 'and #count is sent' do
       subject(:count) { metrics.count(stat, value, options) }
