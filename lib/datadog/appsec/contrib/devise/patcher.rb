@@ -35,7 +35,13 @@ module Datadog
             end
 
             ::ActiveSupport.on_load(:after_initialize) do
-              ::Devise::RegistrationsController.prepend(Patches::SignupTrackingPatch)
+              if ::Devise::RegistrationsController.descendants.empty?
+                ::Devise::RegistrationsController.prepend(Patches::SignupTrackingPatch)
+              else
+                ::Devise::RegistrationsController.descendants.each do |controller|
+                  controller.prepend(Patches::SignupTrackingPatch)
+                end
+              end
             end
 
             ::Devise::Strategies::Authenticatable.prepend(Patches::SigninTrackingPatch)
