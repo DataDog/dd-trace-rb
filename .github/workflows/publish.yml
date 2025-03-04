@@ -115,8 +115,6 @@ jobs:
           ruby-version: '3.3.7'
       - run: bundle install
       - uses: rubygems/release-gem@a25424ba2ba8b387abc8ef40807c2c85b96cbe32 # v1.1.1
-        with:
-          attestations: false # PENDING decision for attestations
 
   github-release:
     name: Attach gem to Github Release and publish
