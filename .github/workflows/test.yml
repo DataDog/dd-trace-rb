@@ -147,9 +147,13 @@ jobs:
     #
     # This is a workaround to manually set the correct git commit sha for the pull request event.
     - if: github.event_name == 'pull_request'
-      run: echo "DD_GIT_COMMIT_SHA=${{ github.event.pull_request.head.sha }}" >> $GITHUB_ENV
+      env:
+        DD_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
+      run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> $GITHUB_ENV
     - if: github.event_name != 'pull_request'
-      run: echo "DD_GIT_COMMIT_SHA=${{ github.sha }}" >> $GITHUB_ENV
+      env:
+        DD_GIT_COMMIT_SHA: ${{ github.sha }}
+      run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> $GITHUB_ENV
     - run: echo $DD_GIT_COMMIT_SHA
     - name: Upload junit reports
       run: datadog-ci junit upload --verbose tmp/rspec/

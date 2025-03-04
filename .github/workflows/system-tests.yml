@@ -87,8 +87,11 @@ jobs:
         run: |
           docker image list
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag image for CI run
         run: docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
@@ -182,8 +185,11 @@ jobs:
             docker pull "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}" || true
           done
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: |
           cache_from=()
@@ -470,8 +476,11 @@ jobs:
     name: Cleanup (${{ matrix.image }})
     steps:
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-version-ids: "gha${{ github.run_id }}-g${{ github.sha }}"

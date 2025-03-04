@@ -37,18 +37,13 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
       - name: Patch version
         if: ${{ matrix.type != 'final' }}
+        env:
+          GHA_RUN_ID: ${{ github.run_id }}
+          GIT_REF: ${{ github.ref }}
+          GIT_SHA: ${{ github.sha }}
         run: |
-          # Obtain context information
-          gha_run_id='${{ github.run_id }}'
-          git_ref='${{ github.ref }}'
-          git_sha='${{ github.sha }}'
+          .gitlab/patch_gem_version.sh gha $GHA_RUN_ID $GIT_REF $GIT_SHA;
 
-          # Output info for CI debug
-          echo gha_run_id="${gha_run_id}"
-          echo git_ref="${git_ref}"
-          echo git_sha="${git_sha}"
-
-          .gitlab/patch_gem_version.sh gha $gha_run_id $git_ref $git_sha;
       - name: Patch gem host
         if: ${{ matrix.type != 'final' }}
         run: |
