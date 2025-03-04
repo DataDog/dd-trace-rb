@@ -5,6 +5,18 @@
 #include "libdatadog_helpers.h"
 #include "time_helpers.h"
 
+// Note on calloc vs ruby_xcalloc use:
+// * Whenever we're allocating memory after being called by the Ruby VM in a "regular" situation (e.g. initializer)
+//   we should use `ruby_xcalloc` to give the VM visibility into what we're doing + give it a chance to manage GC
+// * BUT, when we're being called during a sample, being in the middle of an object allocation is a very special
+//   situation for the VM to be in, and we've found the hard way (e.g. https://bugs.ruby-lang.org/issues/20629 and
+//   https://github.com/DataDog/dd-trace-rb/pull/4240 ) that it can be easy to do things the VM didn't expect.
+// * Thus, out of caution and to avoid future potential issues such as the ones above, whenever we allocate memory
+//   during **sampling** we use `calloc` instead of `ruby_xcalloc`. Note that we've never seen issues from using
+//   `ruby_xcalloc` at any time, so this is a **precaution** not a "we've seen it break". But it seems a harmless
+//   one to use.
+// This applies to both heap_recorder.c and collectors_thread_context.c
+
 // Minimum age (in GC generations) of heap objects we want to include in heap
 // recorder iterations. Object with age 0 represent objects that have yet to undergo
 // a GC and, thus, may just be noise/trash at instant of iteration and are usually not
@@ -24,80 +36,37 @@
 
 // A compact representation of a stacktrace frame for a heap allocation.
 typedef struct {
-  char *name;
-  char *filename;
+  ddog_prof_ManagedStringId name;
+  ddog_prof_ManagedStringId filename;
   int32_t line;
 } heap_frame;
 
+// We use memcmp/st_hash below to compare/hash an entire array of heap_frames, so want to make sure no padding is added
+// We could define the structure to be packed, but that seems even weirder across compilers, and this seems more portable?
+_Static_assert(
+    sizeof(heap_frame) == sizeof(ddog_prof_ManagedStringId) * 2 + sizeof(int32_t),
+    "Size of heap_frame does not match the sum of its members. Padding detected."
+);
+
 // A compact representation of a stacktrace for a heap allocation.
-//
-// We could use a ddog_prof_Slice_Location instead but it has a lot of
-// unused fields. Because we have to keep these stacks around for at
-// least the lifetime of the objects allocated therein, we would be
-// incurring a non-negligible memory overhead for little purpose.
+// Used to dedup heap allocation stacktraces across multiple objects sharing the same allocation location.
 typedef struct {
+  // How many objects are currently tracked in object_records recorder for this heap record.
+  uint32_t num_tracked_objects;
+
   uint16_t frames_len;
   heap_frame frames[];
-} heap_stack;
-static heap_stack* heap_stack_new(ddog_prof_Slice_Location);
-static void heap_stack_free(heap_stack*);
-static st_index_t heap_stack_hash(heap_stack*, st_index_t);
+} heap_record;
+static heap_record* heap_record_new(heap_recorder*, ddog_prof_Slice_Location);
+static void heap_record_free(heap_recorder*, heap_record*);
 
 #if MAX_FRAMES_LIMIT > UINT16_MAX
   #error Frames len type not compatible with MAX_FRAMES_LIMIT
 #endif
 
-enum heap_record_key_type {
-  HEAP_STACK,
-  LOCATION_SLICE
-};
-// This struct allows us to use two different types of stacks when
-// interacting with a heap_record hash.
-//
-// The idea is that we'll always want to use heap_stack-keys when
-// adding new entries to the hash since that's the compact stack
-// representation we rely on internally.
-//
-// However, when querying for an existing heap record, we'd save a
-// lot of allocations if we could query with the
-// ddog_prof_Slice_Location we receive in our external API.
-//
-// To allow this interchange, we need a union and need to ensure
-// that whatever shape of the union, the heap_record_key_cmp_st
-// and heap_record_hash_st functions return the same results for
-// equivalent stacktraces.
-typedef struct {
-  enum heap_record_key_type type;
-  union {
-    // key never owns this if set
-    heap_stack *heap_stack;
-    // key never owns this if set
-    ddog_prof_Slice_Location *location_slice;
-  };
-} heap_record_key;
-static heap_record_key* heap_record_key_new(heap_stack*);
-static void heap_record_key_free(heap_record_key*);
-static int heap_record_key_cmp_st(st_data_t, st_data_t);
-static st_index_t heap_record_key_hash_st(st_data_t);
-static const struct st_hash_type st_hash_type_heap_record_key = {
-    heap_record_key_cmp_st,
-    heap_record_key_hash_st,
-};
-
-// Need to implement these functions to support the location-slice based keys
-static st_index_t ddog_location_hash(ddog_prof_Location, st_index_t seed);
-static st_index_t ddog_location_slice_hash(ddog_prof_Slice_Location, st_index_t seed);
-
-// A heap record is used for deduping heap allocation stacktraces across multiple
-// objects sharing the same allocation location.
-typedef struct {
-  // How many objects are currently tracked by the heap recorder for this heap record.
-  uint32_t num_tracked_objects;
-  // stack is owned by the associated record and gets cleaned up alongside it
-  heap_stack *stack;
-} heap_record;
-static heap_record* heap_record_new(heap_stack*);
-static void heap_record_free(heap_record*);
+static int heap_record_cmp_st(st_data_t, st_data_t);
+static st_index_t heap_record_hash_st(st_data_t);
+static const struct st_hash_type st_hash_type_heap_record = { .compare = heap_record_cmp_st, .hash = heap_record_hash_st };
 
 // An object record is used for storing data about currently tracked live objects
 typedef struct {
@@ -106,8 +75,8 @@ typedef struct {
   live_object_data object_data;
 } object_record;
 static object_record* object_record_new(long, heap_record*, live_object_data);
-static void object_record_free(object_record*);
-static VALUE object_record_inspect(object_record*);
+static void object_record_free(heap_recorder*, object_record*);
+static VALUE object_record_inspect(heap_recorder*, object_record*);
 static object_record SKIPPED_RECORD = {0};
 
 struct heap_recorder {
@@ -116,12 +85,15 @@ struct heap_recorder {
   bool size_enabled;
   uint sample_rate;
 
-  // Map[key: heap_record_key*, record: heap_record*]
-  // NOTE: We always use heap_record_key.type == HEAP_STACK for storage but support lookups
-  // via heap_record_key.type == LOCATION_SLICE to allow for allocation-free fast-paths.
+  // Map[key: heap_record*, record: nothing] (This is a set, basically)
   // NOTE: This table is currently only protected by the GVL since we never interact with it
   // outside the GVL.
-  // NOTE: This table has ownership of both its heap_record_keys and heap_records.
+  // NOTE: This table has ownership of its heap_records.
+  //
+  // This is a cpu/memory trade-off: Maintaining the "heap_records" map means we spend extra CPU when sampling as we need
+  // to do de-duplication, but we reduce the memory footprint of the heap profiler.
+  // In the future, it may be worth revisiting if we can move this inside libdatadog: if libdatadog was able to track
+  // entire stacks for us, then we wouldn't need to do it on the Ruby side.
   st_table *heap_records;
 
   // Map[obj_id: long, record: object_record*]
@@ -132,6 +104,8 @@ struct heap_recorder {
   //
   // TODO: @ivoanjo We've evolved to actually never need to look up on object_records (we only insert and iterate),
   // so right now this seems to be just a really really fancy self-resizing list/set.
+  // If we replace this with a list, we could record the latest id and compare it when inserting to make sure our
+  // assumption of ids never reused + always increasing always holds. (This as an alternative to checking for duplicates)
   st_table *object_records;
 
   // Map[obj_id: long, record: object_record*]
@@ -156,11 +130,18 @@ struct heap_recorder {
   // Data for a heap recording that was started but not yet ended
   object_record *active_recording;
 
-  // Reusable location array, implementing a flyweight pattern for things like iteration.
+  // Reusable arrays, implementing a flyweight pattern for things like iteration
+  #define REUSABLE_LOCATIONS_SIZE MAX_FRAMES_LIMIT
   ddog_prof_Location *reusable_locations;
+
+  #define REUSABLE_FRAME_DETAILS_SIZE (2 * MAX_FRAMES_LIMIT) // because it'll be used for both function names AND file names)
+  ddog_prof_ManagedStringId *reusable_ids;
+  ddog_CharSlice *reusable_char_slices;
 
   // Sampling state
   uint num_recordings_skipped;
+
+  ddog_prof_ManagedStringStorage string_storage;
 
   struct stats_last_update {
     size_t objects_alive;
@@ -185,10 +166,10 @@ struct heap_recorder {
   } stats_lifetime;
 };
 
-struct end_heap_allocation_args {
-  struct heap_recorder *heap_recorder;
+typedef struct {
+  heap_recorder *heap_recorder;
   ddog_prof_Slice_Location locations;
-};
+} end_heap_allocation_args;
 
 static heap_record* get_or_create_heap_record(heap_recorder*, ddog_prof_Slice_Location);
 static void cleanup_heap_record_if_unused(heap_recorder*, heap_record*);
@@ -203,6 +184,9 @@ static void commit_recording(heap_recorder *, heap_record *, object_record *acti
 static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args);
 static void heap_recorder_update(heap_recorder *heap_recorder, bool full_update);
 static inline double ewma_stat(double previous, double current);
+static void unintern_or_raise(heap_recorder *, ddog_prof_ManagedStringId);
+static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids);
+static VALUE get_ruby_string_or_raise(heap_recorder*, ddog_prof_ManagedStringId);
 
 // ==========================
 // Heap Recorder External API
@@ -213,16 +197,19 @@ static inline double ewma_stat(double previous, double current);
 // happens under the GVL.
 //
 // ==========================
-heap_recorder* heap_recorder_new(void) {
+heap_recorder* heap_recorder_new(ddog_prof_ManagedStringStorage string_storage) {
   heap_recorder *recorder = ruby_xcalloc(1, sizeof(heap_recorder));
 
-  recorder->heap_records = st_init_table(&st_hash_type_heap_record_key);
+  recorder->heap_records = st_init_table(&st_hash_type_heap_record);
   recorder->object_records = st_init_numtable();
   recorder->object_records_snapshot = NULL;
-  recorder->reusable_locations = ruby_xcalloc(MAX_FRAMES_LIMIT, sizeof(ddog_prof_Location));
+  recorder->reusable_locations = ruby_xcalloc(REUSABLE_LOCATIONS_SIZE, sizeof(ddog_prof_Location));
+  recorder->reusable_ids = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_prof_ManagedStringId));
+  recorder->reusable_char_slices = ruby_xcalloc(REUSABLE_FRAME_DETAILS_SIZE, sizeof(ddog_CharSlice));
   recorder->active_recording = NULL;
   recorder->size_enabled = true;
   recorder->sample_rate = 1; // By default do no sampling on top of what allocation profiling already does
+  recorder->string_storage = string_storage;
 
   return recorder;
 }
@@ -239,19 +226,21 @@ void heap_recorder_free(heap_recorder *heap_recorder) {
   }
 
   // Clean-up all object records
-  st_foreach(heap_recorder->object_records, st_object_record_entry_free, 0);
+  st_foreach(heap_recorder->object_records, st_object_record_entry_free, (st_data_t) heap_recorder);
   st_free_table(heap_recorder->object_records);
 
   // Clean-up all heap records (this includes those only referred to by queued_samples)
-  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, 0);
+  st_foreach(heap_recorder->heap_records, st_heap_record_entry_free, (st_data_t) heap_recorder);
   st_free_table(heap_recorder->heap_records);
 
   if (heap_recorder->active_recording != NULL && heap_recorder->active_recording != &SKIPPED_RECORD) {
     // If there's a partial object record, clean it up as well
-    object_record_free(heap_recorder->active_recording);
+    object_record_free(heap_recorder, heap_recorder->active_recording);
   }
 
   ruby_xfree(heap_recorder->reusable_locations);
+  ruby_xfree(heap_recorder->reusable_ids);
+  ruby_xfree(heap_recorder->reusable_char_slices);
 
   ruby_xfree(heap_recorder);
 }
@@ -331,7 +320,7 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
     NULL,
     (live_object_data) {
       .weight = weight * heap_recorder->sample_rate,
-      .class = string_from_char_slice(alloc_class),
+      .class = intern_or_raise(heap_recorder->string_storage, alloc_class),
       .alloc_gen = rb_gc_count(),
     }
   );
@@ -341,24 +330,24 @@ void start_heap_allocation_recording(heap_recorder *heap_recorder, VALUE new_obj
 // locks. To enable us to correctly unlock the profile on exception, we wrap the call to end_heap_allocation_recording
 // with an rb_protect.
 __attribute__((warn_unused_result))
-int end_heap_allocation_recording_with_rb_protect(struct heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
+int end_heap_allocation_recording_with_rb_protect(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
   if (heap_recorder == NULL) {
     return 0;
   }
 
   int exception_state;
-  struct end_heap_allocation_args end_heap_allocation_args = {
+  end_heap_allocation_args args = {
     .heap_recorder = heap_recorder,
     .locations = locations,
   };
-  rb_protect(end_heap_allocation_recording, (VALUE) &end_heap_allocation_args, &exception_state);
+  rb_protect(end_heap_allocation_recording, (VALUE) &args, &exception_state);
   return exception_state;
 }
 
-static VALUE end_heap_allocation_recording(VALUE end_heap_allocation_args) {
-  struct end_heap_allocation_args *args = (struct end_heap_allocation_args *) end_heap_allocation_args;
+static VALUE end_heap_allocation_recording(VALUE protect_args) {
+  end_heap_allocation_args *args = (end_heap_allocation_args *) protect_args;
 
-  struct heap_recorder *heap_recorder = args->heap_recorder;
+  heap_recorder *heap_recorder = args->heap_recorder;
   ddog_prof_Slice_Location locations = args->locations;
 
   object_record *active_recording = heap_recorder->active_recording;
@@ -554,26 +543,10 @@ VALUE heap_recorder_state_snapshot(heap_recorder *heap_recorder) {
   return hash;
 }
 
-void heap_recorder_testonly_assert_hash_matches(ddog_prof_Slice_Location locations) {
-  heap_stack *stack = heap_stack_new(locations);
-  heap_record_key stack_based_key = (heap_record_key) {
-    .type = HEAP_STACK,
-    .heap_stack = stack,
-  };
-  heap_record_key location_based_key = (heap_record_key) {
-    .type = LOCATION_SLICE,
-    .location_slice = &locations,
-  };
-
-  st_index_t stack_hash = heap_record_key_hash_st((st_data_t) &stack_based_key);
-  st_index_t location_hash = heap_record_key_hash_st((st_data_t) &location_based_key);
-
-  heap_stack_free(stack);
-
-  if (stack_hash != location_hash) {
-    rb_raise(rb_eRuntimeError, "Heap record key hashes built from the same locations differ. stack_based_hash=%"PRI_VALUE_PREFIX"u location_based_hash=%"PRI_VALUE_PREFIX"u", stack_hash, location_hash);
-  }
-}
+typedef struct {
+  heap_recorder *recorder;
+  VALUE debug_str;
+} debug_context;
 
 VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   if (heap_recorder == NULL) {
@@ -581,7 +554,8 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
   }
 
   VALUE debug_str = rb_str_new2("object records:\n");
-  st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) debug_str);
+  debug_context context = (debug_context) {.recorder = heap_recorder, .debug_str = debug_str};
+  st_foreach(heap_recorder->object_records, st_object_records_debug, (st_data_t) &context);
 
   rb_str_catf(debug_str, "state snapshot: %"PRIsVALUE"\n------\n", heap_recorder_state_snapshot(heap_recorder));
 
@@ -591,15 +565,15 @@ VALUE heap_recorder_testonly_debug(heap_recorder *heap_recorder) {
 // ==========================
 // Heap Recorder Internal API
 // ==========================
-static int st_heap_record_entry_free(st_data_t key, st_data_t value, DDTRACE_UNUSED st_data_t extra_arg) {
-  heap_record_key *record_key = (heap_record_key*) key;
-  heap_record_key_free(record_key);
-  heap_record_free((heap_record *) value);
+static int st_heap_record_entry_free(st_data_t key, DDTRACE_UNUSED st_data_t value, st_data_t extra_arg) {
+  heap_recorder *recorder = (heap_recorder *) extra_arg;
+  heap_record_free(recorder, (heap_record *) key);
   return ST_DELETE;
 }
 
-static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t value, DDTRACE_UNUSED st_data_t extra_arg) {
-  object_record_free((object_record *) value);
+static int st_object_record_entry_free(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra_arg) {
+  heap_recorder *recorder = (heap_recorder *) extra_arg;
+  object_record_free(recorder, (object_record *) value);
   return ST_DELETE;
 }
 
@@ -664,7 +638,7 @@ static int st_object_record_update(st_data_t key, st_data_t value, st_data_t ext
 // WARN: This can get called outside the GVL. NO HEAP ALLOCATIONS OR EXCEPTIONS ARE ALLOWED.
 static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
   object_record *record = (object_record*) value;
-  const heap_stack *stack = record->heap_record->stack;
+  const heap_record *stack = record->heap_record;
   iteration_context *context = (iteration_context*) extra;
 
   const heap_recorder *recorder = context->heap_recorder;
@@ -680,8 +654,10 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
     locations[i] = (ddog_prof_Location) {
       .mapping = {.filename = DDOG_CHARSLICE_C(""), .build_id = DDOG_CHARSLICE_C(""), .build_id_id = {}},
       .function = {
-        .name = {.ptr = frame->name, .len = strlen(frame->name)},
-        .filename = {.ptr = frame->filename, .len = strlen(frame->filename)},
+        .name = DDOG_CHARSLICE_C(""),
+        .name_id = frame->name,
+        .filename = DDOG_CHARSLICE_C(""),
+        .filename_id = frame->filename,
       },
       .line = frame->line,
     };
@@ -700,11 +676,12 @@ static int st_object_records_iterate(DDTRACE_UNUSED st_data_t key, st_data_t val
 }
 
 static int st_object_records_debug(DDTRACE_UNUSED st_data_t key, st_data_t value, st_data_t extra) {
-  VALUE debug_str = (VALUE) extra;
+  debug_context *context = (debug_context*) extra;
+  VALUE debug_str = context->debug_str;
 
   object_record *record = (object_record*) value;
 
-  rb_str_catf(debug_str, "%"PRIsVALUE"\n", object_record_inspect(record));
+  rb_str_catf(debug_str, "%"PRIsVALUE"\n", object_record_inspect(context->recorder, record));
 
   return ST_CONTINUE;
 }
@@ -733,60 +710,35 @@ static void commit_recording(heap_recorder *heap_recorder, heap_record *heap_rec
     st_lookup(heap_recorder->object_records, active_recording->obj_id, (st_data_t *) &existing_record);
     if (existing_record == NULL) rb_raise(rb_eRuntimeError, "Unexpected NULL when reading existing record");
 
-    VALUE existing_inspect = object_record_inspect(existing_record);
-    VALUE new_inspect = object_record_inspect(active_recording);
+    VALUE existing_inspect = object_record_inspect(heap_recorder, existing_record);
+    VALUE new_inspect = object_record_inspect(heap_recorder, active_recording);
     rb_raise(rb_eRuntimeError, "Object ids are supposed to be unique. We got 2 allocation recordings with "
       "the same id. previous={%"PRIsVALUE"} new={%"PRIsVALUE"}", existing_inspect, new_inspect);
   }
 }
 
-// Struct holding data required for an update operation on heap_records
-typedef struct {
-  // [in] The locations we did this update with
-  ddog_prof_Slice_Location locations;
-  // [out] Pointer that will be updated to the updated heap record to prevent having to do
-  // another lookup to access the updated heap record.
-  heap_record **record;
-} heap_record_update_data;
-
-// This function assumes ownership of stack_data is passed on to it so it'll either transfer ownership or clean-up.
 static int update_heap_record_entry_with_new_allocation(st_data_t *key, st_data_t *value, st_data_t data, int existing) {
-  heap_record_update_data *update_data = (heap_record_update_data*) data;
+  heap_record **new_or_existing_record = (heap_record **) data;
+  (*new_or_existing_record) = (heap_record *) (*key);
 
   if (!existing) {
-    // there was no matching heap record so lets create a new one...
-    // we need to initialize a heap_record_key with a new stack and use that for the key storage. We can't use the
-    // locations-based key we used for the update call because we don't own its lifecycle. So we create a new
-    // heap stack and will pass ownership of it to the heap_record.
-    heap_stack *stack = heap_stack_new(update_data->locations);
-    (*key) = (st_data_t) heap_record_key_new(stack);
-    (*value) = (st_data_t) heap_record_new(stack);
+    (*value) = (st_data_t) true; // We're only using this hash as a set
   }
-
-  heap_record *record = (heap_record*) (*value);
-  (*update_data->record) = record;
 
   return ST_CONTINUE;
 }
 
 static heap_record* get_or_create_heap_record(heap_recorder *heap_recorder, ddog_prof_Slice_Location locations) {
-  // For performance reasons we use a stack-allocated location-slice based key. This allows us
-  // to do allocation-free lookups and reuse of a matching existing heap record.
-  // NOTE: If we end up creating a new record, we'll create a heap-allocated key we own and use that for storage
-  //       instead of this one.
-  heap_record_key lookup_key = (heap_record_key) {
-    .type = LOCATION_SLICE,
-    .location_slice = &locations,
-  };
+  // See note on "heap_records" definition for why we keep this map.
+  heap_record *stack = heap_record_new(heap_recorder, locations);
 
-  heap_record *heap_record = NULL;
-  heap_record_update_data update_data = (heap_record_update_data) {
-    .locations = locations,
-    .record = &heap_record,
-  };
-  st_update(heap_recorder->heap_records, (st_data_t) &lookup_key, update_heap_record_entry_with_new_allocation, (st_data_t) &update_data);
+  heap_record *new_or_existing_record = NULL; // Will be set inside update_heap_record_entry_with_new_allocation
+  bool existing = st_update(heap_recorder->heap_records, (st_data_t) stack, update_heap_record_entry_with_new_allocation, (st_data_t) &new_or_existing_record);
+  if (existing) {
+    heap_record_free(heap_recorder, stack);
+  }
 
-  return heap_record;
+  return new_or_existing_record;
 }
 
 static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_record *heap_record) {
@@ -795,18 +747,10 @@ static void cleanup_heap_record_if_unused(heap_recorder *heap_recorder, heap_rec
     return;
   }
 
-  heap_record_key heap_key = (heap_record_key) {
-    .type = HEAP_STACK,
-    .heap_stack = heap_record->stack,
-  };
-  // We need to access the deleted key to free it since we gave ownership of the keys to the hash.
-  // st_delete will change this pointer to point to the removed key if one is found.
-  heap_record_key *deleted_key = &heap_key;
-  if (!st_delete(heap_recorder->heap_records, (st_data_t*) &deleted_key, NULL)) {
+  if (!st_delete(heap_recorder->heap_records, (st_data_t*) &heap_record, NULL)) {
     rb_raise(rb_eRuntimeError, "Attempted to cleanup an untracked heap_record");
   };
-  heap_record_key_free(deleted_key);
-  heap_record_free(heap_record);
+  heap_record_free(heap_recorder, heap_record);
 }
 
 static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, object_record *record) {
@@ -822,59 +766,44 @@ static void on_committed_object_record_cleanup(heap_recorder *heap_recorder, obj
   heap_record *heap_record = record->heap_record;
 
   if (heap_record == NULL) rb_raise(rb_eRuntimeError, "heap_record was NULL in on_committed_object_record_cleanup");
-  if (heap_record->stack == NULL) rb_raise(rb_eRuntimeError, "heap_record->stack was NULL in on_committed_object_record_cleanup");
 
   heap_record->num_tracked_objects--;
 
   // One less object using this heap record, it may have become unused...
   cleanup_heap_record_if_unused(heap_recorder, heap_record);
 
-  object_record_free(record);
-}
-
-// ===============
-// Heap Record API
-// ===============
-heap_record* heap_record_new(heap_stack *stack) {
-  heap_record *record = ruby_xcalloc(1, sizeof(heap_record));
-  record->num_tracked_objects = 0;
-  record->stack = stack;
-  return record;
-}
-
-void heap_record_free(heap_record *record) {
-  heap_stack_free(record->stack);
-  ruby_xfree(record);
+  object_record_free(heap_recorder, record);
 }
 
 // =================
 // Object Record API
 // =================
 object_record* object_record_new(long obj_id, heap_record *heap_record, live_object_data object_data) {
-  object_record *record = ruby_xcalloc(1, sizeof(object_record));
+  object_record *record = calloc(1, sizeof(object_record)); // See "note on calloc vs ruby_xcalloc use" above
   record->obj_id = obj_id;
   record->heap_record = heap_record;
   record->object_data = object_data;
   return record;
 }
 
-void object_record_free(object_record *record) {
-  if (record->object_data.class != NULL) {
-    ruby_xfree(record->object_data.class);
-  }
-  ruby_xfree(record);
+void object_record_free(heap_recorder *recorder, object_record *record) {
+  unintern_or_raise(recorder, record->object_data.class);
+  free(record); // See "note on calloc vs ruby_xcalloc use" above
 }
 
-VALUE object_record_inspect(object_record *record) {
-  heap_frame top_frame = record->heap_record->stack->frames[0];
+VALUE object_record_inspect(heap_recorder *recorder, object_record *record) {
+  heap_frame top_frame = record->heap_record->frames[0];
+  VALUE filename = get_ruby_string_or_raise(recorder, top_frame.filename);
   live_object_data object_data = record->object_data;
-  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%s:%d alloc_gen=%zu gen_age=%zu frozen=%d ",
-      record->obj_id, object_data.weight, object_data.size, top_frame.filename,
+
+  VALUE inspect = rb_sprintf("obj_id=%ld weight=%d size=%zu location=%"PRIsVALUE":%d alloc_gen=%zu gen_age=%zu frozen=%d ",
+      record->obj_id, object_data.weight, object_data.size, filename,
       (int) top_frame.line, object_data.alloc_gen, object_data.gen_age, object_data.is_frozen);
 
-  const char *class = record->object_data.class;
-  if (class != NULL) {
-    rb_str_catf(inspect, "class=%s ", class);
+  if (record->object_data.class.value > 0) {
+    VALUE class = get_ruby_string_or_raise(recorder, record->object_data.class);
+
+    rb_str_catf(inspect, "class=%"PRIsVALUE" ", class);
   }
   VALUE ref;
 
@@ -894,202 +823,103 @@ VALUE object_record_inspect(object_record *record) {
 }
 
 // ==============
-// Heap Frame API
+// Heap Record API
 // ==============
-// WARN: Must be kept in-sync with ::char_slice_hash
-st_index_t string_hash(char *str, st_index_t seed) {
-  return st_hash(str, strlen(str), seed);
-}
-
-// WARN: Must be kept in-sync with ::string_hash
-st_index_t char_slice_hash(ddog_CharSlice char_slice, st_index_t seed) {
-  return st_hash(char_slice.ptr, char_slice.len, seed);
-}
-
-// WARN: Must be kept in-sync with ::ddog_location_hash
-st_index_t heap_frame_hash(heap_frame *frame, st_index_t seed) {
-  st_index_t hash = string_hash(frame->name, seed);
-  hash = string_hash(frame->filename, hash);
-  hash = st_hash(&frame->line, sizeof(frame->line), hash);
-  return hash;
-}
-
-// WARN: Must be kept in-sync with ::heap_frame_hash
-st_index_t ddog_location_hash(ddog_prof_Location location, st_index_t seed) {
-  st_index_t hash = char_slice_hash(location.function.name, seed);
-  hash = char_slice_hash(location.function.filename, hash);
-  // Convert ddog_prof line type to the same type we use for our heap_frames to
-  // ensure we have compatible hashes
-  int32_t line_as_int32 = (int32_t) location.line;
-  hash = st_hash(&line_as_int32, sizeof(line_as_int32), hash);
-  return hash;
-}
-
-// ==============
-// Heap Stack API
-// ==============
-heap_stack* heap_stack_new(ddog_prof_Slice_Location locations) {
+heap_record* heap_record_new(heap_recorder *recorder, ddog_prof_Slice_Location locations) {
   uint16_t frames_len = locations.len;
   if (frames_len > MAX_FRAMES_LIMIT) {
     // This is not expected as MAX_FRAMES_LIMIT is shared with the stacktrace construction mechanism
     rb_raise(rb_eRuntimeError, "Found stack with more than %d frames (%d)", MAX_FRAMES_LIMIT, frames_len);
   }
-  heap_stack *stack = ruby_xcalloc(1, sizeof(heap_stack) + frames_len * sizeof(heap_frame));
+  heap_record *stack = calloc(1, sizeof(heap_record) + frames_len * sizeof(heap_frame)); // See "note on calloc vs ruby_xcalloc use" above
+  stack->num_tracked_objects = 0;
   stack->frames_len = frames_len;
+
+  // Intern all these strings...
+  ddog_CharSlice *strings = recorder->reusable_char_slices;
+  // Put all the char slices in the same array; we'll pull them out in the same order from the ids array
   for (uint16_t i = 0; i < stack->frames_len; i++) {
     const ddog_prof_Location *location = &locations.ptr[i];
+    strings[i] = location->function.filename;
+    strings[i + stack->frames_len] = location->function.name;
+  }
+  intern_all_or_raise(recorder->string_storage, (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = stack->frames_len * 2 }, recorder->reusable_ids, stack->frames_len * 2);
+
+  // ...and record them for later use
+  for (uint16_t i = 0; i < stack->frames_len; i++) {
     stack->frames[i] = (heap_frame) {
-      .name = string_from_char_slice(location->function.name),
-      .filename = string_from_char_slice(location->function.filename),
+      .filename = recorder->reusable_ids[i],
+      .name = recorder->reusable_ids[i + stack->frames_len],
       // ddog_prof_Location is a int64_t. We don't expect to have to profile files with more than
       // 2M lines so this cast should be fairly safe?
-      .line = (int32_t) location->line,
+      .line = (int32_t) locations.ptr[i].line,
     };
   }
+
   return stack;
 }
 
-void heap_stack_free(heap_stack *stack) {
-  for (uint64_t i = 0; i < stack->frames_len; i++) {
-    heap_frame *frame = &stack->frames[i];
-    ruby_xfree(frame->name);
-    ruby_xfree(frame->filename);
+void heap_record_free(heap_recorder *recorder, heap_record *stack) {
+  ddog_prof_ManagedStringId *ids = recorder->reusable_ids;
+
+  // Put all the ids in the same array; doesn't really matter the order
+  for (u_int16_t i = 0; i < stack->frames_len; i++) {
+    ids[i] = stack->frames[i].filename;
+    ids[i + stack->frames_len] = stack->frames[i].name;
   }
-  ruby_xfree(stack);
+  unintern_all_or_raise(recorder, (ddog_prof_Slice_ManagedStringId) { .ptr = ids, .len = stack->frames_len * 2 });
+
+  free(stack); // See "note on calloc vs ruby_xcalloc use" above
 }
 
-// WARN: Must be kept in-sync with ::ddog_location_slice_hash
-st_index_t heap_stack_hash(heap_stack *stack, st_index_t seed) {
-  st_index_t hash = seed;
-  for (uint64_t i = 0; i < stack->frames_len; i++) {
-    hash = heap_frame_hash(&stack->frames[i], hash);
-  }
-  return hash;
-}
+// The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
+// a big string of bytes and compare it all in one go.
+int heap_record_cmp_st(st_data_t key1, st_data_t key2) {
+  heap_record *stack1 = (heap_record*) key1;
+  heap_record *stack2 = (heap_record*) key2;
 
-// WARN: Must be kept in-sync with ::heap_stack_hash
-st_index_t ddog_location_slice_hash(ddog_prof_Slice_Location locations, st_index_t seed) {
-  st_index_t hash = seed;
-  for (uint64_t i = 0; i < locations.len; i++) {
-    hash = ddog_location_hash(locations.ptr[i], hash);
-  }
-  return hash;
-}
-
-// ===================
-// Heap Record Key API
-// ===================
-heap_record_key* heap_record_key_new(heap_stack *stack) {
-  heap_record_key *key = ruby_xmalloc(sizeof(heap_record_key));
-  key->type = HEAP_STACK;
-  key->heap_stack = stack;
-  return key;
-}
-
-void heap_record_key_free(heap_record_key *key) {
-  ruby_xfree(key);
-}
-
-static inline size_t heap_record_key_len(heap_record_key *key) {
-  if (key->type == HEAP_STACK) {
-    return key->heap_stack->frames_len;
+  if (stack1->frames_len != stack2->frames_len) {
+    return ((int) stack1->frames_len) - ((int) stack2->frames_len);
   } else {
-    return key->location_slice->len;
+    return memcmp(stack1->frames, stack2->frames, stack1->frames_len * sizeof(heap_frame));
   }
 }
 
-static inline int64_t heap_record_key_entry_line(heap_record_key *key, size_t entry_i) {
-  if (key->type == HEAP_STACK) {
-    return key->heap_stack->frames[entry_i].line;
-  } else {
-    return key->location_slice->ptr[entry_i].line;
-  }
-}
-
-static inline size_t heap_record_key_entry_name(heap_record_key *key, size_t entry_i, const char **name_ptr) {
-  if (key->type == HEAP_STACK) {
-    char *name = key->heap_stack->frames[entry_i].name;
-    (*name_ptr) = name;
-    return strlen(name);
-  } else {
-    ddog_CharSlice name = key->location_slice->ptr[entry_i].function.name;
-    (*name_ptr) = name.ptr;
-    return name.len;
-  }
-}
-
-static inline size_t heap_record_key_entry_filename(heap_record_key *key, size_t entry_i, const char **filename_ptr) {
-  if (key->type == HEAP_STACK) {
-    char *filename = key->heap_stack->frames[entry_i].filename;
-    (*filename_ptr) = filename;
-    return strlen(filename);
-  } else {
-    ddog_CharSlice filename = key->location_slice->ptr[entry_i].function.filename;
-    (*filename_ptr) = filename.ptr;
-    return filename.len;
-  }
-}
-
-int heap_record_key_cmp_st(st_data_t key1, st_data_t key2) {
-  heap_record_key *key_record1 = (heap_record_key*) key1;
-  heap_record_key *key_record2 = (heap_record_key*) key2;
-
-  // Fast path, check if lengths differ
-  size_t key_record1_len = heap_record_key_len(key_record1);
-  size_t key_record2_len = heap_record_key_len(key_record2);
-
-  if (key_record1_len != key_record2_len) {
-    return ((int) key_record1_len) - ((int) key_record2_len);
-  }
-
-  // If we got this far, we have same lengths so need to check item-by-item
-  for (size_t i = 0; i < key_record1_len; i++) {
-    // Lines are faster to compare, lets do that first
-    size_t line1 = heap_record_key_entry_line(key_record1, i);
-    size_t line2 = heap_record_key_entry_line(key_record2, i);
-    if (line1 != line2) {
-      return ((int) line1) - ((int)line2);
-    }
-
-    // Then come names, they are usually smaller than filenames
-    const char *name1, *name2;
-    size_t name1_len = heap_record_key_entry_name(key_record1, i, &name1);
-    size_t name2_len = heap_record_key_entry_name(key_record2, i, &name2);
-    if (name1_len != name2_len) {
-      return ((int) name1_len) - ((int) name2_len);
-    }
-    int name_cmp_result = strncmp(name1, name2, name1_len);
-    if (name_cmp_result != 0) {
-      return name_cmp_result;
-    }
-
-    // Then come filenames
-    const char *filename1, *filename2;
-    int64_t filename1_len = heap_record_key_entry_filename(key_record1, i, &filename1);
-    int64_t filename2_len = heap_record_key_entry_filename(key_record2, i, &filename2);
-    if (filename1_len != filename2_len) {
-      return ((int) filename1_len) - ((int) filename2_len);
-    }
-    int filename_cmp_result = strncmp(filename1, filename2, filename1_len);
-    if (filename_cmp_result != 0) {
-      return filename_cmp_result;
-    }
-  }
-
-  // If we survived the above for, then everything matched
-  return 0;
-}
-
-// Initial seed for hash functions
+// Initial seed for hash function, same as Ruby uses
 #define FNV1_32A_INIT 0x811c9dc5
 
-st_index_t heap_record_key_hash_st(st_data_t key) {
-  heap_record_key *record_key = (heap_record_key*) key;
-  if (record_key->type == HEAP_STACK) {
-    return heap_stack_hash(record_key->heap_stack, FNV1_32A_INIT);
-  } else {
-    return ddog_location_slice_hash(*record_key->location_slice, FNV1_32A_INIT);
+// The entire stack is represented by ids (name, filename) and lines (integers) so we can treat is as just
+// a big string of bytes and hash it all in one go.
+st_index_t heap_record_hash_st(st_data_t key) {
+  heap_record *stack = (heap_record*) key;
+  return st_hash(stack->frames, stack->frames_len * sizeof(heap_frame), FNV1_32A_INIT);
+}
+
+static void unintern_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
+  if (id.value == 0) return; // Empty string, nothing to do
+
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern(recorder->string_storage, id);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to unintern id: %"PRIsVALUE, get_error_details_and_drop(&result.some));
   }
+}
+
+static void unintern_all_or_raise(heap_recorder *recorder, ddog_prof_Slice_ManagedStringId ids) {
+  ddog_prof_MaybeError result = ddog_prof_ManagedStringStorage_unintern_all(recorder->string_storage, ids);
+  if (result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+    rb_raise(rb_eRuntimeError, "Failed to unintern_all: %"PRIsVALUE, get_error_details_and_drop(&result.some));
+  }
+}
+
+static VALUE get_ruby_string_or_raise(heap_recorder *recorder, ddog_prof_ManagedStringId id) {
+  ddog_StringWrapperResult get_string_result = ddog_prof_ManagedStringStorage_get_string(recorder->string_storage, id);
+  if (get_string_result.tag == DDOG_STRING_WRAPPER_RESULT_ERR) {
+    rb_raise(rb_eRuntimeError, "Failed to get string: %"PRIsVALUE, get_error_details_and_drop(&get_string_result.err));
+  }
+  VALUE ruby_string = ruby_string_from_vec_u8(get_string_result.ok.message);
+  ddog_StringWrapper_drop((ddog_StringWrapper *) &get_string_result.ok);
+
+  return ruby_string;
 }
 
 static inline double ewma_stat(double previous, double current) {
@@ -1112,4 +942,24 @@ void heap_recorder_testonly_reset_last_update(heap_recorder *heap_recorder) {
   }
 
   heap_recorder->last_update_ns = 0;
+}
+
+void heap_recorder_testonly_benchmark_intern(heap_recorder *heap_recorder, ddog_CharSlice string, int times, bool use_all) {
+  if (heap_recorder == NULL) rb_raise(rb_eArgError, "heap profiling must be enabled");
+  if (times > REUSABLE_FRAME_DETAILS_SIZE) rb_raise(rb_eArgError, "times cannot be > than REUSABLE_FRAME_DETAILS_SIZE");
+
+  if (use_all) {
+    ddog_CharSlice *strings = heap_recorder->reusable_char_slices;
+
+    for (int i = 0; i < times; i++) strings[i] = string;
+
+    intern_all_or_raise(
+      heap_recorder->string_storage,
+      (ddog_prof_Slice_CharSlice) { .ptr = strings, .len = times },
+      heap_recorder->reusable_ids,
+      times
+    );
+  } else {
+    for (int i = 0; i < times; i++) intern_or_raise(heap_recorder->string_storage, string);
+  }
 }
