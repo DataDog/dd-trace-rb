@@ -5,6 +5,10 @@ on: workflow_dispatch
 
 concurrency: "rubygems" # Only one publish job at a time
 
+# Default permissions for all jobs
+permissions:
+  contents: read
+
 jobs:
   verify-checks:
     name: Verify commit status checks
@@ -15,6 +19,8 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
           ruby-version: '3.3.7'
@@ -109,6 +115,8 @@ jobs:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Set up Ruby
         uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
         with:
@@ -151,6 +159,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
         uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
@@ -265,6 +274,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           token: ${{ secrets.GHA_PAT }}
           fetch-depth: 0
       - run: |
