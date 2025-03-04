@@ -72,7 +72,7 @@ module Datadog
 
                 context.span['_dd.appsec.usr.login'] = login
                 context.span['appsec.events.users.login.failure.usr.login'] ||= login
-                context.span['appsec.events.users.login.failure.usr.exists'] = 'false'
+                context.span['appsec.events.users.login.failure.usr.exists'] ||= 'false'
 
                 return
               end
@@ -87,7 +87,7 @@ module Datadog
 
               context.span['_dd.appsec.usr.login'] = login
               context.span['appsec.events.users.login.failure.usr.login'] ||= login
-              context.span['appsec.events.users.login.failure.usr.exists'] = 'true'
+              context.span['appsec.events.users.login.failure.usr.exists'] ||= 'true'
             end
           end
         end
