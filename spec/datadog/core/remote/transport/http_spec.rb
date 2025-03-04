@@ -36,7 +36,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   let(:http_connection) { instance_double(::Net::HTTP) }
 
   describe '.root' do
-    subject(:transport) { described_class.root(&client_options) }
+    subject(:transport) { described_class.root(agent_settings: test_agent_settings, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
@@ -83,7 +83,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   end
 
   describe '.v7' do
-    subject(:transport) { described_class.v7(&client_options) }
+    subject(:transport) { described_class.v7(agent_settings: test_agent_settings, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 

@@ -15,7 +15,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
 
   let(:hostname) { 'http://127.0.0.1' }
   let(:writer) do
-    Datadog::Tracing::Writer.new.tap do |w|
+    Datadog::Tracing::Writer.new(agent_settings: test_agent_settings).tap do |w|
       # write some stuff to trigger a #start
       w.write(Datadog::Tracing::TraceSegment.new([]))
 
