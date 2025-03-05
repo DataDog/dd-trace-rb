@@ -47,7 +47,7 @@ jobs:
           GIT_REF: ${{ github.ref }}
           GIT_SHA: ${{ github.sha }}
         run: |
-          .gitlab/patch_gem_version.sh gha $GHA_RUN_ID $GIT_REF $GIT_SHA;
+          .gitlab/patch_gem_version.sh gha "$GHA_RUN_ID" "$GIT_REF" "$GIT_SHA";
 
       - name: Patch gem host
         if: ${{ matrix.type != 'final' }}
@@ -56,7 +56,7 @@ jobs:
           sed datadog.gemspec -i -e "s,^\([\t ]*spec\.metadata\['allowed_push_host'\]\) *= *,\1 = \'${GEM_HOST}\' # ,"
 
           # Test result
-          cat datadog.gemspec | grep -e allowed_push_host
+          grep -e allowed_push_host datadog.gemspec
       - name: Build gem
         run: bundle exec rake build
       - name: List gem

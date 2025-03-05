@@ -25,7 +25,7 @@ jobs:
           ruby-version: '3.3.7'
 
       - id: version
-        run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> $GITHUB_OUTPUT
+        run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
 
       # Check if the gem version is already published
       - name: Verify gem version
@@ -138,10 +138,10 @@ jobs:
     steps:
       - name: Download from RubyGems
         run: |
-          gem fetch datadog --version ${GEM_VERSION} --verbose
+          gem fetch datadog --version "${GEM_VERSION}" --verbose
       - name: Attach to existing release draft
         run: |
-          gh release upload "v${GEM_VERSION}" *.gem --clobber
+          gh release upload "v${GEM_VERSION}" -- *.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
 
   update-gem-version:
@@ -167,7 +167,7 @@ jobs:
       - run: bundle install
       - id: next_version
         run: |
-          echo "next_version=$(bundle exec rake version:next)" >> $GITHUB_OUTPUT
+          echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
 
   # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
   milestone:
