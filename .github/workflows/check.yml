@@ -1,11 +1,12 @@
 name: Static Analysis
-on:
+
+on: # yamllint disable-line rule:truthy
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -158,6 +159,16 @@ jobs:
         with:
           args: -color
 
+  yaml-lint:
+    name: yaml-lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: pip install yamllint
+      - run: yamllint --strict .
+
   complete:
     name: Static Analysis (complete)
     needs:
@@ -169,6 +180,7 @@ jobs:
       - 'dd-static-analysis'
       - 'zizmor'
       - 'actionlint'
+      - 'yaml-lint'
     runs-on: ubuntu-24.04
     steps:
       - run: echo "Done"
