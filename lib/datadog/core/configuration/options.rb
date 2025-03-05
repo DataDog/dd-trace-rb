@@ -117,7 +117,7 @@ module Datadog
           end
 
           def resolved_env(name)
-            return options[name].resolved_env if options.key?(name)
+            options[name].resolved_env if options.key?(name)
           end
 
           def assert_valid_option!(name)
