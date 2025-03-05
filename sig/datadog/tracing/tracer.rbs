@@ -6,6 +6,8 @@ module Datadog
       def active_span: (?untyped? key) -> Datadog::Tracing::Span
 
       def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier
+
+      def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool
     end
   end
 end
