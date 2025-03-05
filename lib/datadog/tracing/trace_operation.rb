@@ -83,7 +83,7 @@ module Datadog
         @id = id || Tracing::Utils::TraceId.next_id
         @max_length = max_length || DEFAULT_MAX_LENGTH
         @parent_span_id = parent_span_id
-        @sampled = sampled.nil? ? true : sampled
+        @sampled = sampled.nil? || sampled
         @remote_parent = remote_parent
 
         # Tags
