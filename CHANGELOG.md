@@ -8,12 +8,6 @@
 
 AppSec: Fix ActiveRecord instrumentation for Rails 4 and Ruby < 2.7 ([#4437][])
 
-## [2.12.1] - 2025-03-05
-
-### Fixed
-
-AppSec: Fix ActiveRecord instrumentation for Rails 4 and Ruby < 2.7 ([#4437][])
-
 ## [2.12.0] - 2025-02-27
 
 ### Added
@@ -3146,7 +3140,6 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
 [Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.1...master
-[2.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.0...v2.12.1
 [2.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.10.0...v2.11.0
