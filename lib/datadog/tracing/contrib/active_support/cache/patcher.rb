@@ -22,6 +22,8 @@ module Datadog
             def patch
               Events.subscribe!
 
+              ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::PreserveOriginalKey) if Integration.version > Gem::Version.new('8.0.0')
+
               # Backfill the `:store` key in the ActiveSupport event payload for older Rails.
               if Integration.version < Gem::Version.new('6.1.0')
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)

@@ -47,7 +47,8 @@ MESSAGE
 
   before do
     Datadog.configure { |c| c.tracing.instrument :redis }
-    Datadog.configure_onto(client_from_driver(driver))
+    # TODO: Do we need this configure_onto?
+    # Datadog.configure_onto(client_from_driver(driver))
   end
 
   let(:driver) do
@@ -203,7 +204,7 @@ MESSAGE
   end
 
   describe '#fetch_multi' do
-    it_behaves_like 'multi reader method', :fetch_multi, true
+    it_behaves_like 'multi reader method', :fetch_multi, Rails.version < '8'
   end
 
   describe '#write' do
@@ -218,7 +219,7 @@ MESSAGE
       expect(redis.name).to eq('redis.command')
       expect(redis.type).to eq('redis')
       expect(redis.resource).to eq('SET')
-      expect(redis.get_tag('redis.raw_command')).to match(/SET custom-key .*ActiveSupport.*/)
+      expect(redis.get_tag('redis.raw_command')).to start_with('SET custom-key ') # Set value can be compressed as binary
       expect(redis.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(redis.trace_id)

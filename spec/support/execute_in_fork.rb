@@ -1,5 +1,6 @@
 module ForkableExample
   def finish(reporter)
+    # TODO: better name than execute_in_fork?
     if @metadata[:execute_in_fork]
       super ? exit(0) : exit(1)
     else

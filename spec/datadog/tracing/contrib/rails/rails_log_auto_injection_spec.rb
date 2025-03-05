@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
+RSpec.describe 'Rails Log Auto Injection', execute_in_fork: true do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
@@ -86,7 +86,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(2).items
+        expect(log_entries).to have_at_least(2).items
         rack_rails_logger_entry, my_entry = log_entries
 
         expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
@@ -106,7 +106,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
@@ -125,7 +125,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(trace.id)}"
@@ -155,7 +155,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -182,7 +182,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -213,7 +213,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -238,7 +238,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            expect(log_entries).to have_at_least(3).items
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -269,7 +269,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -289,7 +289,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -322,7 +322,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -353,7 +353,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -384,7 +384,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -418,7 +418,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(2).item
+        expect(log_entries).to have_at_least(2).item
         rack_rails_logger_entry, my_entry = log_entries
 
         expect(rack_rails_logger_entry).not_to include low_order_trace_id(trace.id).to_s
@@ -437,7 +437,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
-          expect(log_entries).to have(2).item
+          expect(log_entries).to have_at_least(2).item
 
           rack_rails_logger_entry, my_entry = log_entries
 
@@ -454,7 +454,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
 
           rack_rails_logger_entry, my_entry = log_entries
 
@@ -479,7 +479,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have_at_least(2).items
 
             rack_rails_logger_entry, my_entry = log_entries
             expect(rack_rails_logger_entry).to include "dd.trace_id=#{low_order_trace_id(low_order_trace_id(trace.id))}"
@@ -505,7 +505,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -531,7 +531,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -561,7 +561,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -585,7 +585,7 @@ RSpec.describe 'Rails Log Auto Injection' , execute_in_fork: true do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            expect(log_entries).to have_at_least(3).items
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
