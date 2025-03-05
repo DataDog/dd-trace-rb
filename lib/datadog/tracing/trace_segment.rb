@@ -128,8 +128,7 @@ module Datadog
       end
 
       def sampled?
-        sampling_priority == Sampling::Ext::Priority::AUTO_KEEP \
-          || sampling_priority == Sampling::Ext::Priority::USER_KEEP
+        [Sampling::Ext::Priority::AUTO_KEEP, Sampling::Ext::Priority::USER_KEEP].include?(sampling_priority)
       end
 
       # Returns the high order part of the trace id as a hexadecimal string; the most significant 64 bits.
