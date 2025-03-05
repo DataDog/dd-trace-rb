@@ -12,8 +12,7 @@ on:
     - cron: "00 04 * * 2-6"
 
 # Default permissions for all jobs
-permissions:
-  contents: read
+permissions: {}
 
 env:
   REGISTRY: ghcr.io

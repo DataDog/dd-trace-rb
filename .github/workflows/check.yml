@@ -12,8 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 # Default permissions for all jobs
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   build:

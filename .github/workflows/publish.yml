@@ -6,8 +6,7 @@ on: workflow_dispatch
 concurrency: "rubygems" # Only one publish job at a time
 
 # Default permissions for all jobs
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   verify-checks:

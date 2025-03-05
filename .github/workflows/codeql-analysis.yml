@@ -8,8 +8,7 @@ on:
     branches: [ master ]
 
 # Default permissions for all jobs
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   analyze:

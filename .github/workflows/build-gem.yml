@@ -16,8 +16,7 @@ on:
     - master
 
 # Default permissions for all jobs
-permissions:
-  contents: read
+permissions: {}
 
 env:
   GEM_HOST: 'https://rubygems.pkg.github.com/DataDog'
