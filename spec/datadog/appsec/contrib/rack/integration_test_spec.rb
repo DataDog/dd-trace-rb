@@ -46,7 +46,9 @@ RSpec.describe 'Rack integration tests' do
   let(:tracing_enabled) { true }
   let(:appsec_enabled) { true }
 
-  let(:appsec_standalone_enabled) { false }
+  let(:instrument_http) { false }
+
+  let(:apm_tracing_disabled) { false }
   let(:remote_enabled) { false }
   let(:appsec_ip_passlist) { [] }
   let(:appsec_ip_denylist) { [] }
@@ -188,13 +190,13 @@ RSpec.describe 'Rack integration tests' do
         c.tracing.enabled = tracing_enabled
 
         c.tracing.instrument :rack
-        c.tracing.instrument :http
+        c.tracing.instrument :http if instrument_http
 
         c.appsec.enabled = appsec_enabled
 
         c.appsec.instrument :rack
 
-        c.appsec.standalone.enabled = appsec_standalone_enabled
+        c.appsec.standalone.enabled = apm_tracing_disabled
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
@@ -1023,7 +1025,273 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      it_behaves_like 'appsec standalone billing'
+      # it_behaves_like 'appsec standalone billing'
+
+      describe 'ASM Standalone billing' do
+        let(:url) { '/requestdownstream' }
+        let(:params) { {} }
+        let(:headers) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => headers_trace_id,
+            'HTTP_X_DATADOG_PARENT_ID' => headers_parent_id,
+            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => headers_sampling_priority,
+            'HTTP_X_DATADOG_ORIGIN' => headers_origin,
+            'HTTP_X_DATADOG_TAGS' => headers_tags,
+            'HTTP_USER_AGENT' => user_agent
+          }
+        end
+        let(:env) { headers }
+
+        # Default values for headers
+        let(:headers_trace_id) { '1212121212121212121' }
+        let(:headers_parent_id) { '34343434' }
+        let(:headers_origin) { 'rum' }
+        let(:headers_sampling_priority) { '-1' }
+        let(:headers_tags) { '_dd.p.other=1' }
+        let(:user_agent) { nil }
+
+        # Overwrite tracer_helpers span method as in our case we also instrument http
+        let(:span) do
+          Datadog::Tracing::Transport::TraceFormatter.format!(traces.last)
+          spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
+        end
+
+        let(:apm_tracing_disabled) { true }
+        let(:instrument_http) { true }
+
+        context 'without appsec upstream without attack and trace is kept with priority 1' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            # get url, params, env
+          end
+
+          context 'from -1 sampling priority' do
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request with propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request with propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 1 sampling priority' do
+            let(:headers_sampling_priority) { '1' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request with propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 2 sampling priority' do
+            let(:headers_sampling_priority) { '2' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request with propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+        end
+
+        context 'without upstream appsec propagation with attack and trace is kept with priority 2' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            get url, params, env
+          end
+
+          let(:user_agent) { 'Arachni/v1' }
+
+          context 'from -1 sampling priority' do
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.other=1', '_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.other=1', '_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+        end
+
+        context 'with upstream appsec propagation without attack and trace is propagated as is' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            get url, params, env
+          end
+
+          let(:headers_tags) { '_dd.p.appsec=1' }
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { [0, 2].include?(x) }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { ['0', '2'].include?(x) },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 1 sampling priority' do
+            let(:headers_sampling_priority) { '1' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { [1, 2].include?(x) }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { ['1', '2'].include?(x) },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 2 sampling priority' do
+            let(:headers_sampling_priority) { '2' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+        end
+
+        context 'with any upstream propagation with attack and raises trace priority to 2' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            get url, params, env
+          end
+
+          let(:user_agent) { 'Arachni/v1' }
+          let(:headers_tags) { nil }
+
+          context 'from -1 sampling priority' do
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 1 sampling priority' do
+            let(:headers_sampling_priority) { '1' }
+
+            it_behaves_like 'a trace with ASM Standalone tags',
+              {
+                tag_appsec_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x == 2 }
+              }
+            it_behaves_like 'a request with propagated headers',
+              {
+                res_origin: 'rum',
+                res_parent_id_not_equal: '34343434',
+                res_tags: ['_dd.p.appsec=1'],
+                res_sampling_priority_condition: ->(x) { x == '2' },
+                res_trace_id: '1212121212121212121'
+              }
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+        end
+      end
     end
   end
 end

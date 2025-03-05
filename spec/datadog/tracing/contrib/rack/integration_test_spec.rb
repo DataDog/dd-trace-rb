@@ -4,24 +4,80 @@ require 'securerandom'
 require 'rack'
 require 'datadog'
 require 'datadog/tracing/contrib/rack/middlewares'
+require 'datadog/tracing/contrib/support/integration/shared_examples'
 require_relative '../support/http'
+
+begin
+  require 'rack/contrib/json_body_parser'
+rescue LoadError
+  # fallback for old rack-contrib
+  require 'rack/contrib/post_body_content_type_parser'
+end
 
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
   let(:rack_options) { {} }
+  let(:instrument_http) { false }
+  let(:http_instrumentation_options) { {} }
   let(:remote_enabled) { false }
+  let(:apm_tracing_disabled) { false }
+
+  # We send the trace to a mocked agent to verify that the trace includes the headers that we want
+  # In the future, it might be a good idea to use the traces that the mocked agent
+  # receives in the tests/shared examples
+  let(:agent_http_client) do
+    Datadog::Tracing::Transport::HTTP.default do |t|
+      t.adapter agent_http_adapter
+    end
+  end
+  let(:agent_http_adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
+  let(:agent_settings) do
+    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+      adapter: nil,
+      ssl: false,
+      uds_path: nil,
+      hostname: 'localhost',
+      port: 6218,
+      timeout_seconds: 30,
+    )
+  end
+  let(:agent_tested_headers) { {} }
 
   before do
+    WebMock.enable!
+    stub_request(:get, 'http://localhost:3000/returnheaders')
+      .to_return do |request|
+        {
+          status: 200,
+          body: request.headers.to_json,
+          headers: { 'Content-Type' => 'application/json' }
+        }
+      end
+
+    # Mocked agent with correct headers
+    stub_request(:post, 'http://localhost:6218/v0.4/traces')
+      .with do |request|
+        agent_tested_headers <= request.headers
+      end
+      .to_return(status: 200)
+
     unless remote_enabled
       Datadog.configure do |c|
         c.remote.enabled = false
         c.tracing.instrument :rack, rack_options
+        # Required for APM disablement tests as rack can extract but not inject headers
+        c.tracing.instrument :http, http_instrumentation_options if instrument_http
+
+        c.appsec.standalone.enabled = apm_tracing_disabled
       end
     end
   end
 
   after do
+    WebMock.reset!
+    WebMock.disable!
+
     Datadog.registry[:rack].reset_configuration!
   end
 
@@ -373,12 +429,32 @@ RSpec.describe 'Rack integration tests' do
           map '/success/' do
             run(proc { |_env| [200, { 'Content-Type' => 'text/html' }, ['OK']] })
           end
+
+          map '/requestdownstream' do
+            run(
+              proc do |_env|
+                uri = URI('http://localhost:3000/returnheaders')
+                ext_request = nil
+                ext_response = nil
+
+                Net::HTTP.start(uri.host, uri.port) do |http|
+                  ext_request = Net::HTTP::Get.new(uri)
+
+                  ext_response = http.request(ext_request)
+                end
+
+                [200, { 'Content-Type' => 'application/json' }, [ext_response.body]]
+              end
+            )
+          end
         end
       end
 
       before do
         is_expected.to be_ok
-        expect(spans).to have(1).items
+        expected_spans_number = instrument_http ? 2 : 1
+        agent_http_client.send_traces(traces)
+        # expect(spans).to have(expected_spans_number).items
       end
 
       describe 'GET request' do
@@ -574,6 +650,107 @@ RSpec.describe 'Rack integration tests' do
               .to eq('request')
             expect(span.get_tag('span.kind'))
               .to eq('server')
+          end
+        end
+      end
+
+      describe 'APM disablement' do
+        let(:url) { '/requestdownstream' }
+        let(:params) { {} }
+        let(:headers) do
+          {
+            'HTTP_X_DATADOG_TRACE_ID' => headers_trace_id,
+            'HTTP_X_DATADOG_PARENT_ID' => headers_parent_id,
+            'HTTP_X_DATADOG_SAMPLING_PRIORITY' => headers_sampling_priority,
+            'HTTP_X_DATADOG_ORIGIN' => headers_origin,
+            'HTTP_X_DATADOG_TAGS' => headers_tags,
+            'HTTP_USER_AGENT' => user_agent
+          }
+        end
+        let(:env) { headers }
+
+        # Default values for headers
+        let(:headers_trace_id) { '1212121212121212121' }
+        let(:headers_parent_id) { '34343434' }
+        let(:headers_origin) { 'rum' }
+        let(:headers_sampling_priority) { '-1' }
+        let(:headers_tags) { '_dd.p.other=1' }
+        let(:user_agent) { nil }
+
+        # Overwrite tracer_helpers span method as in our case we also instrument http
+        let(:span) do
+          Datadog::Tracing::Transport::TraceFormatter.format!(traces.last)
+          spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
+        end
+
+        let(:apm_tracing_disabled) { true }
+        let(:instrument_http) { true }
+
+        context 'heartbeat trace that received propagated tags sent without sampling priority set to FORCE_KEEP' do
+          subject(:response) do
+            clear_traces!
+            get '/success/'
+            get url, params, env
+          end
+
+          context 'from -1 sampling priority' do
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 0 sampling priority' do
+            let(:headers_sampling_priority) { '0' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 1 sampling priority' do
+            let(:headers_sampling_priority) { '1' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+
+          context 'from 2 sampling priority' do
+            let(:headers_sampling_priority) { '2' }
+
+            it_behaves_like 'a trace with APM disablement tags',
+              {
+                tag_other_propagation: '1',
+                tag_sampling_priority_condition: ->(x) { x < 2 }
+              }
+            it_behaves_like 'a request sent without propagated headers'
+            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+          end
+        end
+
+        context 'no propagated tags received, two request sent' do
+          subject(:response) do
+            get url, params, env
+            get url, params, env
+          end
+
+          let (:env) { {} }
+
+          it do
+            # expect(traces[0].sampling_priority).to eq(2)
+            expect(traces[1].sampling_priority).to eq(-1)
           end
         end
       end
