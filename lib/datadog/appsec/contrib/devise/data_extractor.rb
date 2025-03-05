@@ -13,7 +13,7 @@ module Datadog
           end
 
           def extract_id(object)
-            if object.is_a?(Hash)
+            if object.respond_to?(:[])
               id = object[:id] || object['id'] || object[:uuid] || object['uuid']
 
               return transform(id)
@@ -29,7 +29,7 @@ module Datadog
           end
 
           def extract_login(object)
-            if object.is_a?(Hash)
+            if object.respond_to?(:[])
               login = object[:email] || object['email'] || object[:username] ||
                 object['username'] || object[:login] || object['login']
 
