@@ -11,6 +11,9 @@ on:
   schedule:
     - cron: "00 04 * * 2-6"
 
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
   changes:
     name: Changes
@@ -20,6 +23,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Changes
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
@@ -46,6 +51,7 @@ jobs:
       - run: mkdir binaries/
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: false
           path: binaries/dd-trace-rb/
       - name: Upload artifact
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
@@ -59,7 +65,7 @@ jobs:
       - changes
     if: ${{ needs.changes.outputs.changes == 'true' }}
     uses: DataDog/system-tests/.github/workflows/run-parametric.yml@main
-    secrets: inherit
+    secrets: inherit # zizmor: ignore[secrets-inherit]
     with:
       library: ruby
       binaries_artifact: system_tests_binaries

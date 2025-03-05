@@ -11,6 +11,9 @@ on:
   schedule:
     - cron: "00 04 * * 2-6"
 
+# Default permissions for all jobs
+permissions: {}
+
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
@@ -25,6 +28,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - name: Changes
         uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: changes
@@ -87,8 +92,11 @@ jobs:
         run: |
           docker image list
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag image for CI run
         run: docker tag ${{ matrix.image.internal }} ${{ env.REPO }}/system-tests/${{ matrix.image.name }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
@@ -182,8 +190,11 @@ jobs:
             docker pull "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}" || true
           done
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: |
           cache_from=()
@@ -359,7 +370,7 @@ jobs:
       - name: List images
         run: |
           docker image list
-      - name: Run scenario
+      - name: Run scenario # zizmor: ignore[template-injection]
         # The last escape sequence check if the JSON string exists,
         # then check if the current scenario is contained in it, then create a string by chaining -F and forced tests.
         # A potential error might come from an empty array in a scenario in the json file.
@@ -470,8 +481,11 @@ jobs:
     name: Cleanup (${{ matrix.image }})
     steps:
       - name: Log in to the Container registry
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/delete-package-versions@e5bc658cc4c965c472efe991f8beea3981499c55 # v5.0.0
         with:
           package-version-ids: "gha${{ github.run_id }}-g${{ github.sha }}"
