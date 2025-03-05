@@ -384,6 +384,10 @@ RSpec/DescribeClass:
 RSpec/LetSetup:
   Enabled: false
 
+# Botches example descriptions. https://github.com/rubocop/rubocop/issues/13956
+RSpec/ExampleWording:
+  Enabled: false
+
 # Identifies where `fetch(key) { value }` can be replaced by `fetch(key, value)`.
 # Can't differentiate between `Hash#fetch` and `RailsCache#fetch`,
 # passing in wrong parameters to these methods.
