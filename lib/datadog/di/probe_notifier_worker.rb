@@ -23,12 +23,12 @@ module Datadog
     #
     # @api private
     class ProbeNotifierWorker
-      def initialize(settings, transport, logger, telemetry: nil)
+      def initialize(settings, logger, agent_settings:, telemetry: nil)
         @settings = settings
         @telemetry = telemetry
         @status_queue = []
         @snapshot_queue = []
-        @transport = transport
+        @agent_settings = agent_settings
         @logger = logger
         @lock = Mutex.new
         @wake = Core::Semaphore.new
@@ -43,6 +43,7 @@ module Datadog
       attr_reader :settings
       attr_reader :logger
       attr_reader :telemetry
+      attr_reader :agent_settings
 
       def start
         return if @thread && @pid == Process.pid
@@ -154,7 +155,6 @@ module Datadog
 
       private
 
-      attr_reader :transport
       attr_reader :wake
       attr_reader :thread
 
@@ -169,6 +169,22 @@ module Datadog
       end
 
       attr_reader :last_sent
+
+      def status_transport
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings)
+      end
+
+      def do_send_status(batch)
+        status_transport.send_diagnostics(batch)
+      end
+
+      def snapshot_transport
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings)
+      end
+
+      def do_send_snapshot(batch)
+        snapshot_transport.send_input(batch)
+      end
 
       [
         [:status, 'probe status'],
@@ -245,7 +261,7 @@ module Datadog
           if batch.any? # steep:ignore
             begin
               logger.trace { "di: sending #{batch.length} #{event_type} event(s) to agent" } # steep:ignore
-              transport.public_send("send_#{event_type}", batch)
+              send("do_send_#{event_type}", batch)
               time = Core::Utils::Time.get_time
               @lock.synchronize do
                 @last_sent = time

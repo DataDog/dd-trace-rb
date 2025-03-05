@@ -25,7 +25,7 @@ jobs:
             base: ubuntu-24.04 # always x86_64-linux-gnu
           - os: linux
             cpu: aarch64
-            base: arm-4core-linux-ubuntu24.04 # always aarch64-linux-gnu
+            base: ubuntu-24.04-arm # always aarch64-linux-gnu
         nix:
           - 24.05
 

@@ -1,0 +1,43 @@
+module Datadog
+  module DI
+    module Transport
+      module HTTP
+        module Diagnostics
+          module Client
+            def send_diagnostics_payload: (untyped request) -> untyped
+          end
+
+          module API
+            module Instance
+              def send_diagnostics: (untyped env) -> untyped
+            end
+
+            module Spec
+              attr_accessor diagnostics: untyped
+
+              def send_diagnostics: (untyped env) { (?) -> untyped } -> untyped
+              class NoTraceEndpointDefinedError < StandardError
+                @spec: untyped
+
+                attr_reader spec: untyped
+
+                def initialize: (untyped spec) -> void
+
+                def message: () -> "No trace endpoint is defined for API specification!"
+              end
+            end
+            class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
+              @encoder: untyped
+
+              attr_reader encoder: untyped
+
+              def initialize: (untyped path, untyped encoder) -> void
+
+              def call: (untyped env) { (?) -> untyped } -> untyped
+            end
+          end
+        end
+      end
+    end
+  end
+end

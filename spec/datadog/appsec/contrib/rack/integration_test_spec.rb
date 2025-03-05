@@ -23,7 +23,7 @@ RSpec.describe 'Rack integration tests' do
   # In the future, it might be a good idea to use the traces that the mocked agent
   # receives in the tests/shared examples
   let(:agent_http_client) do
-    Datadog::Tracing::Transport::HTTP.default do |t|
+    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
       t.adapter agent_http_adapter
     end
   end

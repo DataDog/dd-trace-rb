@@ -12,7 +12,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   skip_unless_integration_testing_enabled
 
   describe '.root' do
-    subject(:transport) { described_class.root(&client_options) }
+    subject(:transport) { described_class.root(agent_settings: test_agent_settings, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Core::Remote::Transport::HTTP do
   describe '.v7' do
     before { skip 'TODO: needs remote config on api key+agent+backend' if ENV['TEST_DATADOG_INTEGRATION'] }
 
-    subject(:transport) { described_class.v7(&client_options) }
+    subject(:transport) { described_class.v7(agent_settings: test_agent_settings, &client_options) }
 
     let(:client_options) { proc { |_client| } }
 

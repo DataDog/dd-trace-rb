@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   end
 
   let(:http_connection) { instance_double(::Net::HTTP) }
-  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(&proc { |_client| }) }
+  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: test_agent_settings, &proc { |_client| }) }
   let(:roots) do
     [
       {
@@ -248,7 +248,9 @@ RSpec.describe Datadog::Core::Remote::Client do
     capabilities
   end
 
-  subject(:client) { described_class.new(transport, capabilities, repository: repository) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:client) { described_class.new(transport, capabilities, repository: repository, logger: logger) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'

@@ -42,6 +42,10 @@ namespace :edge do
       'rack' => 'rack',
       'faraday' => 'faraday',
       'excon' => 'excon',
+      'rest-client' => 'rest-client',
+      'mongodb' => 'mongo',
+      'dalli' => 'dalli',
+      'redis' => 'redis',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 

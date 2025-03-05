@@ -29,7 +29,6 @@ gem "webrick", ">= 1.7.0"
 gem "ethon"
 gem "http"
 gem "httpclient"
-gem "rest-client"
 gem "typhoeus"
 
 group :check do

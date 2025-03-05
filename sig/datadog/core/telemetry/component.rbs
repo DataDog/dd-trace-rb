@@ -7,8 +7,10 @@ module Datadog
         @stopped: bool
         @metrics_manager: Datadog::Core::Telemetry::MetricsManager
         @worker: Datadog::Core::Telemetry::Worker
+        @logger: ::Logger
 
         attr_reader enabled: bool
+        attr_reader logger: ::Logger
 
         include Core::Telemetry::Logging
         include Core::Telemetry::_Logging
@@ -16,7 +18,7 @@ module Datadog
 
         def self.build: (untyped settings, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, Datadog::Core::Logger logger) -> Component
 
-        def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer, ?log_collection_enabled: bool) -> void
+        def initialize: (logger: ::Logger, http_transport: Datadog::Core::Telemetry::Http::Transport, heartbeat_interval_seconds: Float, metrics_aggregation_interval_seconds: Float, dependency_collection: bool, ?enabled: bool, ?metrics_enabled: bool, shutdown_timeout_seconds: Float | Integer, ?log_collection_enabled: bool) -> void
 
         def disable!: () -> void
 

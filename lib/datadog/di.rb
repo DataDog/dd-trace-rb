@@ -16,7 +16,8 @@ require_relative 'di/probe_notifier_worker'
 require_relative 'di/redactor'
 require_relative 'di/remote'
 require_relative 'di/serializer'
-require_relative 'di/transport'
+#require_relative 'di/transport'
+require_relative 'di/transport/http'
 require_relative 'di/utils'
 
 module Datadog

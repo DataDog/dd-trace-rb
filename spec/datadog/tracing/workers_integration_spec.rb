@@ -11,9 +11,11 @@ require 'datadog/tracing/workers'
 require 'datadog/tracing/writer'
 
 RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
+  let(:logger) { logger_allowing_debug }
+
   let(:hostname) { 'http://127.0.0.1' }
   let(:writer) do
-    Datadog::Tracing::Writer.new.tap do |w|
+    Datadog::Tracing::Writer.new(agent_settings: test_agent_settings).tap do |w|
       # write some stuff to trigger a #start
       w.write(Datadog::Tracing::TraceSegment.new([]))
 
@@ -26,7 +28,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
           transport: transport,
           buffer_size: buffer_size,
           on_trace: w.instance_variable_get(:@trace_handler),
-          interval: flush_interval
+          interval: flush_interval,
+          logger: logger,
         )
       )
       w.worker.start
@@ -215,7 +218,8 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
         buffer_size: 100,
         on_trace: trace_task,
         on_service: service_task,
-        interval: interval
+        interval: interval,
+        logger: logger,
       )
     end
     let(:interval) { 10 }

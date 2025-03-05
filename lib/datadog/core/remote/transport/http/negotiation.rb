@@ -7,22 +7,6 @@ require_relative 'client'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/trace includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../../datadog/core/transport/http/api/instance'
-require_relative 'api/instance'
-# Below should be:
-# require_relative '../../../../datadog/core/transport/http/api/spec'
-require_relative 'api/spec'
-
 module Datadog
   module Core
     module Remote
@@ -137,8 +121,6 @@ module Datadog
 
             # Add negotiation behavior to transport components
             HTTP::Client.include(Negotiation::Client)
-            HTTP::API::Spec.include(Negotiation::API::Spec)
-            HTTP::API::Instance.include(Negotiation::API::Instance)
           end
         end
       end

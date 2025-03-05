@@ -6,17 +6,19 @@ namespace :github do
   task :generate_batches do
     matrix = eval(File.read('Matrixfile')).freeze # rubocop:disable Security/Eval
 
-    # Uncomment to only runs the specified candidates
-    candidates = [
-      # 'sidekiq', # Connection refused - connect(2) for 127.0.0.1:6379 (RedisClient::CannotConnectError)
-      # 'mongodb', # Connection issue with multi db and process hang
+    # TODO: These are the execptions, find a way to describe those service dependencies in CI using a more generic mechansim.
+    misc_candidates = [
+      'mongodb',
+      'elasticsearch',
+      'opensearch',
+      'presto',
+      'dalli',
     ]
-
-    matrix = matrix.slice(*candidates) unless candidates.empty?
 
     ruby_version = RUBY_VERSION[0..2]
 
     matching_tasks = []
+    misc_tasks = []
 
     matrix.each do |key, spec_metadata|
       spec_metadata.each do |group, rubies|
@@ -30,7 +32,13 @@ namespace :github do
 
         gemfile = AppraisalConversion.to_bundle_gemfile(group) rescue 'Gemfile'
 
-        matching_tasks << { task: key, group: group, gemfile: gemfile }
+        task = { task: key, group: group, gemfile: gemfile }
+
+        if misc_candidates.include?(key)
+          misc_tasks << task
+        else
+          matching_tasks << task
+        end
       end
     end
 
@@ -48,8 +56,13 @@ namespace :github do
       batched_matrix['include'] << { 'batch' => index.to_s, 'tasks' => task_group }
     end
 
+    data = {
+      batches: batched_matrix,
+      misc: { 'include' => [ { 'batch' => "0", 'tasks' => misc_tasks } ] }
+    }
+
     # Output the JSON
-    puts JSON.dump(batched_matrix)
+    puts JSON.dump(data)
   end
 
   task :generate_batch_summary do
@@ -82,18 +95,17 @@ namespace :github do
     tasks.each do |task|
       env = { 'BUNDLE_GEMFILE' => task['gemfile'] }
       cmd = 'bundle check || bundle install'
-
-      if RUBY_PLATFORM == 'java' && RUBY_ENGINE_VERSION.start_with?('9.2')
-        # For JRuby 9.2, the `bundle install` command failed ocassionally with the NameError.
-        #
-        # Mitigate the flakiness by retrying the command up to 3 times.
-        #
-        # https://github.com/jruby/jruby/issues/7508
-        # https://github.com/jruby/jruby/issues/3656
-        with_retry do
-          Bundler.with_unbundled_env { sh(env, cmd) }
-        end
-      else
+      # This retry mechanism is a generic way to improve the reliability in Github Actions,
+      # since network issues can cause the `bundle install` command to fail,
+      # even when Bundler has been configured to retry
+      #
+      # Furthermore, for JRuby 9.2, `bundle install` command failed ocassionally with the NameError.
+      #
+      # Mitigate the flakiness by retrying the command up to 3 times.
+      #
+      # https://github.com/jruby/jruby/issues/7508
+      # https://github.com/jruby/jruby/issues/3656
+      with_retry do
         Bundler.with_unbundled_env { sh(env, cmd) }
       end
     end

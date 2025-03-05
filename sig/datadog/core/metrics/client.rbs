@@ -7,10 +7,13 @@ module Datadog
         extend Options
 
         extend Helpers
+	
+	@logger: Core::Logger
 
         attr_reader statsd: untyped
+	attr_reader logger: Core::Logger
 
-        def initialize: (?statsd: untyped?, ?enabled: bool, **untyped _) -> void
+        def initialize: (?statsd: untyped?, ?enabled: bool, logger: Core::Logger, **untyped _) -> void
 
         def supported?: () -> untyped
 

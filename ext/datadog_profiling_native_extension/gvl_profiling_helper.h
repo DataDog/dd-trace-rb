@@ -39,14 +39,6 @@
 
   static inline void gvl_profiling_init(void) { }
 
-  // This header gets included in private_vm_access.c which can't include datadog_ruby_common.h so we replicate this
-  // helper here
-  #ifdef __GNUC__
-    #define DDTRACE_UNUSED  __attribute__((unused))
-  #else
-    #define DDTRACE_UNUSED
-  #endif
-
   // NOTE: This is a hack that relies on the knowledge that on Ruby 3.2 the
   // RUBY_INTERNAL_THREAD_EVENT_READY and RUBY_INTERNAL_THREAD_EVENT_RESUMED events always get called on the thread they
   // are about. Thus, we can use our thread local storage hack to get this data, even though the event doesn't include it.

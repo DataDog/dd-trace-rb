@@ -6,16 +6,17 @@ require 'support/metric_helpers'
 RSpec.describe Datadog::Core::Metrics::Client do
   include_context 'metrics'
 
-  subject(:metrics) { described_class.new(**options) }
-  after { metrics.close }
-
+  let(:logger) { Logger.new($stderr) }
   let(:options) { { statsd: statsd } }
+
+  subject(:metrics) { described_class.new(logger: logger, **options) }
+  after { metrics.close }
 
   it { is_expected.to have_attributes(statsd: statsd) }
 
   shared_examples_for 'logs an error without raising' do |action|
     it do
-      expect(Datadog.logger).to receive(:error).with(
+      expect(logger).to receive(:error).with(
         /Failed to send #{action} stat/
       )
       expect(Datadog::Core::Telemetry::Logger).to receive(:report).with(
@@ -75,7 +76,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
 
         before do
           described_class.const_get('IGNORED_STATSD_ONLY_ONCE').send(:reset_ran_once_state_for_tests)
-          allow(Datadog.logger).to receive(:warn)
+          allow(logger).to receive(:warn)
         end
 
         it 'does not use the provided instance' do
@@ -83,7 +84,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
         end
 
         it 'logs a warning' do
-          expect(Datadog.logger).to receive(:warn).with(/Ignoring .* statsd instance/)
+          expect(logger).to receive(:warn).with(/Ignoring .* statsd instance/)
 
           metrics
         end
@@ -713,7 +714,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
           # Expect the given block to raise its errors through
 
           it do
-            expect(Datadog.logger).not_to receive(:error)
+            expect(logger).not_to receive(:error)
             expect { time }.to raise_error(error)
           end
         end
@@ -757,7 +758,7 @@ RSpec.describe Datadog::Core::Metrics::Client do
       context 'which raises an error' do
         before do
           expect(statsd).to receive(:distribution).and_raise(StandardError)
-          expect(Datadog.logger).to receive(:error)
+          expect(logger).to receive(:error)
         end
 
         it { expect { time }.to_not raise_error }

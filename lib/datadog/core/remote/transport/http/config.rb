@@ -8,22 +8,6 @@ require_relative '../../../utils/base64'
 require_relative '../../../transport/http/response'
 require_relative '../../../transport/http/api/endpoint'
 
-# TODO: Decouple standard transport/http/api/instance
-#
-# Separate classes are needed because transport/http/trace includes
-# Trace::API::Instance which closes over and uses a single spec, which is
-# negotiated as either /v3 or /v4 for the whole API at the spec level, but we
-# need an independent toplevel path at the endpoint level.
-#
-# Separate classes are needed because of `include Trace::API::Instance`.
-#
-# Below should be:
-# require_relative '../../../core/transport/http/api/instance'
-require_relative 'api/instance'
-# Below should be:
-# require_relative '../../../core/transport/http/api/spec'
-require_relative 'api/spec'
-
 module Datadog
   module Core
     module Remote
@@ -270,8 +254,6 @@ module Datadog
             # Add remote configuration behavior to transport components
             ###### overrides send_payload! which calls send_<endpoint>! kills any other possible endpoint!
             HTTP::Client.include(Config::Client)
-            HTTP::API::Spec.include(Config::API::Spec)
-            HTTP::API::Instance.include(Config::API::Instance)
           end
         end
       end
