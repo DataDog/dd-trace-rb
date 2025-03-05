@@ -4,27 +4,15 @@ module Datadog
       class Metastruct
         extend Forwardable
 
-        type metastruct = Hash[String, untyped]
+        def []: (String | Symbol key) -> untyped
 
-        type merger_value = Hash[untyped, untyped] | Array[untyped] | nil
+        def []=: (String | Symbol key, untyped value) -> untyped
 
-        MERGER: ^(untyped, merger_value, merger_value) -> merger_value
+        def to_h: () -> ::Hash[String | Symbol, untyped]
 
-        @metastruct: metastruct
+        def to_msgpack: (untyped packer) -> void
 
-        def self.empty: () -> Metastruct
-
-        def initialize: (metastruct metastruct) -> void
-
-        def deep_merge!: (Metastruct second) -> void
-
-        def dig: (*String keys) -> untyped
-
-        def []: (String key) -> untyped
-
-        def []=: (String key, untyped value) -> void
-
-        def to_h: () -> metastruct
+        def pretty_print: (untyped q) -> void
       end
     end
   end

@@ -127,7 +127,6 @@ module Datadog
           end
 
           def send_traces(traces)
-            # object that extends Datadog::Core::Encoding::Encoder (MsgpackEncoder or JSONEncoder)
             encoder = current_api.encoder
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,

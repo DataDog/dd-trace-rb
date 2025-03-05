@@ -6,19 +6,19 @@ module Datadog
       attr_accessor end_time: (Time | nil)
       attr_accessor id: Integer
       attr_accessor meta: Hash[String, String]
-      attr_accessor metastruct: Metadata::Metastruct
       attr_accessor metrics: Hash[String, Float]
       attr_accessor name: String
       attr_accessor parent_id: Integer
       attr_accessor resource: String
       attr_accessor service: (String | nil)
-      attr_accessor links: Array[Datadog::Tracing::SpanLink]
-      attr_accessor events: Array[Datadog::Tracing::SpanEvent]
+      attr_accessor links: Array[untyped]
+      attr_accessor events: Array[untyped]
       attr_accessor type: (String | nil)
       attr_accessor start_time: (Time | nil)
       attr_accessor status: Integer
       attr_accessor trace_id: Integer
       attr_writer duration: (Float | nil)
+      attr_reader metastruct: Hash[String | Symbol, untyped]
 
       def initialize: (
           String name,
@@ -26,8 +26,8 @@ module Datadog
           ?end_time: (Time | nil),
           ?id: (Integer | nil),
           ?meta: (Hash[String, String] | nil),
-          ?metastruct: (Metadata::Metastruct::metastruct),
           ?metrics: (Hash[String, Float] | nil),
+          ?metastruct: Hash[String | Symbol, untyped],
           ?parent_id: Integer,
           ?resource: String,
           ?service: (String | nil),
@@ -36,15 +36,12 @@ module Datadog
           ?type: (String | nil),
           ?trace_id: (Integer | nil),
           ?service_entry: (bool | nil),
-          ?links: (Array[Datadog::Tracing::SpanLink] | nil),
-          ?events: (Array[Datadog::Tracing::SpanEvent] | nil)
+          ?links: (Array[untyped] | nil),
+          ?events: (Array[untyped] | nil)
         ) -> void
 
       def started?: -> bool
       def stopped?: -> bool
-
-      alias finished? stopped?
-
       def duration: -> (Float | nil)
       def set_error: (Exception e) -> void
       def ==: (Span other) -> bool

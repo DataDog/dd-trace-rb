@@ -4,7 +4,7 @@ require_relative '../core/environment/identity'
 require_relative '../core/utils'
 require_relative 'tracer'
 require_relative 'event'
-require_relative 'metadata'
+require_relative 'metadata/tagging'
 require_relative 'sampling/ext'
 require_relative 'span_operation'
 require_relative 'trace_digest'
@@ -25,7 +25,7 @@ module Datadog
     #
     # @public_api
     class TraceOperation
-      include Metadata
+      include Metadata::Tagging
 
       DEFAULT_MAX_LENGTH = 100_000
 
@@ -46,8 +46,7 @@ module Datadog
         :max_length,
         :parent_span_id,
         :trace_state,
-        :trace_state_unknown_fields,
-        :metastruct
+        :trace_state_unknown_fields
 
       attr_writer \
         :name,
@@ -74,7 +73,6 @@ module Datadog
         profiling_enabled: nil,
         tags: nil,
         metrics: nil,
-        metastruct: {},
         trace_state: nil,
         trace_state_unknown_fields: nil,
         remote_parent: false,
@@ -107,7 +105,6 @@ module Datadog
         # Generic tags
         set_tags(tags) if tags
         set_tags(metrics) if metrics
-        @metastruct = Tracing::Metadata::Metastruct.new(metastruct)
 
         # State
         @root_span = nil
@@ -372,7 +369,6 @@ module Datadog
           trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
           tags: meta.dup,
           metrics: metrics.dup,
-          metastruct: @metastruct.to_h.dup,
           remote_parent: @remote_parent
         )
       end
@@ -512,7 +508,6 @@ module Datadog
           service: service,
           tags: meta,
           metrics: metrics,
-          metastruct: @metastruct.to_h.dup,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
         )
