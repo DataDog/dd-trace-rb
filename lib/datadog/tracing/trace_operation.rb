@@ -315,10 +315,10 @@ module Datadog
 
         TraceDigest.new(
           span_id: span_id,
-          span_name: (@active_span && @active_span.name),
-          span_resource: (@active_span && @active_span.resource),
-          span_service: (@active_span && @active_span.service),
-          span_type: (@active_span && @active_span.type),
+          span_name: @active_span && @active_span.name,
+          span_resource: @active_span && @active_span.resource,
+          span_service: @active_span && @active_span.service,
+          span_type: @active_span && @active_span.type,
           trace_distributed_tags: distributed_tags,
           trace_hostname: @hostname,
           trace_id: @id,
@@ -331,7 +331,7 @@ module Datadog
           trace_service: service,
           trace_state: @trace_state,
           trace_state_unknown_fields: @trace_state_unknown_fields,
-          span_remote: (@remote_parent && @active_span.nil?),
+          span_remote: @remote_parent && @active_span.nil?,
         ).freeze
       end
 
@@ -351,22 +351,22 @@ module Datadog
       def fork_clone
         self.class.new(
           agent_sample_rate: @agent_sample_rate,
-          events: (@events && @events.dup),
-          hostname: (@hostname && @hostname.dup),
+          events: @events && @events.dup,
+          hostname: @hostname && @hostname.dup,
           id: @id,
           max_length: @max_length,
-          name: (name && name.dup),
-          origin: (@origin && @origin.dup),
+          name: name && name.dup,
+          origin: @origin && @origin.dup,
           parent_span_id: (@active_span && @active_span.id) || @parent_span_id,
           rate_limiter_rate: @rate_limiter_rate,
-          resource: (resource && resource.dup),
+          resource: resource && resource.dup,
           rule_sample_rate: @rule_sample_rate,
           sample_rate: @sample_rate,
           sampled: @sampled,
           sampling_priority: @sampling_priority,
-          service: (service && service.dup),
-          trace_state: (@trace_state && @trace_state.dup),
-          trace_state_unknown_fields: (@trace_state_unknown_fields && @trace_state_unknown_fields.dup),
+          service: service && service.dup,
+          trace_state: @trace_state && @trace_state.dup,
+          trace_state_unknown_fields: @trace_state_unknown_fields && @trace_state_unknown_fields.dup,
           tags: meta.dup,
           metrics: metrics.dup,
           remote_parent: @remote_parent

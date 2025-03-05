@@ -45,7 +45,7 @@ module Datadog
               option_name.to_sym => proc do
                 get_option(option_name)
               end,
-              "#{option_name}=".to_sym => proc do |value|
+              :"#{option_name}=" => proc do |value|
                 set_option(option_name, value)
               end
             }
