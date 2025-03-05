@@ -208,6 +208,11 @@ Performance/Squeeze: # (new in 1.7)
   Enabled: true
 Performance/StringInclude: # (new in 1.7)
   Enabled: true
+# These complain about strings that contain interpolation, demanding
+# additional conversion to symbol which is extra overhead:
+# https://github.com/rubocop/rubocop/issues/13955
+Performance/StringIdentifierArgument:
+  Enabled: false
 
 # Requires Ruby 2.2
 Style/HashSyntax:
