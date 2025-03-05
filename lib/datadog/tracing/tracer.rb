@@ -338,6 +338,9 @@ module Datadog
         hostname = hostname && !hostname.empty? ? hostname : nil
 
         if digest
+          sampling_priority = if propagate_sampling_priority?(upstream_tags: digest.trace_distributed_tags)
+                                digest.trace_sampling_priority
+                              end
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
@@ -345,7 +348,7 @@ module Datadog
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
-            sampling_priority: digest.trace_sampling_priority,
+            sampling_priority: sampling_priority,
             # Distributed tags are just regular trace tags with special meaning to Datadog
             tags: digest.trace_distributed_tags,
             trace_state: digest.trace_state,
@@ -545,6 +548,19 @@ module Datadog
         else
           span
         end
+      end
+
+      # Decide whether upstream sampling priority should be propagated, by taking into account
+      # the upstream tags and the configuration.
+      # We should always propagate if there APM is not disabled.
+      #
+      # e.g.: upstream tags containing dd.p.appsec, and appsec is enabled, return true.
+      # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
+      def propagate_sampling_priority?(upstream_tags:)
+        return true unless apm_tracing_disabled
+        return Datadog.configuration.appsec.enabled if upstream_tags.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
+
+        false
       end
 
       def profiling_enabled
