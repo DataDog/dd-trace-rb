@@ -23,7 +23,7 @@ jobs:
         # Parse the gemspec and return the major version
         id: version
         run: |
-          echo "::set-output name=version::$(find . -name *.gemspec | ruby -ne 'puts Gem::Specification.load($_.chomp).version.to_s.split(".").first')"
+          echo "name=version::$(find . -name "*.gemspec" | ruby -ne "puts Gem::Specification.load($_.chomp).version.to_s.split(\".\").first")" >> "$GITHUB_OUTPUT"
 
       - name: Get project milestones
         id: milestones

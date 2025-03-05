@@ -172,9 +172,11 @@ jobs:
       - name: Read forced-tests-list.json file
         id: read_forced_tests_list
         run: |
-          echo "FORCED_TESTS_LIST<<EOF" >> $GITHUB_OUTPUT
-          echo "$(cat binaries/dd-trace-rb/.github/forced-tests-list.json)" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            printf "FORCED_TESTS_LIST<<EOF\n"
+            cat binaries/dd-trace-rb/.github/forced-tests-list.json
+            printf "\nEOF\n"
+          } >> "$GITHUB_OUTPUT"
       - name: Login to Docker Hub
         uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
         with:
@@ -201,12 +203,17 @@ jobs:
           for tag in latest; do
             cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:${tag}")
           done
+
           parents="$(cd 'binaries/${{ matrix.library.path }}' && git rev-list --parents -n 1 ${{ github.sha }})"
-          for sha in $parents; do
-            cache_from+=(--cache-from ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha})
+
+          # Use read to properly split the string into an array
+          read -ra parent_shas <<< "$parents"
+          for sha in "${parent_shas[@]}"; do
+            cache_from+=(--cache-from "${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:g${sha}")
           done
+
           echo "cache args: ${cache_from[*]}"
-          ./build.sh --library ${{ matrix.library.name }} --weblog-variant ${{ matrix.app }} --images ${{ matrix.image }} --extra-docker-args "${cache_from[*]}"
+          ./build.sh --library "${{ matrix.library.name }}" --weblog-variant "${{ matrix.app }}" --images "${{ matrix.image }}" --extra-docker-args "${cache_from[*]}"
       - name: Tag image for CI run
         run: docker tag system_tests/${{ matrix.image }}:latest ${{ env.REPO }}/system-tests/${{ matrix.library.name }}/${{ matrix.image }}-${{ matrix.app }}:gha${{ github.run_id }}-g${{ github.sha }}
       - name: Push image for CI run
@@ -444,7 +451,7 @@ jobs:
       - name: Print fancy log report
         run: |
           find logs*
-          python utils/scripts/markdown_logs.py >> $GITHUB_STEP_SUMMARY
+          python utils/scripts/markdown_logs.py >> "$GITHUB_STEP_SUMMARY"
 
   cleanup:
     strategy:

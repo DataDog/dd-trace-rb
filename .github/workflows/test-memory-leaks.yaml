@@ -38,7 +38,11 @@ jobs:
           bundler-cache: true # runs 'bundle install' and caches installed gems automatically
           bundler: latest
           cache-version: v2 # bump this to invalidate cache
-      - run: env RUBY_FREE_AT_EXIT=1 LSAN_OPTIONS=verbosity=0:log_threads=1:suppressions=`pwd`/suppressions/lsan.supp ASAN_OPTIONS=detect_leaks=1 bundle exec rake spec:profiling:main
+      - run: bundle exec rake spec:profiling:main
+        env:
+          RUBY_FREE_AT_EXIT: 1
+          LSAN_OPTIONS: verbosity=0:log_threads=1:suppressions=${{ github.workspace }}/suppressions/lsan.supp
+          ASAN_OPTIONS: detect_leaks=1
 
   complete:
     name: Test for memory leaks (complete)
