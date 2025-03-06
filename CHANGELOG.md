@@ -6,7 +6,7 @@
 
 ### Fixed
 
-AppSec: Fix `ArgumentError` from ActiveRecord for Ruby < 2.7 ([#4437][])
+* AppSec: Fix `ArgumentError` from ActiveRecord for Ruby < 2.7 ([#4437][])
 
 ## [2.12.0] - 2025-02-27
 
