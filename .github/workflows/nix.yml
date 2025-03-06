@@ -8,6 +8,9 @@ on:
     branches:
     - master
 
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
   test:
     strategy:
@@ -46,6 +49,8 @@ jobs:
         run: |
           test "$(uname -m)" = "${{ matrix.platform.cpu }}"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
       - uses: DeterminateSystems/nix-installer-action@dea7810afd9d4c98556c8ec68cf361bd5b648eaa # main
       - name: Print ruby version
         run: |
