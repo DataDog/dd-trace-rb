@@ -25,9 +25,6 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
-                  trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
-                end
                 Contrib::HTTP.inject(trace, processed_headers) if datadog_configuration[:distributed_tracing]
 
                 super(&block)
