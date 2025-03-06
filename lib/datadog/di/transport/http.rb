@@ -18,13 +18,6 @@ module Datadog
       module HTTP
         module_function
 
-        # Builds a new Transport::HTTP::Client
-        def new(klass, &block)
-          Core::Transport::HTTP.build(
-            api_instance_class: API::Instance, &block
-          ).to_transport(klass)
-        end
-
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def diagnostics(
@@ -32,7 +25,7 @@ module Datadog
           api_version: nil,
           headers: nil
         )
-          new(DI::Transport::Diagnostics::Transport) do |transport|
+          Core::Transport::HTTP.build(api_instance_class: API::Instance) do |transport|
             transport.adapter(agent_settings)
             transport.headers Core::Transport::HTTP.default_headers
 
@@ -50,7 +43,7 @@ module Datadog
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
-          end
+          end.to_transport(DI::Transport::Diagnostics::Transport)
         end
 
         # Builds a new Transport::HTTP::Client with default settings
@@ -60,7 +53,7 @@ module Datadog
           api_version: nil,
           headers: nil
         )
-          new(DI::Transport::Input::Transport) do |transport|
+          Core::Transport::HTTP.build(api_instance_class: API::Instance) do |transport|
             transport.adapter(agent_settings)
             transport.headers Core::Transport::HTTP.default_headers
 
@@ -78,7 +71,7 @@ module Datadog
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
-          end
+          end.to_transport(DI::Transport::Input::Transport)
         end
       end
     end
