@@ -111,10 +111,6 @@ module Datadog
               end
             end
           end
-
-          def default_adapter
-            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          end
         end
       end
     end
