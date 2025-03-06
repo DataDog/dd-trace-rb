@@ -25,21 +25,11 @@ module Datadog
           api_version: nil,
           headers: nil
         )
-          Core::Transport::HTTP.build(api_instance_class: API::Instance) do |transport|
-            transport.adapter(agent_settings)
-            transport.headers Core::Transport::HTTP.default_headers
-
+          Core::Transport::HTTP.build(api_instance_class: API::Instance,
+          agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 
             transport.api API::DIAGNOSTICS, apis[API::DIAGNOSTICS]
-
-            # Apply any settings given by options
-            if api_version
-              transport.default_api = api_version
-            end
-            if headers
-              transport.headers(headers)
-            end
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
@@ -53,21 +43,11 @@ module Datadog
           api_version: nil,
           headers: nil
         )
-          Core::Transport::HTTP.build(api_instance_class: API::Instance) do |transport|
-            transport.adapter(agent_settings)
-            transport.headers Core::Transport::HTTP.default_headers
-
+          Core::Transport::HTTP.build(api_instance_class: API::Instance,
+          agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 
             transport.api API::INPUT, apis[API::INPUT]
-
-            # Apply any settings given by options
-            if api_version
-              transport.default_api = api_version
-            end
-            if headers
-              transport.headers(headers)
-            end
 
             # Call block to apply any customization, if provided
             yield(transport) if block_given?
