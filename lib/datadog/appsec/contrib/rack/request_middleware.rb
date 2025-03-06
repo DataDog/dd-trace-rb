@@ -77,6 +77,8 @@ module Datadog
             gateway_response = nil
 
             interrupt_params = catch(::Datadog::AppSec::Ext::INTERRUPT) do
+              # TODO: This event should be renamed into `rack.request.start` to
+              #       reflect that it's the beginning of the request-cycle
               http_response, _gateway_request = Instrumentation.gateway.push('rack.request', gateway_request) do
                 @app.call(env)
               end
@@ -85,6 +87,7 @@ module Datadog
                 http_response[2], http_response[0], http_response[1], context: ctx
               )
 
+              Instrumentation.gateway.push('rack.request.finish', gateway_request)
               Instrumentation.gateway.push('rack.response', gateway_response)
 
               nil
