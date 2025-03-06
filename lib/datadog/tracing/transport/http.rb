@@ -25,7 +25,8 @@ module Datadog
         # Pass a block to override any settings.
         def default(
           agent_settings:,
-          **options
+          api_version: nil,
+          headers: nil
         )
           new(Transport::Traces::Transport) do |transport|
             transport.adapter(agent_settings)
@@ -37,9 +38,11 @@ module Datadog
             transport.api API::V3, apis[API::V3]
 
             # Apply any settings given by options
-            unless options.empty?
-              transport.default_api = options[:api_version] if options.key?(:api_version)
-              transport.headers options[:headers] if options.key?(:headers)
+            if api_version
+              transport.default_api = api_version
+            end
+            if headers
+              transport.headers(headers)
             end
 
             # Call block to apply any customization, if provided

@@ -29,7 +29,8 @@ module Datadog
         # Pass a block to override any settings.
         def diagnostics(
           agent_settings:,
-          **options
+          api_version: nil,
+          headers: nil
         )
           new(DI::Transport::Diagnostics::Transport) do |transport|
             transport.adapter(agent_settings)
@@ -40,9 +41,11 @@ module Datadog
             transport.api API::DIAGNOSTICS, apis[API::DIAGNOSTICS]
 
             # Apply any settings given by options
-            unless options.empty?
-              transport.default_api = options[:api_version] if options.key?(:api_version)
-              transport.headers options[:headers] if options.key?(:headers)
+            if api_version
+              transport.default_api = api_version
+            end
+            if headers
+              transport.headers(headers)
             end
 
             # Call block to apply any customization, if provided
@@ -54,7 +57,8 @@ module Datadog
         # Pass a block to override any settings.
         def input(
           agent_settings:,
-          **options
+          api_version: nil,
+          headers: nil
         )
           new(DI::Transport::Input::Transport) do |transport|
             transport.adapter(agent_settings)
@@ -65,9 +69,11 @@ module Datadog
             transport.api API::INPUT, apis[API::INPUT]
 
             # Apply any settings given by options
-            unless options.empty?
-              transport.default_api = options[:api_version] if options.key?(:api_version)
-              transport.headers options[:headers] if options.key?(:headers)
+            if api_version
+              transport.default_api = api_version
+            end
+            if headers
+              transport.headers(headers)
             end
 
             # Call block to apply any customization, if provided
