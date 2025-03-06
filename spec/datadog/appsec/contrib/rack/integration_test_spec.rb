@@ -1062,8 +1062,12 @@ RSpec.describe 'Rack integration tests' do
         context 'without appsec upstream without attack and trace is kept with priority 1' do
           subject(:response) do
             clear_traces!
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
             get '/success/'
-            # get url, params, env
+            # Second trace is a heartbeat trace
+            get '/success/'
+            # Third trace should be sampled or force_kept if there is an appsec event
+            get url, params, env
           end
 
           context 'from -1 sampling priority' do
@@ -1116,7 +1120,11 @@ RSpec.describe 'Rack integration tests' do
         context 'without upstream appsec propagation with attack and trace is kept with priority 2' do
           subject(:response) do
             clear_traces!
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
             get '/success/'
+            # Second trace is a heartbeat trace
+            get '/success/'
+            # Third trace should be sampled or force_kept if there is an appsec event
             get url, params, env
           end
 
@@ -1162,7 +1170,11 @@ RSpec.describe 'Rack integration tests' do
         context 'with upstream appsec propagation without attack and trace is propagated as is' do
           subject(:response) do
             clear_traces!
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
             get '/success/'
+            # Second trace is a heartbeat trace
+            get '/success/'
+            # Third trace should be sampled or force_kept if there is an appsec event
             get url, params, env
           end
 
@@ -1229,7 +1241,11 @@ RSpec.describe 'Rack integration tests' do
         context 'with any upstream propagation with attack and raises trace priority to 2' do
           subject(:response) do
             clear_traces!
+            # First trace to send appsec oneshot_tags ('_dd.appsec.event_rules.loaded'...)
             get '/success/'
+            # Second trace is a heartbeat trace
+            get '/success/'
+            # Third trace should be sampled or force_kept if there is an appsec event
             get url, params, env
           end
 

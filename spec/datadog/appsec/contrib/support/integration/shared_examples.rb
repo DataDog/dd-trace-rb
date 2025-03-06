@@ -188,7 +188,7 @@ RSpec.shared_examples 'a trace with ASM Standalone tags' do |params = {}|
     expect(span.send(:meta)['_dd.p.other']).to eq(tag_other_propagation) unless tag_other_propagation == :any
 
     expect(span.send(:trace_id)).to eq(tag_trace_id)
-    expect(trace.send(:spans)[0].send(:trace_id)).to eq(tag_trace_id)
+    expect(traces.last.send(:spans)[0].send(:trace_id)).to eq(tag_trace_id)
   end
 end
 
