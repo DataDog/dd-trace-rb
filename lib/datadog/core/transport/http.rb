@@ -35,12 +35,8 @@ module Datadog
             transport.headers(default_headers)
 
             # Apply any settings given by options
-            if api_version
-              transport.default_api = api_version
-            end
-            if headers
-              transport.headers(headers)
-            end
+            transport.default_api = api_version if api_version
+            transport.headers(headers) if headers
 
             yield transport
           end
@@ -61,10 +57,10 @@ module Datadog
               Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
           }.tap do |headers|
             # Add container ID, if present.
-            if container_id = Datadog::Core::Environment::Container.container_id
+            if (container_id = Datadog::Core::Environment::Container.container_id)
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id
             end
-            # TODO inject configuration rather than reading from global here
+            # TODO: inject configuration rather than reading from global here
             if Datadog.configuration.appsec.standalone.enabled
               # Sending this header to the agent will disable metrics computation (and billing) on the agent side
               # by pretending it has already been done on the library side.
