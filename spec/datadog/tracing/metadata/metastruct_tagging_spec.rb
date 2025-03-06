@@ -11,18 +11,17 @@ RSpec.describe Datadog::Tracing::Metadata::MetastructTagging do
 
   describe '#set_metastruct_tag' do
     it 'sets the metastruct to a hash with given key / value pair' do
-      test_object.set_metastruct_tag(:foo, [{ some: 'value' }])
-
-      expect(test_object.get_metastruct_tag(:foo)).to eq([{ some: 'value' }])
+      expect do
+        test_object.set_metastruct_tag(:foo, [{ some: 'value' }])
+      end.to change { test_object.get_metastruct_tag(:foo) }.from(nil).to([{ some: 'value' }])
     end
 
     it 'does not lose previous entries' do
-      test_object.instance_variable_set(:@metastruct, { bar: [1] })
-
       test_object.set_metastruct_tag(:foo, [{ some: 'value' }])
 
-      expect(test_object.get_metastruct_tag(:bar)).to eq([1])
-      expect(test_object.get_metastruct_tag(:foo)).to eq([{ some: 'value' }])
+      expect do
+        test_object.set_metastruct_tag(:bar, [{ another: 'value' }])
+      end.not_to(change { test_object.get_metastruct_tag(:foo) })
     end
   end
 
