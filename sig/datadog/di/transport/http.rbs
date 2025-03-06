@@ -2,13 +2,8 @@ module Datadog
   module DI
     module Transport
       module HTTP
-        def self?.new: (untyped klass) { (?) -> untyped } -> untyped
-        def self?.diagnostics: (agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
-        def self?.input: (agent_settings: untyped, **untyped options) ?{ (untyped) -> untyped } -> untyped
-
-        def self?.default_headers: () -> untyped
-
-        def self?.default_adapter: () -> untyped
+        def self?.diagnostics: (agent_settings: untyped, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
+        def self?.input: (agent_settings: untyped, ?api_version: untyped?, ?headers: untyped?) ?{ (untyped) -> untyped } -> untyped
       end
     end
   end
