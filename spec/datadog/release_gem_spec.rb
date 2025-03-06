@@ -23,6 +23,7 @@ RSpec.describe 'gem release process' do
            |\.semgrepignore
            |\.simplecov
            |\.yardopts
+           |\.yamllint.yml
            |ext/\.gitignore
            |ext/.*/.clang-format
            |Appraisals
