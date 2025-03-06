@@ -40,7 +40,8 @@ module Datadog
           # Pass a block to override any settings.
           def root(
             agent_settings:,
-            **options
+            api_version: nil,
+            headers: nil
           )
             new(Core::Remote::Transport::Negotiation::Transport) do |transport|
               transport.adapter(agent_settings)
@@ -51,9 +52,11 @@ module Datadog
               transport.api API::ROOT, apis[API::ROOT]
 
               # Apply any settings given by options
-              unless options.empty?
-                transport.default_api = options[:api_version] if options.key?(:api_version)
-                transport.headers options[:headers] if options.key?(:headers)
+              if api_version
+                transport.default_api = api_version
+              end
+              if headers
+                transport.headers(headers)
               end
 
               # Call block to apply any customization, if provided
@@ -65,7 +68,8 @@ module Datadog
           # Pass a block to override any settings.
           def v7(
             agent_settings:,
-            **options
+            api_version: nil,
+            headers: nil
           )
             new(Core::Remote::Transport::Config::Transport) do |transport|
               transport.adapter(agent_settings)
