@@ -109,4 +109,10 @@ module LogHelpers
       false
     end
   end
+
+  def logger_allowing_debug
+    instance_double(Datadog::Core::Logger).tap do |logger|
+      allow(logger).to receive(:debug)
+    end
+  end
 end

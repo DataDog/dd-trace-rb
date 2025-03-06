@@ -93,7 +93,6 @@ target :datadog do
   ignore 'lib/datadog/di/configuration/settings.rb'
   ignore 'lib/datadog/di/contrib/railtie.rb'
   ignore 'lib/datadog/di/transport/http/api.rb'
-  ignore 'lib/datadog/di/transport/http/spec.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701

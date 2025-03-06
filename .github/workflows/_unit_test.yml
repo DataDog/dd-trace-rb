@@ -34,11 +34,16 @@ jobs:
       image: ghcr.io/datadog/images-rb/engines/${{ inputs.engine }}:${{ inputs.version }}
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
     - name: Generate lockfile
       id: lockfile
+      env:
+        LOCKFILE: lockfile-${{ inputs.alias }}-${{ github.run_id }}
       run: |
         bundle lock
-        echo "lockfile=lockfile-${{ inputs.alias }}-${{ github.run_id }}" >> $GITHUB_OUTPUT
+        echo "lockfile=$LOCKFILE" >> "$GITHUB_OUTPUT"
+
     - name: Upload lockfile
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
       with:
@@ -68,8 +73,8 @@ jobs:
         batches_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["batches"].to_json')
         misc_data=$(echo "$data" | ruby -rjson -e 'puts JSON.parse(STDIN.read)["misc"].to_json')
 
-        echo "batches=$batches_data" >> $GITHUB_OUTPUT
-        echo "misc=$misc_data" >> $GITHUB_OUTPUT
+        echo "batches=$batches_data" >> "$GITHUB_OUTPUT"
+        echo "misc=$misc_data" >> "$GITHUB_OUTPUT"
     - name: Generate batch summary
       run: bundle exec rake github:generate_batch_summary
       env:
@@ -148,6 +153,8 @@ jobs:
         image: ghcr.io/datadog/images-rb/services/redis:6.2
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
     - name: Restore bundle cache
       uses: ./.github/actions/bundle-restore
       with:
@@ -221,6 +228,8 @@ jobs:
         image: ghcr.io/datadog/images-rb/services/starburstdata/presto:332-e.9
     steps:
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
     - name: Restore bundle cache
       uses: ./.github/actions/bundle-restore
       with:

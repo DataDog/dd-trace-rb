@@ -21,7 +21,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:metrics_manager) { instance_double(Datadog::Core::Telemetry::MetricsManager, flush!: [], disable!: nil) }
   let(:emitter) { instance_double(Datadog::Core::Telemetry::Emitter) }
   let(:dependency_collection) { false }
-  let(:logger) { double(Datadog::Core::Logger) }
+  let(:logger) { instance_double(Datadog::Core::Logger) }
 
   let(:backend_supports_telemetry?) { true }
   let(:response) do
