@@ -38,12 +38,3 @@ RSpec.shared_examples 'a request sent without propagated headers' do
 
   it_behaves_like 'a request sent with propagated headers', {}
 end
-
-RSpec.shared_examples 'a trace sent to agent with Datadog-Client-Computed-Stats header' do
-  let(:agent_tested_headers) { { 'Datadog-Client-Computed-Stats' => 'yes' } }
-
-  it do
-    agent_return = agent_http_client.send_traces(traces)
-    expect(JSON.parse(agent_return.first.payload)["Datadog-Client-Computed-Stats"]).to eq('yes')
-  end
-end
