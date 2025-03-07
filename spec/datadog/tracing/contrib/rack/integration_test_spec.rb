@@ -27,7 +27,7 @@ RSpec.describe 'Rack integration tests' do
   # In the future, it might be a good idea to use the traces that the mocked agent
   # receives in the tests/shared examples
   let(:agent_http_client) do
-    Datadog::Tracing::Transport::HTTP.default do |t|
+    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
       t.adapter agent_http_adapter
     end
   end
@@ -44,6 +44,7 @@ RSpec.describe 'Rack integration tests' do
   end
   let(:agent_tested_headers) { {} }
 
+  # This before block is executed before booting the tracer, which is why we add mocks here
   before do
     WebMock.enable!
     stub_request(:get, 'http://localhost:3000/returnheaders')
@@ -61,6 +62,22 @@ RSpec.describe 'Rack integration tests' do
         agent_tested_headers <= request.headers
       end
       .to_return(status: 200)
+
+    # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60
+    #
+    # DEV: (APM Disablement V2) Mock the APM disablement sampler generator instead
+    if apm_tracing_disabled
+      post_sampler = Datadog::Tracing::Sampling::RuleSampler.new(
+        [Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
+        rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 4, 1.0),
+        default_sample_rate: 1.0 / 4
+      )
+      sampler = Datadog::Tracing::Sampling::PrioritySampler.new(
+        base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
+        post_sampler: post_sampler
+      )
+      allow(Datadog::Core::Configuration::Components).to receive(:build_sampler).and_return(sampler)
+    end
 
     unless remote_enabled
       Datadog.configure do |c|
@@ -686,7 +703,7 @@ RSpec.describe 'Rack integration tests' do
         let(:apm_tracing_disabled) { true }
         let(:instrument_http) { true }
 
-        context 'heartbeat trace that received propagated tags sent without sampling priority set to FORCE_KEEP' do
+        context 'request contains propagated tags, trace sent without sampling priority set to FORCE_KEEP' do
           subject(:response) do
             clear_traces!
             get '/success/'
@@ -740,17 +757,22 @@ RSpec.describe 'Rack integration tests' do
           end
         end
 
-        context 'no propagated tags received, two request sent' do
+        context '2 heartbeat traces and 1 dropped trace' do
           subject(:response) do
-            get url, params, env
-            get url, params, env
+            clear_traces!
+            get '/success/'
+            sleep(2)
+            get '/success/'
+            sleep(2)
+            get '/success/'
           end
 
           let (:env) { {} }
 
           it do
-            # expect(traces[0].sampling_priority).to eq(2)
+            expect(traces[0].sampling_priority).to eq(2)
             expect(traces[1].sampling_priority).to eq(-1)
+            expect(traces[2].sampling_priority).to eq(2)
           end
         end
       end

@@ -79,6 +79,8 @@ module Datadog
         # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
         # but for features such as API Security, we need to send at least one trace per minute,
         # to keep the service alive on the backend side.
+        #
+        # DEV: (APM Disablement V2) Use a separate method to generate the post_sampler
         if settings.appsec.standalone.enabled
           post_sampler = Tracing::Sampling::RuleSampler.new(
             [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
