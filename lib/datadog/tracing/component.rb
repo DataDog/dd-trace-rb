@@ -82,8 +82,7 @@ module Datadog
         if settings.appsec.standalone.enabled
           post_sampler = Tracing::Sampling::RuleSampler.new(
             [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
-            rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0),
-            default_sample_rate: 1.0 / 60
+            rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0)
           )
         end
 
