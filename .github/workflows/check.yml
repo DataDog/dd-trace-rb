@@ -93,8 +93,7 @@ jobs:
     needs: ['build']
     container: ghcr.io/datadog/images-rb/engines/ruby:3.3
     steps:
-      - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - name: Restore bundle cache
@@ -144,11 +143,8 @@ jobs:
   zizmor:
     name: zizmor
     runs-on: ubuntu-24.04
-    permissions:
-      security-events: write
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
       - name: Run zizmor 🌈
@@ -165,7 +161,8 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: docker://rhysd/actionlint:1.7.7
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.7.7
         with:
           args: -color
 
@@ -177,7 +174,8 @@ jobs:
         with:
           persist-credentials: false
       - run: pip install yamllint
-      - run: yamllint --strict .
+      - name: Run yamllint
+        run: yamllint --strict .
 
   complete:
     name: Static Analysis (complete)
