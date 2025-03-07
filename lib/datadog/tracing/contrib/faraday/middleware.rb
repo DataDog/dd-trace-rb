@@ -29,7 +29,7 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
-              propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
+              propagate!(trace, span, env) if Tracing.enabled? && !should_skip_distributed_tracing?(request_options, trace)
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
             end
           end
@@ -113,6 +113,16 @@ module Datadog
 
           def datadog_configuration(host = :default)
             Datadog.configuration.tracing[:faraday, host]
+          end
+
+          # Skips distributed tracing if disabled for this instrumentation
+          # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
+          def should_skip_distributed_tracing?(client_config, trace)
+            if Datadog.configuration.appsec.standalone.enabled
+              return true unless trace && trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) == '1'
+            end
+
+            !client_config[:distributed_tracing]
           end
         end
       end

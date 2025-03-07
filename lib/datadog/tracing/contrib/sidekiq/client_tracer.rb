@@ -24,7 +24,7 @@ module Datadog
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
-              Sidekiq.inject(trace_op, job) if configuration[:distributed_tracing]
+              Sidekiq.inject(trace_op, job) unless should_skip_distributed_tracing?(trace_op)
 
               span.resource = resource
 
@@ -54,6 +54,16 @@ module Datadog
 
           def configuration
             Datadog.configuration.tracing[:sidekiq]
+          end
+
+          # Skips distributed tracing if disabled for this instrumentation
+          # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
+          def should_skip_distributed_tracing?(trace)
+            if Datadog.configuration.appsec.standalone.enabled
+              return true unless trace && trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) == '1'
+            end
+
+            !configuration[:distributed_tracing]
           end
         end
       end

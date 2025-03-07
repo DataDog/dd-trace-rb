@@ -30,7 +30,7 @@ module Datadog
                 trace = Tracing.active_trace
                 datum[:datadog_span] = span
                 annotate!(span, datum)
-                propagate!(trace, span, datum) if distributed_tracing?
+                propagate!(trace, span, datum) unless should_skip_distributed_tracing?(trace)
 
                 span
               end
@@ -188,6 +188,16 @@ module Datadog
 
           def datadog_configuration(host = :default)
             Datadog.configuration.tracing[:excon, host]
+          end
+
+          # Skips distributed tracing if disabled for this instrumentation
+          # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
+          def should_skip_distributed_tracing?(trace)
+            if Datadog.configuration.appsec.standalone.enabled
+              return true unless trace && trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) == '1'
+            end
+
+            !distributed_tracing?
           end
         end
       end
