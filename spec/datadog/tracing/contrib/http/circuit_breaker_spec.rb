@@ -93,19 +93,19 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
   end
 
   describe '#should_skip_distributed_tracing?' do
-    subject(:should_skip_distributed_tracing?) { circuit_breaker.should_skip_distributed_tracing?(client_config) }
+    subject(:should_skip_distributed_tracing?) { circuit_breaker.should_skip_distributed_tracing?(client_config, trace) }
 
     let(:client_config) { nil }
     let(:distributed_tracing) { true }
     let(:appsec_standalone) { false }
-    let(:active_trace) { nil }
+    let(:trace) { nil }
     let(:distributed_appsec_event) { nil }
 
     before do
       allow(Datadog.configuration.tracing[:http]).to receive(:[]).with(:distributed_tracing).and_return(distributed_tracing)
       allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(appsec_standalone)
-      allow(Datadog::Tracing).to receive(:active_trace).and_return(active_trace)
-      allow(active_trace).to receive(:get_tag).with('_dd.p.appsec').and_return(distributed_appsec_event) if active_trace
+      allow(Datadog::Tracing).to receive(:trace).and_return(trace)
+      allow(trace).to receive(:get_tag).with('_dd.p.appsec').and_return(distributed_appsec_event) if trace
     end
 
     context 'when distributed tracing is enabled' do
@@ -126,7 +126,7 @@ RSpec.describe Datadog::Tracing::Contrib::HTTP::CircuitBreaker do
       end
 
       context 'when there is an active trace' do
-        let(:active_trace) { instance_double(Datadog::Tracing::TraceOperation) }
+        let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
 
         context 'when the active trace has no distributed appsec event' do
           it { is_expected.to be true }

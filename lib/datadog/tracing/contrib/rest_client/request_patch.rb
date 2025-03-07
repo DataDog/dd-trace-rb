@@ -25,7 +25,7 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                Contrib::HTTP.inject(trace, processed_headers) if datadog_configuration[:distributed_tracing]
+                Contrib::HTTP.inject(trace, processed_headers) unless should_skip_distributed_tracing?(trace)
 
                 super(&block)
               end
@@ -120,6 +120,16 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
+            end
+
+            # Skips distributed tracing if disabled for this instrumentation
+            # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
+            def should_skip_distributed_tracing?(trace)
+              if Datadog.configuration.appsec.standalone.enabled
+                return true unless trace && trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) == '1'
+              end
+
+              !datadog_configuration[:distributed_tracing]
             end
           end
         end

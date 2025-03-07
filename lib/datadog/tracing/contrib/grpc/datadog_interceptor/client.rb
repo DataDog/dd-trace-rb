@@ -81,7 +81,7 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              GRPC.inject(trace, metadata) if distributed_tracing?
+              GRPC.inject(trace, metadata) unless should_skip_distributed_tracing?(trace)
               Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
             rescue StandardError => e
               Datadog.logger.debug("GRPC client trace failed: #{e}")
@@ -108,6 +108,16 @@ module Datadog
             rescue => e
               Datadog.logger.debug { "Could not parse host:port from #{call}: #{e}" }
               nil
+            end
+
+            # Skips distributed tracing if disabled for this instrumentation
+            # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
+            def should_skip_distributed_tracing?(trace)
+              if Datadog.configuration.appsec.standalone.enabled
+                return true unless trace && trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) == '1'
+              end
+
+              !distributed_tracing?
             end
           end
         end

@@ -35,7 +35,7 @@ module Datadog
                 span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
                 span.resource = req.method
 
-                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config)
+                if Tracing.enabled? && !Contrib::HTTP.should_skip_distributed_tracing?(client_config, trace)
                   Contrib::HTTP.inject(trace, req)
                 end
 
