@@ -46,6 +46,7 @@ namespace :edge do
       'mongodb' => 'mongo',
       'dalli' => 'dalli',
       'redis' => 'redis',
+      'karafka' => 'karafka',
       # Add more integrations here, when they are extracted to its own isolated group
     }
 
