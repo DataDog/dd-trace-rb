@@ -5,7 +5,7 @@
 1. Use one of the following prefixes:
 
   - `library_`
-  - `profiling_`
+  - `profiler_`
   - `tracing_`
 
 2. Add the new file to `run_all.sh` in this directory.
@@ -14,7 +14,7 @@
   `validate_benchmarks_spec.rb` as follows:
 
   - `library_` prefix: `spec/validate_benchmarks_spec.rb`
-  - `profiling_` prefix: `./spec/datadog/profiling/validate_benchmarks_spec.rb`
+  - `profiler_` prefix: `./spec/datadog/profiling/validate_benchmarks_spec.rb`
   - `tracing_` prefix: `./spec/datadog/tracing/validate_benchmarks_spec.rb`
 
 ## Adding Benchmarks For a New Product
