@@ -136,7 +136,7 @@ jobs:
     steps:
       - run: mkdir -p tmp/rspec && datadog-ci version
       - name: Download all junit reports
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           path: tmp/rspec
           pattern: junit-*
@@ -183,18 +183,18 @@ jobs:
         with:
           persist-credentials: false
       - name: Download lockfile
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           name: ${{ needs.ruby-34.outputs.lockfile }}
       - name: Restore cache
-        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
         id: restore-cache
         with:
           key: ${{ needs.ruby-34.outputs.cache-key }}
           path: "/usr/local/bundle"
       - run: bundle check || bundle install
       - name: Download all coverage data
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
         with:
           path: coverage
           pattern: coverage-*
@@ -202,7 +202,7 @@ jobs:
       - name: Generate coverage report
         run: bundle exec rake coverage:report
       - name: Upload coverage report
-        uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3 # v5.3.1
+        uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574 # v5.4.0
         with:
           files: coverage/report/coverage.xml
           # Uncomment the following line to enable verbose output for debugging
