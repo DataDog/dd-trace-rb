@@ -40,6 +40,7 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
           'type',
           'meta',
           'metrics',
+          'meta_struct',
           'span_links',
           'error',
         ]

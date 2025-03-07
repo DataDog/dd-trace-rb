@@ -33,6 +33,9 @@ module Datadog
         :status,
         :trace_id
 
+      attr_reader \
+        :metastruct
+
       attr_writer \
         :duration
 
@@ -54,6 +57,7 @@ module Datadog
         id: nil,
         meta: nil,
         metrics: nil,
+        metastruct: nil,
         parent_id: 0,
         resource: name,
         service: nil,
@@ -76,6 +80,7 @@ module Datadog
 
         @meta = meta || {}
         @metrics = metrics || {}
+        @metastruct = metastruct || {}
         @status = status || 0
 
         # start_time and end_time track wall clock. In Ruby, wall clock
@@ -144,6 +149,7 @@ module Datadog
           error: @status,
           meta: @meta,
           metrics: @metrics,
+          meta_struct: @metastruct.to_h,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -185,11 +191,14 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist @metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Metastruct: [', ']') do
+            metastruct.pretty_print(q)
           end
         end
       end
