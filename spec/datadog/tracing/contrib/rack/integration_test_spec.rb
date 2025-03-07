@@ -56,12 +56,14 @@ RSpec.describe 'Rack integration tests' do
         }
       end
 
-    # Mocked agent with correct headers
-    stub_request(:post, 'http://localhost:6218/v0.4/traces')
-      .with do |request|
-        agent_tested_headers <= request.headers
-      end
-      .to_return(status: 200)
+    # Mocked agent that returns the headers sent
+    stub_request(:post, 'http://localhost:6218/v0.4/traces').to_return do |request|
+      {
+        status: 200,
+        body: request.headers.to_json,
+        headers: { 'Content-Type' => 'application/json' }
+      }
+    end
 
     # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60
     #
@@ -83,7 +85,7 @@ RSpec.describe 'Rack integration tests' do
       Datadog.configure do |c|
         c.remote.enabled = false
         c.tracing.instrument :rack, rack_options
-        # Required for APM disablement tests as rack can extract but not inject headers
+        # Required for APM disablement tests with distributed tracing as rack can extract but not inject headers
         c.tracing.instrument :http, http_instrumentation_options if instrument_http
 
         c.appsec.standalone.enabled = apm_tracing_disabled
@@ -470,7 +472,6 @@ RSpec.describe 'Rack integration tests' do
       before do
         is_expected.to be_ok
         expected_spans_number = instrument_http ? 2 : 1
-        agent_http_client.send_traces(traces)
         # expect(spans).to have(expected_spans_number).items
       end
 
@@ -672,6 +673,10 @@ RSpec.describe 'Rack integration tests' do
       end
 
       describe 'APM disablement' do
+        before do
+          agent_http_client.send_traces(traces)
+        end
+
         let(:url) { '/requestdownstream' }
         let(:params) { {} }
         let(:headers) do
