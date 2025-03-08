@@ -62,9 +62,12 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                # Fall back to `key` in case new APIs are introduced that don't directly call `normalize_key`.
-                # This is a defensive measure, as of Rails 8, this does not happen.
-                raise "payload[:dd_original_keys] is nil: #{payload[:key]}" if  payload[:dd_original_keys].nil?
+                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # In previous versions, the denormalized key is stored in the official `key` attribute.
+                # We fall back to `key`, even in Rails 8, as a defensive measure.
+                #
+                # TODO: Remove this raise
+                raise "payload[:dd_original_keys] is nil: #{payload[:key]}" if payload[:dd_original_keys].nil? && ::Rails.version.to_i >= 8
                 key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 
@@ -99,9 +102,6 @@ module Datadog
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY_MULTI, cache_key)
                 else
-                  # `dd_original_keys` is an Array with one element when `multi_key` is false.
-                  # But if using the fallback `key`, it is a simple scalar value.
-                  key = key.is_a?(Array) ? key[0] : key
                   resolved_key = ::ActiveSupport::Cache.expand_cache_key(key)
                   cache_key = Core::Utils.truncate(resolved_key, Ext::QUANTIZE_CACHE_MAX_KEY_SIZE)
                   span.set_tag(Ext::TAG_CACHE_KEY, cache_key)

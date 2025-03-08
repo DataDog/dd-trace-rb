@@ -2,6 +2,7 @@ eval_gemfile("#{RUBY_ENGINE}-#{RUBY_ENGINE_VERSION.split('.').take(2).join('.')}
 
 # gem 'rails', '8.0.1'
 # # gem 'rails', '7.0.8.7'
+# # gem 'rails', '~> 6.1.0'
 # gem 'pg'
 # gem 'lograge'
 # gem 'redis'
