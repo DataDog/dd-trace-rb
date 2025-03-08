@@ -21,6 +21,9 @@ module Datadog
           @services = Set.new(options.fetch(:services, []))
           @service_tags = nil
           compile_service_tags!
+
+          # Initialize the collection of runtime-id
+          @runtime_id_enabled = options.fetch(:experimental_runtime_id_enabled, false)
         end
 
         # Associate service with runtime metrics
@@ -105,6 +108,9 @@ module Datadog
 
             # Add services dynamically because they might change during runtime.
             options[:tags].concat(service_tags) unless service_tags.nil?
+
+            # Add runtime-id dynamically because it might change during runtime.
+            options[:tags].concat(["runtime-id:#{Core::Environment::Identity.id}"]) if @runtime_id_enabled
           end
         end
 
@@ -112,7 +118,8 @@ module Datadog
 
         attr_reader \
           :service_tags,
-          :services
+          :services,
+          :runtime_id_enabled
 
         def compile_service_tags!
           @service_tags = services.to_a.collect do |service|
