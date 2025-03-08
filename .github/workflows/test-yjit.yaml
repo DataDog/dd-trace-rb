@@ -1,11 +1,12 @@
 name: Test YJIT
-on:
+
+on: # yamllint disable-line rule:truthy
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 # Default permissions for all jobs
 permissions: {}

@@ -1,6 +1,6 @@
 name: Build gem
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_dispatch:
     inputs:
       push:
@@ -10,10 +10,10 @@ on:
         default: true
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 # Default permissions for all jobs
 permissions: {}

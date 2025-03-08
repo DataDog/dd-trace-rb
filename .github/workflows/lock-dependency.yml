@@ -3,10 +3,10 @@ name: Lock Dependencies
 # TODO: Make this job mandatory
 # TODO: Make this on workflow_dispatch
 
-on:
+on: # yamllint disable-line rule:truthy
   pull_request:
     branches:
-    - master
+      - master
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
