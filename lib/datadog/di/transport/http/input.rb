@@ -81,7 +81,7 @@ module Datadog
                 env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                 env.body = env.request.parcel.data
 
-                super(env, &block)
+                super
               end
             end
           end

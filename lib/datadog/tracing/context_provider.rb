@@ -49,7 +49,7 @@ module Datadog
       # To support multiple tracers simultaneously, each {Datadog::Tracing::FiberLocalContext}
       # instance has its own fiber-local variable.
       def initialize
-        @key = "datadog_context_#{FiberLocalContext.next_instance_id}".to_sym
+        @key = :"datadog_context_#{FiberLocalContext.next_instance_id}"
 
         self.local = Context.new
       end

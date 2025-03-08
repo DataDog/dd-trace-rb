@@ -269,7 +269,8 @@ module Datadog
 
       def duration
         return @duration_end - @duration_start if @duration_start && @duration_end
-        return @end_time - @start_time if @start_time && @end_time
+
+        @end_time - @start_time if @start_time && @end_time
       end
 
       def set_error(e)

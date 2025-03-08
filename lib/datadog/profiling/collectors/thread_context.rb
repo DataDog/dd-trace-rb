@@ -60,7 +60,7 @@ module Datadog
 
         def inspect
           # Compose Ruby's default inspect with our custom inspect for the native parts
-          result = super()
+          result = super
           result[-1] = "#{self.class._native_inspect(self)}>"
           result
         end

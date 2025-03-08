@@ -26,7 +26,6 @@ module Datadog
         id: nil,
         &block
       )
-
         tracer.trace(
           name,
           continue_from: continue_from,
