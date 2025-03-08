@@ -45,6 +45,7 @@ module Datadog
             options = { enabled: settings.runtime_metrics.enabled }
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
+            options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
 
             Core::Runtime::Metrics.new(logger: logger, **options)
           end
