@@ -57,7 +57,7 @@ module Datadog
           end
 
           def reset_resolver_cache
-            @resolver&.reset_cache
+            #@resolver&.reset_cache
           end
 
           Contrib::Component.register('activerecord') do |_config|
