@@ -19,30 +19,6 @@ require 'datadog/appsec'
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
-  # We send the trace to a mocked agent to verify that the trace includes the headers that we want
-  # In the future, it might be a good idea to use the traces that the mocked agent
-  # receives in the tests/shared examples
-  let(:agent_http_client) do
-    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
-      t.adapter agent_http_adapter
-    end
-  end
-
-  let(:agent_http_adapter) { Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings) }
-
-  let(:agent_settings) do
-    Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
-      adapter: nil,
-      ssl: false,
-      uds_path: nil,
-      hostname: 'localhost',
-      port: 6218,
-      timeout_seconds: 30,
-    )
-  end
-
-  let(:agent_tested_headers) { {} }
-
   let(:tracing_enabled) { true }
   let(:appsec_enabled) { true }
 
@@ -168,13 +144,6 @@ RSpec.describe 'Rack integration tests' do
           headers: { 'Content-Type' => 'application/json' }
         }
       end
-
-    # Mocked agent with correct headers
-    stub_request(:post, 'http://localhost:6218/v0.4/traces')
-      .with do |request|
-        agent_tested_headers <= request.headers
-      end
-      .to_return(status: 200)
 
     # DEV: Would it be faster to do another stub for requests that don't match the headers
     # rather than waiting for the TCP connection to fail?
@@ -1025,8 +994,6 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      # it_behaves_like 'appsec standalone billing'
-
       describe 'ASM Standalone billing' do
         let(:url) { '/requestdownstream' }
         let(:params) { {} }
@@ -1074,10 +1041,9 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
                 tag_other_propagation: '1',
-                tag_sampling_priority_condition: ->(x) { x < 2 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request with propagated headers'
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+            it_behaves_like 'a request sent without propagated headers'
           end
 
           context 'from 0 sampling priority' do
@@ -1086,10 +1052,9 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
                 tag_other_propagation: '1',
-                tag_sampling_priority_condition: ->(x) { x < 2 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request with propagated headers'
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+            it_behaves_like 'a request sent without propagated headers'
           end
 
           context 'from 1 sampling priority' do
@@ -1098,10 +1063,9 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
                 tag_other_propagation: '1',
-                tag_sampling_priority_condition: ->(x) { x < 2 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request with propagated headers'
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+            it_behaves_like 'a request sent without propagated headers'
           end
 
           context 'from 2 sampling priority' do
@@ -1110,10 +1074,9 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
                 tag_other_propagation: '1',
-                tag_sampling_priority_condition: ->(x) { x < 2 }
+                tag_sampling_priority_condition: ->(x) { x <= 0 }
               }
-            it_behaves_like 'a request with propagated headers'
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
+            it_behaves_like 'a request sent without propagated headers'
           end
         end
 
@@ -1136,7 +1099,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1144,7 +1107,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
 
           context 'from 0 sampling priority' do
@@ -1155,7 +1117,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1163,7 +1125,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
         end
 
@@ -1186,17 +1147,16 @@ RSpec.describe 'Rack integration tests' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
                 tag_appsec_propagation: '1',
-                tag_sampling_priority_condition: ->(x) { [0, 2].include?(x) }
+                tag_sampling_priority_condition: ->(x) { x == 0 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
                 res_tags: ['_dd.p.appsec=1'],
-                res_sampling_priority_condition: ->(x) { ['0', '2'].include?(x) },
+                res_sampling_priority_condition: ->(x) { x == '0' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
 
           context 'from 1 sampling priority' do
@@ -1207,7 +1167,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { [1, 2].include?(x) }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1215,7 +1175,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { ['1', '2'].include?(x) },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
 
           context 'from 2 sampling priority' do
@@ -1226,7 +1185,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1234,7 +1193,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
         end
 
@@ -1258,7 +1216,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1266,7 +1224,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
 
           context 'from 0 sampling priority' do
@@ -1277,7 +1234,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1285,7 +1242,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
 
           context 'from 1 sampling priority' do
@@ -1296,7 +1252,7 @@ RSpec.describe 'Rack integration tests' do
                 tag_appsec_propagation: '1',
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
-            it_behaves_like 'a request with propagated headers',
+            it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
@@ -1304,7 +1260,6 @@ RSpec.describe 'Rack integration tests' do
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
-            it_behaves_like 'a trace sent to agent with Datadog-Client-Computed-Stats header'
           end
         end
       end
