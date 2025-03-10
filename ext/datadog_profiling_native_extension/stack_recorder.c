@@ -324,6 +324,7 @@ static const rb_data_type_t stack_recorder_typed_data = {
 
 static VALUE _native_new(VALUE klass) {
   stack_recorder_state *state = ruby_xcalloc(1, sizeof(stack_recorder_state));
+  fprintf(stderr, "StackRecorder %p created!\n", state);
 
   // Note: Any exceptions raised from this note until the TypedData_Wrap_Struct call will lead to the state memory
   // being leaked.
@@ -409,6 +410,8 @@ static void stack_recorder_typed_data_free(void *state_ptr) {
   ddog_prof_ManagedStringStorage_drop(state->string_storage);
 
   ruby_xfree(state);
+
+  fprintf(stderr, "StackRecorder %p destroyed!\n", state_ptr);
 }
 
 static VALUE _native_initialize(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
@@ -1049,6 +1052,7 @@ static VALUE _native_benchmark_intern(DDTRACE_UNUSED VALUE _self, VALUE recorder
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
 
+  // If this is disabled, memory usage does not skyrocket
   heap_recorder_testonly_benchmark_intern(state->heap_recorder, char_slice_from_ruby_string(string), FIX2INT(times), use_all == Qtrue);
 
   return Qtrue;
