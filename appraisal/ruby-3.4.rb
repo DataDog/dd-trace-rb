@@ -58,6 +58,10 @@ appraise 'rails71' do
   gem 'rails', '~> 7.1.0'
 end
 
+appraise 'rails8' do
+  gem 'rails', '~> 8.0.0'
+end
+
 appraise 'rails-old-redis' do
   # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
   gem 'redis', '< 4'

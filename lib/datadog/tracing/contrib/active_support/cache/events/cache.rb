@@ -62,7 +62,13 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                key = payload[:key]
+                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # In previous versions, the denormalized key is stored in the official `key` attribute.
+                # We fall back to `key`, even in Rails 8, as a defensive measure.
+                #
+                # TODO: Remove this raise
+                raise "payload[:dd_original_keys] is nil: #{payload[:key]}" if payload[:dd_original_keys].nil? && ::Rails.version.to_i >= 8
+                key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 
                 mapping = MAPPING.fetch(event)
