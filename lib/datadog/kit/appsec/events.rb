@@ -33,6 +33,7 @@ module Datadog
 
               raise ArgumentError, 'missing required key: :user => { :id }' if user_id.nil?
 
+              others['usr.login'] ||= user_options.fetch(:login, user_id)
               track(LOGIN_SUCCESS_EVENT, active_trace, active_span, **others)
 
               Kit::Identity.set_user(active_trace, active_span, id: user_id, **user_options)
@@ -55,6 +56,7 @@ module Datadog
           #   event information to attach to the trace.
           def track_login_failure(trace = nil, span = nil, user_exists:, user_id: nil, **others)
             set_trace_and_span_context('track_login_failure', trace, span) do |active_trace, active_span|
+              others['usr.login'] ||= user_id if user_id
               track(LOGIN_FAILURE_EVENT, active_trace, active_span, **others)
 
               active_span.set_tag('appsec.events.users.login.failure.usr.id', user_id) if user_id
