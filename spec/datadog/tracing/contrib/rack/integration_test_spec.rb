@@ -47,20 +47,10 @@ RSpec.describe 'Rack integration tests' do
       }
     end
 
-    # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60
-    #
-    # DEV: (APM Disablement V2) Mock the APM disablement sampler generator instead
+    # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60 so tests are faster
     if apm_tracing_disabled
-      post_sampler = Datadog::Tracing::Sampling::RuleSampler.new(
-        [Datadog::Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
-        rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 4, 1.0),
-        default_sample_rate: 1.0 / 4
-      )
-      sampler = Datadog::Tracing::Sampling::PrioritySampler.new(
-        base_sampler: Datadog::Tracing::Sampling::AllSampler.new,
-        post_sampler: post_sampler
-      )
-      allow(Datadog::Core::Configuration::Components).to receive(:build_sampler).and_return(sampler)
+      post_sampler = Datadog::Core::Configuration::Components.send(:build_above_second_post_sampler, 4)
+      allow(Datadog::Core::Configuration::Components).to receive(:build_above_second_post_sampler).and_return(post_sampler)
     end
 
     unless remote_enabled
