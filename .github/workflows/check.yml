@@ -4,7 +4,7 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
-  pull_request:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
     branches:
       - master
 
