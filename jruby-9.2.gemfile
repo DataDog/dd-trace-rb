@@ -32,10 +32,6 @@ gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 gem 'warning', '~> 1' # NOTE: Used in spec_helper.rb
 gem 'webmock', '>= 3.10.0'
 
-group :check do
-  gem 'standard', require: false
-end
-
 group :dev do
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false

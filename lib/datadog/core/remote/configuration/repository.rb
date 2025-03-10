@@ -272,7 +272,8 @@ module Datadog
 
               return deleted(path, previous) if previous && content.nil?
               return inserted(path, content) if content && previous.nil?
-              return updated(path, content, previous) if content && previous
+
+              updated(path, content, previous) if content && previous
             end
 
             def deleted(path, previous)
