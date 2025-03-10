@@ -312,6 +312,7 @@ VALUE thread_name_for(VALUE thread) {
 // to support our custom rb_profile_frames (see below)
 // Modifications:
 // * Support int first_lineno for Ruby 3.2.0+ (https://github.com/ruby/ruby/pull/6430)
+// * Validate iseq and pos before calling `rb_iseq_line_no` as a safety measure (see comment below for details)
 //
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
@@ -358,6 +359,13 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
             __builtin_trap();
         }
 #endif
+
+        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method. We couldn't reproduce or
+        // figure out the root cause, but "just in case", we're validating that the iseq looks valid and that the
+        // `n` used for the position is also sane, and if they don't look good, we don't calculate the line, rather
+        // than potentially trigger any issues.
+        if (RB_UNLIKELY(!RB_TYPE_P((VALUE) iseq, T_IMEMO) || n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+
         if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
 #ifdef USE_ISEQ_NODE_ID
         if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
