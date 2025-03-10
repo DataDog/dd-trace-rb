@@ -28,7 +28,8 @@ module Datadog
         :provider,
         :sampler,
         :span_sampler,
-        :tags
+        :tags,
+        :logger
 
       attr_accessor \
         :default_service,
@@ -48,21 +49,28 @@ module Datadog
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
       def initialize(
+        # rubocop:disable Style/KeywordParametersOrder
+        # https://github.com/rubocop/rubocop/issues/13933
         trace_flush: Flush::Finished.new,
         context_provider: DefaultContextProvider.new,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
         enabled: true,
+        logger: Datadog.logger,
         sampler: Sampling::PrioritySampler.new(
           base_sampler: Sampling::AllSampler.new,
           post_sampler: Sampling::RuleSampler.new
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new
+        # writer is not defaulted because creating it requires agent_settings,
+        # which we do not have here and otherwise do not need.
+        writer:
+        # rubocop:enable Style/KeywordParametersOrder
       )
         @trace_flush = trace_flush
         @default_service = default_service
         @enabled = enabled
+        @logger = logger
         @provider = context_provider
         @sampler = sampler
         @span_sampler = span_sampler
@@ -146,7 +154,7 @@ module Datadog
                     active_trace
                   end
         rescue StandardError => e
-          Datadog.logger.debug { "Failed to trace: #{e}" }
+          logger.debug { "Failed to trace: #{e}" }
 
           # Tracing failed: fallback and run code without tracing.
           return skip_trace(name, &block)
@@ -262,6 +270,17 @@ module Datadog
         context.activate!(trace, &block)
       end
 
+      # Sample a span, tagging the trace as appropriate.
+      def sample_trace(trace_op)
+        begin
+          @sampler.sample!(trace_op)
+        rescue StandardError => e
+          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
+            logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+          end
+        end
+      end
+
       # @!visibility private
       # TODO: make this private
       def trace_completed
@@ -331,12 +350,14 @@ module Datadog
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
+            tracer: self
           )
         else
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
             remote_parent: false,
+            tracer: self
           )
         end
       end
@@ -347,7 +368,6 @@ module Datadog
         events.span_before_start.subscribe do |event_span_op, event_trace_op|
           event_trace_op.service ||= @default_service
           event_span_op.service ||= @default_service
-          sample_trace(event_trace_op) if event_span_op && event_span_op.parent_id == 0
         end
 
         events.span_finished.subscribe do |event_span, event_trace_op|
@@ -394,7 +414,7 @@ module Datadog
             on_error: on_error,
             resource: resource,
             service: service,
-            tags: resolve_tags(tags),
+            tags: resolve_tags(tags, service),
             type: type,
             id: id,
             &block
@@ -408,7 +428,7 @@ module Datadog
             resource: resource,
             service: service,
             start_time: start_time,
-            tags: resolve_tags(tags),
+            tags: resolve_tags(tags, service),
             type: type,
             id: id
           )
@@ -420,15 +440,20 @@ module Datadog
       end
       # rubocop:enable Lint/UnderscorePrefixedVariableName
 
-      def resolve_tags(tags)
-        if @tags.any? && tags
-          # Combine default tags with provided tags,
-          # preferring provided tags.
-          @tags.merge(tags)
-        else
-          # Use provided tags or default tags if none.
-          tags || @tags.dup
+      def resolve_tags(tags, service)
+        merged_tags = if @tags.any? && tags
+                        # Combine default tags with provided tags,
+                        # preferring provided tags.
+                        @tags.merge(tags)
+                      else
+                        # Use provided tags or default tags if none.
+                        tags || @tags.dup
+                      end
+        # Remove version tag if service is not the default service
+        if merged_tags.key?(Core::Environment::Ext::TAG_VERSION) && service && service != @default_service
+          merged_tags.delete(Core::Environment::Ext::TAG_VERSION)
         end
+        merged_tags
       end
 
       # Manually activate and deactivate the trace, when the span completes.
@@ -463,17 +488,6 @@ module Datadog
         end
       end
 
-      # Sample a span, tagging the trace as appropriate.
-      def sample_trace(trace_op)
-        begin
-          @sampler.sample!(trace_op)
-        rescue StandardError => e
-          SAMPLE_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
-          end
-        end
-      end
-
       SAMPLE_TRACE_LOG_ONLY_ONCE = Core::Utils::OnlyOnce.new
       private_constant :SAMPLE_TRACE_LOG_ONLY_ONCE
 
@@ -482,7 +496,7 @@ module Datadog
           @span_sampler.sample!(trace_op, span)
         rescue StandardError => e
           SAMPLE_SPAN_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to sample span: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -492,12 +506,13 @@ module Datadog
 
       # Flush finished spans from the trace buffer, send them to writer.
       def flush_trace(trace_op)
+        sample_trace(trace_op) unless trace_op.sampling_priority
         begin
           trace = @trace_flush.consume!(trace_op)
           write(trace) if trace && !trace.empty?
         rescue StandardError => e
           FLUSH_TRACE_LOG_ONLY_ONCE.run do
-            Datadog.logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
+            logger.warn { "Failed to flush trace: #{e.class.name} #{e} at #{Array(e.backtrace).first}" }
           end
         end
       end
@@ -511,7 +526,7 @@ module Datadog
         return unless trace && @writer
 
         if Datadog.configuration.diagnostics.debug
-          Datadog.logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
+          logger.debug { "Writing #{trace.length} spans (enabled: #{@enabled})\n#{trace.spans.pretty_inspect}" }
         end
 
         @writer.write(trace)

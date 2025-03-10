@@ -93,6 +93,14 @@ RSpec.shared_examples 'B3 Multi distributed format' do
         )
       end
     end
+
+    context 'with span_id nil' do
+      let(:digest) { Datadog::Tracing::TraceDigest.new(trace_id: 0xdef) }
+
+      it 'sets x-b3-spanid to all zeros' do
+        expect(data).to include('x-b3-spanid' => '0000000000000000')
+      end
+    end
   end
 
   describe '#extract' do

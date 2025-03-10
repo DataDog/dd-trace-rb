@@ -31,6 +31,7 @@ module Datadog
           METRIC_YJIT_OBJECT_SHAPE_COUNT = 'runtime.ruby.yjit.object_shape_count'
           METRIC_YJIT_OUTLINED_CODE_SIZE = 'runtime.ruby.yjit.outlined_code_size'
           METRIC_YJIT_YJIT_ALLOC_SIZE = 'runtime.ruby.yjit.yjit_alloc_size'
+          METRIC_YJIT_RATIO_IN_YJIT = 'runtime.ruby.yjit.ratio_in_yjit'
 
           TAG_SERVICE = 'service'
         end

@@ -73,7 +73,6 @@ RSpec.describe 'Mysql2::Client patcher' do
           expect(span.service).to eq(service_name)
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(database)
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'mysql2.query'
@@ -99,6 +98,7 @@ RSpec.describe 'Mysql2::Client patcher' do
 
           expect(spans.count).to eq(1)
           expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('mysql2.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port)

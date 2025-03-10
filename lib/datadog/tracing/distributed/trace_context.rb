@@ -107,7 +107,7 @@ module Datadog
         def build_traceparent(digest)
           build_traceparent_string(
             digest.trace_id,
-            digest.span_id,
+            digest.span_id || 0, # Fall back to zero (invalid) if not present
             build_trace_flags(digest)
           )
         end
@@ -198,7 +198,8 @@ module Datadog
 
         def last_dd_parent_id(digest)
           if !digest.span_remote
-            "p:#{format('%016x', digest.span_id)};"
+            span_id = digest.span_id || 0 # Fall back to zero (invalid) if not present
+            "p:#{format('%016x', span_id)};"
           elsif digest.trace_distributed_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID)
             "p:#{digest.trace_distributed_tags[Tracing::Metadata::Ext::Distributed::TAG_DD_PARENT_ID]};"
           else

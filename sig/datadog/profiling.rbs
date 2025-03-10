@@ -6,6 +6,9 @@ module Datadog
     def self.allocation_count: () -> ::Integer?
     def self.enabled?: () -> bool
     def self.wait_until_running: () -> true
+
+    private
+
     def self.replace_noop_allocation_count: () -> void
     def self.native_library_compilation_skipped?: () -> ::String?
     def self.try_reading_skipped_reason_file: (?untyped file_api) -> ::String?

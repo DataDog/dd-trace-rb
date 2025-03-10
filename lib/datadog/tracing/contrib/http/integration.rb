@@ -22,6 +22,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :http, auto_patch: true
+          def self.gem_name
+            'net-http'
+          end
 
           def self.gems
             ['net/http'] # DEV does this work?

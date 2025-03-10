@@ -18,8 +18,7 @@ module Datadog
         BACK_OFF_MAX = 5
         DEFAULT_SHUTDOWN_TIMEOUT = 1
 
-        attr_reader \
-          :trace_buffer
+        attr_reader :trace_buffer, :logger
 
         def initialize(options = {})
           @transport = options[:transport]
@@ -42,6 +41,8 @@ module Datadog
           @mutex = Mutex.new
           @worker = nil
           @run = false
+
+          @logger = options.fetch(:logger)
         end
 
         # Callback function that process traces and executes the +send_traces()+ method.
@@ -56,7 +57,7 @@ module Datadog
             # ensures that the thread will not die because of an exception.
             # TODO[manu]: findout the reason and reschedule the send if it's not
             # a fatal exception
-            Datadog.logger.error(
+            logger.warn(
               "Error during traces flush: dropped #{traces.length} items. Cause: #{e} Location: #{Array(e.backtrace).first}"
             )
           end
@@ -68,9 +69,9 @@ module Datadog
             return if @run
 
             @run = true
-            Datadog.logger.debug { "Starting thread for: #{self}" }
+            logger.debug { "Starting thread for: #{self}" }
             @worker = Thread.new { perform }
-            @worker.name = self.class.name unless Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
+            @worker.name = self.class.name
             @worker.thread_variable_set(:fork_safe, true)
 
             nil

@@ -48,6 +48,11 @@ module Datadog
               o.default Contrib::Propagation::SqlComment::Ext::DISABLED
             end
 
+            option :append_comment do |o|
+              o.type :bool
+              o.default false
+            end
+
             option :peer_service do |o|
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE

@@ -94,7 +94,7 @@ module Datadog
         def try_flush
           yield
         rescue StandardError => e
-          Datadog.logger.error("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
+          Datadog.logger.warn("Error while sending runtime metric. Cause: #{e.class.name} #{e.message}")
         end
 
         def default_metric_options
@@ -180,6 +180,10 @@ module Datadog
               gauge_if_not_nil(
                 Core::Runtime::Ext::Metrics::METRIC_YJIT_YJIT_ALLOC_SIZE,
                 Core::Environment::YJIT.yjit_alloc_size
+              )
+              gauge_if_not_nil(
+                Core::Runtime::Ext::Metrics::METRIC_YJIT_RATIO_IN_YJIT,
+                Core::Environment::YJIT.ratio_in_yjit
               )
             end
           end

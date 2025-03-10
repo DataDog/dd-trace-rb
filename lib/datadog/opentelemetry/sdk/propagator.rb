@@ -15,6 +15,7 @@ module Datadog
           setter: ::OpenTelemetry::Context::Propagation.text_map_setter
         )
           unless setter == ::OpenTelemetry::Context::Propagation.text_map_setter
+            # PENDING: Not to report telemetry logs for now
             Datadog.logger.error(
               'Custom setter is not supported. Please inform the `datadog` team at ' \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \
@@ -31,6 +32,7 @@ module Datadog
         )
           if getter != ::OpenTelemetry::Context::Propagation.text_map_getter &&
               getter != ::OpenTelemetry::Common::Propagation.rack_env_getter
+            # PENDING: Not to report telemetry logs for now
             Datadog.logger.error(
               "Custom getter #{getter} is not supported. Please inform the `datadog` team at " \
             ' https://github.com/DataDog/dd-trace-rb of your use case so we can best support you. Using the default ' \

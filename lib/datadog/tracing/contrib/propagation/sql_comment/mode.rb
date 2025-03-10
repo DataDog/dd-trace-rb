@@ -8,7 +8,7 @@ module Datadog
       module Propagation
         # Implements sql comment propagation related contracts.
         module SqlComment
-          Mode = Struct.new(:mode) do
+          Mode = Struct.new(:mode, :append) do
             def enabled?
               service? || full?
             end
@@ -19,6 +19,10 @@ module Datadog
 
             def full?
               mode == Ext::FULL
+            end
+
+            def append?
+              append
             end
           end
         end

@@ -53,7 +53,7 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
-        def receivers
+        def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
@@ -67,7 +67,6 @@ module Datadog
             data = []
             overrides = []
             exclusions = []
-            actions = []
 
             repository.contents.each do |content|
               parsed_content = parse_content(content)
@@ -81,12 +80,14 @@ module Datadog
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
-                actions.concat(parsed_content['actions']) if parsed_content['actions']
               end
             end
 
             if rules.empty?
-              settings_rules = AppSec::Processor::RuleLoader.load_rules(ruleset: Datadog.configuration.appsec.ruleset)
+              settings_rules = AppSec::Processor::RuleLoader.load_rules(
+                telemetry: telemetry,
+                ruleset: Datadog.configuration.appsec.ruleset
+              )
 
               raise NoRulesError, 'no default rules available' unless settings_rules
 
@@ -99,9 +100,14 @@ module Datadog
               overrides: overrides,
               exclusions: exclusions,
               custom_rules: custom_rules,
+              telemetry: telemetry
             )
 
-            Datadog::AppSec.reconfigure(ruleset: ruleset, actions: actions)
+            Datadog::AppSec.reconfigure(ruleset: ruleset, telemetry: telemetry)
+
+            repository.contents.each do |content|
+              content.applied if ASM_PRODUCTS.include?(content.path.product)
+            end
           end
 
           [receiver]

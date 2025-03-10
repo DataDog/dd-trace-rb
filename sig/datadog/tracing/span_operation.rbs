@@ -8,7 +8,9 @@ module Datadog
 
       attr_reader links: untyped
 
-      attr_reader end_time: untyped
+      attr_reader span_events: untyped
+
+      attr_reader end_time: ::Time
 
       attr_reader id: untyped
 
@@ -20,7 +22,7 @@ module Datadog
 
       attr_reader service: untyped
 
-      attr_reader start_time: untyped
+      attr_reader start_time: ::Time
 
       attr_reader trace_id: untyped
 
@@ -28,7 +30,21 @@ module Datadog
 
       attr_accessor status: untyped
 
-      def initialize: (untyped name, ?child_of: untyped?, ?events: untyped?, ?on_error: untyped?, ?parent_id: ::Integer, ?resource: untyped, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?trace_id: untyped?, ?type: untyped?, ?links: untyped?) -> void
+      def initialize: (
+          String name,
+          ?events: Events,
+          ?on_error: on_error,
+          ?parent_id: Integer,
+          ?resource: String,
+          ?service: (String | nil),
+          ?start_time: (Time | nil),
+          ?tags: (Hash[String, (String|Numeric)] | nil),
+          ?trace_id: (Integer | nil),
+          ?type: (String | nil),
+          ?links: (Array[SpanLink] | nil),
+          ?span_events: (Array[SpanEvent] | nil),
+          ?id: (Integer | nil)
+      ) -> void
 
       def name=: (untyped name) -> untyped
 
@@ -42,7 +58,7 @@ module Datadog
 
       def start: (?untyped? start_time) -> self
 
-      def stop: (?untyped? stop_time) -> (nil | self)
+      def stop: (?untyped? stop_time) -> self?
 
       def started?: () -> untyped
 
@@ -69,7 +85,7 @@ module Datadog
       class Events
         include Tracing::Events
 
-        DEFAULT_ON_ERROR: untyped
+        DEFAULT_ON_ERROR: on_error
 
         attr_reader after_finish: untyped
 
@@ -77,9 +93,9 @@ module Datadog
 
         attr_reader before_start: untyped
 
-        def initialize: (?on_error: untyped?) -> void
+        def initialize: (?on_error: on_error) -> void
 
-        def on_error: () -> untyped
+        def on_error: () -> OnError
 
         class AfterFinish < Tracing::Event
           def initialize: () -> void

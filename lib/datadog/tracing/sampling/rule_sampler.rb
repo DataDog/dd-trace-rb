@@ -1,8 +1,9 @@
 # frozen_string_literal: true
 
 require_relative 'ext'
-require_relative 'rate_limiter'
+require_relative '../../core/rate_limiter'
 require_relative 'rule'
+require_relative '../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -28,20 +29,22 @@ module Datadog
           default_sample_rate: Datadog.configuration.tracing.sampling.default_rate,
           default_sampler: nil
         )
-          @rules = rules
+          @rules = if default_sample_rate && !default_sampler
+                     # Add to the end of the rule list a rule always matches any trace
+                     rules << SimpleRule.new(sample_rate: default_sample_rate)
+                   else
+                     rules
+                   end
           @rate_limiter = if rate_limiter
                             rate_limiter
                           elsif rate_limit
-                            TokenBucket.new(rate_limit)
+                            Core::TokenBucket.new(rate_limit)
                           else
-                            UnlimitedLimiter.new
+                            Core::UnlimitedLimiter.new
                           end
-
           @default_sampler = if default_sampler
                                default_sampler
                              elsif default_sample_rate
-                               # Add to the end of the rule list a rule always matches any trace
-                               @rules << SimpleRule.new(sample_rate: default_sample_rate)
                                nil
                              else
                                # TODO: Simplify .tags access, as `Tracer#tags` can't be arbitrarily changed anymore
@@ -80,9 +83,10 @@ module Datadog
 
           new(parsed_rules, rate_limit: rate_limit, default_sample_rate: default_sample_rate)
         rescue => e
-          Datadog.logger.error do
+          Datadog.logger.warn do
             "Could not parse trace sampling rules '#{rules}': #{e.class.name} #{e.message} at #{Array(e.backtrace).first}"
           end
+
           nil
         end
 
@@ -121,7 +125,7 @@ module Datadog
 
           return false unless sampled
 
-          rate_limiter.allow?(1).tap do |allowed|
+          rate_limiter.allow?.tap do |allowed|
             set_priority(trace, allowed)
             set_limiter_metrics(trace, rate_limiter.effective_rate)
 
@@ -140,6 +144,8 @@ module Datadog
           Datadog.logger.error(
             "Rule sampling failed. Cause: #{e.class.name} #{e.message} Source: #{Array(e.backtrace).first}"
           )
+          Datadog::Core::Telemetry::Logger.report(e, description: 'Rule sampling failed')
+
           yield(trace)
         end
 

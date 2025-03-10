@@ -1,0 +1,19 @@
+schema-version: v1
+rulesets:
+  - ruby-code-style:
+    rules:
+      first-and-last:
+        ignore:
+          - "**"
+  - ruby-security
+  - ruby-best-practices:
+    rules:
+      hash-fetch:
+        ignore:
+          - "**"
+      percent-w:
+        ignore:
+          - "**"
+      symbols-as-keys:
+        ignore:
+          - "**"

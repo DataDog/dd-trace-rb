@@ -49,13 +49,16 @@ module Datadog
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, connection_options[:database])
                 span.set_tag(Ext::TAG_DB_NAME, connection_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, connection_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, connection_options[:port])
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
+                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
+                  comment_propagation, datadog_configuration[:append_comment]
+                )
 
                 Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
                 sql = Contrib::Propagation::SqlComment.prepend_comment(

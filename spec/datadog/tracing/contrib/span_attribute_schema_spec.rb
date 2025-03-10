@@ -52,6 +52,14 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
 
   describe '#set_peer_service!' do
     let(:span) { Datadog::Tracing::Span.new('testPeerServiceLogicSpan', parent_id: 0) }
+    subject(:set_peer_service!) { described_class.set_peer_service!(span, precursors) }
+
+    around do |example|
+      ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'true') do
+        example.run
+      end
+    end
+
     context 'precursor tags set' do
       context 'AWS Span' do
         let(:precursors) do
@@ -77,6 +85,31 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
             span.clear_tag('peer.service')
             span.clear_tag('_dd.peer.service.source')
             span.clear_tag(precursor)
+          end
+        end
+
+        context 'peer service defaults disabled' do
+          around do |example|
+            ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
+              example.run
+            end
+          end
+
+          it 'does not set peer.service' do
+            span.set_tag('aws_service', 'test-service')
+            span.set_tag('span.kind', 'client')
+            precursors.each do |precursor|
+              span.set_tag(precursor, 'test-' << precursor)
+
+              set_peer_service!
+              expect(span.get_tag('peer.service')).to be_nil
+              expect(span.get_tag('_dd.peer.service.source')).to be_nil
+              expect(span.get_tag('_dd.peer.service.remapped_from')).to be_nil
+
+              span.clear_tag('peer.service')
+              span.clear_tag('_dd.peer.service.source')
+              span.clear_tag(precursor)
+            end
           end
         end
       end
@@ -255,6 +288,23 @@ RSpec.describe Datadog::Tracing::Contrib::SpanAttributeSchema do
           expect(span.get_tag('peer.service')).to eq('test-remap')
           expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
           expect(span.get_tag('_dd.peer.service.remapped_from')).to eq('peer-service-value')
+        end
+      end
+
+      context 'peer service defaults disabled' do
+        around do |example|
+          ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => 'false') do
+            example.run
+          end
+        end
+
+        it 'keeps explicit peer.service' do
+          span.set_tag('peer.service', 'peer-service-value')
+
+          set_peer_service!
+
+          expect(span.get_tag('peer.service')).to eq('peer-service-value')
+          expect(span.get_tag('_dd.peer.service.source')).to eq('peer.service')
         end
       end
     end

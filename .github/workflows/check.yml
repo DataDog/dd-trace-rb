@@ -1,20 +1,82 @@
-name: Check
-on:
+name: Static Analysis
+
+on: # yamllint disable-line rule:truthy
   push:
-    branches: [ '**' ]
+    branches:
+      - master
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ '**' ]
+    branches:
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Default permissions for all jobs
+permissions: {}
+
 jobs:
-  check:
-    name: Check types
-    runs-on: ubuntu-22.04
+  build:
+    name: build
+    runs-on: ubuntu-24.04
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    outputs:
+      lockfile: ${{ steps.bundle-cache.outputs.lockfile }}
+      cache-key: ${{ steps.bundle-cache.outputs.cache-key }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          ruby-version: '3.2'
-          bundler-cache: true # runs 'bundle install' and caches installed gems automatically
+          persist-credentials: false
+      - name: Prepare bundle cache
+        id: bundle-cache
+        uses: ./.github/actions/bundle-cache
+
+  rubocop:
+    name: rubocop/lint
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake rubocop
+
+  standard:
+    name: standard/lint
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - run: bundle exec rake standard
+
+  steep:
+    name: steep/typecheck
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
       - name: Check for stale signature files
         run: bundle exec rake rbs:stale
       - name: Check for missing signature files
@@ -22,4 +84,111 @@ jobs:
       - name: Check types
         run: bundle exec rake steep:check
       - name: Record stats
-        run: bundle exec rake steep:stats[md] >> $GITHUB_STEP_SUMMARY
+        run: bundle exec rake steep:stats[md] >> "$GITHUB_STEP_SUMMARY"
+
+  # Dogfooding Datadog SBOM Analysis
+  dd-software-composition-analysis:
+    name: dd/sca
+    runs-on: ubuntu-24.04
+    needs: ['build']
+    container: ghcr.io/datadog/images-rb/engines/ruby:3.3
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Restore bundle cache
+        uses: ./.github/actions/bundle-restore
+        with:
+          lockfile: ${{ needs.build.outputs.lockfile }}
+          cache-key: ${{ needs.build.outputs.cache-key }}
+      - uses: DataDog/datadog-sca-github-action@main
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com
+
+  # Dogfooding Datadog Static Analysis
+  dd-static-analysis:
+    name: dd/static-analysis
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: DataDog/datadog-static-analyzer-github-action@v1
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com
+          cpu_count: 2
+
+  semgrep:
+    name: semgrep/ci
+    runs-on: ubuntu-24.04
+    container: semgrep/semgrep # PENDING: Possible to be rate limited.
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: |
+          semgrep ci \
+          --include=bin/* \
+          --include=ext/* \
+          --include=lib/* \
+          --exclude-rule=ruby.lang.security.model-attributes-attr-accessible.model-attributes-attr-accessible
+        env:
+          SEMGREP_RULES: p/default
+
+  # https://woodruffw.github.io/zizmor/
+  zizmor:
+    name: zizmor
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run zizmor 🌈
+        uses: docker://ghcr.io/woodruffw/zizmor:1.4.1
+        with:
+          args: --min-severity low .
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color
+
+  yaml-lint:
+    name: yaml-lint
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - run: pip install yamllint
+      - name: Run yamllint
+        run: yamllint --strict .
+
+  complete:
+    name: Static Analysis (complete)
+    needs:
+      - 'steep'
+      - 'rubocop'
+      - 'standard'
+      - 'semgrep'
+      - 'dd-software-composition-analysis'
+      - 'dd-static-analysis'
+      - 'zizmor'
+      - 'actionlint'
+      - 'yaml-lint'
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Done"

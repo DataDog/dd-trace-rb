@@ -2,6 +2,7 @@
 
 require_relative '../../patcher'
 require_relative 'instrumentation'
+require_relative 'events'
 
 module Datadog
   module Tracing
@@ -19,54 +20,30 @@ module Datadog
             end
 
             def patch
-              patch_cache_store_read
-              patch_cache_store_read_multi
-              patch_cache_store_fetch
-              patch_cache_store_fetch_multi
-              patch_cache_store_write
-              patch_cache_store_write_multi
-              patch_cache_store_delete
+              Events.subscribe!
+
+              # Backfill the `:store` key in the ActiveSupport event payload for older Rails.
+              if Integration.version < Gem::Version.new('6.1.0')
+                ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::Store)
+              end
+
+              # DEV-3.0: Backwards compatibility code for the 2.x gem series.
+              # DEV-3.0: See documentation at {Datadog::Tracing::Contrib::ActiveSupport::Cache::Instrumentation}
+              # DEV-3.0: for the complete information about this backwards compatibility code.
+              patch_legacy_cache_store
             end
 
             # This method is overwritten by
             # `datadog/tracing/contrib/active_support/cache/redis.rb`
             # with more complex behavior.
             def cache_store_class(meth)
-              ::ActiveSupport::Cache::Store
+              [::ActiveSupport::Cache::Store]
             end
 
-            def patch_cache_store_read
-              cache_store_class(:read).prepend(Cache::Instrumentation::Read)
-            end
-
-            def patch_cache_store_read_multi
-              cache_store_class(:read_multi).prepend(Cache::Instrumentation::ReadMulti)
-            end
-
-            def patch_cache_store_fetch
-              cache_store_class(:fetch).prepend(Cache::Instrumentation::Fetch)
-            end
-
-            def patch_cache_store_fetch_multi
-              klass = cache_store_class(:fetch_multi)
-              return unless klass.public_method_defined?(:fetch_multi)
-
-              klass.prepend(Cache::Instrumentation::FetchMulti)
-            end
-
-            def patch_cache_store_write
-              cache_store_class(:write).prepend(Cache::Instrumentation::Write)
-            end
-
-            def patch_cache_store_write_multi
-              klass = cache_store_class(:write_multi)
-              return unless klass.public_method_defined?(:write_multi)
-
-              klass.prepend(Cache::Instrumentation::WriteMulti)
-            end
-
-            def patch_cache_store_delete
-              cache_store_class(:delete).prepend(Cache::Instrumentation::Delete)
+            def patch_legacy_cache_store
+              cache_store_class(:read_multi).each { |clazz| clazz.prepend(Cache::Instrumentation::ReadMulti) }
+              cache_store_class(:fetch).each { |clazz| clazz.prepend(Cache::Instrumentation::Fetch) }
+              cache_store_class(:fetch_multi).each { |clazz| clazz.prepend(Cache::Instrumentation::FetchMulti) }
             end
           end
         end

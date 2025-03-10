@@ -14,8 +14,8 @@ module Datadog
 
         def self.collect_and_log!(responses: nil)
           if log?
-            env_data = EnvironmentCollector.collect_config!
-            log_configuration!('TRACING', env_data.to_json)
+            log_configuration!('TRACING', EnvironmentCollector.collect_config!.to_json)
+            log_debug!('TRACING INTEGRATIONS', EnvironmentCollector.collect_integrations_settings!.to_json)
 
             if responses
               err_data = EnvironmentCollector.collect_errors!(responses)
@@ -40,7 +40,6 @@ module Datadog
               sampling_rules: sampling_rules,
               integrations_loaded: integrations_loaded,
               partial_flushing_enabled: partial_flushing_enabled,
-              **instrumented_integrations_settings
             }
           end
 
@@ -128,6 +127,18 @@ module Datadog
             !!Datadog.configuration.tracing.partial_flush.enabled
           end
 
+          def collect_integrations_settings!
+            instrumented_integrations.each_with_object({}) do |(name, integration), result|
+              integration.configuration.to_h.each do |setting, value|
+                next if setting == :tracer # Skip internal objects
+
+                # Convert value to a string to avoid custom #to_json
+                # handlers possibly causing errors.
+                result[:"#{name}_#{setting}"] = value.to_s
+              end
+            end
+          end
+
           private
 
           def instrumented_integrations
@@ -138,19 +149,6 @@ module Datadog
             return {} unless Datadog.configuration.tracing.respond_to?(:instrumented_integrations)
 
             Datadog.configuration.tracing.instrumented_integrations
-          end
-
-          # Capture all active integration settings into "integrationName_settingName: value" entries.
-          def instrumented_integrations_settings
-            instrumented_integrations.flat_map do |name, integration|
-              integration.configuration.to_h.flat_map do |setting, value|
-                next [] if setting == :tracer # Skip internal Ruby objects
-
-                # Convert value to a string to avoid custom #to_json
-                # handlers possibly causing errors.
-                [[:"integration_#{name}_#{setting}", value.to_s]]
-              end
-            end.to_h
           end
         end
       end

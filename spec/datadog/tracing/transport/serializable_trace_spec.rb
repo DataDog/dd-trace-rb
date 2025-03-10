@@ -3,13 +3,15 @@ require 'spec_helper'
 require 'msgpack'
 
 require 'datadog/tracing/span'
+require 'datadog/tracing/span_event'
 require 'datadog/tracing/trace_segment'
 require 'datadog/tracing/transport/serializable_trace'
 
 RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
-  subject(:serializable_trace) { described_class.new(trace) }
+  subject(:serializable_trace) { described_class.new(trace, native_events_supported: native_events_supported) }
 
   let(:trace) { Datadog::Tracing::TraceSegment.new(spans) }
+  let(:native_events_supported) { false }
   let(:spans) do
     Array.new(3) do |i|
       span = Datadog::Tracing::Span.new(
@@ -25,12 +27,39 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
     end
   end
 
+  shared_examples 'serialize all fields' do |include_duration: false, include_native_events: false|
+    it 'contains all fields' do
+      unpacked_trace.each do |span|
+        expected = [
+          'span_id',
+          'parent_id',
+          'trace_id',
+          'name',
+          'service',
+          'resource',
+          'type',
+          'meta',
+          'metrics',
+          'meta_struct',
+          'span_links',
+          'error',
+        ]
+        if include_duration
+          expected << 'start'
+          expected << 'duration'
+        end
+        expected << 'span_events' if include_native_events
+
+        expect(span.keys).to match_array(expected)
+      end
+    end
+  end
+
   describe '#to_msgpack' do
-    subject(:to_msgpack) { serializable_trace.to_msgpack }
+    subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
+    let(:to_msgpack) { serializable_trace.to_msgpack }
 
-    context 'when packed then upacked' do
-      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
-
+    context 'when packed then unpacked' do
       let(:original_spans) do
         spans.map do |span|
           Hash[span.to_hash.map { |k, v| [k.to_s, v] }]
@@ -43,8 +72,6 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
     end
 
     context 'when given trace_id' do
-      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
-
       let(:spans) do
         Array.new(3) do |_i|
           Datadog::Tracing::Span.new(
@@ -72,8 +99,6 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
     end
 
     context 'when given span links' do
-      subject(:unpacked_trace) { MessagePack.unpack(to_msgpack) }
-
       let(:spans) do
         Array.new(3) do |_i|
           Datadog::Tracing::Span.new(
@@ -128,6 +153,75 @@ RSpec.describe Datadog::Tracing::Transport::SerializableTrace do
         )
       end
     end
+
+    context 'when given span events' do
+      let(:spans) do
+        Array.new(2) do |i|
+          Datadog::Tracing::Span.new(
+            'dummy',
+            events: [
+              Datadog::Tracing::SpanEvent.new(
+                'First Event',
+                time_unix_nano: 123
+              ),
+              Datadog::Tracing::SpanEvent.new(
+                "Another Event #{i}!",
+                time_unix_nano: 456,
+                attributes: { id: i, required: (i == 1) },
+              ),
+            ],
+          )
+        end
+      end
+
+      it 'serializes span events' do
+        expect(
+          unpacked_trace.map do |s|
+            s['meta']['events']
+          end
+        ).to eq(
+          [
+            '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 0!","time_unix_nano":456,' \
+            '"attributes":{"id":0,"required":false}}]',
+            '[{"name":"First Event","time_unix_nano":123},{"name":"Another Event 1!","time_unix_nano":456,' \
+            '"attributes":{"id":1,"required":true}}]',
+          ]
+        )
+      end
+
+      it_behaves_like 'serialize all fields'
+
+      context 'when native events are supported' do
+        let(:native_events_supported) { true }
+
+        it 'serializes span events as top-level field' do
+          expect(
+            unpacked_trace.map do |s|
+              s['span_events']
+            end
+          ).to eq(
+            [
+              [
+                { 'name' => 'First Event', 'time_unix_nano' => 123 },
+                { 'name' => 'Another Event 0!', 'time_unix_nano' => 456, 'attributes' => {
+                  'id' => { 'int_value' => 0, 'type' => 2 }, 'required' => { 'bool_value' => false, 'type' => 1 }
+                } }
+              ],
+              [
+                { 'name' => 'First Event', 'time_unix_nano' => 123 },
+                { 'name' => 'Another Event 1!', 'time_unix_nano' => 456, 'attributes' => {
+                  'id' => { 'int_value' => 1, 'type' => 2 }, 'required' => { 'bool_value' => true, 'type' => 1 }
+                } }
+              ],
+            ]
+          )
+        end
+
+        it_behaves_like 'serialize all fields', include_native_events: true
+      end
+    end
+
+    it_behaves_like 'serialize all fields'
   end
 
   describe '#to_json' do

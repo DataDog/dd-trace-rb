@@ -1,0 +1,6 @@
+module Datadog
+  module DI
+    def self.component: () -> Component?
+    
+  end
+end

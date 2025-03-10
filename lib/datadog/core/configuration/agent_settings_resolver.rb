@@ -19,20 +19,48 @@ module Datadog
       # Whenever there is a conflict (different configurations are provided in different orders), it MUST warn the users
       # about it and pick a value based on the following priority: code > environment variable > defaults.
       class AgentSettingsResolver
-        AgentSettings = Struct.new(
-          :adapter,
-          :ssl,
-          :hostname,
-          :port,
-          :uds_path,
-          :timeout_seconds,
-          keyword_init: true
-        ) do
-          def initialize(*)
-            super
+        # Immutable container for the resulting settings
+        class AgentSettings
+          attr_reader :adapter, :ssl, :hostname, :port, :uds_path, :timeout_seconds
+
+          def initialize(adapter: nil, ssl: nil, hostname: nil, port: nil, uds_path: nil, timeout_seconds: nil)
+            @adapter = adapter
+            @ssl = ssl
+            @hostname = hostname
+            @port = port
+            @uds_path = uds_path
+            @timeout_seconds = timeout_seconds
             freeze
           end
+
+          def url
+            case adapter
+            when Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
+              hostname = self.hostname
+              hostname = "[#{hostname}]" if hostname =~ IPV6_REGEXP
+              "#{ssl ? 'https' : 'http'}://#{hostname}:#{port}/"
+            when Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
+              "unix://#{uds_path}"
+            else
+              raise ArgumentError, "Unexpected adapter: #{adapter}"
+            end
+          end
+
+          def ==(other)
+            self.class == other.class &&
+              adapter == other.adapter &&
+              ssl == other.ssl &&
+              hostname == other.hostname &&
+              port == other.port &&
+              uds_path == other.uds_path &&
+              timeout_seconds == other.timeout_seconds
+          end
         end
+
+        # IPv6 regular expression from
+        # https://stackoverflow.com/questions/53497/regular-expression-that-matches-valid-ipv6-addresses
+        # Does not match IPv4 addresses.
+        IPV6_REGEXP = /\A(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\z)/.freeze # rubocop:disable Layout/LineLength
 
         def self.call(settings, logger: Datadog.logger)
           new(settings, logger: logger).send(:call)
@@ -232,7 +260,32 @@ module Datadog
         end
 
         def should_use_uds?
-          can_use_uds? && !mixed_http_and_uds?
+          # When we have mixed settings for http/https and uds, we print a warning
+          # and use the uds settings.
+          mixed_http_and_uds
+          can_use_uds?
+        end
+
+        def mixed_http_and_uds
+          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
+
+          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
+          if @mixed_http_and_uds
+            warn_if_configuration_mismatch(
+              [
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration for unix domain socket',
+                  value: parsed_url.to_s,
+                ),
+                DetectedConfiguration.new(
+                  friendly_name: 'configuration of hostname/port for http/https use',
+                  value: "hostname: '#{hostname}', port: '#{port}'",
+                ),
+              ]
+            )
+          end
+
+          @mixed_http_and_uds
         end
 
         def can_use_uds?
@@ -305,30 +358,6 @@ module Datadog
 
         def unix_scheme?(uri)
           uri.scheme == 'unix'
-        end
-
-        # When we have mixed settings for http/https and uds, we print a warning and ignore the uds settings
-        def mixed_http_and_uds?
-          return @mixed_http_and_uds if defined?(@mixed_http_and_uds)
-
-          @mixed_http_and_uds = (configured_hostname || configured_port) && can_use_uds?
-
-          if @mixed_http_and_uds
-            warn_if_configuration_mismatch(
-              [
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration of hostname/port for http/https use',
-                  value: "hostname: '#{hostname}', port: '#{port}'",
-                ),
-                DetectedConfiguration.new(
-                  friendly_name: 'configuration for unix domain socket',
-                  value: parsed_url.to_s,
-                ),
-              ]
-            )
-          end
-
-          @mixed_http_and_uds
         end
 
         # Represents a given configuration value and where we got it from

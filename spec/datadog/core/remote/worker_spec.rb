@@ -5,7 +5,8 @@ require 'datadog/core/remote/worker'
 
 RSpec.describe Datadog::Core::Remote::Worker do
   let(:task) { proc { 1 + 1 } }
-  subject(:worker) { described_class.new(interval: 1, &task) }
+  let(:logger) { logger_allowing_debug }
+  subject(:worker) { described_class.new(interval: 1, logger: logger, &task) }
 
   describe '#initialize' do
     it 'raises ArgumentError when no block is provided' do
@@ -49,16 +50,10 @@ RSpec.describe Datadog::Core::Remote::Worker do
       end
     end
 
-    context 'on Ruby >= 2.3' do
-      before do
-        skip 'Not supported on old Rubies' if Gem::Version.new(RUBY_VERSION) < Gem::Version.new('2.3')
-      end
+    it 'names the worker thread' do
+      worker.start
 
-      it 'names the worker thread' do
-        worker.start
-
-        expect(Thread.list.map(&:name)).to include(described_class.to_s)
-      end
+      expect(Thread.list.map(&:name)).to include(described_class.to_s)
     end
 
     # See https://github.com/puma/puma/blob/32e011ab9e029c757823efb068358ed255fb7ef4/lib/puma/cluster.rb#L353-L359

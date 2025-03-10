@@ -29,6 +29,7 @@ module Datadog
           private
 
           # rubocop:disable Metrics/AbcSize
+          # rubocop:disable Metrics/MethodLength
           def annotate!(span, context)
             span.service = configuration[:service_name]
             span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
@@ -76,7 +77,11 @@ module Datadog
             span.set_tag(Tracing::Metadata::Ext::HTTP::TAG_STATUS_CODE, context.safely(:status_code))
 
             Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
+          rescue StandardError => e
+            Datadog.logger.error(e.message)
+            Datadog::Core::Telemetry::Logger.report(e)
           end
+          # rubocop:enable Metrics/MethodLength
           # rubocop:enable Metrics/AbcSize
 
           def configuration

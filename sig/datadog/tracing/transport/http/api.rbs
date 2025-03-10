@@ -1,12 +1,20 @@
 module Datadog
-  module Transport
-    module HTTP
-      module API
-        V4: "v0.4"
+  module Tracing
+    module Transport
+      module HTTP
+        module API
+          V4: "v0.4"
 
-        V3: "v0.3"
+          V3: "v0.3"
 
-        def self?.defaults: () -> untyped
+          def self?.defaults: () -> untyped
+          
+	  class Instance < Datadog::Core::Transport::HTTP::API::Instance
+	  end
+	  
+          class Instance < Datadog::Core::Transport::HTTP::API::Instance
+          end
+        end
       end
     end
   end

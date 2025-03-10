@@ -5,24 +5,43 @@ require 'datadog/core/telemetry/component'
 RSpec.describe Datadog::Core::Telemetry::Component do
   subject(:telemetry) do
     described_class.new(
+      logger: logger,
       enabled: enabled,
+      http_transport: http_transport,
+      metrics_enabled: metrics_enabled,
+      log_collection_enabled: log_collection_enabled,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
-      dependency_collection: dependency_collection
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+      dependency_collection: dependency_collection,
+      shutdown_timeout_seconds: shutdown_timeout_seconds
     )
   end
 
   let(:enabled) { true }
+  let(:metrics_enabled) { true }
+  let(:log_collection_enabled) { true }
   let(:heartbeat_interval_seconds) { 0 }
+  let(:metrics_aggregation_interval_seconds) { 1 }
+  let(:shutdown_timeout_seconds) { 1 }
   let(:dependency_collection) { true }
   let(:worker) { double(Datadog::Core::Telemetry::Worker) }
+  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
   let(:not_found) { false }
+
+  let(:logger) do
+    instance_double(Logger)
+  end
 
   before do
     allow(Datadog::Core::Telemetry::Worker).to receive(:new).with(
+      logger: logger,
       heartbeat_interval_seconds: heartbeat_interval_seconds,
+      metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
       dependency_collection: dependency_collection,
       enabled: enabled,
-      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter)
+      emitter: an_instance_of(Datadog::Core::Telemetry::Emitter),
+      metrics_manager: anything,
+      shutdown_timeout: shutdown_timeout_seconds
     ).and_return(worker)
 
     allow(worker).to receive(:start)
@@ -39,8 +58,12 @@ RSpec.describe Datadog::Core::Telemetry::Component do
     context 'with default parameters' do
       subject(:telemetry) do
         described_class.new(
+          logger: logger,
+          http_transport: http_transport,
           heartbeat_interval_seconds: heartbeat_interval_seconds,
-          dependency_collection: dependency_collection
+          metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
+          dependency_collection: dependency_collection,
+          shutdown_timeout_seconds: shutdown_timeout_seconds
         )
       end
 
@@ -103,7 +126,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork' do
+    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
@@ -153,7 +176,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork' do
+    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
@@ -193,7 +216,7 @@ RSpec.describe Datadog::Core::Telemetry::Component do
       end
     end
 
-    context 'when in fork' do
+    context 'when in fork', skip: ENV['BATCHED_TASKS'] do
       before { skip 'Fork not supported on current platform' unless Process.respond_to?(:fork) }
 
       it do
@@ -201,6 +224,142 @@ RSpec.describe Datadog::Core::Telemetry::Component do
         expect_in_fork do
           expect(worker).not_to have_received(:enqueue)
         end
+      end
+    end
+  end
+
+  describe 'includes Datadog::Core::Telemetry::Logging' do
+    after do
+      telemetry.stop!
+    end
+
+    it { is_expected.to a_kind_of(Datadog::Core::Telemetry::Logging) }
+  end
+
+  describe '#log!' do
+    after do
+      telemetry.stop!
+    end
+
+    describe 'when enabled and log_collection_enabled is enabled' do
+      let(:enabled) { true }
+      let(:log_collection_enabled) { true }
+
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).to have_received(:enqueue).with(event)
+      end
+
+      context 'when in fork', skip: !Process.respond_to?(:fork) || ENV['BATCHED_TASKS'] do
+        it do
+          telemetry
+          expect_in_fork do
+            event = instance_double(Datadog::Core::Telemetry::Event::Log)
+            telemetry.log!(event)
+
+            expect(worker).not_to have_received(:enqueue)
+          end
+        end
+      end
+    end
+
+    describe 'when disabled' do
+      let(:enabled) { false }
+
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+    end
+
+    describe 'when log_collection_enabled is disabled' do
+      let(:log_collection_enabled) { false }
+
+      it do
+        event = instance_double(Datadog::Core::Telemetry::Event::Log)
+        telemetry.log!(event)
+
+        expect(worker).not_to have_received(:enqueue)
+      end
+    end
+  end
+
+  context 'metrics support' do
+    let(:metrics_manager) { spy(:metrics_manager) }
+    let(:namespace) { double('namespace') }
+    let(:metric_name) { double('metric_name') }
+    let(:value) { double('value') }
+    let(:tags) { double('tags') }
+    let(:common) { double('common') }
+
+    before do
+      expect(Datadog::Core::Telemetry::MetricsManager).to receive(:new).with(
+        aggregation_interval: metrics_aggregation_interval_seconds,
+        enabled: enabled && metrics_enabled
+      ).and_return(metrics_manager)
+    end
+
+    describe '#inc' do
+      subject(:inc) { telemetry.inc(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        inc
+
+        expect(metrics_manager).to have_received(:inc).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#dec' do
+      subject(:dec) { telemetry.dec(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        dec
+
+        expect(metrics_manager).to have_received(:dec).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#gauge' do
+      subject(:gauge) { telemetry.gauge(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        gauge
+
+        expect(metrics_manager).to have_received(:gauge).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#rate' do
+      subject(:rate) { telemetry.rate(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        rate
+
+        expect(metrics_manager).to have_received(:rate).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
+      end
+    end
+
+    describe '#distribution' do
+      subject(:distribution) { telemetry.distribution(namespace, metric_name, value, tags: tags, common: common) }
+
+      it do
+        distribution
+
+        expect(metrics_manager).to have_received(:distribution).with(
+          namespace, metric_name, value, tags: tags, common: common
+        )
       end
     end
   end

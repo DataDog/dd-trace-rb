@@ -63,6 +63,10 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
     end
   end
 
+  before do
+    allow(Datadog.logger).to receive(:warn)
+  end
+
   context 'for' do
     describe 'Datadog.configure' do
       subject(:configure) { Datadog.configure(&block) }
@@ -251,6 +255,30 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
             end
           end
 
+          describe '#peer_service_defaults' do
+            subject { settings.contrib.peer_service_defaults }
+
+            context 'when given environment variable DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' do
+              around do |example|
+                ClimateControl.modify('DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED' => env_var) do
+                  example.run
+                end
+              end
+
+              context 'is not defined' do
+                let(:env_var) { nil }
+
+                it { is_expected.to be false }
+              end
+
+              context 'is defined' do
+                let(:env_var) { 'true' }
+
+                it { is_expected.to be true }
+              end
+            end
+          end
+
           describe '#global_default_service_name_enabled' do
             subject { settings.contrib.global_default_service_name.enabled }
 
@@ -401,6 +429,12 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
               end
             end
           end
+        end
+
+        describe '#instrumented_integrations' do
+          subject(:instrumented_integrations) { settings.instrumented_integrations }
+
+          it { is_expected.to be_frozen }
         end
       end
     end

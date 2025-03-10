@@ -27,10 +27,14 @@ module Datadog
         :resource,
         :service,
         :links,
+        :events,
         :type,
         :start_time,
         :status,
         :trace_id
+
+      attr_reader \
+        :metastruct
 
       attr_writer \
         :duration
@@ -45,6 +49,7 @@ module Datadog
       # * +parent_id+: the identifier of the parent span
       # * +trace_id+: the identifier of the root span for this trace
       # * +service_entry+: whether it is a service entry span.
+      # * +events+: the list of events that occurred while a span was active.
       def initialize(
         name,
         duration: nil,
@@ -52,6 +57,7 @@ module Datadog
         id: nil,
         meta: nil,
         metrics: nil,
+        metastruct: nil,
         parent_id: 0,
         resource: name,
         service: nil,
@@ -60,7 +66,8 @@ module Datadog
         type: nil,
         trace_id: nil,
         service_entry: nil,
-        links: nil
+        links: nil,
+        events: nil
       )
         @name = Core::Utils::SafeDup.frozen_or_dup(name)
         @service = Core::Utils::SafeDup.frozen_or_dup(service)
@@ -73,6 +80,7 @@ module Datadog
 
         @meta = meta || {}
         @metrics = metrics || {}
+        @metastruct = metastruct || {}
         @status = status || 0
 
         # start_time and end_time track wall clock. In Ruby, wall clock
@@ -89,6 +97,8 @@ module Datadog
         @service_entry = service_entry
 
         @links = links || []
+
+        @events = events || []
 
         # Mark with the service entry span metric, if applicable
         set_metric(Metadata::Ext::TAG_TOP_LEVEL, 1.0) if service_entry
@@ -107,12 +117,15 @@ module Datadog
 
       def duration
         return @duration if @duration
-        return @end_time - @start_time if @start_time && @end_time
+
+        start_time = @start_time
+        end_time = @end_time
+        end_time - start_time if start_time && end_time
       end
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Spans with the same ID are considered the same span
@@ -130,10 +143,13 @@ module Datadog
       # TODO: Change this to reflect attributes when serialization
       # isn't handled by this method.
       def to_hash
+        @meta['events'] = @events.map(&:to_hash).to_json unless @events.empty?
+
         h = {
           error: @status,
           meta: @meta,
           metrics: @metrics,
+          meta_struct: @metastruct.to_h,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -175,11 +191,14 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist @metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Metastruct: [', ']') do
+            metastruct.pretty_print(q)
           end
         end
       end
@@ -189,12 +208,17 @@ module Datadog
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def start_time_nano
-        @start_time.to_i * 1000000000 + @start_time.nsec
+        return unless (start_time = @start_time)
+
+        start_time.to_i * 1000000000 + start_time.nsec
       end
 
       # Used for serialization
       # @return [Integer] in nanoseconds since Epoch
       def duration_nano
+        duration = self.duration
+        return unless duration
+
         (duration * 1e9).to_i
       end
 

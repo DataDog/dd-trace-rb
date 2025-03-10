@@ -11,6 +11,8 @@ require_relative 'event'
 require_relative 'metadata'
 require_relative 'metadata/ext'
 require_relative 'span'
+require_relative 'span_event'
+require_relative 'span_link'
 require_relative 'utils'
 
 module Datadog
@@ -35,7 +37,7 @@ module Datadog
         :start_time,
         :trace_id,
         :type
-      attr_accessor :links, :status
+      attr_accessor :links, :status, :span_events
 
       def initialize(
         name,
@@ -49,6 +51,7 @@ module Datadog
         trace_id: nil,
         type: nil,
         links: nil,
+        span_events: nil,
         id: nil
       )
         # Ensure dynamically created strings are UTF-8 encoded.
@@ -68,6 +71,8 @@ module Datadog
         @status = 0
         # stores array of span links
         @links = links || []
+        # stores array of span events
+        @span_events = span_events || []
 
         # start_time and end_time track wall clock. In Ruby, wall clock
         # has less accuracy than monotonic clock, so if possible we look to only use wall clock
@@ -194,6 +199,9 @@ module Datadog
       end
 
       # Mark the span stopped at the current time
+      #
+      # steep:ignore:start
+      # Steep issue fixed in https://github.com/soutaro/steep/pull/1467
       def stop(stop_time = nil)
         # A span should not be stopped twice. Note that this is not thread-safe,
         # stop is called from multiple threads, a given span might be stopped
@@ -216,6 +224,7 @@ module Datadog
 
         self
       end
+      # steep:ignore:end
 
       # Return whether the duration is started or not
       def started?
@@ -265,7 +274,7 @@ module Datadog
 
       def set_error(e)
         @status = Metadata::Ext::Errors::STATUS
-        super
+        set_error_tags(e)
       end
 
       # Return a string representation of the span.
@@ -280,6 +289,7 @@ module Datadog
           id: @id,
           meta: meta,
           metrics: metrics,
+          metastruct: metastruct,
           name: @name,
           parent_id: @parent_id,
           resource: @resource,
@@ -319,11 +329,14 @@ module Datadog
               q.text "#{key} => #{value}"
             end
           end
-          q.group(2, 'Metrics: [', ']') do
+          q.group(2, 'Metrics: [', "]\n") do
             q.breakable
             q.seplist metrics.each do |key, value|
               q.text "#{key} => #{value}"
             end
+          end
+          q.group(2, 'Metastruct: [', ']') do
+            metastruct.pretty_print(q)
           end
         end
       end
@@ -447,6 +460,7 @@ module Datadog
           id: @id,
           meta: Core::Utils::SafeDup.frozen_or_dup(meta),
           metrics: Core::Utils::SafeDup.frozen_or_dup(metrics),
+          metastruct: Core::Utils::SafeDup.frozen_or_dup(metastruct),
           parent_id: @parent_id,
           resource: @resource,
           service: @service,
@@ -455,6 +469,7 @@ module Datadog
           type: @type,
           trace_id: @trace_id,
           links: @links,
+          events: @span_events,
           service_entry: parent.nil? || (service && parent.service != service)
         )
       end

@@ -27,7 +27,7 @@ module Datadog
               Ext::SPAN_RENDER_PARTIAL
             end
 
-            def process(span, _event, _id, payload)
+            def on_start(span, _event, _id, payload)
               span.service = configuration[:service_name] if configuration[:service_name]
               span.type = Tracing::Metadata::Ext::HTTP::TYPE_TEMPLATE
 
@@ -41,10 +41,6 @@ module Datadog
 
               # Measure service stats
               Contrib::Analytics.set_measured(span)
-
-              record_exception(span, payload)
-            rescue StandardError => e
-              Datadog.logger.debug(e.message)
             end
           end
         end

@@ -1,15 +1,10 @@
 # frozen_string_literal: true
 
-require 'uri'
-
 require_relative '../../core/environment/container'
 require_relative '../../core/environment/ext'
 require_relative '../../core/transport/ext'
-require_relative '../../core/transport/http/adapters/net'
-require_relative '../../core/transport/http/adapters/test'
-require_relative '../../core/transport/http/adapters/unix_socket'
+require_relative '../../core/transport/http'
 require_relative 'http/api'
-require_relative 'http/builder'
 require_relative '../../../datadog/version'
 
 module Datadog
@@ -17,30 +12,22 @@ module Datadog
     module Transport
       # Namespace for HTTP transport components
       module HTTP
-        # NOTE: Due to... legacy reasons... This class likes having a default `AgentSettings` instance to fall back to.
-        # Because we generate this instance with an empty instance of `Settings`, the resulting `AgentSettings` below
-        # represents only settings specified via environment variables + the usual defaults.
-        #
-        # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-        DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
-          Datadog::Core::Configuration::Settings.new,
-          logger: nil,
-        )
-
         module_function
 
         # Builds a new Transport::HTTP::Client
-        def new(&block)
-          Builder.new(&block).to_transport
+        def new(klass, &block)
+          Core::Transport::HTTP.build(
+            api_instance_class: API::Instance, &block
+          ).to_transport(klass)
         end
 
         # Builds a new Transport::HTTP::Client with default settings
         # Pass a block to override any settings.
         def default(
-          agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+          agent_settings:,
           **options
         )
-          new do |transport|
+          new(Transport::Traces::Transport) do |transport|
             transport.adapter(agent_settings)
             transport.headers default_headers
 
@@ -74,23 +61,16 @@ module Datadog
             # Add container ID, if present.
             container_id = Datadog::Core::Environment::Container.container_id
             headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
+            # Pretend that stats computation are already done by the client
+            if Datadog.configuration.appsec.standalone.enabled
+              headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'
+            end
           end
         end
 
         def default_adapter
           Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
         end
-
-        # Add adapters to registry
-        Builder::REGISTRY.set(
-          Datadog::Core::Transport::HTTP::Adapters::Net,
-          Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-        )
-        Builder::REGISTRY.set(Datadog::Core::Transport::HTTP::Adapters::Test, Datadog::Core::Transport::Ext::Test::ADAPTER)
-        Builder::REGISTRY.set(
-          Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-          Datadog::Core::Transport::Ext::UnixSocket::ADAPTER
-        )
       end
     end
   end

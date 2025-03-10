@@ -38,7 +38,7 @@ RSpec.describe Datadog::Core::Remote::Client do
   end
 
   let(:http_connection) { instance_double(::Net::HTTP) }
-  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(&proc { |_client| }) }
+  let(:transport) { Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: test_agent_settings, &proc { |_client| }) }
   let(:roots) do
     [
       {
@@ -239,13 +239,18 @@ RSpec.describe Datadog::Core::Remote::Client do
   let(:repository) { Datadog::Core::Remote::Configuration::Repository.new }
 
   let(:capabilities) do
-    capabilities = Datadog::Core::Remote::Client::Capabilities.new(Datadog::Core::Configuration::Settings.new)
+    capabilities = Datadog::Core::Remote::Client::Capabilities.new(
+      Datadog::Core::Configuration::Settings.new,
+      instance_double(Datadog::Core::Telemetry::Component)
+    )
     capabilities.send(:register_products, ['ASM_DATA', 'ASM_DD', 'ASM'])
 
     capabilities
   end
 
-  subject(:client) { described_class.new(transport, capabilities, repository: repository) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:client) { described_class.new(transport, capabilities, repository: repository, logger: logger) }
 
   describe '#sync' do
     include_context 'HTTP connection stub'

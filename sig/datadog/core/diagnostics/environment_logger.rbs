@@ -2,26 +2,23 @@ module Datadog
   module Core
     module Diagnostics
       module EnvironmentLogging
-        def log_configuration!: (untyped prefix, untyped data) -> untyped
+        def log_configuration!: (string prefix, string data) -> void
 
-        def log_error!: (untyped prefix, untyped type, untyped error) -> untyped
+        def log_debug!: (string prefix, string data) -> void
 
-        def logger: () -> untyped
-        def log?: () -> untyped
+        def log_error!: (string prefix, string type, string error) -> void
 
-        REPL_PROGRAM_NAMES: ::Array[::String]
-
-        def repl?: () -> untyped
-
-        def rspec?: () -> untyped
+        def logger: () -> ::Logger
+        def log?: () -> bool
       end
       module EnvironmentLogger
         extend EnvironmentLogging
 
-        def self.collect_and_log!: (untyped extra_fields) -> untyped
+        def self.collect_and_log!: (Hash[Symbol, untyped] extra_fields) -> void
       end
       module EnvironmentCollector
         def self.collect_config!: () -> { date: untyped, os_name: untyped, version: untyped, lang: untyped, lang_version: untyped, env: untyped, service: untyped, dd_version: untyped, debug: untyped, tags: untyped, runtime_metrics_enabled: untyped, vm: untyped, health_metrics_enabled: untyped }
+
         def self.date: () -> untyped
         def self.os_name: () -> untyped
         def self.version: () -> untyped

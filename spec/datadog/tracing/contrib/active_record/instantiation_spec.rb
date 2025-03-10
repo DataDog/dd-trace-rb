@@ -12,9 +12,6 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
   let(:article) { Article.first }
 
   before do
-    if Gem::Version.new(ActiveRecord::VERSION::STRING) < Gem::Version.new('4.2')
-      skip 'ActiveRecord instantiation events were added in Rails 4.2'
-    end
     Article.create!(title: 'test')
 
     # Reset options (that might linger from other tests)
@@ -32,6 +29,10 @@ RSpec.describe 'ActiveRecord instantiation instrumentation' do
     Datadog.registry[:active_record].reset_configuration!
     example.run
     Datadog.registry[:active_record].reset_configuration!
+  end
+
+  after do
+    Article.delete_all
   end
 
   context 'when a model is instantiated' do

@@ -13,16 +13,15 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/api'
-require 'datadog/tracing/transport/http/builder'
 require 'datadog/tracing/transport/io'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/traces'
 
 RSpec.describe 'Tracer integration tests' do
   shared_context 'agent-based test' do
-    before do
-      skip unless ENV['TEST_DATADOG_INTEGRATION']
+    skip_unless_integration_testing_enabled
 
+    before do
       # Ensure background Writer worker doesn't wait, making tests faster.
       stub_const('Datadog::Tracing::Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL', 0)
 
@@ -222,7 +221,11 @@ RSpec.describe 'Tracer integration tests' do
         @span = trace.spans[0]
       end
 
-      tracer.trace('my.op').finish
+      tracer.trace('my.op', service: 'my.service') do |span|
+        span.set_tag('tag', 'tag_value')
+        span.set_tag('tag2', 'tag_value2')
+        span.resource = 'my.resource'
+      end
 
       try_wait_until { tracer.writer.stats[:traces_flushed] >= 1 }
 
@@ -317,6 +320,87 @@ RSpec.describe 'Tracer integration tests' do
           it_behaves_like 'rule sampling rate metric', 1.0
           it_behaves_like 'rate limit metric', 1.0
           it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with a matching resource name' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { resource: 'my.resource', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with a matching service name' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { service: 'my.service', sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with matching tags' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) { { tags: { tag: 'tag_value', tag2: 'tag_value2' }, sample_rate: 1.0 } }
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value', tag2: 'tag_value2' },
+                sample_rate: 1.0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP
+          it_behaves_like 'rule sampling rate metric', 1.0
+          it_behaves_like 'rate limit metric', 1.0
+          it_behaves_like 'sampling decision', '-3'
+        end
+
+        context 'with not matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'wrong_tag_value' },
+                sample_rate: 1.0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::AUTO_KEEP
+          it_behaves_like 'rule sampling rate metric', nil # Rule is not applied
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+          it_behaves_like 'sampling decision', '-0'
+        end
+
+        context 'drop with matching tags and matching service and matching resource' do
+          include_context 'DD_TRACE_SAMPLING_RULES configuration' do
+            let(:rule) do
+              { resource: 'my.resource', service: 'my.service', tags: { tag: 'tag_value' },
+                sample_rate: 0 }
+            end
+          end
+
+          it_behaves_like 'flushed trace'
+          it_behaves_like 'priority sampled', Datadog::Tracing::Sampling::Ext::Priority::USER_REJECT
+          it_behaves_like 'rule sampling rate metric', 0.0
+          it_behaves_like 'rate limit metric', nil # Rate limiter is never reached, thus has no value to provide
+          it_behaves_like 'sampling decision', nil
         end
 
         context 'with low sample rate' do
@@ -782,6 +866,83 @@ RSpec.describe 'Tracer integration tests' do
     end
   end
 
+  shared_examples 'flushes traces with span events' do |native_span_events_support: true|
+    context 'a trace with span events' do
+      subject(:trace_with_event) do
+        tracer.trace('parent_span') do |span|
+          span.span_events << Datadog::Tracing::SpanEvent.new(
+            'event_name',
+            time_unix_nano: 123,
+            attributes: { 'key' => 'value' }
+          )
+        end
+
+        try_wait_until(seconds: 2) { tracer.writer.stats[:traces_flushed] >= 1 }
+      end
+
+      before do
+        allow_any_instance_of(Datadog::Core::Remote::Transport::HTTP::Negotiation::Response)
+          .to receive(:span_events).and_return(span_events_support)
+
+        allow(encoder).to receive(:encode).and_wrap_original do |m, *args|
+          encoded = m.call(*args)
+          traces = encoder.decode(encoded)
+
+          traces = traces['traces'].first if traces.is_a?(Hash) # For Transport::IO
+
+          expect(traces).to have(1).item
+          @flushed_trace = traces.first
+
+          encoded
+        end
+      end
+
+      let(:flushed_trace) { @flushed_trace }
+
+      context 'with agent supporting native span events' do
+        before do
+          skip 'Environment does not support native span events' unless native_span_events_support
+        end
+
+        let(:span_events_support) { true }
+
+        it 'flushes events using the span_events field' do
+          trace_with_event
+
+          expect(flushed_trace['meta']).to_not have_key('events')
+          expect(flushed_trace['span_events']).to eq(
+            [
+              { 'name' => 'event_name',
+                'time_unix_nano' => 123,
+                'attributes' => { 'key' => {
+                  'string_value' => 'value', 'type' => 0
+                } }, }
+            ]
+          )
+        end
+      end
+
+      context 'with agent not supporting native span events' do
+        let(:span_events_support) { false }
+
+        it 'flushes events using the span_events field' do
+          trace_with_event
+
+          expect(flushed_trace['meta']['events']).to eq(
+            JSON.dump(
+              [
+                { 'name' => 'event_name',
+                  'time_unix_nano' => 123,
+                  'attributes' => { 'key' => 'value' } }
+              ]
+            )
+          )
+          expect(flushed_trace).to_not have_key('span_events')
+        end
+      end
+    end
+  end
+
   describe 'Transport::IO' do
     include_context 'agent-based test'
 
@@ -836,13 +997,17 @@ RSpec.describe 'Tracer integration tests' do
 
       expect(out).to have_received(:puts)
     end
+
+    it_behaves_like 'flushes traces with span events', native_span_events_support: false do
+      let(:encoder) { Datadog.send(:components).tracer.writer.transport.encoder }
+    end
   end
 
   describe 'Transport::HTTP' do
     include_context 'agent-based test'
 
     let(:writer) { Datadog::Tracing::Writer.new(transport: transport) }
-    let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+    let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) }
 
     before do
       Datadog.configure do |c|
@@ -879,6 +1044,10 @@ RSpec.describe 'Tracer integration tests' do
         expect(stats[:transport].server_error).to eq(0)
         expect(stats[:transport].internal_error).to eq(0)
       end
+    end
+
+    it_behaves_like 'flushes traces with span events' do
+      let(:encoder) { Datadog.send(:components).tracer.writer.transport.current_api.encoder }
     end
   end
 

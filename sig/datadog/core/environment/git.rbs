@@ -2,9 +2,9 @@ module Datadog
   module Core
     module Environment
       module Git
-        @git_repository_url: String?
+        self.@git_repository_url: String?
 
-        @git_commit_sha: String?
+        self.@git_commit_sha: String?
 
         def self?.git_repository_url: () -> String?
 

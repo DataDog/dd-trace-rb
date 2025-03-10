@@ -151,6 +151,13 @@ module Datadog
           module Settings
             InvalidIntegrationError = Class.new(StandardError)
 
+            # Used to avoid concurrency issues between registering integrations (e.g. mutation) and reporting the
+            # current integrations for logging/debugging/telemetry purposes (e.g. iteration) in the
+            # `@instrumented_integrations` hash.
+            #
+            # See https://github.com/DataDog/dd-trace-rb/issues/2851 for details on the original issue.
+            INSTRUMENTED_INTEGRATIONS_LOCK = Mutex.new
+
             def self.included(base)
               base.class_eval do
                 settings :contrib do
@@ -162,6 +169,20 @@ module Datadog
                     o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_MAPPING
                     o.type :hash
                     o.default({})
+                  end
+
+                  # Enables population of default in the `peer.service` span tag.
+                  # Explicitly setting the `peer.service` for an integration will
+                  # still be honored with this option disabled.
+                  #
+                  # Also when disabled, other peer service related configurations have no effect.
+                  #
+                  # @default `DD_TRACE_PEER_SERVICE_DEFAULTS_ENABLED` environment variable, otherwise `false`
+                  # @return [Boolean]
+                  option :peer_service_defaults do |o|
+                    o.env Tracing::Configuration::Ext::SpanAttributeSchema::ENV_PEER_SERVICE_DEFAULTS_ENABLED
+                    o.type :bool
+                    o.default false
                   end
 
                   # Global service name behavior
@@ -202,7 +223,10 @@ module Datadog
                 configuration_name = options[:describes] || :default
                 filtered_options = options.reject { |k, _v| k == :describes }
                 integration.configure(configuration_name, filtered_options, &block)
-                instrumented_integrations[integration_name] = integration
+                INSTRUMENTED_INTEGRATIONS_LOCK.synchronize do
+                  @instrumented_integrations ||= {}
+                  @instrumented_integrations[integration_name] = integration
+                end
 
                 # Add to activation list
                 integrations_pending_activation << integration
@@ -233,14 +257,16 @@ module Datadog
               @integrations_pending_activation ||= Set.new
             end
 
+            # This method is only for logging/debugging/telemetry purposes (e.g. iteration) in the
+            # `@instrumented_integrations` hash.
             # @!visibility private
             def instrumented_integrations
-              @instrumented_integrations ||= {}
+              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize { (@instrumented_integrations&.dup || {}).freeze }
             end
 
             # @!visibility private
             def reset!
-              instrumented_integrations.clear
+              INSTRUMENTED_INTEGRATIONS_LOCK.synchronize { @instrumented_integrations&.clear }
               super
             end
 

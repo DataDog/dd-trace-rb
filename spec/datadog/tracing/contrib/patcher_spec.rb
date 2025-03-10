@@ -9,10 +9,6 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
     RSpec::Mocks.space.any_instance_proxy_for(Datadog::Tracing::Contrib::Patcher::CommonMethods).unstub(:on_patch_error)
   end
 
-  RSpec::Matchers.define :a_patch_error do |name|
-    match { |actual| actual.include?("Failed to apply #{name} patch.") }
-  end
-
   describe 'implemented in a class' do
     describe 'class behavior' do
       describe '#patch' do
@@ -82,10 +78,6 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
         end
 
         context 'when patcher .patch raises an error' do
-          before do
-            allow(Datadog.logger).to receive(:error)
-          end
-
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const(
@@ -101,9 +93,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
             end
 
             it 'handles the error' do
+              expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+              expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
               expect { patch }.to_not raise_error
-              expect(Datadog.logger).to have_received(:error)
-                .with(a_patch_error(patcher.name))
+
               expect(health_metrics).to have_received(:error_instrumentation_patch)
                 .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
             end
@@ -128,9 +123,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
             end
 
             it 'handles the error' do
+              expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+              expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
               expect { patch }.to_not raise_error
-              expect(Datadog.logger).to have_received(:error)
-                .with(a_patch_error(patcher.name))
+
               expect(health_metrics).to have_received(:error_instrumentation_patch)
                 .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
             end
@@ -193,11 +191,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
-
-        before do
-          allow(Datadog.logger).to receive(:error)
-        end
+        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
 
         context 'and .target_version is not defined' do
           let(:patcher) do
@@ -205,9 +199,11 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher.name))
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
           end
@@ -228,9 +224,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher.name))
+
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
           end
@@ -280,11 +279,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
-
-        before do
-          allow(Datadog.logger).to receive(:error)
-        end
+        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
 
         context 'and .target_version is not defined' do
           let(:patcher_class) do
@@ -292,9 +287,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher_class.name))
+
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
           end
@@ -315,9 +313,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher_class.name))
+
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
           end
@@ -395,10 +396,6 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
         end
 
         context 'when patcher .patch raises an error' do
-          before do
-            allow(Datadog.logger).to receive(:error)
-          end
-
           context 'and .target_version is not defined' do
             let(:patcher) do
               stub_const(
@@ -414,9 +411,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
             end
 
             it 'handles the error' do
+              expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+              expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
               expect { patch }.to_not raise_error
-              expect(Datadog.logger).to have_received(:error)
-                .with(a_patch_error(patcher.name))
+
               expect(health_metrics).to have_received(:error_instrumentation_patch)
                 .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
             end
@@ -441,9 +441,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
             end
 
             it 'handles the error' do
+              expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+              expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+                .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
               expect { patch }.to_not raise_error
-              expect(Datadog.logger).to have_received(:error)
-                .with(a_patch_error(patcher.name))
+
               expect(health_metrics).to have_received(:error_instrumentation_patch)
                 .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
             end
@@ -506,11 +509,7 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
 
         subject(:on_patch_error) { patcher.on_patch_error(error) }
 
-        let(:error) { instance_double('error', class: StandardError, message: nil, backtrace: []) }
-
-        before do
-          allow(Datadog.logger).to receive(:error)
-        end
+        let(:error) { StandardError.new('Oops..').tap { |e| e.set_backtrace([]) } }
 
         context 'and .target_version is not defined' do
           let(:patcher) do
@@ -518,9 +517,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher.name))
+
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError'))
           end
@@ -541,9 +543,12 @@ RSpec.describe Datadog::Tracing::Contrib::Patcher do
           end
 
           it 'handles the error' do
+            expect(Datadog.logger).to receive(:error).with(/Failed to apply TestPatcher patch/)
+            expect(Datadog::Core::Telemetry::Logger).to receive(:report)
+              .with(an_instance_of(StandardError), description: 'Failed to apply TestPatcher patch')
+
             subject
-            expect(Datadog.logger).to have_received(:error)
-              .with(a_patch_error(patcher.name))
+
             expect(health_metrics).to have_received(:error_instrumentation_patch)
               .with(1, tags: array_including('patcher:TestPatcher', 'error:StandardError', 'target_version:1.0'))
           end

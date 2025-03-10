@@ -91,7 +91,7 @@ void remove_sigprof_signal_handler(void) {
   if (sigaction(SIGPROF, &signal_handler_config, NULL) != 0) rb_sys_fail("Failure while removing the signal handler");
 }
 
-static void toggle_sigprof_signal_handler_for_current_thread(int action) {
+static inline void toggle_sigprof_signal_handler_for_current_thread(int action) {
   sigset_t signals_to_toggle;
   sigemptyset(&signals_to_toggle);
   sigaddset(&signals_to_toggle, SIGPROF);

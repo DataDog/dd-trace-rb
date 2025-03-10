@@ -311,6 +311,19 @@ RSpec.shared_examples 'Trace Context distributed format' do
           end
         end
       end
+
+      context 'with span_id nil' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 0xC0FFEE,
+            span_id: nil
+          )
+        end
+
+        it 'sets span component to all zeros' do
+          expect(traceparent).to eq('00-00000000000000000000000000c0ffee-0000000000000000-00')
+        end
+      end
     end
   end
 

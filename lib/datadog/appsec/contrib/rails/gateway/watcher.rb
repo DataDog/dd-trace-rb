@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
 require_relative '../../../instrumentation/gateway'
-require_relative '../../../reactive/operation'
-require_relative '../reactive/action'
 require_relative '../../../event'
 
 module Datadog
@@ -21,45 +19,30 @@ module Datadog
 
               def watch_request_action(gateway = Instrumentation.gateway)
                 gateway.watch('rails.request.action', :appsec) do |stack, gateway_request|
-                  block = false
+                  context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
 
-                  event = nil
-                  scope = gateway_request.env[Datadog::AppSec::Ext::SCOPE_KEY]
+                  persistent_data = {
+                    'server.request.body' => gateway_request.parsed_body,
+                    'server.request.path_params' => gateway_request.route_params
+                  }
 
-                  AppSec::Reactive::Operation.new('rails.request.action') do |op|
-                    Rails::Reactive::Action.subscribe(op, scope.processor_context) do |result|
-                      if result.status == :match
-                        # TODO: should this hash be an Event instance instead?
-                        event = {
-                          waf_result: result,
-                          trace: scope.trace,
-                          span: scope.service_entry_span,
-                          request: gateway_request,
-                          actions: result.actions
-                        }
+                  result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)
 
-                        if scope.service_entry_span
-                          scope.service_entry_span.set_tag('appsec.blocked', 'true') if result.actions.include?('block')
-                          scope.service_entry_span.set_tag('appsec.event', 'true')
-                        end
+                  if result.match?
+                    Datadog::AppSec::Event.tag_and_keep!(context, result)
 
-                        scope.processor_context.events << event
-                      end
-                    end
+                    context.events << {
+                      waf_result: result,
+                      trace: context.trace,
+                      span: context.span,
+                      request: gateway_request,
+                      actions: result.actions
+                    }
 
-                    block = Rails::Reactive::Action.publish(op, gateway_request)
+                    Datadog::AppSec::ActionsHandler.handle(result.actions)
                   end
 
-                  next [nil, [[:block, event]]] if block
-
-                  ret, res = stack.call(gateway_request.request)
-
-                  if event
-                    res ||= []
-                    res << [:monitor, event]
-                  end
-
-                  [ret, res]
+                  stack.call(gateway_request.request)
                 end
               end
             end

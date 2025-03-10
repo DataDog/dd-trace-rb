@@ -140,11 +140,11 @@ You can also define your own custom scenario by creating a LUA file, mounting it
 
 ### Running integration tests
 
-You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`)
+You can run integration tests using the following and substituting for the Ruby major and minor version (e.g. `2.7`). If you are running on ARM architecture (e.g. mac), include `DOCKER_DEFAULT_PLATFORM=linux/arm64` as a prefix for the build script and `DOCKER_BUILDKIT=0` as a prefix for the ci script.
 
 ```sh
-./bin/build-images -v <RUBY_VERSION>
-./bin/ci -v <RUBY_VERSION>
+./script/build-images -v <RUBY_VERSION>
+./script/ci -v <RUBY_VERSION>
 ```
 
 Or inside a running container:

@@ -50,6 +50,23 @@ appraise 'rails61-trilogy' do
   gem 'net-smtp'
 end
 
+appraise 'rails7' do
+  gem 'rails', '~> 7.0.0'
+end
+
+appraise 'rails71' do
+  gem 'rails', '~> 7.1.0'
+end
+
+appraise 'rails-old-redis' do
+  # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
+  gem 'redis', '< 4'
+  gem 'rails', '~> 6.1.0'
+  gem 'pg', '>= 1.1', platform: :ruby
+  gem 'sprockets', '< 4'
+  gem 'lograge', '~> 0.11'
+end
+
 appraise 'resque2-redis3' do
   gem 'redis', '< 4.0'
   gem 'resque', '>= 2.0'
@@ -67,26 +84,19 @@ end
 
 appraise 'http' do
   gem 'ethon'
-  gem 'excon'
-  gem 'faraday'
   gem 'http'
   gem 'httpclient'
-  gem 'rest-client'
-  gem 'stripe'
   gem 'typhoeus'
 end
 
-[2, 3].each do |n|
-  appraise "opensearch-#{n}" do
-    gem 'opensearch-ruby', "~> #{n}"
-  end
-end
-
-[7, 8].each do |n|
-  appraise "elasticsearch-#{n}" do
-    gem 'elasticsearch', "~> #{n}"
-  end
-end
+build_coverage_matrix('stripe', 7..12, min: '5.15.0')
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
+build_coverage_matrix('faraday')
+build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
+build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli', [2])
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 7'
@@ -96,7 +106,7 @@ appraise 'relational_db' do
   gem 'mysql2', '>= 0.5.3', platform: :ruby
   gem 'pg', platform: :ruby
   gem 'sqlite3', '>= 1.4.2', platform: :ruby
-  gem 'sequel', '~> 5.54.0' # TODO: Support sequel 5.62.0+
+  gem 'sequel'
   gem 'trilogy'
 end
 
@@ -114,9 +124,8 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
   gem 'grpc', '>= 1.38.0', platform: :ruby # Minimum version with Ruby 3.0 support
-  gem 'mongo', '>= 2.8.0', '< 2.15.0' # TODO: FIX TEST BREAKAGES ON >= 2.15 https://github.com/DataDog/dd-trace-rb/issues/1596
+
   gem 'rack-test' # Dev dependencies for testing rack-based code
   gem 'rake', '>= 12.3'
   gem 'resque'
@@ -129,40 +138,22 @@ appraise 'contrib' do
 end
 
 [
+  '2.3',
   '2.2',
   '2.1',
   '2.0',
   '1.13',
 ].each do |v|
   appraise "graphql-#{v}" do
+    gem 'rails', '~> 6.1.0'
     gem 'graphql', "~> #{v}.0"
+    gem 'sprockets', '< 4'
+    gem 'lograge', '~> 0.11'
   end
 end
 
-[
-  '2.2',
-  '2.1',
-  '2.0',
-  '1.13',
-].each do |v|
-  appraise "graphql-#{v}" do
-    gem 'graphql', "~> #{v}.0"
-  end
-end
-
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
-  end
-end
-
-[2, 3].each do |n|
-  appraise "rack-#{n}" do
-    gem 'rack', "~> #{n}"
-    gem 'rack-contrib'
-    gem 'rack-test' # Dev dependencies for testing rack-based code
-  end
-end
+build_coverage_matrix('redis', [3, 4])
+build_coverage_matrix('rack', [2], meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2, 3, 4].each do |n|
   appraise "sinatra-#{n}" do
@@ -176,14 +167,34 @@ appraise 'opentelemetry' do
   gem 'opentelemetry-sdk', '~> 1.1'
 end
 
-appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
-  gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-  gem 'qless', '0.12.0'
+appraise 'opentelemetry_otlp' do
+  gem 'opentelemetry-api', '< 1.5' # Context is kept in `Thread.current#[]`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
 
-  gem 'racc' # Remove this once graphql resolves issue for ruby 3.3 preview. https://github.com/rmosolgo/graphql-ruby/issues/4650
+appraise 'opentelemetry_otlp_1_5' do
+  gem 'opentelemetry-api', '>= 1.5' # Context is kept as instance variable in `Fiber.current`
+  gem 'opentelemetry-sdk', '~> 1.1'
+  gem 'opentelemetry-exporter-otlp'
+end
+
+appraise 'contrib-old' do
+  gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
 end
 
 appraise 'core-old' do
   gem 'dogstatsd-ruby', '~> 4'
+end
+
+appraise 'rails-app' do
+  gem 'devise', '~> 4.9'
+  gem 'faraday', '~> 2.0'
+  gem 'excon', '~> 1.2'
+  gem 'rest-client'
+  gem 'rack', '~> 2'
+  gem 'rack-contrib', '~> 2'
+  gem 'rack-test' # Dev dependencies for testing rack-based code
+  gem 'rails', '~> 7.0'
+  gem 'sqlite3', '>= 1.4.2', platform: :ruby
 end

@@ -209,7 +209,7 @@ RSpec.shared_examples 'Datadog distributed format' do
       context 'when given a trace digest with 128 bit trace id' do
         let(:digest) do
           Datadog::Tracing::TraceDigest.new(
-            trace_id: 0xaaaaaaaaaaaaaaaaffffffffffffffff,
+            trace_id: 0x0aaaaaaaaaaaaaaaffffffffffffffff,
             span_id: 0xbbbbbbbbbbbbbbbb
           )
         end
@@ -220,7 +220,7 @@ RSpec.shared_examples 'Datadog distributed format' do
           expect(data).to eq(
             'x-datadog-trace-id' => 0xffffffffffffffff.to_s,
             'x-datadog-parent-id' => 0xbbbbbbbbbbbbbbbb.to_s,
-            'x-datadog-tags' => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+            'x-datadog-tags' => '_dd.p.tid=0aaaaaaaaaaaaaaa'
           )
         end
       end
@@ -240,6 +240,19 @@ RSpec.shared_examples 'Datadog distributed format' do
             'x-datadog-trace-id' => 0xffffffffffffffff.to_s,
             'x-datadog-parent-id' => 0xbbbbbbbbbbbbbbbb.to_s
           )
+        end
+      end
+
+      context 'with span_id nil' do
+        let(:digest) do
+          Datadog::Tracing::TraceDigest.new(
+            trace_id: 30000
+          )
+        end
+
+        it 'does not include the x-datadog-parent-id field' do
+          inject!
+          expect(data).to eq('x-datadog-trace-id' => '30000')
         end
       end
     end
@@ -482,11 +495,11 @@ RSpec.shared_examples 'Datadog distributed format' do
         {
           prepare_key['x-datadog-trace-id'] => 0xffffffffffffffff.to_s,
           prepare_key['x-datadog-parent-id'] => 0xbbbbbbbbbbbbbbbb.to_s,
-          prepare_key['x-datadog-tags'] => '_dd.p.tid=aaaaaaaaaaaaaaaa'
+          prepare_key['x-datadog-tags'] => '_dd.p.tid=0aaaaaaaaaaaaaaa'
         }
       end
 
-      it { expect(digest.trace_id).to eq(0xaaaaaaaaaaaaaaaaffffffffffffffff) }
+      it { expect(digest.trace_id).to eq(0x0aaaaaaaaaaaaaaaffffffffffffffff) }
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
       it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
     end

@@ -60,14 +60,14 @@ RSpec.describe 'transport with integrations' do
     end
 
     context 'given the default transport' do
-      let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+      let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) }
 
       it_behaves_like 'an uninstrumented transport'
     end
 
     context 'given an Unix socket transport' do
       let(:transport) do
-        Datadog::Tracing::Transport::HTTP.default do |t|
+        Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
           t.adapter :unix, '/tmp/ddagent/trace.sock'
         end
       end

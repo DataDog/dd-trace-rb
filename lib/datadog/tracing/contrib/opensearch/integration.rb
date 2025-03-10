@@ -16,6 +16,9 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :opensearch, auto_patch: true
+          def self.gem_name
+            'opensearch-ruby'
+          end
 
           def self.gems
             ['opensearch-transport']

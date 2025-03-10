@@ -301,6 +301,16 @@ module Datadog
               o.default true
             end
 
+            # Can be used to enable/disable the Datadog::Profiling.allocation_count feature.
+            #
+            # Requires allocation profiling to be enabled.
+            #
+            # @default false
+            option :allocation_counting_enabled do |o|
+              o.type :bool
+              o.default false
+            end
+
             # Can be used to enable/disable the collection of heap profiles.
             #
             # This feature is alpha and disabled by default
@@ -397,6 +407,20 @@ module Datadog
               end
             end
 
+            # The profiler gathers data by sending `SIGPROF` unix signals to Ruby application threads.
+            #
+            # We've discovered that this can trigger a bug in a number of Ruby APIs in the `Dir` class, as
+            # described in https://bugs.ruby-lang.org/issues/20586 .
+            # This was fixed for Ruby 3.4+, and this setting is a no-op for those versions.
+            #
+            # @default `DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED` environment variable as a boolean,
+            # otherwise `true`
+            option :dir_interruption_workaround_enabled do |o|
+              o.env 'DD_PROFILING_DIR_INTERRUPTION_WORKAROUND_ENABLED'
+              o.type :bool
+              o.default true
+            end
+
             # Configures how much wall-time overhead the profiler targets. The profiler will dynamically adjust the
             # interval between samples it takes so as to try and maintain the property that it spends no longer than
             # this amount of wall-clock time profiling. For example, with the default value of 2%, the profiler will
@@ -425,14 +449,98 @@ module Datadog
               o.default 60
             end
 
-            # Enables reporting of information when the Ruby VM crashes.
-            #
-            # @default `DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED` environment variable as a boolean,
-            # otherwise `false`
+            # DEV-3.0: Remove `experimental_crash_tracking_enabled` option
             option :experimental_crash_tracking_enabled do |o|
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Core.log_deprecation(key: :experimental_crash_tracking_enabled) do
+                    'The profiling.advanced.experimental_crash_tracking_enabled setting has been deprecated for removal '\
+                    'and no longer does anything. Please remove it from your Datadog.configure block.'
+                  end
+                end
+              end
+            end
+
+            # @deprecated Use {:gvl_enabled} instead.
+            option :preview_gvl_enabled do |o|
               o.type :bool
-              o.env 'DD_PROFILING_EXPERIMENTAL_CRASH_TRACKING_ENABLED'
               o.default false
+              o.after_set do |_, _, precedence|
+                unless precedence == Datadog::Core::Configuration::Option::Precedence::DEFAULT
+                  Datadog.logger.warn(
+                    'The profiling.advanced.preview_gvl_enabled setting has been deprecated for removal and ' \
+                    'no longer does anything. Please remove it from your Datadog.configure block. ' \
+                    'GVL profiling is now controlled by the profiling.advanced.gvl_enabled setting instead.'
+                  )
+                end
+              end
+            end
+
+            # Controls GVL profiling. This will show when threads are waiting for GVL in the timeline view.
+            #
+            # This feature requires Ruby 3.2+.
+            #
+            # @default `DD_PROFILING_GVL_ENABLED` environment variable as a boolean, otherwise `true`
+            option :gvl_enabled do |o|
+              o.type :bool
+              o.deprecated_env 'DD_PROFILING_PREVIEW_GVL_ENABLED'
+              o.env 'DD_PROFILING_GVL_ENABLED'
+              o.default true
+            end
+
+            # Controls the smallest time period the profiler will report a thread waiting for the GVL.
+            #
+            # The default value was set to minimize overhead. Periods smaller than the set value will not be reported (e.g.
+            # the thread will be reported as whatever it was doing before it waited for the GVL).
+            #
+            # We do not recommend setting this to less than 1ms. Tweaking this value can increase application latency and
+            # memory use.
+            #
+            # @default 10_000_000 (10ms)
+            option :waiting_for_gvl_threshold_ns do |o|
+              o.type :int
+              o.default 10_000_000
+            end
+
+            # Controls if the profiler should attempt to read context from the otel library
+            #
+            # @default false
+            option :preview_otel_context_enabled do |o|
+              o.env 'DD_PROFILING_PREVIEW_OTEL_CONTEXT_ENABLED'
+              o.default false
+              o.env_parser do |value|
+                if value
+                  value = value.strip.downcase
+                  if ['only', 'both'].include?(value)
+                    value
+                  elsif ['true', '1'].include?(value)
+                    'both'
+                  else
+                    'false'
+                  end
+                end
+              end
+              o.setter do |value|
+                if value == true
+                  :both
+                elsif ['only', 'both', :only, :both].include?(value)
+                  value.to_sym
+                else
+                  false
+                end
+              end
+            end
+
+            # Controls if the heap profiler should attempt to clean young objects after GC, rather than just at
+            # serialization time. This lowers memory usage and high percentile latency.
+            #
+            # Only has effect when used together with `gc_enabled: true` and `experimental_heap_enabled: true`.
+            #
+            # @default true
+            option :heap_clean_after_gc_enabled do |o|
+              o.type :bool
+              o.env 'DD_PROFILING_HEAP_CLEAN_AFTER_GC_ENABLED'
+              o.default true
             end
           end
 
@@ -602,6 +710,33 @@ module Datadog
           end
         end
 
+        # The monotonic clock time provider used by Datadog. This option is internal and is used by `datadog-ci`
+        # gem to avoid traces' durations being skewed by timecop.
+        #
+        # It must respect the interface of [Datadog::Core::Utils::Time#get_time] method.
+        #
+        # For [Timecop](https://rubygems.org/gems/timecop), for example,
+        # `->(unit = :float_second) { ::Process.clock_gettime_without_mock(::Process::CLOCK_MONOTONIC, unit) }`
+        # allows Datadog features to use the real monotonic time when time is frozen with
+        # `Timecop.mock_process_clock = true`.
+        #
+        # @default `->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit)}`
+        # @return [Proc<Numeric>]
+        option :get_time_provider do |o|
+          o.default_proc { |unit = :float_second| ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }
+          o.type :proc
+
+          o.after_set do |get_time_provider|
+            Core::Utils::Time.get_time_provider = get_time_provider
+          end
+
+          o.resetter do |_value|
+            ->(unit = :float_second) { ::Process.clock_gettime(::Process::CLOCK_MONOTONIC, unit) }.tap do |default|
+              Core::Utils::Time.get_time_provider = default
+            end
+          end
+        end
+
         # The `version` tag in Datadog. Use it to enable [Deployment Tracking](https://docs.datadoghq.com/tracing/deployment_tracking/).
         # @see https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging
         # @default `DD_VERSION` environment variable, otherwise `nils`
@@ -647,6 +782,34 @@ module Datadog
             o.type :bool
           end
 
+          # Enable agentless mode for telemetry: submit telemetry events directly to the intake without Datadog Agent.
+          #
+          # @return [Boolean]
+          # @!visibility private
+          option :agentless_enabled do |o|
+            o.type :bool
+            o.default false
+          end
+
+          # Overrides agentless telemetry URL. To be used internally for testing purposes only.
+          #
+          # @return [String]
+          # @!visibility private
+          option :agentless_url_override do |o|
+            o.type :string, nilable: true
+            o.env Core::Telemetry::Ext::ENV_AGENTLESS_URL_OVERRIDE
+          end
+
+          # Enable metrics collection for telemetry. Metrics collection only works when telemetry is enabled and
+          # metrics are enabled.
+          # @default `DD_TELEMETRY_METRICS_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :metrics_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_METRICS_ENABLED
+            o.default true
+          end
+
           # The interval in seconds when telemetry must be sent.
           #
           # This method is used internally, for testing purposes only.
@@ -658,6 +821,19 @@ module Datadog
             o.type :float
             o.env Core::Telemetry::Ext::ENV_HEARTBEAT_INTERVAL
             o.default 60.0
+          end
+
+          # The interval in seconds when telemetry metrics are aggregated.
+          # Should be a denominator of `heartbeat_interval_seconds`.
+          #
+          # This method is used internally, for testing purposes only.
+          # @default `DD_TELEMETRY_METRICS_AGGREGATION_INTERVAL` environment variable, otherwise `10`.
+          # @return [Float]
+          # @!visibility private
+          option :metrics_aggregation_interval_seconds do |o|
+            o.type :float
+            o.env Core::Telemetry::Ext::ENV_METRICS_AGGREGATION_INTERVAL
+            o.default 10.0
           end
 
           # The install id of the application.
@@ -694,6 +870,24 @@ module Datadog
           option :install_time do |o|
             o.type :string, nilable: true
             o.env Core::Telemetry::Ext::ENV_INSTALL_TIME
+          end
+
+          # Telemetry shutdown timeout in seconds
+          #
+          # @!visibility private
+          option :shutdown_timeout_seconds do |o|
+            o.type :float
+            o.default 1.0
+          end
+
+          # Enable log collection for telemetry. Log collection only works when telemetry is enabled and
+          # logs are enabled.
+          # @default `DD_TELEMETRY_LOG_COLLECTION_ENABLED` environment variable, otherwise `true`.
+          # @return [Boolean]
+          option :log_collection_enabled do |o|
+            o.type :bool
+            o.env Core::Telemetry::Ext::ENV_LOG_COLLECTION
+            o.default true
           end
         end
 
@@ -753,6 +947,15 @@ module Datadog
           # @default `nil`.
           # @return [String,nil]
           option :service
+        end
+
+        settings :crashtracking do
+          # Enables reporting of information when Ruby VM crashes.
+          option :enabled do |o|
+            o.type :bool
+            o.default true
+            o.env 'DD_CRASHTRACKING_ENABLED'
+          end
         end
 
         # TODO: Tracing should manage its own settings.

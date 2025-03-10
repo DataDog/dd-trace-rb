@@ -13,6 +13,7 @@ RSpec.describe 'Grape instrumentation' do
 
   let(:render_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RENDER } }
   let(:run_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN } }
+  let(:rack_span) { sorted_spans.reverse.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST } }
   let(:run_filter_span) { spans.find { |x| x.name == Datadog::Tracing::Contrib::Grape::Ext::SPAN_ENDPOINT_RUN_FILTERS } }
   let(:span) { spans.last }
 
@@ -93,6 +94,10 @@ RSpec.describe 'Grape instrumentation' do
             'OK'
           end
         end
+
+        get '/path/with/leading/slash' do
+          'leading-slash'
+        end
       end
     )
   end
@@ -124,6 +129,10 @@ RSpec.describe 'Grape instrumentation' do
           get :span_resource do
             'OK'
           end
+        end
+
+        get '/path/with/leading/slash' do
+          'leading-slash'
         end
       end
     )
@@ -198,6 +207,9 @@ RSpec.describe 'Grape instrumentation' do
             .to eq('endpoint_run')
 
           expect(run_span.get_tag('http.status_code')).to eq('200')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/base/success')
         end
       end
 
@@ -265,6 +277,9 @@ RSpec.describe 'Grape instrumentation' do
             .to eq('endpoint_run')
 
           expect(run_span.get_tag('http.status_code')).to eq('200')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/filtered/before_after')
         end
       end
     end
@@ -296,6 +311,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/hard_failure')
           end
         end
       end
@@ -353,6 +370,9 @@ RSpec.describe 'Grape instrumentation' do
             .to eq('endpoint_run')
           # Status code has not been set yet at this instrumentation point
           expect(run_span.get_tag('http.status_code')).to be_nil
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/base/hard_failure')
         end
       end
 
@@ -402,6 +422,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_COMPONENT)).to eq('grape')
           expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/filtered_exception/before')
         end
       end
     end
@@ -419,6 +441,8 @@ RSpec.describe 'Grape instrumentation' do
           expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
             .to eq('endpoint_run')
           expect(span.get_tag('http.status_code')).to eq('405')
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/base/soft_failure')
         end
 
         context 'and error_responses' do
@@ -435,6 +459,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -452,6 +478,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -469,6 +497,8 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
 
@@ -486,6 +516,9 @@ RSpec.describe 'Grape instrumentation' do
             expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_OPERATION))
               .to eq('endpoint_run')
             expect(span.get_tag('http.status_code')).to eq('405')
+
+            expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+              .to eq('/base/soft_failure')
           end
         end
       end
@@ -535,6 +568,9 @@ RSpec.describe 'Grape instrumentation' do
             .to eq('endpoint_run')
 
           expect(run_span.get_tag('http.status_code')).to eq('500')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/base/soft_failure')
         end
       end
     end
@@ -583,6 +619,9 @@ RSpec.describe 'Grape instrumentation' do
 
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/widgets')
         end
       end
 
@@ -629,6 +668,9 @@ RSpec.describe 'Grape instrumentation' do
 
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/widgets')
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('POST')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/widgets')
         end
       end
 
@@ -665,6 +707,9 @@ RSpec.describe 'Grape instrumentation' do
 
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/nested/widgets')
           expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
+
+          expect(trace.send(:meta).fetch(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+            .to eq('/nested/widgets')
         end
       end
     end
@@ -682,12 +727,26 @@ RSpec.describe 'Grape instrumentation' do
       end
     end
 
+    context 'when the path has a leading slash' do
+      subject(:response) { get '/path/with/leading/slash' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the resource correctly' do
+        expect(trace.name).to eq('grape.endpoint_run')
+        expect(trace.resource).to eq('TestingAPI GET /path/with/leading/slash')
+      end
+    end
+
     context 'when tracing is disabled' do
       subject(:response) { get '/base/success' }
 
       before do
         Datadog.configure { |c| c.tracing.enabled = false }
         expect(Datadog.logger).to_not receive(:error)
+        expect(Datadog::Core::Telemetry::Logger).to_not receive(:report)
       end
 
       it 'runs the endpoint request without tracing' do
@@ -750,7 +809,6 @@ RSpec.describe 'Grape instrumentation' do
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_METHOD)).to eq('GET')
         expect(run_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_URL)).to eq('/success')
 
-        expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_PATH)).to eq('/success')
         expect(run_span.get_tag(Datadog::Tracing::Contrib::Grape::Ext::TAG_ROUTE_METHOD)).to eq('GET')
 
         expect(rack_span.name).to eq('rack.request')
@@ -759,6 +817,7 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.resource).to eq('RackTestingAPI GET /success')
         expect(rack_span).to_not have_error
         expect(rack_span).to be_root_span
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE)).to eq('/api/success')
       end
     end
 
@@ -824,6 +883,8 @@ RSpec.describe 'Grape instrumentation' do
         expect(rack_span.resource).to eq('RackTestingAPI GET /hard_failure')
         expect(rack_span).to have_error
         expect(rack_span).to be_root_span
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+          .to eq('/api/hard_failure')
       end
     end
 
@@ -845,6 +906,8 @@ RSpec.describe 'Grape instrumentation' do
         expect(span.resource).to eq('GET 404')
         expect(span).to_not have_error
         expect(span).to be_root_span
+        expect(span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+          .to be_nil
       end
     end
 
@@ -859,10 +922,26 @@ RSpec.describe 'Grape instrumentation' do
         run_span = spans.find { |s| s.name == 'grape.endpoint_run' }
         expect(run_span.name).to eq('grape.endpoint_run')
         expect(run_span.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
+
+        rack_span = spans.find { |x| x.name == Datadog::Tracing::Contrib::Rack::Ext::SPAN_REQUEST }
+        expect(rack_span.get_tag(Datadog::Tracing::Metadata::Ext::HTTP::TAG_ROUTE))
+          .to eq('/api/span_resource_rack/span_resource')
       end
 
       it 'sets the trace resource before calling the endpoint' do
         expect(trace.resource).to eq('RackTestingAPI GET /span_resource_rack/span_resource')
+      end
+    end
+
+    context 'when the path has a leading slash' do
+      subject(:response) { get '/api/path/with/leading/slash' }
+
+      before do
+        is_expected.to be_ok
+      end
+
+      it 'sets the resource correctly' do
+        expect(trace.resource).to eq('RackTestingAPI GET /path/with/leading/slash')
       end
     end
   end

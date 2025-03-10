@@ -19,7 +19,9 @@ module Datadog
 
               EVENT_NAME = 'heartbeat.consumer.kafka'
 
-              def self.process(span, _event, _id, payload)
+              module_function
+
+              def on_start(span, _event, _id, payload)
                 super
 
                 if payload.key?(:topic_partitions)
@@ -28,8 +30,6 @@ module Datadog
                   end
                 end
               end
-
-              module_function
 
               def span_name
                 Ext::SPAN_CONSUMER_HEARTBEAT

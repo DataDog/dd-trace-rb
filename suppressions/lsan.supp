@@ -1,0 +1,9 @@
+# This is a Leak Sanitizer ("lsan") suppression configuration file.
+#
+# We use it together with special builds for Ruby
+# (https://github.com/ruby/ruby/blob/master/doc/contributing/building_ruby.md#building-with-address-sanitizer)
+# to find issues and memory leaks in the dd-trace-rb native extensions; in some cases
+# we need to ignore potential issues as they're not something we can fix (e.g. outside our code.)
+#
+# See https://github.com/google/sanitizers/wiki/AddressSanitizerLeakSanitizer for details.
+leak:native_thread_create

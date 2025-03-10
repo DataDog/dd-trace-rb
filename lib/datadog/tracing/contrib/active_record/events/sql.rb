@@ -6,6 +6,7 @@ require_relative '../event'
 require_relative '../ext'
 require_relative '../../analytics'
 require_relative '../../utils/database'
+require_relative '../../../../core/telemetry/logger'
 
 module Datadog
   module Tracing
@@ -29,7 +30,7 @@ module Datadog
               Ext::SPAN_SQL
             end
 
-            def process(span, event, _id, payload)
+            def on_start(span, event, _id, payload)
               config = Utils.connection_config(payload[:connection], payload[:connection_id])
               settings = Datadog.configuration.tracing[:active_record, config]
               adapter_name = Contrib::Utils::Database.normalize_vendor(config[:adapter])
@@ -62,12 +63,14 @@ module Datadog
               cached = payload[:cached] || (payload[:name] == PAYLOAD_CACHE)
 
               span.set_tag(Ext::TAG_DB_VENDOR, adapter_name)
+              span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, config[:database])
               span.set_tag(Ext::TAG_DB_NAME, config[:database])
               span.set_tag(Ext::TAG_DB_CACHED, cached) if cached
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, config[:host]) if config[:host]
               span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, config[:port]) if config[:port]
             rescue StandardError => e
-              Datadog.logger.debug(e.message)
+              Datadog.logger.error(e.message)
+              Datadog::Core::Telemetry::Logger.report(e)
             end
           end
         end

@@ -8,7 +8,7 @@ require 'semantic_logger'
 
 require 'rack'
 # `Rack::Handler::WEBrick` was extracted to the `rackup` gem in Rack 3.0
-require 'rackup' if Rack::VERSION[0] >= 3
+require 'rackup/handler/webrick' if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
 require 'webrick'
 
 RSpec.describe 'contrib integration testing', :integration do
@@ -164,7 +164,11 @@ RSpec.describe 'contrib integration testing', :integration do
             end
           end.to_app
 
-          server.mount '/', Rack::Handler::WEBrick, app
+          if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
+            server.mount '/', Rackup::Handler::WEBrick, app
+          else
+            server.mount '/', Rack::Handler::WEBrick, app
+          end
 
           @thread = Thread.new { server.start }
           try_wait_until { started }

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'configuration'
+require_relative '../core/configuration'
 
 module Datadog
   module AppSec

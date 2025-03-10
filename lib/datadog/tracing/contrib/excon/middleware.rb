@@ -30,6 +30,9 @@ module Datadog
                 trace = Tracing.active_trace
                 datum[:datadog_span] = span
                 annotate!(span, datum)
+                if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
+                  trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+                end
                 propagate!(trace, span, datum) if distributed_tracing?
 
                 span

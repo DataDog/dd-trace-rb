@@ -50,27 +50,35 @@ module Datadog
                 # Set analytics sample rate
                 Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
+                span.set_tag(Contrib::Ext::DB::TAG_INSTANCE, query_options[:database])
                 span.set_tag(Ext::TAG_DB_NAME, query_options[:database])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_HOST, query_options[:host])
                 span.set_tag(Tracing::Metadata::Ext::NET::TAG_TARGET_PORT, query_options[:port])
 
                 Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
 
-                propagation_mode = Contrib::Propagation::SqlComment::Mode.new(comment_propagation)
-
-                Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
-                sql = Contrib::Propagation::SqlComment.prepend_comment(
-                  sql,
-                  span,
-                  trace_op,
-                  propagation_mode
-                )
+                sql = inject_propagation(span, sql, trace_op)
 
                 super(sql, options)
               end
             end
 
             private
+
+            def inject_propagation(span, sql, trace_op)
+              propagation_mode = Contrib::Propagation::SqlComment::Mode.new(
+                datadog_configuration[:comment_propagation],
+                datadog_configuration[:append_comment]
+              )
+
+              Contrib::Propagation::SqlComment.annotate!(span, propagation_mode)
+              Contrib::Propagation::SqlComment.prepend_comment(
+                sql,
+                span,
+                trace_op,
+                propagation_mode
+              )
+            end
 
             def datadog_configuration
               Datadog.configuration.tracing[:mysql2]
@@ -82,10 +90,6 @@ module Datadog
 
             def analytics_sample_rate
               datadog_configuration[:analytics_sample_rate]
-            end
-
-            def comment_propagation
-              datadog_configuration[:comment_propagation]
             end
           end
         end

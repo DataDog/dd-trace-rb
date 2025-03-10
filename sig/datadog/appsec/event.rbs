@@ -8,11 +8,13 @@ module Datadog
       MAX_ENCODED_SCHEMA_SIZE: Numeric
       MIN_SCHEMA_SIZE_FOR_COMPRESSION: Numeric
 
-      def self.record: (Datadog::Tracing::SpanOperation, *untyped events) -> (nil | untyped)
+      def self.record: (Tracing::SpanOperation, *untyped events) -> (nil | untyped)
 
-      def self.record_via_span: (Datadog::Tracing::SpanOperation, *untyped events) -> untyped
+      def self.record_via_span: (Tracing::SpanOperation, *untyped events) -> untyped
 
       def self.build_service_entry_tags: (Array[Hash[::Symbol, untyped]] event_group) -> Hash[::String, untyped]
+
+      def self.tag_and_keep!: (Context scope, WAF::Result waf_result) -> void
 
       private
 
@@ -21,6 +23,8 @@ module Datadog
       def self.json_parse: (untyped value) -> untyped
 
       def self.gzip: (untyped value) -> untyped
+
+      def self.add_distributed_tags: (Tracing::TraceOperation trace) -> void
     end
   end
 end

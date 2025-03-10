@@ -1,0 +1,21 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module ActiveRecord
+        module Patcher
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> Gem::Version?
+
+          def self?.patch: () -> void
+
+          def self?.patch_sqlite3_adapter: () -> void
+
+          def self?.patch_mysql2_adapter: () -> void
+
+          def self?.patch_postgresql_adapter: () -> void
+        end
+      end
+    end
+  end
+end

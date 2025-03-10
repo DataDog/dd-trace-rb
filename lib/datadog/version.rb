@@ -3,8 +3,8 @@
 module Datadog
   module VERSION
     MAJOR = 2
-    MINOR = 1
-    PATCH = 0
+    MINOR = 12
+    PATCH = 1
     PRE = nil
     BUILD = nil
     # PRE and BUILD above are modified for dev gems during gem build GHA workflow
@@ -21,6 +21,6 @@ module Datadog
     # To allow testing with the next unreleased version of Ruby, the version check is performed
     # as `< #{MAXIMUM_RUBY_VERSION}`, meaning prereleases of MAXIMUM_RUBY_VERSION are allowed
     # but not stable MAXIMUM_RUBY_VERSION releases.
-    MAXIMUM_RUBY_VERSION = '3.4'
+    MAXIMUM_RUBY_VERSION = '3.5'
   end
 end

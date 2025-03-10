@@ -73,7 +73,6 @@ RSpec.describe 'Trlogy::Client patcher' do
           expect(span.service).to eq(service_name)
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
-          expect(span.get_tag(Datadog::Tracing::Metadata::Ext::TAG_PEER_SERVICE)).to eq(database)
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'trilogy.query'
@@ -85,6 +84,7 @@ RSpec.describe 'Trlogy::Client patcher' do
 
           expect(spans.count).to eq(1)
           expect(span.get_tag('span.kind')).to eq('client')
+          expect(span.get_tag('db.instance')).to eq(database)
           expect(span.get_tag('trilogy.db.name')).to eq(database)
           expect(span.get_tag('out.host')).to eq(host)
           expect(span.get_tag('out.port')).to eq(port.to_f)
@@ -137,7 +137,7 @@ RSpec.describe 'Trlogy::Client patcher' do
           expect(span.get_tag('span.kind')).to eq('client')
           expect(span.get_tag('db.system')).to eq('mysql')
           expect(span.get_tag('error.message'))
-            .to eq("1054: Unknown column 'INVALID' in 'field list'")
+            .to include("1054: Unknown column 'INVALID' in 'field list'")
         end
 
         it_behaves_like 'with sql comment propagation', span_op_name: 'trilogy.query', error: Trilogy::Error

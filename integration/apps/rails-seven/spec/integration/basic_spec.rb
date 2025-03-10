@@ -44,4 +44,9 @@ RSpec.describe 'Basic scenarios' do
       puts "      Webserver: #{json_result.fetch(:webserver_process)}"
     end
   end
+
+  context 'for Rails runner' do
+    subject { `bin/rails runner 'print \"OK\"'` }
+    it { is_expected.to end_with("OK") }
+  end
 end

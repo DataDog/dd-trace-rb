@@ -2,10 +2,11 @@ require 'datadog/tracing/contrib/propagation/sql_comment'
 require 'datadog/tracing/contrib/propagation/sql_comment/mode'
 
 RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
-  let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode) }
+  let(:propagation_mode) { Datadog::Tracing::Contrib::Propagation::SqlComment::Mode.new(mode, append) }
+  let(:append) { false }
 
   describe '.annotate!' do
-    let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'database_service') }
+    let(:span_op) { Datadog::Tracing::SpanOperation.new('sql_comment_propagation_span', service: 'db_service') }
 
     context 'when `disabled` mode' do
       let(:mode) { 'disabled' }
@@ -46,20 +47,21 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     end
 
     let(:sql_statement) { 'SELECT 1' }
+    let(:append) { false }
 
     context 'when tracing is enabled' do
       before do
         Datadog.configure do |c|
-          c.env = 'production'
-          c.service = "Traders' Joe"
-          c.version = '1.0.0'
+          c.env = 'dev'
+          c.service = 'api'
+          c.version = '1.2'
         end
       end
 
       let(:span_op) do
         Datadog::Tracing::SpanOperation.new(
           'sample_span',
-          service: 'database_service'
+          service: 'db_service'
         )
       end
       let(:trace_op) do
@@ -85,7 +87,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
         it do
           is_expected.to eq(
-            "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+            "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}"
           )
         end
 
@@ -93,15 +95,71 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
-              service: 'database_service',
-              tags: { 'peer.service' => 'sample_peer_service' }
+              service: 'db_service',
+              tags: { 'peer.service' => 'db_peer_service' }
             )
           end
 
           it do
             is_expected.to eq(
-              "/*dddbs='sample_peer_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+              "/*dde='dev',ddps='api',ddpv='1.2',ddprs='db_peer_service',dddbs='db_peer_service'*/ #{sql_statement}"
             )
+          end
+
+          context 'matching the global service' do
+            let(:span_op) do
+              Datadog::Tracing::SpanOperation.new(
+                'sample_span',
+                service: 'db_service',
+                tags: { 'peer.service' => 'api' }
+              )
+            end
+
+            it 'omits the redundant dddbs' do
+              is_expected.to eq(
+                "/*dde='dev',ddps='api',ddpv='1.2',ddprs='api'*/ #{sql_statement}"
+              )
+            end
+          end
+        end
+
+        context 'when given a span operation tagged with db.instance' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'db_service',
+              tags: { 'db.instance' => 'db_name' }
+            )
+          end
+
+          it do
+            is_expected.to eq(
+              "/*dde='dev',ddps='api',ddpv='1.2',dddb='db_name',dddbs='db_service'*/ #{sql_statement}"
+            )
+          end
+        end
+
+        context 'when given a span operation tagged with peer.hostname' do
+          let(:span_op) do
+            Datadog::Tracing::SpanOperation.new(
+              'sample_span',
+              service: 'db_service',
+              tags: { 'peer.hostname' => 'db_host' }
+            )
+          end
+
+          it do
+            is_expected.to eq(
+              "/*dde='dev',ddps='api',ddpv='1.2',ddh='db_host',dddbs='db_service'*/ #{sql_statement}"
+            )
+          end
+        end
+
+        context 'when append is true' do
+          let(:append) { true }
+
+          it 'appends the comment after the sql statement' do
+            is_expected.to eq("#{sql_statement} /*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/")
           end
         end
       end
@@ -112,10 +170,11 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
         it {
           is_expected.to eq(
-            "/*dddbs='database_service',"\
-            "dde='production',"\
-            "ddps='Traders%27%20Joe',"\
-            "ddpv='1.0.0',"\
+            '/*'\
+            "dde='dev',"\
+            "ddps='api',"\
+            "ddpv='1.2',"\
+            "dddbs='db_service',"\
             "traceparent='#{traceparent}'*/ "\
             "#{sql_statement}"
           )
@@ -125,17 +184,19 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
           let(:span_op) do
             Datadog::Tracing::SpanOperation.new(
               'sample_span',
-              service: 'database_service',
-              tags: { 'peer.service' => 'sample_peer_service' }
+              service: 'db_service',
+              tags: { 'peer.service' => 'db_peer_service' }
             )
           end
 
           it {
             is_expected.to eq(
-              "/*dddbs='sample_peer_service',"\
-              "dde='production',"\
-              "ddps='Traders%27%20Joe',"\
-              "ddpv='1.0.0',"\
+              '/*'\
+              "dde='dev',"\
+              "ddps='api',"\
+              "ddpv='1.2',"\
+              "ddprs='db_peer_service',"\
+              "dddbs='db_peer_service',"\
               "traceparent='#{traceparent}'*/ "\
               "#{sql_statement}"
             )
@@ -147,9 +208,9 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
     describe 'when propagates with `full` mode but tracing is disabled ' do
       before do
         Datadog.configure do |c|
-          c.env = 'production'
-          c.service = "Traders' Joe"
-          c.version = '1.0.0'
+          c.env = 'dev'
+          c.service = 'api'
+          c.version = '1.2'
           c.tracing.enabled = false
         end
       end
@@ -160,7 +221,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
         result = nil
 
         Datadog::Tracing.trace('dummy.sql') do |span_op, trace_op|
-          span_op.service = 'database_service'
+          span_op.service = 'db_service'
 
           result = described_class.prepend_comment(sql_statement, span_op, trace_op, propagation_mode)
         end
@@ -170,7 +231,7 @@ RSpec.describe Datadog::Tracing::Contrib::Propagation::SqlComment do
 
       it do
         is_expected.to eq(
-          "/*dddbs='database_service',dde='production',ddps='Traders%27%20Joe',ddpv='1.0.0'*/ #{sql_statement}"
+          "/*dde='dev',ddps='api',ddpv='1.2',dddbs='db_service'*/ #{sql_statement}"
         )
       end
 

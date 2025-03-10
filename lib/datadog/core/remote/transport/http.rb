@@ -1,13 +1,9 @@
 # frozen_string_literal: true
 
-require 'uri'
-
 require_relative '../../environment/container'
 require_relative '../../environment/ext'
 require_relative '../../transport/ext'
-require_relative '../../transport/http/adapters/net'
-require_relative '../../transport/http/adapters/unix_socket'
-require_relative '../../transport/http/adapters/test'
+require_relative '../../transport/http'
 
 # TODO: Improve negotiation to allow per endpoint selection
 #
@@ -18,14 +14,6 @@ require_relative '../../transport/http/adapters/test'
 # Below should be:
 # require_relative '../../transport/http/api'
 require_relative 'http/api'
-
-# TODO: Decouple transport/http/builder
-#
-# See http/builder
-#
-# Below should be:
-# require_relative '../../transport/http/builder'
-require_relative 'http/builder'
 
 # TODO: Decouple transport/http
 #
@@ -39,27 +27,19 @@ module Datadog
       module Transport
         # Namespace for HTTP transport components
         module HTTP
-          # NOTE: Due to... legacy reasons... This class likes having a default `AgentSettings` instance to fall back to.
-          # Because we generate this instance with an empty instance of `Settings`, the resulting `AgentSettings` below
-          # represents only settings specified via environment variables + the usual defaults.
-          #
-          # DO NOT USE THIS IN NEW CODE, as it ignores any settings specified by users via `Datadog.configure`.
-          DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS = Datadog::Core::Configuration::AgentSettingsResolver.call(
-            Datadog::Core::Configuration::Settings.new,
-            logger: nil,
-          )
-
           module_function
 
           # Builds a new Transport::HTTP::Client
           def new(klass, &block)
-            Builder.new(&block).to_transport(klass)
+            Core::Transport::HTTP.build(
+              api_instance_class: API::Instance, &block
+            ).to_transport(klass)
           end
 
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
           def root(
-            agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+            agent_settings:,
             **options
           )
             new(Core::Remote::Transport::Negotiation::Transport) do |transport|
@@ -84,7 +64,7 @@ module Datadog
           # Builds a new Transport::HTTP::Client with default settings
           # Pass a block to override any settings.
           def v7(
-            agent_settings: DO_NOT_USE_ENVIRONMENT_AGENT_SETTINGS,
+            agent_settings:,
             **options
           )
             new(Core::Remote::Transport::Config::Transport) do |transport|
@@ -120,26 +100,17 @@ module Datadog
               # Add container ID, if present.
               container_id = Datadog::Core::Environment::Container.container_id
               headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID] = container_id unless container_id.nil?
+              # Sending this header to the agent will disable metrics computation (and billing) on the agent side
+              # by pretending it has already been done on the library side.
+              if Datadog.configuration.appsec.standalone.enabled
+                headers[Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS] = 'yes'
+              end
             end
           end
 
           def default_adapter
             Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
           end
-
-          # Add adapters to registry
-          Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::Net,
-            Datadog::Core::Configuration::Ext::Agent::HTTP::ADAPTER
-          )
-          Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::Test,
-            Datadog::Core::Transport::Ext::Test::ADAPTER
-          )
-          Builder::REGISTRY.set(
-            Datadog::Core::Transport::HTTP::Adapters::UnixSocket,
-            Datadog::Core::Configuration::Ext::Agent::UnixSocket::ADAPTER
-          )
         end
       end
     end

@@ -17,7 +17,7 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
 
       context 'when given a string' do
-        it 'returns a non-frozen dupliacte' do
+        it 'returns a non-frozen duplicate' do
           input = 'a_string'
 
           result = described_class.frozen_or_dup(input)
@@ -77,7 +77,7 @@ RSpec.describe Datadog::Core::Utils::SafeDup do
       end
 
       context 'when given a hash' do
-        it 'returns a non-frozen dupliacte' do
+        it 'returns a non-frozen duplicate' do
           input = { a: :b }
 
           result = described_class.frozen_or_dup(input)

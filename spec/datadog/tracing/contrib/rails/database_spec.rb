@@ -45,6 +45,7 @@ RSpec.describe 'Rails database' do
       expect(span.type).to eq('sql')
       expect(span.service).to eq(adapter_name)
       expect(span.get_tag('active_record.db.vendor')).to eq(adapter_name)
+      expect(span.get_tag('db.instance')).to eq(database_name)
       expect(span.get_tag('active_record.db.name')).to eq(database_name)
       expect(span.get_tag('active_record.db.cached')).to be_nil
       expect(adapter_host.to_s).to eq(span.get_tag('out.host'))
