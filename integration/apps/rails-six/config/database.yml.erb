@@ -11,18 +11,18 @@ development:
   adapter: <%= mysql.scheme %>
   database: acme_development
   host: <%= mysql.host %>
-  username,: <%= mysql.user %>
+  username: <%= mysql.user %>
 
 test:
   <<: *default
   adapter: <%= mysql.scheme %>
   database: acme_test
   host: <%= mysql.host %>
-  username,: <%= mysql.user %>
+  username: <%= mysql.user %>
 
 production:
   <<: *default
   adapter: <%= mysql.scheme %>
   database: acme_production
   host: <%= mysql.host %>
-  username,: <%= mysql.user %>
+  username: <%= mysql.user %>

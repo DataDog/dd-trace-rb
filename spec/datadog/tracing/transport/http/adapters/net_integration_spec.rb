@@ -68,7 +68,7 @@ RSpec.describe 'Adapters::Net tracing integration tests' do
     include_context 'HTTP server'
 
     let(:client) do
-      Datadog::Tracing::Transport::HTTP.default do |t|
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
         t.adapter adapter
       end
     end

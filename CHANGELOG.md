@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [2.12.1] - 2025-03-05
+
+### Fixed
+
+* AppSec: Fix `ArgumentError` from ActiveRecord for Ruby < 2.7 ([#4437][])
+
+## [2.12.0] - 2025-02-27
+
+### Added
+
+* AppSec: Add detection of Server-Side Request Forgery attacks for `rest-client` ([#4424][])
+* Dynamic Instrumentation: Add support for unix domain sockets ([#4426][])
+
 ## [2.11.0] - 2025-02-24
 
 ### Added
@@ -3126,7 +3139,9 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.11.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.1...master
+[2.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.0...v2.12.1
+[2.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.11.0...v2.12.0
 [2.11.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.10.0...v2.11.0
 [2.10.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.8.0...v2.9.0
@@ -4624,7 +4639,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4406]: https://github.com/DataDog/dd-trace-rb/issues/4406
 [#4411]: https://github.com/DataDog/dd-trace-rb/issues/4411
 [#4422]: https://github.com/DataDog/dd-trace-rb/issues/4422
+[#4424]: https://github.com/DataDog/dd-trace-rb/issues/4424
 [#4425]: https://github.com/DataDog/dd-trace-rb/issues/4425
+[#4426]: https://github.com/DataDog/dd-trace-rb/issues/4426
+[#4437]: https://github.com/DataDog/dd-trace-rb/issues/4437
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot

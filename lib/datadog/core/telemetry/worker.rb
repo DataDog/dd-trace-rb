@@ -25,6 +25,7 @@ module Datadog
           emitter:,
           metrics_manager:,
           dependency_collection:,
+          logger:,
           enabled: true,
           shutdown_timeout: Workers::Polling::DEFAULT_SHUTDOWN_TIMEOUT,
           buffer_size: DEFAULT_BUFFER_MAX_SIZE
@@ -32,6 +33,7 @@ module Datadog
           @emitter = emitter
           @metrics_manager = metrics_manager
           @dependency_collection = dependency_collection
+          @logger = logger
 
           @ticks_per_heartbeat = (heartbeat_interval_seconds / metrics_aggregation_interval_seconds).to_i
           @current_ticks = 0
@@ -47,6 +49,8 @@ module Datadog
 
           self.buffer = buffer_klass.new(@buffer_size)
         end
+
+        attr_reader :logger
 
         def start
           return if !enabled? || forked?
@@ -99,7 +103,7 @@ module Datadog
 
           events = deduplicate_logs(events)
 
-          Datadog.logger.debug { "Sending #{events&.count} telemetry events" }
+          logger.debug { "Sending #{events&.count} telemetry events" }
           send_event(Event::MessageBatch.new(events))
         end
 
@@ -113,7 +117,7 @@ module Datadog
           return unless enabled?
 
           if failed_to_start?
-            Datadog.logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
+            logger.debug('Telemetry app-started event exhausted retries, disabling telemetry worker')
             disable!
             return
           end
@@ -122,13 +126,13 @@ module Datadog
             res = send_event(Event::AppStarted.new)
 
             if res.ok?
-              Datadog.logger.debug('Telemetry app-started event is successfully sent')
+              logger.debug('Telemetry app-started event is successfully sent')
 
               send_event(Event::AppDependenciesLoaded.new) if @dependency_collection
 
               true
             else
-              Datadog.logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
+              logger.debug('Error sending telemetry app-started event, retry after heartbeat interval...')
               false
             end
           end
@@ -166,7 +170,7 @@ module Datadog
         def disable_on_not_found!(response)
           return unless response.not_found?
 
-          Datadog.logger.debug('Agent does not support telemetry; disabling future telemetry events.')
+          logger.debug('Agent does not support telemetry; disabling future telemetry events.')
           disable!
         end
 
