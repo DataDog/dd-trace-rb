@@ -99,7 +99,7 @@ class GemfileProcessor
     integrations.each do |integration|
       next if EXCLUDED_INTEGRATIONS.include?(integration)
 
-      integration_name = resolve_integration_name(integration)
+      integration_name = resolve_integration_names(integration)[0]
 
       @integration_json_mapping[integration] = [
         @min_gems['ruby'][integration_name],
@@ -128,11 +128,11 @@ class GemfileProcessor
     ]
   end
 
-  def resolve_integration_name(integration)
+  def resolve_integration_names(integration)
     mod_name = SPECIAL_CASES[integration] || integration.split('_').map(&:capitalize).join
     module_name = "Datadog::Tracing::Contrib::#{mod_name}"
     integration_module = Object.const_get(module_name)::Integration
-    integration_module.respond_to?(:gem_name) ? integration_module.gem_name : integration
+    integration_module.respond_to?(:gem_names) ? integration_module.gem_names : [integration]
   rescue NameError, NoMethodError
     puts "Fallback for #{integration}: module or gem_name not found."
     integration

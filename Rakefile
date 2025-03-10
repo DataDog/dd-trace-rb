@@ -276,8 +276,8 @@ namespace :spec do
       t.rspec_opts = args.to_a.join(' ')
     end
 
-    # Tests that have to run with an environment where the instrumented gem has
-    # not been loaded yet nor modules have been modified.
+    # Tests that have to run with a clean environment, where instrumented gems have
+    # not yet been loaded, and 3rd-party classes and modules have not been patched.
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new("#{contrib}_clean") do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/integration_spec.rb"
