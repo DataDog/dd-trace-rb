@@ -148,8 +148,6 @@ jobs:
       - 'rubocop'
       - 'standard'
       - 'semgrep'
-      - 'dd-software-composition-analysis'
-      - 'dd-static-analysis'
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
