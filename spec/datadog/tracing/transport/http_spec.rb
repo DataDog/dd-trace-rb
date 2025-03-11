@@ -3,31 +3,6 @@ require 'spec_helper'
 require 'datadog/tracing/transport/http'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP do
-  describe '.new' do
-    context 'given a block' do
-      subject(:new_http) do
-        described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance, &block)
-      end
-
-      let(:block) { proc {} }
-
-      let(:builder) { instance_double(Datadog::Core::Transport::HTTP::Builder) }
-      let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
-
-      before do
-        expect(Datadog::Core::Transport::HTTP::Builder).to receive(:new) do |&blk|
-          expect(blk).to be block
-          builder
-        end
-
-        expect(builder).to receive(:to_transport)
-          .and_return(transport)
-      end
-
-      it { is_expected.to be transport }
-    end
-  end
-
   describe '.default' do
     subject(:default) { described_class.default(agent_settings: default_agent_settings) }
     let(:default_agent_settings) do
