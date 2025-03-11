@@ -1,14 +1,12 @@
 name: Unit Tests
 
 on: # yamllint disable-line rule:truthy
-  push:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: ["Static Analysis"]
+    types:
+      - completed
     branches:
       - master
-  pull_request:
-    branches:
-      - master
-  schedule:
-    - cron: 0 */4 * * 1-5
 
 # Default permissions for all jobs
 permissions: {}
@@ -143,23 +141,6 @@ jobs:
           merge-multiple: true
       - name: Format file paths
         run: sed -i 's;file="./;file=";g' tmp/rspec/*.xml
-      # Note that GITHUB_SHA for this event is the last merge commit of the pull request merge branch,
-      # which `datadog-ci` failed to sync the correct git metadata in Github Actions.
-      #
-      # This causes the CODEOWNERS data being lost.
-      #
-      # This is a workaround to manually set the correct git commit sha for the pull request event.
-      - if: github.event_name == 'pull_request'
-        env:
-          DD_GIT_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
-        run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
-      - if: github.event_name != 'pull_request'
-        env:
-          DD_GIT_COMMIT_SHA: ${{ github.sha }}
-        run: echo "DD_GIT_COMMIT_SHA=$DD_GIT_COMMIT_SHA" >> "$GITHUB_ENV"
-      - run: echo "$DD_GIT_COMMIT_SHA"
-      - name: Upload junit reports
-        run: datadog-ci junit upload --verbose tmp/rspec/
 
   coverage:
     name: codecov/upload
