@@ -50,24 +50,9 @@ module Datadog
                 end
 
                 def send_info(env, &block)
-                  raise NoNegotiationEndpointDefinedError, self if info.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'info') if info.nil?
 
                   info.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoNegotiationEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No info endpoint is defined for API specification!'
-                  end
                 end
               end
 

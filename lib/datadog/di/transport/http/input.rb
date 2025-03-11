@@ -44,23 +44,9 @@ module Datadog
               attr_accessor :input
 
               def send_input(env, &block)
-                raise NoInputEndpointDefinedError, self if input.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'input') if input.nil?
 
                 input.call(env, &block)
-              end
-
-              class NoInputEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No input endpoint is defined for API specification!'
-                end
               end
             end
 

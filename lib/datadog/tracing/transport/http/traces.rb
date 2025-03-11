@@ -44,28 +44,13 @@ module Datadog
               end
 
               def send_traces(env, &block)
-                raise NoTraceEndpointDefinedError, self if traces.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'traces') if traces.nil?
 
                 traces.call(env, &block)
               end
 
               def encoder
                 traces.encoder
-              end
-
-              # Raised when traces sent but no traces endpoint is defined
-              class NoTraceEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No trace endpoint is defined for API specification!'
-                end
               end
             end
 

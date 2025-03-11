@@ -177,24 +177,9 @@ module Datadog
                 end
 
                 def send_config(env, &block)
-                  raise NoConfigEndpointDefinedError, self if config.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'config') if config.nil?
 
                   config.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoConfigEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No config endpoint is defined for API specification!'
-                  end
                 end
               end
 

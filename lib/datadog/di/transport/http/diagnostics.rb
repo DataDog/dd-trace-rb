@@ -44,23 +44,9 @@ module Datadog
               attr_accessor :diagnostics
 
               def send_diagnostics(env, &block)
-                raise NoDiagnosticsEndpointDefinedError, self if diagnostics.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'diagnostics') if diagnostics.nil?
 
                 diagnostics.call(env, &block)
-              end
-
-              class NoDiagnosticsEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No diagnostics endpoint is defined for API specification!'
-                end
               end
             end
 
