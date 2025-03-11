@@ -159,7 +159,7 @@ RSpec.configure do |config|
           # WEBrick server thread
           t[:WEBrickSocket] ||
           # Rails connection reaper
-          backtrace.find { |b| b.include?('lib/active_record/connection_adapters/abstract/connection_pool.rb') } ||
+          backtrace.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
           # Ruby JetBrains debugger
           (t.class.name && t.class.name.include?('DebugThread')) ||
           # Categorized as a known leaky thread
