@@ -441,14 +441,13 @@ RSpec.describe 'Rack integration tests' do
         end
       end
 
-      before do
-        is_expected.to be_ok
-        expected_spans_number = instrument_http ? 2 : 1
-        # expect(spans).to have(expected_spans_number).items
-      end
-
       describe 'GET request' do
         subject(:response) { get route }
+
+        before do
+          is_expected.to be_ok
+          expect(spans).to have(1).items
+        end
 
         context 'without parameters' do
           let(:route) { '/success/' }
@@ -620,6 +619,11 @@ RSpec.describe 'Rack integration tests' do
       describe 'POST request' do
         subject(:response) { post route }
 
+        before do
+          is_expected.to be_ok
+          expect(spans).to have(1).items
+        end
+
         context 'without parameters' do
           let(:route) { '/success/' }
 
@@ -645,6 +649,10 @@ RSpec.describe 'Rack integration tests' do
       end
 
       describe 'APM disablement' do
+        before do
+          is_expected.to be_ok
+        end
+
         let(:url) { '/requestdownstream' }
         let(:params) { {} }
         let(:headers) do
