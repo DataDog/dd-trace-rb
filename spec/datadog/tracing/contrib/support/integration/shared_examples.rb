@@ -35,6 +35,5 @@ RSpec.shared_examples 'a request sent with propagated headers' do |params = {}|
 end
 
 RSpec.shared_examples 'a request sent without propagated headers' do
-
   it_behaves_like 'a request sent with propagated headers', {}
 end
