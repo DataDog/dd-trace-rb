@@ -22,7 +22,7 @@ module Datadog
 
       def build_tracer_tags: (untyped settings) -> untyped
 
-      def build_above_second_post_sampler: (Integer seconds) -> Datadog::Tracing::Sampling::RuleSampler
+      def build_rate_limit_post_sampler: (seconds: Integer) -> Datadog::Tracing::Sampling::RuleSampler
 
       def build_test_mode_trace_flush: (untyped settings) -> untyped
 
