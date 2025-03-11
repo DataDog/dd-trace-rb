@@ -34,11 +34,12 @@ module Datadog
             transport.adapter(agent_settings)
             transport.headers(default_headers)
 
+            # The caller must define APIs before we set the default API.
+            yield transport
+
             # Apply any settings given by options
             transport.default_api = api_version if api_version
             transport.headers(headers) if headers
-
-            yield transport
           end
         end
 
