@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/transport/http/api/spec'
 require_relative 'client'
 
 module Datadog
@@ -16,7 +17,7 @@ module Datadog
           end
 
           module API
-            module Instance
+            class Instance < Core::Transport::HTTP::API::Instance
               def send_diagnostics(env)
                 raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('diagnostics', self) unless spec.is_a?(Diagnostics::API::Spec)
 
@@ -26,7 +27,7 @@ module Datadog
               end
             end
 
-            module Spec
+            class Spec < Core::Transport::HTTP::API::Spec
               attr_accessor :diagnostics
 
               def send_diagnostics(env, &block)
