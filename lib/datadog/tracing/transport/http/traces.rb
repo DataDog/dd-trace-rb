@@ -6,6 +6,8 @@ require_relative '../traces'
 require_relative 'client'
 require_relative '../../../core/transport/http/response'
 require_relative '../../../core/transport/http/api/endpoint'
+require_relative '../../../core/transport/http/api/spec'
+require_relative '../../../core/transport/http/api/instance'
 
 module Datadog
   module Tracing
@@ -35,8 +37,8 @@ module Datadog
           end
 
           module API
-            # Extensions for HTTP API Spec
-            module Spec
+            # HTTP API Spec
+            class Spec < Core::Transport::HTTP::API::Spec
               attr_reader :traces
 
               def traces=(endpoint)
@@ -54,8 +56,8 @@ module Datadog
               end
             end
 
-            # Extensions for HTTP API Instance
-            module Instance
+            # HTTP API Instance
+            class Instance < Core::Transport::HTTP::API::Instance
               def send_traces(env)
                 unless spec.is_a?(Traces::API::Spec)
                   raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
