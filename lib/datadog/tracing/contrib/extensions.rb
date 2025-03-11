@@ -83,7 +83,7 @@ module Datadog
                   if integration.class.available? && integration.class.compatible? && !integration.class.loaded?
                     Datadog.logger.debug { "Gems '#{integration.class.gems.join(',')}' not loaded, monitoring require." }
 
-                    Contrib::Kernel.patch! # Only executed once internally
+                    Contrib::Kernel::Patcher.patch # Will only execute once
 
                     # Register the gem require monitor for this integration's gems
                     integration.class.gems.each do |gem|

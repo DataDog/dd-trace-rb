@@ -10,7 +10,7 @@ RSpec.shared_examples 'a contrib integration' do |datadog_dependency: false|
 
         expect(registered_integration.patcher.patch_successful).to be_falsey,
                                                         "This test can only run if the integration :#{integration.name} has not patched the environment"
-        expect($".find { |x| x.end_with?("/lib/#{gem}.rb") }).to be_nil,
+        expect($LOADED_FEATURES.find { |x| x.end_with?("/lib/#{gem}.rb") }).to be_nil,
                                                                  "This test can only run if the gem '#{gem}' is not loaded"
       end
 

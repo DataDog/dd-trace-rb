@@ -15,7 +15,9 @@ module Datadog
 
           register_as :rest_client
 
-          
+          def self.gem_name
+            'rest-client'
+          end
 
           def self.version
             Gem.loaded_specs['rest-client'] && Gem.loaded_specs['rest-client'].version
