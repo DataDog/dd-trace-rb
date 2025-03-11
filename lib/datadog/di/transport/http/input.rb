@@ -18,24 +18,10 @@ module Datadog
           module API
             module Instance
               def send_input(env)
-                raise InputNotSupportedError, spec unless spec.is_a?(Input::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'input') unless spec.is_a?(Input::API::Spec)
 
                 spec.send_input(env) do |request_env|
                   call(request_env)
-                end
-              end
-
-              class InputNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Input not supported for this API!'
                 end
               end
             end

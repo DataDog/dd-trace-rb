@@ -59,25 +59,10 @@ module Datadog
               # Extensions for HTTP API Instance
               module Instance
                 def send_info(env)
-                  raise NegotiationNotSupportedError, spec unless spec.is_a?(Negotiation::API::Spec)
+                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'info') unless spec.is_a?(Negotiation::API::Spec)
 
                   spec.send_info(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class NegotiationNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Info not supported for this API!'
                   end
                 end
               end

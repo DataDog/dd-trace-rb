@@ -18,24 +18,10 @@ module Datadog
           module API
             module Instance
               def send_diagnostics(env)
-                raise DiagnosticsNotSupportedError, spec unless spec.is_a?(Diagnostics::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'diagnostics') unless spec.is_a?(Diagnostics::API::Spec)
 
                 spec.send_diagnostics(env) do |request_env|
                   call(request_env)
-                end
-              end
-
-              class DiagnosticsNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Diagnostics not supported for this API!'
                 end
               end
             end

@@ -115,7 +115,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
       it {
         expect do
           send_traces
-        end.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Instance::TracesNotSupportedError)
+        end.to raise_error(Datadog::Core::Transport::HTTP::API::Instance::EndpointNotSupportedError)
       }
     end
 
