@@ -49,7 +49,7 @@ RSpec.describe 'Rack integration tests' do
 
     # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60 so tests are faster
     if apm_tracing_disabled
-      post_sampler = Datadog::Core::Configuration::Components.send(:build_rate_limit_post_sampler, **{seconds: 4})
+      post_sampler = Datadog::Core::Configuration::Components.send(:build_rate_limit_post_sampler, **{ seconds: 4 })
       allow(Datadog::Core::Configuration::Components).to receive(:build_rate_limit_post_sampler).and_return(post_sampler)
     end
 
@@ -706,7 +706,7 @@ RSpec.describe 'Rack integration tests' do
             end
             agent_return = agent_http_client.send_traces(traces)
 
-            expect(JSON.parse(agent_return.first.payload)["Datadog-Client-Computed-Stats"]).to eq('yes')
+            expect(JSON.parse(agent_return.first.payload)['Datadog-Client-Computed-Stats']).to eq('yes')
           end
         end
 
@@ -770,7 +770,7 @@ RSpec.describe 'Rack integration tests' do
             get '/success/'
           end
 
-          let (:env) { {} }
+          let(:env) { {} }
 
           it do
             expect(traces[0].sampling_priority).to eq(2)
