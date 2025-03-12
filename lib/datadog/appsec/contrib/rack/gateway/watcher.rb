@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../../../instrumentation/gateway'
 require_relative '../../../event'
 
@@ -105,6 +106,25 @@ module Datadog
                     }
 
                     Datadog::AppSec::ActionsHandler.handle(result.actions)
+                  end
+
+                  stack.call(gateway_request.request)
+                end
+              end
+
+              # NOTE: In the current state we unable to substibe twice to the same
+              #       event within the same group. Ideally this code should live
+              #       somewhere closer to identity related monitor.
+              # WARNING: The Gateway is a subject of refactoring
+              def watch_request_finish(gateway = Instrumentation.gateway)
+                gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
+                  context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
+                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.set_user')
+
+                  gateway_request.headers.each do |name, value|
+                    next unless Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+
+                    context.span["http.request.headers.#{name}"] = value
                   end
 
                   stack.call(gateway_request.request)
