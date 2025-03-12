@@ -18,6 +18,7 @@ module Datadog
                 watch_request(gateway)
                 watch_response(gateway)
                 watch_request_body(gateway)
+                watch_request_finish(gateway)
               end
 
               def watch_request(gateway = Instrumentation.gateway)
@@ -119,7 +120,7 @@ module Datadog
               def watch_request_finish(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
-                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.set_user')
+                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.appsec.event')
 
                   gateway_request.headers.each do |name, value|
                     next unless Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)

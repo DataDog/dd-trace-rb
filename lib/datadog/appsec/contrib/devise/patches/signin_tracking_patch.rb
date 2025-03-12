@@ -2,6 +2,7 @@
 
 require_relative '../configuration'
 require_relative '../data_extractor'
+require_relative '../../../../kit/appsec/events'
 
 module Datadog
   module AppSec
@@ -28,11 +29,14 @@ module Datadog
 
               if result
                 record_successfull_signin(context, resource)
+                Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::LOGIN_SUCCESS_EVENT)
 
                 return result
               end
 
               record_failed_signin(context, resource)
+              Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::LOGIN_FAILURE_EVENT)
+
               result
             end
 
