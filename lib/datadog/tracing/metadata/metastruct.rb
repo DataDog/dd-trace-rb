@@ -11,7 +11,6 @@ module Datadog
       # It is serialized to MessagePack format when sent to the agent.
       class Metastruct
         extend Forwardable
-
         def_delegators :@metastruct, :[], :[]=, :to_h
 
         def initialize

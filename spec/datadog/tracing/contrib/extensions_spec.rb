@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           it 'register require monitor' do
             allow(integration).to receive(:patch).and_call_original
 
-            expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!)
+            expect(Datadog::Tracing::Contrib::Kernel::Patcher).to receive(:patch)
 
             expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1') do |&block|
               # Because we are forcing the block to be called to make assertions,
@@ -116,7 +116,7 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
 
           it 'sends a telemetry integrations change event' do
-            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
             configure
           end
         end
@@ -132,13 +132,13 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
 
           it 'does not register require monitor' do
-            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:patch!)
+            expect(Datadog::Tracing::Contrib::Kernel::Patcher).to_not receive(:patch)
             expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:on_require)
             configure
           end
 
           it 'sends a telemetry integrations change event' do
-            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
             configure
           end
         end
@@ -154,13 +154,13 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
           end
 
           it 'does not register require monitor' do
-            expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:patch!)
+            expect(Datadog::Tracing::Contrib::Kernel::Patcher).to_not receive(:patch)
             expect(Datadog::Tracing::Contrib::Kernel).to_not receive(:on_require)
             configure
           end
 
           it 'sends a telemetry integrations change event' do
-            expect_any_instance_of(Datadog::Core::Telemetry::Client).to receive(:integrations_change!)
+            expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
             configure
           end
         end
@@ -178,11 +178,35 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
 
             context 'and not loaded' do
               let(:loaded) { false }
+              let(:logger) { Datadog.logger }
               it_behaves_like 'registers require monitor'
+
+              it 'attempts to instrument when gem is available and compatible' do
+                # Set up logger
+                allow(Datadog.logger).to receive(:debug?).and_return(true)
+                allow(Datadog).to receive(:logger).and_return(logger)
+
+                # Set up integration state
+                allow(integration.class).to receive(:available?).and_return(true)
+                allow(integration.class).to receive(:compatible?).and_return(true)
+                allow(integration.class).to receive(:loaded?).and_return(false)
+                allow(integration.class).to receive(:gems).and_return(['test_gem'])
+
+                # Expect the monitoring setup
+                expect(Datadog::Tracing::Contrib::Kernel::Patcher).to receive(:patch)
+                expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test_gem')
+
+                # Expect debug logging
+                expect(logger).to receive(:debug) do |&block|
+                  expect(block.call).to include('not loaded, monitoring require')
+                end
+
+                configure
+              end
 
               context 'but is loaded while we are registering the monitors' do
                 it 'register require monitor and also patches' do
-                  expect(Datadog::Tracing::Contrib::Kernel).to receive(:patch!) do
+                  expect(Datadog::Tracing::Contrib::Kernel::Patcher).to receive(:patch) do
                     # Load the gems!
                     allow(integration.class).to receive(:loaded?).and_return(true)
                   end
@@ -198,8 +222,63 @@ RSpec.describe Datadog::Tracing::Contrib::Extensions do
                 end
 
                 it 'sends a telemetry integrations change event' do
-              expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
+                  expect_any_instance_of(Datadog::Core::Telemetry::Component).to receive(:integrations_change!)
                   configure
+                end
+
+                context 'with debug logging' do
+                  let(:logger) { Datadog.logger }
+
+                  before do
+                    # Enable debug logging
+                    allow(logger).to receive(:debug?).and_return(true)
+                    allow(logger).to receive(:debug)
+
+                    # Set up integration class state
+                    allow(integration.class).to receive(:available?).and_return(true)
+                    allow(integration.class).to receive(:compatible?).and_return(true)
+                    allow(integration.class).to receive(:loaded?).and_return(false)
+                    allow(integration.class).to receive(:gems).and_return(['test_gem'])
+
+                    # Ensure we're using the same logger instance
+                    allow(Datadog).to receive(:logger).and_return(logger)
+                  end
+
+                  it 'logs debug messages about monitoring requires' do
+                    # First debug message
+                    expect(logger).to receive(:debug) do |&block|
+                      expect(block.call).to include('not loaded, monitoring require')
+                    end.ordered
+
+                    # Second debug message
+                    expect(logger).to receive(:debug) do |&block|
+                      expect(block.call).to include('loaded concurrently, instrumenting it')
+                    end.ordered
+
+                    expect(Datadog::Tracing::Contrib::Kernel::Patcher).to receive(:patch) do
+                      allow(integration.class).to receive(:loaded?).and_return(true)
+                    end
+
+                    configure
+                  end
+                end
+
+                context 'when gem is loaded via require' do
+                  it 'patches integration when gem is loaded' do
+                    expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 1') do |&block|
+                      expect(Datadog.logger).to receive(:debug).and_yield
+                      expect(integration).to receive(:patch).and_call_original
+                      block.call
+                    end
+
+                    expect(Datadog::Tracing::Contrib::Kernel).to receive(:on_require).with('test gem 2') do |&block|
+                      expect(Datadog.logger).to receive(:debug).and_yield
+                      expect(integration).to receive(:patch).and_call_original
+                      block.call
+                    end
+
+                    configure
+                  end
                 end
               end
             end

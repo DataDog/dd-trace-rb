@@ -79,7 +79,7 @@ module Datadog
               configuration.integrations_pending_activation.each do |integration|
                 patch_integration(integration, ignore_integration_load_errors) do
                   # Are the gems we are trying to instrument even present in the environment?
-                  # There's no point in monitoring for gem `require` if a gem not no available for loading.
+                  # There's no point in monitoring for gem `require` if a gem is not available for loading.
                   if integration.class.available? && integration.class.compatible? && !integration.class.loaded?
                     Datadog.logger.debug { "Gems '#{integration.class.gems.join(',')}' not loaded, monitoring require." }
 
