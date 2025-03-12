@@ -310,17 +310,17 @@ For non-Ruby code, follow the instructions below to debug locally, if CI failed 
 
 - For `yamllint`, run:
 ```bash
-docker run --rm -v $(pwd):/app -w /app cytopia/yamllint .
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
 ```
 
 - For `actionlint`, run:
 ```bash
-docker run --rm -v $(pwd):/app -w /app rhysd/actionlint -color
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
 ```
 
 - For `zizmor`, run:
 ```bash
-docker run --rm -v $(pwd):/app -w /app -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
 ```
 
 ## Appendix
