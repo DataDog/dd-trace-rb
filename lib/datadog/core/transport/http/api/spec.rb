@@ -8,6 +8,8 @@ module Datadog
           # Specification for an HTTP API
           # Defines behaviors without specific configuration details.
           class Spec
+            # Raised when an endpoint is invoked on an API that did not
+            # define that endpoint.
             class EndpointNotDefinedError < StandardError
               attr_reader :spec, :endpoint_name
 

@@ -7,6 +7,8 @@ module Datadog
         module API
           # An API configured with adapter and routes
           class Instance
+            # Raised when an endpoint is invoked on an API that is not the
+            # of expected API class for that endpoint.
             class EndpointNotSupportedError < StandardError
               attr_reader :spec, :endpoint_name
 
