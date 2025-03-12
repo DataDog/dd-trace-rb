@@ -116,7 +116,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
 
         it 'drops all traces except the smallest' do
           is_expected.to eq([['1', 1]])
-          expect(Datadog.logger).to have_lazy_debug_logged(/Payload too large/)
+          expect(logger).to have_lazy_debug_logged(/Payload too large/)
           expect(health_metrics).to have_received(:transport_trace_too_large).with(1).twice
         end
       end
@@ -206,8 +206,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
 
       allow(chunker).to receive(:encode_in_chunks).and_return(lazy_chunks)
 
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1).and_return(client_v1)
-      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2).and_return(client_v2)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v1, logger).and_return(client_v1)
+      allow(Datadog::Tracing::Transport::HTTP::Client).to receive(:new).with(api_v2, logger).and_return(client_v2)
       allow(client_v1).to receive(:send_traces_payload).with(request).and_return(response)
       allow(client_v2).to receive(:send_traces_payload).with(request).and_return(response)
 
@@ -295,6 +295,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'does not encode native span events' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
+              logger,
               native_events_supported: false
             ).and_return(chunker)
             send_traces
@@ -307,6 +308,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'encodes native span events' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
+              logger,
               native_events_supported: true
             ).and_return(chunker)
             send_traces
@@ -319,6 +321,7 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
           it 'encodes native span events' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
+              logger,
               native_events_supported: false
             ).and_return(chunker)
             send_traces
