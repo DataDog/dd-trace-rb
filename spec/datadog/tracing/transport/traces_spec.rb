@@ -60,7 +60,8 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Response do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
-  let(:chunker) { described_class.new(encoder, native_events_supported: native_events_supported, max_size: max_size) }
+  let(:logger) { logger_allowing_debug }
+  let(:chunker) { described_class.new(encoder, logger, native_events_supported: native_events_supported, max_size: max_size) }
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:native_events_supported) { double }
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }
@@ -138,7 +139,9 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
 end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
-  subject(:transport) { described_class.new(apis, current_api_id) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:transport) { described_class.new(apis, current_api_id, logger) }
 
   shared_context 'APIs with fallbacks' do
     let(:current_api_id) { :v2 }
@@ -192,10 +195,12 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     before do
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v1,
+        logger,
         native_events_supported: false
       ).and_return(chunker)
       allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
         encoder_v2,
+        logger,
         native_events_supported: false
       ).and_return(chunker)
 

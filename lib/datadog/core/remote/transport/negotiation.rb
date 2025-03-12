@@ -49,10 +49,11 @@ module Datadog
 
           # Negotiation transport
           class Transport
-            attr_reader :client, :apis, :default_api, :current_api_id
+            attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
-            def initialize(apis, default_api)
+            def initialize(apis, default_api, logger)
               @apis = apis
+              @logger = logger
 
               @client = HTTP::Client.new(current_api)
             end
