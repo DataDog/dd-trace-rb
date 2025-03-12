@@ -130,7 +130,7 @@ module Datadog
       def baggage
         # Baggage should not be dependent on there being an active trace.
         # So we create a new TraceOperation if there isn't one.
-        active_trace ||= TraceOperation.new
+        active_trace = self.active_trace || tracer.continue_trace!(nil)
         active_trace.baggage
       end
 
