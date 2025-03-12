@@ -138,6 +138,8 @@ module Datadog
                 active_trace.keep!
               end
             end
+
+            ::Datadog::AppSec::Instrumentation.gateway.push('identity.appsec.event', event)
           end
 
           private

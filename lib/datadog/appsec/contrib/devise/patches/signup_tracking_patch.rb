@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../../../../kit/appsec/events'
 require_relative '../configuration'
 require_relative '../data_extractor'
 
@@ -27,6 +28,7 @@ module Datadog
 
                 context.trace.keep!
                 record_successfull_signup(context, resource)
+                Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::SIGNUP_EVENT)
 
                 yield(resource) if block_given?
               end
