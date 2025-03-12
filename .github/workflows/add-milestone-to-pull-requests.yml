@@ -1,5 +1,6 @@
 name: Add milestone to merged pull requests
-on:
+
+on: # yamllint disable-line rule:truthy
   pull_request:
     types: [closed]
 
@@ -23,7 +24,8 @@ jobs:
         # Parse the gemspec and return the major version
         id: version
         run: |
-          echo "name=version::$(find . -name "*.gemspec" | ruby -ne "puts Gem::Specification.load($_.chomp).version.to_s.split(\".\").first")" >> "$GITHUB_OUTPUT"
+          VERSION=$(ruby -e "puts Gem::Specification.load(Dir.glob('*.gemspec').first).version.to_s.split('.').first")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Get project milestones
         id: milestones

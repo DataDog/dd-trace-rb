@@ -1,6 +1,6 @@
 name: "Generate Supported Versions"
 
-on:
+on: # yamllint disable-line rule:truthy
   workflow_dispatch:
 
 concurrency:
@@ -47,4 +47,3 @@ jobs:
             Workflow run: [Generate Supported Versions](https://github.com/DataDog/dd-trace-rb/actions/workflows/generate-supported-versions.yml)
 
             This should be tied to tracer releases, or triggered manually.
-
