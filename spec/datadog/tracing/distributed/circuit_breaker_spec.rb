@@ -1,5 +1,3 @@
-require 'datadog/tracing/contrib/support/spec_helper'
-
 require 'datadog'
 require 'datadog/tracing/distributed/circuit_breaker'
 
