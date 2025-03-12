@@ -7,10 +7,8 @@ module Datadog
         module API
           # An API configured with adapter and routes
           class Instance
-
             class EndpointNotSupportedError < StandardError
-              attr_reader :spec
-              attr_reader :endpoint_name
+              attr_reader :spec, :endpoint_name
 
               def initialize(spec, endpoint_name)
                 @spec = spec
