@@ -9,8 +9,7 @@ module Datadog
           # Defines behaviors without specific configuration details.
           class Spec
             class EndpointNotDefinedError < StandardError
-              attr_reader :spec
-              attr_reader :endpoint_name
+              attr_reader :spec, :endpoint_name
 
               def initialize(spec, endpoint_name)
                 @spec = spec

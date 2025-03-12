@@ -186,7 +186,12 @@ module Datadog
               # Extensions for HTTP API Instance
               module Instance
                 def send_config(env)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'config') unless spec.is_a?(Config::API::Spec)
+                  unless spec.is_a?(Config::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      self,
+                      'config'
+                    )
+                  end
 
                   spec.send_config(env) do |request_env|
                     call(request_env)

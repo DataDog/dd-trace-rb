@@ -57,7 +57,12 @@ module Datadog
             # Extensions for HTTP API Instance
             module Instance
               def send_traces(env)
-                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'traces') unless spec.is_a?(Traces::API::Spec)
+                unless spec.is_a?(Traces::API::Spec)
+                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                    self,
+                    'traces'
+                  )
+                end
 
                 spec.send_traces(env) do |request_env|
                   call(request_env)

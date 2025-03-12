@@ -59,7 +59,12 @@ module Datadog
               # Extensions for HTTP API Instance
               module Instance
                 def send_info(env)
-                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'info') unless spec.is_a?(Negotiation::API::Spec)
+                  unless spec.is_a?(Negotiation::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      self,
+                      'info'
+                    )
+                  end
 
                   spec.send_info(env) do |request_env|
                     call(request_env)
