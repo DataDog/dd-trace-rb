@@ -1,9 +1,39 @@
 # frozen_string_literal: true
 
+require 'devise'
 require 'datadog/appsec/spec_helper'
 
 RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
+  before { allow(Devise).to receive(:mappings).and_return(mappings) }
+
+  let(:mappings) do
+    { user: instance_double(Devise::Mapping, name: :user, class_name: 'User') }
+  end
+
   describe '#extract_id' do
+    context 'when there is more that single user model' do
+      let(:extractor) { described_class.new('identification') }
+      let(:mappings) do
+        {
+          user: instance_double(Devise::Mapping, name: :user, class_name: 'User'),
+          admin: instance_double(Devise::Mapping, name: :admin, class_name: 'Admin')
+        }
+      end
+
+      it 'returns prefixed id for matching mapping' do
+        user = double(id: 1, class: double(name: 'User'))
+        admin = double(id: 1, class: double(name: 'Admin'))
+
+        expect(extractor.extract_id(user)).to eq('user:1')
+        expect(extractor.extract_id(admin)).to eq('admin:1')
+      end
+
+      it 'returns non-prefixed id for unknown mapping' do
+        expect(extractor.extract_id(double('User', id: 1))).to eq('1')
+        expect(extractor.extract_id(id: 1)).to eq('1')
+      end
+    end
+
     context 'when mode is set to identification' do
       let(:extractor) { described_class.new('identification') }
 
