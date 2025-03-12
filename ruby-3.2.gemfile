@@ -53,7 +53,7 @@ group :check do
   # There is rubocop 1.73 but that downgrades standard to 1.35.
   gem 'rubocop', '~> 1.71.0', require: false
   gem 'rubocop-packaging', '~> 0.5.2', require: false
-  gem 'rubocop-performance', '~> 1.23', require: false
+  gem 'rubocop-performance', '~> 1.20', require: false
   gem 'rubocop-rspec', '~> 2.31', require: false
 end
 
