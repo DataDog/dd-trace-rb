@@ -77,16 +77,19 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[0],
+          logger,
           native_events_supported: native_events_supported
         ).and_return('1')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[1],
+          logger,
           native_events_supported: native_events_supported
         ).and_return('22')
         allow(trace_encoder).to receive(:encode_trace).with(
           encoder,
           traces[2],
+          logger,
           native_events_supported: native_events_supported
         ).and_return('333')
         allow(encoder).to receive(:join) { |arr| arr.join(',') }
