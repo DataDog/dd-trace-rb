@@ -27,19 +27,6 @@ module Datadog
             !!(request[Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION] ||
               request[Datadog::Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST])
           end
-
-          # Skips distributed tracing if disabled for this instrumentation
-          # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
-          def should_skip_distributed_tracing?(client_config, trace)
-            if Datadog.configuration.appsec.standalone.enabled &&
-                (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
-              return true
-            end
-
-            return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-            !Datadog.configuration.tracing[:http][:distributed_tracing]
-          end
         end
       end
     end

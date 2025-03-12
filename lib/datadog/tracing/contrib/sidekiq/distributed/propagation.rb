@@ -2,6 +2,7 @@
 
 require_relative '../../../distributed/fetcher'
 require_relative '../../../distributed/propagation'
+require_relative '../../../distributed/circuit_breaker'
 require_relative '../../../distributed/b3_multi'
 require_relative '../../../distributed/b3_single'
 require_relative '../../../distributed/datadog'

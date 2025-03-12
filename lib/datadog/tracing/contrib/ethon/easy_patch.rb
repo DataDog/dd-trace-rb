@@ -110,7 +110,10 @@ module Datadog
 
               datadog_tag_request
 
-              unless should_skip_distributed_tracing?(datadog_trace)
+              unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+                datadog_config: datadog_configuration,
+                trace: datadog_trace
+              )
                 @datadog_original_headers ||= {}
                 Contrib::HTTP.inject(datadog_trace, @datadog_original_headers)
                 self.headers = @datadog_original_headers
@@ -214,17 +217,6 @@ module Datadog
                 header = line.split(':', 2)
                 header.size != 2 ? nil : header
               end.compact.to_h
-            end
-
-            # Skips distributed tracing if disabled for this instrumentation
-            # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
-            def should_skip_distributed_tracing?(trace)
-              if Datadog.configuration.appsec.standalone.enabled &&
-                  (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
-                return true
-              end
-
-              !datadog_configuration[:distributed_tracing]
             end
           end
         end
