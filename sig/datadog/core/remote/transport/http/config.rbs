@@ -47,29 +47,11 @@ module Datadog
                 def config=: (untyped endpoint) -> untyped
 
                 def send_config: (untyped env) ?{ () -> untyped } -> untyped
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoConfigEndpointDefinedError < StandardError
-                  attr_reader spec: untyped
-
-                  def initialize: (untyped spec) -> void
-
-                  def message: () -> "No config endpoint is defined for API specification!"
-                end
               end
 
               # Extensions for HTTP API Instance
               module Instance : HTTP::API::Instance
                 def send_config: (untyped env) -> untyped
-
-                # Raised when traces sent to API that does not support traces
-                class ConfigNotSupportedError < StandardError
-                  attr_reader spec: untyped
-
-                  def initialize: (untyped spec) -> void
-
-                  def message: () -> "Config not supported for this API!"
-                end
               end
 
               # Endpoint for remote configuration
