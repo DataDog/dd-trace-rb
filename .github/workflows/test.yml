@@ -4,6 +4,11 @@ on: # yamllint disable-line rule:truthy
   push:
     branches:
       - master
+      # A workaround to trigger the workflow for pull requests from forked repository,
+      # which does not have access to secrets.
+      #
+      # This is also useful for testing the workflow without opening a pull request.
+      - tmp/*
   pull_request:
     branches:
       - master
