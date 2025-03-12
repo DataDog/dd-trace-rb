@@ -20,7 +20,7 @@ module Datadog
 
               context = AppSec.active_context
               if context.trace.nil? || context.span.nil?
-                # TODO: Add debug message
+                Datadog.logger.debug { 'AppSec: unable to track signin events, due to missing trace or span' }
                 return result
               end
 

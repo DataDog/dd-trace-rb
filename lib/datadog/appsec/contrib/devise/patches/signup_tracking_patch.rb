@@ -18,16 +18,17 @@ module Datadog
               super do |resource|
                 context = AppSec.active_context
 
-                if !resource.persisted? || context.trace.nil? || context.span.nil?
-                  yield(resource) if block_given?
-
-                  next
+                if context.trace.nil? || context.span.nil?
+                  Datadog.logger.debug { 'AppSec: unable to track signup events, due to missing trace or span' }
+                  next yield(resource) if block_given?
                 end
+
+                next yield(resource) if !resource.persisted? && block_given?
 
                 context.trace.keep!
                 record_successfull_signup(context, resource)
 
-                yield resource if block_given?
+                yield(resource) if block_given?
               end
             end
 
