@@ -3,7 +3,8 @@ require 'spec_helper'
 require 'datadog/core/transport/http/builder'
 
 RSpec.describe Datadog::Core::Transport::HTTP::Builder do
-  subject(:builder) { described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::Traces::API::Instance) }
+  let(:logger) { logger_allowing_debug }
+  subject(:builder) { described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::Traces::API::Instance, logger: logger) }
 
   describe '#initialize' do
     context 'given a block' do
@@ -11,6 +12,7 @@ RSpec.describe Datadog::Core::Transport::HTTP::Builder do
         expect do |b|
           described_class.new(
             api_instance_class: Datadog::Tracing::Transport::HTTP::Traces::API::Instance,
+            logger: logger,
             &b
           )
         end.to yield_with_args(kind_of(described_class))
