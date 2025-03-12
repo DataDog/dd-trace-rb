@@ -24,7 +24,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::Response do
 end
 
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
-  subject(:client) { described_class.new(api) }
+  let(:logger) { logger_allowing_debug }
+
+  subject(:client) { described_class.new(api, logger) }
 
   let(:api) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Instance) }
 

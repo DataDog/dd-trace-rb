@@ -12,10 +12,11 @@ module Datadog
         class Client
           include Datadog::Tracing::Transport::HTTP::Statistics
 
-          attr_reader :api
+          attr_reader :api, :logger
 
-          def initialize(api)
+          def initialize(api, logger)
             @api = api
+            @logger = logger
           end
 
           def send_request(request, &block)
@@ -36,10 +37,10 @@ module Datadog
 
             # Log error
             if stats.consecutive_errors > 0
-              Datadog.logger.debug(message)
+              logger.debug(message)
             else
               # Not to report telemetry logs
-              Datadog.logger.error(message)
+              logger.error(message)
             end
 
             # Update statistics
