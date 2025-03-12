@@ -15,7 +15,9 @@ module Datadog
           def extract_id(object)
             if object.respond_to?(:[])
               id = object[:id] || object['id'] || object[:uuid] || object['uuid']
+              scope = find_devise_scope(object)
 
+              id = "#{scope}:#{id}" if scope
               return transform(id)
             end
 
