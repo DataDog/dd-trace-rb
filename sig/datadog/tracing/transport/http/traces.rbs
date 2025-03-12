@@ -24,26 +24,10 @@ module Datadog
               def send_traces: (untyped env) ?{ () -> untyped } -> untyped
 
               def encoder: () -> untyped
-
-              class NoTraceEndpointDefinedError < StandardError
-                attr_reader spec: untyped
-
-                def initialize: (untyped spec) -> void
-
-                def message: () -> "No trace endpoint is defined for API specification!"
-              end
             end
 
             module Instance
               def send_traces: (untyped env) -> untyped
-
-              class TracesNotSupportedError < StandardError
-                attr_reader spec: untyped
-
-                def initialize: (untyped spec) -> void
-
-                def message: () -> "Traces not supported for this API!"
-              end
             end
 
             class Endpoint < Core::Transport::HTTP::API::Endpoint

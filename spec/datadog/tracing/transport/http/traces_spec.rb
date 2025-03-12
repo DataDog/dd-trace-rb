@@ -26,7 +26,7 @@ end
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
 
-  let(:api) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance) }
+  let(:api) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Instance) }
 
   describe '#send_traces_payload' do
     subject(:send_traces_payload) { client.send_traces_payload(request) }
@@ -49,7 +49,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   end
 end
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Spec do
   subject(:spec) { described_class.new }
 
   describe '#traces=' do
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
       it {
         expect do
           send_traces
-        end.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Spec::NoTraceEndpointDefinedError)
+        end.to raise_error(Datadog::Core::Transport::HTTP::API::Spec::EndpointNotDefinedError)
       }
     end
 
@@ -99,7 +99,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Spec do
   end
 end
 
-RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
+RSpec.describe Datadog::Tracing::Transport::HTTP::Traces::API::Instance do
   subject(:instance) { described_class.new(spec, adapter) }
 
   let(:adapter) { double('adapter') }
@@ -115,12 +115,12 @@ RSpec.describe Datadog::Tracing::Transport::HTTP::API::Instance do
       it {
         expect do
           send_traces
-        end.to raise_error(Datadog::Tracing::Transport::HTTP::Traces::API::Instance::TracesNotSupportedError)
+        end.to raise_error(Datadog::Core::Transport::HTTP::API::Instance::EndpointNotSupportedError)
       }
     end
 
     context 'when specification supports traces' do
-      let(:spec) { Datadog::Tracing::Transport::HTTP::API::Spec.new }
+      let(:spec) { Datadog::Tracing::Transport::HTTP::Traces::API::Spec.new }
       let(:response) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::Response) }
 
       before { expect(spec).to receive(:send_traces).with(env).and_return(response) }

@@ -28,7 +28,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
     context 'given :transport_options' do
       let(:options) { { transport_options: transport_options } }
 
-      let(:transport_options) { { example_transport_option: true } }
+      let(:transport_options) { { api_version: 42 } }
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
@@ -54,11 +54,11 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
       context 'and also :transport_options' do
         let(:options) { { **super(), transport_options: transport_options } }
 
-        let(:transport_options) { { example_transport_option: true } }
+        let(:transport_options) { { api_version: 42 } }
 
         before do
           expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-            .with(agent_settings: agent_settings, example_transport_option: true)
+            .with(agent_settings: agent_settings, api_version: 42)
             .and_return(transport)
         end
 

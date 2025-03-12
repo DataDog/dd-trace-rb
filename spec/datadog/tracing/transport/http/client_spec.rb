@@ -6,7 +6,7 @@ require 'datadog/tracing/transport/http/client'
 RSpec.describe Datadog::Tracing::Transport::HTTP::Client do
   subject(:client) { described_class.new(api) }
 
-  let(:api) { instance_double(Datadog::Tracing::Transport::HTTP::API::Instance) }
+  let(:api) { instance_double(Datadog::Tracing::Transport::HTTP::Traces::API::Instance) }
 
   describe '#initialize' do
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Statistics) }
