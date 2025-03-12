@@ -30,7 +30,11 @@ module Datadog
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Tracing.enabled? && !should_skip_distributed_tracing?(client_config, trace)
+                  if Tracing.enabled? && !Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+                    client_config: client_config,
+                    datadog_config: Datadog.configuration.tracing[:httpclient],
+                    trace: trace
+                  )
                     Contrib::HTTP.inject(trace, req.header)
                   end
 
@@ -117,19 +121,6 @@ module Datadog
 
             def analytics_enabled?(request_options)
               Contrib::Analytics.enabled?(request_options[:analytics_enabled])
-            end
-
-            # Skips distributed tracing if disabled for this instrumentation
-            # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
-            def should_skip_distributed_tracing?(client_config, trace)
-              if Datadog.configuration.appsec.standalone.enabled &&
-                  (trace.nil? || trace.get_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
-                return true
-              end
-
-              return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-              !Datadog.configuration.tracing[:httpclient][:distributed_tracing]
             end
 
             def set_analytics_sample_rate(span, request_options)
