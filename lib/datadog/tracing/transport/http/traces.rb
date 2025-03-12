@@ -39,11 +39,7 @@ module Datadog
           module API
             # HTTP API Spec
             class Spec < Core::Transport::HTTP::API::Spec
-              attr_reader :traces
-
-              def traces=(endpoint)
-                @traces = endpoint
-              end
+              attr_accessor :traces
 
               def send_traces(env, &block)
                 raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('traces', self) if traces.nil?
