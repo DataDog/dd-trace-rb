@@ -18,8 +18,8 @@ module Datadog
         def initialize(settings, capabilities, agent_settings, logger:)
           @logger = logger
 
-          negotiation = Negotiation.new(settings, agent_settings)
-          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: agent_settings)
+          negotiation = Negotiation.new(settings, agent_settings, logger: logger)
+          transport_v7 = Datadog::Core::Remote::Transport::HTTP.v7(agent_settings: agent_settings, logger: logger)
 
           @barrier = Barrier.new(settings.remote.boot_timeout_seconds)
 
@@ -46,7 +46,7 @@ module Datadog
               # In case of unexpected errors, reset the negotiation object
               # given external conditions have changed and the negotiation
               # negotiation object stores error logging state that should be reset.
-              negotiation = Negotiation.new(settings, agent_settings)
+              negotiation = Negotiation.new(settings, agent_settings, logger: logger)
 
               # Transient errors due to network or agent. Logged the error but not via telemetry
               logger.error do
