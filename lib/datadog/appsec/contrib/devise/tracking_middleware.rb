@@ -17,15 +17,18 @@ module Datadog
             return @app.call(env) unless Configuration.auto_user_instrumentation_enabled?
             return @app.call(env) unless AppSec.active_context
 
-            # TODO: Add check for trace and span
             unless env.key?('warden')
-              # TODO: puts debugging message
+              Datadog.logger.debug { 'AppSec: unable to track requests, due to missing warden manager' }
               return @app.call(env)
             end
 
             context = AppSec.active_context
-            id = transform(extract_id(env['warden']))
+            if context.trace.nil? || context.span.nil?
+              Datadog.logger.debug { 'AppSec: unable to track requests, due to missing trace or span' }
+              return @app.call(env)
+            end
 
+            id = transform(extract_id(env['warden']))
             if id
               unless context.span.has_tag?('usr.id')
                 context.span['usr.id'] = id
