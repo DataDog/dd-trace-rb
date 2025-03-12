@@ -22,10 +22,12 @@ module Datadog
         # Pass a block to override any settings.
         def diagnostics(
           agent_settings:,
+          logger:,
           api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(api_instance_class: Diagnostics::API::Instance,
+            logger: logger,
             agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 
@@ -40,10 +42,12 @@ module Datadog
         # Pass a block to override any settings.
         def input(
           agent_settings:,
+          logger:,
           api_version: nil,
           headers: nil
         )
           Core::Transport::HTTP.build(api_instance_class: Input::API::Instance,
+            logger: logger,
             agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
             apis = API.defaults
 
