@@ -100,11 +100,12 @@ module Datadog
           baggages = baggage_header.split(',')
           baggages.each do |key_value|
             key, value = key_value.split('=', 2)
-            next unless key && value
+            # If baggage is malformed, return an empty hash
+            return {} unless key && value
 
             key = URI.decode_www_form_component(key.strip)
             value = URI.decode_www_form_component(value.strip)
-            next if key.empty? || value.empty?
+            return {} if key.empty? || value.empty?
 
             baggage[key] = value
           end
