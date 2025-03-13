@@ -26,7 +26,7 @@ module Datadog
 
               datadog_trace_request(uri) do |_span, trace|
                 unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
-                  datadog_config: datadog_configuration,
+                  contrib_datadog_config: datadog_configuration,
                   trace: trace
                 )
                   Contrib::HTTP.inject(trace, processed_headers)

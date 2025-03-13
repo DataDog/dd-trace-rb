@@ -2,7 +2,7 @@ module Datadog
   module Tracing
     module Distributed
       module CircuitBreaker
-        def self.should_skip_distributed_tracing?: (?client_config: Hash[Symbol, untyped]?, ?datadog_config: Datadog::Tracing::Contrib::Configuration::Settings?, ?trace: Datadog::Tracing::TraceOperation?) -> bool
+        def self.should_skip_distributed_tracing?: (?contrib_client_config: Hash[Symbol, untyped]?, ?contrib_datadog_config: Datadog::Tracing::Contrib::Configuration::Settings?, ?trace: Datadog::Tracing::TraceOperation?) -> bool
       end
     end
   end

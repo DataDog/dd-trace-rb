@@ -10,12 +10,12 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
     subject(:should_skip_distributed_tracing?) do
       circuit_breaker.send(
         :should_skip_distributed_tracing?,
-        **{ client_config: client_config, datadog_config: datadog_config, trace: trace }
+        **{ contrib_client_config: contrib_client_config, contrib_datadog_config: contrib_datadog_config, trace: trace }
       )
     end
 
-    let(:client_config) { nil }
-    let(:datadog_config) { { distributed_tracing: true } }
+    let(:contrib_client_config) { nil }
+    let(:contrib_datadog_config) { { distributed_tracing: true } }
     let(:appsec_standalone) { false }
     let(:trace) { nil }
     let(:distributed_appsec_event) { nil }
@@ -30,7 +30,7 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
     end
 
     context 'when distributed tracing in datadog_config is disabled' do
-      let(:datadog_config) { { distributed_tracing: false } }
+      let(:contrib_datadog_config) { { distributed_tracing: false } }
 
       it { is_expected.to be true }
     end
@@ -61,13 +61,13 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
     end
 
     context 'given a client config with distributed_tracing disabled' do
-      let(:client_config) { { distributed_tracing: false } }
+      let(:contrib_client_config) { { distributed_tracing: false } }
 
       it { is_expected.to be true }
     end
 
     context 'given a client config with distributed_tracing enabled' do
-      let(:client_config) { { distributed_tracing: true } }
+      let(:contrib_client_config) { { distributed_tracing: true } }
 
       it { is_expected.to be false }
     end
