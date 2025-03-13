@@ -86,7 +86,7 @@ GEM
       rake
     redis (5.4.0)
       redis-client (>= 0.22.0)
-    redis-client (0.23.2)
+    redis-client (0.24.0)
       connection_pool
     rexml (3.4.1)
     rspec (3.13.0)
