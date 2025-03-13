@@ -301,17 +301,48 @@ module Datadog
         build_trace(spans, !finished)
       end
 
+      # DEV-3.0: Sampling is a side effect of generating the digest in to_digest. With 3.0 we should remove the side effect
+      # and push users to use propagate! instead of to_digest. With that we can remove this method.
+      def to_digest_no_propagation
+        span_id = @active_span && @active_span.id
+        span_id ||= @parent_span_id unless finished?
+        TraceDigest.new(
+          span_id: span_id,
+          span_name: (@active_span && @active_span.name),
+          span_resource: (@active_span && @active_span.resource),
+          span_service: (@active_span && @active_span.service),
+          span_type: (@active_span && @active_span.type),
+          trace_distributed_tags: distributed_tags,
+          trace_hostname: @hostname,
+          trace_id: @id,
+          trace_name: name,
+          trace_origin: @origin,
+          trace_process_id: Core::Environment::Identity.pid,
+          trace_resource: resource,
+          trace_runtime_id: Core::Environment::Identity.id,
+          trace_sampling_priority: @sampling_priority,
+          trace_service: service,
+          trace_state: @trace_state,
+          trace_state_unknown_fields: @trace_state_unknown_fields,
+          span_remote: (@remote_parent && @active_span.nil?),
+        ).freeze
+      end
+
+      def propagate!
+        to_digest
+      end
+
       # Returns a set of trace headers used for continuing traces.
       # Used for propagation across execution contexts.
       # Data should reflect the active state of the trace.
-      # DEV-3.0: Sampling is a side effect of generating the digest.
-      # We should move the sample call to inject and right before moving to new contexts(threads, forking etc.)
+      # DEV-3.0: Sampling is a side effect of generating the digest in to_digest.
+      # With 3.0 we should remove the side effect and push users to use propagate! instead of to_digest.
       def to_digest
         # Resolve current span ID
         span_id = @active_span && @active_span.id
         span_id ||= @parent_span_id unless finished?
         # sample the trace_operation with the tracer
-        @tracer&.sample_trace(self) unless sampling_priority
+        events.trace_propagated.publish(self)
 
         TraceDigest.new(
           span_id: span_id,
@@ -380,12 +411,14 @@ module Datadog
         attr_reader \
           :span_before_start,
           :span_finished,
-          :trace_finished
+          :trace_finished,
+          :trace_propagated
 
         def initialize
           @span_before_start = SpanBeforeStart.new
           @span_finished = SpanFinished.new
           @trace_finished = TraceFinished.new
+          @trace_propagated = TracePropagated.new
         end
 
         # Triggered before a span starts.
@@ -399,6 +432,13 @@ module Datadog
         class SpanFinished < Tracing::Event
           def initialize
             super(:span_finished)
+          end
+        end
+
+        #  Triggered when trace is being propagated between applications or contexts
+        class TracePropagated < Tracing::Event
+          def initialize
+            super(:trace_propagated)
           end
         end
 
@@ -514,7 +554,7 @@ module Datadog
       end
 
       # Returns tracer tags that will be propagated if this span's context
-      # is exported through {.to_digest}.
+      # is exported through {.propagate!}.
       # @return [Hash] key value pairs of distributed tags
       def distributed_tags
         meta.select { |name, _| name.start_with?(Metadata::Ext::Distributed::TAGS_PREFIX) }

@@ -136,18 +136,18 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
 
     context 'given' do
-      context ':trace_operation_samples' do
-        let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
-        let(:trace_op) { described_class.new(tracer: tracer) }
-
-        describe '#to_digest' do
-          before do
-            allow(tracer).to receive(:sample_trace)
-          end
-
-          it 'calls tracer.sample_trace' do
-            expect(tracer).to receive(:sample_trace).with(trace_op)
-            trace_op.to_digest
+      context ':trace_operation_triggers_trace_propagated_event' do
+        let(:events) { instance_double('Events') }
+        let(:trace_propagated) { instance_double('TracePropagated') }
+        let(:trace_op) { described_class.new(events: events) }
+        before do
+          allow(events).to receive(:trace_propagated).and_return(trace_propagated)
+          allow(trace_propagated).to receive(:publish)
+        end
+        describe '#propagate!' do
+          it 'calls events.trace_propagated.publish with self' do
+            expect(trace_propagated).to receive(:publish).with(trace_op)
+            trace_op.propagate!
           end
         end
       end
@@ -1868,9 +1868,9 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     end
   end
 
-  describe '#to_digest' do
-    subject(:to_digest) { trace_op.to_digest }
-    let(:digest) { to_digest }
+  describe '#propagate!' do
+    subject(:propagate!) { trace_op.propagate! }
+    let(:digest) { propagate! }
 
     context 'when the trace' do
       context 'is empty' do
@@ -1955,7 +1955,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             ) do |parent, trace|
               @parent = parent
               trace.set_tag('_dd.p.test', 'value')
-              to_digest
+              propagate!
             end
           end
         end
@@ -2326,7 +2326,8 @@ RSpec.describe Datadog::Tracing::TraceOperation do
             [
               :span_before_start,
               :span_finished,
-              :trace_finished
+              :trace_finished,
+              :trace_propagated,
             ].each do |event|
               expect(new_events.send(event).subscriptions).to eq(old_events.send(event).subscriptions)
             end
@@ -2688,7 +2689,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           workers = nil
           trace.measure('start_inserts', resource: 'inventory', service: 'job-worker') do
-            trace_digest = trace.to_digest
+            trace_digest = trace.propagate!
 
             workers = Array.new(5) do |index|
               Thread.new do
