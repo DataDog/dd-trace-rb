@@ -36,8 +36,8 @@ module Datadog
                 span.resource = req.method
 
                 if Tracing.enabled? && !Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
-                  client_config: client_config,
-                  datadog_config: Datadog.configuration.tracing[:http],
+                  contrib_client_config: client_config,
+                  contrib_datadog_config: Datadog.configuration.tracing[:http],
                   trace: trace
                 )
                   Contrib::HTTP.inject(trace, req)

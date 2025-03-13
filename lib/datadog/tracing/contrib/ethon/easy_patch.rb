@@ -111,7 +111,7 @@ module Datadog
               datadog_tag_request
 
               unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
-                datadog_config: datadog_configuration,
+                contrib_datadog_config: datadog_configuration,
                 trace: datadog_trace
               )
                 @datadog_original_headers ||= {}
