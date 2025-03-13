@@ -32,7 +32,7 @@ module Datadog
         def inject!(digest, data)
           return if digest.nil? || digest.baggage.nil?
 
-          baggage_items = digest.baggage.to_a
+          baggage_items = digest.baggage.to_a.reject { |k, v| k.nil? || v.nil? }
           return if baggage_items.empty?
 
           begin
@@ -83,15 +83,23 @@ module Datadog
         # We can't use uri encode because it incorrectly encodes some characters
         def encode_key(key)
           CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
-            char = [encoded[1..2].hex].pack('C')
-            SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
+            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
+              char = [encoded[1..2].hex].pack('C')
+              SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
+            else
+              encoded
+            end
           end
         end
 
         def encode_value(value)
           CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
-            char = [encoded[1..2].hex].pack('C')
-            SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
+            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
+              char = [encoded[1..2].hex].pack('C')
+              SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
+            else
+              encoded
+            end
           end
         end
 
