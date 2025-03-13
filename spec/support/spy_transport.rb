@@ -47,6 +47,7 @@ class SpyTransport < Datadog::Tracing::Transport::HTTP::Client
         [Datadog::Tracing::Transport::Traces::Encoder.encode_trace(
           @helper_encoder,
           trace,
+          logger,
           native_events_supported: true
         )]
       )
