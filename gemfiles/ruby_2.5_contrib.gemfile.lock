@@ -16,8 +16,6 @@ GEM
     benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    binding_of_caller (0.8.0)
-      debug_inspector (>= 0.0.1)
     bunny (2.19.0)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -29,7 +27,6 @@ GEM
     crack (0.4.5)
       rexml
     datadog-ruby_core_source (3.4.0)
-    debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (5.6.0)
@@ -67,11 +64,6 @@ GEM
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    pry-nav (1.0.0)
-      pry (>= 0.9.10, < 0.15)
-    pry-stack_explorer (0.4.13)
-      binding_of_caller (~> 0.7)
-      pry (~> 0.13)
     que (1.4.1)
     rack (2.2.8)
     rack-protection (2.2.4)
@@ -178,8 +170,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   os (~> 1.1)
   pry
-  pry-nav
-  pry-stack_explorer
   que (>= 1.0.0, < 2.0.0)
   rack-test
   rake (>= 12.3)
