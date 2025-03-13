@@ -6,6 +6,7 @@ require_relative 'datadog_tags_codec'
 require_relative '../utils'
 require_relative 'helpers'
 require 'uri'
+require 'cgi'
 
 module Datadog
   module Tracing
@@ -31,7 +32,7 @@ module Datadog
         def inject!(digest, data)
           return if digest.nil? || digest.baggage.nil?
 
-          baggage_items = digest.baggage.to_a
+          baggage_items = digest.baggage.to_a.reject { |k, v| k.nil? || v.nil? }
           return if baggage_items.empty?
 
           begin
@@ -79,24 +80,27 @@ module Datadog
 
         private
 
+        # We can't use uri encode because it incorrectly encodes some characters
         def encode_key(key)
-          key.strip.chars.map do |char|
-            if SAFE_CHARACTERS_KEY.include?(char)
-              char
+          CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
+              char = [encoded[1..2].hex].pack('C')
+              SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
             else
-              "%#{char.ord.to_s(16).upcase}"
+              encoded
             end
-          end.join
+          end
         end
 
         def encode_value(value)
-          value.strip.chars.map do |char|
-            if SAFE_CHARACTERS_VALUE.include?(char)
-              char
+          CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
+              char = [encoded[1..2].hex].pack('C')
+              SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
             else
-              "%#{char.ord.to_s(16).upcase}"
+              encoded
             end
-          end.join
+          end
         end
 
         def parse_baggage_header(baggage_header)
@@ -104,11 +108,12 @@ module Datadog
           baggages = baggage_header.split(',')
           baggages.each do |key_value|
             key, value = key_value.split('=', 2)
-            next unless key && value
+            # If baggage is malformed, return an empty hash
+            return {} unless key && value
 
             key = URI.decode_www_form_component(key.strip)
             value = URI.decode_www_form_component(value.strip)
-            next if key.empty? || value.empty?
+            return {} if key.empty? || value.empty?
 
             baggage[key] = value
           end

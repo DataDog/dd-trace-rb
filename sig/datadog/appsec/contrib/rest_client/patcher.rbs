@@ -1,0 +1,15 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module RestClient
+        module Patcher
+          def self?.patched?: () -> bool
+
+          def self?.target_version: () -> ::Gem::Version
+
+          def self?.patch: () -> bool
+        end
+      end
+    end
+  end
+end

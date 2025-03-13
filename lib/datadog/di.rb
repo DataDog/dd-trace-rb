@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'di/logger'
 require_relative 'di/base'
 require_relative 'di/error'
 require_relative 'di/code_tracker'
@@ -15,7 +16,8 @@ require_relative 'di/probe_notifier_worker'
 require_relative 'di/redactor'
 require_relative 'di/remote'
 require_relative 'di/serializer'
-require_relative 'di/transport'
+#require_relative 'di/transport'
+require_relative 'di/transport/http'
 require_relative 'di/utils'
 
 module Datadog
@@ -58,6 +60,8 @@ if %w(1 true).include?(ENV['DD_DYNAMIC_INSTRUMENTATION_ENABLED']) # steep:ignore
   #
   # If DI is enabled programmatically, the application can (and must,
   # for line probes to work) activate tracking in an initializer.
+  # We seem to have Datadog.logger here already
+  Datadog.logger.debug("di: activating code tracking")
   Datadog::DI.activate_tracking
 end
 

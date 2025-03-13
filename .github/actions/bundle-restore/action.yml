@@ -1,0 +1,30 @@
+name: 'Restore bundle cache'
+
+# TODO: Improve description
+description: 'Restores bundle cache for GitHub Actions'
+
+inputs:
+  lockfile:
+    description: 'Name of the lockfile artifact to download'
+    required: true
+  cache-key:
+    description: 'Cache key for bundle'
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Download lockfile
+    uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806 # v4.1.9
+    with:
+      name: ${{ inputs.lockfile }}
+
+  - name: Restore cache
+    uses: actions/cache/restore@d4323d4df104b026a6aa633fdb11d772146be0bf # v4.2.2
+    id: restore-cache
+    with:
+      key: "${{ inputs.cache-key }}"
+      path: "/usr/local/bundle"
+
+  - run: bundle check
+    shell: bash

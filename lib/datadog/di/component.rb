@@ -74,14 +74,14 @@ module Datadog
       def initialize(settings, agent_settings, logger, code_tracker: nil, telemetry: nil)
         @settings = settings
         @agent_settings = agent_settings
+        logger = DI::Logger.new(settings, logger)
         @logger = logger
         @telemetry = telemetry
         @code_tracker = code_tracker
         @redactor = Redactor.new(settings)
         @serializer = Serializer.new(settings, redactor, telemetry: telemetry)
         @instrumenter = Instrumenter.new(settings, serializer, logger, code_tracker: code_tracker, telemetry: telemetry)
-        @transport = Transport.new(agent_settings)
-        @probe_notifier_worker = ProbeNotifierWorker.new(settings, transport, logger, telemetry: telemetry)
+        @probe_notifier_worker = ProbeNotifierWorker.new(settings, logger, agent_settings: agent_settings, telemetry: telemetry)
         @probe_notification_builder = ProbeNotificationBuilder.new(settings, serializer)
         @probe_manager = ProbeManager.new(settings, instrumenter, probe_notification_builder, probe_notifier_worker, logger, telemetry: telemetry)
         probe_notifier_worker.start
@@ -93,7 +93,6 @@ module Datadog
       attr_reader :telemetry
       attr_reader :code_tracker
       attr_reader :instrumenter
-      attr_reader :transport
       attr_reader :probe_notifier_worker
       attr_reader :probe_notification_builder
       attr_reader :probe_manager

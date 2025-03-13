@@ -68,5 +68,8 @@ require_relative 'appsec/contrib/rails/integration'
 require_relative 'appsec/contrib/active_record/integration'
 require_relative 'appsec/contrib/devise/integration'
 require_relative 'appsec/contrib/graphql/integration'
+require_relative 'appsec/contrib/faraday/integration'
+require_relative 'appsec/contrib/excon/integration'
+require_relative 'appsec/contrib/rest_client/integration'
 
 require_relative 'appsec/autoload'

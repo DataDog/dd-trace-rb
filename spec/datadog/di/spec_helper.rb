@@ -63,6 +63,14 @@ module DIHelpers
         Datadog::DI.deactivate_tracking!
       end
     end
+
+    def di_logger_double
+      let(:logger) do
+        instance_double(Datadog::DI::Logger).tap do |logger|
+          allow(logger).to receive(:trace)
+        end
+      end
+    end
   end
 
   module InstanceMethods

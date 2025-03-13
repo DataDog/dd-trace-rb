@@ -10,12 +10,15 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
   let(:task) { proc { true } }
   let(:worker) do
     described_class.new(
+      logger: logger,
       transport: nil,
       buffer_size: 100,
       on_trace: task,
       interval: 0.5
     )
   end
+
+  let(:logger) { logger_allowing_debug }
 
   after do
     worker.stop
@@ -25,11 +28,16 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     describe 'when raising errors' do
       let(:task) { proc { raise StandardError } }
 
-      it 'does not re-raise' do
-        buf = StringIO.new
-        Datadog.configure { |c| c.logger.instance = Datadog::Core::Logger.new(buf) }
+      let(:buf) { StringIO.new }
 
+      let(:logger) do
+        Datadog::Core::Logger.new(buf)
+      end
+
+      it 'does not re-raise' do
         worker.enqueue_trace(get_test_traces(1))
+
+        expect(logger).to receive(:warn).and_call_original
 
         expect { worker.callback_traces }.to_not raise_error
 
@@ -75,6 +83,7 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTransport do
     context 'with shutdown timeout configured' do
       let(:worker) do
         described_class.new(
+          logger: logger,
           transport: nil,
           buffer_size: 100,
           on_trace: task,

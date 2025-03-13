@@ -1,6 +1,7 @@
 name: "Pull Request Labeler"
-on:
-  - pull_request_target
+
+on: # yamllint disable-line rule:truthy
+  - pull_request_target # zizmor: ignore[dangerous-triggers]
 
 jobs:
   triage:

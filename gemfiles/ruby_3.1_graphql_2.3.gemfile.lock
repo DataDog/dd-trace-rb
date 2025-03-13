@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.10.0)
+    datadog (2.12.1)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.18.0.0.0)
+      libddwaf (~> 1.18.0.0.1)
       logger
       msgpack
 
@@ -77,11 +77,8 @@ GEM
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
     bigdecimal (3.1.8)
-    binding_of_caller (1.0.1)
-      debug_inspector (>= 1.2.0)
     builder (3.3.0)
-    byebug (11.1.3)
-    climate_control (0.2.0)
+    climate_control (1.2.0)
     coderay (1.1.3)
     concurrent-ruby (1.3.3)
     crack (1.0.0)
@@ -93,7 +90,6 @@ GEM
     debug (1.10.0)
       irb (~> 1.10)
       reline (>= 0.3.8)
-    debug_inspector (1.2.0)
     diff-lcs (1.5.1)
     docile (1.4.1)
     dogstatsd-ruby (5.6.1)
@@ -119,11 +115,11 @@ GEM
       addressable (>= 2.4)
     libdatadog (16.0.1.1.0-aarch64-linux)
     libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.18.0.0.0-aarch64-linux)
+    libddwaf (1.18.0.0.1-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.18.0.0.0-x86_64-linux)
+    libddwaf (1.18.0.0.1-x86_64-linux)
       ffi (~> 1.0)
-    logger (1.6.5)
+    logger (1.6.6)
     lograge (0.14.0)
       actionpack (>= 4)
       activesupport (>= 4)
@@ -158,19 +154,12 @@ GEM
     nokogiri (1.16.6-x86_64-linux)
       racc (~> 1.4)
     os (1.1.4)
-    pimpmychangelog (0.1.3)
     pp (0.6.2)
       prettyprint
     prettyprint (0.2.0)
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    pry-byebug (3.10.1)
-      byebug (~> 11.0)
-      pry (>= 0.13, < 0.15)
-    pry-stack_explorer (0.6.1)
-      binding_of_caller (~> 1.0)
-      pry (~> 0.13)
     psych (5.2.3)
       date
       stringio
@@ -278,7 +267,7 @@ PLATFORMS
 DEPENDENCIES
   benchmark-ips (~> 2.8)
   benchmark-memory (< 0.2)
-  climate_control (~> 0.2.0)
+  climate_control (~> 1.2.0)
   concurrent-ruby
   datadog!
   debug
@@ -290,10 +279,7 @@ DEPENDENCIES
   lograge (~> 0.11)
   memory_profiler (~> 0.9)
   os (~> 1.1)
-  pimpmychangelog (>= 0.1.2)
   pry
-  pry-byebug
-  pry-stack_explorer
   rails (~> 6.1.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)

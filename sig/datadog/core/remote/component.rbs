@@ -7,10 +7,12 @@ module Datadog
         attr_reader client: Datadog::Core::Remote::Client
         attr_reader worker: Datadog::Core::Remote::Worker
         attr_reader healthy: bool
+        attr_reader logger: Core::Logger
 
         @barrier: Barrier
+        @logger: Core::Logger
 
-        def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings) -> void
+        def initialize: (untyped settings, Datadog::Core::Remote::Client::Capabilities capabilities, Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings, logger: Core::Logger) -> void
 
         def start: -> void
 
@@ -25,6 +27,7 @@ module Datadog
         def self.build: (
           untyped settings,
           Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings agent_settings,
+          logger: Core::Logger,
           telemetry: Datadog::Core::Telemetry::Component
         ) -> Datadog::Core::Remote::Component?
 

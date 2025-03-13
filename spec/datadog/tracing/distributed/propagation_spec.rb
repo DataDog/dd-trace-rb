@@ -63,12 +63,13 @@ RSpec.shared_examples 'Distributed tracing propagator' do
         expect(data).to include('x-datadog-parent-id' => '9876543210')
       end
 
-      context 'when trace_id is nil' do
+      context 'when trace_id is nil and baggage is nil' do
         let(:trace_id) { nil }
+        let(:baggage) { nil }
 
-        before { skip('TraceOperation always has a trace_id') if trace.is_a?(Datadog::Tracing::TraceOperation) }
+        before { skip('TraceOperation always has a trace_id or baggage') if trace.is_a?(Datadog::Tracing::TraceOperation) }
 
-        it 'does not inject the trace id' do
+        it 'does not inject the trace id or baggage' do
           inject!
           expect(data).to be_empty
         end

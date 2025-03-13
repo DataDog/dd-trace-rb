@@ -13,7 +13,6 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
 require 'datadog/tracing/transport/http'
 require 'datadog/tracing/transport/http/api'
-require 'datadog/tracing/transport/http/builder'
 require 'datadog/tracing/transport/io'
 require 'datadog/tracing/transport/io/client'
 require 'datadog/tracing/transport/traces'
@@ -1008,7 +1007,7 @@ RSpec.describe 'Tracer integration tests' do
     include_context 'agent-based test'
 
     let(:writer) { Datadog::Tracing::Writer.new(transport: transport) }
-    let(:transport) { Datadog::Tracing::Transport::HTTP.default }
+    let(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) }
 
     before do
       Datadog.configure do |c|

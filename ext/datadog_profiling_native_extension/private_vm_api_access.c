@@ -40,6 +40,13 @@
   #endif
 #endif
 
+// This file can't include datadog_ruby_common.h so we replicate this here
+#ifdef __GNUC__
+  #define DDTRACE_UNUSED  __attribute__((unused))
+#else
+  #define DDTRACE_UNUSED
+#endif
+
 #define PRIVATE_VM_API_ACCESS_SKIP_RUBY_INCLUDES
 #include "private_vm_api_access.h"
 
@@ -305,6 +312,7 @@ VALUE thread_name_for(VALUE thread) {
 // to support our custom rb_profile_frames (see below)
 // Modifications:
 // * Support int first_lineno for Ruby 3.2.0+ (https://github.com/ruby/ruby/pull/6430)
+// * Validate iseq and pos before calling `rb_iseq_line_no` as a safety measure (see comment below for details)
 //
 // `node_id` gets used depending on Ruby VM compilation settings (USE_ISEQ_NODE_ID being defined).
 // To avoid getting false "unused argument" warnings in setups where it's not used, we need to do this weird dance
@@ -351,6 +359,13 @@ calc_pos(const rb_iseq_t *iseq, const VALUE *pc, int *lineno, int *node_id)
             __builtin_trap();
         }
 #endif
+
+        // In PROF-11475 we spotted a crash when calling `rb_iseq_line_no` from this method. We couldn't reproduce or
+        // figure out the root cause, but "just in case", we're validating that the iseq looks valid and that the
+        // `n` used for the position is also sane, and if they don't look good, we don't calculate the line, rather
+        // than potentially trigger any issues.
+        if (RB_UNLIKELY(!RB_TYPE_P((VALUE) iseq, T_IMEMO) || n < 0 || n > ISEQ_BODY(iseq)->iseq_size)) return 0;
+
         if (lineno) *lineno = rb_iseq_line_no(iseq, pos);
 #ifdef USE_ISEQ_NODE_ID
         if (node_id) *node_id = rb_iseq_node_id(iseq, pos);
@@ -803,3 +818,52 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
 
 // Is the VM smack in the middle of raising an exception?
 bool is_raised_flag_set(VALUE thread) { return thread_struct_from_object(thread)->ec->raised_flag > 0; }
+
+#ifndef NO_CURRENT_FIBER_FOR
+  // The following three declarations are all
+  // taken from upstream cont.c at commit d97884a58be32e829fd03a80cd521f4733d65c79 (February 2025, master branch)
+  // (See the Ruby project copyright and license above)
+  // to enable building `current_fiber_for`.
+  //
+  // We needed to copy them because they aren't otherwise exposed in any VM APIs or headers.
+  // @ivoanjo: I manually checked the Ruby 3.1, 3.2, 3.3 and 3.4 branches + master, and the parts we care about in these
+  // structures have not changed in many years (in fact, last change I spotted was for 2.7).
+  enum context_type {
+      CONTINUATION_CONTEXT = 0,
+      FIBER_CONTEXT = 1
+  };
+
+  typedef struct rb_context_struct { // This declaration is incomplete -- only contains up to `self` which is the part we care about
+      enum context_type type;
+      int argc;
+      int kw_splat;
+      VALUE self;
+  } rb_context_t;
+
+  struct rb_fiber_struct { // This declaration is incomplete -- only contains the first entry which is the part we care about
+    rb_context_t cont;
+  };
+
+  VALUE current_fiber_for(VALUE thread) {
+    VALUE self = thread_struct_from_object(thread)->ec->fiber_ptr->cont.self;
+    return self == 0 ? Qnil : self;
+  }
+
+  void self_test_current_fiber_for(void) {
+    VALUE expected_current_fiber = current_fiber_for(rb_thread_current());
+    VALUE actual_current_fiber = rb_fiber_current();
+
+    if (expected_current_fiber == Qnil) {
+      // On purpose above we tried reading before calling `rb_fiber_current()` so the fiber may have not existed yet.
+      // But now it should be there.
+      expected_current_fiber = current_fiber_for(rb_thread_current());
+    }
+
+    if (expected_current_fiber != actual_current_fiber) rb_raise(rb_eRuntimeError, "current_fiber_for() self-test failed");
+  }
+#else
+  NORETURN(VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread));
+
+  VALUE current_fiber_for(DDTRACE_UNUSED VALUE thread) { rb_raise(rb_eRuntimeError, "Not implemented for Ruby < 3.1"); }
+  void self_test_current_fiber_for(void) { } // Nothing to do
+#endif

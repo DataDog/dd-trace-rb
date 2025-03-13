@@ -1,9 +1,15 @@
 name: Test Nix
 
-on:
+on: # yamllint disable-line rule:truthy
   push:
     branches:
-      - "**"
+      - master
+  pull_request:
+    branches:
+      - master
+
+# Default permissions for all jobs
+permissions: {}
 
 jobs:
   test:
@@ -22,7 +28,7 @@ jobs:
             base: ubuntu-24.04 # always x86_64-linux-gnu
           - os: linux
             cpu: aarch64
-            base: arm-4core-linux-ubuntu24.04 # always aarch64-linux-gnu
+            base: ubuntu-24.04-arm # always aarch64-linux-gnu
         nix:
           - 24.05
 
@@ -43,7 +49,9 @@ jobs:
         run: |
           test "$(uname -m)" = "${{ matrix.platform.cpu }}"
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: DeterminateSystems/nix-installer-action@dea7810afd9d4c98556c8ec68cf361bd5b648eaa # main
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@a48face58194521af687ce7df4c802b1b558e743 # main
       - name: Print ruby version
         run: |
           nix develop --command which ruby
@@ -52,3 +60,11 @@ jobs:
         run: nix develop --command bundle install
       - name: Run spec:main
         run: nix develop --command bundle exec rake spec:main
+
+  complete:
+    name: Nix (complete)
+    runs-on: ubuntu-24.04
+    needs:
+      - test
+    steps:
+      - run: echo "DONE!"

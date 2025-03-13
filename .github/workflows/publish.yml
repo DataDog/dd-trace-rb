@@ -1,9 +1,12 @@
 name: Publish gem
 
 # TODO: Implement a dry-run mode to verify the checks without publishing
-on: workflow_dispatch
+on: workflow_dispatch # yamllint disable-line rule:truthy
 
 concurrency: "rubygems" # Only one publish job at a time
+
+# Default permissions for all jobs
+permissions: {}
 
 jobs:
   verify-checks:
@@ -15,12 +18,14 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@bbda85882f33075a3727c01e3c8d0de0be6146ce # v1.224.0
         with:
           ruby-version: '3.3.7'
 
       - id: version
-        run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> $GITHUB_OUTPUT
+        run: echo "version=$(ruby -e 'puts Gem::Specification::load(Dir.glob("*.gemspec").first).version')" >> "$GITHUB_OUTPUT"
 
       # Check if the gem version is already published
       - name: Verify gem version
@@ -109,56 +114,179 @@ jobs:
       SKIP_SIMPLECOV: 1
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
+        uses: ruby/setup-ruby@bbda85882f33075a3727c01e3c8d0de0be6146ce # v1.224.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
       - uses: rubygems/release-gem@a25424ba2ba8b387abc8ef40807c2c85b96cbe32 # v1.1.1
-        with:
-          attestations: false # PENDING decision for attestations
 
   github-release:
-    name: Attach gem to GitHub release and publish
+    name: Attach gem to Github Release and publish
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     permissions:
       contents: write
     steps:
       - name: Download from RubyGems
         run: |
-          gem fetch datadog --version ${GEM_VERSION} --verbose
+          gem fetch datadog --version "${GEM_VERSION}" --verbose
       - name: Attach to existing release draft
         run: |
-          gh release upload "v${GEM_VERSION}" *.gem --clobber
+          gh release upload "v${GEM_VERSION}" datadog-*.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
 
-  update-document:
+  update-gem-version:
     if: github.ref_name == 'master'
+    name: Prepare next gem version
     runs-on: ubuntu-24.04
     needs:
       - verify-checks
       - rubygems-release
     env:
+      GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+    outputs:
+      next_version: ${{ steps.next_version.outputs.next_version }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@bbda85882f33075a3727c01e3c8d0de0be6146ce # v1.224.0
+        with:
+          ruby-version: '3.3.7'
+      - run: bundle install
+      - id: next_version
+        run: |
+          echo "next_version=$(bundle exec rake version:next)" >> "$GITHUB_OUTPUT"
+
+  # https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28
+  milestone:
+    if: github.ref_name == 'master'
+    name: Open/Close Github milestones
+    runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
+      - update-gem-version
+    env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
+      NEXT_VERSION: ${{ needs.update-gem-version.outputs.next_version }}
+    permissions:
+      issues: write
+      pull-requests: write
+    steps:
+      - name: list milestones
+        id: milestones
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            // https://octokit.github.io/rest.js/v21/#issues-list-milestones
+            // https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
+            const milestones = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            return milestones.data;
+
+      - name: Close milestone
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const milestones = ${{steps.milestones.outputs.result}}
+
+            const milestone = milestones.find(
+              m => m.title === process.env.GEM_VERSION
+            );
+
+            if (!milestone) {
+              console.log(`No open milestone found with version ${process.env.GEM_VERSION} - skipping close operation`);
+              return;
+            }
+
+            // https://octokit.github.io/rest.js/v21/#issues-update-milestone
+            // https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#update-a-milestone
+            try {
+              await github.rest.issues.updateMilestone({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                milestone_number: milestone.number,
+                state: 'closed'
+              });
+              console.log(`Successfully closed milestone: ${process.env.GEM_VERSION}`);
+            } catch (error) {
+              core.setFailed(`Failed to close milestone: ${error.message}`);
+            }
+
+      - name: Create milestone
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const milestones = ${{steps.milestones.outputs.result}}
+
+            const milestone = milestones.find(
+              m => m.title === process.env.NEXT_VERSION
+            );
+
+            if (milestone) {
+              console.log(`Milestone "${process.env.NEXT_VERSION}" already exists - skipping creation`);
+              return;
+            }
+
+            // https://octokit.github.io/rest.js/v21/#issues-create-milestone
+            // https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#create-a-milestone
+            try {
+              await github.rest.issues.createMilestone({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: process.env.NEXT_VERSION
+              });
+              console.log(`Successfully created milestone: ${process.env.NEXT_VERSION}`);
+            } catch (error) {
+              core.setFailed(`Failed to create milestone: ${error.message}`);
+            }
+
+  update-release-branch:
+    if: github.ref_name == 'master'
+    name: Pull request to update 'release' branch
+    runs-on: ubuntu-24.04
+    needs:
+      - verify-checks
+      - rubygems-release
+    permissions:
+      issues: write
+      pull-requests: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GHA_PAT }}
       GEM_VERSION: ${{ needs.verify-checks.outputs.version }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
+          persist-credentials: true # required for `git` operations (push) at later steps
+          token: ${{ secrets.GHA_PAT }}
           fetch-depth: 0
       - run: |
-          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs/${{ github.job }}"
+          JOB_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          TEMP_BRANCH="update-document-v${GEM_VERSION}"
+
+          # Create and checkout a new branch from the tag
+          git checkout -b "${TEMP_BRANCH}" "v${GEM_VERSION}"
+          git push origin "${TEMP_BRANCH}"
 
           gh pr create \
             --base release \
-            --head master \
+            --head "${TEMP_BRANCH}" \
             --title "Update document v${GEM_VERSION}" \
             --body "This is an auto-generated PR to update documentation from [here](${JOB_URL}). Please merge (with a merge commit) when ready." \
             --label "docs"
-
-  # TODO: Close existing milestone and create next milestone

@@ -7,6 +7,7 @@ module Datadog
     module Contrib
       module_function def load_now_or_later
         if Datadog::Core::Contrib::Rails::Utils.railtie_supported?
+          Datadog.logger.debug('di: loading contrib/railtie')
           require_relative 'contrib/railtie'
         else
           load_now
@@ -18,6 +19,7 @@ module Datadog
       # dependencies are loaded (or potentially loaded).
       module_function def load_now
         if defined?(ActiveRecord::Base)
+          Datadog.logger.debug('di: loading contrib/active_record')
           require_relative 'contrib/active_record'
         end
       end
