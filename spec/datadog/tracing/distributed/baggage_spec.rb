@@ -5,8 +5,8 @@ require 'datadog/tracing/trace_digest'
 require 'datadog/tracing/utils'
 
 RSpec.shared_examples 'Baggage distributed format' do
-  let(:propagation_style_inject) { ['baggage'] }
-  let(:propagation_style_extract) { ['baggage'] }
+  let(:propagation_style_inject) { %w[baggage] }
+  let(:propagation_style_extract) { %w[baggage] }
 
   let(:prepare_key) { defined?(super) ? super() : proc { |key| key } }
 
