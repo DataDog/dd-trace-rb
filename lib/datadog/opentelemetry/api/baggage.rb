@@ -7,17 +7,14 @@ require_relative '../trace'
 module Datadog
   module OpenTelemetry
     module API
-      # The OpenTelemetry Context contains a key-value store that can be attached
-      # to a trace.
+      # The Baggage module provides an implementation of the OpenTelemetry Baggage API.
       #
-      # It loosely matches our `TraceOperations#tags`, except for the following:
-      # * Context can store arbitrary objects as values. One example is for the key
-      #   `Context::Key.new('current-span')`, which is associated with a `Span` object.
-      #   In contrast, `TraceOperations#tags` only stores string values.
-      # * Context is how spans know who their parent span is. The parenting operation happens on every
-      #   span created. Parenting is not directly tied to the active Fiber or Thread.
-      # * Context is immutable: changing a value creates a copy of Context.
-      # * Context is not bound to a specific trace: it can be reused an arbitrary number of times.
+      # Baggage is a set of name/value pairs describing user-defined properties that can be
+      # propagated through a distributed trace. This implementation follows the W3C Baggage
+      # specification and the OpenTelemetry Baggage API.
+      #
+      # @see https://www.w3.org/TR/baggage/
+      # @see https://opentelemetry.io/docs/specs/otel/baggage/api/
       module Baggage
         def initialize(trace: nil)
           @trace = trace
