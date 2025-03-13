@@ -14,8 +14,9 @@ module TracerHelpers
   end
 
   def new_tracer(options = {})
+    logger = options[:logger] || Datadog.logger
     writer = FauxWriter.new(
-      transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+      transport: Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter :test
       end
     )

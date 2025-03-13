@@ -26,15 +26,11 @@ module Datadog
         @buff_size = options.fetch(:buffer_size, Workers::AsyncTransport::DEFAULT_BUFFER_MAX_SIZE)
         @flush_interval = options.fetch(:flush_interval, Workers::AsyncTransport::DEFAULT_FLUSH_INTERVAL)
         transport_options = options.fetch(:transport_options, {})
-
-        if options.key?(:agent_settings)
-          @agent_settings = options[:agent_settings]
-          transport_options = transport_options.merge(agent_settings: @agent_settings)
-        end
+        @agent_settings = options[:agent_settings]
 
         # transport and buffers
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(**transport_options)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
 
         @shutdown_timeout = options.fetch(:shutdown_timeout, Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT)
