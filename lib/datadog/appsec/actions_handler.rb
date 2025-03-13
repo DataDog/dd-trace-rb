@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'actions_handler/serializable_backtrace'
+
 module Datadog
   module AppSec
     # this module encapsulates functions for handling actions that libddawf returns
@@ -19,7 +21,16 @@ module Datadog
         throw(Datadog::AppSec::Ext::INTERRUPT, action_params)
       end
 
-      def generate_stack(_action_params); end
+      def generate_stack(action_params)
+        # TODO: check how many stack traces we already collected
+
+        stack_id = action_params['stack_id']
+        return unless stack_id
+
+        _backtrace = SerializableBacktrace.new(locations: caller_locations, stack_id: stack_id)
+
+        # TODO: add stack frames to span metastruct
+      end
 
       def generate_schema(_action_params); end
     end
