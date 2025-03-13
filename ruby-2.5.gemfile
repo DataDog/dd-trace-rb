@@ -27,8 +27,6 @@ gem 'os', '~> 1.1'
 
 gem 'byebug'
 gem 'pry'
-gem 'pry-nav'
-gem 'pry-stack_explorer'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
