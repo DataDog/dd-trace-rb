@@ -30,11 +30,11 @@ gem "rack"
 gem "rack-test"
 gem "hanami", "~> 1"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

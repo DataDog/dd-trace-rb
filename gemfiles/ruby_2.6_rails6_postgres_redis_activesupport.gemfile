@@ -34,11 +34,11 @@ gem "lograge", "~> 0.11"
 gem "redis-rails"
 gem "redis-store", ">= 1.4", "< 2"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

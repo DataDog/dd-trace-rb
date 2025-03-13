@@ -31,11 +31,11 @@ gem "http"
 gem "httpclient"
 gem "typhoeus"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 
