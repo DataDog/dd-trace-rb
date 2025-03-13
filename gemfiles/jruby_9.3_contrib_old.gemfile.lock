@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.10.0)
+    datadog (2.12.1)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.18.0.0.0)
+      libddwaf (~> 1.18.0.0.1)
       logger
       msgpack
 
@@ -20,7 +20,6 @@ GEM
     concurrent-ruby (1.2.2)
     crack (0.4.5)
       rexml
-    dalli (2.7.11)
     datadog-ruby_core_source (3.4.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
@@ -34,7 +33,7 @@ GEM
     json-schema (2.8.1)
       addressable (>= 2.4)
     libdatadog (16.0.1.1.0)
-    libddwaf (1.18.0.0.0-java)
+    libddwaf (1.18.0.0.1-java)
       ffi (~> 1.0)
     logger (1.6.6)
     memory_profiler (0.9.14)
@@ -53,12 +52,9 @@ GEM
     pry-debugger-jruby (2.1.1-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
-    qless (0.10.0)
-      redis (>= 2.2)
     rake (13.0.6)
     rake-compiler (1.2.5)
       rake
-    redis (3.3.5)
     rexml (3.2.8)
       strscan (>= 3.0.9)
     rspec (3.13.0)
@@ -107,7 +103,6 @@ DEPENDENCIES
   benchmark-memory (< 0.2)
   climate_control (~> 1.2.0)
   concurrent-ruby
-  dalli (< 3.0.0)
   datadog!
   dogstatsd-ruby (>= 3.3.0, != 5.1.0, != 5.0.1, != 5.0.0)
   json-schema (< 3)
@@ -116,10 +111,8 @@ DEPENDENCIES
   presto-client (>= 0.5.14)
   pry
   pry-debugger-jruby
-  qless (= 0.10.0)
   rake (>= 10.5)
   rake-compiler (~> 1.1, >= 1.1.1)
-  redis (< 4)
   rspec (~> 3.13)
   rspec-collection_matchers (~> 1.1)
   rspec-wait (~> 0)

@@ -212,16 +212,17 @@ appraise 'http' do
   gem 'ethon'
   gem 'http'
   gem 'httpclient'
-  gem 'rest-client'
   gem 'typhoeus'
 end
 
 build_coverage_matrix('stripe', 7..12, min: '5.15.0')
-build_coverage_matrix('opensearch', 2..3, gem: 'opensearch-ruby')
-build_coverage_matrix('elasticsearch', 7..8)
+build_coverage_matrix('opensearch', [2], gem: 'opensearch-ruby')
+build_coverage_matrix('elasticsearch', [7])
 build_coverage_matrix('faraday', min: '0.14.0')
 build_coverage_matrix('excon')
+build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
+build_coverage_matrix('dalli')
 
 appraise 'relational_db' do
   gem 'activerecord', '~> 5'
@@ -248,7 +249,6 @@ end
 
 appraise 'contrib' do
   gem 'concurrent-ruby'
-  gem 'dalli', '>= 3.0.0'
   gem 'grpc', platform: :ruby
 
   gem 'rack-test' # Dev dependencies for testing rack-based code
@@ -274,7 +274,8 @@ end
   end
 end
 
-build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
+build_coverage_matrix('redis', [3, 4])
+build_coverage_matrix('rack', 1..2, meta: { 'rack-contrib' => nil, 'rack-test' => nil })
 
 [2].each do |n|
   appraise "sinatra-#{n}" do
@@ -284,16 +285,8 @@ build_coverage_matrix('rack', 1..3, meta: { 'rack-contrib' => nil, 'rack-test' =
   end
 end
 
-[3, 4, 5].each do |n|
-  appraise "redis-#{n}" do
-    gem 'redis', "~> #{n}"
-  end
-end
-
 appraise 'contrib-old' do
-  gem 'dalli', '< 3.0.0'
   gem 'presto-client', '>= 0.5.14' # Renamed to trino-client in >= 1.0
-  gem 'qless', '0.12.0'
 end
 
 appraise 'core-old' do

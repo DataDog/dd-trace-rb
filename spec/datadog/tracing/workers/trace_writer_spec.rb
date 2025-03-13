@@ -12,7 +12,7 @@ require 'datadog/core/transport/http/response'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Tracing::Workers::TraceWriter do
-  subject(:writer) { described_class.new(options) }
+  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
   let(:options) { {} }
 
@@ -32,7 +32,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 
       before do
         expect(Datadog::Tracing::Transport::HTTP).to receive(:default)
-          .with(transport_options)
+          .with(transport_options.merge(agent_settings: test_agent_settings))
           .and_return(transport)
       end
 
@@ -168,7 +168,7 @@ RSpec.describe Datadog::Tracing::Workers::TraceWriter do
 end
 
 RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
-  subject(:writer) { described_class.new(options) }
+  subject(:writer) { described_class.new({ agent_settings: test_agent_settings }.update(options)) }
 
   let(:options) { {} }
 
@@ -559,7 +559,11 @@ RSpec.describe Datadog::Tracing::Workers::AsyncTraceWriter do
 
   describe 'integration tests' do
     let(:options) { { transport: transport, fork_policy: fork_policy } }
-    let(:transport) { Datadog::Tracing::Transport::HTTP.default { |t| t.adapter :test, output } }
+    let(:transport) do
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+        t.adapter :test, output
+      end
+    end
     let(:output) { [] }
 
     describe 'forking' do

@@ -17,17 +17,22 @@ module Datadog
     # @public_api
     class SyncWriter
       attr_reader \
+        :logger,
         :events,
-        :transport
+        :transport,
+        :agent_settings
 
       # @param [Datadog::Tracing::Transport::Traces::Transport] transport a custom transport instance.
       #   If provided, overrides `transport_options` and `agent_settings`.
       # @param [Hash<Symbol,Object>] transport_options options for the default transport instance.
       # @param [Datadog::Tracing::Configuration::AgentSettingsResolver::AgentSettings] agent_settings agent options for
       #   the default transport instance.
-      def initialize(transport: nil, transport_options: {}, agent_settings: nil)
+      def initialize(transport: nil, transport_options: {}, agent_settings: nil, logger: Datadog.logger)
+        @logger = logger
+        @agent_settings = agent_settings
+
         @transport = transport || begin
-          transport_options[:agent_settings] = agent_settings if agent_settings
+          transport_options = transport_options.merge(agent_settings: agent_settings) if agent_settings
           Transport::HTTP.default(**transport_options)
         end
 
@@ -40,7 +45,7 @@ module Datadog
       def write(trace)
         flush_trace(trace)
       rescue => e
-        Datadog.logger.debug(e)
+        logger.debug(e)
       end
 
       # Does nothing.

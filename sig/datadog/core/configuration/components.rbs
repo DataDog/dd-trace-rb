@@ -6,9 +6,9 @@ module Datadog
 
         def self.build_logger: (untyped settings) -> untyped
 
-        def self.build_runtime_metrics: (untyped settings) -> untyped
+        def self.build_runtime_metrics: (untyped settings, Core::Logger logger) -> untyped
 
-        def self.build_runtime_metrics_worker: (untyped settings) -> untyped
+        def self.build_runtime_metrics_worker: (untyped settings, Core::Logger logger) -> untyped
 
         def self.build_tracer: (untyped settings, untyped agent_settings) -> untyped
 

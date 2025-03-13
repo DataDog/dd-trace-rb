@@ -82,11 +82,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
       ).and_return([profiler, environment_logger_extra])
 
       expect(described_class).to receive(:build_runtime_metrics_worker)
-        .with(settings)
+        .with(settings, logger)
         .and_return(runtime_metrics)
 
       expect(described_class).to receive(:build_health_metrics)
-        .with(settings)
+        .with(settings, logger)
         .and_return(health_metrics)
     end
 
@@ -155,7 +155,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_health_metrics' do
-    subject(:build_health_metrics) { described_class.build_health_metrics(settings) }
+    subject(:build_health_metrics) { described_class.build_health_metrics(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new health metrics' do
@@ -165,7 +165,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Diagnostics::Health::Metrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(health_metrics)
         end
 
@@ -291,6 +291,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
           metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
           dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
+          logger: logger,
           log_collection_enabled: log_collection_enabled, }
       end
       let(:enabled) { true }
@@ -323,6 +324,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
+              logger: logger,
               log_collection_enabled: true, }
           end
           let(:agent_settings) do
@@ -346,6 +348,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         let(:transport) { instance_double(Datadog::Core::Telemetry::Http::Transport) }
         let(:expected_options) do
           { enabled: enabled, http_transport: transport,
+            logger: logger,
             metrics_enabled: metrics_enabled, heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
             dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
@@ -366,6 +369,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
           let(:api_key) { nil }
           let(:expected_options) do
             { enabled: false, http_transport: transport,
+              logger: logger,
               metrics_enabled: false, heartbeat_interval_seconds: heartbeat_interval_seconds,
               metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
               dependency_collection: dependency_collection, shutdown_timeout_seconds: shutdown_timeout_seconds,
@@ -382,7 +386,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_runtime_metrics' do
-    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings) }
+    subject(:build_runtime_metrics) { described_class.build_runtime_metrics(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics' do
@@ -392,7 +396,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           expect(Datadog::Core::Runtime::Metrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(runtime_metrics)
         end
 
@@ -448,7 +452,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   end
 
   describe '::build_runtime_metrics_worker' do
-    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings) }
+    subject(:build_runtime_metrics_worker) { described_class.build_runtime_metrics_worker(settings, logger) }
 
     context 'given settings' do
       shared_examples_for 'new runtime metrics worker' do
@@ -464,11 +468,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
         before do
           allow(described_class).to receive(:build_runtime_metrics)
-            .with(settings)
+            .with(settings, logger)
             .and_return(runtime_metrics)
 
           expect(Datadog::Core::Workers::RuntimeMetrics).to receive(:new)
-            .with(default_options.merge(options))
+            .with(default_options.merge(options).merge(logger: logger))
             .and_return(runtime_metrics_worker)
         end
 
@@ -529,7 +533,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new tracer' do
         let(:tracer) { instance_double(Datadog::Tracing::Tracer) }
-        let(:writer) { Datadog::Tracing::Writer.new }
+        let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
         let(:trace_flush) { be_a(Datadog::Tracing::Flush::Finished) }
         let(:sampler) do
           if defined?(super)
@@ -553,6 +557,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
             sampler: sampler,
             span_sampler: span_sampler,
             writer: writer,
+            logger: logger,
           }
         end
 
@@ -847,7 +852,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
 
             context 'and :async' do
               context 'is set' do
-                let(:writer) { Datadog::Tracing::Writer.new }
+                let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
                 let(:writer_options) { { transport_options: :bar } }
                 let(:writer_options_test_mode) { { transport_options: :baz } }
 
@@ -873,7 +878,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
               end
 
               context 'is not set' do
-                let(:sync_writer) { Datadog::Tracing::SyncWriter.new }
+                let(:sync_writer) { Datadog::Tracing::SyncWriter.new(agent_settings: test_agent_settings) }
 
                 before do
                   expect(Datadog::Tracing::SyncWriter)
@@ -981,7 +986,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
         context 'that publishes events' do
           it_behaves_like 'new tracer' do
             let(:options) { { writer: writer } }
-            let(:writer) { Datadog::Tracing::Writer.new }
+            let(:writer) { Datadog::Tracing::Writer.new(agent_settings: test_agent_settings) }
             after { writer.stop }
 
             it_behaves_like 'event publishing writer and priority sampler'

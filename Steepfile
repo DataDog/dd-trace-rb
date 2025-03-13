@@ -92,6 +92,9 @@ target :datadog do
   ignore 'lib/datadog/core/workers/runtime_metrics.rb'
   ignore 'lib/datadog/di/configuration/settings.rb'
   ignore 'lib/datadog/di/contrib/railtie.rb'
+  ignore 'lib/datadog/di/transport/http/api.rb'
+  ignore 'lib/datadog/di/transport/http/diagnostics.rb'
+  ignore 'lib/datadog/di/transport/http/input.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'
@@ -157,6 +160,7 @@ target :datadog do
   library 'zlib'
   library 'time'
   library 'pp'
+  library 'forwardable'
 
   # Load all dependency signatures from the `vendor/rbs` directory
   repo_path 'vendor/rbs'

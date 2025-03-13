@@ -26,12 +26,12 @@ module Datadog
         class << self
           include Datadog::Tracing::Component
 
-          def build_health_metrics(settings)
+          def build_health_metrics(settings, logger)
             settings = settings.health_metrics
             options = { enabled: settings.enabled }
             options[:statsd] = settings.statsd unless settings.statsd.nil?
 
-            Core::Diagnostics::Health::Metrics.new(**options)
+            Core::Diagnostics::Health::Metrics.new(logger: logger, **options)
           end
 
           def build_logger(settings)
@@ -41,19 +41,20 @@ module Datadog
             logger
           end
 
-          def build_runtime_metrics(settings)
+          def build_runtime_metrics(settings, logger)
             options = { enabled: settings.runtime_metrics.enabled }
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
 
-            Core::Runtime::Metrics.new(**options)
+            Core::Runtime::Metrics.new(logger: logger, **options)
           end
 
-          def build_runtime_metrics_worker(settings)
+          def build_runtime_metrics_worker(settings, logger)
             # NOTE: Should we just ignore building the worker if its not enabled?
             options = settings.runtime_metrics.opts.merge(
               enabled: settings.runtime_metrics.enabled,
-              metrics: build_runtime_metrics(settings)
+              metrics: build_runtime_metrics(settings, logger),
+              logger: logger,
             )
 
             Core::Workers::RuntimeMetrics.new(options)
@@ -104,7 +105,7 @@ module Datadog
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 
-          @remote = Remote::Component.build(settings, agent_settings, telemetry: telemetry)
+          @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
 
@@ -116,8 +117,8 @@ module Datadog
           )
           @environment_logger_extra.merge!(profiler_logger_extra) if profiler_logger_extra
 
-          @runtime_metrics = self.class.build_runtime_metrics_worker(settings)
-          @health_metrics = self.class.build_health_metrics(settings)
+          @runtime_metrics = self.class.build_runtime_metrics_worker(settings, @logger)
+          @health_metrics = self.class.build_health_metrics(settings, @logger)
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
