@@ -33,7 +33,6 @@ RSpec.describe 'Span metrics integration test' do
       c.appsec.instrument :rack
       c.appsec.instrument :active_record
 
-      c.appsec.standalone.enabled = false
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_passlist = []
       c.appsec.ip_denylist = []

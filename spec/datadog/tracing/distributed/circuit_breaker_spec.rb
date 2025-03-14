@@ -16,12 +16,12 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
 
     let(:contrib_client_config) { nil }
     let(:contrib_datadog_config) { { distributed_tracing: true } }
-    let(:appsec_standalone) { false }
+    let(:apm_enabled) { true }
     let(:trace) { nil }
     let(:distributed_appsec_event) { nil }
 
     before do
-      allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(appsec_standalone)
+      allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(apm_enabled)
       allow(trace).to receive(:get_tag).with('_dd.p.appsec').and_return(distributed_appsec_event) if trace
     end
 
@@ -35,8 +35,8 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
       it { is_expected.to be true }
     end
 
-    context 'when appsec standalone is enabled' do
-      let(:appsec_standalone) { true }
+    context 'when apm is disabled' do
+      let(:apm_enabled) { false }
 
       context 'when there is no active trace' do
         it { is_expected.to be true }
@@ -50,8 +50,8 @@ RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
         end
 
         context 'when the active trace has a distributed appsec event' do
-          # This should act like standalone appsec is disabled, as it does not return in the
-          # `if Datadog.configuration.appsec.standalone.enabled` block
+          # This should act like apm is enabled, as it does not return in the
+          # `unless Datadog.configuration.apm.tracing.enabled` block
           # so we're only testing the "no client config, distributed tracing enabled" case here
           let(:distributed_appsec_event) { '1' }
 
