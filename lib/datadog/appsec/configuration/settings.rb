@@ -165,6 +165,12 @@ module Datadog
               end
 
               settings :stack_trace do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_APPSEC_STACK_TRACE_ENABLED'
+                  o.default true
+                end
+
                 # The maximum number of stack trace frames to collect for each stack trace.
                 #
                 # If the stack trace exceeds this limit, the frames are dropped from the middle of the stack trace:

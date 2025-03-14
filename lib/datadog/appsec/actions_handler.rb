@@ -22,6 +22,8 @@ module Datadog
       end
 
       def generate_stack(action_params)
+        return unless Datadog.configuration.appsec.stack_trace.enabled
+
         # TODO: check how many stack traces we already collected
 
         stack_id = action_params['stack_id']
