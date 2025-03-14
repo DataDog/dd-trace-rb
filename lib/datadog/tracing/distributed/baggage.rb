@@ -82,12 +82,19 @@ module Datadog
 
         # We can't use uri encode because it incorrectly encodes some characters
         def encode_key(key)
-          CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+          # Strip whitespace and URL-encode the key
+          result = CGI.escape(key.strip)
+          # Replace '+' with '%20' for space encoding consistency with W3C spec
+          result = result.gsub('+', '%20')
+          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec for keys
+          result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
               hex_str = encoded[1..2]
               next encoded unless hex_str && !hex_str.empty?
 
+              # Convert hex representation back to character
               char = [hex_str.hex].pack('C')
+              # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
               SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
             else
               encoded
@@ -96,12 +103,20 @@ module Datadog
         end
 
         def encode_value(value)
-          CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+          # Strip whitespace and URL-encode the value
+          result = CGI.escape(value.strip)
+          # Replace '+' with '%20' for space encoding consistency with W3C spec
+          result = result.gsub('+', '%20')
+          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec for values
+          # Note: Value allows more safe characters than keys
+          result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
               hex_str = encoded[1..2]
               next encoded unless hex_str && !hex_str.empty?
 
+              # Convert hex representation back to character
               char = [hex_str.hex].pack('C')
+              # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
               SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
             else
               encoded
@@ -109,6 +124,15 @@ module Datadog
           end
         end
 
+        # Parses a W3C Baggage header string into a hash of key-value pairs
+        # The header format follows the W3C Baggage specification:
+        # - Multiple baggage items are separated by commas
+        # - Each baggage item is a key-value pair separated by '='
+        # - Keys and values are URL-encoded
+        # - Returns an empty hash if the baggage header is malformed
+        #
+        # @param baggage_header [String] The W3C Baggage header string to parse
+        # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
           baggage = {}
           baggages = baggage_header.split(',')
