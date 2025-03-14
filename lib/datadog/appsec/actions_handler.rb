@@ -29,7 +29,7 @@ module Datadog
         stack_id = action_params['stack_id']
         return unless stack_id
 
-        _backtrace = SerializableBacktrace.new(locations: caller_locations, stack_id: stack_id)
+        _backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
 
         # TODO: add stack frames to span metastruct
       end

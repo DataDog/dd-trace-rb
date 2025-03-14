@@ -23,7 +23,7 @@ module Datadog
           frame_idx = -1
           @serializable_locations_map = locations.each_with_object({}) do |location, map|
             # we are dropping frames from library code without increasing frame index
-            next if location.path.include?('lib/datadog')
+            next if location.path&.include?('lib/datadog')
 
             frame_idx += 1
 
