@@ -164,6 +164,43 @@ module Datadog
                 end
               end
 
+              settings :stack_trace do
+                # The maximum number of stack trace frames to collect for each stack trace.
+                #
+                # If the stack trace exceeds this limit, the frames are dropped from the middle of the stack trace:
+                # 75% of the frames are kept from the top of the stack trace and 25% from the bottom
+                # (this percentage is also configurable).
+                #
+                # Minimum value is 10.
+                #
+                # Default value is 32
+                option :max_depth do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH'
+                  o.default 32
+
+                  o.setter do |value|
+                    value = 10 if value < 10
+                    value
+                  end
+                end
+
+                # The percentage of frames to keep from the top of the stack trace.
+                #
+                # Default value is 75
+                option :top_percentage do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT'
+                  o.default 75
+
+                  o.setter do |value|
+                    value = 100 if value > 100
+                    value = 0 if value.negative?
+                    value
+                  end
+                end
+              end
+
               settings :auto_user_instrumentation do
                 define_method(:enabled?) { get_option(:mode) != DISABLED_AUTO_USER_INSTRUMENTATION_MODE }
 
