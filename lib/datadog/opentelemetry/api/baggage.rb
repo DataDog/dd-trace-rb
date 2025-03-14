@@ -98,6 +98,7 @@ module Datadog
 
           context
         end
+        ::OpenTelemetry::Baggage.prepend(self)
       end
     end
   end
