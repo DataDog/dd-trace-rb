@@ -84,7 +84,10 @@ module Datadog
         def encode_key(key)
           CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
-              char = [encoded[1..2].hex].pack('C')
+              hex_str = encoded[1..2]
+              next encoded unless hex_str && !hex_str.empty?
+
+              char = [hex_str.hex].pack('C')
               SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
             else
               encoded
@@ -95,7 +98,10 @@ module Datadog
         def encode_value(value)
           CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
-              char = [encoded[1..2].hex].pack('C')
+              hex_str = encoded[1..2]
+              next encoded unless hex_str && !hex_str.empty?
+
+              char = [hex_str.hex].pack('C')
               SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
             else
               encoded
