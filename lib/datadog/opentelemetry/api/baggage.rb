@@ -27,6 +27,7 @@ module Datadog
         # @return [Context]
         def clear(context: Context.current)
           context.ensure_trace.baggage.clear
+          context
         end
 
         # Returns the corresponding value for key
