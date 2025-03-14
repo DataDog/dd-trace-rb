@@ -66,7 +66,21 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     end
   end
 
-  def sample(profiler_overhead_stack_thread: Thread.current, allow_exception: false)
+  # What's the deal with the `reset_monotonic_to_system_state`? TL;DR there's a cache in the monotonic-to-system-clock
+  # conversion code (see `monotonic_to_system_epoch_ns` in time_helpers.c). Because this conversion includes a cache,
+  # any tests that compare timestamps in profiles to `Time.now` could become flaky because of drift between clocks.
+  #
+  # That is, because the profiler is **estimating** the system clock based on this cache, it may say that something
+  # happened a few nanos before `Time.now` when in fact it happened a few nanos after.
+  # Thus, all tests comparing timestamps to `Time.now` are executed with `reset_monotonic_to_system_state: true` to
+  # avoid running into this issue.
+  #
+  # Why not execute **all tests** with this flag? I considered it, but on the other hand it seems dangerous to not
+  # have any code coverage of this cache during tests, since in production we always use it. Yay complexity! :)
+
+  def sample(profiler_overhead_stack_thread: Thread.current, reset_monotonic_to_system_state: false, allow_exception: false)
+    handle_reset_request(reset_monotonic_to_system_state)
+
     described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
 
@@ -79,11 +93,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def sample_after_gc(reset_monotonic_to_system_state: false, allow_exception: false)
-    described_class::Testing._native_sample_after_gc(
-      cpu_and_wall_time_collector,
-      reset_monotonic_to_system_state,
-      allow_exception,
-    )
+    handle_reset_request(reset_monotonic_to_system_state)
+
+    described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, allow_exception)
   end
 
   def sample_allocation(weight:, new_object: Object.new)
@@ -94,7 +106,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
     described_class::Testing._native_sample_skipped_allocation_samples(cpu_and_wall_time_collector, skipped_samples)
   end
 
-  def on_gvl_waiting(thread)
+  def on_gvl_waiting(thread, reset_monotonic_to_system_state: false)
+    handle_reset_request(reset_monotonic_to_system_state)
+
     described_class::Testing._native_on_gvl_waiting(thread)
   end
 
@@ -129,6 +143,10 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   def apply_delta_to_cpu_time_at_previous_sample_ns(thread, delta_ns)
     described_class::Testing
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
+  end
+
+  def handle_reset_request(do_reset)
+    described_class::Testing._native_reset_monotonic_to_system_state(cpu_and_wall_time_collector) if do_reset
   end
 
   # This method exists only so we can look for its name in the stack trace in a few tests
@@ -1135,7 +1153,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
         it "includes a end_timestamp_ns containing epoch time in every sample" do
           time_before = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
-          sample
+          sample(reset_monotonic_to_system_state: true)
           time_after = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
 
           expect(samples.first.labels).to include(end_timestamp_ns: be_between(time_before, time_after))
@@ -1151,7 +1169,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             @previous_sample_timestamp_ns = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
 
             @time_before_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
-            on_gvl_waiting(t1)
+            on_gvl_waiting(t1, reset_monotonic_to_system_state: true)
             @time_after_gvl_waiting = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
 
             @gvl_waiting_at = gvl_waiting_at_for(t1)
@@ -1173,7 +1191,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
 
           it "records a second sample to represent the time spent Waiting for GVL" do
             time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
-            sample
+            sample(reset_monotonic_to_system_state: true)
             time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
 
             second_sample = samples_for_thread(samples, t1, expected_size: 2).last
@@ -1219,7 +1237,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
             time_before_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
             monotonic_time_sanity_check = Datadog::Core::Utils::Time.get_time(:nanosecond)
 
-            sample
+            sample(reset_monotonic_to_system_state: true)
 
             time_after_sample = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
             monotonic_time_after_sample = per_thread_context.dig(t1, :wall_time_at_previous_sample_ns)
@@ -1529,6 +1547,9 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       before do
         on_gc_start
         @time_before = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
+        # Note: This doesn't need reset_monotonic_to_system_state when comparing to Time.now because the
+        # time conversion only happens in `sample_after_gc` (and that's why the test below that looks
+        # at the timestamps does need the reset)
         on_gc_finish
         @time_after = Datadog::Core::Utils::Time.as_utc_epoch_ns(Time.now)
       end
