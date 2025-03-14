@@ -12,6 +12,15 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
   end
 
   describe '#to_msgpack' do
+    before do
+      Datadog.configuration.appsec.stack_trace.max_depth = 40
+      Datadog.configuration.appsec.stack_trace.top_percentage = 75
+    end
+
+    after do
+      Datadog.configuration.appsec.reset!
+    end
+
     it 'correctly serializes stack attributes' do
       result = pack_and_unpack(described_class.new(locations: [], stack_id: 1))
 
@@ -62,17 +71,17 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       result = pack_and_unpack(described_class.new(locations: locations, stack_id: 1))
       frames = result.fetch('frames')
 
-      expect(frames.size).to eq(32)
+      expect(frames.size).to eq(40)
 
       aggregate_failures('top frames') do
-        0.upto(23) do |i|
+        0.upto(29) do |i|
           expect(frames[i].fetch('id')).to eq(i)
           expect(frames[i].fetch('file')).to eq(locations[i].path)
         end
       end
 
       aggregate_failures('bottom frames') do
-        1.upto(8) do |i|
+        1.upto(10) do |i|
           expect(frames[-i].fetch('id')).to eq(50 - i)
           expect(frames[-i].fetch('file')).to eq(locations[50 - i].path)
         end

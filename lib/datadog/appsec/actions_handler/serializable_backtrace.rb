@@ -14,8 +14,8 @@ module Datadog
         def initialize(locations:, stack_id:)
           @stack_id = stack_id
 
-          max_depth = 32
-          top_percent = 75
+          max_depth = Datadog.configuration.appsec.stack_trace.max_depth
+          top_percent = Datadog.configuration.appsec.stack_trace.top_percentage
 
           drop_from_idx = max_depth * top_percent / 100
           drop_until_idx = locations.size - (max_depth - drop_from_idx)
