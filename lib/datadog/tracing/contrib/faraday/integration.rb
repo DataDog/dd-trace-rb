@@ -18,6 +18,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :faraday, auto_patch: true
 
+          def self.gems
+            ['faraday']
+          end
+
+          def self.gem_load_paths
+            ['faraday']
+          end
+
           def self.version
             Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version
           end

@@ -17,6 +17,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :resque, auto_patch: true
 
+          def self.gems
+            ['resque']
+          end
+
+          def self.gem_load_paths
+            ['resque']
+          end
+
           def self.version
             Gem.loaded_specs['resque'] && Gem.loaded_specs['resque'].version
           end
