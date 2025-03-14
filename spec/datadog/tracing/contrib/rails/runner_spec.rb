@@ -3,7 +3,7 @@
 require_relative 'rails_helper'
 require_relative '../analytics_examples'
 
-RSpec.describe Datadog::Tracing::Contrib::Rails::Runner , execute_in_fork: true do
+RSpec.describe Datadog::Tracing::Contrib::Rails::Runner , execute_in_fork: ::Rails.version.to_i >= 8  do
   include_context 'Rails test application'
 
   subject(:run) { ::Rails::Command.invoke 'runner', argv }
