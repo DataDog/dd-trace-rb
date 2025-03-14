@@ -22,6 +22,10 @@ module Datadog
             ['httpclient']
           end
 
+          def self.gem_load_paths
+            ['httpclient']
+          end
+
           def self.version
             Gem.loaded_specs['httpclient'] && Gem.loaded_specs['httpclient'].version
           end

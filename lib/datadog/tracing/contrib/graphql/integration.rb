@@ -19,6 +19,10 @@ module Datadog
             ['graphql']
           end
 
+          def self.gem_load_paths
+            ['graphql']
+          end
+
           def self.version
             Gem.loaded_specs['graphql'] && Gem.loaded_specs['graphql'].version
           end

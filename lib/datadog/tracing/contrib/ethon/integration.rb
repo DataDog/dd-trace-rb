@@ -22,6 +22,10 @@ module Datadog
             ['ethon']
           end
 
+          def self.gem_load_paths
+            ['ethon']
+          end
+
           def self.version
             Gem.loaded_specs['ethon'] && Gem.loaded_specs['ethon'].version
           end

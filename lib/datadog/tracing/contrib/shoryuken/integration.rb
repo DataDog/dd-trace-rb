@@ -22,6 +22,10 @@ module Datadog
             ['shoryuken']
           end
 
+          def self.gem_load_paths
+            ['shoryuken']
+          end
+
           def self.version
             Gem.loaded_specs['shoryuken'] && Gem.loaded_specs['shoryuken'].version
           end

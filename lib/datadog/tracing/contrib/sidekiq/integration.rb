@@ -23,6 +23,10 @@ module Datadog
             ['sidekiq']
           end
 
+          def self.gem_load_paths
+            ['sidekiq']
+          end
+
           def self.version
             Gem.loaded_specs['sidekiq'] && Gem.loaded_specs['sidekiq'].version
           end

@@ -21,6 +21,10 @@ module Datadog
             ['sucker_punch']
           end
 
+          def self.gem_load_paths
+            ['sucker_punch']
+          end
+
           def self.version
             Gem.loaded_specs['sucker_punch'] && Gem.loaded_specs['sucker_punch'].version
           end

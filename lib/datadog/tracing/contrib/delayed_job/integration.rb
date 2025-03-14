@@ -21,6 +21,10 @@ module Datadog
             ['delayed_job']
           end
 
+          def self.gem_load_paths
+            ['delayed_job']
+          end
+
           def self.version
             Gem.loaded_specs['delayed_job'] && Gem.loaded_specs['delayed_job'].version
           end

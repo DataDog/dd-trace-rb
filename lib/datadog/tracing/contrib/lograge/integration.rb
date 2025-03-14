@@ -21,6 +21,10 @@ module Datadog
             ['lograge']
           end
 
+          def self.gem_load_paths
+            ['lograge']
+          end
+
           def self.version
             Gem.loaded_specs['lograge'] && Gem.loaded_specs['lograge'].version
           end

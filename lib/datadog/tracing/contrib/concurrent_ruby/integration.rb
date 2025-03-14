@@ -16,10 +16,14 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :concurrent_ruby
-          
+
 
           def self.gems
             ['concurrent-ruby']
+          end
+
+          def self.gem_load_paths
+            ['concurrent']
           end
 
           def self.version

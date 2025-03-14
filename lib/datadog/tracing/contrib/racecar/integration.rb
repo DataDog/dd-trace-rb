@@ -21,6 +21,10 @@ module Datadog
             ['racecar']
           end
 
+          def self.gem_load_paths
+            ['racecar']
+          end
+
           def self.version
             Gem.loaded_specs['racecar'] && Gem.loaded_specs['racecar'].version
           end

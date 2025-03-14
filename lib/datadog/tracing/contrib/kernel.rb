@@ -17,6 +17,14 @@ module Datadog
             end
           end
 
+          # Remove the callback for when a gem is required for gems that we've already patched.
+          def delete_on_require(gem)
+            # Defensive check, should not happen, as Pacher#patch should have been called before.
+            if Patch.class_variable_defined?(:@@dd_instance)
+              Patch.class_variable_get(:@@dd_instance).delete_on_require(gem)
+            end
+          end
+
           # private
           #
           # # Only use this method for resetting patching in between test runs.
@@ -71,6 +79,11 @@ module Datadog
           # Invoking it with an existing gem callback will overwrite the previous callback.
           def on_require(gem, &block)
             @on_require[gem] = block
+          end
+
+          # Remove the callback for when a gem is required.
+          def delete_on_require(gem)
+            @on_require.delete(gem)
           end
         end
 

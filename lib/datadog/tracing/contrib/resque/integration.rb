@@ -21,6 +21,10 @@ module Datadog
             ['resque']
           end
 
+          def self.gem_load_paths
+            ['resque']
+          end
+
           def self.version
             Gem.loaded_specs['resque'] && Gem.loaded_specs['resque'].version
           end

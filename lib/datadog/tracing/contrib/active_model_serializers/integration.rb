@@ -21,6 +21,10 @@ module Datadog
             ['active_model_serializers']
           end
 
+          def self.gem_load_paths
+            ['active_model_serializers']
+          end
+
           def self.version
             Gem.loaded_specs['active_model_serializers'] \
               && Gem.loaded_specs['active_model_serializers'].version

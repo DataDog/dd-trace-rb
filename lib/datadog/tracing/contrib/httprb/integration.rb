@@ -17,9 +17,13 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :httprb
-          
+
 
           def self.gems
+            ['http']
+          end
+
+          def self.gem_load_paths
             ['http']
           end
 

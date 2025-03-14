@@ -22,6 +22,10 @@ module Datadog
             ['excon']
           end
 
+          def self.gem_load_paths
+            ['excon']
+          end
+
           def self.version
             Gem.loaded_specs['excon'] && Gem.loaded_specs['excon'].version
           end

@@ -25,6 +25,10 @@ module Datadog
             ['redis', 'redis-client']
           end
 
+          def self.gem_load_paths
+            ['redis', 'redis-client']
+          end
+
           # Until Redis 4, all instrumentation happened in one gem: redis.
           # Since Redis 5, instrumentation happens in a separate gem: redis-client.
           # Because Redis 4 does not depend on redis-client, it's possible for both gems to be installed at the same time.

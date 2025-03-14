@@ -70,29 +70,32 @@ module Datadog
             configuration = self.configuration.tracing
 
             if configuration.respond_to?(:integrations_pending_activation)
-              ignore_integration_load_errors = if configuration.respond_to?(:ignore_integration_load_errors?)
-                                                 configuration.ignore_integration_load_errors?
-                                               else
-                                                 false
-                                               end
+              omit_log = if configuration.respond_to?(:ignore_integration_load_errors?)
+                          configuration.ignore_integration_load_errors?
+                          else
+                            false
+                          end
 
               configuration.integrations_pending_activation.each do |integration|
-                patch_integration(integration, ignore_integration_load_errors) do
-                  # Are the gems we are trying to instrument even present in the environment?
-                  # There's no point in monitoring for gem `require` if a gem is not available for loading.
+                patch_integration(integration, omit_log) do
+                  # Are the gems we are trying to instrument even present in the environment (e.g. gem env)?
+                  # And if so, are their versions compatible with their respective integration?
+                  # If not, there's no point in monitoring the `require` of a gem that can never be loaded.
                   if integration.class.available? && integration.class.compatible? && !integration.class.loaded?
                     Datadog.logger.debug { "Gems '#{integration.class.gems.join(',')}' not loaded, monitoring require." }
 
                     Contrib::Kernel::Patcher.patch # Will only execute once
 
                     # Register the gem require monitor for this integration's gems
-                    integration.class.gems.each do |gem|
-                      Datadog::Tracing::Contrib::Kernel.on_require(gem) do
+                    integration.class.gem_load_paths.each do |require_path|
+                      Contrib::Kernel.on_require(require_path) do
                         Datadog.logger.debug do
-                          "Gem '#{gem}' loaded for integration '#{integration.name}', instrumenting it."
+                          "Loaded '#{require_path}' for integration '#{integration.name}', instrumenting it."
                         end
 
-                        patch_integration(integration, ignore_integration_load_errors)
+                        patch_integration(integration, omit_log)
+
+                        Contrib::Kernel.delete_on_require(require_path)
                       end
                     end
 
@@ -103,7 +106,12 @@ module Datadog
                         "Gems for integration '#{integration.name}' loaded concurrently, instrumenting it."
                       end
 
-                      patch_integration(integration, ignore_integration_load_errors)
+                      patch_integration(integration, omit_log)
+
+                      integration.class.gem_load_paths.each do |require_path|
+                        Contrib::Kernel.delete_on_require(require_path)
+                      end
+
                       next
                     end
                   end
@@ -120,7 +128,7 @@ module Datadog
 
           private
 
-          def patch_integration(integration, ignore_integration_load_errors, &fallback)
+          def patch_integration(integration, omit_log, &fallback)
             return unless integration.respond_to?(:patch)
 
             # integration.patch returns either true or a hash of details on why patching failed
@@ -129,14 +137,15 @@ module Datadog
             # Patching succeeded
             return if patch_results == true
 
-            # Try to patch it with another approach.
-            # Do not report patching errors here as we haven't given up yet.
+            # But if it didn't, try to patch it with a fallback approach.
+            # Hold off on reporting patching errors, as we haven't given up yet.
             return yield if fallback
 
-            # if patching failed, only log output if verbosity is unset
-            # or if patching failure is due to compatibility or integration specific reasons
-            return unless !ignore_integration_load_errors ||
-              (patch_results[:available] && (!patch_results[:compatible] || !patch_results[:patchable]))
+            # Never suppress errors if the integration field to apply when requested,
+            # as this is normally actionable information.
+            if patch_results[:available] && (!patch_results[:compatible] || !patch_results[:patchable])
+              return if omit_log
+            end
 
             desc = "Available?: #{patch_results[:available]}"
             desc += ", Loaded? #{patch_results[:loaded]}"

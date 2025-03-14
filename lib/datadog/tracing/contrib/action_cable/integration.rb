@@ -17,10 +17,14 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :action_cable, auto_patch: false
-          
+
 
           def self.gems
             ['actioncable']
+          end
+
+          def self.gem_load_paths
+            ['action_cable']
           end
 
           def self.version

@@ -22,6 +22,10 @@ module Datadog
             ['dalli']
           end
 
+          def self.gem_load_paths
+            ['dalli']
+          end
+
           def self.version
             Gem.loaded_specs['dalli'] && Gem.loaded_specs['dalli'].version
           end

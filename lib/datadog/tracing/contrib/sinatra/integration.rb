@@ -21,6 +21,10 @@ module Datadog
             ['sinatra']
           end
 
+          def self.gem_load_paths
+            ['sinatra']
+          end
+
           def self.version
             Gem.loaded_specs['sinatra'] && Gem.loaded_specs['sinatra'].version
           end

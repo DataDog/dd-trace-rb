@@ -21,6 +21,10 @@ module Datadog
             ['stripe']
           end
 
+          def self.gem_load_paths
+            ['stripe']
+          end
+
           def self.version
             Gem.loaded_specs['stripe'] && Gem.loaded_specs['stripe'].version
           end

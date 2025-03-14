@@ -18,7 +18,11 @@ module Datadog
           register_as :trilogy
 
           def self.gems
-            ['qless']
+            ['trilogy']
+          end
+
+          def self.gem_load_paths
+            ['trilogy']
           end
 
           def self.version

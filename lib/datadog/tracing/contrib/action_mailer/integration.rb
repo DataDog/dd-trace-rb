@@ -22,6 +22,10 @@ module Datadog
             ['actionmailer']
           end
 
+          def self.gem_load_paths
+            ['action_mailer']
+          end
+
           def self.version
             Gem.loaded_specs['actionmailer'] && Gem.loaded_specs['actionmailer'].version
           end

@@ -21,6 +21,10 @@ module Datadog
             ['grpc']
           end
 
+          def self.gem_load_paths
+            ['grpc']
+          end
+
           def self.version
             Gem.loaded_specs['grpc'] && Gem.loaded_specs['grpc'].version
           end

@@ -22,6 +22,10 @@ module Datadog
             ['sneakers']
           end
 
+          def self.gem_load_paths
+            ['sneakers']
+          end
+
           def self.version
             Gem.loaded_specs['sneakers'] && Gem.loaded_specs['sneakers'].version
           end

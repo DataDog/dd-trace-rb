@@ -22,6 +22,10 @@ module Datadog
             ['faraday']
           end
 
+          def self.gem_load_paths
+            ['faraday']
+          end
+
           def self.version
             Gem.loaded_specs['faraday'] && Gem.loaded_specs['faraday'].version
           end

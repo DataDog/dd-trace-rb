@@ -21,6 +21,10 @@ module Datadog
             ['pg']
           end
 
+          def self.gem_load_paths
+            ['pg']
+          end
+
           def self.version
             Gem.loaded_specs['pg'] && Gem.loaded_specs['pg'].version
           end

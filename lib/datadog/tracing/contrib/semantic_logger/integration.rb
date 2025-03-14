@@ -24,6 +24,10 @@ module Datadog
             ['semantic_logger']
           end
 
+          def self.gem_load_paths
+            ['semantic_logger']
+          end
+
           def self.version
             Gem.loaded_specs['semantic_logger'] && Gem.loaded_specs['semantic_logger'].version
           end

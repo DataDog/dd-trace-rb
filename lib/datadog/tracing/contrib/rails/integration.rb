@@ -26,6 +26,10 @@ module Datadog
             ['railties']
           end
 
+          def self.gem_load_paths
+            ['railties']
+          end
+
           def self.version
             Gem.loaded_specs['railties'] && Gem.loaded_specs['railties'].version
           end

@@ -21,6 +21,10 @@ module Datadog
             ['rake']
           end
 
+          def self.gem_load_paths
+            ['rake']
+          end
+
           def self.version
             Gem.loaded_specs['rake'] && Gem.loaded_specs['rake'].version
           end

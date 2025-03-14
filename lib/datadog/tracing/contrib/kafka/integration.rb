@@ -16,9 +16,13 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :kafka, auto_patch: false
-          
+
 
           def self.gems
+            ['ruby-kafka']
+          end
+
+          def self.gem_load_paths
             ['ruby-kafka']
           end
 

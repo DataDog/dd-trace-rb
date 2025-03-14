@@ -26,6 +26,10 @@ module Datadog
             ['activerecord']
           end
 
+          def self.gem_load_paths
+            ['active_record']
+          end
+
           def self.version
             Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
           end
