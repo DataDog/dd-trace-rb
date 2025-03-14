@@ -28,11 +28,11 @@ gem "rack"
 gem "rack-contrib"
 gem "rack-test"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

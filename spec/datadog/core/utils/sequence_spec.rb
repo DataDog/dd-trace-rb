@@ -28,7 +28,7 @@ RSpec.describe Datadog::Core::Utils::Sequence do
 
       context 'with a block' do
         let(:sequence) { described_class.new(&block) }
-        let(:block) { ->(i) { i.to_s } }
+        let(:block) { lambda(&:to_s) }
 
         it 'returns the block value for each iteration' do
           expect(sequence.next).to eq '0'
@@ -64,7 +64,7 @@ RSpec.describe Datadog::Core::Utils::Sequence do
 
       context 'with a block' do
         let(:sequence) { described_class.new(&block) }
-        let(:block) { ->(i) { i.to_s } }
+        let(:block) { lambda(&:to_s) }
 
         it 'returns the block value for each iteration' do
           expect(sequence.next).to eq '0'

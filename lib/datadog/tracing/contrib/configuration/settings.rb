@@ -22,7 +22,7 @@ module Datadog
           end
 
           def configure(options = {})
-            self.class.options.each do |name, _value|
+            self.class.options.each_key do |name|
               self[name] = options[name] if options.key?(name)
             end
 

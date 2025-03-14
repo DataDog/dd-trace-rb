@@ -33,11 +33,11 @@ gem "pg", ">= 0.18.4", platform: :ruby
 gem "sequel"
 gem "sqlite3", "~> 1.4.1", platform: :ruby
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 
