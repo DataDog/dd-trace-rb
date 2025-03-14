@@ -32,7 +32,7 @@ module Datadog
         def inject!(digest, data)
           return if digest.nil? || digest.baggage.nil?
 
-          baggage_items = digest.baggage.to_a.reject { |k, v| k.nil? || v.nil? }
+          baggage_items = digest.baggage.reject { |k, v| k.nil? || v.nil? }
           return if baggage_items.empty?
 
           begin
