@@ -306,6 +306,23 @@ To change your code to the version that standard wants, run:
 $ bundle exec rake standard:fix
 ```
 
+For non-Ruby code, follow the instructions below to debug locally, if CI failed with respective linter.
+
+- For `yamllint`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb cytopia/yamllint .
+```
+
+- For `actionlint`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb rhysd/actionlint -color
+```
+
+- For `zizmor`, run:
+```bash
+docker run --rm -v $(pwd):/dd-trace-rb -w /dd-trace-rb -e GH_TOKEN=$(gh auth token) ghcr.io/woodruffw/zizmor --min-severity low .
+```
+
 ## Appendix
 
 ### Writing new integrations

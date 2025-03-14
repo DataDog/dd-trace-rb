@@ -10,11 +10,7 @@ RSpec.describe Datadog::Core::Remote::Component, :integration do
   let(:capabilities) { Datadog::Core::Remote::Client::Capabilities.new(settings, telemetry) }
   let(:component) { described_class.new(settings, capabilities, agent_settings, logger: logger) }
 
-  let(:logger) do
-    instance_double(Logger).tap do |logger|
-      allow(logger).to receive(:debug)
-    end
-  end
+  let(:logger) { logger_allowing_debug }
 
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }

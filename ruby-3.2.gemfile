@@ -27,14 +27,12 @@ gem 'os', '~> 1.1'
 
 gem 'debug'
 gem 'pry'
-gem 'pry-stack_explorer'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
 gem 'rspec-wait', '~> 0'
 gem 'rspec_junit_formatter', '>= 0.5.1'
-
 gem 'simplecov', '~> 0.22.0'
 gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
 

@@ -1,7 +1,7 @@
 PATH
   remote: ..
   specs:
-    datadog (2.12.0)
+    datadog (2.12.1)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
       libddwaf (~> 1.18.0.0.1)
@@ -43,7 +43,7 @@ GEM
     pry-debugger-jruby (2.1.1-java)
       pry (>= 0.13, < 0.15)
       ruby-debug-base (>= 0.10.4, < 0.12)
-    rack (2.2.11)
+    rack (2.2.13)
     rack-contrib (2.3.0)
       rack (~> 2.0)
     rack-test (2.1.0)

@@ -49,6 +49,8 @@ module Datadog
       # @param tags [Hash] default tags added to all spans
       # @param writer [Datadog::Tracing::Writer] consumes traces returned by the provided +trace_flush+
       def initialize(
+        # rubocop:disable Style/KeywordParametersOrder
+        # https://github.com/rubocop/rubocop/issues/13933
         trace_flush: Flush::Finished.new,
         context_provider: DefaultContextProvider.new,
         default_service: Core::Environment::Ext::FALLBACK_SERVICE_NAME,
@@ -60,7 +62,10 @@ module Datadog
         ),
         span_sampler: Sampling::Span::Sampler.new,
         tags: {},
-        writer: Writer.new(logger: logger)
+        # writer is not defaulted because creating it requires agent_settings,
+        # which we do not have here and otherwise do not need.
+        writer:
+        # rubocop:enable Style/KeywordParametersOrder
       )
         @trace_flush = trace_flush
         @default_service = default_service

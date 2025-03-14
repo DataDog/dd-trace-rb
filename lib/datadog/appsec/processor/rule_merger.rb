@@ -22,7 +22,7 @@ module Datadog
           # TODO: `processors` and `scanners` are not provided by the caller, consider removing them
           def merge(
             telemetry:,
-            rules:, data: [], overrides: [], exclusions: [], custom_rules: [],
+            rules:, actions: [], data: [], overrides: [], exclusions: [], custom_rules: [],
             processors: nil, scanners: nil
           )
             processors ||= begin
@@ -54,6 +54,7 @@ module Datadog
             combined_exclusions = combine_exclusions(exclusions) if exclusions.any?
             combined_custom_rules = combine_custom_rules(custom_rules) if custom_rules.any?
 
+            combined_rules['actions'] = actions if actions.any?
             combined_rules['rules_data'] = combined_data if combined_data
             combined_rules['rules_override'] = combined_overrides if combined_overrides
             combined_rules['exclusions'] = combined_exclusions if combined_exclusions
