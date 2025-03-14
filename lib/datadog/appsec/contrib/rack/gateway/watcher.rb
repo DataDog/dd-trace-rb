@@ -18,11 +18,24 @@ module Datadog
                 watch_request(gateway)
                 watch_response(gateway)
                 watch_request_body(gateway)
+                watch_request_finish(gateway)
               end
 
               def watch_request(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request', :appsec) do |stack, gateway_request|
                   context = gateway_request.env[Datadog::AppSec::Ext::CONTEXT_KEY]
+
+                  # NOTE: We don't have a way to subscribe to the event twice and
+                  #       this is the closest place to collect request headers if
+                  #       AppSec is enabled
+                  # WARNING: The Gateway is a subject of refactoring
+                  if context.span
+                    gateway_request.headers.each do |name, value|
+                      next unless Ext::COLLECTABLE_REQUEST_HEADERS.include?(name)
+
+                      context.span["http.request.headers.#{name}"] = value
+                    end
+                  end
 
                   persistent_data = {
                     'server.request.cookies' => gateway_request.cookies,
@@ -119,7 +132,7 @@ module Datadog
               def watch_request_finish(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
-                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.set_user')
+                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.appsec.event')
 
                   gateway_request.headers.each do |name, value|
                     next unless Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
