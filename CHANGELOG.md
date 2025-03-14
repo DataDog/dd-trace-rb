@@ -2,10 +2,6 @@
 
 ## [Unreleased]
 
-### Added
-
-* Tracing: Added support for W3C Baggage extraction and injection by default.
-* Tracing: Adds api method to access and modify baggage object.
 ## [2.12.1] - 2025-03-05
 
 ### Fixed
