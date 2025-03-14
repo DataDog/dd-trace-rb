@@ -119,7 +119,7 @@ module ForkableExample
   end
 
   module ExecutionResult
-    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject{|m|m.end_with?('?')}.each do |method|
+    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject{|m|m.to_s.end_with?('?')}.each do |method|
       define_method(method) do |*args|
         original_args = args
 
