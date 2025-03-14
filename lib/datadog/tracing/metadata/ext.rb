@@ -31,6 +31,8 @@ module Datadog
         # See Datadog-internal "RFC: Identifying which spans have profiling enabled " for details
         TAG_PROFILING_ENABLED = '_dd.profiling.enabled'
 
+        TAG_APM_ENABLED = '_dd.apm.enabled'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
