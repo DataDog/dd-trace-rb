@@ -572,7 +572,7 @@ module Datadog
       end
 
       def apm_tracing_disabled
-        @apm_tracing_disabled ||= Datadog.configuration.appsec.standalone.enabled
+        @apm_tracing_disabled ||= !Datadog.configuration.apm.tracing.enabled
       end
     end
   end

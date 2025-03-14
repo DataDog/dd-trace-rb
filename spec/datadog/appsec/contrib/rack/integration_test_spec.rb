@@ -24,7 +24,7 @@ RSpec.describe 'Rack integration tests' do
 
   let(:instrument_http) { false }
 
-  let(:apm_tracing_disabled) { false }
+  let(:apm_tracing_enabled) { true }
   let(:remote_enabled) { false }
   let(:appsec_ip_passlist) { [] }
   let(:appsec_ip_denylist) { [] }
@@ -156,6 +156,8 @@ RSpec.describe 'Rack integration tests' do
 
     unless remote_enabled
       Datadog.configure do |c|
+        c.apm.tracing.enabled = apm_tracing_enabled
+
         c.tracing.enabled = tracing_enabled
 
         c.tracing.instrument :rack
@@ -165,7 +167,6 @@ RSpec.describe 'Rack integration tests' do
 
         c.appsec.instrument :rack
 
-        c.appsec.standalone.enabled = apm_tracing_disabled
         c.appsec.waf_timeout = 10_000_000 # in us
         c.appsec.ip_passlist = appsec_ip_passlist
         c.appsec.ip_denylist = appsec_ip_denylist
@@ -1023,7 +1024,7 @@ RSpec.describe 'Rack integration tests' do
           spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
         end
 
-        let(:apm_tracing_disabled) { true }
+        let(:apm_tracing_enabled) { false }
         let(:instrument_http) { true }
 
         context 'without appsec upstream without attack and trace is kept with priority 1' do
