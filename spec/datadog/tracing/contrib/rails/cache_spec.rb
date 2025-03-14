@@ -6,7 +6,7 @@ require 'datadog/tracing/contrib/rails/ext'
 
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails cache', execute_in_fork: false do
+RSpec.describe 'Rails cache', execute_in_fork: true do
   include_context 'Rails test application'
 
   before do
