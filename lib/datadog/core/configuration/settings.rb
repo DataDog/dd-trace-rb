@@ -957,6 +957,26 @@ module Datadog
           end
         end
 
+        # Tracer specific configuration starting with APM (e.g. DD_APM_TRACING_ENABLED).
+        # @public_api
+        settings :apm do
+          # Tracing as a transport
+          # @public_api
+          settings :tracing do
+            # Enables tracing as transport.
+            # Disabling it will set sampling priority to -1 on most spans,
+            # except heartbeat ones (1 per minute) and manual kept ones (e.g. appsec events)
+            #
+            # @default `DD_APM_TRACING_ENABLED` environment variable, otherwise `true`
+            # @return [Boolean]
+            option :enabled do |o|
+              o.env Configuration::Ext::APM::ENV_TRACING_ENABLED
+              o.default true
+              o.type :bool
+            end
+          end
+        end
+
         # TODO: Tracing should manage its own settings.
         #       Keep this extension here for now to keep things working.
         extend Datadog::Tracing::Configuration::Settings

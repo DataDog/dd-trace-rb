@@ -579,7 +579,7 @@ module Datadog
       # Other products (like ASM) can then set the sampling priority of their traces to `MANUAL_KEEP`,
       # effectively allowing standalone products to work without APM.
       def apm_tracing_enabled
-        @apm_tracing_enabled ||= !Datadog.configuration.appsec.standalone.enabled
+        @apm_tracing_enabled ||= Datadog.configuration.apm.tracing.enabled
       end
     end
   end
