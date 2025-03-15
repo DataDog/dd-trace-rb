@@ -160,4 +160,4 @@ module ForkableExample
   end
 end
 
-RSpec::Core::Example.prepend(ForkableExample)
+RSpec::Core::Example.prepend(ForkableExample) if PlatformHelpers.supports_fork?
