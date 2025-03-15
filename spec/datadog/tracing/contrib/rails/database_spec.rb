@@ -2,7 +2,7 @@ require 'datadog/tracing/contrib/integration_examples'
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/analytics_examples'
 
-RSpec.describe 'Rails database' do
+RSpec.describe 'Rails database' , execute_in_fork: true do
   include_context 'Rails test application'
 
   let(:database_service) { adapter_name }

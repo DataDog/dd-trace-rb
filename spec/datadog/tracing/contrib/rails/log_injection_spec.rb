@@ -1,6 +1,7 @@
 require 'ostruct'
 require 'datadog/tracing/contrib/rails/log_injection'
 
+# Safe
 RSpec.describe Datadog::Tracing::Contrib::Rails::LogInjection do
   describe '.configure_log_tags' do
     context 'when given `nil` as `log_tags` configuration ' do
