@@ -27,11 +27,11 @@ gem "webmock", ">= 3.10.0"
 gem "opentelemetry-sdk", "~> 1.1"
 gem "opentelemetry-exporter-otlp"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 
