@@ -12,6 +12,8 @@ module Datadog
         class Transport
           @apis: untyped
 
+          @logger: untyped
+
           @client: untyped
 
           attr_reader client: untyped
@@ -22,7 +24,9 @@ module Datadog
 
           attr_reader current_api_id: untyped
 
-          def initialize: (untyped apis, untyped default_api) -> void
+          attr_reader logger: untyped
+
+          def initialize: (untyped apis, untyped default_api, untyped logger) -> void
 
           def current_api: () -> untyped
 

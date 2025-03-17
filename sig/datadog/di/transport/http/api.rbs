@@ -8,18 +8,6 @@ module Datadog
           INPUT: "input"
 
           def self?.defaults: () -> untyped
-
-          class Instance < Core::Transport::HTTP::API::Instance
-            include Diagnostics::API::Instance
-
-            include Input::API::Instance
-          end
-
-          class Spec < Core::Transport::HTTP::API::Spec
-            include Diagnostics::API::Spec
-
-            include Input::API::Spec
-          end
         end
       end
     end
