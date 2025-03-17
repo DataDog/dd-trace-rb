@@ -4,25 +4,23 @@ module Datadog
       module IO
         module Traces
           class Response < IO::Response
+            @trace_count: untyped
+
             include Transport::Traces::Response
 
             def initialize: (untyped result, ?::Integer trace_count) -> void
           end
-
           module Client
-            def send_traces: (untyped traces) { (untyped, untyped) -> untyped } -> ::Array[untyped]
+            def send_traces: (untyped traces) ?{ (untyped, untyped) -> untyped } -> ::Array[untyped]
           end
-
           module Encoder
             ENCODED_IDS: ::Array[:trace_id | :span_id | :parent_id]
-
             def encode_traces: (untyped encoder, untyped traces) -> untyped
 
             private
 
             def encode_trace: (untyped trace) -> untyped
           end
-
           class Parcel
             include Datadog::Core::Transport::Parcel
 
