@@ -8,6 +8,7 @@ RSpec.describe Datadog::OpenTelemetry do
     let(:writer) { get_test_writer }
     let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:otel_root_parent) { OpenTelemetry::Trace::INVALID_SPAN_ID }
+    let(:logger) { logger_allowing_debug }
 
     let(:span_options) { {} }
 
