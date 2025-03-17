@@ -122,7 +122,9 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
     context 'when given a block' do
       it do
-        expect { |b| described_class.default(agent_settings: default_agent_settings, logger: logger, &b) }.to yield_with_args(
+        expect do |b|
+          described_class.default(agent_settings: default_agent_settings, logger: logger, &b)
+        end.to yield_with_args(
           kind_of(Datadog::Core::Transport::HTTP::Builder)
         )
       end

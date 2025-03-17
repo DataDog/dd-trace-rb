@@ -61,7 +61,9 @@ end
 
 RSpec.describe Datadog::Tracing::Transport::Traces::Chunker do
   let(:logger) { logger_allowing_debug }
-  let(:chunker) { described_class.new(encoder, logger, native_events_supported: native_events_supported, max_size: max_size) }
+  let(:chunker) do
+    described_class.new(encoder, logger, native_events_supported: native_events_supported, max_size: max_size)
+  end
   let(:encoder) { instance_double(Datadog::Core::Encoding::Encoder) }
   let(:native_events_supported) { double }
   let(:trace_encoder) { Datadog::Tracing::Transport::Traces::Encoder }

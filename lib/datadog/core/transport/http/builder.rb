@@ -18,7 +18,8 @@ module Datadog
             :api_options,
             :default_adapter,
             :default_api,
-            :default_headers, :logger
+            :default_headers,
+            :logger
 
           def initialize(api_instance_class:, logger:)
             # Global settings

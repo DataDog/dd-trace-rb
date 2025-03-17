@@ -55,7 +55,10 @@ RSpec.describe Datadog::Tracing::Writer do
           let(:options) { { agent_settings: agent_settings } }
 
           it 'configures the transport using the agent_settings' do
-            expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings, logger: logger)
+            expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(
+              agent_settings: agent_settings,
+              logger: logger
+            )
 
             writer
           end

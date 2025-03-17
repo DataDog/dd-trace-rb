@@ -4,7 +4,9 @@ require 'datadog/core/transport/http/builder'
 
 RSpec.describe Datadog::Core::Transport::HTTP::Builder do
   let(:logger) { logger_allowing_debug }
-  subject(:builder) { described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::Traces::API::Instance, logger: logger) }
+  subject(:builder) do
+    described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::Traces::API::Instance, logger: logger)
+  end
 
   describe '#initialize' do
     context 'given a block' do

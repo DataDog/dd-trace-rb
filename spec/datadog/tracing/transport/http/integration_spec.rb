@@ -11,7 +11,9 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
   let(:logger) { logger_allowing_debug }
 
   describe 'HTTP#default' do
-    subject(:transport) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options) }
+    subject(:transport) do
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options)
+    end
 
     let(:client_options) { proc { |_client| } }
 
@@ -37,7 +39,9 @@ RSpec.describe 'Datadog::Tracing::Transport::HTTP integration tests' do
     subject(:writer) { described_class.new(writer_options) }
 
     let(:writer_options) { { transport: client } }
-    let(:client) { Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options) }
+    let(:client) do
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger, &client_options)
+    end
     let(:client_options) { proc { |_client| } }
 
     describe '#send_spans' do
