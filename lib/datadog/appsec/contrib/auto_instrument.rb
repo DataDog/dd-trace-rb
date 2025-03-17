@@ -9,7 +9,7 @@ module Datadog
         def self.patch_all
           integrations = []
 
-          Datadog::AppSec::Contrib::Integration.registry.each do |_name, integration|
+          Datadog::AppSec::Contrib::Integration.registry.each_value do |integration|
             next unless integration.klass.auto_instrument?
 
             integrations << integration.name

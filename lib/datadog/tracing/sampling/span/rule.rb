@@ -24,7 +24,6 @@ module Datadog
             sample_rate: Span::Ext::DEFAULT_SAMPLE_RATE,
             rate_limit: Span::Ext::DEFAULT_MAX_PER_SECOND
           )
-
             @matcher = matcher
             @sample_rate = sample_rate
             @rate_limit = rate_limit

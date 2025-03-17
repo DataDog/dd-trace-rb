@@ -71,7 +71,7 @@ RSpec.describe Datadog::Core::Configuration::Options do
               let(:block) do
                 proc do |o|
                   o.helper name, false
-                  o.helper "#{name}=".to_sym, false
+                  o.helper :"#{name}=", false
                 end
               end
 
