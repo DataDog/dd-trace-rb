@@ -45,7 +45,3 @@ services:
       - HEALTH_CHECK_URL=http://app/health
       - HEALTH_CHECK_INTERVAL=1
       - HEALTH_CHECK_MAX_ATTEMPTS=30
-    # volumes:
-    #   - .:/app
-    #   - ../../images/include:/vendor/dd-demo
-    #   - ../../..:/vendor/dd-trace-rb

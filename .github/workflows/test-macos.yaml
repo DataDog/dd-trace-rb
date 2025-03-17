@@ -1,11 +1,12 @@
 name: Test macOS
-on:
+
+on: # yamllint disable-line rule:truthy
   push:
     branches:
-    - master
+      - master
   pull_request:
     branches:
-    - master
+      - master
 
 # Default permissions for all jobs
 permissions: {}
@@ -42,7 +43,7 @@ jobs:
       # head rubies
       - if: ${{ matrix.ruby == 'head' }}
         run: sed -i~ -e '/spec\.required_ruby_version/d' datadog.gemspec
-      - uses: ruby/setup-ruby@8388f20e6a9c43cd241131b678469a9f89579f37 # v1.216.0
+      - uses: ruby/setup-ruby@bbda85882f33075a3727c01e3c8d0de0be6146ce # v1.224.0
         with:
           ruby-version: ${{ matrix.ruby }}
           rubygems: 3.3.26
