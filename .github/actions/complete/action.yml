@@ -1,0 +1,28 @@
+name: 'Ensure complete'
+
+description: 'Ensure complete for GitHub Actions'
+
+inputs:
+  needs:
+    description: 'JSON of needs context from workflow'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if any needs jobs failed or were skipped
+      shell: bash
+      env:
+        NEEDS: ${{ inputs.needs }}
+      run: |
+        for job_name in $(echo "$NEEDS" | jq -r 'keys[]'); do
+          job_result=$(echo "$NEEDS" | jq -r ".[\"$job_name\"].result")
+          if [ "$job_result" != "success" ]; then
+            echo "Job $job_name failed or was skipped (status: $job_result)"
+            exit 1
+          fi
+        done
+        echo "All needed jobs completed successfully"
+    - name: Done
+      shell: bash
+      run: echo "DONE!"

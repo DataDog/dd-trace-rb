@@ -74,6 +74,14 @@ jobs:
 
   complete:
     name: Parametric Tests (complete)
-    uses: ./.github/workflows/_check_complete.yml
+    runs-on: ubuntu-24.04
+    if: ${{ always() }}
     needs:
       - parametric
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/complete
+        with:
+          needs: ${{ toJSON(needs) }}
