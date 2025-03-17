@@ -24,7 +24,10 @@ gem 'google-protobuf', ['~> 3.0', '!= 3.7.0', '!= 3.7.1']
 gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
+# debug permits evaluating more expressions than byebug, however
+# debug does not show context on stack navigation.
 gem 'debug'
+gem 'byebug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
