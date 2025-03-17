@@ -3,22 +3,31 @@ module Datadog
     module Transport
       module Ext
         module HTTP
-          HEADER_CONTAINER_ID: "Datadog-Container-ID"
+          ADAPTER: :net_http
 
-          HEADER_DD_API_KEY: "DD-API-KEY"
-          HEADER_CLIENT_COMPUTED_TOP_LEVEL: "Datadog-Client-Computed-Top-Level"
+          DEFAULT_HOST: "127.0.0.1"
 
-          HEADER_CLIENT_COMPUTED_STATS: "Datadog-Client-Computed-Stats"
+          DEFAULT_PORT: 8126
 
-          HEADER_META_LANG: "Datadog-Meta-Lang"
+          HEADER_CONTAINER_ID: ::String
 
-          HEADER_META_LANG_VERSION: "Datadog-Meta-Lang-Version"
+          HEADER_DD_API_KEY: ::String
 
-          HEADER_META_LANG_INTERPRETER: "Datadog-Meta-Lang-Interpreter"
-          HEADER_META_LANG_INTERPRETER_VENDOR: "Datadog-Meta-Lang-Interpreter-Vendor"
+          HEADER_CLIENT_COMPUTED_TOP_LEVEL: ::String
 
-          HEADER_META_TRACER_VERSION: "Datadog-Meta-Tracer-Version"
-          HEADER_DD_INTERNAL_UNTRACED_REQUEST: "DD-Internal-Untraced-Request"
+          HEADER_CLIENT_COMPUTED_STATS: ::String
+
+          HEADER_META_LANG: ::String
+
+          HEADER_META_LANG_INTERPRETER_VENDOR: ::String
+
+          HEADER_META_LANG_VERSION: ::String
+
+          HEADER_META_LANG_INTERPRETER: ::String
+
+          HEADER_META_TRACER_VERSION: ::String
+
+          HEADER_DD_INTERNAL_UNTRACED_REQUEST: ::String
         end
 
         module Test
