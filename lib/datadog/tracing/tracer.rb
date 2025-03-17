@@ -350,8 +350,7 @@ module Datadog
             trace_state: digest.trace_state,
             trace_state_unknown_fields: digest.trace_state_unknown_fields,
             remote_parent: digest.span_remote,
-            tracer: self,
-            baggage: digest.baggage
+            tracer: self
           )
         else
           TraceOperation.new(
