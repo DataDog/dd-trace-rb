@@ -45,7 +45,7 @@ module Datadog
             total_size = 0
 
             baggage_items.each do |key, value|
-              item = "#{encode_key(key)}=#{encode_value(value)}"
+              item = "#{encode_item(key, SAFE_CHARACTERS_KEY)}=#{encode_item(value, SAFE_CHARACTERS_VALUE)}"
               item_size = item.bytesize + (encoded_items.empty? ? 0 : 1) # +1 for comma if not first item
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
                 ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
@@ -81,12 +81,12 @@ module Datadog
         private
 
         # We can't use uri encode because it incorrectly encodes some characters
-        def encode_key(key)
-          # Strip whitespace and URL-encode the key
-          result = CGI.escape(key.strip)
+        def encode_item(item, safe_characters)
+          # Strip whitespace and URL-encode the item
+          result = CGI.escape(item.strip)
           # Replace '+' with '%20' for space encoding consistency with W3C spec
           result = result.gsub('+', '%20')
-          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec for keys
+          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec
           result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
               hex_str = encoded[1..2]
@@ -95,29 +95,7 @@ module Datadog
               # Convert hex representation back to character
               char = [hex_str.hex].pack('C')
               # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
-              SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
-            else
-              encoded
-            end
-          end
-        end
-
-        def encode_value(value)
-          # Strip whitespace and URL-encode the value
-          result = CGI.escape(value.strip)
-          # Replace '+' with '%20' for space encoding consistency with W3C spec
-          result = result.gsub('+', '%20')
-          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec for values
-          # Note: Value allows more safe characters than keys
-          result.gsub(/%[0-9A-F]{2}/) do |encoded|
-            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
-              hex_str = encoded[1..2]
-              next encoded unless hex_str && !hex_str.empty?
-
-              # Convert hex representation back to character
-              char = [hex_str.hex].pack('C')
-              # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
-              SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
+              safe_characters.include?(char) ? char : encoded
             else
               encoded
             end
