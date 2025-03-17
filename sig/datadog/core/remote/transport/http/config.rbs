@@ -56,7 +56,7 @@ module Datadog
               end
 
               # Extensions for HTTP API Instance
-              module Instance : HTTP::API::Instance
+              module Instance
                 def send_config: (untyped env) -> untyped
               end
 

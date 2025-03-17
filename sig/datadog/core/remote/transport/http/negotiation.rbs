@@ -35,7 +35,7 @@ module Datadog
                 def send_info: (untyped env) { (?) -> untyped } -> untyped
               end
 
-              module Instance : Remote::Transport::HTTP::API::Instance
+              module Instance
                 def send_info: (untyped env) -> untyped
               end
 
