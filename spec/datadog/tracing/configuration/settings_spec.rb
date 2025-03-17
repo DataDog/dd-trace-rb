@@ -75,8 +75,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it do
             is_expected.to contain_exactly(
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
             )
           end
         end
@@ -121,8 +120,7 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it do
             is_expected.to contain_exactly(
               Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_DATADOG,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT,
-              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_BAGGAGE
+              Datadog::Tracing::Configuration::Ext::Distributed::PROPAGATION_STYLE_TRACE_CONTEXT
             )
           end
         end
@@ -175,11 +173,11 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
           it { is_expected.to eq [] }
 
           it 'does not change propagation_style_extract' do
-            expect { propagation_style }.to_not change { propagation_style_extract }.from(%w[datadog tracecontext baggage])
+            expect { propagation_style }.to_not change { propagation_style_extract }.from(%w[datadog tracecontext])
           end
 
           it 'does not change propagation_style_inject' do
-            expect { propagation_style }.to_not change { propagation_style_inject }.from(%w[datadog tracecontext baggage])
+            expect { propagation_style }.to_not change { propagation_style_inject }.from(%w[datadog tracecontext])
           end
         end
 
