@@ -1,6 +1,6 @@
 name: Build gem
 
-on: # yamllint disable-line rule:truthy
+on:
   workflow_dispatch:
     inputs:
       push:
@@ -133,8 +133,6 @@ jobs:
 
   complete:
     name: Build Gem (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - test
-    steps:
-      - run: echo "DONE!"

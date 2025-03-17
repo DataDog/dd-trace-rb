@@ -1,6 +1,6 @@
 name: "Generate Supported Versions"
 
-on: # yamllint disable-line rule:truthy
+on:
   workflow_dispatch:
 
 concurrency:

@@ -1,6 +1,6 @@
 name: Test macOS
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -57,8 +57,6 @@ jobs:
 
   complete:
     name: Test macOS (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - test-macos
-    steps:
-      - run: echo "DONE!"

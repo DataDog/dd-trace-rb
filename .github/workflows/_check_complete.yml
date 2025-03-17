@@ -1,0 +1,23 @@
+name: Ensure Workflow Completion Template
+
+on:
+  workflow_call: {}
+
+permissions: {} # No permissions
+
+jobs:
+  complete:
+    runs-on: ubuntu-24.04
+    if: ${{ always() }}
+    steps:
+      - name: Check if any needs jobs failed or were skipped
+        run: |
+          for job_name in $(echo '${{ toJSON(needs) }}' | jq -r 'keys[]'); do
+            job_result=$(echo '${{ toJSON(needs) }}' | jq -r ".[\"$job_name\"].result")
+            if [ "$job_result" != "success" ]; then
+              echo "Job $job_name failed or was skipped (status: $job_result)"
+              exit 1
+            fi
+          done
+          echo "All needed jobs completed successfully"
+      - run: echo "DONE!"

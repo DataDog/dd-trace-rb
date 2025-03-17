@@ -10,3 +10,6 @@ rules:
 
   comments:
     min-spaces-from-content: 1
+
+  truthy:
+    check-keys: false # Avoids `on:` key being marked as a boolean

@@ -1,6 +1,6 @@
 name: Deploy Yard documentation to Pages
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches: ["release"]
 

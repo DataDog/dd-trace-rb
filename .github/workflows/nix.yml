@@ -1,6 +1,6 @@
 name: Test Nix
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -63,8 +63,6 @@ jobs:
 
   complete:
     name: Nix (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - test
-    steps:
-      - run: echo "DONE!"

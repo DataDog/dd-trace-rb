@@ -1,6 +1,6 @@
 name: Static Analysis
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -143,6 +143,7 @@ jobs:
 
   complete:
     name: Static Analysis (complete)
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - 'steep'
       - 'rubocop'
@@ -151,6 +152,3 @@ jobs:
       - 'zizmor'
       - 'actionlint'
       - 'yaml-lint'
-    runs-on: ubuntu-24.04
-    steps:
-      - run: echo "Done"

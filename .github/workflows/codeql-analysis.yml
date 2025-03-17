@@ -1,6 +1,6 @@
 name: "CodeQL"
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches: [master, release]
   pull_request:
@@ -52,8 +52,6 @@ jobs:
 
   complete:
     name: CodeQL (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - analyze
-    steps:
-      - run: echo "DONE!"

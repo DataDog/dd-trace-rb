@@ -1,6 +1,6 @@
 name: Test YJIT
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -59,8 +59,6 @@ jobs:
 
   complete:
     name: Test YJIT (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - test-yjit
-    steps:
-      - run: echo "DONE!"

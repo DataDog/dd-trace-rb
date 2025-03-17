@@ -1,6 +1,6 @@
 name: Parametric Tests
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -74,8 +74,6 @@ jobs:
 
   complete:
     name: Parametric Tests (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - parametric
-    steps:
-      - run: echo "DONE!"

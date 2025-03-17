@@ -1,6 +1,6 @@
 name: Unit Tests
 
-on: # yamllint disable-line rule:truthy
+on:
   push:
     branches:
       - master
@@ -215,7 +215,7 @@ jobs:
 
   complete:
     name: Unit Tests (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - ruby-34
       - ruby-33
@@ -228,5 +228,3 @@ jobs:
       - jruby-94
       - jruby-93
       - jruby-92
-    steps:
-      - run: echo "DONE!"

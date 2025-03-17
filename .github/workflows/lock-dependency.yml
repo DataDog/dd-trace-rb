@@ -3,7 +3,7 @@ name: Lock Dependencies
 # TODO: Make this job mandatory
 # TODO: Make this on workflow_dispatch
 
-on: # yamllint disable-line rule:truthy
+on:
   pull_request:
     branches:
       - master
@@ -105,8 +105,6 @@ jobs:
 
   complete:
     name: Lock Dependencies (complete)
-    runs-on: ubuntu-24.04
+    uses: ./.github/workflows/_check_complete.yml
     needs:
       - commit
-    steps:
-      - run: echo "DONE!"
