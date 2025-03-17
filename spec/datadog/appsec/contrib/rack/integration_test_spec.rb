@@ -19,11 +19,13 @@ require 'datadog/appsec'
 RSpec.describe 'Rack integration tests' do
   include Rack::Test::Methods
 
+  let(:logger) { logger_allowing_debug }
+
   # We send the trace to a mocked agent to verify that the trace includes the headers that we want
   # In the future, it might be a good idea to use the traces that the mocked agent
   # receives in the tests/shared examples
   let(:agent_http_client) do
-    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
       t.adapter agent_http_adapter
     end
   end
@@ -546,7 +548,7 @@ RSpec.describe 'Rack integration tests' do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
             allow(client).to receive(:sync).and_raise(exception, 'test')
-            allow(Datadog.logger).to receive(:error).and_return(nil)
+            allow(logger).to receive(:error).and_return(nil)
           end
 
           it 'has boot tags' do
