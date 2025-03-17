@@ -17,9 +17,7 @@ module Datadog
 
         private
 
-        def encode_key: (String key) -> string
-
-        def encode_value: (String key) -> string
+        def encode_item: (String item, String safe_characters) -> string
 
         def parse_baggage_header: (String baggage_header) -> hash[string, string]
         end

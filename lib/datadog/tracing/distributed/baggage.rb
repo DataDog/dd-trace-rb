@@ -83,7 +83,7 @@ module Datadog
         # We can't use uri encode because it incorrectly encodes some characters
         def encode_item(item, safe_characters)
           # Strip whitespace and URL-encode the item
-          result = CGI.escape(item.strip)
+          result = URI.encode_www_form_component(item.strip)
           # Replace '+' with '%20' for space encoding consistency with W3C spec
           result = result.gsub('+', '%20')
           # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec
