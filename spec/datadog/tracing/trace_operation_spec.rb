@@ -1023,6 +1023,54 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     it_behaves_like 'root span derived attribute', :resource
   end
 
+  describe '#set_distributed_source' do
+    context 'when the trace source is not set' do
+      context 'with product bit set to 2' do
+        before do
+          trace_op.set_distributed_source(2)
+        end
+
+        it 'sets the trace source to the product bit' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('02')
+        end
+      end
+
+      context 'with product bit set to 16' do
+        before do
+          trace_op.set_distributed_source(16)
+        end
+
+        it 'sets the trace source to the product bit' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('10')
+        end
+      end
+
+      context 'with product bit higher than 8th bit' do
+        before do
+          trace_op.set_distributed_source(256)
+        end
+
+        # We must support up to 32 bits for future usage.
+        it 'sets the trace source to the product bit' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('100')
+        end
+      end
+    end
+
+    context 'when the trace source is set' do
+      context 'with product bit set to 2' do
+        before do
+          trace_op.set_tag('_dd.p.ts', '08')
+          trace_op.set_distributed_source(2)
+        end
+
+        it 'sets the trace source to the product bit' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('0A')
+        end
+      end
+    end
+  end
+
   describe '#resource_override?' do
     subject { trace_op.resource_override? }
 
