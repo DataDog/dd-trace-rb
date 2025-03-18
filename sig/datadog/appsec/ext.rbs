@@ -9,6 +9,8 @@ module Datadog
 
       RASP_SSRF: ::String
 
+      PRODUCT_BIT_APPSEC: ::Integer
+
       INTERRUPT: ::Symbol
 
       CONTEXT_KEY: ::String
@@ -16,8 +18,6 @@ module Datadog
       ACTIVE_CONTEXT_KEY: ::Symbol
 
       TAG_APPSEC_ENABLED: ::String
-
-      TAG_DISTRIBUTED_APPSEC_EVENT: ::String
 
       TELEMETRY_METRICS_NAMESPACE: ::String
     end

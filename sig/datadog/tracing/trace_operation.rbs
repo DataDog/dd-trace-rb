@@ -33,6 +33,7 @@ module Datadog
       def reject!: () -> untyped
       def name: () -> untyped
       def resource: () -> untyped
+      def set_distributed_source: (Integer product_bit) -> void
       def resource_override?: () -> bool
       def service: () -> untyped
       def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped

@@ -555,13 +555,14 @@ module Datadog
       # the upstream tags and the configuration.
       # We should always propagate if APM is not disabled.
       #
-      # e.g.: upstream tags containing dd.p.appsec, and appsec is enabled, return true.
-      # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
+      # e.g.: upstream tags containing dd.p.ts: 02, and appsec is enabled, return true.
       def propagate_sampling_priority?(upstream_tags:)
         return true if apm_tracing_enabled
 
-        if upstream_tags&.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
-          return Datadog.configuration.appsec.enabled
+        if upstream_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE)
+          appsec_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
+            Datadog::AppSec::Ext::PRODUCT_BIT_APPSEC
+          return Datadog.configuration.appsec.enabled if appsec_bit != 0
         end
 
         false

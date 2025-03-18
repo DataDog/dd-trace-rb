@@ -57,6 +57,9 @@ module Datadog
           # @see Datadog::Tracing::Sampling::Ext::Mechanism
           TAG_DECISION_MAKER = '_dd.p.dm'
 
+          # Bitmask for which product generated an event. E.g.: 2 for an AppSec event.
+          TAG_TRACE_SOURCE = '_dd.p.ts'
+
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'
 
