@@ -6,7 +6,6 @@ require_relative 'datadog_tags_codec'
 require_relative '../utils'
 require_relative 'helpers'
 require 'uri'
-require 'cgi'
 
 module Datadog
   module Tracing
@@ -80,7 +79,6 @@ module Datadog
 
         private
 
-        # We can't use uri encode because it incorrectly encodes some characters
         def encode_item(item, safe_characters)
           # Strip whitespace and URL-encode the item
           result = URI.encode_www_form_component(item.strip)

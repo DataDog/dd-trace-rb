@@ -103,7 +103,7 @@ module Datadog
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
         @tracer = tracer
-        @baggage = baggage || {}
+        @baggage = baggage
 
         # Generic tags
         set_tags(tags) if tags
