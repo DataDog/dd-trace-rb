@@ -188,8 +188,7 @@ module Datadog
                 def send_config(env)
                   unless spec.is_a?(Config::API::Spec)
                     raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-
-                      'config',self
+                      'config', self
                     )
                   end
 

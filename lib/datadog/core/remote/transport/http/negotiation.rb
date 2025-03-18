@@ -61,8 +61,7 @@ module Datadog
                 def send_info(env)
                   unless spec.is_a?(Negotiation::API::Spec)
                     raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-
-                      'info',self
+                      'info', self
                     )
                   end
 

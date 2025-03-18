@@ -59,8 +59,7 @@ module Datadog
               def send_traces(env)
                 unless spec.is_a?(Traces::API::Spec)
                   raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-
-                    'traces',self
+                    'traces', self
                   )
                 end
 
