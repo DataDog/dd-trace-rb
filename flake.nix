@@ -37,20 +37,21 @@
           # enable implicitly resolving gems to bundled version
           export RUBYGEMS_GEMDEPS="$(pwd)/Gemfile"
         '';
+
+        deps = [
+          pkgs.libyaml.dev
+
+          # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
+          # - json
+          # - protobuf
+          # - ruby-prof
+          gcc
+        ];
       in {
         devShells.default = llvm.stdenv.mkDerivation {
           name = "devshell";
 
-          buildInputs = with pkgs; [
-            ruby
-            libyaml.dev
-
-            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
-            # - json
-            # - protobuf
-            # - ruby-prof
-            gcc
-          ];
+          buildInputs = [ ruby ] ++ deps;
 
           shellHook = hook;
         };
@@ -58,16 +59,7 @@
         devShells.ruby33 = llvm.stdenv.mkDerivation {
           name = "devshell";
 
-          buildInputs = with pkgs; [
-            ruby_3_3
-            libyaml.dev
-
-            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
-            # - json
-            # - protobuf
-            # - ruby-prof
-            gcc
-          ];
+          buildInputs = [ pkgs.ruby_3_3 ] ++ deps;
 
           shellHook = hook;
         };
@@ -75,16 +67,7 @@
         devShells.ruby32 = llvm.stdenv.mkDerivation {
           name = "devshell";
 
-          buildInputs = with pkgs; [
-            ruby_3_2
-            libyaml.dev
-
-            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
-            # - json
-            # - protobuf
-            # - ruby-prof
-            gcc
-          ];
+          buildInputs = [ pkgs.ruby_3_2 ] ++ deps;
 
           shellHook = hook;
         };
@@ -92,16 +75,7 @@
         devShells.ruby31 = llvm.stdenv.mkDerivation {
           name = "devshell";
 
-          buildInputs = with pkgs; [
-            ruby_3_2
-            libyaml.dev
-
-            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
-            # - json
-            # - protobuf
-            # - ruby-prof
-            gcc
-          ];
+          buildInputs = [ pkgs.ruby_3_1 ] ++ deps;
 
           shellHook = hook;
         };
