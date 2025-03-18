@@ -17,9 +17,9 @@
         pkgs = nixpkgs.legacyPackages.${system};
 
         # control versions
-        ruby = pkgs.ruby_3_3;
-        llvm = pkgs.llvmPackages_16;
-        gcc = pkgs.gcc13;
+        ruby = pkgs.ruby_3_4;
+        llvm = pkgs.llvmPackages_19;
+        gcc = pkgs.gcc14;
       in {
         devShell = pkgs.llvm.stdenv.mkDerivation {
           name = "devshell";
