@@ -26,7 +26,6 @@ module Datadog
         id: nil,
         &block
       )
-
         tracer.trace(
           name,
           continue_from: continue_from,
@@ -137,6 +136,7 @@ module Datadog
         # Baggage should not be dependent on there being an active trace.
         # So we create a new TraceOperation if there isn't one.
         active_trace = self.active_trace || tracer.continue_trace!(nil)
+        active_trace.baggage ||= {}
         active_trace.baggage
       end
 

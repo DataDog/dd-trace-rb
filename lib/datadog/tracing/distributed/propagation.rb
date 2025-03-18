@@ -63,7 +63,7 @@ module Datadog
 
           digest = digest.to_digest if digest.respond_to?(:to_digest)
           if digest.trace_id.nil? && digest.baggage.nil?
-            ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id is nil.')
+            ::Datadog.logger.debug('Cannot inject distributed trace data: digest.trace_id and digest.baggage are both nil.')
             return nil
           end
 

@@ -6,7 +6,6 @@ require_relative 'datadog_tags_codec'
 require_relative '../utils'
 require_relative 'helpers'
 require 'uri'
-require 'cgi'
 
 module Datadog
   module Tracing
@@ -45,7 +44,7 @@ module Datadog
             total_size = 0
 
             baggage_items.each do |key, value|
-              item = "#{encode_key(key)}=#{encode_value(value)}"
+              item = "#{encode_item(key, SAFE_CHARACTERS_KEY)}=#{encode_item(value, SAFE_CHARACTERS_VALUE)}"
               item_size = item.bytesize + (encoded_items.empty? ? 0 : 1) # +1 for comma if not first item
               if total_size + item_size > DD_TRACE_BAGGAGE_MAX_BYTES
                 ::Datadog.logger.warn('Baggage header size exceeded, dropping excess items')
@@ -80,29 +79,36 @@ module Datadog
 
         private
 
-        # We can't use uri encode because it incorrectly encodes some characters
-        def encode_key(key)
-          CGI.escape(key.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
+        def encode_item(item, safe_characters)
+          # Strip whitespace and URL-encode the item
+          result = URI.encode_www_form_component(item.strip)
+          # Replace '+' with '%20' for space encoding consistency with W3C spec
+          result = result.gsub('+', '%20')
+          # Selectively decode percent-encoded characters that are considered "safe" in W3C Baggage spec
+          result.gsub(/%[0-9A-F]{2}/) do |encoded|
             if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
-              char = [encoded[1..2].hex].pack('C')
-              SAFE_CHARACTERS_KEY.include?(char) ? char : encoded
+              hex_str = encoded[1..2]
+              next encoded unless hex_str && !hex_str.empty?
+
+              # Convert hex representation back to character
+              char = [hex_str.hex].pack('C')
+              # Keep the character as-is if it's in the safe character set, otherwise keep it encoded
+              safe_characters.include?(char) ? char : encoded
             else
               encoded
             end
           end
         end
 
-        def encode_value(value)
-          CGI.escape(value.strip).gsub('+', '%20').gsub(/%[0-9A-F]{2}/) do |encoded|
-            if encoded.size >= 3 && encoded[1..2] =~ /\A[0-9A-F]{2}\z/
-              char = [encoded[1..2].hex].pack('C')
-              SAFE_CHARACTERS_VALUE.include?(char) ? char : encoded
-            else
-              encoded
-            end
-          end
-        end
-
+        # Parses a W3C Baggage header string into a hash of key-value pairs
+        # The header format follows the W3C Baggage specification:
+        # - Multiple baggage items are separated by commas
+        # - Each baggage item is a key-value pair separated by '='
+        # - Keys and values are URL-encoded
+        # - Returns an empty hash if the baggage header is malformed
+        #
+        # @param baggage_header [String] The W3C Baggage header string to parse
+        # @return [Hash<String, String>] A hash of decoded baggage items
         def parse_baggage_header(baggage_header)
           baggage = {}
           baggages = baggage_header.split(',')

@@ -45,7 +45,7 @@ module Datadog
         def add_attributes(attributes)
           res = super
           # Attributes can get dropped or their values truncated by `super`
-          attributes.each { |key, _| datadog_set_attribute(key) }
+          attributes.each_key { |key| datadog_set_attribute(key) }
           res
         end
 
