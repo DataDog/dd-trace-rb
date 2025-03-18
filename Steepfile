@@ -95,6 +95,10 @@ target :datadog do
   ignore 'lib/datadog/di/transport/http/api.rb'
   ignore 'lib/datadog/di/transport/http/diagnostics.rb'
   ignore 'lib/datadog/di/transport/http/input.rb'
+  # steep thinks the type of the class is 'self', whatever that is,
+  # and then complains that this type doesn't have any methods including
+  # language basics like 'send' and 'raise'.
+  ignore 'lib/datadog/di/probe_notifier_worker.rb'
   ignore 'lib/datadog/kit/appsec/events.rb' # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/kit/identity.rb'      # disabled because of https://github.com/soutaro/steep/issues/701
   ignore 'lib/datadog/opentelemetry.rb'
