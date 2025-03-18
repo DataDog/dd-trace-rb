@@ -309,7 +309,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
       context 'given :experimental_runtime_id_enabled' do
         let(:options) { super().merge(experimental_runtime_id_enabled: runtime_id_enabled) }
         let(:runtime_id_enabled) { true }
-  
+
         it do
           is_expected.to include(*Datadog::Core::Metrics::Client.default_metric_options[:tags])
           is_expected.to include('language:ruby')

@@ -391,7 +391,11 @@ RSpec.describe Datadog::Core::Configuration::Components do
     context 'given settings' do
       shared_examples_for 'new runtime metrics' do
         let(:runtime_metrics) { instance_double(Datadog::Core::Runtime::Metrics) }
-        let(:default_options) { { enabled: settings.runtime_metrics.enabled, services: [settings.service], experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled } }
+        let(:default_options) do
+          { enabled: settings.runtime_metrics.enabled,
+            services: [settings.service],
+            experimental_runtime_id_enabled: settings.runtime_metrics.experimental_runtime_id_enabled, }
+        end
         let(:options) { {} }
 
         before do
