@@ -51,7 +51,7 @@ module Datadog
                 )
                 env.form = {'event' => event_payload}
 
-                super(env, &block)
+                super
               end
             end
           end

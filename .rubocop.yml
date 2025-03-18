@@ -208,6 +208,11 @@ Performance/Squeeze: # (new in 1.7)
   Enabled: true
 Performance/StringInclude: # (new in 1.7)
   Enabled: true
+# These complain about strings that contain interpolation, demanding
+# additional conversion to symbol which is extra overhead:
+# https://github.com/rubocop/rubocop/issues/13955
+Performance/StringIdentifierArgument:
+  Enabled: false
 
 # Requires Ruby 2.2
 Style/HashSyntax:
@@ -377,6 +382,10 @@ RSpec/DescribeClass:
 # Enforces to no use let! to setup objects not referenced in tests.
 # Fails to account for shared examples across files.
 RSpec/LetSetup:
+  Enabled: false
+
+# Botches example descriptions. https://github.com/rubocop/rubocop/issues/13956
+RSpec/ExampleWording:
   Enabled: false
 
 # Identifies where `fetch(key) { value }` can be replaced by `fetch(key, value)`.

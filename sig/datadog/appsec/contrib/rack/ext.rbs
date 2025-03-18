@@ -3,7 +3,7 @@ module Datadog
     module Contrib
       module Rack
         module Ext
-          APP: untyped
+          IDENTITY_COLLECTABLE_REQUEST_HEADERS: ::Array[::String]
         end
       end
     end

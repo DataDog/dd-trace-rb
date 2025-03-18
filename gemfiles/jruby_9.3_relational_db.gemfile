@@ -31,11 +31,11 @@ gem "activerecord-jdbcpostgresql-adapter", platform: :jruby
 gem "sequel"
 gem "jdbc-sqlite3", ">= 3.28", platform: :jruby
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

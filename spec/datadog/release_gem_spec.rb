@@ -40,7 +40,6 @@ RSpec.describe 'gem release process' do
            |default\.nix
            |flake\.nix
            |flake\.lock
-           |static-analysis\.datadog\.yml
            |\.standard\.yml
            |\.standard_todo\.yml
            |.rspec-local.example
