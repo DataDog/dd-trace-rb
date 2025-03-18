@@ -21,7 +21,7 @@
         llvm = pkgs.llvmPackages_19;
         gcc = pkgs.gcc14;
       in {
-        devShell = pkgs.llvm.stdenv.mkDerivation {
+        devShell = llvm.stdenv.mkDerivation {
           name = "devshell";
 
           buildInputs = with pkgs; [
