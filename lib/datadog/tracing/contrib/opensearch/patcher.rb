@@ -77,7 +77,7 @@ module Datadog
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Define span resource
-                  quantized_url = OpenSearch::Quantize.format_url(url)
+                  quantized_url = OpenSearch::Quantize.format_url(url.path)
                   span.resource = "#{method} #{quantized_url}"
                   Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 rescue StandardError => e
