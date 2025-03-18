@@ -503,6 +503,45 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
       end
     end
 
+    describe '#native_span_events' do
+      subject(:native_span_events) { settings.tracing.native_span_events }
+
+      context "when #{Datadog::Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS}" do
+        around do |example|
+          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS => environment) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:environment) { nil }
+
+          it { is_expected.to be nil }
+        end
+
+        context 'is set to true' do
+          let(:environment) { 'true' }
+
+          it { is_expected.to be true }
+        end
+
+        context 'is set to false' do
+          let(:environment) { 'false' }
+
+          it { is_expected.to be false }
+        end
+      end
+    end
+
+    describe '#native_span_events=' do
+      it 'changes the #native_span_events setting' do
+        expect { settings.tracing.native_span_events = true }
+          .to change { settings.tracing.native_span_events }
+          .from(nil)
+          .to(true)
+      end
+    end
+
     describe '#sampler' do
       subject(:sampler) { settings.tracing.sampler }
 

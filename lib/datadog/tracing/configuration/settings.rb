@@ -249,6 +249,17 @@ module Datadog
                 o.type :bool
               end
 
+              # Forces the tracer to always send span events with the native span events format
+              # regardless of the agent support. This is useful in agent-less setups.
+              #
+              # @default `DD_TRACE_NATIVE_SPAN_EVENTS` environment variable, otherwise `false`
+              # @return [Boolean,nil]
+              option :native_span_events do |o|
+                o.env Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS
+                o.default nil
+                o.type :bool, nilable: true
+              end
+
               # A custom sampler instance.
               # The object must respect the {Datadog::Tracing::Sampling::Sampler} interface.
               # @default `nil`
