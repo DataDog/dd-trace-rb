@@ -20,8 +20,25 @@
         ruby = pkgs.ruby_3_4;
         llvm = pkgs.llvmPackages_19;
         gcc = pkgs.gcc14;
+
+        hook = ''
+          # get major.minor.0 ruby version
+          export RUBY_VERSION="$(ruby -e 'puts RUBY_VERSION.gsub(/\d+$/, "0")')"
+
+          # make gem install work in-project, compatibly with bundler
+          export GEM_HOME="$(pwd)/vendor/bundle/ruby/$RUBY_VERSION"
+
+          # make bundle work in-project
+          export BUNDLE_PATH="$(pwd)/vendor/bundle"
+
+          # enable calling gem scripts without bundle exec
+          export PATH="$GEM_HOME/bin:$PATH"
+
+          # enable implicitly resolving gems to bundled version
+          export RUBYGEMS_GEMDEPS="$(pwd)/Gemfile"
+        '';
       in {
-        devShell = llvm.stdenv.mkDerivation {
+        devShells.default = llvm.stdenv.mkDerivation {
           name = "devshell";
 
           buildInputs = with pkgs; [
@@ -35,22 +52,58 @@
             gcc
           ];
 
-          shellHook = ''
-            # get major.minor.0 ruby version
-            export RUBY_VERSION="$(ruby -e 'puts RUBY_VERSION.gsub(/\d+$/, "0")')"
+          shellHook = hook;
+        };
 
-            # make gem install work in-project, compatibly with bundler
-            export GEM_HOME="$(pwd)/vendor/bundle/ruby/$RUBY_VERSION"
+        devShells.ruby33 = llvm.stdenv.mkDerivation {
+          name = "devshell";
 
-            # make bundle work in-project
-            export BUNDLE_PATH="$(pwd)/vendor/bundle"
+          buildInputs = with pkgs; [
+            ruby_3_3
+            libyaml.dev
 
-            # enable calling gem scripts without bundle exec
-            export PATH="$GEM_HOME/bin:$PATH"
+            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
+            # - json
+            # - protobuf
+            # - ruby-prof
+            gcc
+          ];
 
-            # enable implicitly resolving gems to bundled version
-            export RUBYGEMS_GEMDEPS="$(pwd)/Gemfile"
-          '';
+          shellHook = hook;
+        };
+
+        devShells.ruby32 = llvm.stdenv.mkDerivation {
+          name = "devshell";
+
+          buildInputs = with pkgs; [
+            ruby_3_2
+            libyaml.dev
+
+            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
+            # - json
+            # - protobuf
+            # - ruby-prof
+            gcc
+          ];
+
+          shellHook = hook;
+        };
+
+        devShells.ruby31 = llvm.stdenv.mkDerivation {
+          name = "devshell";
+
+          buildInputs = with pkgs; [
+            ruby_3_2
+            libyaml.dev
+
+            # TODO: some gems insist on using `gcc` on Linux, satisfy them for now:
+            # - json
+            # - protobuf
+            # - ruby-prof
+            gcc
+          ];
+
+          shellHook = hook;
         };
       }
     );
