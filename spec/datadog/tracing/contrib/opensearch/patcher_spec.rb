@@ -98,7 +98,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('http.method')).to eq('DELETE')
       expect(span.get_tag('http.url_details.path')).to eq('ruby-test-index')
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
-      expect(span.resource).to eq("DELETE /#{index_name}")
+      expect(span.resource).to eq("DELETE /ruby-test-index")
     end
   end
 
@@ -145,7 +145,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_metric('http.url_details.port')).to eq(port)
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
       expect(span.name).to eq('opensearch.query')
-      expect(span.resource).to eq("PUT /#{index_name}")
+      expect(span.resource).to eq("PUT /ruby-test-index")
       expect(span.service).to eq('opensearch')
     end
   end
@@ -178,7 +178,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('opensearch.body')).to eq('{"title":"?","director":"?","year":"?"}')
       expect(span.get_tag('opensearch.params')).to eq('{"refresh":true}')
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
-      expect(span.resource).to eq("PUT /#{index_name}/_doc/?")
+      expect(span.resource).to eq("PUT /ruby-test-index/_doc/?")
     end
   end
 
@@ -232,7 +232,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('http.url_details.path')).to eq('ruby-test-index/_search')
       expect(span.get_tag('opensearch.body')).to eq('{"size":"?","query":{"multi_match":{"query":"?","fields":["?"]}}}')
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
-      expect(span.resource).to eq("POST /#{index_name}/_search")
+      expect(span.resource).to eq("POST /ruby-test-index/_search")
     end
   end
 
@@ -271,7 +271,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('http.method')).to eq('DELETE')
       expect(span.get_tag('http.url_details.path')).to eq('ruby-test-index/_doc/1')
       expect(span.get_metric('http.response.content_length')).to be_a(Float)
-      expect(span.resource).to eq("DELETE /#{index_name}/_doc/?")
+      expect(span.resource).to eq("DELETE /ruby-test-index/_doc/?")
     end
   end
 
@@ -304,7 +304,7 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect(span.get_tag('http.status_code')).to eq('400')
       expect(span.get_metric('http.url_details.port')).to eq(port)
       expect(span.name).to eq('opensearch.query')
-      expect(span.resource).to eq("PUT /#{index_name}")
+      expect(span.resource).to eq("PUT /ruby-test-index")
       expect(span.service).to eq('opensearch')
     end
   end
