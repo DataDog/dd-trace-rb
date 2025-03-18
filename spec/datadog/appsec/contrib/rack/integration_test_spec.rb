@@ -1097,14 +1097,14 @@ RSpec.describe 'Rack integration tests' do
           context 'from -1 sampling priority' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.other=1', '_dd.p.appsec=1'],
+                res_tags: ['_dd.p.other=1', '_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1115,14 +1115,14 @@ RSpec.describe 'Rack integration tests' do
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.other=1', '_dd.p.appsec=1'],
+                res_tags: ['_dd.p.other=1', '_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1140,21 +1140,21 @@ RSpec.describe 'Rack integration tests' do
             get url, params, env
           end
 
-          let(:headers_tags) { '_dd.p.appsec=1' }
+          let(:headers_tags) { '_dd.p.ts=02' }
 
           context 'from 0 sampling priority' do
             let(:headers_sampling_priority) { '0' }
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 0 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '0' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1165,14 +1165,14 @@ RSpec.describe 'Rack integration tests' do
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { [1, 2].include?(x) }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { ['1', '2'].include?(x) },
                 res_trace_id: '1212121212121212121'
               }
@@ -1183,14 +1183,14 @@ RSpec.describe 'Rack integration tests' do
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1214,14 +1214,14 @@ RSpec.describe 'Rack integration tests' do
           context 'from -1 sampling priority' do
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1232,14 +1232,14 @@ RSpec.describe 'Rack integration tests' do
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }
@@ -1250,14 +1250,14 @@ RSpec.describe 'Rack integration tests' do
 
             it_behaves_like 'a trace with ASM Standalone tags',
               {
-                tag_appsec_propagation: '1',
+                appsec_bit_in_source: true,
                 tag_sampling_priority_condition: ->(x) { x == 2 }
               }
             it_behaves_like 'a request sent with propagated headers',
               {
                 res_origin: 'rum',
                 res_parent_id_not_equal: '34343434',
-                res_tags: ['_dd.p.appsec=1'],
+                res_tags: ['_dd.p.ts=02'],
                 res_sampling_priority_condition: ->(x) { x == '2' },
                 res_trace_id: '1212121212121212121'
               }

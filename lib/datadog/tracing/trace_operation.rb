@@ -178,6 +178,12 @@ module Datadog
         super || (root_span && root_span.get_metric(key))
       end
 
+      def set_distributed_source(product_bit)
+        source = get_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE)&.to_i(16) || 0
+        source |= product_bit
+        set_tag(Metadata::Ext::Distributed::TAG_TRACE_SOURCE, format('%02X', source))
+      end
+
       def tags
         all_tags = {}
         all_tags.merge!(root_span&.tags || {}) if root_span
