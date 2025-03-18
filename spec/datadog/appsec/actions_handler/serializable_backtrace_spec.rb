@@ -22,16 +22,16 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
     end
 
     it 'correctly serializes stack attributes' do
-      result = pack_and_unpack(described_class.new(locations: [], stack_id: 1))
+      result = pack_and_unpack(described_class.new(locations: [], stack_id: 'some-id'))
 
-      expect(result.fetch('stack_id')).to eq(1)
+      expect(result.fetch('id')).to eq('some-id')
       expect(result.fetch('language')).to eq('ruby')
     end
 
     it 'correctly serializes stack frames' do
       location = location_struct.new('path/to/file.rb', 15, 'SomeModule::SomeClass#some_method')
 
-      result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+      result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
       frames = result.fetch('frames')
 
       expect(frames.size).to eq(1)
@@ -51,7 +51,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       location_2 = location_struct.new('lib/datadog/file.rb', 25, 'Datadog::SomeClass.some_method')
       location_3 = location_struct.new('path/to/another/file.rb', 30, 'AnotherModule.another_method')
 
-      result = pack_and_unpack(described_class.new(locations: [location_1, location_2, location_3], stack_id: 1))
+      result = pack_and_unpack(described_class.new(locations: [location_1, location_2, location_3], stack_id: 'some-id'))
       frames = result.fetch('frames')
 
       expect(frames.size).to eq(2)
@@ -68,7 +68,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
         location_struct.new("path/to/file_#{i}.rb", 10, "SomeModule::SomeClass#some_method_#{i}")
       end
 
-      result = pack_and_unpack(described_class.new(locations: locations, stack_id: 1))
+      result = pack_and_unpack(described_class.new(locations: locations, stack_id: 'some-id'))
       frames = result.fetch('frames')
 
       expect(frames.size).to eq(40)
@@ -92,7 +92,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       it 'parses labels with plain function names' do
         location = location_struct.new('path/to/file.rb', 15, 'some_method')
 
-        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
         frame = result.fetch('frames')[0]
 
         aggregate_failures('frame attributes') do
@@ -104,7 +104,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       it 'parses instance function names' do
         location = location_struct.new('path/to/file.rb', 15, 'SomeClass#some_method')
 
-        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
         frame = result.fetch('frames')[0]
 
         aggregate_failures('frame attributes') do
@@ -116,7 +116,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       it 'parses class function names' do
         location = location_struct.new('path/to/file.rb', 15, 'SomeClass.some_class_method')
 
-        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
         frame = result.fetch('frames')[0]
 
         aggregate_failures('frame attributes') do
@@ -128,7 +128,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       it 'parses namespaced class names' do
         location = location_struct.new('path/to/file.rb', 15, 'SomeModule::SomeClass#some_method')
 
-        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
         frame = result.fetch('frames')[0]
 
         aggregate_failures('frame attributes') do
@@ -141,7 +141,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
         location_one = location_struct.new('path/to/file.rb', 15, 'block in some_method')
         location_two = location_struct.new('path/to/file.rb', 15, 'block (2 levels) in SomeClass.some_method')
 
-        result = pack_and_unpack(described_class.new(locations: [location_one, location_two], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location_one, location_two], stack_id: 'some-id'))
         frames = result.fetch('frames')
 
         aggregate_failures('for first level blocks') do
@@ -158,7 +158,7 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       it 'parses labels for top scope' do
         location = location_struct.new('path/to/file.rb', 15, 'block (3 levels) in <top (required)>')
 
-        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 1))
+        result = pack_and_unpack(described_class.new(locations: [location], stack_id: 'some-id'))
         frame = result.fetch('frames')[0]
 
         aggregate_failures('frame attributes') do

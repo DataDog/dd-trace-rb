@@ -2,7 +2,7 @@ module Datadog
   module AppSec
     module ActionsHandler
       class SerializableBacktrace
-        def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: String | Symbol | Integer) -> void
+        def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: String) -> void
         def to_msgpack: (?untyped? packer) -> void
       end
     end

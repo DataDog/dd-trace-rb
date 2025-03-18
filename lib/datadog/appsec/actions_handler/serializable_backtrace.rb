@@ -39,11 +39,11 @@ module Datadog
 
           packer.write_map_header(3)
 
-          packer.write('stack_id')
-          packer.write(@stack_id)
+          packer.write('id')
+          packer.write(@stack_id.encode('UTF-8'))
 
           packer.write('language')
-          packer.write('ruby')
+          packer.write('ruby'.encode('UTF-8'))
 
           packer.write('frames')
           packer.write_array_header(@serializable_locations_map.size)
@@ -55,10 +55,10 @@ module Datadog
             packer.write(frame_id)
 
             packer.write('text')
-            packer.write(location.to_s)
+            packer.write(location.to_s.encode('UTF-8'))
 
             packer.write('file')
-            packer.write(location.path)
+            packer.write(location.path&.encode('UTF-8'))
 
             packer.write('line')
             packer.write(location.lineno)
@@ -66,10 +66,10 @@ module Datadog
             class_name, function_name = location.label.match(/\b([\w+:{2}]*\w+)?[#|.]?\b(\w+)\z/)&.captures
 
             packer.write('class_name')
-            packer.write(class_name)
+            packer.write(class_name&.encode('UTF-8'))
 
             packer.write('function')
-            packer.write(function_name)
+            packer.write(function_name&.encode('UTF-8'))
           end
 
           packer

@@ -37,7 +37,6 @@ module Datadog
         return if existing_stack_data[event_category].count >= Datadog.configuration.appsec.stack_trace.max_stack_traces
 
         backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
-
         existing_stack_data[event_category] << backtrace
         active_span.set_metastruct_tag(tag_key, existing_stack_data)
       end
