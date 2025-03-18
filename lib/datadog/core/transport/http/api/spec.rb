@@ -13,7 +13,7 @@ module Datadog
             class EndpointNotDefinedError < StandardError
               attr_reader :spec, :endpoint_name
 
-              def initialize(spec, endpoint_name)
+              def initialize(endpoint_name, spec)
                 @spec = spec
                 @endpoint_name = endpoint_name
 

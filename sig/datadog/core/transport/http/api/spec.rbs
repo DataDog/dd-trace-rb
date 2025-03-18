@@ -13,7 +13,7 @@ module Datadog
 
               attr_reader endpoint_name: untyped
 
-              def initialize: (untyped spec, untyped endpoint_name) -> void
+              def initialize: (untyped endpoint_name, untyped spec) -> void
 
               def message: () -> ::String
             end

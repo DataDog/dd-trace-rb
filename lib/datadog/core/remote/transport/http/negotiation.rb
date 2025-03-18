@@ -50,7 +50,7 @@ module Datadog
                 end
 
                 def send_info(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'info') if info.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('info', self) if info.nil?
 
                   info.call(env, &block)
                 end
@@ -61,8 +61,8 @@ module Datadog
                 def send_info(env)
                   unless spec.is_a?(Negotiation::API::Spec)
                     raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                      self,
-                      'info'
+
+                      'info',self
                     )
                   end
 

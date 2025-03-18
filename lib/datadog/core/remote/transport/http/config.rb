@@ -177,7 +177,7 @@ module Datadog
                 end
 
                 def send_config(env, &block)
-                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'config') if config.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
 
                   config.call(env, &block)
                 end
@@ -188,8 +188,8 @@ module Datadog
                 def send_config(env)
                   unless spec.is_a?(Config::API::Spec)
                     raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                      self,
-                      'config'
+
+                      'config',self
                     )
                   end
 

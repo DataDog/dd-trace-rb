@@ -18,7 +18,7 @@ module Datadog
           module API
             module Instance
               def send_diagnostics(env)
-                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'diagnostics') unless spec.is_a?(Diagnostics::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('diagnostics', self) unless spec.is_a?(Diagnostics::API::Spec)
 
                 spec.send_diagnostics(env) do |request_env|
                   call(request_env)
@@ -30,7 +30,7 @@ module Datadog
               attr_accessor :diagnostics
 
               def send_diagnostics(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'diagnostics') if diagnostics.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('diagnostics', self) if diagnostics.nil?
 
                 diagnostics.call(env, &block)
               end

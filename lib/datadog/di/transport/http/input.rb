@@ -18,7 +18,7 @@ module Datadog
           module API
             module Instance
               def send_input(env)
-                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(self, 'input') unless spec.is_a?(Input::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('input', self) unless spec.is_a?(Input::API::Spec)
 
                 spec.send_input(env) do |request_env|
                   call(request_env)
@@ -30,7 +30,7 @@ module Datadog
               attr_accessor :input
 
               def send_input(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'input') if input.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('input', self) if input.nil?
 
                 input.call(env, &block)
               end

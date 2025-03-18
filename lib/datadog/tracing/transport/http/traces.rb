@@ -44,7 +44,7 @@ module Datadog
               end
 
               def send_traces(env, &block)
-                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new(self, 'traces') if traces.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('traces', self) if traces.nil?
 
                 traces.call(env, &block)
               end
@@ -59,8 +59,8 @@ module Datadog
               def send_traces(env)
                 unless spec.is_a?(Traces::API::Spec)
                   raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
-                    self,
-                    'traces'
+
+                    'traces',self
                   )
                 end
 
