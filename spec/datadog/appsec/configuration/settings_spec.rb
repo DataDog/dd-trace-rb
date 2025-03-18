@@ -735,6 +735,54 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
       end
     end
 
+    describe 'stack_trace.max_stack_traces' do
+      subject(:stack_trace_max_stack_traces) { settings.appsec.stack_trace.max_stack_traces }
+
+      context 'when DD_APPSEC_MAX_STACK_TRACES' do
+        around do |example|
+          ClimateControl.modify('DD_APPSEC_MAX_STACK_TRACES' => env_var_value) do
+            example.run
+          end
+        end
+
+        context 'is not defined' do
+          let(:env_var_value) { nil }
+
+          it { is_expected.to eq 2 }
+        end
+
+        context 'is defined' do
+          let(:env_var_value) { '4' }
+
+          it { is_expected.to eq(4) }
+        end
+      end
+    end
+
+    describe 'stack_trace.max_stack_traces=' do
+      subject(:set_stack_trace_max_stack_traces) { settings.appsec.stack_trace.max_stack_traces = config_value }
+
+      before { set_stack_trace_max_stack_traces }
+
+      context 'given a correct value' do
+        let(:config_value) { 5 }
+
+        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(5) }
+      end
+
+      context 'given a value less than 1' do
+        let(:config_value) { 0 }
+
+        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(1) }
+      end
+
+      context 'given a value less than 0' do
+        let(:config_value) { -100 }
+
+        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(1) }
+      end
+    end
+
     describe 'auto_user_instrumentation.mode' do
       before { allow(Datadog).to receive(:logger).and_return(logger) }
 

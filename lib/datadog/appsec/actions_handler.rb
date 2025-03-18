@@ -22,16 +22,24 @@ module Datadog
       end
 
       def generate_stack(action_params)
-        return unless Datadog.configuration.appsec.stack_trace.enabled
-
-        # TODO: check how many stack traces we already collected
-
         stack_id = action_params['stack_id']
         return unless stack_id
 
-        _backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
+        return unless Datadog.configuration.appsec.stack_trace.enabled
 
-        # TODO: add stack frames to span metastruct
+        active_span = AppSec.active_context&.span
+        return unless active_span
+
+        event_category = Datadog::AppSec::Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY
+        tag_key = Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE
+
+        existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || { event_category => [] }
+        return if existing_stack_data[event_category].count >= Datadog.configuration.appsec.stack_trace.max_stack_traces
+
+        backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
+
+        existing_stack_data[event_category] << backtrace
+        active_span.set_metastruct_tag(tag_key, existing_stack_data)
       end
 
       def generate_schema(_action_params); end

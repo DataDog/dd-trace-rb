@@ -205,6 +205,20 @@ module Datadog
                     value
                   end
                 end
+
+                # Maximum number of stack traces to collect per span.
+                #
+                # Default value is 2
+                option :max_stack_traces do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACES'
+                  o.default 2
+
+                  o.setter do |value|
+                    value = 1 if value < 1
+                    value
+                  end
+                end
               end
 
               settings :auto_user_instrumentation do
