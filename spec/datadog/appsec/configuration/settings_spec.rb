@@ -680,10 +680,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         it { expect(settings.appsec.stack_trace.max_depth).to eq(50) }
       end
 
-      context 'given a value less than 10' do
-        let(:config_value) { 5 }
+      context 'given a value less than 0' do
+        let(:config_value) { -5 }
 
-        it { expect(settings.appsec.stack_trace.max_depth).to eq(10) }
+        it { expect(settings.appsec.stack_trace.max_depth).to eq(0) }
       end
     end
 
@@ -770,16 +770,10 @@ RSpec.describe Datadog::AppSec::Configuration::Settings do
         it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(5) }
       end
 
-      context 'given a value less than 1' do
-        let(:config_value) { 0 }
-
-        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(1) }
-      end
-
       context 'given a value less than 0' do
-        let(:config_value) { -100 }
+        let(:config_value) { -1 }
 
-        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(1) }
+        it { expect(settings.appsec.stack_trace.max_stack_traces).to eq(0) }
       end
     end
 

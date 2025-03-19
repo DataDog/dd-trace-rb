@@ -88,6 +88,19 @@ RSpec.describe Datadog::AppSec::ActionsHandler::SerializableBacktrace do
       end
     end
 
+    it 'does not drop frames when appsec.stack_trace.max_depth is set to 0' do
+      Datadog.configuration.appsec.stack_trace.max_depth = 0
+
+      locations = 0.upto(49).map do |i|
+        location_struct.new("path/to/file_#{i}.rb", 10, "SomeModule::SomeClass#some_method_#{i}")
+      end
+
+      result = pack_and_unpack(described_class.new(locations: locations, stack_id: 'some-id'))
+      frames = result.fetch('frames')
+
+      expect(frames.size).to eq(50)
+    end
+
     context 'class and function name parsing' do
       it 'parses labels with plain function names' do
         location = location_struct.new('path/to/file.rb', 15, 'some_method')

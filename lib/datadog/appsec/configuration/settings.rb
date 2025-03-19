@@ -178,6 +178,7 @@ module Datadog
                 # (this percentage is also configurable).
                 #
                 # Minimum value is 10.
+                # Set to zero if you don't want any frames to be dropped.
                 #
                 # Default value is 32
                 option :max_depth do |o|
@@ -186,7 +187,7 @@ module Datadog
                   o.default 32
 
                   o.setter do |value|
-                    value = 10 if value < 10
+                    value = 0 if value < 0
                     value
                   end
                 end
@@ -208,6 +209,8 @@ module Datadog
 
                 # Maximum number of stack traces to collect per span.
                 #
+                # Set to zero if you want to collect all stack traces.
+                #
                 # Default value is 2
                 option :max_stack_traces do |o|
                   o.type :int
@@ -215,7 +218,7 @@ module Datadog
                   o.default 2
 
                   o.setter do |value|
-                    value = 1 if value < 1
+                    value = 0 if value < 0
                     value
                   end
                 end

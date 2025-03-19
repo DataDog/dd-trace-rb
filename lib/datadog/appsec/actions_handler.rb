@@ -22,10 +22,10 @@ module Datadog
       end
 
       def generate_stack(action_params)
+        return unless Datadog.configuration.appsec.stack_trace.enabled
+
         stack_id = action_params['stack_id']
         return unless stack_id
-
-        return unless Datadog.configuration.appsec.stack_trace.enabled
 
         active_span = AppSec.active_context&.span
         return unless active_span
@@ -34,7 +34,8 @@ module Datadog
         tag_key = Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE
 
         existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || { event_category => [] }
-        return if existing_stack_data[event_category].count >= Datadog.configuration.appsec.stack_trace.max_stack_traces
+        max_stack_traces = Datadog.configuration.appsec.stack_trace.max_stack_traces
+        return if max_stack_traces != 0 && existing_stack_data[event_category].count >= max_stack_traces
 
         backtrace = SerializableBacktrace.new(locations: Array(caller_locations), stack_id: stack_id)
         existing_stack_data[event_category] << backtrace

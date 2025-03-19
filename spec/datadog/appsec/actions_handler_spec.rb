@@ -108,6 +108,10 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       allow(Datadog::AppSec).to receive(:active_context).and_return(active_context)
     end
 
+    after do
+      Datadog.configuration.appsec.reset!
+    end
+
     context 'when metastruct _dd.stack tag is empty' do
       it 'adds serializable stack trace' do
         expect(active_span).to receive(:set_metastruct_tag).with(
@@ -149,6 +153,26 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
         expect do
           described_class.generate_stack(action_params)
         end.not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
+      end
+    end
+
+    context 'when metastruct _dd.stack tag already has 2 elements, but max_stack_traces is set to zero' do
+      before do
+        Datadog.configuration.appsec.stack_trace.max_stack_traces = 0
+
+        active_span.set_metastruct_tag(
+          Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
+          { 'exploit' => [1, 2] }
+        )
+      end
+
+      it 'adds new stack trace to existing stack trace' do
+        expect(active_span).to receive(:set_metastruct_tag).with(
+          Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE,
+          { 'exploit' => [1, 2, instance_of(Datadog::AppSec::ActionsHandler::SerializableBacktrace)] }
+        )
+
+        described_class.generate_stack(action_params)
       end
     end
 

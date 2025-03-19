@@ -27,7 +27,7 @@ module Datadog
 
             frame_idx += 1
 
-            next if frame_idx >= drop_from_idx && frame_idx < drop_until_idx
+            next if max_depth != 0 && frame_idx >= drop_from_idx && frame_idx < drop_until_idx
 
             map[frame_idx] = location
           end
