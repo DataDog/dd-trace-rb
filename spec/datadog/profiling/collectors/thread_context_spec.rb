@@ -79,7 +79,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   # have any code coverage of this cache during tests, since in production we always use it. Yay complexity! :)
 
   def sample(profiler_overhead_stack_thread: Thread.current, reset_monotonic_to_system_state: false, allow_exception: false)
-    handle_reset_request(reset_monotonic_to_system_state)
+    maybe_reset_monotonic_to_system_state(reset_monotonic_to_system_state)
 
     described_class::Testing._native_sample(cpu_and_wall_time_collector, profiler_overhead_stack_thread, allow_exception)
   end
@@ -93,7 +93,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def sample_after_gc(reset_monotonic_to_system_state: false, allow_exception: false)
-    handle_reset_request(reset_monotonic_to_system_state)
+    maybe_reset_monotonic_to_system_state(reset_monotonic_to_system_state)
 
     described_class::Testing._native_sample_after_gc(cpu_and_wall_time_collector, allow_exception)
   end
@@ -107,7 +107,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   def on_gvl_waiting(thread, reset_monotonic_to_system_state: false)
-    handle_reset_request(reset_monotonic_to_system_state)
+    maybe_reset_monotonic_to_system_state(reset_monotonic_to_system_state)
 
     described_class::Testing._native_on_gvl_waiting(thread)
   end
@@ -145,7 +145,7 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
       ._native_apply_delta_to_cpu_time_at_previous_sample_ns(cpu_and_wall_time_collector, thread, delta_ns)
   end
 
-  def handle_reset_request(do_reset)
+  def maybe_reset_monotonic_to_system_state(do_reset)
     described_class::Testing._native_reset_monotonic_to_system_state(cpu_and_wall_time_collector) if do_reset
   end
 
