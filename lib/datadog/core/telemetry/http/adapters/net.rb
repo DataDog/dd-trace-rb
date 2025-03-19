@@ -21,7 +21,7 @@ module Datadog
               @hostname = hostname
               @port = port
               @timeout = timeout
-              @ssl = ssl.nil? ? true : ssl
+              @ssl = ssl.nil? || ssl
             end
 
             def open(&block)

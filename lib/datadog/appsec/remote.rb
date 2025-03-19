@@ -53,10 +53,12 @@ module Datadog
         end
 
         # rubocop:disable Metrics/MethodLength
+        # rubocop:disable Metrics/CyclomaticComplexity
         def receivers(telemetry)
           return [] unless remote_features_enabled?
 
           matcher = Core::Remote::Dispatcher::Matcher::Product.new(ASM_PRODUCTS)
+          # rubocop:disable Metrics/BlockLength
           receiver = Core::Remote::Dispatcher::Receiver.new(matcher) do |repository, changes|
             changes.each do |change|
               Datadog.logger.debug { "remote config change: '#{change.path}'" }
@@ -67,6 +69,7 @@ module Datadog
             data = []
             overrides = []
             exclusions = []
+            actions = []
 
             repository.contents.each do |content|
               parsed_content = parse_content(content)
@@ -80,6 +83,7 @@ module Datadog
                 overrides << parsed_content['rules_override'] if parsed_content['rules_override']
                 exclusions << parsed_content['exclusions'] if parsed_content['exclusions']
                 custom_rules << parsed_content['custom_rules'] if parsed_content['custom_rules']
+                actions.concat(parsed_content['actions']) if parsed_content['actions']
               end
             end
 
@@ -97,6 +101,7 @@ module Datadog
             ruleset = AppSec::Processor::RuleMerger.merge(
               rules: rules,
               data: data,
+              actions: actions,
               overrides: overrides,
               exclusions: exclusions,
               custom_rules: custom_rules,
@@ -109,10 +114,12 @@ module Datadog
               content.applied if ASM_PRODUCTS.include?(content.path.product)
             end
           end
+          # rubocop:enable Metrics/BlockLength
 
           [receiver]
         end
         # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/CyclomaticComplexity
 
         private
 

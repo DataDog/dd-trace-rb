@@ -31,11 +31,11 @@ gem "lograge", "~> 0.11"
 gem "i18n", "1.8.7", platform: :jruby
 gem "redis-rails"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 
