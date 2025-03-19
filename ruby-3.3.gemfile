@@ -26,15 +26,15 @@ gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
 # debug permits evaluating more expressions than byebug, however
 # debug does not show context on stack navigation.
-gem 'byebug'
 gem 'debug'
+gem 'byebug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
 gem 'rspec', '~> 3.13'
 gem 'rspec-collection_matchers', '~> 1.1'
-gem 'rspec_junit_formatter', '>= 0.5.1'
 gem 'rspec-wait', '~> 0'
+gem 'rspec_junit_formatter', '>= 0.5.1'
 
 gem 'simplecov', '~> 0.22.0'
 gem 'simplecov-cobertura', '~> 2.1.0' # Used by codecov
@@ -46,8 +46,8 @@ gem 'webrick', '>= 1.7.0'
 group :check do
   gem 'rbs', '~> 3.7', require: false
   # steep 1.10 produces additional errors
-  gem 'standard', require: false
   gem 'steep', '~> 1.9.1', require: false
+  gem 'standard', require: false
 
   # Rubocop version must be pinned to major.minor because its demanded
   # style changes between minor versions.
@@ -60,11 +60,7 @@ group :check do
 end
 
 group :dev do
+  gem 'ruby-lsp', require: false
   gem 'appraisal', '~> 2.4.0', require: false
   gem 'pimpmychangelog', '~> 0.1.3', require: false
-  gem 'ruby-lsp', require: false
 end
-
-gem 'rack'
-gem 'rack-contrib'
-gem 'rack-test'
