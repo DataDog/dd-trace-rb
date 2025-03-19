@@ -150,9 +150,8 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
       end
 
       it 'does not add stack trace to metastruct' do
-        expect do
-          described_class.generate_stack(action_params)
-        end.not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
+        expect { described_class.generate_stack(action_params) }
+          .not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
       end
     end
 
@@ -177,25 +176,22 @@ RSpec.describe Datadog::AppSec::ActionsHandler do
     end
 
     it 'does nothing when stack_id is missing' do
-      expect do
-        described_class.generate_stack({})
-      end.not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
+      expect { described_class.generate_stack({}) }
+        .not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
     end
 
     it 'does nothing when stack trace is disabled' do
       allow(Datadog.configuration.appsec.stack_trace).to receive(:enabled).and_return(false)
 
-      expect do
-        described_class.generate_stack({})
-      end.not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
+      expect { described_class.generate_stack({}) }
+        .not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
     end
 
     it 'does nothing when there is no active span' do
       allow(active_context).to receive(:span).and_return(nil)
 
-      expect do
-        described_class.generate_stack({})
-      end.not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
+      expect { described_class.generate_stack({}) }
+        .not_to(change { active_span.get_metastruct_tag(Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE) })
     end
   end
 end
