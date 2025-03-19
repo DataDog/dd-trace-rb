@@ -1,16 +1,13 @@
 require 'datadog'
-require 'datadog/tracing/distributed/circuit_breaker'
+require 'datadog/tracing/distributed/skip_policy'
 
-RSpec.describe Datadog::Tracing::Distributed::CircuitBreaker do
-  subject(:circuit_breaker) { circuit_breaker_class.new }
-
-  let(:circuit_breaker_class) { Class.new { include Datadog::Tracing::Distributed::CircuitBreaker } }
-
-  describe '#should_skip_distributed_tracing?' do
-    subject(:should_skip_distributed_tracing?) do
-      circuit_breaker.send(
-        :should_skip_distributed_tracing?,
-        **{ contrib_client_config: contrib_client_config, contrib_datadog_config: contrib_datadog_config, trace: trace }
+RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
+  describe '#skip?' do
+    subject(:skip?) do
+      described_class.skip?(
+        contrib_client_config: contrib_client_config,
+        contrib_datadog_config: contrib_datadog_config,
+        trace: trace
       )
     end
 

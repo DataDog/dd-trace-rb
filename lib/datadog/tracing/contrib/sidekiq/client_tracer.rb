@@ -24,7 +24,7 @@ module Datadog
             resource = job_resource(job)
 
             Datadog::Tracing.trace(Ext::SPAN_PUSH, service: @sidekiq_service) do |span, trace_op|
-              unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+              unless Tracing::Distributed::SkipPolicy.skip?(
                 contrib_datadog_config: configuration,
                 trace: trace_op
               )

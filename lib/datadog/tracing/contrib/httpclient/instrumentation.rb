@@ -30,7 +30,7 @@ module Datadog
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Tracing.enabled? && !Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+                  if Tracing.enabled? && !Tracing::Distributed::SkipPolicy.skip?(
                     contrib_client_config: client_config,
                     contrib_datadog_config: Datadog.configuration.tracing[:httpclient],
                     trace: trace

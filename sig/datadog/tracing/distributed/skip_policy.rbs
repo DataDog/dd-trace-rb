@@ -1,0 +1,9 @@
+module Datadog
+  module Tracing
+    module Distributed
+      module SkipPolicy
+        def self.skip?: (?contrib_client_config: Hash[Symbol, untyped]?, ?contrib_datadog_config: Datadog::Tracing::Contrib::Configuration::Settings?, ?trace: Datadog::Tracing::TraceOperation?) -> bool
+      end
+    end
+  end
+end

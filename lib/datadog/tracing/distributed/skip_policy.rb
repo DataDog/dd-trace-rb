@@ -4,12 +4,12 @@ module Datadog
   module Tracing
     module Distributed
       # Helper method to decide when to skip distributed tracing
-      module CircuitBreaker
+      module SkipPolicy
         module_function
 
         # Skips distributed tracing if disabled for this instrumentation
         # or if APM is disabled unless there is an AppSec event (from upstream distributed trace or local)
-        def should_skip_distributed_tracing?(contrib_client_config: nil, contrib_datadog_config: nil, trace: nil)
+        def skip?(contrib_client_config: nil, contrib_datadog_config: nil, trace: nil)
           if ::Datadog.configuration.appsec.standalone.enabled &&
               (trace.nil? || trace.get_tag(::Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
             return true

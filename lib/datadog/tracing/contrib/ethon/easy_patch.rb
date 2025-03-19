@@ -110,7 +110,7 @@ module Datadog
 
               datadog_tag_request
 
-              unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+              unless Tracing::Distributed::SkipPolicy.skip?(
                 contrib_datadog_config: datadog_configuration,
                 trace: datadog_trace
               )

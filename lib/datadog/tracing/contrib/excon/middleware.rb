@@ -30,7 +30,7 @@ module Datadog
                 trace = Tracing.active_trace
                 datum[:datadog_span] = span
                 annotate!(span, datum)
-                if Tracing.enabled? && !Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+                if Tracing.enabled? && !Tracing::Distributed::SkipPolicy.skip?(
                   contrib_datadog_config: @options,
                   trace: trace
                 )

@@ -81,7 +81,7 @@ module Datadog
               # Set analytics sample rate
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
-              unless Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+              unless Tracing::Distributed::SkipPolicy.skip?(
                 contrib_datadog_config: Datadog.configuration_for(self) || datadog_configuration,
                 trace: trace
               )

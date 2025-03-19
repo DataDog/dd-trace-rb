@@ -29,7 +29,7 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
-              if Tracing.enabled? && !Tracing::Distributed::CircuitBreaker.should_skip_distributed_tracing?(
+              if Tracing.enabled? && !Tracing::Distributed::SkipPolicy.skip?(
                 contrib_datadog_config: request_options,
                 trace: trace
               )
