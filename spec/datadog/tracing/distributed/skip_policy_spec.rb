@@ -5,70 +5,98 @@ require 'datadog/tracing/distributed/skip_policy'
 
 RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
   describe '#skip?' do
-    subject(:skip?) do
-      described_class.skip?(
-        contrib_client_config: contrib_client_config,
-        contrib_datadog_config: contrib_datadog_config,
-        trace: trace
-      )
-    end
-
-    let(:contrib_client_config) { nil }
-    let(:contrib_datadog_config) { { distributed_tracing: true } }
-    let(:appsec_standalone) { false }
-    let(:trace) { nil }
-    let(:distributed_appsec_event) { nil }
-
-    before do
-      allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(appsec_standalone)
-      allow(trace).to receive(:get_tag).with('_dd.p.appsec').and_return(distributed_appsec_event) if trace
-    end
-
     context 'when distributed tracing in datadog_config is enabled' do
-      it { is_expected.to be false }
+      let(:result) do
+        described_class.skip?(
+          contrib_datadog_config: { distributed_tracing: true }
+        )
+      end
+
+      it { expect(result).to be false }
     end
 
     context 'when distributed tracing in datadog_config is disabled' do
-      let(:contrib_datadog_config) { { distributed_tracing: false } }
+      let(:result) do
+        described_class.skip?(
+          contrib_datadog_config: { distributed_tracing: false }
+        )
+      end
 
-      it { is_expected.to be true }
+      it { expect(result).to be true }
     end
 
     context 'when appsec standalone is enabled' do
-      let(:appsec_standalone) { true }
-
       context 'when there is no active trace' do
-        it { is_expected.to be true }
+        before do
+          allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true)
+        end
+
+        let(:result) do
+          described_class.skip?(
+            contrib_datadog_config: { distributed_tracing: true }
+          )
+        end
+
+        it { expect(result).to be true }
       end
 
       context 'when there is an active trace' do
-        let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
-
         context 'when the active trace has no distributed appsec event' do
-          it { is_expected.to be true }
+          before do
+            allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true)
+            allow(trace).to receive(:get_tag).with('_dd.p.appsec').and_return(nil)
+          end
+
+          let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
+
+          let(:result) do
+            described_class.skip?(
+              contrib_datadog_config: { distributed_tracing: true },
+              trace: trace
+            )
+          end
+
+          it { expect(result).to be true }
         end
 
         context 'when the active trace has a distributed appsec event' do
-          # This should act like standalone appsec is disabled, as it does not return in the
-          # `if Datadog.configuration.appsec.standalone.enabled` block
-          # so we're only testing the "no client config, distributed tracing enabled" case here
-          let(:distributed_appsec_event) { '1' }
+          before do
+            allow(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(true)
+            allow(trace).to receive(:get_tag).with('_dd.p.appsec').and_return('1')
+          end
 
-          it { is_expected.to be false }
+          let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
+
+          let(:result) do
+            described_class.skip?(
+              contrib_datadog_config: { distributed_tracing: true },
+              trace: trace
+            )
+          end
+
+          it { expect(result).to be false }
         end
       end
     end
 
     context 'given a client config with distributed_tracing disabled' do
-      let(:contrib_client_config) { { distributed_tracing: false } }
+      let(:result) do
+        described_class.skip?(
+          contrib_client_config: Datadog::Core::Pin.new(distributed_tracing: false)
+        )
+      end
 
-      it { is_expected.to be true }
+      it { expect(result).to be true }
     end
 
     context 'given a client config with distributed_tracing enabled' do
-      let(:contrib_client_config) { { distributed_tracing: true } }
+      let(:result) do
+        described_class.skip?(
+          contrib_client_config: Datadog::Core::Pin.new(distributed_tracing: true)
+        )
+      end
 
-      it { is_expected.to be false }
+      it { expect(result).to be false }
     end
   end
 end
