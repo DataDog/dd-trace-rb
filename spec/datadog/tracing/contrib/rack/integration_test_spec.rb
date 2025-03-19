@@ -55,12 +55,12 @@ RSpec.describe 'Rack integration tests' do
 
     unless remote_enabled
       Datadog.configure do |c|
+        c.apm.tracing.enabled = apm_tracing_enabled
+
         c.remote.enabled = false
         c.tracing.instrument :rack, rack_options
         # Required for APM disablement tests with distributed tracing as rack can extract but not inject headers
         c.tracing.instrument :http if instrument_http
-
-        c.appsec.standalone.enabled = !apm_tracing_enabled
       end
     end
   end

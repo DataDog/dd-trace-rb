@@ -26,6 +26,7 @@ module Datadog
         end
 
         module Distributed
+          TAG_TRACE_SOURCE: ::String
           TAG_DECISION_MAKER: ::String
           TAG_ORIGIN: ::String
           TAG_SAMPLING_PRIORITY: ::String
