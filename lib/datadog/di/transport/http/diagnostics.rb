@@ -18,24 +18,10 @@ module Datadog
           module API
             module Instance
               def send_diagnostics(env)
-                raise DiagnosticsNotSupportedError, spec unless spec.is_a?(Diagnostics::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('diagnostics', self) unless spec.is_a?(Diagnostics::API::Spec)
 
                 spec.send_diagnostics(env) do |request_env|
                   call(request_env)
-                end
-              end
-
-              class DiagnosticsNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Diagnostics not supported for this API!'
                 end
               end
             end
@@ -44,23 +30,9 @@ module Datadog
               attr_accessor :diagnostics
 
               def send_diagnostics(env, &block)
-                raise NoDiagnosticsEndpointDefinedError, self if diagnostics.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('diagnostics', self) if diagnostics.nil?
 
                 diagnostics.call(env, &block)
-              end
-
-              class NoDiagnosticsEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No diagnostics endpoint is defined for API specification!'
-                end
               end
             end
 
@@ -79,7 +51,7 @@ module Datadog
                 )
                 env.form = {'event' => event_payload}
 
-                super(env, &block)
+                super
               end
             end
           end
