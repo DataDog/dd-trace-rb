@@ -36,8 +36,8 @@ module Datadog
                 span.resource = req.method
 
                 if Tracing.enabled? && !Tracing::Distributed::SkipPolicy.skip?(
-                  contrib_client_config: client_config,
-                  contrib_datadog_config: Datadog.configuration.tracing[:http],
+                  pin_config: client_config,
+                  global_config: Datadog.configuration.tracing[:http],
                   trace: trace
                 )
                   Contrib::HTTP.inject(trace, req)

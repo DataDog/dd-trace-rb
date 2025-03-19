@@ -111,7 +111,7 @@ module Datadog
               datadog_tag_request
 
               unless Tracing::Distributed::SkipPolicy.skip?(
-                contrib_datadog_config: datadog_configuration,
+                global_config: datadog_configuration,
                 trace: datadog_trace
               )
                 @datadog_original_headers ||= {}

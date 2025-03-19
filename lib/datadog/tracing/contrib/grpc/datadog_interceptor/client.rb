@@ -82,8 +82,8 @@ module Datadog
               Contrib::Analytics.set_sample_rate(span, analytics_sample_rate) if analytics_enabled?
 
               unless Tracing::Distributed::SkipPolicy.skip?(
-                contrib_client_config: Datadog.configuration_for(self),
-                contrib_datadog_config: datadog_configuration,
+                pin_config: Datadog.configuration_for(self),
+                global_config: datadog_configuration,
                 trace: trace
               )
                 GRPC.inject(trace, metadata)

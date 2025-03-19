@@ -8,7 +8,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
     context 'when distributed tracing in datadog_config is enabled' do
       let(:result) do
         described_class.skip?(
-          contrib_datadog_config: { distributed_tracing: true }
+          global_config: { distributed_tracing: true }
         )
       end
 
@@ -18,7 +18,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
     context 'when distributed tracing in datadog_config is disabled' do
       let(:result) do
         described_class.skip?(
-          contrib_datadog_config: { distributed_tracing: false }
+          global_config: { distributed_tracing: false }
         )
       end
 
@@ -33,7 +33,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
 
         let(:result) do
           described_class.skip?(
-            contrib_datadog_config: { distributed_tracing: true }
+            global_config: { distributed_tracing: true }
           )
         end
 
@@ -51,7 +51,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
 
           let(:result) do
             described_class.skip?(
-              contrib_datadog_config: { distributed_tracing: true },
+              global_config: { distributed_tracing: true },
               trace: trace
             )
           end
@@ -69,7 +69,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
 
           let(:result) do
             described_class.skip?(
-              contrib_datadog_config: { distributed_tracing: true },
+              global_config: { distributed_tracing: true },
               trace: trace
             )
           end
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
     context 'given a client config with distributed_tracing disabled' do
       let(:result) do
         described_class.skip?(
-          contrib_client_config: Datadog::Core::Pin.new(distributed_tracing: false)
+          pin_config: Datadog::Core::Pin.new(distributed_tracing: false)
         )
       end
 
@@ -92,7 +92,7 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
     context 'given a client config with distributed_tracing enabled' do
       let(:result) do
         described_class.skip?(
-          contrib_client_config: Datadog::Core::Pin.new(distributed_tracing: true)
+          pin_config: Datadog::Core::Pin.new(distributed_tracing: true)
         )
       end
 
