@@ -25,7 +25,10 @@ gem 'json-schema', '< 3' # V3 only works with 2.5+
 gem 'memory_profiler', '~> 0.9'
 gem 'os', '~> 1.1'
 
+# debug permits evaluating more expressions than byebug, however
+# debug does not show context on stack navigation.
 gem 'debug'
+gem 'byebug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
@@ -42,7 +45,8 @@ gem 'webrick', '>= 1.7.0'
 
 group :check do
   gem 'rbs', '~> 3.7', require: false
-  gem 'steep', '~> 1', '>= 1.9.1', require: false
+  # steep 1.10 produces additional errors
+  gem 'steep', '~> 1.9.1', require: false
   gem 'standard', require: false
 
   # Rubocop version must be pinned to major.minor because its demanded

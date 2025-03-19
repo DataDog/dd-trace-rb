@@ -8,6 +8,7 @@ require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
+require 'datadog/core/configuration/settings_spec'
 
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
@@ -501,6 +502,23 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
         expect { settings.tracing.report_hostname = true }
           .to change { settings.tracing.report_hostname }
           .from(false)
+          .to(true)
+      end
+    end
+
+    describe '#native_span_events' do
+      subject(:native_span_events) { settings.tracing.native_span_events }
+
+      it_behaves_like 'a binary setting with',
+        env_variable: 'DD_TRACE_NATIVE_SPAN_EVENTS',
+        default: nil
+    end
+
+    describe '#native_span_events=' do
+      it 'changes the #native_span_events setting' do
+        expect { settings.tracing.native_span_events = true }
+          .to change { settings.tracing.native_span_events }
+          .from(nil)
           .to(true)
       end
     end
