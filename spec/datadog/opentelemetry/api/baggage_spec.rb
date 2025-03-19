@@ -60,13 +60,13 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
       result = baggage.remove_value('key1', context: ctx)
 
       expect(result).to be_a(OpenTelemetry::Context)
-      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
+      expect(result.instance_variable_get(:@trace).baggage).to eq({'key2' => 'value2'})
     end
 
     it 'preserves other baggage values when removing one' do
       result = baggage.remove_value('key1', context: ctx)
 
-      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
+      expect(result.instance_variable_get(:@trace).baggage).to eq({'key2' => 'value2'})
     end
 
     it 'handles removing non-existent keys' do
