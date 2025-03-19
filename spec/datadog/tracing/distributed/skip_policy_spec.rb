@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog'
 require 'datadog/tracing/distributed/skip_policy'
 

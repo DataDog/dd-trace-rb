@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/tracing/contrib/support/integration/shared_examples'
 
 RSpec.shared_examples 'normal with tracing disable' do
