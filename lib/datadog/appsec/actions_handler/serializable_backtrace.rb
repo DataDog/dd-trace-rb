@@ -11,26 +11,11 @@ module Datadog
       #
       # It represents the stack trace that is added to span metastruct field.
       class SerializableBacktrace
+        CLASS_AND_FUNCTION_NAME_REGEX = /\b([\w+:{2}]*\w+)?[#|.]?\b(\w+)\z/.freeze
+
         def initialize(locations:, stack_id:)
           @stack_id = stack_id
-
-          max_depth = Datadog.configuration.appsec.stack_trace.max_depth
-          top_percent = Datadog.configuration.appsec.stack_trace.top_percentage
-
-          drop_from_idx = max_depth * top_percent / 100
-          drop_until_idx = locations.size - (max_depth - drop_from_idx)
-
-          frame_idx = -1
-          @serializable_locations_map = locations.each_with_object({}) do |location, map|
-            # we are dropping frames from library code without increasing frame index
-            next if location.path&.include?('lib/datadog')
-
-            frame_idx += 1
-
-            next if max_depth != 0 && frame_idx >= drop_from_idx && frame_idx < drop_until_idx
-
-            map[frame_idx] = location
-          end
+          @locations = locations
         end
 
         def to_msgpack(packer = nil)
@@ -45,10 +30,12 @@ module Datadog
           packer.write('language')
           packer.write('ruby'.encode('UTF-8'))
 
-          packer.write('frames')
-          packer.write_array_header(@serializable_locations_map.size)
+          serializable_locations_map = build_serializable_locations_map
 
-          @serializable_locations_map.each do |frame_id, location|
+          packer.write('frames')
+          packer.write_array_header(serializable_locations_map.size)
+
+          serializable_locations_map.each do |frame_id, location|
             packer.write_map_header(6)
 
             packer.write('id')
@@ -63,7 +50,7 @@ module Datadog
             packer.write('line')
             packer.write(location.lineno)
 
-            class_name, function_name = location.label.match(/\b([\w+:{2}]*\w+)?[#|.]?\b(\w+)\z/)&.captures
+            class_name, function_name = location.label&.match(CLASS_AND_FUNCTION_NAME_REGEX)&.captures
 
             packer.write('class_name')
             packer.write(class_name&.encode('UTF-8'))
@@ -73,6 +60,28 @@ module Datadog
           end
 
           packer
+        end
+
+        private
+
+        def build_serializable_locations_map
+          max_depth = Datadog.configuration.appsec.stack_trace.max_depth
+          top_percent = Datadog.configuration.appsec.stack_trace.top_percentage
+
+          drop_from_idx = max_depth * top_percent / 100
+          drop_until_idx = @locations.size - (max_depth - drop_from_idx)
+
+          frame_idx = -1
+          @locations.each_with_object({}) do |location, map|
+            # we are dropping frames from library code without increasing frame index
+            next if location.path&.include?('lib/datadog')
+
+            frame_idx += 1
+
+            next if max_depth != 0 && frame_idx >= drop_from_idx && frame_idx < drop_until_idx
+
+            map[frame_idx] = location
+          end
         end
       end
     end

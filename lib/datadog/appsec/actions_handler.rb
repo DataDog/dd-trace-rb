@@ -30,8 +30,8 @@ module Datadog
         active_span = AppSec.active_context&.span
         return unless active_span
 
-        event_category = Datadog::AppSec::Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY
-        tag_key = Datadog::AppSec::Ext::TAG_METASTRUCT_STACK_TRACE
+        event_category = Ext::EXPLOIT_PREVENTION_EVENT_CATEGORY
+        tag_key = Ext::TAG_METASTRUCT_STACK_TRACE
 
         existing_stack_data = active_span.get_metastruct_tag(tag_key).dup || { event_category => [] }
         max_stack_traces = Datadog.configuration.appsec.stack_trace.max_stack_traces
