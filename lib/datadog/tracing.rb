@@ -126,6 +126,20 @@ module Datadog
         correlation.to_log_format
       end
 
+      # Returns the baggage for the current trace.
+      #
+      # If there is no active trace, a new one is created.
+      #
+      # @return [Datadog::Tracing::Distributed::Baggage] The baggage for the current trace.
+      # @public_api
+      def baggage
+        # Baggage should not be dependent on there being an active trace.
+        # So we create a new TraceOperation if there isn't one.
+        active_trace = self.active_trace || tracer.continue_trace!(nil)
+        active_trace.baggage ||= {}
+        active_trace.baggage
+      end
+
       # Gracefully shuts down the tracer.
       #
       # The public tracing API will still respond to method calls as usual
