@@ -20,7 +20,7 @@ RSpec.describe 'Rack integration tests' do
   let(:rack_options) { {} }
   let(:instrument_http) { false }
   let(:remote_enabled) { false }
-  let(:apm_tracing_disabled) { false }
+  let(:apm_tracing_enabled) { true }
 
   # We send the trace to a mocked agent to verify that the trace includes the headers that we want
   # In the future, it might be a good idea to use the traces that the mocked agent
@@ -48,7 +48,7 @@ RSpec.describe 'Rack integration tests' do
     end
 
     # Sampler with the same settings as APM disabled one, except it is 4 seconds instead of 60 so tests are faster
-    if apm_tracing_disabled
+    unless apm_tracing_enabled
       post_sampler = Datadog::Core::Configuration::Components.send(:build_rate_limit_post_sampler, **{ seconds: 4 })
       allow(Datadog::Core::Configuration::Components).to receive(:build_rate_limit_post_sampler).and_return(post_sampler)
     end
@@ -60,7 +60,7 @@ RSpec.describe 'Rack integration tests' do
         # Required for APM disablement tests with distributed tracing as rack can extract but not inject headers
         c.tracing.instrument :http if instrument_http
 
-        c.appsec.standalone.enabled = apm_tracing_disabled
+        c.appsec.standalone.enabled = !apm_tracing_enabled
       end
     end
   end
@@ -681,7 +681,7 @@ RSpec.describe 'Rack integration tests' do
           spans.find { |s| s.name == 'rack.request' && s.get_tag('http.url') == '/requestdownstream' }
         end
 
-        let(:apm_tracing_disabled) { true }
+        let(:apm_tracing_enabled) { false }
         let(:instrument_http) { true }
 
         context 'trace sent to agent with Datadog-Client-Computed-Stats header' do

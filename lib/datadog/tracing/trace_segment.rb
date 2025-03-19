@@ -35,7 +35,7 @@ module Datadog
         :sampling_priority,
         :service,
         :profiling_enabled,
-        :apm_tracing_disabled
+        :apm_tracing_enabled
 
       # rubocop:disable Metrics/CyclomaticComplexity
       # rubocop:disable Metrics/PerceivedComplexity
@@ -60,7 +60,7 @@ module Datadog
         tags: nil,
         metrics: nil,
         profiling_enabled: nil,
-        apm_tracing_disabled: nil
+        apm_tracing_enabled: nil
       )
         @id = id
         @root_span_id = root_span_id
@@ -87,7 +87,7 @@ module Datadog
         @sampling_priority = sampling_priority || sampling_priority_tag
         @service = Core::Utils::SafeDup.frozen_or_dup(service || service_tag)
         @profiling_enabled = profiling_enabled
-        @apm_tracing_disabled = apm_tracing_disabled
+        @apm_tracing_enabled = apm_tracing_enabled
       end
       # rubocop:enable Metrics/PerceivedComplexity
       # rubocop:enable Metrics/CyclomaticComplexity

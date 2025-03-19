@@ -344,7 +344,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
-            apm_tracing_disabled: apm_tracing_disabled,
+            apm_tracing_enabled: apm_tracing_enabled,
             id: digest.trace_id,
             origin: digest.trace_origin,
             parent_span_id: digest.span_id,
@@ -360,7 +360,7 @@ module Datadog
           TraceOperation.new(
             hostname: hostname,
             profiling_enabled: profiling_enabled,
-            apm_tracing_disabled: apm_tracing_disabled,
+            apm_tracing_enabled: apm_tracing_enabled,
             remote_parent: false,
             tracer: self
           )
@@ -557,7 +557,7 @@ module Datadog
       # e.g.: upstream tags containing dd.p.appsec, and appsec is enabled, return true.
       # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
       def propagate_sampling_priority?(upstream_tags:)
-        return true unless apm_tracing_disabled
+        return true if apm_tracing_enabled
 
         if upstream_tags&.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
           return Datadog.configuration.appsec.enabled
@@ -571,8 +571,8 @@ module Datadog
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
       end
 
-      def apm_tracing_disabled
-        @apm_tracing_disabled ||= Datadog.configuration.appsec.standalone.enabled
+      def apm_tracing_enabled
+        @apm_tracing_enabled ||= !Datadog.configuration.appsec.standalone.enabled
       end
     end
   end

@@ -71,7 +71,7 @@ module Datadog
         sampling_priority: nil,
         service: nil,
         profiling_enabled: nil,
-        apm_tracing_disabled: nil,
+        apm_tracing_enabled: nil,
         tags: nil,
         metrics: nil,
         trace_state: nil,
@@ -98,7 +98,7 @@ module Datadog
         @sampling_priority = sampling_priority
         @service = service
         @profiling_enabled = profiling_enabled
-        @apm_tracing_disabled = apm_tracing_disabled
+        @apm_tracing_enabled = apm_tracing_enabled
         @trace_state = trace_state
         @trace_state_unknown_fields = trace_state_unknown_fields
         @tracer = tracer
@@ -511,7 +511,7 @@ module Datadog
           metrics: metrics,
           root_span_id: !partial ? root_span && root_span.id : nil,
           profiling_enabled: @profiling_enabled,
-          apm_tracing_disabled: @apm_tracing_disabled
+          apm_tracing_enabled: @apm_tracing_enabled
         )
       end
 

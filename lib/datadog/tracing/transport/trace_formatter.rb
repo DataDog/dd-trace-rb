@@ -198,7 +198,7 @@ module Datadog
         end
 
         def tag_apm_tracing_disabled!
-          return unless trace.apm_tracing_disabled
+          return if trace.apm_tracing_enabled
 
           root_span.set_tag(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
         end
