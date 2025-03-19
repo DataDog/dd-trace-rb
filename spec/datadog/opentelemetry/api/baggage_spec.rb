@@ -1,184 +1,143 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'opentelemetry/sdk'
 require 'datadog/opentelemetry'
 
 RSpec.describe Datadog::OpenTelemetry::API::Baggage do
-  subject(:baggage) { described_class.new }
+  subject(:baggage) { ::OpenTelemetry::Baggage }
 
-  # Mock Context class for testing
-  let(:context) do
-    Class.new do
-      attr_accessor :trace
+  let(:trace) { Datadog::Tracing::TraceOperation.new }
+  let(:context) { ::OpenTelemetry::Context.current }
 
-      def initialize(trace = nil)
-        @trace = trace
-      end
-
-      def ensure_trace
-        @trace ||= Datadog::Tracing::TraceOperation.new(
-          id: Datadog::Tracing::Utils.next_id,
-          parent_id: Datadog::Tracing::Utils.next_id,
-          sampled: true
-        )
-      end
-    end.new
-  end
-
-  describe '#value' do
-    context 'when baggage is empty' do
-      it 'returns nil for any key' do
-        expect(baggage.value('test_key', context: context)).to be_nil
-      end
-    end
-
-    context 'when baggage has values' do
-      before do
-        context.ensure_trace.baggage = { 'test_key' => 'test_value', 'another_key' => 'another_value' }
-      end
-
-      it 'returns the value for an existing key' do
-        expect(baggage.value('test_key', context: context)).to eq('test_value')
-      end
-
-      it 'returns nil for a non-existent key' do
-        expect(baggage.value('non_existent_key', context: context)).to be_nil
-      end
-    end
-  end
-
-  describe '#values' do
-    context 'when baggage is empty' do
-      it 'returns an empty hash' do
-        expect(baggage.values(context: context)).to eq({})
-      end
-    end
-
-    context 'when baggage has values' do
-      let(:baggage_data) { { 'test_key' => 'test_value', 'another_key' => 'another_value' } }
-
-      before do
-        context.ensure_trace.baggage = baggage_data
-      end
-
-      it 'returns all baggage values' do
-        expect(baggage.values(context: context)).to eq(baggage_data)
-      end
-
-      it 'returns a copy of the baggage' do
-        result = baggage.values(context: context)
-        result['new_key'] = 'new_value'
-
-        # Original baggage should remain unchanged
-        expect(context.trace.baggage).to eq(baggage_data)
-      end
-    end
+  before do
+    # Reset any existing baggage before each test
+    trace.baggage = {}
   end
 
   describe '#set_value' do
-    context 'when baggage is empty' do
-      it 'initializes baggage and sets the value' do
-        baggage.set_value('test_key', 'test_value', context: context)
-
-        expect(context.trace.baggage).to eq({ 'test_key' => 'test_value' })
-      end
+    it 'sets a baggage value in the trace' do
+      ctx = baggage.set_value('test_key', 'test_value')
+      expect(ctx).to be_a(OpenTelemetry::Context)
+      expect(ctx.instance_variable_get(:@trace).baggage['test_key']).to eq('test_value')
     end
 
-    context 'when baggage already has values' do
-      before do
-        context.ensure_trace.baggage = { 'existing_key' => 'existing_value' }
-      end
+    it 'updates an existing baggage value' do
+      ctx = baggage.set_value('test_key', 'initial_value')
+      ctx = baggage.set_value('test_key', 'new_value', context: ctx)
 
-      it 'adds a new key-value pair' do
-        baggage.set_value('test_key', 'test_value', context: context)
-
-        expect(context.trace.baggage).to eq(
-          {
-            'existing_key' => 'existing_value',
-            'test_key' => 'test_value'
-          }
-        )
-      end
-
-      it 'updates an existing key' do
-        baggage.set_value('existing_key', 'new_value', context: context)
-
-        expect(context.trace.baggage).to eq({ 'existing_key' => 'new_value' })
-      end
-
-      it 'maintains immutability by creating a copy' do
-        original_baggage = context.trace.baggage
-        baggage.set_value('test_key', 'test_value', context: context)
-
-        # The original hash object should not be the same as the new one
-        expect(context.trace.baggage).not_to be(original_baggage)
-      end
+      expect(ctx).to be_a(OpenTelemetry::Context)
+      expect(ctx.instance_variable_get(:@trace).baggage['test_key']).to eq('new_value')
     end
 
-    it 'returns the context' do
-      result = baggage.set_value('test_key', 'test_value', context: context)
+    it 'preserves existing baggage values when adding new ones' do
+      ctx = baggage.set_value('key1', 'value1')
+      ctx = baggage.set_value('key2', 'value2', context: ctx)
 
-      expect(result).to be(context)
+      expect(ctx.instance_variable_get(:@trace).baggage).to eq(
+        {
+          'key1' => 'value1',
+          'key2' => 'value2'
+        }
+      )
+    end
+
+    it 'maintains immutability of the baggage hash' do
+      original_baggage = trace.baggage.dup
+      baggage.set_value('test_key', 'test_value')
+
+      expect(trace.baggage).not_to be(original_baggage)
     end
   end
 
   describe '#remove_value' do
-    context 'when baggage is empty' do
-      it 'returns the context unchanged' do
-        result = baggage.remove_value('test_key', context: context)
-
-        expect(result).to be(context)
-        expect(context.trace.baggage).to be_nil
-      end
+    let(:ctx) do
+      ctx1 = baggage.set_value('key1', 'value1')
+      baggage.set_value('key2', 'value2', context: ctx1)
     end
 
-    context 'when baggage has values' do
-      before do
-        context.ensure_trace.baggage = { 'test_key' => 'test_value', 'another_key' => 'another_value' }
-      end
+    it 'removes a baggage value from the trace' do
+      result = baggage.remove_value('key1', context: ctx)
 
-      it 'removes an existing key' do
-        baggage.remove_value('test_key', context: context)
-
-        expect(context.trace.baggage).to eq({ 'another_key' => 'another_value' })
-      end
-
-      it 'returns the context unchanged when key does not exist' do
-        original_baggage = context.trace.baggage.dup
-        baggage.remove_value('non_existent_key', context: context)
-
-        expect(context.trace.baggage).to eq(original_baggage)
-      end
-
-      it 'maintains immutability by creating a copy' do
-        original_baggage = context.trace.baggage
-        baggage.remove_value('test_key', context: context)
-
-        # The original hash object should not be the same as the new one
-        expect(context.trace.baggage).not_to be(original_baggage)
-      end
+      expect(result).to be_a(OpenTelemetry::Context)
+      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
     end
 
-    it 'returns the context' do
-      context.ensure_trace.baggage = { 'test_key' => 'test_value' }
-      result = baggage.remove_value('test_key', context: context)
+    it 'preserves other baggage values when removing one' do
+      result = baggage.remove_value('key1', context: ctx)
 
-      expect(result).to be(context)
+      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
+    end
+
+    it 'handles removing non-existent keys' do
+      result = baggage.remove_value('non_existent_key', context: ctx)
+
+      expect(result).to be_a(OpenTelemetry::Context)
+      expect(result.instance_variable_get(:@trace).baggage).to eq(
+        {
+          'key1' => 'value1',
+          'key2' => 'value2'
+        }
+      )
+    end
+  end
+
+  describe '#value' do
+    let(:ctx) do
+      baggage.set_value('key1', 'value1')
+    end
+
+    it 'retrieves a baggage value from the trace' do
+      expect(baggage.value('key1', context: ctx)).to eq('value1')
+    end
+
+    it 'returns nil for non-existent keys' do
+      expect(baggage.value('non_existent_key', context: ctx)).to be_nil
+    end
+  end
+
+  describe '#values' do
+    let(:ctx) do
+      ctx1 = baggage.set_value('key1', 'value1')
+      baggage.set_value('key2', 'value2', context: ctx1)
+    end
+
+    it 'returns all baggage values from the trace' do
+      expect(baggage.values(context: ctx)).to eq(
+        {
+          'key1' => 'value1',
+          'key2' => 'value2'
+        }
+      )
+    end
+
+    it 'returns a new context with the updated baggage' do
+      values = baggage.values(context: ctx)
+      values['key3'] = 'value3'
+
+      expect(baggage.values(context: ctx)).not_to include('key3')
+      expect(ctx.instance_variable_get(:@trace).baggage).not_to include('key3')
     end
   end
 
   describe '#clear' do
-    context 'when baggage has values' do
-      before do
-        context.ensure_trace.baggage = { 'test_key' => 'test_value', 'another_key' => 'another_value' }
-      end
+    let(:ctx) do
+      ctx1 = baggage.set_value('key1', 'value1')
+      baggage.set_value('key2', 'value2', context: ctx1)
+    end
 
-      it 'clears all baggage values' do
-        # Mock the clear method since we're not testing its implementation
-        expect(context.ensure_trace.baggage).to receive(:clear)
+    it 'removes all baggage values from the trace' do
+      result = baggage.clear(context: ctx)
 
-        baggage.clear(context: context)
-      end
+      expect(result).to be_a(OpenTelemetry::Context)
+      expect(result.instance_variable_get(:@trace).baggage).to be_empty
+    end
+
+    it 'maintains immutability when clearing' do
+      original_baggage = ctx.instance_variable_get(:@trace).baggage.dup
+      result = baggage.clear(context: ctx)
+
+      expect(result.instance_variable_get(:@trace).baggage).not_to be(original_baggage)
     end
   end
 end

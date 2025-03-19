@@ -13,6 +13,7 @@ require_relative 'tracing'
 require_relative 'tracing/contrib'
 
 require_relative 'opentelemetry/api/context'
+require_relative 'opentelemetry/api/baggage'
 
 # DEV: Should this be a Contrib integration, that depends on the `opentelemetry-sdk`
 # DEV: and checks for compatibility?

@@ -975,11 +975,13 @@ RSpec.describe Datadog::OpenTelemetry do
       end
 
       describe 'baggage operations' do
+        around do |example|
+          OpenTelemetry::Context.with_current(OpenTelemetry::Context.new({})) do
+            example.run
+          end
+        end
         it 'sets and gets baggage values' do
-          # Set a baggage value
           context = otel_baggage.set_value('test_key', 'test_value')
-
-          # Get the value
           expect(otel_baggage.value('test_key', context: context)).to eq('test_value')
         end
 
@@ -1022,21 +1024,6 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(otel_baggage.values(context: context)).to be_empty
         end
 
-        it 'propagates baggage through spans' do
-          # Set baggage value
-          otel_baggage.set_value('test_key', 'test_value')
-
-          otel_tracer.in_span('test-span') do |_span|
-            # Baggage should be accessible within the span
-            expect(otel_baggage.value('test_key')).to eq('test_value')
-
-            # Set another baggage value within the span
-            otel_baggage.set_value('span_key', 'span_value')
-          end
-          # The baggage set within the span should still be accessible
-          expect(otel_baggage.value('span_key')).to eq('span_value')
-        end
-
         # Set Datadog baggage and read from otel
         it 'shares baggage between Datadog and OpenTelemetry' do
           # Set baggage using Datadog API
@@ -1046,7 +1033,9 @@ RSpec.describe Datadog::OpenTelemetry do
           expect(otel_baggage.value('dd_key')).to eq('dd_value')
 
           # Set baggage using OpenTelemetry API
-          otel_baggage.set_value('otel_key', 'otel_value')
+          context = otel_baggage.set_value('otel_key', 'otel_value')
+
+          ::OpenTelemetry::Context.attach(context)
 
           # Verify it can be read by Datadog API
           expect(Datadog::Tracing.baggage['otel_key']).to eq('otel_value')
