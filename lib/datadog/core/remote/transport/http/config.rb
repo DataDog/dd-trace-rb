@@ -177,49 +177,23 @@ module Datadog
                 end
 
                 def send_config(env, &block)
-                  raise NoConfigEndpointDefinedError, self if config.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('config', self) if config.nil?
 
                   config.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoConfigEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No config endpoint is defined for API specification!'
-                  end
                 end
               end
 
               # Extensions for HTTP API Instance
               module Instance
                 def send_config(env)
-                  raise ConfigNotSupportedError, spec unless spec.is_a?(Config::API::Spec)
+                  unless spec.is_a?(Config::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      'config', self
+                    )
+                  end
 
                   spec.send_config(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class ConfigNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Config not supported for this API!'
                   end
                 end
               end

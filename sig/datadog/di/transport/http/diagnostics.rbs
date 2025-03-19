@@ -16,15 +16,6 @@ module Datadog
               attr_accessor diagnostics: untyped
 
               def send_diagnostics: (untyped env) { (?) -> untyped } -> untyped
-              class NoTraceEndpointDefinedError < StandardError
-                @spec: untyped
-
-                attr_reader spec: untyped
-
-                def initialize: (untyped spec) -> void
-
-                def message: () -> "No trace endpoint is defined for API specification!"
-              end
             end
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               @encoder: untyped
