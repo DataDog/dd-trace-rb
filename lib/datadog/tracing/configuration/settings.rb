@@ -252,6 +252,9 @@ module Datadog
               # Forces the tracer to always send span events with the native span events format
               # regardless of the agent support. This is useful in agent-less setups.
               #
+              # When set to `nil`, the default, the agent will be queried for
+              # native span events support.
+              #
               # @default `DD_TRACE_NATIVE_SPAN_EVENTS` environment variable, otherwise `false`
               # @return [Boolean,nil]
               option :native_span_events do |o|

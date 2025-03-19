@@ -8,6 +8,7 @@ require 'datadog/tracing/flush'
 require 'datadog/tracing/sampling/priority_sampler'
 require 'datadog/tracing/tracer'
 require 'datadog/tracing/writer'
+require 'datadog/core/configuration/settings_spec'
 
 RSpec.describe Datadog::Tracing::Configuration::Settings do
   # TODO: Core::Configuration::Settings directly extends Tracing::Configuration::Settings
@@ -506,31 +507,9 @@ RSpec.describe Datadog::Tracing::Configuration::Settings do
     describe '#native_span_events' do
       subject(:native_span_events) { settings.tracing.native_span_events }
 
-      context "when #{Datadog::Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS}" do
-        around do |example|
-          ClimateControl.modify(Datadog::Tracing::Configuration::Ext::ENV_NATIVE_SPAN_EVENTS => environment) do
-            example.run
-          end
-        end
-
-        context 'is not defined' do
-          let(:environment) { nil }
-
-          it { is_expected.to be nil }
-        end
-
-        context 'is set to true' do
-          let(:environment) { 'true' }
-
-          it { is_expected.to be true }
-        end
-
-        context 'is set to false' do
-          let(:environment) { 'false' }
-
-          it { is_expected.to be false }
-        end
-      end
+      it_behaves_like 'a binary setting with',
+        env_variable: 'DD_TRACE_NATIVE_SPAN_EVENTS',
+        default: nil
     end
 
     describe '#native_span_events=' do
