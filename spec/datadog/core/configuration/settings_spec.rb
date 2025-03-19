@@ -1095,7 +1095,7 @@ RSpec.describe Datadog::Core::Configuration::Settings do
         it { is_expected.to include('a' => '1', 'b' => '2') }
 
         context 'with an invalid tag' do
-          ['', 'a', ':', ',', 'a:'].each do |invalid_tag|
+          ['', ':', ','].each do |invalid_tag|
             context "when tag is #{invalid_tag.inspect}" do
               let(:env_tags) { invalid_tag }
 
@@ -1104,6 +1104,14 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           end
         end
 
+        context 'with no seperator' do
+          ['key', 'key:', 'key: '].each do |tag|
+            context "when tag is #{tag.inspect}" do
+              let(:env_tags) { tag }
+              it { is_expected.to eq({"key" => ""}) }
+            end
+          end
+        end
         context 'with multiple colons' do
           let(:env_tags) { 'key:va:lue' }
 

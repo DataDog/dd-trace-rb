@@ -619,38 +619,38 @@ module Datadog
           o.type :hash, nilable: true
           o.env [Core::Environment::Ext::ENV_TAGS, Core::Environment::Ext::ENV_OTEL_RESOURCE_ATTRIBUTES]
           o.env_parser do |env_value|
-            values = if env_value.include?(',')
-                       env_value.split(',')
-                     else
-                       env_value.split(' ') # rubocop:disable Style/RedundantArgument
-                     end
-            values.map! do |v|
-              v.gsub!(/\A[\s,]*|[\s,]*\Z/, '')
-
-              v.empty? ? nil : v
-            end
-
-            values.compact!
-            values.each_with_object({}) do |tag, tags|
-              key, value = tag.split(':', 2)
-              if value.nil?
-                # support tags/attributes delimited by the OpenTelemetry separator (`=`)
-                key, value = tag.split('=', 2)
+            # Parses a string containing key-value pairs and returns a hash.
+            # Key-value pairs are delimited by ':' OR `=`, and pairs are separated by whitespace, comma, OR BOTH.
+            values = {}
+            unless env_value.nil? || env_value.empty?
+              # falling back to comma as separator
+              sep = env_value.include?(',') ? ',' : ' '
+              # split by separator
+              env_value.split(sep).each do |tag|
+                tag.strip!
+                next if tag.empty?
+                # tag by : or = (for OpenTelemetry)
+                key, val = if tag.include?(':')
+                  tag.split(':', 2).map(&:strip)
+                elsif tag.include?('=')
+                  tag.split('=', 2).map(&:strip)
+                else
+                  [tag.strip, '']
+                end
+                next if key.empty?
+                # maps OpenTelemetry semantic attributes to Datadog tags
+                case key.downcase
+                when 'deployment.environment'
+                  key = 'env'
+                when 'service.version'
+                  key = 'version'
+                when 'service.name'
+                  key = 'service'
+                end
+                values[key] = val
               end
-              next if value.nil? || value.empty?
-
-              # maps OpenTelemetry semantic attributes to Datadog tags
-              case key.downcase
-              when 'deployment.environment'
-                tags['env'] = value
-              when 'service.version'
-                tags['version'] = value
-              when 'service.name'
-                tags['service'] = value
-              else
-                tags[key] = value
-              end
             end
+            values
           end
           o.setter do |new_value, old_value|
             raw_tags = new_value || {}
