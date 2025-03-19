@@ -30,7 +30,7 @@ module Datadog
 
         # transport and buffers
         @transport = options.fetch(:transport) do
-          Transport::HTTP.default(agent_settings: agent_settings, **transport_options)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
 
         @shutdown_timeout = options.fetch(:shutdown_timeout, Workers::AsyncTransport::DEFAULT_SHUTDOWN_TIMEOUT)

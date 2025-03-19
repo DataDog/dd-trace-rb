@@ -20,6 +20,8 @@ module Datadog
       end
 
       class InternalErrorResponse
+        @error: untyped
+
         include Response
 
         attr_reader error: Exception
@@ -27,6 +29,8 @@ module Datadog
         def initialize: (untyped error) -> void
 
         def internal_error?: () -> true
+
+        def to_s: () -> ::String
 
         def inspect: () -> ::String
       end

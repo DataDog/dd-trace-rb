@@ -74,6 +74,9 @@ target :datadog do
   ignore 'lib/datadog/core/metrics/options.rb'
   # steep fails in this file due to https://github.com/soutaro/steep/issues/1231
   ignore 'lib/datadog/core/remote/tie.rb'
+  # steep gets lost in module inclusions
+  ignore 'lib/datadog/core/remote/transport/http/config.rb'
+  ignore 'lib/datadog/core/remote/transport/http/negotiation.rb'
   ignore 'lib/datadog/core/runtime/ext.rb'
   ignore 'lib/datadog/core/runtime/metrics.rb'
   ignore 'lib/datadog/core/transport/http/adapters/net.rb'

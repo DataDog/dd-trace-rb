@@ -31,7 +31,7 @@ RSpec.describe Datadog::Core::Configuration::Components do
   let(:logger) { instance_double(Datadog::Core::Logger) }
   let(:settings) { Datadog::Core::Configuration::Settings.new }
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
-  let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings) }
+  let(:agent_info) { Datadog::Core::Environment::AgentInfo.new(agent_settings, logger: logger) }
 
   let(:profiler_setup_task) { Datadog::Profiling.supported? ? instance_double(Datadog::Profiling::Tasks::Setup) : nil }
   let(:remote) { instance_double(Datadog::Core::Remote::Component, start: nil, shutdown!: nil) }

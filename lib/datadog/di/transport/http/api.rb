@@ -21,29 +21,19 @@ module Datadog
 
           def defaults
             Datadog::Core::Transport::HTTP::API::Map[
-              DIAGNOSTICS => Spec.new do |s|
+              DIAGNOSTICS => Diagnostics::API::Spec.new do |s|
                 s.diagnostics = Diagnostics::API::Endpoint.new(
                   '/debugger/v1/diagnostics',
                   Core::Encoding::JSONEncoder,
                 )
               end,
-              INPUT => Spec.new do |s|
+              INPUT => Input::API::Spec.new do |s|
                 s.input = Input::API::Endpoint.new(
                   '/debugger/v1/input',
                   Core::Encoding::JSONEncoder,
                 )
               end,
             ]
-          end
-
-          class Instance < Core::Transport::HTTP::API::Instance
-            include Diagnostics::API::Instance
-            include Input::API::Instance
-          end
-
-          class Spec < Core::Transport::HTTP::API::Spec
-            include Diagnostics::API::Spec
-            include Input::API::Spec
           end
         end
       end
