@@ -79,7 +79,7 @@ module Datadog
         def remove_value(key, context: ::OpenTelemetry::Context.current)
           context.set_values({ Context::BAGGAGE_REMOVE_KEY => key })
         end
-        ::OpenTelemetry::Baggage.prepend(self)
+        ::OpenTelemetry::Baggage.singleton_class.prepend(self)
       end
     end
   end
