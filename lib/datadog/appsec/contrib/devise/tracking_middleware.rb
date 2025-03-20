@@ -33,7 +33,7 @@ module Datadog
               unless context.span.has_tag?('usr.id')
                 context.span['usr.id'] = id
                 AppSec::Instrumentation.gateway.push(
-                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
+                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, nil)
                 )
               end
 
