@@ -52,12 +52,12 @@ module Datadog
               context.span.set_tag('_dd.appsec.usr.id', id)
               return context.span['appsec.events.users.signup.usr.id'] ||= id unless resource.active_for_authentication?
 
-              unless context.span.has_tag?('usr.id')
-                context.span['usr.id'] = id
-                AppSec::Instrumentation.gateway.push(
-                  'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
-                )
-              end
+              context.span['usr.id'] ||= id
+
+              # TODO: Maybe check to avoid double send
+              AppSec::Instrumentation.gateway.push(
+                'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
+              )
             end
           end
         end
