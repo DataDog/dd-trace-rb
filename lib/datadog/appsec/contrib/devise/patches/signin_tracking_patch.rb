@@ -49,20 +49,19 @@ module Datadog
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
               if id
+                context.span['usr.id'] ||= id
                 context.span['_dd.appsec.usr.id'] = id
-
-                unless context.span.has_tag?('usr.id')
-                  context.span['usr.id'] = id
-                  AppSec::Instrumentation.gateway.push(
-                    'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id)
-                  )
-                end
               end
 
               context.span['appsec.events.users.login.success.usr.login'] ||= login
               context.span['appsec.events.users.login.success.track'] = 'true'
               context.span['_dd.appsec.usr.login'] = login
               context.span['_dd.appsec.events.users.login.success.auto.mode'] = Configuration.auto_user_instrumentation_mode
+
+              # TODO: Maybe check to avoid double send
+              AppSec::Instrumentation.gateway.push(
+                'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
+              )
             end
 
             def record_failed_signin(context, resource)
