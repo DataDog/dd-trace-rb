@@ -81,7 +81,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
   context 'when identity.set_user event was pushed' do
     before do
       headers = {
-        'HTTP_CF_RAY' => '230b030023ae2822-SJC',
+        'HTTP_UNKNOWNHEADER' => 'something',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/with-identity-set-user', {}, headers)
@@ -90,15 +90,17 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     it 'collects identity related request headers' do
       expect(response).to be_ok
 
-      expect(http_service_entry_span.tags['http.request.headers.cf-connecting-ipv6'])
-        .to eq('2001:db8:3333:4444:5555:6666:1.2.3.4')
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
+      expect(http_service_entry_span.tags).to include(
+        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+      )
     end
   end
 
   context 'when identity.set_user event was not pushed' do
     before do
       headers = {
-        'HTTP_CF_RAY' => '230b030023ae2822-SJC',
+        'HTTP_UNKNOWNHEADER' => 'something',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/without-identity-set-user', {}, headers)
@@ -107,6 +109,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     it 'does not collect identity related request headers' do
       expect(response).to be_ok
 
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
     end
   end

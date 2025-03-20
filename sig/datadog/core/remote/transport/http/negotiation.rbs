@@ -23,26 +23,10 @@ module Datadog
                 def info=: (untyped endpoint) -> untyped
 
                 def send_info: (untyped env) ?{ () -> untyped } -> untyped
-
-                class NoNegotiationEndpointDefinedError < StandardError
-                  attr_reader spec: untyped
-
-                  def initialize: (untyped spec) -> void
-
-                  def message: () -> "No info endpoint is defined for API specification!"
-                end
               end
 
               module Instance : Remote::Transport::HTTP::API::Instance
                 def send_info: (untyped env) -> untyped
-
-                class NegotiationNotSupportedError < StandardError
-                  attr_reader spec: untyped
-
-                  def initialize: (untyped spec) -> void
-
-                  def message: () -> "Info not supported for this API!"
-                end
               end
 
               class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint

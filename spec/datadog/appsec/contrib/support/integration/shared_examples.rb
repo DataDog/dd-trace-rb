@@ -194,7 +194,7 @@ RSpec.shared_examples 'a request with propagated headers' do |params = {}|
   let(:res_origin) { params[:res_origin] }
   let(:res_parent_id_not_equal) { params[:res_parent_id_not_equal] }
   let(:res_tags) { params[:res_tags] }
-  let(:res_sampling_priority_condition) { params[:res_sampling_priority_condition] || ->(x) { x.nil? } }
+  let(:res_sampling_priority_condition) { params[:res_sampling_priority_condition] || lambda(&:nil?) }
   let(:res_trace_id) { params[:res_trace_id] }
 
   let(:res_headers) { JSON.parse(response.body) }

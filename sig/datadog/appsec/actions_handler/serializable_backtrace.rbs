@@ -1,0 +1,14 @@
+module Datadog
+  module AppSec
+    module ActionsHandler
+      class SerializableBacktrace
+        CLASS_AND_FUNCTION_NAME_REGEX: ::Regexp
+
+        def initialize: (locations: ::Array[::Thread::Backtrace::Location], stack_id: String) -> void
+        def to_msgpack: (?untyped? packer) -> void
+
+        private def build_serializable_locations_map: -> ::Hash[Integer, ::Thread::Backtrace::Location]
+      end
+    end
+  end
+end

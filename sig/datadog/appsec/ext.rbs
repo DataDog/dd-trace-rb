@@ -15,11 +15,15 @@ module Datadog
 
       ACTIVE_CONTEXT_KEY: ::Symbol
 
+      EXPLOIT_PREVENTION_EVENT_CATEGORY: ::String
+
       TAG_APPSEC_ENABLED: ::String
 
       TAG_APM_ENABLED: ::String
 
       TAG_DISTRIBUTED_APPSEC_EVENT: ::String
+
+      TAG_METASTRUCT_STACK_TRACE: ::String
 
       TELEMETRY_METRICS_NAMESPACE: ::String
     end
