@@ -17,6 +17,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :mysql2
 
+          def self.gems
+            ['mysql2']
+          end
+
+          def self.gem_load_paths
+            ['mysql2']
+          end
+
           def self.version
             Gem.loaded_specs['mysql2'] && Gem.loaded_specs['mysql2'].version
           end

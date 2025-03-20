@@ -97,4 +97,6 @@ RSpec.describe Datadog::Tracing::Contrib::Grape::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Grape::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end
