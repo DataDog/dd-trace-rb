@@ -9,6 +9,26 @@ require 'datadog/core/runtime/ext'
 require 'datadog/core/utils/time'
 require 'datadog/profiling/ext'
 
+RSpec.shared_examples_for 'a binary setting with' do |env_variable:, default:|
+  context "when #{env_variable}" do
+    around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
+
+    context 'is not defined' do
+      let(:environment) { nil }
+
+      it { is_expected.to be default }
+    end
+
+    [true, false].each do |value|
+      context "is defined as #{value}" do
+        let(:environment) { value.to_s }
+
+        it { is_expected.to be value }
+      end
+    end
+  end
+end
+
 RSpec.describe Datadog::Core::Configuration::Settings do
   subject(:settings) { described_class.new(options) }
 
@@ -16,26 +36,6 @@ RSpec.describe Datadog::Core::Configuration::Settings do
 
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
-  end
-
-  shared_examples_for 'a binary setting with' do |env_variable:, default:|
-    context "when #{env_variable}" do
-      around { |example| ClimateControl.modify(env_variable => environment) { example.run } }
-
-      context 'is not defined' do
-        let(:environment) { nil }
-
-        it { is_expected.to be default }
-      end
-
-      [true, false].each do |value|
-        context "is defined as #{value}" do
-          let(:environment) { value.to_s }
-
-          it { is_expected.to be value }
-        end
-      end
-    end
   end
 
   describe '#api_key' do

@@ -1059,6 +1059,36 @@ RSpec.describe Datadog::Tracing::Tracer do
       end
     end
   end
+
+  describe '#baggage_tracing_interactions' do
+    it 'baggage set before active trace creates active trace' do
+      Datadog::Tracing.baggage['key'] = 'value'
+      Datadog::Tracing.trace('operation') do |_span, trace|
+        expect(trace.to_digest.baggage).to eq('key' => 'value')
+      end
+    end
+
+    it 'baggage set after trace finish creates new traceoperation with baggage value' do
+      Datadog::Tracing.trace('operation') do |_span, _trace|
+        expect(Datadog::Tracing.baggage).to be_empty
+      end
+      Datadog::Tracing.baggage['key'] = 'value'
+      expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key' => 'value')
+    end
+  end
+
+  it 'baggage value is overridden inside an active trace' do
+    Datadog::Tracing.trace('operation') do |_span, trace|
+      Datadog::Tracing.baggage['key'] = 'value'
+      expect(trace.to_digest.baggage).to eq('key' => 'value')
+    end
+  end
+
+  it 'incoming headers overrides existing baggage' do
+    Datadog::Tracing.baggage['key'] = 'value'
+    Datadog::Tracing.continue_trace!(Datadog::Tracing::TraceDigest.new(baggage: { 'key1' => 'value1' }))
+    expect(Datadog::Tracing.active_trace.to_digest.baggage).to eq('key1' => 'value1')
+  end
 end
 
 RSpec.describe Datadog::Tracing::Tracer::TraceCompleted do

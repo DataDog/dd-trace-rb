@@ -26,11 +26,11 @@ gem "aws-sdk"
 gem "shoryuken"
 gem "rexml", "= 3.2.6"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

@@ -44,7 +44,7 @@ module Datadog
               end
 
               def send_traces(env, &block)
-                raise NoTraceEndpointDefinedError, self if traces.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('traces', self) if traces.nil?
 
                 traces.call(env, &block)
               end
@@ -52,45 +52,19 @@ module Datadog
               def encoder
                 traces.encoder
               end
-
-              # Raised when traces sent but no traces endpoint is defined
-              class NoTraceEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No trace endpoint is defined for API specification!'
-                end
-              end
             end
 
             # Extensions for HTTP API Instance
             module Instance
               def send_traces(env)
-                raise TracesNotSupportedError, spec unless spec.is_a?(Traces::API::Spec)
+                unless spec.is_a?(Traces::API::Spec)
+                  raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                    'traces', self
+                  )
+                end
 
                 spec.send_traces(env) do |request_env|
                   call(request_env)
-                end
-              end
-
-              # Raised when traces sent to API that does not support traces
-              class TracesNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Traces not supported for this API!'
                 end
               end
             end

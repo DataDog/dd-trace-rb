@@ -28,7 +28,10 @@ gem 'memory_profiler', '~> 0.9'
 gem 'mutex_m'
 gem 'os', '~> 1.1'
 
+# debug permits evaluating more expressions than byebug, however
+# debug does not show context on stack navigation.
 gem 'debug'
+gem 'byebug'
 gem 'pry'
 gem 'rake', '>= 10.5'
 gem 'rake-compiler', '~> 1.1', '>= 1.1.1' # To compile native extensions
@@ -45,16 +48,19 @@ gem 'webrick', '>= 1.8.2'
 
 group :check do
   gem 'rbs', '~> 3.7', require: false
-  gem 'steep', '~> 1', '>= 1.9.1', require: false
+  # steep 1.10 produces additional errors
+  gem 'steep', '~> 1.9.1', require: false
   gem 'ruby_memcheck', '>= 3'
   gem 'standard', require: false
 
-  # 1.50 is the last version to support Ruby 2.6
-  gem 'rubocop', '~> 1.50.0', require: false
+  # Rubocop version must be pinned to major.minor because its demanded
+  # style changes between minor versions.
+  # Most recent standard as of this writing (1.45) depends on rubocop 1.71.
+  # There is rubocop 1.73 but that downgrades standard to 1.35.
+  gem 'rubocop', '~> 1.71.0', require: false
   gem 'rubocop-packaging', '~> 0.5.2', require: false
-  gem 'rubocop-performance', '~> 1.9', require: false
-  # 2.20 is the last version to support Ruby 2.6
-  gem 'rubocop-rspec', ['~> 2.20', '< 2.21'], require: false
+  gem 'rubocop-performance', '~> 1.20', require: false
+  gem 'rubocop-rspec', '~> 2.31', require: false
 end
 
 group :dev do

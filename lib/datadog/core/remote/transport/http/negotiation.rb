@@ -50,49 +50,23 @@ module Datadog
                 end
 
                 def send_info(env, &block)
-                  raise NoNegotiationEndpointDefinedError, self if info.nil?
+                  raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('info', self) if info.nil?
 
                   info.call(env, &block)
-                end
-
-                # Raised when traces sent but no traces endpoint is defined
-                class NoNegotiationEndpointDefinedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'No info endpoint is defined for API specification!'
-                  end
                 end
               end
 
               # Extensions for HTTP API Instance
               module Instance
                 def send_info(env)
-                  raise NegotiationNotSupportedError, spec unless spec.is_a?(Negotiation::API::Spec)
+                  unless spec.is_a?(Negotiation::API::Spec)
+                    raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new(
+                      'info', self
+                    )
+                  end
 
                   spec.send_info(env) do |request_env|
                     call(request_env)
-                  end
-                end
-
-                # Raised when traces sent to API that does not support traces
-                class NegotiationNotSupportedError < StandardError
-                  attr_reader :spec
-
-                  def initialize(spec)
-                    super()
-
-                    @spec = spec
-                  end
-
-                  def message
-                    'Info not supported for this API!'
                   end
                 end
               end

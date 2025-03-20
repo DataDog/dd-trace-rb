@@ -18,6 +18,7 @@ module Datadog
                 watch_request(gateway)
                 watch_response(gateway)
                 watch_request_body(gateway)
+                watch_request_finish(gateway)
               end
 
               def watch_request(gateway = Instrumentation.gateway)
@@ -122,9 +123,12 @@ module Datadog
                   next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.set_user')
 
                   gateway_request.headers.each do |name, value|
-                    next unless Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+                    if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&
+                        !Ext::IDENTITY_COLLECTABLE_REQUEST_HEADERS.include?(name)
+                      next
+                    end
 
-                    context.span["http.request.headers.#{name}"] = value
+                    context.span["http.request.headers.#{name}"] ||= value
                   end
 
                   stack.call(gateway_request.request)
