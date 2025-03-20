@@ -47,7 +47,7 @@ module Datadog
         #
         # @param [optional Context] context The context from which to retrieve
         # the baggage. Defaults to ::OpenTelemetry::Context.current
-        # @return [Hash<String, String>]
+        # @return [Hash<String, String>, nil]
         def values(context: ::OpenTelemetry::Context.current)
           trace = context.ensure_trace
           return nil if trace.nil?

@@ -1,4 +1,13 @@
 module OpenTelemetry
+  class Context
+    def self.current: () -> self
+    def ensure_trace: () -> Datadog::Tracing::TraceOperation?
+    def set_values: (Hash[Symbol, Hash[String, String] | String]) -> self
+  end
+
+  module Baggage
+  end
+
   module Trace
   end
 end

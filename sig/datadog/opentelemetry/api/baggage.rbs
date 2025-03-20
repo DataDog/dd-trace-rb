@@ -13,7 +13,7 @@ module Datadog
         def value: (String key, ?context: untyped) -> String?
 
         # Returns all baggage values
-        def values: (?context: untyped) -> Hash[String, String]
+        def values: (?context: untyped) -> Hash[String, String]?
 
         # Returns a new context with new key-value pair
         def set_value: (String key, String value, ?metadata: String?, ?context: untyped) -> untyped
