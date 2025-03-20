@@ -10,11 +10,6 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
   let(:trace) { Datadog::Tracing::TraceOperation.new }
   let(:context) { ::OpenTelemetry::Context.current }
 
-  before do
-    # Reset any existing baggage before each test
-    trace.baggage = {}
-  end
-
   describe '#set_value' do
     it 'sets a baggage value in the trace' do
       ctx = baggage.set_value('test_key', 'test_value')
@@ -43,10 +38,9 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
     end
 
     it 'maintains immutability of the baggage hash' do
-      original_baggage = trace.baggage.dup
       baggage.set_value('test_key', 'test_value')
 
-      expect(trace.baggage).not_to be(original_baggage)
+      expect(baggage.values).to eq({})
     end
   end
 
@@ -60,13 +54,13 @@ RSpec.describe Datadog::OpenTelemetry::API::Baggage do
       result = baggage.remove_value('key1', context: ctx)
 
       expect(result).to be_a(OpenTelemetry::Context)
-      expect(result.instance_variable_get(:@trace).baggage).to eq({'key2' => 'value2'})
+      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
     end
 
     it 'preserves other baggage values when removing one' do
       result = baggage.remove_value('key1', context: ctx)
 
-      expect(result.instance_variable_get(:@trace).baggage).to eq({'key2' => 'value2'})
+      expect(result.instance_variable_get(:@trace).baggage).to eq({ 'key2' => 'value2' })
     end
 
     it 'handles removing non-existent keys' do

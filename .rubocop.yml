@@ -38,8 +38,6 @@ Style:
     - 'spec/datadog/profiling*'
     - 'spec/datadog/profiling/**/*'
     - 'ext/datadog_profiling_*/**/*'
-    # Conflicts with Standard
-    - 'spec/datadog/opentelemetry/api/baggage_spec.rb'
 Layout:
   Exclude:
     - 'lib/datadog/profiling/*'
@@ -47,8 +45,7 @@ Layout:
     - 'spec/datadog/profiling/*'
     - 'spec/datadog/profiling/**/**'
     - 'ext/datadog_profiling_*/**/*'
-    # Conflicts with Standard
-    - 'spec/datadog/opentelemetry/api/**/*.rb'
+
 Layout/LineLength:
   Max: 124
   Exclude:

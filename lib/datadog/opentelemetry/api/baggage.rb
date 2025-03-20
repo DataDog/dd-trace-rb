@@ -47,10 +47,10 @@ module Datadog
         #
         # @param [optional Context] context The context from which to retrieve
         # the baggage. Defaults to ::OpenTelemetry::Context.current
-        # @return [Hash<String, String>, nil]
+        # @return [Hash<String, String>]
         def values(context: ::OpenTelemetry::Context.current)
           trace = context.ensure_trace
-          return nil if trace.nil?
+          return {} if trace.nil?
 
           trace.baggage ? trace.baggage.dup : {}
         end
@@ -67,6 +67,8 @@ module Datadog
         # value. Defaults to ::OpenTelemetry::Context.current
         # @return [Context]
         def set_value(key, value, metadata: nil, context: ::OpenTelemetry::Context.current)
+          # Delegate to the context to set the value because an active trace is not guaranteed
+          # set_values handles this logic
           context.set_values({ ::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY) => { key => value } })
         end
 
@@ -77,6 +79,8 @@ module Datadog
         # from. Defaults to ::OpenTelemetry::Context.current
         # @return [Context]
         def remove_value(key, context: ::OpenTelemetry::Context.current)
+          # Delegate to the context to remove the value because an active trace is not guaranteed
+          # set_values handles this logic
           context.set_values({ Context::BAGGAGE_REMOVE_KEY => key })
         end
         ::OpenTelemetry::Baggage.singleton_class.prepend(self)

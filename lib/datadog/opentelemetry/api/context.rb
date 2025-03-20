@@ -21,7 +21,7 @@ module Datadog
       module Context
         CURRENT_SPAN_KEY = ::OpenTelemetry::Trace.const_get(:CURRENT_SPAN_KEY)
         private_constant :CURRENT_SPAN_KEY
-        BAGGAGE_REMOVE_KEY = Object.new
+        BAGGAGE_REMOVE_KEY = Object.new # sentinel object to indicate the deletion of a value in baggage
 
         def initialize(entries, trace: nil, baggage: nil)
           @trace = trace || ::Datadog::Tracing.send(:tracer).send(:start_trace)
@@ -83,8 +83,11 @@ module Datadog
           existing_values = @trace && @trace.otel_values || {}
           existing_baggage = @trace && @trace.baggage || {}
 
+          # Retrieve the baggage removal sentinel and remove it from the values hash
           existing_baggage.delete(values[BAGGAGE_REMOVE_KEY]) if values.key?(BAGGAGE_REMOVE_KEY)
 
+          # If the values hash contains a BAGGAGE_KEY, merge its contents with existing baggage
+          # Otherwise, keep the existing baggage unchanged
           new_baggage = if values.key?(::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY))
                           existing_baggage.merge(values[::OpenTelemetry::Baggage.const_get(:BAGGAGE_KEY)])
                         else
