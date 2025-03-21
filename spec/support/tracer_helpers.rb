@@ -120,7 +120,7 @@ module TracerHelpers
   end
 
   # Wraps call to Tracing::Utils::TraceId.to_low_order for better test readability
-  def low_order_trace_id
+  def low_order_trace_id(trace_id)
     Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
   end
 
