@@ -224,7 +224,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     before do
       Admin.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
 
-      post('/admins/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
+      post('/admins/sign_in', { admin: { email: 'john.doe@example.com', password: '123456' } })
     end
 
     it 'tracks successfull login event' do

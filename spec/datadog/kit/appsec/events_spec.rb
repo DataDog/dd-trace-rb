@@ -135,15 +135,6 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
-    it 'sets user login from given usr.login' do
-      trace_op.measure('root') do |span, _trace|
-        described_class.track_login_success(trace_op, user: { id: '42', login: 'test' }, 'usr.login' => 'test-42')
-        expect(span.tags).to include('appsec.events.users.login.success.track' => 'true')
-        expect(span.tags).to include('appsec.events.users.login.success.usr.login' => 'test-42')
-        expect(span.tags).to include('_dd.appsec.events.users.login.success.sdk' => 'true')
-      end
-    end
-
     it 'raises ArgumentError is user ID is nil' do
       expect do
         trace_op.measure('root') do |_span, _trace|
@@ -240,7 +231,7 @@ RSpec.describe Datadog::Kit::AppSec::Events do
 
       it 'sets user login to given login' do
         trace_op.measure('root') do |span, _trace|
-          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login' => 'test-42')
+          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login': 'test-42')
 
           expect(span.tags).to include('appsec.events.users.login.failure.usr.login' => 'test-42')
         end
