@@ -50,7 +50,7 @@ RSpec.describe Datadog::Tracing::Contrib::Lograge::Instrumentation do
               env: 'env',
               service: 'service',
               span_id: span_id.to_s,
-              trace_id: log_injection_trace_id_128(trace_id).to_s,
+              trace_id: log_injection_trace_id_128(trace_id),
               version: 'version'
             },
             ddsource: 'ruby' }
