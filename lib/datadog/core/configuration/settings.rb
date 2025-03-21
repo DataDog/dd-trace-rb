@@ -313,7 +313,7 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap profiles.
             #
-            # This feature is alpha and disabled by default
+            # This feature is in preview and disabled by default. Requires Ruby 3.1+.
             #
             # @warn To enable heap profiling you are required to also enable allocation profiling.
             #
@@ -326,12 +326,12 @@ module Datadog
 
             # Can be used to enable/disable the collection of heap size profiles.
             #
-            # This feature is alpha and enabled by default when heap profiling is enabled.
+            # This feature is in preview and by default is enabled whenever heap profiling is enabled.
             #
-            # @warn To enable heap size profiling you are required to also enable allocation and heap profiling.
+            # @warn Heap size profiling depends on allocation and heap profiling, so they must be enabled as well.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise
-            # whatever the value of DD_PROFILING_EXPERIMENTAL_HEAP_ENABLED is.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED` environment variable as a boolean, otherwise it
+            # follows the value of `experimental_heap_enabled`.
             option :experimental_heap_size_enabled do |o|
               o.type :bool
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SIZE_ENABLED'
@@ -341,17 +341,19 @@ module Datadog
             # Can be used to configure the heap sampling rate: a heap sample will be collected for every x allocation
             # samples.
             #
-            # The lower the value, the more accuracy in heap tracking but the bigger the overhead. In particular, a
-            # value of 1 will track ALL allocations samples for heap profiles.
+            # The higher the value, the less accuracy in heap tracking but the smaller the overhead.
+            #
+            # If you needed to tweak this, please tell us why on <https://github.com/DataDog/dd-trace-rb/issues/new>,
+            # so we can fix it!
             #
             # The effective heap sampling rate in terms of allocations (not allocation samples) can be calculated via
             # effective_heap_sample_rate = allocation_sample_rate * heap_sample_rate.
             #
-            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `10`.
+            # @default `DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE` environment variable, otherwise `1`.
             option :experimental_heap_sample_rate do |o|
               o.type :int
               o.env 'DD_PROFILING_EXPERIMENTAL_HEAP_SAMPLE_RATE'
-              o.default 10
+              o.default 1
             end
 
             # Can be used to disable checking which version of `libmysqlclient` is being used by the `mysql2` gem.
