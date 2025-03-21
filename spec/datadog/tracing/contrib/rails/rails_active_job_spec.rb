@@ -210,7 +210,7 @@ RSpec.describe 'ActiveJob' do
         it 'injects trace correlation' do
           perform_later
           expect(output).to include('my-log')
-          expect(output).to include(low_order_trace_id(span.trace_id).to_s)
+          expect(output).to include(trace_id_128_log_injection(span.trace_id))
         end
       end
 
