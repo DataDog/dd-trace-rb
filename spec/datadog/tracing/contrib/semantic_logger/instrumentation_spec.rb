@@ -71,7 +71,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
         expect(log_entry).to include 'Mamamia!'
         expect(log_entry).to include 'original: tag'
 
-        expect(log_entry).to include log_injection_trace_id_128(trace_id)
+        expect(log_entry).to include trace_id_128_log_injection(trace_id)
         expect(log_entry).to include span_id.to_s
         expect(log_entry).to include 'production'
         expect(log_entry).to include 'MyService'
@@ -91,7 +91,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
         expect(log_entry).to include 'Mamamia!'
         expect(log_entry).to include 'original: tag'
 
-        expect(log_entry).not_to include log_injection_trace_id_128(trace_id)
+        expect(log_entry).not_to include trace_id_128_log_injection(trace_id)
         expect(log_entry).not_to include span_id.to_s
         expect(log_entry).not_to include 'production'
         expect(log_entry).not_to include 'MyService'
@@ -111,7 +111,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
         expect(log_entry).to include 'Mamamia!'
         expect(log_entry).to include 'original: tag'
 
-        expect(log_entry).not_to include log_injection_trace_id_128(trace_id)
+        expect(log_entry).not_to include trace_id_128_log_injection(trace_id)
         expect(log_entry).not_to include span_id.to_s
         expect(log_entry).not_to include 'production'
         expect(log_entry).not_to include 'MyService'
@@ -137,7 +137,7 @@ RSpec.describe Datadog::Tracing::Contrib::SemanticLogger::Instrumentation do
         expect(log_entry).to include 'Mamamia!'
         expect(log_entry).not_to include 'original: tag'
 
-        expect(log_entry).to include log_injection_trace_id_128(trace_id)
+        expect(log_entry).to include trace_id_128_log_injection(trace_id)
         expect(log_entry).to include span_id.to_s
         expect(log_entry).to include 'production'
         expect(log_entry).to include 'MyService'

@@ -126,7 +126,7 @@ module TracerHelpers
 
   # Ensures the given trace ID is always formatted using the 128-bit logging format
   # by wrapping Tracing::Correlation.format_trace_id(trace_id)
-  def log_injection_trace_id_128(trace_id)
+  def trace_id_128_log_injection(trace_id)
     RSpec::Mocks.with_temporary_scope do
       allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
       Datadog::Tracing::Correlation.format_trace_id(trace_id)

@@ -68,7 +68,7 @@ RSpec.describe Datadog::Tracing::Correlation do
           env: default_env,
           service: default_service,
           span_id: span_id.to_s,
-          trace_id: log_injection_trace_id_128(trace_id),
+          trace_id: trace_id_128_log_injection(trace_id),
           version: default_version
         )
       end
@@ -189,7 +189,7 @@ RSpec.describe Datadog::Tracing::Correlation do
             env: env,
             service: service,
             span_id: span_id.to_s,
-            trace_id: log_injection_trace_id_128(trace_id),
+            trace_id: trace_id_128_log_injection(trace_id),
             version: version
           )
         end
@@ -222,7 +222,7 @@ RSpec.describe Datadog::Tracing::Correlation do
                 env: 'dev',
                 service: 'acme-api',
                 version: '1.0',
-                trace_id: log_injection_trace_id_128(trace_id),
+                trace_id: trace_id_128_log_injection(trace_id),
                 span_id: span_id.to_s
               },
               ddsource: 'ruby'
