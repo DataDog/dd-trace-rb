@@ -1,7 +1,14 @@
 module Datadog
   module Tracing
     module Correlation
-      Identifier: Struct[untyped]
+      class Identifier
+        attr_reader env: String?
+        attr_reader service: String
+        attr_reader span_id: String
+        attr_reader version: String
+
+        def trace_id: () -> String
+      end
 
       def self?.identifier_from_context: (untyped context) -> Struct[untyped] # Identifier
     end
