@@ -306,10 +306,22 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
     describe ':tags' do
       subject(:default_tags) { default_metric_options[:tags] }
 
+      context 'given :experimental_runtime_id_enabled' do
+        let(:options) { super().merge(experimental_runtime_id_enabled: runtime_id_enabled) }
+        let(:runtime_id_enabled) { true }
+
+        it do
+          is_expected.to include(*Datadog::Core::Metrics::Client.default_metric_options[:tags])
+          is_expected.to include('language:ruby')
+          is_expected.to include(/\Aruntime-id:/o)
+        end
+      end
+
       context 'when no services have been registered' do
         it do
           is_expected.to include(*Datadog::Core::Metrics::Client.default_metric_options[:tags])
           is_expected.to include('language:ruby')
+          is_expected.to_not include(/\Aruntime-id:/o)
         end
       end
 
@@ -322,6 +334,7 @@ RSpec.describe Datadog::Core::Runtime::Metrics do
           is_expected.to include(*Datadog::Core::Metrics::Client.default_metric_options[:tags])
           is_expected.to include('language:ruby')
           is_expected.to include(*services.collect { |service| "service:#{service}" })
+          is_expected.to_not include(/\Aruntime-id:/o)
         end
       end
     end
