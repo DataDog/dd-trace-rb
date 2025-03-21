@@ -120,7 +120,10 @@ module Datadog
               def watch_request_finish(gateway = Instrumentation.gateway)
                 gateway.watch('rack.request.finish', :appsec) do |stack, gateway_request|
                   context = gateway_request.env[AppSec::Ext::CONTEXT_KEY]
-                  next stack.call(gateway_request.request) if context.span.nil? || !gateway.pushed?('identity.appsec.event')
+
+                  if context.span.nil? || !gateway.pushed?('appsec.events.user_lifecycle')
+                    next stack.call(gateway_request.request)
+                  end
 
                   gateway_request.headers.each do |name, value|
                     if !Ext::COLLECTABLE_REQUEST_HEADERS.include?(name) &&

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../../../../kit/appsec/events'
 require_relative '../configuration'
 require_relative '../data_extractor'
@@ -27,8 +28,8 @@ module Datadog
                 next yield(resource) if !resource.persisted? && block_given?
 
                 context.trace.keep!
-                record_successfull_signup(context, resource)
-                Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::SIGNUP_EVENT)
+                record_successful_signup(context, resource)
+                Instrumentation.gateway.push('appsec.events.user_lifecycle', Kit::AppSec::Events::SIGNUP_EVENT)
 
                 yield(resource) if block_given?
               end
@@ -36,23 +37,23 @@ module Datadog
 
             private
 
-            def record_successfull_signup(context, resource)
+            def record_successful_signup(context, resource)
               extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(resource_params) || extractor.extract_login(resource)
 
-              context.span['appsec.events.users.signup.track'] = 'true'
-              context.span['_dd.appsec.usr.login'] = login
-              context.span['_dd.appsec.events.users.signup.auto.mode'] = Configuration.auto_user_instrumentation_mode
-              context.span['appsec.events.users.signup.usr.login'] ||= login
+              context.span[Ext::TAG_SIGNUP_TRACK] = 'true'
+              context.span[Ext::TAG_DD_USR_LOGIN] = login
+              context.span[Ext::TAG_SIGNUP_USR_LOGIN] ||= login
+              context.span[Ext::TAG_DD_SIGNUP_MODE] = Configuration.auto_user_instrumentation_mode
 
-              return if id.nil?
+              if id
+                context.span[Ext::TAG_DD_USR_ID] = id
 
-              context.span.set_tag('_dd.appsec.usr.id', id)
-              return context.span['appsec.events.users.signup.usr.id'] ||= id unless resource.active_for_authentication?
-
-              context.span['usr.id'] ||= id
+                id_tag = resource.active_for_authentication? ? Ext::TAG_USR_ID : Ext::TAG_SIGNUP_USR_ID
+                context.span[id_tag] ||= id
+              end
 
               # TODO: Maybe check to avoid double send
               AppSec::Instrumentation.gateway.push(

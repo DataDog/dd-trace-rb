@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'ext'
 require_relative '../../anonymizer'
 
 module Datadog
@@ -10,6 +11,7 @@ module Datadog
         class TrackingMiddleware
           def initialize(app)
             @app = app
+            @devise_session_scope_keys = {}
           end
 
           def call(env)
@@ -30,15 +32,15 @@ module Datadog
 
             id = transform(extract_id(env['warden']))
             if id
-              unless context.span.has_tag?('usr.id')
-                context.span['usr.id'] = id
+              unless context.span.has_tag?(Ext::TAG_USR_ID)
+                context.span[Ext::TAG_USR_ID] = id
                 AppSec::Instrumentation.gateway.push(
                   'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, nil)
                 )
               end
 
-              context.span['_dd.appsec.usr.id'] = id.to_s
-              context.span['_dd.appsec.user.collection_mode'] ||= Configuration.auto_user_instrumentation_mode
+              context.span[Ext::TAG_DD_USR_ID] = id.to_s
+              context.span[Ext::TAG_DD_COLLECTION_MODE] ||= Configuration.auto_user_instrumentation_mode
             end
 
             @app.call(env)
@@ -49,7 +51,7 @@ module Datadog
           def extract_id(warden)
             session_serializer = warden.session_serializer
 
-            key = session_serializer.key_for(::Devise.default_scope)
+            key = session_key_for(session_serializer, ::Devise.default_scope)
             id = session_serializer.session[key]&.dig(0, 0)
 
             return id if ::Devise.mappings.size == 1
@@ -58,13 +60,17 @@ module Datadog
             ::Devise.mappings.each_key do |scope|
               next if scope == ::Devise.default_scope
 
-              key = session_serializer.key_for(scope)
+              key = session_key_for(session_serializer, scope)
               id = session_serializer.session[key]&.dig(0, 0)
 
               return "#{scope}:#{id}" unless id.nil?
             end
 
             nil
+          end
+
+          def session_key_for(session_serializer, scope)
+            @devise_session_scope_keys[scope] ||= session_serializer.key_for(scope)
           end
 
           def transform(value)
