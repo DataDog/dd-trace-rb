@@ -32,6 +32,33 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_id(double('User', id: 1))).to eq('1')
         expect(extractor.extract_id(id: 1)).to eq('1')
       end
+
+      it 'returns nil when object is an empty hash' do
+        expect(extractor.extract_id({})).to be_nil
+      end
+
+      it 'returns nil when object is nil' do
+        expect(extractor.extract_id(nil)).to be_nil
+      end
+
+      it 'returns prefixed id when object has both id and uuid methods' do
+        user = double(id: 1, uuid: 2, class: double(name: 'User'))
+        expect(extractor.extract_id(user)).to eq('user:1')
+      end
+
+      it 'returns nil when object has class but no id or uuid' do
+        user = double(class: double(name: 'User'))
+        expect(extractor.extract_id(user)).to be_nil
+      end
+
+      it 'returns non-prefixed id when class does not match any mapping' do
+        unknown = double(id: 1, class: double(name: 'Unknown'))
+        expect(extractor.extract_id(unknown)).to eq('1')
+      end
+
+      it 'returns nil when hash has class_name but no id' do
+        expect(extractor.extract_id(class: double(name: 'User'))).to be_nil
+      end
     end
 
     context 'when mode is set to identification' do
@@ -142,6 +169,24 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
       it 'return nil if object does not respond to email or other methods' do
         expect(extractor.extract_login(double('User'))).to be_nil
       end
+
+      it 'returns nil when object is nil' do
+        expect(extractor.extract_login(nil)).to be_nil
+      end
+
+      it 'returns login when object has only some of the login methods' do
+        expect(extractor.extract_login(double('User', username: 'example'))).to eq('example')
+        expect(extractor.extract_login(double('User', login: 'example'))).to eq('example')
+        expect(extractor.extract_login(double('User', email: 'ex@mple.com'))).to eq('ex@mple.com')
+      end
+
+      it 'returns nil when object has class but no login methods' do
+        expect(extractor.extract_login(double('User', class: double(name: 'User')))).to be_nil
+      end
+
+      it 'returns nil when hash has class but no login keys' do
+        expect(extractor.extract_login(class: double(name: 'User'))).to be_nil
+      end
     end
 
     context 'when mode is set to anonymization' do
@@ -165,6 +210,19 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
 
       it 'return nil if object does not respond to id or uuid methods' do
         expect(extractor.extract_id(double('User'))).to be_nil
+      end
+
+      it 'returns consistent anonymization for same input' do
+        anon_login_1 = extractor.extract_login(email: 'test@example.com')
+        anon_login_2 = extractor.extract_login(email: 'test@example.com')
+        anon_login_3 = extractor.extract_login(email: 'different@example.com')
+
+        expect(anon_login_1).to eq(anon_login_2)
+        expect(anon_login_1).not_to eq(anon_login_3)
+      end
+
+      it 'returns nil when object is nil' do
+        expect(extractor.extract_login(nil)).to be_nil
       end
     end
   end

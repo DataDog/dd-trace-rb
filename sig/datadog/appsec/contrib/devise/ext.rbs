@@ -3,7 +3,35 @@ module Datadog
     module Contrib
       module Devise
         module Ext
-          APP: "devise"
+          TAG_USR_ID: ::String
+
+          TAG_LOGIN_SUCCESS_TRACK: ::String
+
+          TAG_LOGIN_SUCCESS_USR_LOGIN: ::String
+
+          TAG_LOGIN_FAILURE_TRACK: ::String
+
+          TAG_LOGIN_FAILURE_USR_LOGIN: ::String
+
+          TAG_LOGIN_FAILURE_USR_EXISTS: ::String
+
+          TAG_LOGIN_FAILURE_USR_ID: ::String
+
+          TAG_SIGNUP_TRACK: ::String
+
+          TAG_SIGNUP_USR_LOGIN: ::String
+
+          TAG_SIGNUP_USR_ID: ::String
+
+          TAG_DD_USR_ID: ::String
+
+          TAG_DD_USR_LOGIN: ::String
+
+          TAG_DD_LOGIN_SUCCESS_MODE: ::String
+
+          TAG_DD_LOGIN_FAILURE_MODE: ::String
+
+          TAG_DD_SIGNUP_MODE: ::String
         end
       end
     end

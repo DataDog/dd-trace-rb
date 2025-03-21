@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative '../ext'
 require_relative '../configuration'
 require_relative '../data_extractor'
 require_relative '../../../../kit/appsec/events'
@@ -28,35 +29,35 @@ module Datadog
               context.trace.keep!
 
               if result
-                record_successfull_signin(context, resource)
-                Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::LOGIN_SUCCESS_EVENT)
+                record_successful_signin(context, resource)
+                Instrumentation.gateway.push('appsec.events.user_lifecycle', Kit::AppSec::Events::LOGIN_SUCCESS_EVENT)
 
                 return result
               end
 
               record_failed_signin(context, resource)
-              Instrumentation.gateway.push('identity.appsec.event', Kit::AppSec::Events::LOGIN_FAILURE_EVENT)
+              Instrumentation.gateway.push('appsec.events.user_lifecycle', Kit::AppSec::Events::LOGIN_FAILURE_EVENT)
 
               result
             end
 
             private
 
-            def record_successfull_signin(context, resource)
+            def record_successful_signin(context, resource)
               extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
               if id
-                context.span['usr.id'] ||= id
-                context.span['_dd.appsec.usr.id'] = id
+                context.span[Ext::TAG_USR_ID] ||= id
+                context.span[Ext::TAG_DD_USR_ID] = id
               end
 
-              context.span['appsec.events.users.login.success.usr.login'] ||= login
-              context.span['appsec.events.users.login.success.track'] = 'true'
-              context.span['_dd.appsec.usr.login'] = login
-              context.span['_dd.appsec.events.users.login.success.auto.mode'] = Configuration.auto_user_instrumentation_mode
+              context.span[Ext::TAG_LOGIN_SUCCESS_USR_LOGIN] ||= login
+              context.span[Ext::TAG_LOGIN_SUCCESS_TRACK] = 'true'
+              context.span[Ext::TAG_DD_USR_LOGIN] = login
+              context.span[Ext::TAG_DD_LOGIN_SUCCESS_MODE] = Configuration.auto_user_instrumentation_mode
 
               # TODO: Maybe check to avoid double send
               AppSec::Instrumentation.gateway.push(
@@ -67,15 +68,15 @@ module Datadog
             def record_failed_signin(context, resource)
               extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
 
-              context.span['appsec.events.users.login.failure.track'] = 'true'
-              context.span['_dd.appsec.events.users.login.failure.auto.mode'] = Configuration.auto_user_instrumentation_mode
+              context.span[Ext::TAG_LOGIN_FAILURE_TRACK] = 'true'
+              context.span[Ext::TAG_DD_LOGIN_FAILURE_MODE] = Configuration.auto_user_instrumentation_mode
 
               unless resource
                 login = extractor.extract_login(authentication_hash)
 
-                context.span['_dd.appsec.usr.login'] = login
-                context.span['appsec.events.users.login.failure.usr.login'] ||= login
-                context.span['appsec.events.users.login.failure.usr.exists'] ||= 'false'
+                context.span[Ext::TAG_DD_USR_LOGIN] = login
+                context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
+                context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'false'
 
                 return
               end
@@ -84,13 +85,13 @@ module Datadog
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
 
               if id
-                context.span['_dd.appsec.usr.id'] = id
-                context.span['appsec.events.users.login.failure.usr.id'] ||= id
+                context.span[Ext::TAG_DD_USR_ID] = id
+                context.span[Ext::TAG_LOGIN_FAILURE_USR_ID] ||= id
               end
 
-              context.span['_dd.appsec.usr.login'] = login
-              context.span['appsec.events.users.login.failure.usr.login'] ||= login
-              context.span['appsec.events.users.login.failure.usr.exists'] ||= 'true'
+              context.span[Ext::TAG_DD_USR_LOGIN] = login
+              context.span[Ext::TAG_LOGIN_FAILURE_USR_LOGIN] ||= login
+              context.span[Ext::TAG_LOGIN_FAILURE_USR_EXISTS] ||= 'true'
             end
           end
         end

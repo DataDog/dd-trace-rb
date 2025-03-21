@@ -6,7 +6,6 @@ require 'rack/test'
 
 require 'datadog/kit/appsec/events'
 require 'action_controller/railtie'
-require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
@@ -15,7 +14,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
   include Rack::Test::Methods
 
   before do
-    # NOTE: By doing this we are emulating the initilial load of the devise rails
+    # NOTE: By doing this we are emulating the initial load of the devise rails
     #       engine for every test case. It will install the required middleware.
     #       WARNING: This is a hack!
     Devise.send(:remove_const, :Engine)
@@ -105,6 +104,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     registrations_controller
 
     allow(Rails).to receive(:application).and_return(app)
+    allow(Datadog::AppSec::Instrumentation).to receive(:gateway).and_return(gateway)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -162,6 +162,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
     end
   end
 
+  let(:gateway) { Datadog::AppSec::Instrumentation::Gateway.new }
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
   let(:http_service_entry_trace) { traces.find { |t| t.id == http_service_entry_span.trace_id } }
 
@@ -177,19 +178,22 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
       post('/users', form_data)
     end
 
-    it 'tracks successfull sign up event' do
+    it 'tracks successful sign up event' do
       expect(response).to be_redirect
       expect(response.location).to eq('http://example.org/')
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
-      expect(http_service_entry_span.tags['usr.id']).to eq('1')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '1',
+        'appsec.events.users.signup.track' => 'true',
+        'appsec.events.users.signup.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.events.users.signup.auto.mode' => 'identification',
+        '_dd.appsec.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.usr.id' => '1'
+      )
 
-      expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -219,7 +223,7 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
       end
     end
 
-    it 'tracks successfull sign up event' do
+    it 'tracks successful sign up event' do
       expect(response).to be_redirect
       expect(response.location).to eq('http://example.org/')
 
@@ -229,10 +233,14 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
       expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
       expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.signup.usr.id')
 
-      expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
-      expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
+      expect(http_service_entry_span.tags).to include(
+        'appsec.events.users.signup.track' => 'true',
+        'appsec.events.users.signup.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.events.users.signup.auto.mode' => 'identification',
+        '_dd.appsec.usr.login' => 'john.doe@example.com'
+      )
+
+      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -276,19 +284,22 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
       end
     end
 
-    it 'tracks successfull sign up event' do
+    it 'tracks successful sign up event' do
       expect(response).to be_redirect
       expect(response.location).to eq('http://example.org/')
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('1')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
+      expect(http_service_entry_span.tags).to include(
+        'appsec.events.users.signup.usr.id' => '1',
+        'appsec.events.users.signup.track' => 'true',
+        'appsec.events.users.signup.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.events.users.signup.auto.mode' => 'identification',
+        '_dd.appsec.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.usr.id' => '1'
+      )
 
-      expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 
@@ -340,14 +351,17 @@ RSpec.describe 'Devise sign up tracking with auto user instrumentation' do
 
       expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
 
-      expect(http_service_entry_span.tags['usr.id']).to eq('42')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-      expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('hello@gmail.com')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '42',
+        'appsec.events.users.signup.track' => 'true',
+        'appsec.events.users.signup.usr.login' => 'hello@gmail.com',
+        '_dd.appsec.events.users.signup.sdk' => 'true',
+        '_dd.appsec.events.users.signup.auto.mode' => 'identification',
+        '_dd.appsec.usr.login' => 'john.doe@example.com',
+        '_dd.appsec.usr.id' => '1'
+      )
 
-      expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.sdk']).to eq('true')
-      expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('identification')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-      expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      expect(gateway.pushed?('appsec.events.user_lifecycle')).to be true
     end
   end
 end

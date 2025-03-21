@@ -6,18 +6,25 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # An extractor of the data from Devise resources
+        # Extracts user identification data from Devise resources.
+        # Supports both regular and anonymized data extraction modes.
         class DataExtractor
+          PRIORITY_ORDERED_ID_KEYS = [:id, 'id', :uuid, 'uuid'].freeze
+          PRIORITY_ORDERED_LOGIN_KEYS = [:email, 'email', :username, 'username', :login, 'login'].freeze
+
           def initialize(mode)
             @mode = mode
+            @devise_scopes = {}
           end
 
           def extract_id(object)
+            return if object.nil?
+
             if object.respond_to?(:[])
-              id = object[:id] || object['id'] || object[:uuid] || object['uuid']
+              id = object[PRIORITY_ORDERED_ID_KEYS.find { |key| object[key] }]
               scope = find_devise_scope(object)
 
-              id = "#{scope}:#{id}" if scope
+              id = "#{scope}:#{id}" if id && scope
               return transform(id)
             end
 
@@ -25,20 +32,20 @@ module Datadog
             id ||= object.uuid if object.respond_to?(:uuid)
 
             scope = find_devise_scope(object)
-            id = "#{scope}:#{id}" if scope
+            id = "#{scope}:#{id}" if id && scope
 
             transform(id)
           end
 
           def extract_login(object)
-            if object.respond_to?(:[])
-              login = object[:email] || object['email'] || object[:username] ||
-                object['username'] || object[:login] || object['login']
+            return if object.nil?
 
+            if object.respond_to?(:[])
+              login = object[PRIORITY_ORDERED_LOGIN_KEYS.find { |key| object[key] }]
               return transform(login)
             end
 
-            login = object&.email if object.respond_to?(:email)
+            login = object.email if object.respond_to?(:email)
             login ||= object.username if object.respond_to?(:username)
             login ||= object.login if object.respond_to?(:login)
 
@@ -50,7 +57,9 @@ module Datadog
           def find_devise_scope(object)
             return if ::Devise.mappings.count == 1
 
-            ::Devise.mappings.each_value.find { |mapping| mapping.class_name == object.class.name }&.name
+            @devise_scopes[object.class.name] ||= begin
+              ::Devise.mappings.each_value.find { |mapping| mapping.class_name == object.class.name }&.name
+            end
           end
 
           def transform(value)

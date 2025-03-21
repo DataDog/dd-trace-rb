@@ -5,7 +5,6 @@ require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'action_controller/railtie'
-require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
@@ -15,7 +14,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   include Warden::Test::Helpers
 
   before do
-    # NOTE: By doing this we are emulating the initilial load of the devise rails
+    # NOTE: By doing this we are emulating the initial load of the devise rails
     #       engine for every test case. It will install the required middleware.
     #       WARNING: This is a hack!
     Devise.send(:remove_const, :Engine)
@@ -221,9 +220,11 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
 
-      expect(http_service_entry_span['usr.id']).to eq('1')
-      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
-      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '1',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'identification'
+      )
     end
 
     it 'allows authenticated user to visit private page and tracks it' do
@@ -232,9 +233,11 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(response).to be_ok
       expect(response.body).to eq('This is private page')
 
-      expect(http_service_entry_span['usr.id']).to eq('1')
-      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
-      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('identification')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '1',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'identification'
+      )
     end
   end
 
@@ -265,10 +268,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
 
-      expect(http_service_entry_span['usr.id']).to eq('42')
-      expect(http_service_entry_span['usr.email']).to eq('hello@gmail.com')
-      expect(http_service_entry_span['_dd.appsec.usr.id']).to eq('1')
-      expect(http_service_entry_span['_dd.appsec.user.collection_mode']).to eq('sdk')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '42',
+        'usr.email' => 'hello@gmail.com',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'sdk'
+      )
     end
   end
 end
