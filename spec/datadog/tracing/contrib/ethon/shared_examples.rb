@@ -161,7 +161,7 @@ RSpec.shared_examples_for 'instrumented request' do
           headers = JSON.parse(response.body)['headers']
           distributed_tracing_headers = {
             'x-datadog-parent-id' => [span.id.to_s],
-            'x-datadog-trace-id' => [log_injection_trace_id_128(span.trace_id).to_s]
+            'x-datadog-trace-id' => [low_order_trace_id(span.trace_id).to_s]
           }
 
           expect(headers).to include(distributed_tracing_headers)
