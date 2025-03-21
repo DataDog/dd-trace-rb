@@ -835,7 +835,7 @@ RSpec.describe Datadog::OpenTelemetry do
             'x-datadog-tags' => '_dd.p.dm=-0' + (
               trace_id < 2**64 ? '' : ",_dd.p.tid=#{high_order_hex_trace_id(Datadog::Tracing.active_trace.id)}"
             ),
-            'x-datadog-trace-id' => log_injection_trace_id_128(Datadog::Tracing.active_trace.id).to_s,
+            'x-datadog-trace-id' => low_order_trace_id(Datadog::Tracing.active_trace.id).to_s,
           }
         end
 

@@ -57,7 +57,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
         expect(span.get_tag('operation')).to eq('push')
         expect(span.get_tag('span.kind')).to eq('producer')
 
-        expect(job['x-datadog-trace-id']).to eq(log_injection_trace_id_128(span.trace_id).to_s)
+        expect(job['x-datadog-trace-id']).to eq(low_order_trace_id(span.trace_id).to_s)
         expect(job['x-datadog-parent-id']).to eq(span.id.to_s)
         expect(job['x-datadog-sampling-priority']).to eq('1')
         expect(job['x-datadog-tags']).to eq("_dd.p.dm=-0,_dd.p.tid=#{high_order_hex_trace_id(span.trace_id)}")
@@ -78,7 +78,7 @@ RSpec.describe 'Sidekiq distributed tracing' do
             'args' => [],
             'class' => EmptyWorker.to_s,
             'jid' => jid,
-            'x-datadog-trace-id' => log_injection_trace_id_128(trace_id).to_s,
+            'x-datadog-trace-id' => low_order_trace_id(trace_id).to_s,
             'x-datadog-parent-id' => span_id.to_s,
             'x-datadog-sampling-priority' => '2',
             'x-datadog-tags' => "_dd.p.dm=-99,_dd.p.tid=#{high_order_hex_trace_id(trace_id)}",

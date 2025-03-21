@@ -119,6 +119,11 @@ module TracerHelpers
     without_warnings { Datadog.send(:reset!) }
   end
 
+  # Wraps call to Tracing::Utils::TraceId.to_low_order for better test readability
+  def low_order_trace_id
+    Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
+  end
+
   # Ensures the given trace ID is always formatted using the 128-bit logging format
   # by wrapping Tracing::Correlation.format_trace_id(trace_id)
   def log_injection_trace_id_128(trace_id)
