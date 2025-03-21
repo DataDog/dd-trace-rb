@@ -62,7 +62,13 @@ module Datadog
               end
 
               def on_start(span, event, _id, payload)
-                key = payload[:key]
+                # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
+                # In previous versions, the denormalized key is stored in the official `key` attribute.
+                # We fall back to `key`, even in Rails 8, as a defensive measure.
+                #
+                # TODO: Remove this raise
+                raise "payload[:dd_original_keys] is nil: #{payload[:key]}" if payload[:dd_original_keys].nil? && defined?(::Rails) && ::Rails.version.to_i >= 8
+                key = (dd_original_keys = payload[:dd_original_keys]) || payload[:key]
                 store = payload[:store]
 
                 mapping = MAPPING.fetch(event)
@@ -87,6 +93,10 @@ module Datadog
               rescue StandardError => e
                 Datadog.logger.error(e.message)
                 Datadog::Core::Telemetry::Logger.report(e)
+              ensure
+                # Because `dd_original_keys` can be set to the default `options`, we must reset it after use.
+                # @see https://github.com/rails/rails/blob/951ea8f75d9bf6d2999df2f0497347976dce9476/activesupport/lib/active_support/cache.rb#L888
+                dd_original_keys.clear if dd_original_keys
               end
 
               def set_cache_key(span, key, multi_key)

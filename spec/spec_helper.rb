@@ -26,6 +26,7 @@ require 'datadog/tracing/tracer'
 require 'datadog/tracing/span'
 
 require 'support/core_helpers'
+require 'support/execute_in_fork'
 require 'support/faux_transport'
 require 'support/faux_writer'
 require 'support/loaded_gem'
@@ -149,7 +150,7 @@ RSpec.configure do |config|
           # Thread has shut down, but we caught it right as it was still alive
           !t.alive? ||
           # Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
-          (t.respond_to?(:name) && t.name == 'Timeout stdlib thread') ||
+          t.name == 'Timeout stdlib thread' ||
           # JRuby: Long-lived Timeout thread created by `Timeout.create_timeout_thread`.
           t == Timeout.instance_exec { @timeout_thread if defined?(@timeout_thread) } ||
           # Internal JRuby thread
@@ -160,6 +161,8 @@ RSpec.configure do |config|
           t[:WEBrickSocket] ||
           # Rails connection reaper
           backtrace.find { |b| b =~ %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb} } ||
+          # # Rails ActiveRecord connection pool reaper
+          # t.name == 'AR Pool Reaper' ||
           # Ruby JetBrains debugger
           (t.class.name && t.class.name.include?('DebugThread')) ||
           # Categorized as a known leaky thread
