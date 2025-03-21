@@ -486,9 +486,9 @@ RSpec.describe 'Rails Log Auto Injection' do
 
             rack_rails_logger_entry, my_entry = log_entries
             expect(rack_rails_logger_entry).to include "dd.trace_id=#{
-              log_injection_trace_id_128(log_injection_trace_id_128(trace.id))
+              log_injection_trace_id_128(trace.id)
             }"
-            expect(my_entry).to include "dd.trace_id=#{log_injection_trace_id_128(log_injection_trace_id_128(trace.id))}"
+            expect(my_entry).to include "dd.trace_id=#{log_injection_trace_id_128(trace.id)}"
           end
         end
       end
