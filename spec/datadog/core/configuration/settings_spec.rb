@@ -1108,10 +1108,11 @@ RSpec.describe Datadog::Core::Configuration::Settings do
           ['key', 'key:', 'key: '].each do |tag|
             context "when tag is #{tag.inspect}" do
               let(:env_tags) { tag }
-              it { is_expected.to eq({"key" => ""}) }
+              it { is_expected.to eq({ 'key' => '' }) }
             end
           end
         end
+
         context 'with multiple colons' do
           let(:env_tags) { 'key:va:lue' }
 

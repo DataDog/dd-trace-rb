@@ -629,15 +629,17 @@ module Datadog
               env_value.split(sep).each do |tag|
                 tag.strip!
                 next if tag.empty?
+
                 # tag by : or = (for OpenTelemetry)
                 key, val = if tag.include?(':')
-                  tag.split(':', 2).map(&:strip)
-                elsif tag.include?('=')
-                  tag.split('=', 2).map(&:strip)
-                else
-                  [tag.strip, '']
-                end
+                             tag.split(':', 2).map(&:strip)
+                           elsif tag.include?('=')
+                             tag.split('=', 2).map(&:strip)
+                           else
+                             [tag.strip, '']
+                           end
                 next if key.empty?
+
                 # maps OpenTelemetry semantic attributes to Datadog tags
                 case key.downcase
                 when 'deployment.environment'
