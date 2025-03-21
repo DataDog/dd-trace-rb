@@ -268,7 +268,7 @@ jobs:
           - APPSEC_DISABLED
           - APPSEC_BLOCKING_FULL_DENYLIST
           - APPSEC_REQUEST_BLOCKING
-          - APPSEC_STANDALONE
+          - APPSEC_STANDALONE_EXPERIMENTAL
           - APPSEC_BLOCKING
         include:
           - library: ruby
@@ -325,6 +325,9 @@ jobs:
           - library: ruby
             app: rails70
             scenario: DEBUGGER_PII_REDACTION
+          - library: ruby
+            app: rails70
+            scenario: SCA_STANDALONE_EXPERIMENTAL
           - library: ruby
             app: rack
             scenario: SAMPLING
