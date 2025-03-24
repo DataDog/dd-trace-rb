@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec.shared_examples 'a trace with APM disablement tags' do |params = {}|
   let(:tag_apm_enabled) { params[:tag_apm_enabled] || 0 }
   let(:tag_other_propagation) { params[:tag_other_propagation] || :any }

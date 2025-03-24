@@ -553,7 +553,7 @@ module Datadog
 
       # Decide whether upstream sampling priority should be propagated, by taking into account
       # the upstream tags and the configuration.
-      # We should always propagate if APM is not disabled.
+      # We should always propagate if APM is enabled.
       #
       # e.g.: upstream tags containing dd.p.appsec, and appsec is enabled, return true.
       # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
