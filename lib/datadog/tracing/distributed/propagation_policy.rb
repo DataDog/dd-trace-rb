@@ -16,8 +16,8 @@ module Datadog
         def enabled?(pin_config: nil, global_config: nil, trace: nil)
           return false unless Tracing.enabled?
 
-          if ::Datadog.configuration.appsec.standalone.enabled &&
-              (trace.nil? || trace.get_tag(::Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1')
+          if (trace.nil? || trace.get_tag(::Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1') &&
+              ::Datadog.configuration.appsec.standalone.enabled
             return false
           end
 
