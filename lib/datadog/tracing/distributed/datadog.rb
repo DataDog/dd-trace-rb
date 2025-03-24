@@ -117,7 +117,7 @@ module Datadog
           return trace_id unless tags
           return trace_id unless (high_order = tags.delete(Tracing::Metadata::Ext::Distributed::TAG_TID))
           return trace_id unless high_order.size == 16
-          return trace_id unless high_order =~ /\A[0-9a-f]+\z/i
+          return trace_id unless /\A[0-9a-f]+\z/i.match?(high_order)
 
           Tracing::Utils::TraceId.concatenate(high_order.to_i(16), trace_id)
         end
