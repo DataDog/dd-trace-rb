@@ -1,28 +1,28 @@
 # frozen_string_literal: true
 
 require 'datadog'
-require 'datadog/tracing/distributed/skip_policy'
+require 'datadog/tracing/distributed/propagation_policy'
 
-RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
-  describe '#skip?' do
+RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
+  describe '#enabled?' do
     context 'when distributed tracing in datadog_config is enabled' do
       let(:result) do
-        described_class.skip?(
+        described_class.enabled?(
           global_config: { distributed_tracing: true }
         )
       end
 
-      it { expect(result).to be false }
+      it { expect(result).to be true }
     end
 
     context 'when distributed tracing in datadog_config is disabled' do
       let(:result) do
-        described_class.skip?(
+        described_class.enabled?(
           global_config: { distributed_tracing: false }
         )
       end
 
-      it { expect(result).to be true }
+      it { expect(result).to be false }
     end
 
     context 'when appsec standalone is enabled' do
@@ -32,12 +32,12 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
         end
 
         let(:result) do
-          described_class.skip?(
+          described_class.enabled?(
             global_config: { distributed_tracing: true }
           )
         end
 
-        it { expect(result).to be true }
+        it { expect(result).to be false }
       end
 
       context 'when there is an active trace' do
@@ -50,13 +50,13 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
           let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
 
           let(:result) do
-            described_class.skip?(
+            described_class.enabled?(
               global_config: { distributed_tracing: true },
               trace: trace
             )
           end
 
-          it { expect(result).to be true }
+          it { expect(result).to be false }
         end
 
         context 'when the active trace has a distributed appsec event' do
@@ -68,35 +68,35 @@ RSpec.describe Datadog::Tracing::Distributed::SkipPolicy do
           let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
 
           let(:result) do
-            described_class.skip?(
+            described_class.enabled?(
               global_config: { distributed_tracing: true },
               trace: trace
             )
           end
 
-          it { expect(result).to be false }
+          it { expect(result).to be true }
         end
       end
     end
 
     context 'given a client config with distributed_tracing disabled' do
       let(:result) do
-        described_class.skip?(
+        described_class.enabled?(
           pin_config: Datadog::Core::Pin.new(distributed_tracing: false)
         )
       end
 
-      it { expect(result).to be true }
+      it { expect(result).to be false }
     end
 
     context 'given a client config with distributed_tracing enabled' do
       let(:result) do
-        described_class.skip?(
+        described_class.enabled?(
           pin_config: Datadog::Core::Pin.new(distributed_tracing: true)
         )
       end
 
-      it { expect(result).to be false }
+      it { expect(result).to be true }
     end
   end
 end

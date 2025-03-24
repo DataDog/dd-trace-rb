@@ -25,7 +25,7 @@ module Datadog
               return super(&block) unless Tracing.enabled?
 
               datadog_trace_request(uri) do |_span, trace|
-                unless Tracing::Distributed::SkipPolicy.skip?(
+                if Tracing::Distributed::PropagationPolicy.enabled?(
                   global_config: datadog_configuration,
                   trace: trace
                 )

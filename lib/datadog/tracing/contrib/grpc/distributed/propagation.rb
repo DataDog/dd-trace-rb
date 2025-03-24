@@ -3,7 +3,7 @@
 require_relative 'fetcher'
 require_relative '../../../distributed/b3_multi'
 require_relative '../../../distributed/b3_single'
-require_relative '../../../distributed/skip_policy'
+require_relative '../../../distributed/propagation_policy'
 require_relative '../../../distributed/datadog'
 require_relative '../../../distributed/none'
 require_relative '../../../distributed/propagation'

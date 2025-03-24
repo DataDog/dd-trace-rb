@@ -110,7 +110,7 @@ module Datadog
 
               datadog_tag_request
 
-              unless Tracing::Distributed::SkipPolicy.skip?(
+              if Tracing::Distributed::PropagationPolicy.enabled?(
                 global_config: datadog_configuration,
                 trace: datadog_trace
               )
