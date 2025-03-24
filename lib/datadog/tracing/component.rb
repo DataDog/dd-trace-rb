@@ -191,6 +191,8 @@ module Datadog
         end
       end
 
+      # Build a post-sampler that limits the rate of traces to one per `seconds`.
+      # E.g.: `build_rate_limit_post_sampler(seconds: 60)` will limit the rate to one trace per minute.
       def build_rate_limit_post_sampler(seconds:)
         Tracing::Sampling::RuleSampler.new(
           rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
