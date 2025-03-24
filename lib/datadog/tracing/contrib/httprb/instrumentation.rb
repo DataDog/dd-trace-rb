@@ -30,7 +30,7 @@ module Datadog
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Tracing.enabled? && Tracing::Distributed::PropagationPolicy.enabled?(
+                  if Tracing::Distributed::PropagationPolicy.enabled?(
                     pin_config: client_config,
                     global_config: Datadog.configuration.tracing[:httprb],
                     trace: trace

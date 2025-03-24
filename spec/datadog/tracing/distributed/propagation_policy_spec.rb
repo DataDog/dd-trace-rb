@@ -5,6 +5,14 @@ require 'datadog/tracing/distributed/propagation_policy'
 
 RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
   describe '#enabled?' do
+    context 'when tracing is disabled' do
+      before do
+        allow(Datadog::Tracing).to receive(:enabled?).and_return(false)
+      end
+
+      it { expect(described_class.enabled?).to be false }
+    end
+
     context 'when distributed tracing in datadog_config is enabled' do
       let(:result) do
         described_class.enabled?(
