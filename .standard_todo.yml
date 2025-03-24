@@ -44,6 +44,7 @@ ignore:
 - spec/datadog/core/**/**
 - spec/datadog/di/integration/*_test_class*.rb
 - spec/datadog/kit/**/**
+- spec/datadog/opentelemetry/**/**
 - spec/datadog/tracing/**/**
 - spec/support/**/**
 - tasks/**/**

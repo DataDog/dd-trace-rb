@@ -283,59 +283,113 @@ RSpec.describe Datadog::Tracing::Transport::Traces::Transport do
     end
 
     context 'for native span event support by the agent' do
-      context 'on a successful agent info call' do
-        context 'with support not advertised' do
-          let(:native_events_supported) { nil }
-
-          it 'does not encode native span events' do
-            expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
-              encoder_v2,
-              native_events_supported: false
-            ).and_return(chunker)
-            send_traces
+      after do
+        Datadog.configuration.tracing.reset_options!
+      end
+      context 'when native_span_events option is configured' do
+        context 'when set to true' do
+          before do
+            Datadog.configuration.tracing.native_span_events = true
           end
-        end
 
-        context 'with support advertised as supported' do
           let(:native_events_supported) { true }
 
-          it 'encodes native span events' do
+          it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               native_events_supported: true
             ).and_return(chunker)
+
+            send_traces
+          end
+
+          it 'does not query the agent' do
+            allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
+            expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
+
             send_traces
           end
         end
 
-        context 'with support advertised as unsupported' do
+        context 'when set to false' do
+          before do
+            Datadog.configuration.tracing.native_span_events = false
+          end
+
           let(:native_events_supported) { false }
 
-          it 'encodes native span events' do
+          it 'uses the configured value' do
             expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
               encoder_v2,
               native_events_supported: false
             ).and_return(chunker)
             send_traces
           end
-        end
 
-        it 'caches the agent result' do
-          transport.send_traces(traces)
-          transport.send_traces(traces)
+          it 'does not query the agent' do
+            allow(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).and_return(chunker)
+            expect_any_instance_of(Datadog::Core::Environment::AgentInfo).not_to receive(:fetch)
 
-          expect(Datadog.send(:components).agent_info).to have_received(:fetch).once
+            send_traces
+          end
         end
       end
 
-      context 'on an unsuccessful agent info call' do
-        let(:agent_info_response) { nil }
+      context 'when native_span_events option is not configured' do
+        context 'on a successful agent info call' do
+          context 'with support not advertised' do
+            let(:native_events_supported) { nil }
 
-        it 'does not cache the agent result' do
-          transport.send_traces(traces)
-          transport.send_traces(traces)
+            it 'does not encode native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                native_events_supported: false
+              ).and_return(chunker)
+              send_traces
+            end
+          end
 
-          expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
+          context 'with support advertised as supported' do
+            let(:native_events_supported) { true }
+
+            it 'encodes native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                native_events_supported: true
+              ).and_return(chunker)
+              send_traces
+            end
+          end
+
+          context 'with support advertised as unsupported' do
+            let(:native_events_supported) { false }
+
+            it 'encodes native span events' do
+              expect(Datadog::Tracing::Transport::Traces::Chunker).to receive(:new).with(
+                encoder_v2,
+                native_events_supported: false
+              ).and_return(chunker)
+              send_traces
+            end
+          end
+
+          it 'caches the agent result' do
+            transport.send_traces(traces)
+            transport.send_traces(traces)
+
+            expect(Datadog.send(:components).agent_info).to have_received(:fetch).once
+          end
+        end
+
+        context 'on an unsuccessful agent info call' do
+          let(:agent_info_response) { nil }
+
+          it 'does not cache the agent result' do
+            transport.send_traces(traces)
+            transport.send_traces(traces)
+
+            expect(Datadog.send(:components).agent_info).to have_received(:fetch).twice
+          end
         end
       end
     end
