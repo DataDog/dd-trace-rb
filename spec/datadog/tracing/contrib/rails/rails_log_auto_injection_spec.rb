@@ -160,9 +160,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               expect(rack_rails_logger_entry).not_to include trace_id_128_log_injection(trace.id)
 
-              expect(controller_logger_entry).to include trace_id_128_log_injection(
-                trace_id_128_log_injection(trace.id)
-              ).to_s
+              expect(controller_logger_entry).to include trace_id_128_log_injection(trace.id)
               expect(controller_logger_entry).to include 'ddsource=ruby'
 
               expect(my_entry).not_to include trace_id_128_log_injection(trace.id)
@@ -218,9 +216,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
-              expect(rack_rails_logger_entry).not_to include trace_id_128_log_injection(
-                trace_id_128_log_injection(trace.id)
-              ).to_s
+              expect(rack_rails_logger_entry).not_to include trace_id_128_log_injection(trace.id)
 
               expect(controller_logger_entry).to include trace_id_128_log_injection(trace.id)
               expect(controller_logger_entry).to include 'ddsource=ruby'
