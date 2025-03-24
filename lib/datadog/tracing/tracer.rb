@@ -559,10 +559,7 @@ module Datadog
       # DEV: dd.p.appsec will be replaced by dd.p.ts in APM disablement 2.0, which will be a bitmask.
       def propagate_sampling_priority?(upstream_tags:)
         return true if apm_tracing_enabled
-
-        if upstream_tags&.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
-          return Datadog.configuration.appsec.enabled
-        end
+        return appsec_enabled if upstream_tags&.key?(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT)
 
         false
       end
@@ -570,6 +567,10 @@ module Datadog
       def profiling_enabled
         @profiling_enabled ||=
           !!(defined?(Datadog::Profiling) && Datadog::Profiling.respond_to?(:enabled?) && Datadog::Profiling.enabled?)
+      end
+
+      def appsec_enabled
+        @appsec_enabled ||= Datadog.configuration.appsec.enabled
       end
 
       def apm_tracing_enabled

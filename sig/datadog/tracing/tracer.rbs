@@ -8,6 +8,10 @@ module Datadog
       def active_correlation: (?untyped? key) -> Struct[untyped] # Datadog::Correlation::Identifier
 
       def propagate_sampling_priority?: (upstream_tags: Hash[String, String]) -> bool
+
+      def appsec_enabled: -> bool
+
+      def apm_tracing_enabled: -> bool
     end
   end
 end
