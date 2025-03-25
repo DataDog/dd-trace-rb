@@ -7,10 +7,12 @@ module Datadog
           module Database
             module_function
 
+            # Returns the value to be passed to the environment variable `DATABASE_URL`
             def load_adapter!
               %w[
                 pg
                 mysql2
+                trilogy
                 activerecord-jdbcpostgresql-adapter
                 activerecord-jdbcmysql-adapter
                 activerecord-trilogy-adapter
@@ -22,8 +24,10 @@ module Datadog
                     connector = postgres_url
                   elsif adapter.include?('mysql')
                     connector = mysql_url
-                  elsif adapter == 'activerecord-trilogy-adapter'
+                  elsif adapter.include?('trilogy')
                     connector = mysql_url('trilogy')
+                  else
+                    raise "Unknown adapter to create DATABASE_URL from: #{adapter}. Please add a URL generator for it."
                   end
                 rescue LoadError
                   puts "#{adapter} gem not found, trying another connector"
