@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/api/spec'
 require_relative 'client'
 
 module Datadog
@@ -16,7 +18,7 @@ module Datadog
           end
 
           module API
-            module Instance
+            class Instance < Core::Transport::HTTP::API::Instance
               def send_input(env)
                 raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('input', self) unless spec.is_a?(Input::API::Spec)
 
@@ -26,7 +28,7 @@ module Datadog
               end
             end
 
-            module Spec
+            class Spec < Core::Transport::HTTP::API::Spec
               attr_accessor :input
 
               def send_input(env, &block)
