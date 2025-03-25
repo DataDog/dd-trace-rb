@@ -570,6 +570,12 @@ module Datadog
             o.type :bool
           end
 
+          option :experimental_runtime_id_enabled do |o|
+            o.type :bool
+            o.env 'DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED'
+            o.default false
+          end
+
           option :opts, default: {}, type: :hash
           option :statsd
         end
