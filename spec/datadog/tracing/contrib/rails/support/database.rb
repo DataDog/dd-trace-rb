@@ -9,13 +9,13 @@ module Datadog
 
             # Returns the value to be passed to the environment variable `DATABASE_URL`
             def load_adapter!
-              %w[
-                pg
-                mysql2
-                trilogy
-                activerecord-jdbcpostgresql-adapter
-                activerecord-jdbcmysql-adapter
-                activerecord-trilogy-adapter
+              [
+                'pg',
+                'mysql2',
+                'activerecord-jdbcpostgresql-adapter',
+                'activerecord-jdbcmysql-adapter',
+                'activerecord-trilogy-adapter', # Must come before `trilogy`, as the adapter takes precedence when available
+                'trilogy', # Uses the built-in adapter, since Rails 7.1
               ].each do |adapter|
                 begin
                   require adapter
