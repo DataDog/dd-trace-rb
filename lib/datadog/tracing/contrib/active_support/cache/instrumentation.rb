@@ -183,12 +183,6 @@ module Datadog
                 polyfill_options[:store] = self.class.name
                 super(operation, key, polyfill_options)
               end
-
-              module ClassMethods
-                def inherited(subclass)
-                  subclass.prepend(Cache::Instrumentation::PreserveOriginalKey)
-                end
-              end
             end
 
             # Save the original, user-supplied cache key, before it gets normalized.

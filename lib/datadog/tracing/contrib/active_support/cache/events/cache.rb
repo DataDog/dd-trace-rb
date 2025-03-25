@@ -71,7 +71,7 @@ module Datadog
                   raise "payload[:dd_original_keys] is nil: #{payload[:key]}"
                 end
 
-                key = (dd_original_keys = payload[:dd_original_keys]) || payload[:key]
+                key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 
                 mapping = MAPPING.fetch(event)
