@@ -96,13 +96,14 @@ appraise 'rails8-semantic-logger' do
   gem 'net-smtp'
 end
 
-appraise 'rails8-trilogy' do
-  gem 'rails', '~> 8.0.0'
-  gem 'trilogy'
-  gem 'activerecord-trilogy-adapter'
-  gem 'lograge', '~> 0.11'
-  gem 'net-smtp'
-end
+# The latest activerecord-trilogy-adapter (3.1.2 as of Mach 2025) does not support Rails 8.
+# appraise 'rails8-trilogy' do
+#   gem 'rails', '~> 8.0.0'
+#   gem 'trilogy'
+#   gem 'activerecord-trilogy-adapter', '>= 3'
+#   gem 'lograge', '~> 0.11'
+#   gem 'net-smtp'
+# end
 
 appraise 'rails-old-redis' do
   # All dependencies except Redis < 4 are not important, they are just required to run Rails tests.
