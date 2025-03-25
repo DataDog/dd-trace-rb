@@ -12,10 +12,10 @@ static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception);
 static void tracepoint_callback(VALUE self, void* tp);
 static void errortracker_init(VALUE errortracking_module);
 
-void DDTRACE_EXPORT Init_errortracker() {
+void DDTRACE_EXPORT Init_errortracker(void) {
     VALUE datadog_module = rb_define_module("Datadog");
-    VALUE errortracking_module = rb_define_module_under(datadog_module, "Errortracking");
-
+    VALUE core_module = rb_define_module_under(datadog_module, "Core");
+    VALUE errortracking_module = rb_define_module_under(core_module, "Errortracking");
     collector_init(errortracking_module);
     errortracker_init(errortracking_module);
 }
@@ -39,11 +39,10 @@ static VALUE _native_start(int argc, VALUE* argv, VALUE self){
   VALUE to_instrument = rb_hash_fetch(options, ID2SYM(rb_intern("to_instrument")));
   VALUE to_instrument_modules = rb_hash_fetch(options, ID2SYM(rb_intern("to_instrument_modules")));
 
-  ENFORCE_TYPE(tracer, T_OBJECT);
   ENFORCE_TYPE(to_instrument, T_STRING);
-  ENFORCE_TYPE(to_instrument_modules, T_STRING);
+  ENFORCE_TYPE(to_instrument_modules, T_ARRAY);
 
-  VALUE collector = rb_class_new_instance(0, NULL, rb_path2class("Datadog::Core::ErrorTracking::Collector"));
+  VALUE collector = rb_class_new_instance(0, NULL, rb_path2class("Datadog::Core::Errortracking::Collector"));
   rb_iv_set(self, "@collector", collector);
   rb_iv_set(self, "@tracer", tracer);
 
@@ -69,14 +68,35 @@ static VALUE _native_stop(VALUE self) {
   return Qnil;
 }
 
+// static VALUE protected_call(VALUE args_val) {
+//   VALUE *f_args = (VALUE *)args_val;
+//   VALUE args[2] = {
+//     ID2SYM(rb_intern("name")),
+//     rb_hash_new()
+//   };
+//   rb_hash_aset(args[1], ID2SYM(rb_intern("attributes")), f_args[1]);
+
+//   return rb_funcallv_kw(f_args[0], rb_intern("new"), 2, args, RB_PASS_KEYWORDS);
+// }
+
+// VALUE args[2] = { span_event_class, attributes };
+// int error = 0;
+// VALUE result = rb_protect(protected_call, (VALUE)args, &error);
+// if (error) {
+//     VALUE err = rb_errinfo();
+//     VALUE err_str = rb_funcall(err, rb_intern("to_s"), 0);
+//     rb_warn("Error: %s", StringValueCStr(err_str));
+//     rb_set_errinfo(Qnil);
+// }
+
 
 static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception) {
-    VALUE core_module = rb_const_get(rb_cObject, rb_intern("Core"));
+    /** too much evaluation for nothing todo */
+    VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+    VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
     VALUE error_class = rb_const_get(core_module, rb_intern("Error"));
-    ID build_from_id = rb_intern("build_from");
-    VALUE formatted_exception = rb_funcallv(error_class, build_from_id, 1, &exception);
-
-    VALUE tracing_module = rb_const_get(rb_cObject, rb_intern("Tracing"));
+    VALUE formatted_exception = rb_funcallv(error_class,  rb_intern("build_from"), 1, &exception);
+    VALUE tracing_module = rb_const_get(datadog_module, rb_intern("Tracing"));
     VALUE span_event_class = rb_const_get(tracing_module, rb_intern("SpanEvent"));
 
     VALUE type_sym = ID2SYM(rb_intern("type"));
@@ -86,17 +106,19 @@ static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception) {
     VALUE type = rb_funcall(formatted_exception, rb_intern("type"), 0);
     VALUE message = rb_funcall(formatted_exception, rb_intern("message"), 0);
     VALUE stacktrace = rb_funcall(formatted_exception, rb_intern("backtrace"), 0);
-
     VALUE attributes = rb_hash_new();
     rb_hash_aset(attributes, type_sym, type);
     rb_hash_aset(attributes, message_sym, message);
     rb_hash_aset(attributes, stacktrace_sym, stacktrace);
 
-    VALUE name = rb_str_new_cstr("error");
-    VALUE args[2] = {name, rb_hash_new()};
-    rb_hash_aset(args[1], ID2SYM(rb_intern("attributes")), attributes);
+    VALUE span_event_args[2] = {
+      ID2SYM(rb_intern("exception")),
+      rb_hash_new()
+    };
+    rb_hash_aset(span_event_args[1], ID2SYM(rb_intern("attributes")), attributes);
 
-    return rb_funcallv(span_event_class, rb_intern("new"), 2, args);
+    // bundle exec rake clean compile && bundle exec 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS=all ruby .tests/simple.rb'
+    return rb_funcallv_kw(span_event_class, rb_intern("new"), 2, span_event_args, RB_PASS_KEYWORDS);
 }
 
 static void tracepoint_callback(VALUE tp, void* data) {
@@ -113,7 +135,7 @@ static void tracepoint_callback(VALUE tp, void* data) {
   if (RTEST(rb_funcall(filter_function, rb_intern("call"), 1, raised_exception))) {
     VALUE span_event = _generate_span_event(self, raised_exception);
     VALUE collector = rb_iv_get(self, "@collector");
-    add_span_event(collector, rb_funcall(active_span, rb_intern("span_id"), 0) , raised_exception, span_event);
-    rb_funcall(active_span, rb_intern("record"), 1, span_event);
+
+    add_span_event(collector, active_span , raised_exception, span_event);
   }
 }

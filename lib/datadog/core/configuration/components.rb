@@ -78,9 +78,14 @@ module Datadog
           end
 
           def build_errortracker(settings, agent_settings, tracer)
-            return unless settings.errortracking.enabled
+            return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
 
-            Core::ErrorTracking::Component.build(settings, agent_settings, tracer)
+            if (errortracking_failure = Datadog::Core::Errortracking::Component::ERRORTRACKING_FAILURE)
+              logger.debug("Cannot enable crashtracking: #{errortracking_failure}")
+              return
+            end
+
+            Core::Errortracking::Component.build(settings, agent_settings, tracer[:tracer])
           end
         end
 

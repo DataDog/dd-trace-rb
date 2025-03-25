@@ -982,28 +982,16 @@ module Datadog
         end
 
         settings :errortracking do
-          option :enabled do |o|
-            o.type :bool
-            o.default false
-            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS'
+          option :to_instrument do |o|
+            o.type :string, nilable: true
+            o.default ''
+            o.env 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS'
           end
 
-          option :instrument_user_code do |o|
-            o.type :bool
-            o.default false
-            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_USER'
-          end
-
-          option :instrument_third_party do |o|
-            o.type :bool
-            o.default false
-            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_THIRD_PARTY'
-          end
-
-          option :instrument_modules do |o|
+          option :to_instrument_modules do |o|
             o.type :array
             o.default []
-            o.env 'DD_AUTO_REPORT_HANDLED_ERRORS_MODULES'
+            o.env 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS_MODULES'
           end
         end
         # TODO: Tracing should manage its own settings.

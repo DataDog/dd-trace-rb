@@ -15,9 +15,8 @@ VALUE generate_filter(DDTRACE_UNUSED VALUE _self, VALUE to_instrument) {
   }
 }
 
-VALUE _get_filename(DDTRACE_UNUSED VALUE _self, VALUE tp) {
-  VALUE raised_exception = rb_funcall(tp, rb_intern("raised_exception"), 0);
-  VALUE backtrace = rb_funcall(raised_exception, rb_intern("backtrace"), 0);
+VALUE _get_filename(VALUE raised_exc) {
+  VALUE backtrace = rb_funcall(raised_exc, rb_intern("backtrace"), 0);
   VALUE first_line = rb_ary_entry(backtrace, 0);
   VALUE parts = rb_str_split(first_line, ":");
   return rb_ary_entry(parts, 0);
@@ -46,20 +45,20 @@ VALUE _get_gem_name(VALUE file_name) {
   return rb_funcall(spec_class, rb_intern("find_by_name"), 1, gem_name);
 }
 
-VALUE _proc_filter_all(VALUE self, VALUE tp) {
-  VALUE file_name = _get_filename(self, tp);
+VALUE _proc_filter_all(VALUE raised_exc) {
+  VALUE file_name = _get_filename(raised_exc);
   VALUE includes_ddtrace = rb_funcall(file_name, rb_intern("include?"), 1, rb_str_new_cstr("ddtrace"));
   return !RB_TEST(includes_ddtrace);
 }
 
-VALUE _proc_filter_user(VALUE self, VALUE tp) {
-  VALUE file_name = _get_filename(self, tp);
+VALUE _proc_filter_user(VALUE raised_exc) {
+  VALUE file_name = _get_filename(raised_exc);
   // If there is no gem_name -> return Qnil so !RB_TEST = Qtrue
   return !RB_TEST(_get_gem_name(file_name));
 }
 
-VALUE _proc_filter_third_party(VALUE self, VALUE tp) {
-  VALUE file_name = _get_filename(self, tp);
+VALUE _proc_filter_third_party(VALUE raised_exc) {
+  VALUE file_name = _get_filename(raised_exc);
   VALUE includes_ddtrace = rb_funcall(file_name, rb_intern("include?"), 1, rb_str_new_cstr("ddtrace"));
   return !RB_TEST(includes_ddtrace) && RB_TEST(_get_gem_name(file_name));
 }
