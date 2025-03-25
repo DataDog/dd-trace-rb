@@ -28,7 +28,6 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.7.0"
 gem "rails", "~> 8.0.0"
 gem "trilogy"
-gem "activerecord-trilogy-adapter"
 gem "lograge", "~> 0.11"
 gem "net-smtp"
 
