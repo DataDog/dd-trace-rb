@@ -31,7 +31,6 @@ gem "webmock", ">= 3.10.0"
 gem "webrick", ">= 1.8.2"
 gem "rails", "~> 8.0.0"
 gem "pg", ">= 1.1", platform: :ruby
-gem "sprockets", "< 4"
 gem "rails_semantic_logger", "~> 4.0"
 gem "net-smtp"
 
