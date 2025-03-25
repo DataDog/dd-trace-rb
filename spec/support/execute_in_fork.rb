@@ -1,3 +1,5 @@
+require_relative 'platform_helpers'
+
 module ForkableExample
   def finish(reporter)
     # TODO: better name than execute_in_fork?
