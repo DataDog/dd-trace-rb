@@ -83,7 +83,7 @@ end
 appraise 'rails8-postgres-sidekiq' do
   gem 'rails', '~> 8.0.0'
   gem 'pg', '>= 1.1', platform: :ruby
-  gem 'sidekiq', '>= 6.1.2'
+  gem 'sidekiq', '< 8'
   gem 'lograge', '~> 0.11'
   gem 'rails_semantic_logger', '~> 4.0'
   gem 'net-smtp'
