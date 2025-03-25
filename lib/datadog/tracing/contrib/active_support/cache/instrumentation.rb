@@ -183,6 +183,12 @@ module Datadog
                 polyfill_options[:store] = self.class.name
                 super(operation, key, polyfill_options)
               end
+
+              module ClassMethods
+                def inherited(subclass)
+                  subclass.prepend(Cache::Instrumentation::PreserveOriginalKey)
+                end
+              end
             end
 
             # Save the original, user-supplied cache key, before it gets normalized.
@@ -201,6 +207,19 @@ module Datadog
                 orig_keys << key
 
                 super
+              end
+
+              # Ensure we don't pollute the default Store instance `options` in {PreserveOriginalKey#normalize_key}.
+              # In most cases, `merged_options` returns a new hash,
+              # but we check for cases where it reuses the instance hash.
+              def merged_options(call_options)
+                ret = super
+
+                if ret.equal?(options)
+                  ret.dup
+                else
+                  ret
+                end
               end
             end
           end
