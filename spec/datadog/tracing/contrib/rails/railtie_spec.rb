@@ -3,7 +3,7 @@ require 'datadog/tracing/contrib/rails/framework'
 require 'datadog/tracing/contrib/rails/middlewares'
 require 'datadog/tracing/contrib/rack/middlewares'
 
-RSpec.describe 'Rails Railtie', execute_in_fork: ::Rails.version.to_i >= 8 do
+RSpec.describe 'Rails Railtie', execute_in_fork: true do
   before { skip 'Test not compatible with Rails < 4.0' if Rails.version < '4.0' }
 
   include_context 'Rails test application'
