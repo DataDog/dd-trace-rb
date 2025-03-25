@@ -16,7 +16,7 @@ rescue LoadError
   puts 'ActionCable not supported in Rails < 5.0'
 end
 
-RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.to_i >= 8 do
+RSpec.describe 'ActionCable patcher', execute_in_fork: ::ActionCable.version.segments[0] do
   before { skip('ActionCable not supported') unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
 
   let(:configuration_options) { {} }
