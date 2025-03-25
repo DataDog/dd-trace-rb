@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../../../core/transport/http/api/instance'
+require_relative '../../../core/transport/http/api/spec'
 require_relative 'client'
 
 module Datadog
@@ -16,51 +18,23 @@ module Datadog
           end
 
           module API
-            module Instance
+            class Instance < Core::Transport::HTTP::API::Instance
               def send_input(env)
-                raise InputNotSupportedError, spec unless spec.is_a?(Input::API::Spec)
+                raise Core::Transport::HTTP::API::Instance::EndpointNotSupportedError.new('input', self) unless spec.is_a?(Input::API::Spec)
 
                 spec.send_input(env) do |request_env|
                   call(request_env)
                 end
               end
-
-              class InputNotSupportedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'Input not supported for this API!'
-                end
-              end
             end
 
-            module Spec
+            class Spec < Core::Transport::HTTP::API::Spec
               attr_accessor :input
 
               def send_input(env, &block)
-                raise NoInputEndpointDefinedError, self if input.nil?
+                raise Core::Transport::HTTP::API::Spec::EndpointNotDefinedError.new('input', self) if input.nil?
 
                 input.call(env, &block)
-              end
-
-              class NoInputEndpointDefinedError < StandardError
-                attr_reader :spec
-
-                def initialize(spec)
-                  super
-
-                  @spec = spec
-                end
-
-                def message
-                  'No input endpoint is defined for API specification!'
-                end
               end
             end
 
@@ -81,7 +55,7 @@ module Datadog
                 env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
                 env.body = env.request.parcel.data
 
-                super(env, &block)
+                super
               end
             end
           end

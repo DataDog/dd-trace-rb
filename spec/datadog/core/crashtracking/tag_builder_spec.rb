@@ -25,7 +25,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
       [:env, :service, :version].each do |tag|
         context "when a #{tag} is defined" do
           before do
-            settings.send("#{tag}=".to_sym, 'expected_value')
+            settings.send(:"#{tag}=", 'expected_value')
           end
 
           it 'includes it as a tag' do
@@ -35,7 +35,7 @@ RSpec.describe Datadog::Core::Crashtracking::TagBuilder do
 
         context "when #{tag} is nil" do
           before do
-            settings.send("#{tag}=".to_sym, nil)
+            settings.send(:"#{tag}=", nil)
           end
 
           it do

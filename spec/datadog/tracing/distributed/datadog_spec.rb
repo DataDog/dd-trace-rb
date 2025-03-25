@@ -503,6 +503,28 @@ RSpec.shared_examples 'Datadog distributed format' do
       it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
       it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
     end
+
+    context 'with a trace id and an invalid distributed tags `_dd.p.tid`' do
+      [
+        '00123456789abcdef', # too long
+        '234567890abcdef', # too short
+        'g123456789abcdef', # invalid character
+      ].each do |invalid_trace_id|
+        context "when given invalid trace_id: #{invalid_trace_id}" do
+          let(:data) do
+            {
+              prepare_key['x-datadog-trace-id'] => 0xffffffffffffffff.to_s,
+              prepare_key['x-datadog-parent-id'] => 0xbbbbbbbbbbbbbbbb.to_s,
+              prepare_key['x-datadog-tags'] => "_dd.p.tid= #{invalid_trace_id}"
+            }
+          end
+
+          it { expect(digest.trace_id).to eq(0xffffffffffffffff) }
+          it { expect(digest.span_id).to eq(0xbbbbbbbbbbbbbbbb) }
+          it { expect(digest.trace_distributed_tags).not_to include('_dd.p.tid') }
+        end
+      end
+    end
   end
 end
 

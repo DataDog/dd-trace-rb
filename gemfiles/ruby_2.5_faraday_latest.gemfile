@@ -26,11 +26,11 @@ gem "warning", "~> 1"
 gem "webmock", ">= 3.10.0"
 gem "faraday"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

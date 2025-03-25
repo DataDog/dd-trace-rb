@@ -8,10 +8,7 @@ module Datadog
       # Endpoint negotiation
       class Negotiation
         def initialize(_settings, agent_settings, suppress_logging: {})
-          transport_options = {}
-          transport_options[:agent_settings] = agent_settings if agent_settings
-
-          @transport_root = Datadog::Core::Remote::Transport::HTTP.root(**transport_options) # steep:ignore
+          @transport_root = Datadog::Core::Remote::Transport::HTTP.root(agent_settings: agent_settings)
           @logged = suppress_logging
         end
 
