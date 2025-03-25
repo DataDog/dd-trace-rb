@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument', execute_in_fork: true do
+RSpec.describe 'Datadog::Tracing::Contrib::AutoInstrument', execute_in_fork: ::Rails.version.to_i >= 8 do
   include_context 'Rails test application'
 
   around do |example|

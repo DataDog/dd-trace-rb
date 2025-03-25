@@ -4,7 +4,7 @@
 
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails disabled', execute_in_fork: true do
+RSpec.describe 'Rails disabled', execute_in_fork: ::Rails.version.to_i >= 8 do
   before(:all) do
     expect(Datadog::Tracing::Contrib::Rails::Patcher.patched?).to(
       be_falsey, <<MESSAGE)
