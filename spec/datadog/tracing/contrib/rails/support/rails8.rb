@@ -9,9 +9,6 @@ if ENV['USE_SIDEKIQ']
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 end
 
-setup_main_autoloader_first_time = true
-setup_once_autoloader_first_time = true
-
 RSpec.shared_context 'Rails 8 test application' do
   let(:rails_base_application) do
     klass = Class.new(Rails::Application) do
@@ -193,16 +190,10 @@ RSpec.shared_context 'Rails 8 test application' do
     controllers
   end
 
-  class VoidArray < Array
-    def <<(item)
-      # Do nothing, silently drop the item
-    end
-  end
-
   # Rails leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
   # We need to reset these so they don't carry over between example runs
   def reset_rails_configuration!
-    if (app = Rails.application)
+    if Rails.application
       # Zeitwerk::Registry.unregister_loader(app.autoloaders.main)
       # Zeitwerk::Registry.unregister_loader(app.autoloaders.once)
     end
@@ -230,6 +221,7 @@ RSpec.shared_context 'Rails 8 test application' do
     # Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
   end
 
+  # rubocop:disable Style/ClassVars
   # Resets configuration that needs to be restored to its original value
   # between each run of a Rails application.
   def reset_class_variable(clazz, variable)
@@ -240,4 +232,5 @@ RSpec.shared_context 'Rails 8 test application' do
 
     clazz.class_variable_set(variable, value.deep_dup)
   end
+  # rubocop:enable Style/ClassVars
 end

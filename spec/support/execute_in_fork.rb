@@ -13,6 +13,8 @@ module ForkableExample
   EXAMPLE_SENTINEL = Module.new
   MODULE_VALUE = Struct.new(:name)
 
+  # rubocop:disable Metrics/MethodLength
+  # rubocop:disable Security/MarshalLoad
   def run(example_group_instance, reporter)
     if @metadata[:execute_in_fork]
       reader, writer = IO.pipe
@@ -72,15 +74,14 @@ module ForkableExample
       super
     end
   end
+  # rubocop:enable Metrics/MethodLength
+  # rubocop:enable Security/MarshalLoad
 
   module Reporter
-
-
-      # PUBLIC_INTERNAL_METHODS = [:start, :stop, :publish, :finish, :close_after, :notify, :fail_fast_limit_met?]
-     RSpec::Core::Reporter.instance_methods(false).each do |method|
+    # PUBLIC_INTERNAL_METHODS = [:start, :stop, :publish, :finish, :close_after, :notify, :fail_fast_limit_met?]
+    RSpec::Core::Reporter.instance_methods(false).each do |method|
       define_method(method) do |*args|
         original_args = args
-
 
         unless @fork_instrumenting # Nested calls are skipped, since they will invoked by the first call site
           begin
@@ -98,18 +99,14 @@ module ForkableExample
               end
             end
 
-          # puts({ method: method, args: args })
+            # puts({ method: method, args: args })
 
-          dump = Marshal.dump({ receiver: :reporter, method: method, args: args })
-          # Write a header hex int with the size of the next object dump
-          @fork_writer_pipe.write(sprintf("0x%x\n", dump.bytesize))
-          @fork_writer_pipe.write(dump)
+            dump = Marshal.dump({ receiver: :reporter, method: method, args: args })
+            # Write a header hex int with the size of the next object dump
+            @fork_writer_pipe.write(format("0x%x\n", dump.bytesize))
+            @fork_writer_pipe.write(dump)
 
             # puts({ method: method, args: args })
-          rescue => e
-            puts "ERRORERRORERROR 1111"
-            puts args
-            puts e
           end
         end
 
@@ -121,7 +118,7 @@ module ForkableExample
   end
 
   module ExecutionResult
-    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject{|m|m.to_s.end_with?('?')}.each do |method|
+    ::RSpec::Core::Example::ExecutionResult.instance_methods(false).reject { |m| m.to_s.end_with?('?') }.each do |method|
       define_method(method) do |*args|
         original_args = args
 
@@ -143,14 +140,10 @@ module ForkableExample
 
             dump = Marshal.dump({ receiver: :execution_result, method: method, args: args })
             # Write a header hex int with the size of the next object dump
-            @fork_writer_pipe.write(sprintf("0x%x\n", dump.bytesize))
+            @fork_writer_pipe.write(format("0x%x\n", dump.bytesize))
             @fork_writer_pipe.write(dump)
 
             # puts({ method: method, args: args })
-          rescue => e
-            puts "ERRORERRORERROR 2222"
-            puts args
-            puts e
           end
         end
 

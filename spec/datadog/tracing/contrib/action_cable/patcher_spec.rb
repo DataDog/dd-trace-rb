@@ -16,7 +16,7 @@ rescue LoadError
   puts 'ActionCable not supported in Rails < 5.0'
 end
 
-RSpec.describe 'ActionCable patcher' do
+RSpec.describe 'ActionCable patcher', execute_in_fork: true do
   before { skip('ActionCable not supported') unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
 
   let(:configuration_options) { {} }
@@ -105,7 +105,15 @@ RSpec.describe 'ActionCable patcher' do
     end
 
     let(:channel_instance) { channel_class.new(connection, '{id: 1}', id: 1) }
-    let(:connection) { double('connection', logger: Logger.new($stdout), transmit: nil, identifiers: []) }
+    let(:connection) do
+      double(
+        'connection',
+        logger: Logger.new($stdout),
+        transmit: nil,
+        identifiers: [],
+        config: double(filter_parameters: [])
+      )
+    end
 
     context 'on subscribe' do
       include_context 'Rails test application'
