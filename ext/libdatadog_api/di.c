@@ -45,10 +45,15 @@ ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
     return 0;
 }
 
-static VALUE get_iseqs(VALUE self) {
+static VALUE loaded_file_iseqs(VALUE self) {
     struct ddtrace_di_os_each_struct oes;
 
     oes.array = rb_ary_new();
     rb_objspace_each_objects(ddtrace_di_os_obj_of_i, &oes);
+    RB_GC_GUARD(oes);
     return oes.array;
+}
+
+void di_init(VALUE di_module) {
+  rb_define_singleton_method(di_module, "loaded_file_iseqs", loaded_file_iseqs, 0);
 }
