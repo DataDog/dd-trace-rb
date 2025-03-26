@@ -11,7 +11,6 @@ void crashtracker_init(VALUE crashtracking_module) {
 
   rb_define_singleton_method(crashtracker_class, "_native_start_or_update_on_fork", _native_start_or_update_on_fork, -1);
   rb_define_singleton_method(crashtracker_class, "_native_stop", _native_stop, 0);
-    puts("hello");
 }
 
 static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
