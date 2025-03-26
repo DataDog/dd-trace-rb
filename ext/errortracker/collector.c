@@ -24,8 +24,12 @@ static VALUE after_stop_callback(VALUE span, VALUE self) {
     return Qnil;
 }
 
-static VALUE on_error_callback(VALUE any, VALUE self) {
-    rb_p(any);
+static VALUE on_error_callback(VALUE yielded_arg, VALUE self, int argc, const VALUE *argv) {
+    if (argc == 2) {
+        VALUE span_op = argv[0];
+        VALUE span_events = rb_funcall(span_op, rb_intern("span_events"), 0);
+        rb_ary_pop(span_events);
+    }
     return Qnil;
 }
 
@@ -101,19 +105,7 @@ VALUE add_span_event(VALUE self, VALUE active_span, VALUE error, VALUE span_even
         VALUE on_error_block = rb_iv_get(self, "@on_error_block");
 
         rb_funcall_with_block(after_stop_event, rb_intern("subscribe"), 0, NULL , after_stop_block);
-        printf("before");
-        VALUE args[2] = { on_error_event, on_error_block };
-        int error = 0;
-        VALUE result = rb_protect(protected_call, (VALUE)args, &error);
-        printf("%d\n", error);
-        if (error) {
-            VALUE err = rb_errinfo();
-            VALUE err_str = rb_funcall(err, rb_intern("to_s"), 0);
-            rb_warn("Error: %s", StringValueCStr(err_str));
-            rb_set_errinfo(Qnil);
-        }
-        // rb_funcall_with_block(on_error_event, rb_intern("subscribe"), 0, NULL , on_error_block);
-        printf("after");
+        rb_funcall_with_block(on_error_event, rb_intern("subscribe"), 0, NULL , on_error_block);
     } else {
         error_map = rb_hash_aref(storage, span_id);
     }
