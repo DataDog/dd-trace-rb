@@ -204,7 +204,7 @@ MESSAGE
   end
 
   describe '#fetch_multi' do
-    it_behaves_like 'multi reader method', :fetch_multi, Rails.version < '8'
+    it_behaves_like 'multi reader method', :fetch_multi, Rails.version.to_i < 8
   end
 
   describe '#write' do
@@ -219,7 +219,8 @@ MESSAGE
       expect(redis.name).to eq('redis.command')
       expect(redis.type).to eq('redis')
       expect(redis.resource).to eq('SET')
-      expect(redis.get_tag('redis.raw_command')).to start_with('SET custom-key ') # Set value can be compressed as binary
+      # the `SET` value can be compressed in binary: e.g. "SET custom-key \x04\x00\x00\x00"
+      expect(redis.get_tag('redis.raw_command')).to start_with('SET custom-key ')
       expect(redis.service).to eq('redis')
       # the following ensures span will be correctly displayed (parent/child of the same trace)
       expect(cache.trace_id).to eq(redis.trace_id)

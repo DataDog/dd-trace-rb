@@ -65,12 +65,6 @@ module Datadog
                 # Since Rails 8, `dd_original_keys` contains the denormalized key provided by the user.
                 # In previous versions, the denormalized key is stored in the official `key` attribute.
                 # We fall back to `key`, even in Rails 8, as a defensive measure.
-                #
-                # TODO: Remove this raise
-                if payload[:dd_original_keys].nil? && defined?(::Rails) && ::Rails.version.to_i >= 8
-                  raise "payload[:dd_original_keys] is nil: #{payload[:key]}"
-                end
-
                 key = payload[:dd_original_keys] || payload[:key]
                 store = payload[:store]
 

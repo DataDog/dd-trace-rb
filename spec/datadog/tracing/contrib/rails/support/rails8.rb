@@ -54,20 +54,6 @@ RSpec.shared_context 'Rails 8 test application' do
           end
         end
       end
-
-      # initializer :dd_test_clean_up_main_autoloader, before: :setup_main_autoloader do |_app|
-      #   unless setup_main_autoloader_first_time
-      #     ActiveSupport::Dependencies.autoload_paths = []
-      #   end
-      #   setup_main_autoloader_first_time = false
-      # end
-      #
-      # initializer :dd_test_clean_up_once_autoloader, before: :setup_once_autoloader do |_app|
-      #   unless setup_once_autoloader_first_time
-      #     ActiveSupport::Dependencies.autoload_paths = []
-      #   end
-      #   setup_once_autoloader_first_time = false
-      # end
     end
 
     before_test_init = before_test_initialize_block
@@ -150,19 +136,6 @@ RSpec.shared_context 'Rails 8 test application' do
     end
   end
 
-  around do |example|
-    reset_rails_configuration!
-
-    example.run
-  ensure
-    reset_rails_configuration!
-
-    # Push this to base when Rails 3 removed
-    # Reset references stored in the Rails class
-    Rails.app_class = nil
-    Rails.cache = nil
-  end
-
   def append_routes!
     # Make sure to load controllers first
     # otherwise routes won't draw properly.
@@ -189,48 +162,4 @@ RSpec.shared_context 'Rails 8 test application' do
   def append_controllers!
     controllers
   end
-
-  # Rails leaves a bunch of global class configuration on Rails::Railtie::Configuration in class variables
-  # We need to reset these so they don't carry over between example runs
-  def reset_rails_configuration!
-    if Rails.application
-      # Zeitwerk::Registry.unregister_loader(app.autoloaders.main)
-      # Zeitwerk::Registry.unregister_loader(app.autoloaders.once)
-    end
-
-    # Reset autoloaded constants
-    # ActiveSupport::Dependencies.clear if Rails.application
-
-    # # TODO: Remove this side-effect on missing log entries
-    # Lograge.remove_existing_log_subscriptions if defined?(::Lograge)
-    #
-    # reset_class_variable(ActiveRecord::Railtie::Configuration, :@@options) if Module.const_defined?(:ActiveRecord)
-    #
-    ActiveSupport::Dependencies.autoload_paths = []
-    ActiveSupport::Dependencies.autoload_once_paths = []
-    # ActiveSupport::Dependencies._eager_load_paths = Set.new
-    # ActiveSupport::Dependencies._autoloaded_tracked_classes = Set.new
-    #
-    # Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
-    # Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
-    # Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    # if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
-    #   Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
-    # end
-    # Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
-    # Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
-  end
-
-  # rubocop:disable Style/ClassVars
-  # Resets configuration that needs to be restored to its original value
-  # between each run of a Rails application.
-  def reset_class_variable(clazz, variable)
-    value = Datadog::Tracing::Contrib::Rails::Test::Configuration.fetch(
-      "#{clazz}.#{variable}",
-      clazz.class_variable_get(variable)
-    )
-
-    clazz.class_variable_set(variable, value.deep_dup)
-  end
-  # rubocop:enable Style/ClassVars
 end
