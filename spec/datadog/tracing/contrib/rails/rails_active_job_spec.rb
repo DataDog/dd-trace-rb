@@ -2,6 +2,7 @@
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.
 begin
+  require 'sidekiq/rails'
   require 'sidekiq/testing'
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 rescue LoadError
