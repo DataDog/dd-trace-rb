@@ -79,13 +79,7 @@ module Datadog
         # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
         # but for features such as API Security, we need to send at least one trace per minute,
         # to keep the service alive on the backend side.
-        if settings.appsec.standalone.enabled
-          post_sampler = Tracing::Sampling::RuleSampler.new(
-            [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
-            rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0),
-            default_sample_rate: 1.0 / 60
-          )
-        end
+        post_sampler = build_rate_limit_post_sampler(seconds: 60) if settings.appsec.standalone.enabled
 
         # Sampling rules are provided
         if (rules = settings.tracing.sampling.rules)
@@ -195,6 +189,15 @@ module Datadog
           tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
           tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
         end
+      end
+
+      # Build a post-sampler that limits the rate of traces to one per `seconds`.
+      # E.g.: `build_rate_limit_post_sampler(seconds: 60)` will limit the rate to one trace per minute.
+      def build_rate_limit_post_sampler(seconds:)
+        Tracing::Sampling::RuleSampler.new(
+          rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
+          default_sample_rate: 1.0
+        )
       end
 
       def build_test_mode_trace_flush(settings)
