@@ -16,8 +16,18 @@ module Datadog
         def enabled?(pin_config: nil, global_config: nil, trace: nil)
           return false unless Tracing.enabled?
 
-          if (trace.nil? || trace.get_tag(::Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT) != '1') &&
-              ::Datadog.configuration.appsec.standalone.enabled
+          unless ::Datadog.configuration.apm.tracing.enabled
+            return false if trace.nil?
+
+            trace_source = trace.get_tag(::Datadog::Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE)&.to_i(16)
+            return false if trace_source.nil?
+
+            # If AppSec is enabled and AppSec bit is set in the trace, we should not skip distributed tracing
+            # Other products that will use dd.p.ts should implement similar behavior here
+            if ::Datadog.configuration.appsec.enabled && (trace_source & ::Datadog::AppSec::Ext::PRODUCT_BIT_APPSEC) != 0
+              return true
+            end
+
             return false
           end
 

@@ -13,88 +13,91 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
       it { expect(described_class.enabled?).to be false }
     end
 
-    context 'when appsec standalone is enabled' do
+    context 'when apm tracing is disabled' do
       context 'when there is no active trace' do
         before do
           allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
         end
 
-        let(:result) do
-          described_class.enabled?(
-            global_config: { distributed_tracing: true }
-          )
-        end
+        let(:result) { described_class.enabled? }
 
         it { expect(result).to be false }
       end
 
       context 'when there is an active trace' do
-        context 'when appsec is disabled' do
-          let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
-
-          let(:result) do
-            described_class.skip?(
-              trace: trace
-            )
+        context 'when dd.p.ts tag is not set' do
+          before do
+            allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
           end
+
+          let(:trace) { Datadog::Tracing::TraceOperation.new }
+          let(:result) { described_class.enabled?(trace: trace) }
 
           it { expect(result).to be false }
         end
 
-        context 'when the active trace has no distributed appsec event' do
+        context 'when there is no distributed appsec event' do
           before do
             allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
-            allow(Datadog.configuration.appsec).to receive(:enabled).and_return(true)
-            allow(trace).to receive(:get_tag).with('_dd.p.ts').and_return(nil)
           end
 
-          let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
-
-          let(:result) do
-            described_class.enabled?(
-              global_config: { distributed_tracing: true },
-              trace: trace
-            )
-          end
+          let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '01' }) }
+          let(:result) { described_class.enabled?(trace: trace) }
 
           it { expect(result).to be false }
         end
 
-        context 'when the active trace has a distributed appsec event' do
-          before do
-            allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
-            allow(Datadog.configuration.appsec).to receive(:enabled).and_return(true)
-            allow(trace).to receive(:get_tag).with('_dd.p.ts').and_return('02')
+        context 'when there is a distributed appsec event' do
+          context 'when appsec is disabled' do
+            before do
+              allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
+            end
+
+            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '02' }) }
+            let(:result) { described_class.enabled?(trace: trace) }
+
+            it { expect(result).to be false }
           end
 
-          let(:trace) { instance_double(Datadog::Tracing::TraceOperation) }
+          context 'when appsec is enabled' do
+            before do
+              allow(Datadog.configuration.apm.tracing).to receive(:enabled).and_return(false)
+              allow(Datadog.configuration.appsec).to receive(:enabled).and_return(true)
+            end
 
-          let(:result) do
-            described_class.enabled?(
-              global_config: { distributed_tracing: true },
-              trace: trace
-            )
+            let(:trace) { Datadog::Tracing::TraceOperation.new(tags: { '_dd.p.ts' => '02' }) }
+            let(:result) { described_class.enabled?(trace: trace) }
+
+            it { expect(result).to be true }
           end
-
-          it { expect(result).to be true }
         end
       end
     end
 
     context 'when distributed tracing in global config is enabled' do
       let(:result) do
-        described_class.skip?(
+        described_class.enabled?(
           global_config: { distributed_tracing: true }
+        )
+      end
+
+      it { expect(result).to be true }
+    end
+
+    context 'when distributed tracing in global config is disabled' do
+      let(:result) do
+        described_class.enabled?(
+          global_config: { distributed_tracing: false }
         )
       end
 
       it { expect(result).to be false }
     end
 
-    context 'when distributed tracing in global config is disabled' do
+    context 'when distributed tracing in pin_config is enabled' do
       let(:result) do
-        described_class.skip?(
-          global_config: { distributed_tracing: false }
+        described_class.enabled?(
+          pin_config: Datadog::Core::Pin.new(distributed_tracing: true)
         )
       end
 
@@ -105,16 +108,6 @@ RSpec.describe Datadog::Tracing::Distributed::PropagationPolicy do
       let(:result) do
         described_class.enabled?(
           pin_config: Datadog::Core::Pin.new(distributed_tracing: false)
-        )
-      end
-
-      it { expect(result).to be true }
-    end
-
-    context 'when distributed tracing in pin_config is enabled' do
-      let(:result) do
-        described_class.skip?(
-          pin_config: Datadog::Core::Pin.new(distributed_tracing: true)
         )
       end
 
