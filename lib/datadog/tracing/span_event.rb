@@ -56,7 +56,7 @@ module Datadog
         attr = {}
         @attributes.each do |key, value|
           attr[key] = if value.is_a?(Array)
-                        { type: ARRAY_TYPE, array_value: value.map { |v| serialize_native_attribute(v) } }
+                        { type: ARRAY_TYPE, array_value: { values: value.map { |v| serialize_native_attribute(v) } } }
                       else
                         serialize_native_attribute(value)
                       end
