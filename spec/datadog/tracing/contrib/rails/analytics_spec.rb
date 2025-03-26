@@ -1,7 +1,6 @@
 require 'datadog/tracing/contrib/analytics_examples'
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-# Safe
 RSpec.describe 'Rails trace analytics' do
   let(:configuration_options) { {} }
 

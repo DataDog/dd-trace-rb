@@ -1,7 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-# Safe
-RSpec.describe 'Rails ActionController' do
+RSpec.describe 'Rails ActionController', execute_in_fork: ::Rails.version.to_i >= 8 do
   let(:rails_options) { {} }
   let(:controller) do
     stub_const(
