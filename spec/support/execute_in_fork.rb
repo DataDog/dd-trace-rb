@@ -32,71 +32,71 @@ module ForkableExample
     return super unless @metadata[:execute_in_fork]
 
     # Use a pipe to communicate between the parent and child process
-      reader, writer = IO.pipe
+    reader, writer = IO.pipe
 
-      reader.binmode
-      writer.binmode
+    reader.binmode
+    writer.binmode
 
-      pid = fork do
-        # Patch classes only in the forked process, as a defensive measure
-        reporter.singleton_class.prepend(ForkableExample::Reporter)
-        execution_result.singleton_class.prepend(ForkableExample::ExecutionResult)
+    pid = fork do
+      # Patch classes only in the forked process, as a defensive measure
+      reporter.singleton_class.prepend(ForkableExample::Reporter)
+      execution_result.singleton_class.prepend(ForkableExample::ExecutionResult)
 
-        # Save the writer pipe in a convenient place
-        reporter.instance_variable_set(:@fork_writer_pipe, writer)
+      # Save the writer pipe in a convenient place
+      reporter.instance_variable_set(:@fork_writer_pipe, writer)
 
-        # Write some sentinel values to aid with Marshalling a few important objects.
-        reporter.instance_variable_set(:@fork_example_sentinel, self)
-        execution_result.instance_variable_set(:@fork_writer_pipe, writer)
-
-        reader.close
-
-        super
-
-        writer.close
-      end
-
-      writer.close
-
-      # Wait for forked process to finish
-      _, status = Process.wait2(pid)
-
-      # Unmarshal the test results from the forked process.
-      # These come in as method calls, which we replicate here in the parent process.
-      while (read_size = reader.gets) # Reads a header line, containing the size of the next object
-        # Read the next object
-        call = Marshal.load(reader.read(Integer(read_size)))
-
-        args = call[:args]
-        args.map! do |arg|
-          # Some values are serializable, so we check for their sentinel
-          if arg == EXAMPLE_SENTINEL
-            self
-          elsif arg.is_a?(MODULE_VALUE)
-            ::Object.const_get(arg.name)
-          elsif arg.is_a?(RSpec::Core::Notifications::ExampleNotification) && arg.example == EXAMPLE_SENTINEL
-            ::RSpec::Core::Notifications::ExampleNotification.for(self)
-          else
-            arg
-          end
-        end
-
-        # The receiver is a parent process object, let's find the right one
-        receiver = case call[:receiver]
-                   when :reporter
-                     reporter
-                   when :execution_result
-                     execution_result
-                   else
-                     raise "Unknown receiver: #{call[:receiver]}"
-                   end
-
-        receiver.send(call[:method], *args)
-      end
+      # Write some sentinel values to aid with Marshalling a few important objects.
+      reporter.instance_variable_set(:@fork_example_sentinel, self)
+      execution_result.instance_variable_set(:@fork_writer_pipe, writer)
 
       reader.close
 
-      status.success? # We return the status code from the forked process as the boolean for success/failure
+      super
+
+      writer.close
+    end
+
+    writer.close
+
+    # Wait for forked process to finish
+    _, status = Process.wait2(pid)
+
+    # Unmarshal the test results from the forked process.
+    # These come in as method calls, which we replicate here in the parent process.
+    while (read_size = reader.gets) # Reads a header line, containing the size of the next object
+      # Read the next object
+      call = Marshal.load(reader.read(Integer(read_size)))
+
+      args = call[:args]
+      args.map! do |arg|
+        # Some values are serializable, so we check for their sentinel
+        if arg == EXAMPLE_SENTINEL
+          self
+        elsif arg.is_a?(MODULE_VALUE)
+          ::Object.const_get(arg.name)
+        elsif arg.is_a?(RSpec::Core::Notifications::ExampleNotification) && arg.example == EXAMPLE_SENTINEL
+          ::RSpec::Core::Notifications::ExampleNotification.for(self)
+        else
+          arg
+        end
+      end
+
+      # The receiver is a parent process object, let's find the right one
+      receiver = case call[:receiver]
+                 when :reporter
+                   reporter
+                 when :execution_result
+                   execution_result
+                 else
+                   raise "Unknown receiver: #{call[:receiver]}"
+                 end
+
+      receiver.send(call[:method], *args)
+    end
+
+    reader.close
+
+    status.success? # We return the status code from the forked process as the boolean for success/failure
   end
 
   # Patch a method in the forked process to capture its arguments.

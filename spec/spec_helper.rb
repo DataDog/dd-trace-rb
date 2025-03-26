@@ -160,11 +160,11 @@ RSpec.configure do |config|
           # WEBrick server thread
           t[:WEBrickSocket] ||
           # Rails connection reaper
-          backtrace.find { |b| %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb}.match?(b) } ||
+          backtrace.find do |b|
+            %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb}.match?(b)
+          end ||
           # Ruby JetBrains debugger
           (t.class.name && t.class.name.include?('DebugThread')) ||
-          # Rails connection reaper
-          backtrace.find { |b| %r{lib/active_record/connection_adapters/abstract/connection_pool(/reaper)?.rb}.match?(b) } ||
           # Categorized as a known leaky thread
           !group_name.nil? ||
           # Internal TruffleRuby thread, defined in
