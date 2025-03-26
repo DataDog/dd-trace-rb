@@ -31,13 +31,13 @@ static inline bool ddtrace_di_imemo_iseq_p(VALUE v) {
 static int
 ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
 {
-    struct os_each_struct *oes = (struct os_each_struct *)data;
+    struct ddtrace_di_os_each_struct *oes = (struct ddtrace_di_os_each_struct *)data;
     VALUE array = oes->array;
 
     VALUE v = (VALUE)vstart;
     for (; v != (VALUE)vend; v += stride) {
-        if (ddtrace_di_memo_iseq_p(v)) {
-            VALUE iseq = rb_iseqw_new(v);
+        if (ddtrace_di_imemo_iseq_p(v)) {
+            VALUE iseq = rb_iseqw_new((void *) v);
             rb_ary_push(array, iseq);
         }
     }
@@ -50,7 +50,7 @@ static VALUE loaded_file_iseqs(VALUE self) {
 
     oes.array = rb_ary_new();
     rb_objspace_each_objects(ddtrace_di_os_obj_of_i, &oes);
-    RB_GC_GUARD(oes);
+    RB_GC_GUARD(oes.array);
     return oes.array;
 }
 
