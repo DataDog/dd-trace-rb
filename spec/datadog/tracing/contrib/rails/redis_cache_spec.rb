@@ -7,7 +7,7 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 # framework to do it for them. So it should work smoothly without
 # including anything.
 # raise 'Redis cannot be loaded for a realistic Rails test' if defined? Redis
-RSpec.describe 'Rails Redis cache', execute_in_fork: ::Rails.version.to_i >= 8 do
+RSpec.describe 'Rails Redis cache', execute_in_fork: Rails.version.to_i >= 8 do
   before(:all) do
     expect(Datadog::Tracing::Contrib::ActiveSupport::Cache::Patcher.patched?).to(
       be_falsey, <<MESSAGE)

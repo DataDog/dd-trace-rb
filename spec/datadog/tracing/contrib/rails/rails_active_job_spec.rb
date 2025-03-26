@@ -17,7 +17,7 @@ end
 require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/active_job/integration'
 
-RSpec.describe 'ActiveJob', execute_in_fork: ::Rails.version.to_i >= 8 do
+RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
   before { skip unless defined? ::ActiveJob }
   after { remove_patch!(:active_job) }
   include_context 'Rails test application'
