@@ -30,11 +30,11 @@ module Datadog
                   span.service = service_name(host, request_options, client_config)
                   span.type = Tracing::Metadata::Ext::HTTP::TYPE_OUTBOUND
 
-                  if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
-                    trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
-                  end
-
-                  if Tracing.enabled? && !should_skip_distributed_tracing?(client_config)
+                  if Tracing::Distributed::PropagationPolicy.enabled?(
+                    pin_config: client_config,
+                    global_config: Datadog.configuration.tracing[:httpclient],
+                    trace: trace
+                  )
                     Contrib::HTTP.inject(trace, req.header)
                   end
 
@@ -121,12 +121,6 @@ module Datadog
 
             def analytics_enabled?(request_options)
               Contrib::Analytics.enabled?(request_options[:analytics_enabled])
-            end
-
-            def should_skip_distributed_tracing?(client_config)
-              return !client_config[:distributed_tracing] if client_config && client_config.key?(:distributed_tracing)
-
-              !Datadog.configuration.tracing[:httpclient][:distributed_tracing]
             end
 
             def set_analytics_sample_rate(span, request_options)

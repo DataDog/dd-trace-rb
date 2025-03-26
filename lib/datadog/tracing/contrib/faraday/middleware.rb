@@ -29,10 +29,12 @@ module Datadog
 
             Tracing.trace(Ext::SPAN_REQUEST, on_error: request_options[:on_error]) do |span, trace|
               annotate!(span, env, request_options)
-              if Datadog::AppSec::Utils::TraceOperation.appsec_standalone_reject?(trace)
-                trace.sampling_priority = Tracing::Sampling::Ext::Priority::AUTO_REJECT
+              if Tracing::Distributed::PropagationPolicy.enabled?(
+                global_config: request_options,
+                trace: trace
+              )
+                propagate!(trace, span, env)
               end
-              propagate!(trace, span, env) if request_options[:distributed_tracing] && Tracing.enabled?
               app.call(env).on_complete { |resp| handle_response(span, resp, request_options) }
             end
           end

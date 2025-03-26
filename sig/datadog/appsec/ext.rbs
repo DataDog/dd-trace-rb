@@ -19,8 +19,6 @@ module Datadog
 
       TAG_APPSEC_ENABLED: ::String
 
-      TAG_APM_ENABLED: ::String
-
       TAG_DISTRIBUTED_APPSEC_EVENT: ::String
 
       TAG_METASTRUCT_STACK_TRACE: ::String

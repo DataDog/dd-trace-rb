@@ -59,6 +59,7 @@ module Datadog
           tag_high_order_trace_id!
           tag_sampling_priority!
           tag_profiling_enabled!
+          tag_apm_tracing_disabled!
 
           if first_span
             tag_git_repository_url!
@@ -194,6 +195,12 @@ module Datadog
           root_span.set_tag(
             Tracing::Metadata::Ext::TAG_PROFILING_ENABLED, trace.profiling_enabled ? 1 : 0
           )
+        end
+
+        def tag_apm_tracing_disabled!
+          return if trace.apm_tracing_enabled
+
+          root_span.set_tag(Tracing::Metadata::Ext::TAG_APM_ENABLED, 0)
         end
 
         def tag_git_repository_url!
