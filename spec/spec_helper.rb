@@ -143,7 +143,7 @@ RSpec.configure do |config|
       # Exclude acceptable background threads
       background_threads = Thread.list.reject do |t|
         group_name = t.group.instance_variable_get(:@group_name) if t.group.instance_variable_defined?(:@group_name)
-        caller = t.instance_variable_get(:@caller)
+        caller = t.instance_variable_get(:@caller) || []
         backtrace = t.backtrace || []
 
         # Current thread
