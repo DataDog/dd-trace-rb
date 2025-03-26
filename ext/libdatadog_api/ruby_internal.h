@@ -2,8 +2,7 @@
 
 #include <ruby.h>
 
-VALUE
-rb_iseqw_new(const void *iseq);
+VALUE rb_iseqw_new(const void *iseq);
 
 int rb_objspace_internal_object_p(VALUE obj);
 
