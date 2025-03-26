@@ -1,10 +1,14 @@
+#include <ruby.h>
+#include <stdbool.h>
 #include "ruby_internal.h"
 
-struct os_each_struct {
+#define IMEMO_TYPE_ISEQ 7
+
+struct ddtrace_di_os_each_struct {
     VALUE array;
 };
 
-static inline int ddtrace_imemo_type(VALUE imemo) {
+static inline int ddtrace_di_imemo_type(VALUE imemo) {
   // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
   // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
   // we'll get incorrect results (and never a VM crash)
@@ -12,22 +16,29 @@ static inline int ddtrace_imemo_type(VALUE imemo) {
   return (RBASIC(imemo)->flags >> FL_USHIFT) & IMEMO_MASK;
 }
 
+// Returns whether the argument is an IMEMO of type ISEQ.
+static inline bool ddtrace_di_imemo_iseq_p(VALUE v) {
+    if (rb_objspace_internal_object_p(v)) {
+        if (RB_TYPE_P(v, T_IMEMO)) {
+            if (ddtrace_di_imemo_type(v) == IMEMO_TYPE_ISEQ) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 static int
-os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
+ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
 {
     struct os_each_struct *oes = (struct os_each_struct *)data;
     VALUE array = oes->array;
 
     VALUE v = (VALUE)vstart;
     for (; v != (VALUE)vend; v += stride) {
-        if (rb_objspace_internal_object_p(v)) {
-            if (RB_TYPE_P(v, T_IMEMO)) {
-                if (ddtrace_imemo_type(v)==7) {
-                    //puts("it's an iseq imemo thing");
-                    VALUE iseq = rb_iseqw_new((void *) v);
-                    rb_ary_push(array, iseq);
-                }
-            }
+        if (ddtrace_di_memo_iseq_p(v)) {
+            VALUE iseq = rb_iseqw_new(v);
+            rb_ary_push(array, iseq);
         }
     }
 
@@ -35,9 +46,9 @@ os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
 }
 
 static VALUE get_iseqs(VALUE self) {
-    struct os_each_struct oes;
+    struct ddtrace_di_os_each_struct oes;
 
     oes.array = rb_ary_new();
-    rb_objspace_each_objects(os_obj_of_i, &oes);
+    rb_objspace_each_objects(ddtrace_di_os_obj_of_i, &oes);
     return oes.array;
 }
