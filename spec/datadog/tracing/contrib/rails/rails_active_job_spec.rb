@@ -2,7 +2,6 @@
 # Rails. Functionality tests for Rails and Sidekiq must go
 # in their testing modules.
 begin
-  require 'sidekiq/rails' if defined?(Rails)
   require 'sidekiq/testing'
   require 'datadog/tracing/contrib/sidekiq/server_tracer'
 rescue LoadError
@@ -19,7 +18,11 @@ require 'datadog/tracing/contrib/rails/rails_helper'
 require 'datadog/tracing/contrib/active_job/integration'
 
 RSpec.describe 'ActiveJob', execute_in_fork: Rails.version.to_i >= 8 do
-  before { skip unless defined? ::ActiveJob }
+  before do
+    skip unless defined? ::ActiveJob
+    require 'sidekiq/rails' if defined?(Rails)
+  end
+
   after { remove_patch!(:active_job) }
   include_context 'Rails test application'
 
