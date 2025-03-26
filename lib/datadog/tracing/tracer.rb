@@ -573,6 +573,11 @@ module Datadog
         @appsec_enabled ||= Datadog.configuration.appsec.enabled
       end
 
+      # Due to APM Tracing (the product) and Tracing (the transport) being intertwined, we cannot completely disabled APM
+      # without also disabling the tracer. When setting `@apm_tracing_enabled` to `false`, it does not disable the tracer,
+      # but rather only sends heartbeat traces (1 per minutes), so that the service is considered alive in the backend.
+      # Other products (like ASM) can then set the sampling priority of their traces to `MANUAL_KEEP`,
+      # effectively allowing standalone products to work without APM.
       def apm_tracing_enabled
         @apm_tracing_enabled ||= !Datadog.configuration.appsec.standalone.enabled
       end
