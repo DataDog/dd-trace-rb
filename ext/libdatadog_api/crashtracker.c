@@ -22,15 +22,6 @@ struct os_each_struct {
     VALUE array;
 };
 
-VALUE
-rb_iseqw_new(const void *iseq);
-
-int rb_objspace_internal_object_p(VALUE obj);
-
-void rb_objspace_each_objects(
-    int (*callback)(void *start, void *end, size_t stride, void *data),
-    void *data);
-
 static inline int ddtrace_imemo_type(VALUE imemo) {
   // This mask is the same between Ruby 2.5 and 3.3-preview3. Furthermore, the intention of this method is to be used
   // to call `rb_imemo_name` which correctly handles invalid numbers so even if the mask changes in the future, at most
