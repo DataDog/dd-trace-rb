@@ -6,7 +6,6 @@ require 'rack/test'
 
 require 'datadog/kit/appsec/events'
 require 'action_controller/railtie'
-require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'

@@ -5,7 +5,6 @@ require 'datadog/appsec/spec_helper'
 require 'rack/test'
 
 require 'action_controller/railtie'
-require 'action_mailer'
 require 'active_record'
 require 'sqlite3'
 require 'devise'
