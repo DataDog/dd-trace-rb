@@ -197,8 +197,9 @@ module Datadog
               # It's important to keep all the keys for multi-key operations.
               # For single-key operations, the key is stored as an array of a single element.
               def normalize_key(key, options)
-                orig_keys = (options[:dd_original_keys] ||= [])
+                orig_keys = options[:dd_original_keys] || []
                 orig_keys << key
+                options[:dd_original_keys] = orig_keys
 
                 super
               end
