@@ -1,5 +1,8 @@
 {
-  "SCA_STANDALONE_EXPERIMENTAL": [
-    "tests/appsec/test_asm_standalone.py::Test_SCAStandalone_Telemetry"
+  "SCA_STANDALONE": [
+    "tests/appsec/test_asm_standalone.py::Test_SCAStandalone_Telemetry_V2"
+  ],
+  "APPSEC_STANDALONE": [
+    "tests/appsec/test_asm_standalone.py::Test_AppSecStandalone_UpstreamPropagation_V2"
   ]
 }

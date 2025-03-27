@@ -74,12 +74,11 @@ module Datadog
           return sampler
         end
 
-        # AppSec events are sent to the backend using traces.
-        # Standalone ASM billing means that we don't want to charge clients for APM traces,
-        # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
-        # but for features such as API Security, we need to send at least one trace per minute,
-        # to keep the service alive on the backend side.
-        post_sampler = build_rate_limit_post_sampler(seconds: 60) if settings.appsec.standalone.enabled
+        # APM Disablement means that we don't want to send traces that only contains APM data.
+        # Other products can then put the sampling priority to MANUAL_KEEP if they want to keep traces.
+        # (e.g.: AppSec will MANUAL_KEEP traces with AppSec events) and clients will be billed only for those traces.
+        # But to keep the service alive on the backend side, we need to send one trace per minute.
+        post_sampler = build_rate_limit_post_sampler(seconds: 60) unless settings.apm.tracing.enabled
 
         # Sampling rules are provided
         if (rules = settings.tracing.sampling.rules)

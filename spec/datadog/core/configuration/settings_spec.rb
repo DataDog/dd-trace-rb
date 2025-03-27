@@ -1866,4 +1866,22 @@ RSpec.describe Datadog::Core::Configuration::Settings do
       end
     end
   end
+
+  describe '#apm' do
+    describe '#tracing' do
+      describe '#enabled' do
+        subject(:apm_tracing_enabled) { settings.apm.tracing.enabled }
+
+        it_behaves_like 'a binary setting with', env_variable: 'DD_APM_TRACING_ENABLED', default: true
+      end
+
+      describe '#enabled=' do
+        it 'updates the #enabled setting' do
+          expect { settings.apm.tracing.enabled = false }
+            .to change { settings.apm.tracing.enabled }
+            .from(true).to(false)
+        end
+      end
+    end
+  end
 end

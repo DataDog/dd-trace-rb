@@ -17,7 +17,6 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       c.appsec.enabled = true
       c.appsec.instrument :rack
 
-      c.appsec.standalone.enabled = false
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_passlist = []
       c.appsec.ip_denylist = []

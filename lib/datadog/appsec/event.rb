@@ -187,7 +187,7 @@ module Datadog
             Datadog::Tracing::Metadata::Ext::Distributed::TAG_DECISION_MAKER,
             Datadog::Tracing::Sampling::Ext::Decision::ASM
           )
-          trace.set_tag(Datadog::AppSec::Ext::TAG_DISTRIBUTED_APPSEC_EVENT, '1')
+          trace.set_distributed_source(Datadog::AppSec::Ext::PRODUCT_BIT)
         end
       end
     end
