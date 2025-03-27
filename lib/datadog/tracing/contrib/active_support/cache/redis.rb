@@ -35,7 +35,7 @@ module Datadog
               # @see https://github.com/rails/rails/blob/d0dcb8fa6073a0c4d42600c15e82e3bb386b27d3/activesupport/lib/active_support/cache/redis_cache_store.rb#L4
               def patch_redis_cache_store?(meth)
                 Gem.loaded_specs['redis'] &&
-                  Support.autoloaded?(::ActiveSupport::Cache, :RedisCacheStore) &&
+                  Support.fully_loaded?(::ActiveSupport::Cache, :RedisCacheStore) &&
                   ::ActiveSupport::Cache::RedisCacheStore.instance_methods(false).include?(meth)
               end
 

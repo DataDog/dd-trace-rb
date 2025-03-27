@@ -22,7 +22,7 @@ module Datadog
             def patch
               Events.subscribe!
 
-              if Integration.version > Gem::Version.new('8.0.0')
+              if Integration.version >= Gem::Version.new('8.0.0')
                 ::ActiveSupport::Cache::Store.prepend(Cache::Instrumentation::PreserveOriginalKey)
               end
 

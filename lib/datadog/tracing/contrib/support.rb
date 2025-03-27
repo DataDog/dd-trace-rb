@@ -16,7 +16,7 @@ module Datadog
         # @param base_module [Module] the module to check for the constant
         # @param constant [Symbol] the name of the constant to check
         # @return [Boolean] true if the constant has been loaded, false otherwise
-        def autoloaded?(base_module, constant)
+        def fully_loaded?(base_module, constant)
           # Autoload constants return `constant` for `defined?`, but that doesn't mean they are loaded...
           base_module.const_defined?(constant) &&
             # ... to check that we need to call `autoload?`. If it returns `nil`, it's loaded.

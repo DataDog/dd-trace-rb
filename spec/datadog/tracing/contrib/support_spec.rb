@@ -3,7 +3,7 @@
 require 'tempfile'
 
 RSpec.describe Datadog::Tracing::Contrib::Support do
-  describe '.autoloaded?' do
+  describe '.fully_loaded?' do
     let(:temp_file) do
       file = Tempfile.create(['autoloaded_constant', '.rb'])
       file.write('module AutoloadedParent::AutoloadedConstant; end')
@@ -24,20 +24,20 @@ RSpec.describe Datadog::Tracing::Contrib::Support do
     after { temp_file.close }
 
     it 'returns false for autoloaded but not yet loaded constants' do
-      expect(described_class.autoloaded?(test_module, :AutoloadedConstant)).to be false
+      expect(described_class.fully_loaded?(test_module, :AutoloadedConstant)).to be false
     end
 
     it 'returns true for autoloaded and loaded constants' do
       test_module::AutoloadedConstant # rubocop:disable Lint/Void
-      expect(described_class.autoloaded?(test_module, :AutoloadedConstant)).to be true
+      expect(described_class.fully_loaded?(test_module, :AutoloadedConstant)).to be true
     end
 
     it 'returns true for loaded constants' do
-      expect(described_class.autoloaded?(test_module, :LoadedConstant)).to be true
+      expect(described_class.fully_loaded?(test_module, :LoadedConstant)).to be true
     end
 
     it 'returns false for undefined constants' do
-      expect(described_class.autoloaded?(test_module, :UndefinedConstant)).to be false
+      expect(described_class.fully_loaded?(test_module, :UndefinedConstant)).to be false
     end
   end
 end
