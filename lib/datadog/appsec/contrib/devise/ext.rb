@@ -6,6 +6,10 @@ module Datadog
       module Devise
         # Devise integration constants
         module Ext
+          EVENT_LOGIN_SUCCESS = 'users.login.success'
+          EVENT_LOGIN_FAILURE = 'users.login.failure'
+          EVENT_SIGNUP = 'users.signup'
+
           TAG_DD_USR_ID = '_dd.appsec.usr.id'
           TAG_DD_USR_LOGIN = '_dd.appsec.usr.login'
           TAG_DD_SIGNUP_MODE = '_dd.appsec.events.users.signup.auto.mode'

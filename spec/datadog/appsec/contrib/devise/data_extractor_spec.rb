@@ -12,7 +12,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
 
   describe '#extract_id' do
     context 'when there is more that single user model' do
-      let(:extractor) { described_class.new('identification') }
+      let(:extractor) { described_class.new(mode: 'identification') }
       let(:mappings) do
         {
           user: instance_double(Devise::Mapping, name: :user, class_name: 'User'),
@@ -62,7 +62,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
     end
 
     context 'when mode is set to identification' do
-      let(:extractor) { described_class.new('identification') }
+      let(:extractor) { described_class.new(mode: 'identification') }
 
       it 'returns id from a hash containing id or uuid keys' do
         expect(extractor.extract_id(id: 1)).to eq('1')
@@ -94,13 +94,13 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_id(double('User', id: 1, uuid: 2))).to eq('1')
       end
 
-      it 'return nil if object does not respond to id or uuid methods' do
+      it 'returns nil if object does not respond to id or uuid methods' do
         expect(extractor.extract_id(double('User'))).to be_nil
       end
     end
 
     context 'when mode is set to anonymization' do
-      let(:extractor) { described_class.new('anonymization') }
+      let(:extractor) { described_class.new(mode: 'anonymization') }
 
       it 'returns anonymized id from a hash containing id or uuid keys' do
         expect(extractor.extract_id(id: 1)).to match(/anon_[a-z0-9]{32}/)
@@ -118,7 +118,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
 
   describe '#extract_login' do
     context 'when mode is set to identification' do
-      let(:extractor) { described_class.new('identification') }
+      let(:extractor) { described_class.new(mode: 'identification') }
 
       it 'returns login from a hash containing suitable keys' do
         expect(extractor.extract_login(email: 'ex@mple.com')).to eq('ex@mple.com')
@@ -166,7 +166,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_login(double('User', login: 'dotcom', username: 'example'))).to eq('example')
       end
 
-      it 'return nil if object does not respond to email or other methods' do
+      it 'returns nil if object does not respond to email or other methods' do
         expect(extractor.extract_login(double('User'))).to be_nil
       end
 
@@ -190,7 +190,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
     end
 
     context 'when mode is set to anonymization' do
-      let(:extractor) { described_class.new('anonymization') }
+      let(:extractor) { described_class.new(mode: 'anonymization') }
 
       it 'returns anonymized login from a hash containing one of the keys' do
         expect(extractor.extract_login(email: 'ex@mple.com')).to match(/anon_[a-z0-9]{32}/)
@@ -208,7 +208,7 @@ RSpec.describe Datadog::AppSec::Contrib::Devise::DataExtractor do
         expect(extractor.extract_login({})).to be_nil
       end
 
-      it 'return nil if object does not respond to id or uuid methods' do
+      it 'returns nil if object does not respond to id or uuid methods' do
         expect(extractor.extract_id(double('User'))).to be_nil
       end
 

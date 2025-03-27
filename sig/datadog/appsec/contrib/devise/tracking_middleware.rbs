@@ -3,6 +3,8 @@ module Datadog
     module Contrib
       module Devise
         class TrackingMiddleware
+          WARDEN_KEY: ::String
+
           @app: untyped
 
           def initialize: (untyped app) -> void

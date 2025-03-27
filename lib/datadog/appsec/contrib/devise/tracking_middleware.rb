@@ -7,8 +7,10 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # A Rack middleware capable tracking currently signed user
+        # A Rack middleware capable of tracking currently signed user
         class TrackingMiddleware
+          WARDEN_KEY = 'warden'
+
           def initialize(app)
             @app = app
             @devise_session_scope_keys = {}
@@ -19,7 +21,7 @@ module Datadog
             return @app.call(env) unless Configuration.auto_user_instrumentation_enabled?
             return @app.call(env) unless AppSec.active_context
 
-            unless env.key?('warden')
+            unless env.key?(WARDEN_KEY)
               Datadog.logger.debug { 'AppSec: unable to track requests, due to missing warden manager' }
               return @app.call(env)
             end
@@ -30,7 +32,7 @@ module Datadog
               return @app.call(env)
             end
 
-            id = transform(extract_id(env['warden']))
+            id = transform(extract_id(env[WARDEN_KEY]))
             if id
               unless context.span.has_tag?(Ext::TAG_USR_ID)
                 context.span[Ext::TAG_USR_ID] = id
@@ -63,7 +65,7 @@ module Datadog
               key = session_key_for(session_serializer, scope)
               id = session_serializer.session[key]&.dig(0, 0)
 
-              return "#{scope}:#{id}" unless id.nil?
+              return "#{scope}:#{id}" if id
             end
 
             nil

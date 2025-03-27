@@ -3,7 +3,6 @@
 require_relative '../ext'
 require_relative '../configuration'
 require_relative '../data_extractor'
-require_relative '../../../../kit/appsec/events'
 
 module Datadog
   module AppSec
@@ -30,13 +29,13 @@ module Datadog
 
               if result
                 record_successful_signin(context, resource)
-                Instrumentation.gateway.push('appsec.events.user_lifecycle', Kit::AppSec::Events::LOGIN_SUCCESS_EVENT)
+                Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_SUCCESS)
 
                 return result
               end
 
               record_failed_signin(context, resource)
-              Instrumentation.gateway.push('appsec.events.user_lifecycle', Kit::AppSec::Events::LOGIN_FAILURE_EVENT)
+              Instrumentation.gateway.push('appsec.events.user_lifecycle', Ext::EVENT_LOGIN_FAILURE)
 
               result
             end
@@ -44,7 +43,7 @@ module Datadog
             private
 
             def record_successful_signin(context, resource)
-              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+              extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
@@ -59,14 +58,16 @@ module Datadog
               context.span[Ext::TAG_DD_USR_LOGIN] = login
               context.span[Ext::TAG_DD_LOGIN_SUCCESS_MODE] = Configuration.auto_user_instrumentation_mode
 
-              # TODO: Maybe check to avoid double send
+              # NOTE: We don't have a way to make one-shot receivers for events,
+              #       and because of that we will trigger an additional event even
+              #       if it was already done via the SDK
               AppSec::Instrumentation.gateway.push(
                 'identity.set_user', AppSec::Instrumentation::Gateway::User.new(id, login)
               )
             end
 
             def record_failed_signin(context, resource)
-              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+              extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
               context.span[Ext::TAG_LOGIN_FAILURE_TRACK] = 'true'
               context.span[Ext::TAG_DD_LOGIN_FAILURE_MODE] = Configuration.auto_user_instrumentation_mode

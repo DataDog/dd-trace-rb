@@ -11,7 +11,7 @@ module Datadog
 
           @devise_scopes: ::Hash[::String, ::String?]
 
-          def initialize: (::String mode) -> void
+          def initialize: (mode: ::String) -> void
 
           def extract_id: (untyped object) -> ::String?
 

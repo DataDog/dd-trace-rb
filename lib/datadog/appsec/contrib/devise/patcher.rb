@@ -30,7 +30,11 @@ module Datadog
           def patch
             ::ActiveSupport.on_load(:before_initialize) do |app|
               GUARD_ONCE_PER_APP[app].run do
-                app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
+                begin
+                  app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
+                rescue RuntimeError
+                  AppSec.telemetry.error('AppSec: unable to insert Devise TrackingMiddleware')
+                end
               end
             end
 
