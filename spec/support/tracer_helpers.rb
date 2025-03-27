@@ -1,4 +1,5 @@
 require 'datadog/tracing/tracer'
+require 'datadog/tracing/correlation'
 require 'datadog/tracing/trace_operation'
 require 'support/faux_writer'
 require 'datadog/tracing/utils'
@@ -124,13 +125,9 @@ module TracerHelpers
     Datadog::Tracing::Utils::TraceId.to_low_order(trace_id)
   end
 
-  # Ensures the given trace ID is always formatted using the 128-bit logging format
-  # by wrapping Tracing::Correlation.format_trace_id(trace_id)
+  ## Wraps call to Datadog::Tracing::Correlation.format_trace_id_128 for better test readability
   def trace_id_128_log_injection(trace_id)
-    RSpec::Mocks.with_temporary_scope do
-      allow(Datadog.configuration.tracing).to receive(:trace_id_128_bit_logging_enabled).and_return(true)
-      Datadog::Tracing::Correlation.format_trace_id(trace_id)
-    end
+    Datadog::Tracing::Correlation.format_trace_id_128(trace_id)
   end
 
   # Wraps call to Tracing::Utils::TraceId.to_high_order and converts to hex
