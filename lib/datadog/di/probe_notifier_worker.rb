@@ -171,7 +171,7 @@ module Datadog
       attr_reader :last_sent
 
       def status_transport
-        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings)
+        @status_transport ||= DI::Transport::HTTP.diagnostics(agent_settings: agent_settings, logger: logger)
       end
 
       def do_send_status(batch)
@@ -179,7 +179,7 @@ module Datadog
       end
 
       def snapshot_transport
-        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings)
+        @snapshot_transport ||= DI::Transport::HTTP.input(agent_settings: agent_settings, logger: logger)
       end
 
       def do_send_snapshot(batch)

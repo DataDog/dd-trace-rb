@@ -37,7 +37,7 @@ RSpec.describe 'Datadog::Workers::AsyncTransport integration tests' do
   end
   # Use SpyTransport instead of shared context because
   # worker threads sometimes call test objects after test finishes.
-  let(:transport) { SpyTransport.new }
+  let(:transport) { SpyTransport.new(logger: logger) }
   let(:stats) { writer.stats }
   let(:dump) { transport.dump }
   let(:port) { 1234 }

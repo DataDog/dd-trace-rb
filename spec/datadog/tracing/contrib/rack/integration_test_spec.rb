@@ -21,6 +21,7 @@ RSpec.describe 'Rack integration tests' do
   let(:instrument_http) { false }
   let(:remote_enabled) { false }
   let(:apm_tracing_enabled) { true }
+  let(:logger) { logger_allowing_debug }
 
   # We send the trace to a mocked agent to verify that the trace includes the headers that we want
   # In the future, it might be a good idea to use the traces that the mocked agent
@@ -319,7 +320,7 @@ RSpec.describe 'Rack integration tests' do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
             allow(client).to receive(:sync).and_raise(exception, 'test')
-            allow(Datadog.logger).to receive(:error).and_return(nil)
+            allow(logger).to receive(:error).and_return(nil)
           end
 
           it 'has boot tags' do
@@ -701,7 +702,10 @@ RSpec.describe 'Rack integration tests' do
               timeout_seconds: 30
             )
             agent_http_adapter = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
-            agent_http_client = Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+            agent_http_client = Datadog::Tracing::Transport::HTTP.default(
+              agent_settings: test_agent_settings,
+              logger: logger
+            ) do |t|
               t.adapter agent_http_adapter
             end
             agent_return = agent_http_client.send_traces(traces)

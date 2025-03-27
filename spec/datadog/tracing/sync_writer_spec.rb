@@ -13,9 +13,10 @@ require 'datadog/tracing/transport/traces'
 
 RSpec.describe Datadog::Tracing::SyncWriter do
   subject(:sync_writer) { described_class.new(transport: transport) }
+  let(:logger) { logger_allowing_debug }
 
   let(:transport) do
-    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+    Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
       t.adapter :test, buffer
     end
   end
@@ -25,7 +26,7 @@ RSpec.describe Datadog::Tracing::SyncWriter do
     subject(:sync_writer) { described_class.new(**options) }
 
     context 'given :agent_settings' do
-      let(:options) { { agent_settings: agent_settings } }
+      let(:options) { { agent_settings: agent_settings, logger: logger } }
       let(:agent_settings) { instance_double(Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings) }
       let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
 
