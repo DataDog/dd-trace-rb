@@ -2155,7 +2155,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: trace_id_128_log_injection(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2168,7 +2168,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       it do
         expect(trace_op.to_correlation).to have_attributes(
           span_id: parent_span_id.to_s,
-          trace_id: trace_id_128_log_injection(trace_op.id)
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
     end
@@ -2187,7 +2187,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(correlation).to have_attributes(
           span_id: parent_id.to_s,
-          trace_id: trace_id_128_log_injection(trace_op.id)
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
 
@@ -2208,7 +2208,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(correlation).to have_attributes(
             span_id: parent_id.to_s,
-            trace_id: trace_id_128_log_injection(trace_op.id)
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2221,7 +2221,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: trace_id_128_log_injection(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2232,7 +2232,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: span.id.to_s,
-            trace_id: trace_id_128_log_injection(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2243,7 +2243,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: trace_id_128_log_injection(trace_op.id),
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2258,7 +2258,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace_op.to_correlation).to have_attributes(
           span_id: '0',
-          trace_id: trace_id_128_log_injection(trace_op.id)
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
 
@@ -2274,7 +2274,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: trace_id_128_log_injection(trace_op.id)
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end

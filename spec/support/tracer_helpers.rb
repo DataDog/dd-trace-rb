@@ -126,7 +126,7 @@ module TracerHelpers
   end
 
   ## Wraps call to Datadog::Tracing::Correlation.format_trace_id_128 for better test readability
-  def trace_id_128_log_injection(trace_id)
+  def format_for_correlation(trace_id)
     Datadog::Tracing::Correlation.format_trace_id_128(trace_id)
   end
 
