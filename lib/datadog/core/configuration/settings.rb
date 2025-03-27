@@ -964,8 +964,12 @@ module Datadog
           # @public_api
           settings :tracing do
             # Enables tracing as transport.
-            # Disabling it will set sampling priority to -1 on most spans,
-            # except heartbeat ones (1 per minute) and manual kept ones (e.g. appsec events)
+            # Disabling it will set sampling priority to -1 (FORCE_DROP) on most traces,
+            # (which tells to the agent to drop these traces)
+            # except heartbeat ones (1 per minute) and manually kept ones (sampling priority to 2) (e.g. appsec events)
+            #
+            # This is different than `DD_TRACE_ENABLED`, which completely disables tracing (sends no trace at all),
+            # while this will send heartbeat traces (1 per minute) so that the service is considered alive in the backend.
             #
             # @default `DD_APM_TRACING_ENABLED` environment variable, otherwise `true`
             # @return [Boolean]
