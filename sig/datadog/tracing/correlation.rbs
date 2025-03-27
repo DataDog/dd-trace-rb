@@ -2,16 +2,49 @@ module Datadog
   module Tracing
     module Correlation
       class Identifier
+        @env: String?
+
+        @service: String
+
+        @span_id: String
+
+        @trace_id: String
+
+        @version: String
+
+        @to_h: untyped
+
+        @log_format: untyped
+
+        LOG_ATTR_ENV: "dd.env"
+
+        LOG_ATTR_SERVICE: "dd.service"
+
+        LOG_ATTR_SPAN_ID: "dd.span_id"
+
+        LOG_ATTR_TRACE_ID: "dd.trace_id"
+
+        LOG_ATTR_VERSION: "dd.version"
+
+        LOG_ATTR_SOURCE: "ddsource"
+
         attr_reader env: String?
+
         attr_reader service: String
+
         attr_reader span_id: String
+
         attr_reader version: String
+        def initialize: (?env: untyped?, ?service: untyped?, ?span_id: untyped?, ?trace_id: untyped?, ?version: untyped?) -> void
 
-        def trace_id: () -> String
+        def to_h: () -> untyped
+        def to_log_format: () -> untyped
+
+        def trace_id: () -> untyped
       end
+      def self?.identifier_from_digest: (untyped digest) -> untyped
 
-      def self?.identifier_from_context: (untyped context) -> Struct[untyped] # Identifier
+      def self?.format_trace_id: (untyped trace_id) -> untyped
     end
   end
 end
-
