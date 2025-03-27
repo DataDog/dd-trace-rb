@@ -517,7 +517,6 @@ RSpec.describe 'Rack integration tests' do
             allow(negotiation).to receive(:endpoint?).and_return(true)
             allow(worker).to receive(:call).and_call_original
             allow(client).to receive(:sync).and_raise(exception, 'test')
-            allow(logger).to receive(:error).and_return(nil)
           end
 
           it 'has boot tags' do
