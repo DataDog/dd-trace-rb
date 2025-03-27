@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require_relative 'matchers'
 require_relative 'resolver_helpers'
+require_relative 'shared_examples'
 require_relative 'tracer_helpers'
 
 RSpec.configure do |config|

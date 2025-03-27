@@ -73,4 +73,6 @@ RSpec.describe Datadog::Tracing::Contrib::Faraday::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Faraday::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end
