@@ -702,7 +702,10 @@ RSpec.describe 'Rack integration tests' do
               timeout_seconds: 30
             )
             agent_http_adapter = Datadog::Core::Transport::HTTP::Adapters::Net.new(agent_settings)
-            agent_http_client = Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
+            agent_http_client = Datadog::Tracing::Transport::HTTP.default(
+              agent_settings: test_agent_settings,
+              logger: logger
+            ) do |t|
               t.adapter agent_http_adapter
             end
             agent_return = agent_http_client.send_traces(traces)
