@@ -102,7 +102,7 @@ module Datadog
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           # Exposes agent capability information for detection by any components
-          @agent_info = Core::Environment::AgentInfo.new(agent_settings)
+          @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 

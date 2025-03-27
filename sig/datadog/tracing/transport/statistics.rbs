@@ -2,6 +2,8 @@ module Datadog
   module Tracing
     module Transport
       module Statistics
+        @stats: untyped
+
         def stats: () -> untyped
 
         def update_stats_from_response!: (untyped response) -> untyped
@@ -11,8 +13,17 @@ module Datadog
         def update_stats_from_exception!: (untyped exception) -> untyped
 
         def metrics_for_exception: (untyped _exception) -> { api_errors: untyped }
-
         class Counts
+          @success: untyped
+
+          @client_error: untyped
+
+          @server_error: untyped
+
+          @internal_error: untyped
+
+          @consecutive_errors: untyped
+
           attr_accessor success: untyped
 
           attr_accessor client_error: untyped

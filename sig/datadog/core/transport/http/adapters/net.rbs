@@ -4,6 +4,14 @@ module Datadog
       module HTTP
         module Adapters
           class Net
+            @hostname: untyped
+
+            @port: untyped
+
+            @timeout: untyped
+
+            @ssl: untyped
+
             attr_reader hostname: untyped
 
             attr_reader port: untyped
@@ -12,13 +20,11 @@ module Datadog
 
             attr_reader ssl: untyped
 
-            DEFAULT_TIMEOUT: 30
-
-            def initialize: (?untyped? hostname, ?untyped? port, **untyped options) -> void
+            def initialize: (untyped agent_settings) -> void
 
             def self.build: (untyped agent_settings) -> untyped
 
-            def open: () ?{ () -> untyped } -> untyped
+            def open: () { (?) -> untyped } -> untyped
 
             def call: (untyped env) -> untyped
 
@@ -37,7 +43,9 @@ module Datadog
             end
 
             class Response
-              include Transport::Response
+              @http_response: untyped
+
+              include Datadog::Core::Transport::Response
 
               attr_reader http_response: untyped
 

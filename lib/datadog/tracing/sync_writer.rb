@@ -32,7 +32,7 @@ module Datadog
         @agent_settings = agent_settings
 
         @transport = transport || begin
-          Transport::HTTP.default(agent_settings: agent_settings, **transport_options)
+          Transport::HTTP.default(agent_settings: agent_settings, logger: logger, **transport_options)
         end
 
         @events = Writer::Events.new
