@@ -561,7 +561,7 @@ module Datadog
 
         if upstream_tags&.key?(Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE)
           appsec_bit = upstream_tags[Tracing::Metadata::Ext::Distributed::TAG_TRACE_SOURCE].to_i(16) &
-            Datadog::AppSec::Ext::PRODUCT_BIT_APPSEC
+            Datadog::AppSec::Ext::PRODUCT_BIT
           return appsec_enabled if appsec_bit != 0
         end
 

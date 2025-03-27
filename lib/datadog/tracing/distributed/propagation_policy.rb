@@ -24,7 +24,7 @@ module Datadog
 
             # If AppSec is enabled and AppSec bit is set in the trace, we should not skip distributed tracing
             # Other products that will use dd.p.ts should implement similar behavior here
-            if ::Datadog.configuration.appsec.enabled && (trace_source & ::Datadog::AppSec::Ext::PRODUCT_BIT_APPSEC) != 0
+            if ::Datadog.configuration.appsec.enabled && (trace_source & ::Datadog::AppSec::Ext::PRODUCT_BIT) != 0
               return true
             end
 

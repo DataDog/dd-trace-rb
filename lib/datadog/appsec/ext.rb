@@ -7,7 +7,7 @@ module Datadog
       RASP_LFI = 'lfi'
       RASP_SSRF = 'ssrf'
 
-      PRODUCT_BIT_APPSEC = 0b00000010
+      PRODUCT_BIT = 0b00000010
 
       INTERRUPT = :datadog_appsec_interrupt
       CONTEXT_KEY = 'datadog.appsec.context'

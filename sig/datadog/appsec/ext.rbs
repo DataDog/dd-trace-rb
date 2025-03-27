@@ -9,7 +9,7 @@ module Datadog
 
       RASP_SSRF: ::String
 
-      PRODUCT_BIT_APPSEC: ::Integer
+      PRODUCT_BIT: ::Integer
 
       INTERRUPT: ::Symbol
 
