@@ -33,7 +33,7 @@ module Datadog
                 begin
                   app.middleware.insert_after(Warden::Manager, TrackingMiddleware)
                 rescue RuntimeError
-                  AppSec.telemetry.error('AppSec: Unable to insert Devise TrackingMiddleware')
+                  AppSec.telemetry.error('AppSec: unable to insert Devise TrackingMiddleware')
                 end
               end
             end
