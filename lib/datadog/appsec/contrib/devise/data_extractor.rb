@@ -24,7 +24,7 @@ module Datadog
               id = object[PRIORITY_ORDERED_ID_KEYS.find { |key| object[key] }]
               scope = find_devise_scope(object)
 
-              id = "#{scope}:#{id}" if scope
+              id = "#{scope}:#{id}" if id && scope
               return transform(id)
             end
 
@@ -32,7 +32,7 @@ module Datadog
             id ||= object.uuid if object.respond_to?(:uuid)
 
             scope = find_devise_scope(object)
-            id = "#{scope}:#{id}" if scope
+            id = "#{scope}:#{id}" if id && scope
 
             transform(id)
           end
