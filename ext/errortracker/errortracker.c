@@ -9,8 +9,35 @@
 static VALUE _native_start(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_stop(DDTRACE_UNUSED VALUE _self);
 static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception);
+static VALUE _add_instrumented_file(VALUE self, VALUE file_name);
 static void tracepoint_callback(VALUE self, void* tp);
 static void errortracker_init(VALUE errortracking_module);
+
+// Static variables at module level
+static VALUE datadog_module = Qnil;
+static VALUE core_module = Qnil;
+static VALUE error_class = Qnil;
+static VALUE tracing_module = Qnil;
+static VALUE span_event_class = Qnil;
+static VALUE type_sym = Qnil;
+static VALUE message_sym = Qnil;
+static VALUE stacktrace_sym = Qnil;
+static VALUE exception_sym = Qnil;
+static VALUE attributes_sym = Qnil;
+
+static void initialize_constants(void) {
+    datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+    core_module = rb_const_get(datadog_module, rb_intern("Core"));
+    error_class = rb_const_get(core_module, rb_intern("Error"));
+    tracing_module = rb_const_get(datadog_module, rb_intern("Tracing"));
+    span_event_class = rb_const_get(tracing_module, rb_intern("SpanEvent"));
+
+    type_sym = ID2SYM(rb_intern("type"));
+    message_sym = ID2SYM(rb_intern("message"));
+    stacktrace_sym = ID2SYM(rb_intern("stacktrace"));
+    exception_sym = ID2SYM(rb_intern("exception"));
+    attributes_sym = ID2SYM(rb_intern("attributes"));
+}
 
 void DDTRACE_EXPORT Init_errortracker(void) {
     VALUE datadog_module = rb_define_module("Datadog");
@@ -18,6 +45,7 @@ void DDTRACE_EXPORT Init_errortracker(void) {
     VALUE errortracking_module = rb_define_module_under(core_module, "Errortracking");
     collector_init(errortracking_module);
     errortracker_init(errortracking_module);
+    initialize_constants();
 }
 
 void errortracker_init(VALUE errortracking_module) {
@@ -25,9 +53,17 @@ void errortracker_init(VALUE errortracking_module) {
 
     rb_define_singleton_method(errortracker_class, "_native_start", _native_start, -1);
     rb_define_singleton_method(errortracker_class, "_native_stop", _native_stop, 0);
+    rb_define_singleton_method(errortracker_class, "_add_instrumented_file", _add_instrumented_file, 1);
 
     rb_define_attr(errortracker_class, "tracepoint", 1, 1);
     rb_define_attr(errortracker_class, "tracer", 1, 1);
+    rb_define_attr(errortracker_class, "collector", 1, 1);
+}
+
+static VALUE _add_instrumented_file(VALUE self, VALUE file_name) {
+  VALUE instrumented_files = rb_iv_get(self, "@instrumented_files");
+  rb_hash_aset(instrumented_files, file_name, Qtrue);
+  return Qnil;
 }
 
 static VALUE _native_start(int argc, VALUE* argv, VALUE self){
@@ -46,7 +82,15 @@ static VALUE _native_start(int argc, VALUE* argv, VALUE self){
   rb_iv_set(self, "@collector", collector);
   rb_iv_set(self, "@tracer", tracer);
 
-  VALUE filter_function = generate_filter(self, to_instrument);
+  VALUE filter_function;
+  if (RARRAY_LEN(to_instrument_modules) > 0) {
+    rb_define_attr(self, "instrumented_files", 1, 1);
+    rb_iv_set(self, "@instrumented_files", rb_hash_new());
+    filter_function = generate_filter(self, to_instrument, rb_iv_get(self, "@instrumented_files"));
+  } else {
+    filter_function = generate_filter(self, to_instrument, Qnil);
+  }
+
   rb_iv_set(self, "@filter_function", filter_function);
   double ruby_version = RFLOAT_VALUE(rb_const_get(rb_cObject, rb_intern("RUBY_VERSION")));
   VALUE tracepoint;
@@ -68,40 +112,8 @@ static VALUE _native_stop(VALUE self) {
   return Qnil;
 }
 
-// static VALUE protected_call(VALUE args_val) {
-//   VALUE *f_args = (VALUE *)args_val;
-//   VALUE args[2] = {
-//     ID2SYM(rb_intern("name")),
-//     rb_hash_new()
-//   };
-//   rb_hash_aset(args[1], ID2SYM(rb_intern("attributes")), f_args[1]);
-
-//   return rb_funcallv_kw(f_args[0], rb_intern("new"), 2, args, RB_PASS_KEYWORDS);
-// }
-
-// VALUE args[2] = { span_event_class, attributes };
-// int error = 0;
-// VALUE result = rb_protect(protected_call, (VALUE)args, &error);
-// if (error) {
-//     VALUE err = rb_errinfo();
-//     VALUE err_str = rb_funcall(err, rb_intern("to_s"), 0);
-//     rb_warn("Error: %s", StringValueCStr(err_str));
-//     rb_set_errinfo(Qnil);
-// }
-
-
 static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception) {
-    /** too much evaluation for nothing todo */
-    VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-    VALUE core_module = rb_const_get(datadog_module, rb_intern("Core"));
-    VALUE error_class = rb_const_get(core_module, rb_intern("Error"));
-    VALUE formatted_exception = rb_funcallv(error_class,  rb_intern("build_from"), 1, &exception);
-    VALUE tracing_module = rb_const_get(datadog_module, rb_intern("Tracing"));
-    VALUE span_event_class = rb_const_get(tracing_module, rb_intern("SpanEvent"));
-
-    VALUE type_sym = ID2SYM(rb_intern("type"));
-    VALUE message_sym = ID2SYM(rb_intern("message"));
-    VALUE stacktrace_sym = ID2SYM(rb_intern("stacktrace"));
+    VALUE formatted_exception = rb_funcallv(error_class, rb_intern("build_from"), 1, &exception);
 
     VALUE type = rb_funcall(formatted_exception, rb_intern("type"), 0);
     VALUE message = rb_funcall(formatted_exception, rb_intern("message"), 0);
@@ -112,10 +124,10 @@ static VALUE _generate_span_event(DDTRACE_UNUSED VALUE _self, VALUE exception) {
     rb_hash_aset(attributes, stacktrace_sym, stacktrace);
 
     VALUE span_event_args[2] = {
-      ID2SYM(rb_intern("exception")),
+      exception_sym,
       rb_hash_new()
     };
-    rb_hash_aset(span_event_args[1], ID2SYM(rb_intern("attributes")), attributes);
+    rb_hash_aset(span_event_args[1], attributes_sym, attributes);
 
     // bundle exec rake clean compile && bundle exec 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS=all ruby .tests/simple.rb'
     return rb_funcallv_kw(span_event_class, rb_intern("new"), 2, span_event_args, RB_PASS_KEYWORDS);
@@ -130,9 +142,10 @@ static void tracepoint_callback(VALUE tp, void* data) {
   }
 
   VALUE raised_exception = rb_tracearg_raised_exception(rb_tracearg_from_tracepoint(tp));
+  VALUE rescue_file_path = rb_tracearg_path(rb_tracearg_from_tracepoint(tp));
   VALUE filter_function = rb_iv_get(self, "@filter_function");
 
-  if (RTEST(rb_funcall(filter_function, rb_intern("call"), 1, raised_exception))) {
+  if (RTEST(rb_funcall(filter_function, rb_intern("call"), 1, rescue_file_path))) {
     VALUE span_event = _generate_span_event(self, raised_exception);
     VALUE collector = rb_iv_get(self, "@collector");
 

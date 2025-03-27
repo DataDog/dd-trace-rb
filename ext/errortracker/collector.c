@@ -18,9 +18,11 @@ static VALUE after_stop_callback(VALUE span, VALUE self) {
     VALUE span_id = rb_funcall(span, rb_intern("id"), 0);
     VALUE span_events = get_span_events(self, span_id);
     long len = RARRAY_LEN(span_events);
+    ID add_span_event_id = rb_intern("add_span_event");
     for (int i = 0; i < len; i++) {
-        rb_funcall(span, rb_intern("add_span_event"), 1, rb_ary_entry(span_events, i));
+        rb_funcall(span, add_span_event_id, 1, rb_ary_entry(span_events, i));
     }
+    _clear_span(self, span_id);
     return Qnil;
 }
 
@@ -55,18 +57,12 @@ VALUE _clear_span(VALUE self, VALUE span_id) {
 VALUE get_span_events(VALUE self, VALUE span_id) {
     VALUE storage = rb_iv_get(self, "@storage");
     VALUE span_events_by_error = rb_hash_aref(storage, span_id);
-    VALUE span_events = rb_ary_new();
-    VALUE stored_span_events = rb_funcall(span_events_by_error, rb_intern("values"), 0);
-    for (long i = 0; i < RARRAY_LEN(stored_span_events); i++) {
-        rb_ary_push(span_events, rb_ary_entry(stored_span_events, i));
+    if (NIL_P(span_events_by_error)) {
+        return rb_ary_new();
     }
-    return span_events;
+    return rb_funcall(span_events_by_error, rb_intern("values"), 0);
 }
 
-static VALUE protected_call(VALUE args_val) {
-    VALUE *args = (VALUE *) args_val;
-    return rb_funcall_with_block(args[0], rb_intern("subscribe"), 0, NULL , args[1]);
-}
 // static VALUE protected_call(VALUE args_val) {
 //   VALUE *f_args = (VALUE *)args_val;
 //   VALUE args[2] = {
@@ -110,9 +106,8 @@ VALUE add_span_event(VALUE self, VALUE active_span, VALUE error, VALUE span_even
         error_map = rb_hash_aref(storage, span_id);
     }
 
-    if (rb_hash_lookup(error_map, error) == Qnil) {
-        rb_hash_aset(error_map, error, rb_hash_new());
-    }
+    // Store the span_event directly with the error as key
     rb_hash_aset(error_map, error, span_event);
+
     return Qnil;
 }
