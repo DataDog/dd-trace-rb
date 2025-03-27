@@ -63,7 +63,7 @@ module Datadog
               key = session_key_for(session_serializer, scope)
               id = session_serializer.session[key]&.dig(0, 0)
 
-              return "#{scope}:#{id}" unless id.nil?
+              return "#{scope}:#{id}" if id
             end
 
             nil
