@@ -120,18 +120,22 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     it 'sets user login from user id' do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_success(trace_op, user: { id: '42' })
-        expect(span.tags).to include('appsec.events.users.login.success.track' => 'true')
-        expect(span.tags).to include('appsec.events.users.login.success.usr.login' => '42')
-        expect(span.tags).to include('_dd.appsec.events.users.login.success.sdk' => 'true')
+        expect(span.tags).to include(
+          'appsec.events.users.login.success.track' => 'true',
+          'appsec.events.users.login.success.usr.login' => '42',
+          '_dd.appsec.events.users.login.success.sdk' => 'true'
+        )
       end
     end
 
     it 'sets user login from given user login' do
       trace_op.measure('root') do |span, _trace|
         described_class.track_login_success(trace_op, user: { id: '42', login: 'test-42' })
-        expect(span.tags).to include('appsec.events.users.login.success.track' => 'true')
-        expect(span.tags).to include('appsec.events.users.login.success.usr.login' => 'test-42')
-        expect(span.tags).to include('_dd.appsec.events.users.login.success.sdk' => 'true')
+        expect(span.tags).to include(
+          'appsec.events.users.login.success.track' => 'true',
+          'appsec.events.users.login.success.usr.login' => 'test-42',
+          '_dd.appsec.events.users.login.success.sdk' => 'true'
+        )
       end
     end
 
