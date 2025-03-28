@@ -46,6 +46,12 @@ module Datadog
               o.type :string, nilable: true
               o.env Ext::ENV_PEER_SERVICE
             end
+
+            option :use_full_resource_name do |o|
+              o.type :bool
+              o.env Ext::ENV_USE_FULL_RESOURCE_NAME
+              o.default true
+            end
           end
         end
       end
