@@ -4,6 +4,7 @@
 #include <ruby.h>
 #include "datadog_ruby_common.h"
 
+void filters_init(void);
 VALUE generate_filter(VALUE self, VALUE to_instrument, VALUE instrumented_files);
 
 #endif // DDTRACE_FILTERS_H

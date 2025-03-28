@@ -17,13 +17,3 @@ void raise_unexpected_type(VALUE value, const char *value_name, const char *type
     )
   );
 }
-
-VALUE datadog_gem_version(void) {
-  VALUE ddtrace_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
-  ENFORCE_TYPE(ddtrace_module, T_MODULE);
-  VALUE version_module = rb_const_get(ddtrace_module, rb_intern("VERSION"));
-  ENFORCE_TYPE(version_module, T_MODULE);
-  VALUE version_string = rb_const_get(version_module, rb_intern("STRING"));
-  ENFORCE_TYPE(version_string, T_STRING);
-  return version_string;
-}

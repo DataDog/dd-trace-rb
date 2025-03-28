@@ -2,12 +2,24 @@
 #include "datadog_ruby_common.h"
 #include "filters.h"
 
-// static VALUE _get_filename(VALUE raised_exc) {
-//   VALUE backtrace = rb_funcall(raised_exc, rb_intern("backtrace"), 0);
-//   VALUE first_line = rb_ary_entry(backtrace, -1);
-//   VALUE parts = rb_str_split(first_line, ":");
-//   return rb_ary_entry(parts, 0);
-// }
+static ID at_gem_id;
+static ID at_specification_id;
+static ID at_find_by_name_id;
+static ID at_include_id;
+static VALUE ddtrace_str;
+
+static void initialize_constants_filters(void) {
+  at_gem_id = rb_intern_const("Gem");
+  at_specification_id = rb_intern_const("Specification");
+  at_find_by_name_id = rb_intern_const("find_by_name");
+  at_include_id = rb_intern_const("include?");
+  ddtrace_str = rb_str_new_cstr("ddtrace");
+  rb_gc_register_mark_object(ddtrace_str);
+}
+
+void filters_init(void) {
+  initialize_constants_filters();
+}
 
 static VALUE _get_gem_name(VALUE file_name) {
   ENFORCE_TYPE(file_name, T_STRING);
@@ -27,9 +39,9 @@ static VALUE _get_gem_name(VALUE file_name) {
   long gem_name_len = dash_pos - gem_path;
   VALUE gem_name = rb_str_new(gem_path, gem_name_len);
 
-  VALUE gem_module = rb_const_get(rb_cObject, rb_intern("Gem"));
-  VALUE spec_class = rb_const_get(gem_module, rb_intern("Specification"));
-  return rb_funcall(spec_class, rb_intern("find_by_name"), 1, gem_name);
+  VALUE gem_module = rb_const_get(rb_cObject, at_gem_id);
+  VALUE spec_class = rb_const_get(gem_module, at_specification_id);
+  return rb_funcall(spec_class, at_find_by_name_id, 1, gem_name);
 }
 
 static VALUE _is_user_code(VALUE rescue_file_path) {
@@ -38,7 +50,7 @@ static VALUE _is_user_code(VALUE rescue_file_path) {
 }
 
 static VALUE _is_third_party(VALUE rescue_file_path) {
-  VALUE includes_ddtrace = rb_funcall(rescue_file_path, rb_intern("include?"), 1, rb_str_new_cstr("ddtrace"));
+  VALUE includes_ddtrace = rb_funcall(rescue_file_path, at_include_id, 1, ddtrace_str);
   return !RB_TEST(includes_ddtrace) && RB_TEST(_get_gem_name(rescue_file_path));
 }
 
@@ -47,7 +59,7 @@ static VALUE _is_instrumented_modules(VALUE rescue_file_path, VALUE instrumented
 }
 
 static VALUE _proc_filter_all(VALUE rescue_file_path) {
-  VALUE includes_ddtrace = rb_funcall(rescue_file_path, rb_intern("include?"), 1, rb_str_new_cstr("ddtrace"));
+  VALUE includes_ddtrace = rb_funcall(rescue_file_path, at_include_id, 1, ddtrace_str);
   return !RB_TEST(includes_ddtrace);
 }
 
