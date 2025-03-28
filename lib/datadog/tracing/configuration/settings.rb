@@ -188,7 +188,7 @@ module Datadog
               # It is not supported by our backend yet. Do not enable it.
               option :trace_id_128_bit_logging_enabled do |o|
                 o.env Tracing::Configuration::Ext::Correlation::ENV_TRACE_ID_128_BIT_LOGGING_ENABLED
-                o.default false
+                o.default true
                 o.type :bool
               end
 
