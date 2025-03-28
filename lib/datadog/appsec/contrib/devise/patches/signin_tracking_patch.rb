@@ -43,7 +43,7 @@ module Datadog
             private
 
             def record_successful_signin(context, resource)
-              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+              extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(authentication_hash) || extractor.extract_login(resource)
@@ -67,7 +67,7 @@ module Datadog
             end
 
             def record_failed_signin(context, resource)
-              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+              extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
               context.span[Ext::TAG_LOGIN_FAILURE_TRACK] = 'true'
               context.span[Ext::TAG_DD_LOGIN_FAILURE_MODE] = Configuration.auto_user_instrumentation_mode

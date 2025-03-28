@@ -12,7 +12,7 @@ module Datadog
           PRIORITY_ORDERED_ID_KEYS = [:id, 'id', :uuid, 'uuid'].freeze
           PRIORITY_ORDERED_LOGIN_KEYS = [:email, 'email', :username, 'username', :login, 'login'].freeze
 
-          def initialize(mode)
+          def initialize(mode:)
             @mode = mode
             @devise_scopes = {}
           end

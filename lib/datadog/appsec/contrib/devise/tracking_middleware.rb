@@ -7,7 +7,7 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        # A Rack middleware capable tracking currently signed user
+        # A Rack middleware capable of tracking currently signed user
         class TrackingMiddleware
           def initialize(app)
             @app = app

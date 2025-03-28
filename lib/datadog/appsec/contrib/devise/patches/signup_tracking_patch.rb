@@ -37,7 +37,7 @@ module Datadog
             private
 
             def record_successful_signup(context, resource)
-              extractor = DataExtractor.new(Configuration.auto_user_instrumentation_mode)
+              extractor = DataExtractor.new(mode: Configuration.auto_user_instrumentation_mode)
 
               id = extractor.extract_id(resource)
               login = extractor.extract_login(resource_params) || extractor.extract_login(resource)
