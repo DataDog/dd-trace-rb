@@ -3,7 +3,7 @@
 
 name: Cleanup caches by a branch
 
-on: # yamllint disable-line rule:truthy
+on:
   pull_request:
     types:
       - closed
