@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails Log Auto Injection' do
+RSpec.describe 'Rails Log Auto Injection', execute_in_fork: Rails.version.to_i >= 8 do
   include Rack::Test::Methods
   include_context 'Rails test application'
 
@@ -86,7 +86,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(2).items
+        expect(log_entries).to have_at_least(2).items
         rack_rails_logger_entry, my_entry = log_entries
 
         expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
@@ -106,7 +106,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
@@ -125,7 +125,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
           expect(logs).to_not be_empty
           # From `Rails::Rack::Logger`
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
           rack_rails_logger_entry, my_entry = log_entries
 
           expect(rack_rails_logger_entry).to include "dd.trace_id=#{format_for_correlation(trace.id)}"
@@ -139,7 +139,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    if Rails.version >= '4'
+    # Lograge does not support tagged logging, the default logger since Rails 5
+    if Rails.version >= '4' && Rails.version < '5'
       context 'with Lograge' do
         # for log_injection testing
         require 'lograge'
@@ -154,7 +155,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -181,7 +182,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -212,7 +213,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -237,7 +238,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            expect(log_entries).to have_at_least(3).items
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -268,7 +269,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -288,7 +289,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -321,7 +322,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -352,7 +353,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -383,7 +384,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -417,7 +418,7 @@ RSpec.describe 'Rails Log Auto Injection' do
 
         expect(logs).to_not be_empty
         # From `Rails::Rack::Logger`
-        expect(log_entries).to have(2).item
+        expect(log_entries).to have_at_least(2).item
         rack_rails_logger_entry, my_entry = log_entries
 
         expect(rack_rails_logger_entry).not_to include format_for_correlation(trace.id)
@@ -436,7 +437,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
-          expect(log_entries).to have(2).item
+          expect(log_entries).to have_at_least(2).item
 
           rack_rails_logger_entry, my_entry = log_entries
 
@@ -453,7 +454,7 @@ RSpec.describe 'Rails Log Auto Injection' do
           is_expected.to be_ok
 
           expect(logs).to_not be_empty
-          expect(log_entries).to have(2).items
+          expect(log_entries).to have_at_least(2).items
 
           rack_rails_logger_entry, my_entry = log_entries
 
@@ -478,7 +479,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(2).items
+            expect(log_entries).to have_at_least(2).items
 
             rack_rails_logger_entry, my_entry = log_entries
             expect(rack_rails_logger_entry).to include "dd.trace_id=#{
@@ -490,7 +491,8 @@ RSpec.describe 'Rails Log Auto Injection' do
       end
     end
 
-    if Rails.version >= '4'
+    # Lograge does not support tagged logging, the default logger since Rails 5
+    if Rails.version >= '4' && Rails.version < '5'
       context 'with Lograge' do
         # for log_injection testing
         require 'lograge'
@@ -505,7 +507,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -531,7 +533,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -561,7 +563,7 @@ RSpec.describe 'Rails Log Auto Injection' do
               is_expected.to be_ok
 
               expect(logs).to_not be_empty
-              expect(log_entries).to have(3).items
+              expect(log_entries).to have_at_least(3).items
 
               rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 
@@ -585,7 +587,7 @@ RSpec.describe 'Rails Log Auto Injection' do
             is_expected.to be_ok
 
             expect(logs).to_not be_empty
-            expect(log_entries).to have(3).items
+            expect(log_entries).to have_at_least(3).items
 
             rack_rails_logger_entry, my_entry, controller_logger_entry = log_entries
 

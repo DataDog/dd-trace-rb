@@ -15,7 +15,7 @@ end
 
 require 'websocket/driver'
 
-RSpec.describe 'ActionCable Rack override' do
+RSpec.describe 'ActionCable Rack override', execute_in_fork: ::ActionCable.version.segments[0] >= 8 do
   before { skip('ActionCable not supported') unless Datadog::Tracing::Contrib::ActionCable::Integration.compatible? }
 
   include Rack::Test::Methods

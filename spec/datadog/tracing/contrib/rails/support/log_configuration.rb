@@ -132,7 +132,9 @@ module Datadog
               # Semantic Logger settings should be exclusive to `ActiveSupport::TaggedLogging` and `Lograge`
               if config.respond_to?(:rails_semantic_logger)
                 config.rails_semantic_logger.add_file_appender = false
-                config.semantic_logger.add_appender(logger: config.logger)
+                ThreadHelpers.with_leaky_thread_creation('semantic_logger log') do
+                  config.semantic_logger.add_appender(logger: config.logger)
+                end
               end
             end
 
