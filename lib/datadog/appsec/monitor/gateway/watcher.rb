@@ -19,7 +19,13 @@ module Datadog
               gateway.watch('identity.set_user', :appsec) do |stack, user|
                 context = Datadog::AppSec.active_context
 
-                persistent_data = { 'usr.id' => user.id }
+                if user.id.nil? && user.login.nil?
+                  Datadog.logger.debug { 'AppSec: skipping WAF check because no user information was provided' }
+                  next stack.call(user)
+                end
+
+                persistent_data = {}
+                persistent_data['usr.id'] = user.id if user.id
                 persistent_data['usr.login'] = user.login if user.login
 
                 result = context.run_waf(persistent_data, {}, Datadog.configuration.appsec.waf_timeout)

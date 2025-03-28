@@ -1,0 +1,31 @@
+module Datadog
+  module AppSec
+    module Contrib
+      module Devise
+        class DataExtractor
+          PRIORITY_ORDERED_ID_KEYS: ::Array[::Symbol | ::String]
+
+          PRIORITY_ORDERED_LOGIN_KEYS: ::Array[::Symbol | ::String]
+
+          @mode: ::String
+
+          @devise_scopes: ::Hash[::String, ::String?]
+
+          def initialize: (mode: ::String) -> void
+
+          def extract_id: (untyped object) -> ::String?
+
+          def extract_login: (untyped object) -> ::String?
+
+          private
+
+          def find_devise_scope: (untyped object) -> ::String?
+
+          def transform: (untyped value) -> ::String?
+
+          def anonymize?: () -> bool
+        end
+      end
+    end
+  end
+end
