@@ -24,7 +24,7 @@ module Datadog
                   next yield(resource) if block_given?
                 end
 
-                next yield(resource) if !resource.persisted? && block_given?
+                next yield(resource) if resource.new_record? && block_given?
 
                 context.trace.keep!
                 record_successful_signup(context, resource)
