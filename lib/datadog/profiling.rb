@@ -80,7 +80,7 @@ module Datadog
     private_class_method def self.replace_noop_allocation_count
       class << self
         remove_method :allocation_count
-        def allocation_count # rubocop:disable Lint/NestedMethodDefinition (On purpose!)
+        def allocation_count
           Datadog::Profiling::Collectors::CpuAndWallTimeWorker._native_allocation_count
         end
       end
