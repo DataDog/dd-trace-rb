@@ -6,9 +6,9 @@ REQUIRES = [
   ['datadog/appsec', 'Datadog::AppSec'],
   ['datadog/core', 'Datadog::Core'],
   ['datadog/di', 'Datadog::DI',
-    lambda { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
+   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
   ['datadog/di/preload', 'Datadog::DI::CodeTracker',
-    lambda { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
+   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
   ['datadog/kit', 'Datadog::Kit'],
   ['datadog/profiling', 'Datadog::Profiling'],
   ['datadog/tracing', 'Datadog::Tracing'],
@@ -19,9 +19,7 @@ RSpec.describe 'loading of products' do
     context req do
       if condition
         before do
-          unless condition.call
-            skip 'condition is false'
-          end
+          skip 'condition is false' unless condition.call
         end
       end
 
@@ -50,12 +48,8 @@ RSpec.describe 'loading of products' do
 
       it 'produces no output' do
         out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
-        unless status.exitstatus == 0
-          fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
-        end
-        unless out.empty?
-          fail("Test script produced unexpected output: #{out}")
-        end
+        raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.exitstatus == 0
+        raise("Test script produced unexpected output: #{out}") unless out.empty?
       end
     end
   end
