@@ -1,6 +1,8 @@
 require 'shellwords'
+require 'open3'
 
 REQUIRES = {
+  'datadog' => 'Datadog::Core',
   'datadog/appsec' => 'Datadog::AppSec',
   'datadog/core' => 'Datadog::Core',
   'datadog/di' => 'Datadog::DI',
@@ -34,6 +36,16 @@ RSpec.describe 'loading of products' do
       it 'loads successfully by itself' do
         rv = system("ruby -e #{Shellwords.shellescape(code)}")
         expect(rv).to be true
+      end
+
+      it 'produces no output' do
+        out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
+        unless status.exitstatus == 0
+          fail("Test script failed with exit status #{status.exitstatus}:\n#{out}")
+        end
+        unless out.empty?
+          fail("Test script produced unexpected output: #{out}")
+        end
       end
     end
   end
