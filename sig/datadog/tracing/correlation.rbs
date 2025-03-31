@@ -45,6 +45,8 @@ module Datadog
       def self?.identifier_from_digest: (untyped digest) -> untyped
 
       def self?.format_trace_id: (untyped trace_id) -> untyped
+
+      def self?.format_trace_id_128: (untyped trace_id) -> untyped
     end
   end
 end
