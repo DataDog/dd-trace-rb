@@ -117,6 +117,28 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
+    it 'sets user login from user id' do
+      trace_op.measure('root') do |span, _trace|
+        described_class.track_login_success(trace_op, user: { id: '42' })
+        expect(span.tags).to include(
+          'appsec.events.users.login.success.track' => 'true',
+          'appsec.events.users.login.success.usr.login' => '42',
+          '_dd.appsec.events.users.login.success.sdk' => 'true'
+        )
+      end
+    end
+
+    it 'sets user login from given user login' do
+      trace_op.measure('root') do |span, _trace|
+        described_class.track_login_success(trace_op, user: { id: '42', login: 'test-42' })
+        expect(span.tags).to include(
+          'appsec.events.users.login.success.track' => 'true',
+          'appsec.events.users.login.success.usr.login' => 'test-42',
+          '_dd.appsec.events.users.login.success.sdk' => 'true'
+        )
+      end
+    end
+
     it 'raises ArgumentError is user ID is nil' do
       expect do
         trace_op.measure('root') do |_span, _trace|
@@ -200,6 +222,22 @@ RSpec.describe Datadog::Kit::AppSec::Events do
         trace_op.measure('root') do |span, _trace|
           described_class.track_login_failure(trace_op, user_exists: false)
           expect(span.tags).not_to have_key('appsec.events.users.login.failure.usr.id')
+        end
+      end
+
+      it 'sets user login to user id' do
+        trace_op.measure('root') do |span, _trace|
+          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true)
+
+          expect(span.tags).to include('appsec.events.users.login.failure.usr.login' => '42')
+        end
+      end
+
+      it 'sets user login to given login' do
+        trace_op.measure('root') do |span, _trace|
+          described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login': 'test-42')
+
+          expect(span.tags).to include('appsec.events.users.login.failure.usr.login' => 'test-42')
         end
       end
     end

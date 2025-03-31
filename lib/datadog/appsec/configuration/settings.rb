@@ -238,10 +238,10 @@ module Datadog
                     Datadog.logger.warn(
                       'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
                       "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}. " \
-                      "Using default value: #{IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE}."
+                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
                     )
 
-                    IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+                    DISABLED_AUTO_USER_INSTRUMENTATION_MODE
                   end
                 end
               end
