@@ -227,20 +227,6 @@ module Datadog
           start
         end
 
-        # Determine how much longer the worker thread should sleep
-        # so as not to send in less than min send interval since the last send.
-        # Important: this method must be called when @lock is held.
-        #
-        # Returns the time remaining to sleep.
-        def set_sleep_remaining
-          now = Core::Utils::Time.get_time
-          @sleep_remaining = if last_sent
-            [last_sent + min_send_interval - now, 0].max
-          else
-            0
-          end
-        end
-
         public "add_#{event_type}"
 
         # Sends pending probe statuses or snapshots.
@@ -285,6 +271,20 @@ module Datadog
           @lock.synchronize do
             @io_in_progress = false
           end
+        end
+      end
+
+      # Determine how much longer the worker thread should sleep
+      # so as not to send in less than min send interval since the last send.
+      # Important: this method must be called when @lock is held.
+      #
+      # Returns the time remaining to sleep.
+      def set_sleep_remaining
+        now = Core::Utils::Time.get_time
+        @sleep_remaining = if last_sent
+          [last_sent + min_send_interval - now, 0].max
+        else
+          0
         end
       end
 
