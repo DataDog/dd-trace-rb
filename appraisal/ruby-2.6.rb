@@ -180,6 +180,9 @@ build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.
 
 appraise 'karafka-min' do
   gem 'karafka', '= 2.0.41'
+  # 2.3.0 removes dependency on concurrent-ruby, which karafka 2.0.41 uses
+  # without requiring
+  gem 'karafka-core', '< 2.3.0'
 end
 
 appraise 'relational_db' do
