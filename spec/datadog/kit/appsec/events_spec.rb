@@ -93,6 +93,19 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
+    if PlatformHelpers.mri? && PlatformHelpers.engine_version >= Gem::Version.new('2.7')
+      it 'sets additional user login data from other string keys as tags' do
+        trace_op.measure('root') do |span, _|
+          expect { described_class.track_login_success(trace_op, user: { id: '42' }, 'usr.login' => 'hey') }
+            .to change { span.tags }.to include(
+              'usr.id' => '42',
+              'usr.login' => 'hey',
+              'appsec.events.users.login.success.usr.login' => 'hey'
+            )
+        end
+      end
+    end
+
     it 'sets event tracking key on trace' do
       trace_op.measure('root') do |span, _|
         expect { described_class.track_login_success(trace_op, user: { id: '42' }) }
@@ -178,6 +191,15 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       trace_op.measure('root') do |span, _|
         expect { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login': 'hey') }
           .to change { span.tags }.to include('appsec.events.users.login.failure.usr.login' => 'hey')
+      end
+    end
+
+    if PlatformHelpers.mri? && PlatformHelpers.engine_version >= Gem::Version.new('2.7')
+      it 'sets additional user login data from other string keys as tags' do
+        trace_op.measure('root') do |span, _|
+          expect { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login' => 'hey') }
+            .to change { span.tags }.to include('appsec.events.users.login.failure.usr.login' => 'hey')
+        end
       end
     end
 
@@ -283,6 +305,19 @@ RSpec.describe Datadog::Kit::AppSec::Events do
             'usr.login' => 'hey',
             'appsec.events.users.signup.usr.login' => 'hey'
           )
+      end
+    end
+
+    if PlatformHelpers.mri? && PlatformHelpers.engine_version >= Gem::Version.new('2.7')
+      it 'sets additional user login data from other string keys as tags' do
+        trace_op.measure('root') do |span, _|
+          expect { described_class.track_signup(trace_op, user: { id: '42' }, 'usr.login' => 'hey') }
+            .to change { span.tags }.to include(
+              'usr.id' => '42',
+              'usr.login' => 'hey',
+              'appsec.events.users.signup.usr.login' => 'hey'
+            )
+        end
       end
     end
 
