@@ -25,7 +25,7 @@ module Datadog
           tracing = config.tracing
           tracing.propagation_style
 
-          @propagation = Sidekiq::Distributed::Propagation.new(
+          @propagation = Karafka::Distributed::Propagation.new(
             propagation_style_inject: tracing.propagation_style_inject,
             propagation_style_extract: tracing.propagation_style_extract,
             propagation_extract_first: tracing.propagation_extract_first
