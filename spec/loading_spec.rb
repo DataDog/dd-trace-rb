@@ -38,3 +38,25 @@ RSpec.describe 'loading of products' do
     end
   end
 end
+
+RSpec.describe 'load core only and configure library' do
+  let(:code) do
+    <<-E
+      if defined?(Datadog)
+        unless Datadog.constants == [:VERSION]
+          exit 1
+        end
+      end
+
+      require 'datadog/core'
+
+      Datadog.configure do
+      end
+    E
+  end
+
+  it 'configures successfully' do
+    rv = system("ruby -e #{Shellwords.shellescape(code)}")
+    expect(rv).to be true
+  end
+end
