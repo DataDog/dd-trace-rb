@@ -2,7 +2,7 @@ module Datadog
   module Tracing
     module Contrib
       module Karafka
-        class Monitor < ::Karafka::Instrumentation::Monitor
+        module Monitor
           @job_types_cache: untyped
 
           TRACEABLE_EVENTS: ::Array["worker.processed"]
