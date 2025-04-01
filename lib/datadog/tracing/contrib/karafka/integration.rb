@@ -20,7 +20,7 @@ module Datadog
           register_as :karafka, auto_patch: false
 
           def self.version
-            Gem.loaded_specs['karafka'] && Gem.loaded_specs['karafka'].version
+            Gem.loaded_specs['karafka']&.version
           end
 
           def self.loaded?
