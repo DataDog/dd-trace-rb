@@ -59,7 +59,7 @@ module Datadog
           def patch
             require_relative 'monitor'
 
-            ::Karafka::App.config.monitor = Monitor.new
+            ::Karafka::Instrumentation::Monitor.prepend(Monitor)
             ::Karafka::Messages::Messages.prepend(MessagesPatch)
           end
         end

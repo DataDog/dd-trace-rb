@@ -10,7 +10,7 @@ module Datadog
         # Creating a custom monitor, instead of subscribing to an event
         # (e.g. `Karafka.monitor.subscribe 'worker.processed'`),
         # is required because event subscriptions cannot wrap the event execution (`yield`).
-        class Monitor < ::Karafka::Instrumentation::Monitor
+        module Monitor
           TRACEABLE_EVENTS = %w[
             worker.processed
           ].freeze
