@@ -6,6 +6,7 @@ require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
 require_relative 'diagnostics/environment_logger'
+require_relative 'contrib/component'
 
 module Datadog
   module Tracing
