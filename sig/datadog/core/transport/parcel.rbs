@@ -2,6 +2,8 @@ module Datadog
   module Core
     module Transport
       module Parcel
+        @data: untyped
+
         attr_reader data: untyped
 
         def initialize: (untyped data) -> void

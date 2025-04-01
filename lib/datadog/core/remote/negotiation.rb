@@ -7,11 +7,11 @@ module Datadog
     module Remote
       # Endpoint negotiation
       class Negotiation
-        def initialize(_settings, agent_settings, suppress_logging: {})
-          transport_options = {}
-          transport_options[:agent_settings] = agent_settings if agent_settings
+        attr_reader :logger
 
-          @transport_root = Datadog::Core::Remote::Transport::HTTP.root(**transport_options) # steep:ignore
+        def initialize(_settings, agent_settings, logger:, suppress_logging: {})
+          @logger = logger
+          @transport_root = Datadog::Core::Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)
           @logged = suppress_logging
         end
 
@@ -20,7 +20,7 @@ module Datadog
 
           if res.internal_error? && network_error?(res.error)
             unless @logged[:agent_unreachable]
-              Datadog.logger.warn { "agent unreachable: cannot negotiate #{path}" }
+              logger.warn { "agent unreachable: cannot negotiate #{path}" }
               @logged[:agent_unreachable] = true
             end
 
@@ -29,7 +29,7 @@ module Datadog
 
           if res.not_found?
             unless @logged[:no_info_endpoint]
-              Datadog.logger.warn { "agent reachable but has no /info endpoint: cannot negotiate #{path}" }
+              logger.warn { "agent reachable but has no /info endpoint: cannot negotiate #{path}" }
               @logged[:no_info_endpoint] = true
             end
 
@@ -38,7 +38,7 @@ module Datadog
 
           unless res.ok?
             unless @logged[:unexpected_response]
-              Datadog.logger.warn { "agent reachable but unexpected response: cannot negotiate #{path}" }
+              logger.warn { "agent reachable but unexpected response: cannot negotiate #{path}" }
               @logged[:unexpected_response] = true
             end
 
@@ -47,14 +47,14 @@ module Datadog
 
           unless res.endpoints.include?(path)
             unless @logged[:no_config_endpoint]
-              Datadog.logger.warn { "agent reachable but does not report #{path}" }
+              logger.warn { "agent reachable but does not report #{path}" }
               @logged[:no_config_endpoint] = true
             end
 
             return false
           end
 
-          Datadog.logger.debug { "agent reachable and reports #{path}" }
+          logger.debug { "agent reachable and reports #{path}" }
 
           true
         end

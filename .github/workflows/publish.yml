@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           persist-credentials: false
-      - uses: ruby/setup-ruby@277ba2a127aba66d45bad0fa2dc56f80dbfedffa # v1.222.0
+      - uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
         with:
           ruby-version: '3.3.7'
 
@@ -115,9 +115,9 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false
+          persist-credentials: false # `rubygems/release-gem` action handles credentials itself
       - name: Set up Ruby
-        uses: ruby/setup-ruby@277ba2a127aba66d45bad0fa2dc56f80dbfedffa # v1.222.0
+        uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
@@ -141,7 +141,7 @@ jobs:
           gem fetch datadog --version "${GEM_VERSION}" --verbose
       - name: Attach to existing release draft
         run: |
-          gh release upload "v${GEM_VERSION}" -- *.gem --clobber
+          gh release upload "v${GEM_VERSION}" datadog-*.gem --clobber
           gh release edit "v${GEM_VERSION}" --draft=false
 
   update-gem-version:
@@ -161,7 +161,7 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
       - name: Set up Ruby
-        uses: ruby/setup-ruby@277ba2a127aba66d45bad0fa2dc56f80dbfedffa # v1.222.0
+        uses: ruby/setup-ruby@922ebc4c5262cd14e07bb0e1db020984b6c064fe # v1.226.0
         with:
           ruby-version: '3.3.7'
       - run: bundle install
@@ -273,7 +273,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          persist-credentials: false
+          persist-credentials: true # required for `git` operations (push) at later steps
           token: ${{ secrets.GHA_PAT }}
           fetch-depth: 0
       - run: |

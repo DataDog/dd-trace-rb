@@ -1,10 +1,10 @@
 PATH
   remote: ..
   specs:
-    datadog (2.12.1)
+    datadog (2.12.2)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.18.0.0.1)
+      libddwaf (~> 1.21.0.0.1)
       logger
       msgpack
 
@@ -16,8 +16,6 @@ GEM
     benchmark-ips (2.11.0)
     benchmark-memory (0.1.2)
       memory_profiler (~> 0.9)
-    binding_of_caller (1.0.0)
-      debug_inspector (>= 0.0.1)
     bunny (2.20.3)
       amq-protocol (~> 2.3, >= 2.3.1)
       sorted_set (~> 1, >= 1.0.2)
@@ -29,7 +27,6 @@ GEM
     crack (0.4.5)
       rexml
     datadog-ruby_core_source (3.4.0)
-    debug_inspector (1.1.0)
     diff-lcs (1.5.0)
     docile (1.4.1)
     dogstatsd-ruby (5.5.0)
@@ -51,9 +48,9 @@ GEM
       addressable (>= 2.4)
     libdatadog (16.0.1.1.0-aarch64-linux)
     libdatadog (16.0.1.1.0-x86_64-linux)
-    libddwaf (1.18.0.0.1-aarch64-linux)
+    libddwaf (1.21.0.0.1-aarch64-linux)
       ffi (~> 1.0)
-    libddwaf (1.18.0.0.1-x86_64-linux)
+    libddwaf (1.21.0.0.1-x86_64-linux)
       ffi (~> 1.0)
     logger (1.6.6)
     memory_profiler (0.9.14)
@@ -67,12 +64,6 @@ GEM
     pry (0.14.2)
       coderay (~> 1.1)
       method_source (~> 1.0)
-    pry-byebug (3.10.1)
-      byebug (~> 11.0)
-      pry (>= 0.13, < 0.15)
-    pry-stack_explorer (0.6.1)
-      binding_of_caller (~> 1.0)
-      pry (~> 0.13)
     que (2.2.0)
     rack (2.2.8)
     rack-protection (3.0.5)
@@ -182,8 +173,6 @@ DEPENDENCIES
   memory_profiler (~> 0.9)
   os (~> 1.1)
   pry
-  pry-byebug
-  pry-stack_explorer
   que (>= 1.0.0)
   rack-test
   rake (>= 12.3)

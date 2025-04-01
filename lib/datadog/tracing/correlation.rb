@@ -94,8 +94,15 @@ module Datadog
       end
 
       def format_trace_id(trace_id)
-        if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled &&
-            !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
+        if Datadog.configuration.tracing.trace_id_128_bit_logging_enabled
+          format_trace_id_128(trace_id)
+        else
+          Tracing::Utils::TraceId.to_low_order(trace_id).to_s
+        end
+      end
+
+      def format_trace_id_128(trace_id)
+        if !Tracing::Utils::TraceId.to_high_order(trace_id).zero?
           Kernel.format('%032x', trace_id)
         else
           Tracing::Utils::TraceId.to_low_order(trace_id).to_s

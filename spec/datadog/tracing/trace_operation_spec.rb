@@ -1023,6 +1023,54 @@ RSpec.describe Datadog::Tracing::TraceOperation do
     it_behaves_like 'root span derived attribute', :resource
   end
 
+  describe '#set_distributed_source' do
+    context 'when the trace source is not set' do
+      context 'with trace source set to 2' do
+        before do
+          trace_op.set_distributed_source(2)
+        end
+
+        it 'sets the trace source to 02' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('02')
+        end
+      end
+
+      context 'with trace source set to 16' do
+        before do
+          trace_op.set_distributed_source(16)
+        end
+
+        it 'sets the trace source to 10' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('10')
+        end
+      end
+
+      context 'with trace source higher than 8 bit' do
+        before do
+          trace_op.set_distributed_source(1 << 31)
+        end
+
+        # We must support at least 32 bits for future usage.
+        it 'sets the trace source to 80000000' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('80000000')
+        end
+      end
+    end
+
+    context 'when the trace source is set' do
+      context 'with trace source set to 2' do
+        before do
+          trace_op.set_tag('_dd.p.ts', '08')
+          trace_op.set_distributed_source(2)
+        end
+
+        it 'sets the trace source to 0A' do
+          expect(trace_op.get_tag('_dd.p.ts')).to eq('0A')
+        end
+      end
+    end
+  end
+
   describe '#resource_override?' do
     subject { trace_op.resource_override? }
 
@@ -2155,7 +2203,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
         it do
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: low_order_trace_id(trace_op.id).to_s,
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2168,7 +2216,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
       it do
         expect(trace_op.to_correlation).to have_attributes(
           span_id: parent_span_id.to_s,
-          trace_id: low_order_trace_id(trace_op.id).to_s
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
     end
@@ -2187,7 +2235,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(correlation).to have_attributes(
           span_id: parent_id.to_s,
-          trace_id: low_order_trace_id(trace_op.id).to_s
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
 
@@ -2208,7 +2256,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(correlation).to have_attributes(
             span_id: parent_id.to_s,
-            trace_id: low_order_trace_id(trace_op.id).to_s
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end
@@ -2221,7 +2269,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: low_order_trace_id(trace_op.id).to_s,
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2232,7 +2280,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: span.id.to_s,
-            trace_id: low_order_trace_id(trace_op.id).to_s,
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2243,7 +2291,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: low_order_trace_id(trace_op.id).to_s,
+            trace_id: format_for_correlation(trace_op.id),
           )
         end
       end
@@ -2258,7 +2306,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
         expect(trace_op.to_correlation).to have_attributes(
           span_id: '0',
-          trace_id: low_order_trace_id(trace_op.id).to_s
+          trace_id: format_for_correlation(trace_op.id)
         )
       end
 
@@ -2274,7 +2322,7 @@ RSpec.describe Datadog::Tracing::TraceOperation do
 
           expect(trace_op.to_correlation).to have_attributes(
             span_id: '0',
-            trace_id: low_order_trace_id(trace_op.id).to_s
+            trace_id: format_for_correlation(trace_op.id)
           )
         end
       end

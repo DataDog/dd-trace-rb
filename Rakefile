@@ -38,7 +38,7 @@ namespace :test do
         RuntimeMatcher.match?(rubies)
       end
 
-      candidates.each do |group, _|
+      candidates.each_key do |group|
         env = if group.empty?
                 {}
               else

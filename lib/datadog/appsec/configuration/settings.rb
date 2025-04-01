@@ -164,6 +164,66 @@ module Datadog
                 end
               end
 
+              settings :stack_trace do
+                option :enabled do |o|
+                  o.type :bool
+                  o.env 'DD_APPSEC_STACK_TRACE_ENABLED'
+                  o.default true
+                end
+
+                # The maximum number of stack trace frames to collect for each stack trace.
+                #
+                # If the stack trace exceeds this limit, the frames are dropped from the middle of the stack trace:
+                # 75% of the frames are kept from the top of the stack trace and 25% from the bottom
+                # (this percentage is also configurable).
+                #
+                # Minimum value is 10.
+                # Set to zero if you don't want any frames to be dropped.
+                #
+                # Default value is 32
+                option :max_depth do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH'
+                  o.default 32
+
+                  o.setter do |value|
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+
+                # The percentage of frames to keep from the top of the stack trace.
+                #
+                # Default value is 75
+                option :top_percentage do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACE_DEPTH_TOP_PERCENT'
+                  o.default 75
+
+                  o.setter do |value|
+                    value = 100 if value > 100
+                    value = 0 if value.negative?
+                    value
+                  end
+                end
+
+                # Maximum number of stack traces to collect per span.
+                #
+                # Set to zero if you want to collect all stack traces.
+                #
+                # Default value is 2
+                option :max_stack_traces do |o|
+                  o.type :int
+                  o.env 'DD_APPSEC_MAX_STACK_TRACES'
+                  o.default 2
+
+                  o.setter do |value|
+                    value = 0 if value < 0
+                    value
+                  end
+                end
+              end
+
               settings :auto_user_instrumentation do
                 define_method(:enabled?) { get_option(:mode) != DISABLED_AUTO_USER_INSTRUMENTATION_MODE }
 
@@ -178,10 +238,10 @@ module Datadog
                     Datadog.logger.warn(
                       'The appsec.auto_user_instrumentation.mode value provided is not supported. ' \
                       "Supported values are: #{AUTO_USER_INSTRUMENTATION_MODES.join(' | ')}. " \
-                      "Using default value: #{IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE}."
+                      "Using value: #{DISABLED_AUTO_USER_INSTRUMENTATION_MODE}."
                     )
 
-                    IDENTIFICATION_AUTO_USER_INSTRUMENTATION_MODE
+                    DISABLED_AUTO_USER_INSTRUMENTATION_MODE
                   end
                 end
               end
@@ -258,14 +318,6 @@ module Datadog
               option :sca_enabled do |o|
                 o.type :bool, nilable: true
                 o.env 'DD_APPSEC_SCA_ENABLED'
-              end
-
-              settings :standalone do
-                option :enabled do |o|
-                  o.type :bool
-                  o.env 'DD_EXPERIMENTAL_APPSEC_STANDALONE_ENABLED'
-                  o.default false
-                end
               end
             end
           end

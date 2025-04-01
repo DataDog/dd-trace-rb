@@ -18,9 +18,10 @@ module Datadog
             :api_options,
             :default_adapter,
             :default_api,
-            :default_headers
+            :default_headers,
+            :logger
 
-          def initialize(api_instance_class:)
+          def initialize(api_instance_class:, logger:)
             # Global settings
             @default_adapter = nil
             @default_headers = {}
@@ -33,6 +34,7 @@ module Datadog
             @api_options = {}
 
             @api_instance_class = api_instance_class
+            @logger = logger
 
             yield(self) if block_given?
           end
@@ -86,7 +88,7 @@ module Datadog
           def to_transport(klass)
             raise NoDefaultApiError if @default_api.nil?
 
-            klass.new(to_api_instances, @default_api)
+            klass.new(to_api_instances, @default_api, logger)
           end
 
           def to_api_instances

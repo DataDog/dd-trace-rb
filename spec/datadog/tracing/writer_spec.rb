@@ -29,7 +29,7 @@ RSpec.describe Datadog::Tracing::Writer do
         context 'and default transport options' do
           it do
             expect(Datadog::Tracing::Transport::HTTP).to receive(:default) do |**options|
-              expect(options).to eq(agent_settings: test_agent_settings)
+              expect(options).to eq(agent_settings: test_agent_settings, logger: logger)
             end
 
             writer
@@ -55,7 +55,10 @@ RSpec.describe Datadog::Tracing::Writer do
           let(:options) { { agent_settings: agent_settings } }
 
           it 'configures the transport using the agent_settings' do
-            expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(agent_settings: agent_settings)
+            expect(Datadog::Tracing::Transport::HTTP).to receive(:default).with(
+              agent_settings: agent_settings,
+              logger: logger
+            )
 
             writer
           end
@@ -253,7 +256,7 @@ RSpec.describe Datadog::Tracing::Writer do
 
             # Ensure clean output, as failing to start the
             # worker in this situation is not an error.
-            expect(Datadog.logger).to_not receive(:debug)
+            expect(logger).to_not receive(:debug)
 
             write
           end
