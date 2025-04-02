@@ -182,7 +182,7 @@ build_coverage_matrix('dalli', [2])
 # build_coverage_matrix('devise', min: '3.2.1')
 
 appraise 'karafka-min' do
-  gem 'karafka', '= 2.0.41'
+  gem 'karafka', '= 2.3.0'
 end
 
 appraise 'relational_db' do

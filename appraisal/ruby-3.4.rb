@@ -97,7 +97,7 @@ build_coverage_matrix('excon')
 build_coverage_matrix('rest-client')
 build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
-build_coverage_matrix('karafka', min: '2.0.41')
+build_coverage_matrix('karafka', min: '2.3.0')
 build_coverage_matrix('devise', min: '3.2.1')
 
 appraise 'relational_db' do
