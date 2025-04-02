@@ -178,10 +178,6 @@ build_coverage_matrix('mongo', min: '2.1.0')
 build_coverage_matrix('dalli', [2])
 build_coverage_matrix('devise', min: '3.2.1', meta: { min: { 'bigdecimal' => '1.4.1' } })
 
-appraise 'karafka-min' do
-  gem 'karafka', '= 2.3.0'
-end
-
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
   gem 'delayed_job'

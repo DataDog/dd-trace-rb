@@ -181,10 +181,6 @@ build_coverage_matrix('dalli', [2])
 #       and it could be re-enabled when upstream fix the issue
 # build_coverage_matrix('devise', min: '3.2.1')
 
-appraise 'karafka-min' do
-  gem 'karafka', '= 2.3.0'
-end
-
 appraise 'relational_db' do
   gem 'activerecord', '~> 6.0.0'
   gem 'delayed_job'
