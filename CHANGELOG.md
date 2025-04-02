@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+## [2.13.0] - 2025-04-02
+
+### Added
+
+* Core: Add `DD_TRACE_EXPERIMENTAL_RUNTIME_ID_ENABLED` experimental option to enable runtime ID collection for runtime metrics. ([#4473][])
+* Tracing: Add support for W3C Baggage API along with automatic extraction and injection, and OpenTelemetry support. ([#4493][], [#4505][])
+* Tracing: Add `DD_APM_TRACING_ENABLED` option to disable APM tracing while keeping other products traces. ([#4498][])
+* Tracing: Add `DD_TRACE_NATIVE_SPAN_EVENTS` option to override span events serialization for agent-less environments. ([#4507][])
+* AppSec: Add stack trace reporting for security events. ([#4526][])
+* AppSec: Improve `devise` instrumentation to support latest Account Takeover (ATO) detection. ([#4433][])
+
+### Changed
+
+* Core: Improve `DD_TAGS` configuration handling to be more consistent across Datadog libraries and Agent. ([#4530][])
+* Tracing: Enable by default 128-bit trace ID logging so that trace IDs are consistent across logs and the Datadog UI. ([#4528][])
+
+### Fixed
+
+* Core: Fix initialization when the library is partially loaded. ([#4498][])
+* Tracing: Fix trace ID propagation by ensuring extraction of 16-character hex values from the `_dd.p.tid` tag in `x-datadog-tags` header. ([#4534][])
+* Tracing: Profiling: Fix warnings printed by `ruby -w`. ([#4547][], [#4549][])
+
 ## [2.12.2] - 2025-03-17
 
 ### Fixed
@@ -3145,7 +3167,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.2...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.13.0...master
+[2.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.2...v2.13.0
 [2.12.2]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.1...v2.12.2
 [2.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.0...v2.12.1
 [2.12.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.11.0...v2.12.0
@@ -4649,8 +4672,20 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4424]: https://github.com/DataDog/dd-trace-rb/issues/4424
 [#4425]: https://github.com/DataDog/dd-trace-rb/issues/4425
 [#4426]: https://github.com/DataDog/dd-trace-rb/issues/4426
+[#4433]: https://github.com/DataDog/dd-trace-rb/issues/4433
 [#4437]: https://github.com/DataDog/dd-trace-rb/issues/4437
+[#4473]: https://github.com/DataDog/dd-trace-rb/issues/4473
+[#4493]: https://github.com/DataDog/dd-trace-rb/issues/4493
 [#4497]: https://github.com/DataDog/dd-trace-rb/issues/4497
+[#4498]: https://github.com/DataDog/dd-trace-rb/issues/4498
+[#4505]: https://github.com/DataDog/dd-trace-rb/issues/4505
+[#4507]: https://github.com/DataDog/dd-trace-rb/issues/4507
+[#4526]: https://github.com/DataDog/dd-trace-rb/issues/4526
+[#4528]: https://github.com/DataDog/dd-trace-rb/issues/4528
+[#4530]: https://github.com/DataDog/dd-trace-rb/issues/4530
+[#4534]: https://github.com/DataDog/dd-trace-rb/issues/4534
+[#4547]: https://github.com/DataDog/dd-trace-rb/issues/4547
+[#4549]: https://github.com/DataDog/dd-trace-rb/issues/4549
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
