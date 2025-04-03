@@ -133,7 +133,7 @@ module Datadog
             encoder = current_api.encoder
             chunker = Datadog::Tracing::Transport::Traces::Chunker.new(
               encoder,
-              logger,
+              logger: logger,
               native_events_supported: native_events_supported?
             )
 
