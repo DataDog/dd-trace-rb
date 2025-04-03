@@ -68,14 +68,16 @@ module Datadog
             end
 
             if Datadog::AppSec.active_context
+              active_span.set_tag('_dd.appsec.user.collection_mode', 'sdk')
+
               user = ::Datadog::AppSec::Instrumentation::Gateway::User.new(id, others[:login])
               ::Datadog::AppSec::Instrumentation.gateway.push('identity.set_user', user)
             end
           end
         end
+        # rubocop:enable Metrics/AbcSize
         # rubocop:enable Metrics/PerceivedComplexity
         # rubocop:enable Metrics/CyclomaticComplexity
-        # rubocop:enable Metrics/AbcSize
 
         private
 

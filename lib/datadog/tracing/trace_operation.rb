@@ -2,7 +2,6 @@
 
 require_relative '../core/environment/identity'
 require_relative '../core/utils'
-require_relative 'tracer'
 require_relative 'event'
 require_relative 'metadata/tagging'
 require_relative 'sampling/ext'

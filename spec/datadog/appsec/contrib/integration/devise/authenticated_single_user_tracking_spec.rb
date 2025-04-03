@@ -14,6 +14,12 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   include Warden::Test::Helpers
 
   before do
+    # NOTE: By doing this we are emulating the initial load of the devise rails
+    #       engine for every test case. It will install the required middleware.
+    #       WARNING: This is a hack!
+    Devise.send(:remove_const, :Engine)
+    load File.join(Gem.loaded_specs['devise'].full_gem_path, 'lib/devise/rails.rb')
+
     Devise.setup do |config|
       config.secret_key = 'test-secret-key'
 
@@ -27,6 +33,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.paranoid = true
       config.stretches = 1
       config.password_length = 6..8
+      config.http_authenticatable = true
     end
 
     # app/models
@@ -36,13 +43,10 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         t.string :username, null: false
         t.string :email, default: '', null: false
         t.string :encrypted_password, default: '', null: false
-        t.datetime :remember_created_at
-        t.datetime :created_at, null: false
-        t.datetime :updated_at, null: false
       end
 
       klass.class_eval do
-        devise :database_authenticatable, :registerable, :validatable, :rememberable
+        devise :database_authenticatable, :registerable, :validatable
       end
 
       # prevent internal sql requests from showing up
@@ -73,7 +77,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.hosts.clear
       config.eager_load = false
       config.consider_all_requests_local = true
-      config.logger = Rails.logger = Logger.new($stdout)
+      # NOTE: For debugging replace with $stdout
+      config.logger = Rails.logger = Logger.new(StringIO.new)
 
       config.file_watcher = Class.new(ActiveSupport::FileUpdateChecker) do
         def initialize(files, dirs = {}, &block)
@@ -94,13 +99,14 @@ RSpec.describe 'Devise auto login and signup events tracking' do
       config.appsec.enabled = true
       config.appsec.instrument :rails
       config.appsec.instrument :devise
+      config.appsec.auto_user_instrumentation.mode = 'identification'
 
       config.remote.enabled = false
     end
 
     app.initialize!
     app.routes.draw do
-      devise_for :users
+      devise_for :users, controllers: { registrations: 'test_registrations' }
 
       get '/public' => 'public#index'
       get '/private' => 'private#index'
@@ -113,6 +119,7 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Devise.configure_warden!
 
     # app/controllers
+    public_controller
     stub_const('PrivateController', Class.new(ActionController::Base)).class_eval do
       before_action :authenticate_user!
 
@@ -122,13 +129,8 @@ RSpec.describe 'Devise auto login and signup events tracking' do
         end
       end
     end
-    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
-      def index
-        respond_to do |format|
-          format.html { render plain: 'This is public page' }
-        end
-      end
-    end
+
+    allow(Rails).to receive(:application).and_return(app)
 
     # NOTE: Don't reach the agent in any way
     allow_any_instance_of(Datadog::Tracing::Transport::HTTP::Client).to receive(:send_request)
@@ -152,16 +154,26 @@ RSpec.describe 'Devise auto login and signup events tracking' do
     Rails::Railtie::Configuration.class_variable_set(:@@eager_load_namespaces, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_files, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@watchable_dirs, nil)
-    if Rails::Railtie::Configuration.class_variable_defined?(:@@app_middleware)
-      Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, Rails::Configuration::MiddlewareStackProxy.new)
-    end
     Rails::Railtie::Configuration.class_variable_set(:@@app_generators, nil)
     Rails::Railtie::Configuration.class_variable_set(:@@to_prepare_blocks, nil)
+    Rails::Railtie::Configuration.class_variable_set(:@@app_middleware, nil)
+    Devise.class_variable_set(:@@mappings, {})
+    Devise.class_variable_set(:@@warden_configured, nil)
     # rubocop:enable Style/ClassVars
 
     # Remnove Rails caches
     Rails.app_class = nil
     Rails.cache = nil
+  end
+
+  let(:public_controller) do
+    stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
+      def index
+        respond_to do |format|
+          format.html { render plain: 'This is public page' }
+        end
+      end
+    end
   end
 
   let(:http_service_entry_span) { spans.find { |s| s.name == 'rack.request' } }
@@ -171,98 +183,97 @@ RSpec.describe 'Devise auto login and signup events tracking' do
   let(:app) { Rails.application }
 
   context 'when user is not authenticated' do
-    it 'allows unauthenticated user to visit public page' do
+    it 'allows unauthenticated user to visit public page and does not track it' do
       get('/public')
 
       expect(response).to be_ok
       expect(response.body).to eq('This is public page')
+
+      expect(http_service_entry_span.tags).not_to have_key('usr.id')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
     end
 
-    it 'forbids unauthenticated user to visit private page' do
+    it 'forbids unauthenticated user to visit private page and does not track it' do
       get('/private')
 
       expect(response).to be_redirect
       expect(response.location).to match('users/sign_in')
+
+      expect(http_service_entry_span.tags).not_to have_key('usr.id')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.success.track')
+      expect(http_service_entry_span.tags).not_to have_key('appsec.events.users.login.failure.track')
+      expect(http_service_entry_span.tags).not_to have_key('_dd.appsec.usr.id')
     end
   end
 
-  context 'when user instrumentation mode set to identification' do
-    before { Datadog.configuration.appsec.auto_user_instrumentation.mode = 'identification' }
+  context 'when user is authenticated' do
+    before do
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
 
-    context 'when user successfully loggin' do
-      before do
-        User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+    it 'allows authenticated user to visit public page and tracks it' do
+      get('/public')
 
-        post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } })
-      end
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
 
-      it 'tracks successfull login event' do
-        expect(response).to be_redirect
-        expect(response.location).to eq('http://example.org/')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '1',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'identification'
+      )
+    end
 
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
+    it 'allows authenticated user to visit private page and tracks it' do
+      get('/private')
 
-        expect(http_service_entry_span.tags['appsec.events.users.login.success.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.success.auto.mode']).to eq('extended')
-        expect(http_service_entry_span.tags['usr.id']).to eq('1')
+      expect(response).to be_ok
+      expect(response.body).to eq('This is private page')
 
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['appsec.events.users.login.success.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '1',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'identification'
+      )
+    end
+  end
+
+  context 'when user is authenticated and customer already uses SDK to set user' do
+    before do
+      user = User.create!(username: 'JohnDoe', email: 'john.doe@example.com', password: '123456')
+      login_as(user)
+    end
+
+    let(:public_controller) do
+      stub_const('PublicController', Class.new(ActionController::Base)).class_eval do
+        def index
+          span = Datadog::Tracing.active_span
+          trace = Datadog::Tracing.active_trace
+
+          Datadog::Kit::Identity.set_user(trace, span, id: '42', email: 'hello@gmail.com')
+
+          respond_to do |format|
+            format.html { render plain: 'This is public page' }
+          end
+        end
       end
     end
 
-    context 'when user unsuccessfully loggin because such user does not exist' do
-      before { post('/users/sign_in', { user: { email: 'john.doe@example.com', password: '123456' } }) }
+    it 'allows authenticated user to visit public page and tracks it with SDK values' do
+      get('/public')
 
-      it 'tracks login failure event' do
-        expect(response).to be_unprocessable
-        expect(response.body).to match(%r{<form .* action="/users/sign_in" .*>})
+      expect(response).to be_ok
+      expect(response.body).to eq('This is public page')
 
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-
-        expect(http_service_entry_span.tags['appsec.events.users.login.failure.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.login.failure.auto.mode']).to eq('extended')
-        expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.exists']).to eq('false')
-
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['appsec.events.users.login.failure.usr.login']).to eq('john.doe@example.com')
-      end
-    end
-
-    # context 'when user unsuccessfully loggin because it is not permitted by custom logic' do
-    # NOTE: When possible to have user and user exists, but for some validation
-    #       reasons it could not be authorized, we should report it
-    #       - `appsec.events.users.login.failure.usr.id`
-    #       - `_dd.appsec.usr.id`
-    # end
-
-    context 'when user successfully signed up' do
-      before do
-        form_data = {
-          user: { username: 'JohnDoe', email: 'john.doe@example.com', password: '123456', password_confirmation: '123456' }
-        }
-
-        post('/users', form_data)
-      end
-
-      it 'tracks successfull sign up event' do
-        expect(response).to be_redirect
-        expect(response.location).to eq('http://example.org/')
-
-        expect(http_service_entry_trace.sampling_priority).to eq(Datadog::Tracing::Sampling::Ext::Priority::USER_KEEP)
-
-        expect(http_service_entry_span.tags['appsec.events.users.signup.track']).to eq('true')
-        expect(http_service_entry_span.tags['_dd.appsec.events.users.signup.auto.mode']).to eq('extended')
-
-        # NOTE: not implemented yet
-        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.login']).to eq('john.doe@example.com')
-        # expect(http_service_entry_span.tags['appsec.events.users.signup.usr.id']).to eq('1')
-        # expect(http_service_entry_span.tags['_dd.appsec.usr.id']).to eq('1')
-      end
+      expect(http_service_entry_span.tags).to include(
+        'usr.id' => '42',
+        'usr.email' => 'hello@gmail.com',
+        '_dd.appsec.usr.id' => '1',
+        '_dd.appsec.user.collection_mode' => 'sdk'
+      )
     end
   end
 end
