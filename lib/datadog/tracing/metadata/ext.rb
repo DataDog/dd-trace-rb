@@ -31,6 +31,8 @@ module Datadog
         # See Datadog-internal "RFC: Identifying which spans have profiling enabled " for details
         TAG_PROFILING_ENABLED = '_dd.profiling.enabled'
 
+        TAG_APM_ENABLED = '_dd.apm.enabled'
+
         # Defines constants for trace analytics
         # @public_api
         module Analytics
@@ -54,6 +56,9 @@ module Datadog
           # What mechanism was used to make this trace's sampling decision.
           # @see Datadog::Tracing::Sampling::Ext::Mechanism
           TAG_DECISION_MAKER = '_dd.p.dm'
+
+          # Bitmask for which product generated an event. E.g.: 2 for an AppSec event.
+          TAG_TRACE_SOURCE = '_dd.p.ts'
 
           TAG_ORIGIN = '_dd.origin'
           TAG_SAMPLING_PRIORITY = '_sampling_priority_v1'

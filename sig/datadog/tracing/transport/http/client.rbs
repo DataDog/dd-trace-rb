@@ -3,11 +3,17 @@ module Datadog
     module Transport
       module HTTP
         class Client
-          include Transport::HTTP::Statistics
+          @api: untyped
+
+          @logger: untyped
+
+          include Datadog::Tracing::Transport::HTTP::Statistics
 
           attr_reader api: untyped
 
-          def initialize: (untyped api) -> void
+          attr_reader logger: untyped
+
+          def initialize: (untyped api, untyped logger) -> void
 
           def send_request: (untyped request) { (untyped, untyped) -> untyped } -> untyped
 

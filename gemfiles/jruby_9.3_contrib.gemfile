@@ -32,11 +32,11 @@ gem "sneakers", ">= 2.12.0"
 gem "sucker_punch"
 gem "que", ">= 1.0.0", "< 2.0.0"
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

@@ -1,0 +1,21 @@
+# frozen_string_literal: true
+
+module Datadog
+  module OpenTelemetry
+    module API
+      module Baggage
+        def initialize: (?trace: Datadog::Tracing::TraceOperation?) -> void
+
+        def clear: (?context: untyped) -> untyped
+
+        def value: (String key, ?context: untyped) -> String?
+
+        def values: (?context: untyped) -> Hash[String, String]
+
+        def set_value: (String key, String value, ?metadata: String?, ?context: untyped) -> untyped
+
+        def remove_value: (String key, ?context: untyped) -> untyped
+      end
+    end
+  end
+end

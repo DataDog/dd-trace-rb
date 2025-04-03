@@ -28,11 +28,11 @@ gem "sprockets", "< 4"
 gem "rails_semantic_logger", "~> 4.0"
 gem "i18n", "1.8.7", platform: :jruby
 
-group :check do
+group :dev do
 
 end
 
-group :dev do
+group :check do
 
 end
 

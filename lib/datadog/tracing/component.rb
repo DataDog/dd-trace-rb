@@ -6,6 +6,7 @@ require_relative 'sync_writer'
 require_relative 'sampling/span/rule_parser'
 require_relative 'sampling/span/sampler'
 require_relative 'diagnostics/environment_logger'
+require_relative 'contrib/component'
 
 module Datadog
   module Tracing
@@ -74,18 +75,11 @@ module Datadog
           return sampler
         end
 
-        # AppSec events are sent to the backend using traces.
-        # Standalone ASM billing means that we don't want to charge clients for APM traces,
-        # so we want to send the minimum amount of traces possible (idealy only traces that contains security events),
-        # but for features such as API Security, we need to send at least one trace per minute,
-        # to keep the service alive on the backend side.
-        if settings.appsec.standalone.enabled
-          post_sampler = Tracing::Sampling::RuleSampler.new(
-            [Tracing::Sampling::SimpleRule.new(sample_rate: 1.0)],
-            rate_limiter: Datadog::Core::TokenBucket.new(1.0 / 60, 1.0),
-            default_sample_rate: 1.0 / 60
-          )
-        end
+        # APM Disablement means that we don't want to send traces that only contains APM data.
+        # Other products can then put the sampling priority to MANUAL_KEEP if they want to keep traces.
+        # (e.g.: AppSec will MANUAL_KEEP traces with AppSec events) and clients will be billed only for those traces.
+        # But to keep the service alive on the backend side, we need to send one trace per minute.
+        post_sampler = build_rate_limit_post_sampler(seconds: 60) unless settings.apm.tracing.enabled
 
         # Sampling rules are provided
         if (rules = settings.tracing.sampling.rules)
@@ -195,6 +189,15 @@ module Datadog
           tags[Core::Environment::Ext::TAG_ENV] = settings.env unless settings.env.nil?
           tags[Core::Environment::Ext::TAG_VERSION] = settings.version unless settings.version.nil?
         end
+      end
+
+      # Build a post-sampler that limits the rate of traces to one per `seconds`.
+      # E.g.: `build_rate_limit_post_sampler(seconds: 60)` will limit the rate to one trace per minute.
+      def build_rate_limit_post_sampler(seconds:)
+        Tracing::Sampling::RuleSampler.new(
+          rate_limiter: Datadog::Core::TokenBucket.new(1.0 / seconds, 1.0),
+          default_sample_rate: 1.0
+        )
       end
 
       def build_test_mode_trace_flush(settings)

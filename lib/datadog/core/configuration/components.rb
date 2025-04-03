@@ -45,6 +45,7 @@ module Datadog
             options = { enabled: settings.runtime_metrics.enabled }
             options[:statsd] = settings.runtime_metrics.statsd unless settings.runtime_metrics.statsd.nil?
             options[:services] = [settings.service] unless settings.service.nil?
+            options[:experimental_runtime_id_enabled] = settings.runtime_metrics.experimental_runtime_id_enabled
 
             Core::Runtime::Metrics.new(logger: logger, **options)
           end
@@ -101,7 +102,7 @@ module Datadog
           agent_settings = AgentSettingsResolver.call(settings, logger: @logger)
 
           # Exposes agent capability information for detection by any components
-          @agent_info = Core::Environment::AgentInfo.new(agent_settings)
+          @agent_info = Core::Environment::AgentInfo.new(agent_settings, logger: @logger)
 
           @telemetry = self.class.build_telemetry(settings, agent_settings, @logger)
 

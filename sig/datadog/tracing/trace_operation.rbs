@@ -23,7 +23,7 @@ module Datadog
       attr_writer sampled: untyped
       attr_writer service: untyped
 
-      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
+      def initialize: (?agent_sample_rate: untyped?, ?events: untyped?, ?hostname: untyped?, ?id: untyped?, ?max_length: untyped, ?name: untyped?, ?origin: untyped?, ?parent_span_id: untyped?, ?rate_limiter_rate: untyped?, ?resource: untyped?, ?rule_sample_rate: untyped?, ?sample_rate: untyped?, ?sampled: untyped?, ?sampling_priority: untyped?, ?service: untyped?, ?profiling_enabled: untyped?, ?apm_tracing_enabled: untyped?, ?tags: untyped?, ?metrics: untyped?, ?remote_parent: untyped?) -> void
       def full?: () -> untyped
       def finished_span_count: () -> untyped
       def finished?: () -> untyped
@@ -33,6 +33,7 @@ module Datadog
       def reject!: () -> untyped
       def name: () -> untyped
       def resource: () -> untyped
+      def set_distributed_source: (Integer product_bit) -> void
       def resource_override?: () -> bool
       def service: () -> untyped
       def measure: (untyped op_name, ?events: untyped?, ?on_error: on_error, ?resource: untyped?, ?service: untyped?, ?start_time: untyped?, ?tags: untyped?, ?type: untyped?) { (untyped, untyped) -> untyped } -> untyped

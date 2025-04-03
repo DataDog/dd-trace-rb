@@ -78,8 +78,10 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
   describe 'when sending traces through Unix socket client' do
     include_context 'Unix socket server'
 
+    let(:logger) { logger_allowing_debug }
+
     let(:client) do
-      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings) do |t|
+      Datadog::Tracing::Transport::HTTP.default(agent_settings: test_agent_settings, logger: logger) do |t|
         t.adapter adapter
       end
     end

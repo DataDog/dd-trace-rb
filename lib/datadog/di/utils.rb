@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# standard gets itself into an infinite loop over this
+# rubocop:disable Layout/SpaceAfterNot
+
 module Datadog
   module DI
     module Utils
@@ -135,3 +138,5 @@ module Datadog
     end
   end
 end
+
+# rubocop:enable Layout/SpaceAfterNot

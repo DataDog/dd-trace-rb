@@ -3,33 +3,10 @@ require 'spec_helper'
 require 'datadog/tracing/transport/http'
 
 RSpec.describe Datadog::Tracing::Transport::HTTP do
-  describe '.new' do
-    context 'given a block' do
-      subject(:new_http) do
-        described_class.new(api_instance_class: Datadog::Tracing::Transport::HTTP::API::Instance, &block)
-      end
-
-      let(:block) { proc {} }
-
-      let(:builder) { instance_double(Datadog::Core::Transport::HTTP::Builder) }
-      let(:transport) { instance_double(Datadog::Tracing::Transport::Traces::Transport) }
-
-      before do
-        expect(Datadog::Core::Transport::HTTP::Builder).to receive(:new) do |&blk|
-          expect(blk).to be block
-          builder
-        end
-
-        expect(builder).to receive(:to_transport)
-          .and_return(transport)
-      end
-
-      it { is_expected.to be transport }
-    end
-  end
+  let(:logger) { logger_allowing_debug }
 
   describe '.default' do
-    subject(:default) { described_class.default(agent_settings: default_agent_settings) }
+    subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger) }
     let(:default_agent_settings) do
       Datadog::Core::Configuration::AgentSettingsResolver.call(
         Datadog::Core::Configuration::Settings.new,
@@ -52,8 +29,8 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
       )
 
       default.apis.each_value do |api|
-        expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::API::Instance)
-        expect(api.headers).to include(described_class.default_headers)
+        expect(api).to be_a_kind_of(Datadog::Tracing::Transport::HTTP::Traces::API::Instance)
+        expect(api.headers).to include(Datadog::Core::Transport::HTTP.default_headers)
 
         case default_agent_settings.adapter
         when :net_http
@@ -71,7 +48,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when given an agent_settings' do
-      subject(:default) { described_class.default(agent_settings: agent_settings, **options) }
+      subject(:default) { described_class.default(agent_settings: agent_settings, logger: logger, **options) }
 
       let(:options) { {} }
 
@@ -112,7 +89,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
     end
 
     context 'when given options' do
-      subject(:default) { described_class.default(agent_settings: default_agent_settings, **options) }
+      subject(:default) { described_class.default(agent_settings: default_agent_settings, logger: logger, **options) }
 
       context 'that specify an API version' do
         let(:options) { { api_version: api_version } }
@@ -136,7 +113,7 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
         it do
           default.apis.each_value do |api|
-            expect(api.headers).to include(described_class.default_headers)
+            expect(api.headers).to include(Datadog::Core::Transport::HTTP.default_headers)
             expect(api.headers).to include(headers)
           end
         end
@@ -145,65 +122,12 @@ RSpec.describe Datadog::Tracing::Transport::HTTP do
 
     context 'when given a block' do
       it do
-        expect { |b| described_class.default(agent_settings: default_agent_settings, &b) }.to yield_with_args(
+        expect do |b|
+          described_class.default(agent_settings: default_agent_settings, logger: logger, &b)
+        end.to yield_with_args(
           kind_of(Datadog::Core::Transport::HTTP::Builder)
         )
       end
     end
-  end
-
-  describe '.default_headers' do
-    subject(:default_headers) { described_class.default_headers }
-
-    it do
-      is_expected.to include(
-        Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_TOP_LEVEL => '1',
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG => Datadog::Core::Environment::Ext::LANG,
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_VERSION => Datadog::Core::Environment::Ext::LANG_VERSION,
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_LANG_INTERPRETER =>
-          Datadog::Core::Environment::Ext::LANG_INTERPRETER,
-        'Datadog-Meta-Lang-Interpreter-Vendor' => RUBY_ENGINE,
-        Datadog::Core::Transport::Ext::HTTP::HEADER_META_TRACER_VERSION =>
-          Datadog::Core::Environment::Ext::GEM_DATADOG_VERSION
-      )
-    end
-
-    context 'when Core::Environment::Container.container_id' do
-      before { expect(Datadog::Core::Environment::Container).to receive(:container_id).and_return(container_id) }
-
-      context 'is not nil' do
-        let(:container_id) { '3726184226f5d3147c25fdeab5b60097e378e8a720503a5e19ecfdf29f869860' }
-
-        it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID => container_id) }
-      end
-
-      context 'is nil' do
-        let(:container_id) { nil }
-
-        it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CONTAINER_ID) }
-      end
-    end
-
-    context 'when Datadog.configuration.appsec.standalone.enabled' do
-      before { expect(Datadog.configuration.appsec.standalone).to receive(:enabled).and_return(asm_standalone_enabled) }
-
-      context 'is true' do
-        let(:asm_standalone_enabled) { true }
-
-        it { is_expected.to include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS => 'yes') }
-      end
-
-      context 'is false' do
-        let(:asm_standalone_enabled) { false }
-
-        it { is_expected.to_not include(Datadog::Core::Transport::Ext::HTTP::HEADER_CLIENT_COMPUTED_STATS) }
-      end
-    end
-  end
-
-  describe '.default_adapter' do
-    subject(:default_adapter) { described_class.default_adapter }
-
-    it { is_expected.to be(:net_http) }
   end
 end

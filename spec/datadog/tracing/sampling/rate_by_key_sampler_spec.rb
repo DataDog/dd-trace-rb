@@ -12,7 +12,7 @@ RSpec.describe Datadog::Tracing::Sampling::RateByKeySampler do
   let(:default_rate) { Float::MIN }
 
   let(:trace) { Datadog::Tracing::TraceOperation.new(name: 'test-trace') }
-  let(:resolver) { ->(trace) { trace.name } } # Resolve +trace.name+ to the lookup key.
+  let(:resolver) { lambda(&:name) } # Resolve +trace.name+ to the lookup key.
   let(:trace_key) { trace.name }
 
   describe '#sample!' do

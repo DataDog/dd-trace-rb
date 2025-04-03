@@ -17,7 +17,6 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       c.appsec.enabled = true
       c.appsec.instrument :rack
 
-      c.appsec.standalone.enabled = false
       c.appsec.waf_timeout = 10_000_000 # in us
       c.appsec.ip_passlist = []
       c.appsec.ip_denylist = []
@@ -59,8 +58,8 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
       map '/with-identity-set-user' do
         run(
           lambda do |_env|
-            Datadog::Kit::Identity.set_user(
-              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, id: '42'
+            Datadog::Kit::AppSec::Events.track_login_success(
+              Datadog::Tracing.active_trace, Datadog::Tracing.active_span, user: { id: '42' }
             )
 
             [200, { 'Content-Type' => 'text/html' }, ['OK']]
@@ -81,7 +80,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
   context 'when identity.set_user event was pushed' do
     before do
       headers = {
-        'HTTP_CF_RAY' => '230b030023ae2822-SJC',
+        'HTTP_UNKNOWNHEADER' => 'something',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/with-identity-set-user', {}, headers)
@@ -90,15 +89,17 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     it 'collects identity related request headers' do
       expect(response).to be_ok
 
-      expect(http_service_entry_span.tags['http.request.headers.cf-connecting-ipv6'])
-        .to eq('2001:db8:3333:4444:5555:6666:1.2.3.4')
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
+      expect(http_service_entry_span.tags).to include(
+        'http.request.headers.cf-connecting-ipv6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
+      )
     end
   end
 
   context 'when identity.set_user event was not pushed' do
     before do
       headers = {
-        'HTTP_CF_RAY' => '230b030023ae2822-SJC',
+        'HTTP_UNKNOWNHEADER' => 'something',
         'HTTP_CF_CONNECTING_IPV6' => '2001:db8:3333:4444:5555:6666:1.2.3.4'
       }
       get('/without-identity-set-user', {}, headers)
@@ -107,6 +108,7 @@ RSpec.describe 'Rack-request headers collection for identity.set_user' do
     it 'does not collect identity related request headers' do
       expect(response).to be_ok
 
+      expect(http_service_entry_span.tags).not_to have_key('http.request.headers.unknownheader')
       expect(http_service_entry_span.tags).not_to have_key('http.request.headers.cf-connecting-ipv6')
     end
   end

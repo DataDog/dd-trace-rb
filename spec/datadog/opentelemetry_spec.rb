@@ -8,6 +8,7 @@ RSpec.describe Datadog::OpenTelemetry do
     let(:writer) { get_test_writer }
     let(:tracer) { Datadog::Tracing.send(:tracer) }
     let(:otel_root_parent) { OpenTelemetry::Trace::INVALID_SPAN_ID }
+    let(:logger) { logger_allowing_debug }
 
     let(:span_options) { {} }
 
@@ -951,6 +952,94 @@ RSpec.describe Datadog::OpenTelemetry do
             expect(span.trace_id).to eq(0x11111111111111111111111111111111)
             expect(span.parent_id).to eq(0x2222222222222222)
           end
+        end
+      end
+    end
+
+    context 'Baggage API' do
+      let(:otel_baggage) { ::OpenTelemetry::Baggage }
+      let(:writer) { get_test_writer }
+      let(:tracer) { Datadog::Tracing.send(:tracer) }
+
+      before do
+        writer_ = writer
+        Datadog.configure do |c|
+          c.tracing.writer = writer_
+        end
+
+        ::OpenTelemetry::SDK.configure do |c|
+        end
+      end
+
+      after do
+        ::OpenTelemetry.logger = nil
+      end
+
+      describe 'baggage operations' do
+        around do |example|
+          OpenTelemetry::Context.with_current(OpenTelemetry::Context.new({})) do
+            example.run
+          end
+        end
+        it 'sets and gets baggage values' do
+          context = otel_baggage.set_value('test_key', 'test_value')
+          expect(otel_baggage.value('test_key', context: context)).to eq('test_value')
+        end
+
+        it 'returns nil for non-existent keys' do
+          context = ::OpenTelemetry::Context.current
+
+          expect(otel_baggage.value('non_existent_key', context: context)).to be_nil
+        end
+
+        it 'returns all baggage values' do
+          # Set multiple baggage values
+          context = otel_baggage.set_value('key1', 'value1')
+          context = otel_baggage.set_value('key2', 'value2', context: context)
+
+          # Get all values
+          expect(otel_baggage.values(context: context)).to include(
+            'key1' => 'value1',
+            'key2' => 'value2'
+          )
+        end
+
+        it 'removes baggage values' do
+          # Set and then remove a baggage value
+          context = otel_baggage.set_value('key_to_remove', 'value')
+          context = otel_baggage.remove_value('key_to_remove', context: context)
+
+          # Value should be removed
+          expect(otel_baggage.value('key_to_remove', context: context)).to be_nil
+        end
+
+        it 'clears all baggage values' do
+          # Set multiple baggage values
+          context = otel_baggage.set_value('key1', 'value1')
+          context = otel_baggage.set_value('key2', 'value2', context: context)
+
+          # Clear all values
+          context = otel_baggage.clear(context: context)
+
+          # All values should be cleared
+          expect(otel_baggage.values(context: context)).to be_empty
+        end
+
+        # Set Datadog baggage and read from otel
+        it 'shares baggage between Datadog and OpenTelemetry' do
+          # Set baggage using Datadog API
+          Datadog::Tracing.baggage['dd_key'] = 'dd_value'
+
+          # Verify it can be read by OpenTelemetry API
+          expect(otel_baggage.value('dd_key')).to eq('dd_value')
+
+          # Set baggage using OpenTelemetry API
+          context = otel_baggage.set_value('otel_key', 'otel_value')
+
+          ::OpenTelemetry::Context.attach(context)
+
+          # Verify it can be read by Datadog API
+          expect(Datadog::Tracing.baggage['otel_key']).to eq('otel_value')
         end
       end
     end
