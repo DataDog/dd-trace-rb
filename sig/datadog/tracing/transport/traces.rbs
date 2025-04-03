@@ -68,7 +68,7 @@ module Datadog
 
           attr_reader logger: untyped
 
-          def initialize: (untyped apis, untyped default_api, untyped logger) -> void
+          def initialize: (untyped apis, untyped default_api, ?logger: untyped) -> void
 
           def send_traces: (Array[Tracing::TraceOperation] traces) -> untyped
 
