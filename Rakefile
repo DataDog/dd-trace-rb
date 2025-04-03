@@ -243,6 +243,7 @@ namespace :spec do
     :httpclient,
     :httprb,
     :kafka,
+    :karafka,
     :lograge,
     :mongodb,
     :mysql2,
