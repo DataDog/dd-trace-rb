@@ -584,6 +584,110 @@ static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
   return rb_time_timespec_new(&time, utc);
 }
 
+static ddog_prof_StringId intern_string_or_raise(locked_profile_slot locked_profile, ddog_CharSlice string) {
+  ddog_prof_StringId_Result result = ddog_prof_Profile_intern_string(&locked_profile.data->profile, string);
+
+  if (result.tag == DDOG_PROF_STRING_ID_RESULT_ERR_GENERATIONAL_ID_STRING_ID) {
+    sampler_unlock_active_profile(locked_profile);
+    rb_raise(rb_eArgError, "Failed to intern string: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return result.ok;
+}
+
+static ddog_prof_LabelId label_intern_success_or_raise(locked_profile_slot locked_profile, ddog_prof_LabelId_Result result) {
+  if (result.tag == DDOG_PROF_LABEL_ID_RESULT_ERR_GENERATIONAL_ID_LABEL_ID) {
+    sampler_unlock_active_profile(locked_profile);
+    rb_raise(rb_eArgError, "Failed to intern label: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return result.ok;
+}
+
+static ddog_prof_LabelSetId intern_labels_or_raise(locked_profile_slot locked_profile, ddog_prof_Slice_Label labels) {
+  ddog_prof_LabelId label_ids[labels.len];
+  for (size_t i = 0; i < labels.len; i++) {
+    ddog_prof_Label label = labels.ptr[i];
+    ddog_prof_StringId key_id = intern_string_or_raise(locked_profile, label.key);
+
+    if (label.str.len > 0) {
+      ddog_prof_StringId val_id = intern_string_or_raise(locked_profile, label.str);
+      label_ids[i] = label_intern_success_or_raise(locked_profile, ddog_prof_Profile_intern_label_str(&locked_profile.data->profile, key_id, val_id));
+    } else {
+      label_ids[i] = label_intern_success_or_raise(locked_profile, ddog_prof_Profile_intern_label_num(&locked_profile.data->profile, key_id, label.num));
+    }
+  }
+
+  ddog_prof_LabelSetId_Result result =
+    ddog_prof_Profile_intern_labelset(&locked_profile.data->profile, (ddog_prof_Slice_LabelId) {.ptr = label_ids, .len = labels.len});
+
+  if (result.tag == DDOG_PROF_LABEL_SET_ID_RESULT_ERR_GENERATIONAL_ID_LABEL_SET_ID) {
+    sampler_unlock_active_profile(locked_profile);
+    rb_raise(rb_eArgError, "Failed to intern label set: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return result.ok;
+}
+
+static ddog_prof_MappingId empty_mapping_or_raise(locked_profile_slot locked_profile, ddog_prof_StringId empty_string) {
+  ddog_prof_MappingId_Result result =
+    ddog_prof_Profile_intern_mapping(&locked_profile.data->profile, 0, 0, 0, empty_string, empty_string);
+
+  if (result.tag == DDOG_PROF_MAPPING_ID_RESULT_ERR_GENERATIONAL_ID_MAPPING_ID) {
+    sampler_unlock_active_profile(locked_profile);
+    rb_raise(rb_eArgError, "Failed to intern mapping: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return result.ok;
+}
+
+static ddog_prof_StackTraceId intern_locations_or_raise(locked_profile_slot locked_profile, ddog_prof_Slice_Location locations, ddog_prof_StringId empty_string) {
+  ddog_prof_MappingId empty_mapping = empty_mapping_or_raise(locked_profile, empty_string);
+
+  ddog_prof_LocationId location_ids[locations.len];
+  for (size_t i = 0; i < locations.len; i++) {
+    ddog_prof_Location location = locations.ptr[i];
+
+    ddog_prof_FunctionId_Result function_result = ddog_prof_Profile_intern_function(
+      &locked_profile.data->profile,
+      intern_string_or_raise(locked_profile, location.function.name),
+      /* system_name: */ empty_string,
+      intern_string_or_raise(locked_profile, location.function.filename),
+      0 // Start line, never set
+    );
+
+    if (function_result.tag == DDOG_PROF_FUNCTION_ID_RESULT_ERR_GENERATIONAL_ID_FUNCTION_ID) {
+      sampler_unlock_active_profile(locked_profile);
+      rb_raise(rb_eArgError, "Failed to intern function: %"PRIsVALUE, get_error_details_and_drop(&function_result.err));
+    }
+
+    ddog_prof_LocationId_Result location_result = ddog_prof_Profile_intern_location(
+      &locked_profile.data->profile,
+      empty_mapping,
+      function_result.ok,
+      0,
+      location.line
+    );
+
+    if (location_result.tag == DDOG_PROF_LOCATION_ID_RESULT_ERR_GENERATIONAL_ID_LOCATION_ID) {
+      sampler_unlock_active_profile(locked_profile);
+      rb_raise(rb_eArgError, "Failed to intern location: %"PRIsVALUE, get_error_details_and_drop(&location_result.err));
+    }
+
+    location_ids[i] = location_result.ok;
+  }
+
+  ddog_prof_StackTraceId_Result result =
+    ddog_prof_Profile_intern_stacktrace(&locked_profile.data->profile, (ddog_prof_Slice_GenerationalIdLocationId) {.ptr = location_ids, .len = locations.len});
+
+  if (result.tag == DDOG_PROF_STACK_TRACE_ID_RESULT_ERR_GENERATIONAL_ID_STACK_TRACE_ID) {
+    sampler_unlock_active_profile(locked_profile);
+    rb_raise(rb_eArgError, "Failed to intern stack trace: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+  }
+
+  return result.ok;
+}
+
 void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, sample_values values, sample_labels labels) {
   stack_recorder_state *state;
   TypedData_Get_Struct(recorder_instance, stack_recorder_state, &stack_recorder_typed_data, state);
@@ -620,13 +724,15 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
     }
   }
 
-  ddog_prof_Profile_Result result = ddog_prof_Profile_add(
+  ddog_prof_StringId empty_string = intern_string_or_raise(active_slot, DDOG_CHARSLICE_C(""));
+  ddog_prof_LabelSetId label_set = intern_labels_or_raise(active_slot, labels.labels);
+  ddog_prof_StackTraceId stack_trace = intern_locations_or_raise(active_slot, locations, empty_string);
+
+  ddog_VoidResult result = ddog_prof_Profile_intern_sample(
     &active_slot.data->profile,
-    (ddog_prof_Sample) {
-      .locations = locations,
-      .values = (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
-      .labels = labels.labels
-    },
+    stack_trace,
+    (ddog_Slice_I64) {.ptr = metric_values, .len = state->enabled_values_count},
+    label_set,
     labels.end_timestamp_ns
   );
 
@@ -634,7 +740,7 @@ void record_sample(VALUE recorder_instance, ddog_prof_Slice_Location locations, 
 
   sampler_unlock_active_profile(active_slot);
 
-  if (result.tag == DDOG_PROF_PROFILE_RESULT_ERR) {
+  if (result.tag == DDOG_VOID_RESULT_ERR) {
     rb_raise(rb_eArgError, "Failed to record sample: %"PRIsVALUE, get_error_details_and_drop(&result.err));
   }
 }
