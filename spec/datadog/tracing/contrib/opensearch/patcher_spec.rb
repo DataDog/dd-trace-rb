@@ -109,6 +109,15 @@ RSpec.describe 'OpenSearch instrumentation' do
 
       expect(span.resource).to eq('DELETE /ruby-test-index')
     end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      delete_indices
+
+      expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index")
+    end
   end
 
   context 'creating an index' do
@@ -166,6 +175,15 @@ RSpec.describe 'OpenSearch instrumentation' do
 
       expect(span.resource).to eq('PUT /ruby-test-index')
     end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      create_indices
+
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
+    end
   end
 
   context 'adding a document to the index' do
@@ -206,6 +224,15 @@ RSpec.describe 'OpenSearch instrumentation' do
       index
 
       expect(span.resource).to eq('PUT /ruby-test-index/_doc/?')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      index
+
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index/_doc/?")
     end
   end
 
@@ -270,6 +297,15 @@ RSpec.describe 'OpenSearch instrumentation' do
 
       expect(span.resource).to eq('POST /ruby-test-index/_search')
     end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      search
+
+      expect(span.resource).to eq("POST #{base_url}/ruby-test-index/_search")
+    end
   end
 
   context 'deleting indexed document' do
@@ -318,6 +354,15 @@ RSpec.describe 'OpenSearch instrumentation' do
 
       expect(span.resource).to eq('DELETE /ruby-test-index/_doc/?')
     end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      delete
+
+      expect(span.resource).to eq("DELETE #{base_url}/ruby-test-index/_doc/?")
+    end
   end
 
   context 'when opensearch client throws an error' do
@@ -360,6 +405,15 @@ RSpec.describe 'OpenSearch instrumentation' do
       expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
 
       expect(span.resource).to eq('PUT /ruby-test-index')
+    end
+
+    it 'sets the correct span resource when the resource name is set to an invalid value' do
+      Datadog.configure do |c|
+        c.tracing.instrument :opensearch, resource_pattern: 'random'
+      end
+      expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
+
+      expect(span.resource).to eq("PUT #{base_url}/ruby-test-index")
     end
   end
 end
