@@ -17,7 +17,7 @@ module Datadog
         class Transport
           attr_reader :client, :apis, :default_api, :current_api_id, :logger
 
-          def initialize(apis, default_api, logger)
+          def initialize(apis, default_api, logger:)
             @apis = apis
             @logger = logger
 
