@@ -47,10 +47,11 @@ module Datadog
               o.env Ext::ENV_PEER_SERVICE
             end
 
-            option :use_full_resource_name do |o|
-              o.type :bool
-              o.env Ext::ENV_USE_FULL_RESOURCE_NAME
-              o.default true
+            # Default should be changed to 'relative' in 3.0 to match the Elasticsearch integration
+            option :resource_pattern do |o|
+              o.type :string
+              o.env Ext::ENV_RESOURCE_PATTERN
+              o.default 'absolute'
             end
           end
         end

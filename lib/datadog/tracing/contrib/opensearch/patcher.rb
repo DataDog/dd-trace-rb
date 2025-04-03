@@ -77,10 +77,10 @@ module Datadog
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Define span resource
-                  quantized_url = if datadog_configuration[:use_full_resource_name]
-                                    OpenSearch::Quantize.format_url(url)
-                                  else
+                  quantized_url = if datadog_configuration[:resource_pattern] == 'relative'
                                     OpenSearch::Quantize.format_url(url.path)
+                                  else
+                                    OpenSearch::Quantize.format_url(url)
                                   end
                   span.resource = "#{method} #{quantized_url}"
                   Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
