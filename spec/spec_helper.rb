@@ -103,6 +103,29 @@ RSpec.configure do |config|
     config.pending_failure_output = :full
   end
 
+  # Guard-clause to skip tests that require a specific Ruby version.
+  # Should work on anything that supports filters, i.e it/describe/context.
+  #
+  # Examples:
+  #
+  # 1. Guard with explicit matcher `>` (greater than)
+  #    Supported operators: `>`, `>=`, `==`, `!=`, `<`, `<=`
+  #
+  #    WARNING: Space between operator and version is required.
+  #
+  #    it 'runs only for specific Ruby version', ruby: '> 2.7' do
+  #      expect(something).to be_good
+  #    end
+  #
+  # 2. Guard with implicit matcher `==` (equal to)
+  #
+  #    it 'runs only for Ruby 2.7.x', ruby: '2.7' do
+  #      expect(something).to be_good
+  #    end
+  config.before(:each, ruby: ->(value) { !PlatformHelpers.ruby_version_matches?(value) }) do |example|
+    skip "Test requires Ruby #{example.metadata[:ruby]}"
+  end
+
   config.before(:example, ractors: true) do
     unless config.filter_manager.inclusions[:ractors]
       skip 'Skipping ractor tests. Use rake spec:profiling:ractors or pass -t ractors to rspec to run.'

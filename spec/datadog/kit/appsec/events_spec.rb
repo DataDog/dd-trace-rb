@@ -93,6 +93,17 @@ RSpec.describe Datadog::Kit::AppSec::Events do
       end
     end
 
+    it 'sets additional user login data from other string keys as tags', ruby: '>= 2.7' do
+      trace_op.measure('root') do |span, _|
+        expect { described_class.track_login_success(trace_op, user: { id: '42' }, 'usr.login' => 'hey') }
+          .to change { span.tags }.to include(
+            'usr.id' => '42',
+            'usr.login' => 'hey',
+            'appsec.events.users.login.success.usr.login' => 'hey'
+          )
+      end
+    end
+
     it 'sets event tracking key on trace' do
       trace_op.measure('root') do |span, _|
         expect { described_class.track_login_success(trace_op, user: { id: '42' }) }
@@ -177,6 +188,13 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     it 'sets additional user login data from other keys as tags' do
       trace_op.measure('root') do |span, _|
         expect { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login': 'hey') }
+          .to change { span.tags }.to include('appsec.events.users.login.failure.usr.login' => 'hey')
+      end
+    end
+
+    it 'sets additional user login data from other string keys as tags', ruby: '>= 2.7' do
+      trace_op.measure('root') do |span, _|
+        expect { described_class.track_login_failure(trace_op, user_id: '42', user_exists: true, 'usr.login' => 'hey') }
           .to change { span.tags }.to include('appsec.events.users.login.failure.usr.login' => 'hey')
       end
     end
@@ -278,6 +296,17 @@ RSpec.describe Datadog::Kit::AppSec::Events do
     it 'sets additional user login data from other keys as tags' do
       trace_op.measure('root') do |span, _|
         expect { described_class.track_signup(trace_op, user: { id: '42' }, 'usr.login': 'hey') }
+          .to change { span.tags }.to include(
+            'usr.id' => '42',
+            'usr.login' => 'hey',
+            'appsec.events.users.signup.usr.login' => 'hey'
+          )
+      end
+    end
+
+    it 'sets additional user login data from other string keys as tags', ruby: '>= 2.7' do
+      trace_op.measure('root') do |span, _|
+        expect { described_class.track_signup(trace_op, user: { id: '42' }, 'usr.login' => 'hey') }
           .to change { span.tags }.to include(
             'usr.id' => '42',
             'usr.login' => 'hey',
