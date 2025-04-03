@@ -1,6 +1,6 @@
 name: Check change log entry
 
-on: # yamllint disable-line rule:truthy
+on:
   pull_request:
     types: [opened, reopened, edited]
 
