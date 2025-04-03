@@ -80,7 +80,12 @@ module Datadog
           private
 
           def encode_one(trace)
-            encoded = Encoder.encode_trace(encoder, trace, logger: logger, native_events_supported: @native_events_supported)
+            encoded = Encoder.encode_trace(
+              encoder,
+              trace,
+              logger: logger,
+              native_events_supported: @native_events_supported
+            )
 
             if encoded.size > max_size
               # This single trace is too large, we can't flush it
