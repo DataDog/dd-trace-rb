@@ -47,7 +47,7 @@ module Datadog
 
             attr_reader logger: untyped
 
-            def initialize: (untyped apis, untyped default_api, untyped logger) -> void
+            def initialize: (untyped apis, untyped default_api, ?logger: untyped) -> void
             def send_config: (untyped payload) -> untyped
 
             def current_api: () -> untyped
