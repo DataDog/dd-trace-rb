@@ -55,7 +55,7 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(current_api, logger)
+              @client = HTTP::Client.new(current_api, logger: logger)
             end
 
             def send_info

@@ -194,7 +194,7 @@ module Datadog
             raise UnknownApiVersionError, api_id unless apis.key?(api_id)
 
             @current_api_id = api_id
-            @client = HTTP::Client.new(current_api, logger)
+            @client = HTTP::Client.new(current_api, logger: logger)
           end
 
           # Queries the agent for native span events serialization support.
