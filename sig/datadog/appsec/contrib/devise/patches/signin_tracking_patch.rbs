@@ -2,8 +2,8 @@ module Datadog
   module AppSec
     module Contrib
       module Devise
-        module Patcher
-          module AuthenticatablePatch
+        module Patches
+          module SigninTrackingPatch
             def validate: (untyped resource) { () -> untyped } -> untyped
           end
         end
