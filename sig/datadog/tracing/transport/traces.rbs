@@ -35,7 +35,7 @@ module Datadog
           attr_reader max_size: untyped
 
           attr_reader logger: untyped
-          def initialize: (untyped encoder, untyped logger, native_events_supported: bool, ?max_size: untyped) -> void
+          def initialize: (untyped encoder, logger: untyped, native_events_supported: untyped, ?max_size: untyped) -> void
           def encode_in_chunks: (untyped traces) -> untyped
 
           private
@@ -43,7 +43,7 @@ module Datadog
           def encode_one: (untyped trace) -> (nil | untyped)
         end
         module Encoder
-          def self?.encode_trace: (untyped encoder, untyped trace, untyped logger, native_events_supported: bool) -> untyped
+          def self?.encode_trace: (untyped encoder, untyped trace, logger: untyped, native_events_supported: untyped) -> untyped
         end
         class Transport
           @apis: untyped
