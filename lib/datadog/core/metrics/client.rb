@@ -23,7 +23,7 @@ module Datadog
 
         attr_reader :statsd, :logger
 
-        def initialize(logger:, statsd: nil, enabled: true, **_)
+        def initialize(logger: Datadog.logger, statsd: nil, enabled: true, **_)
           @logger = logger
           @statsd =
             if supported?
