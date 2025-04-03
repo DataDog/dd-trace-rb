@@ -11,7 +11,7 @@ require 'opensearch'
 require 'datadog/tracing/contrib/opensearch/integration'
 
 RSpec.describe 'OpenSearch instrumentation' do
-  let(:configuration_options) { { use_full_resource_name: true } }
+  let(:configuration_options) { { resource_pattern: 'absolute' } }
   let(:base_url) { "http://#{host}:#{port}" }
   let(:host) { ENV.fetch('TEST_OPENSEARCH_HOST', '127.0.0.1') }
   let(:port) { ENV.fetch('TEST_OPENSEARCH_PORT', '9200').to_i }
@@ -103,7 +103,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       delete_indices
 
@@ -160,7 +160,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       create_indices
 
@@ -201,7 +201,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       index
 
@@ -264,7 +264,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       search
 
@@ -312,7 +312,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       delete
 
@@ -355,7 +355,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name uses the relative path' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, use_full_resource_name: false
+        c.tracing.instrument :opensearch, resource_pattern: 'relative'
       end
       expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
 
