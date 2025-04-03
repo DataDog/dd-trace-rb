@@ -77,7 +77,7 @@ module Datadog
             Datadog::Core::Crashtracking::Component.build(settings, agent_settings, logger: logger)
           end
 
-          def build_errortracker(settings, agent_settings, tracer)
+          def build_errortracker(settings, tracer)
             return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
 
             if (errortracking_failure = Datadog::Core::Errortracking::Component::ERRORTRACKING_FAILURE)
@@ -85,7 +85,7 @@ module Datadog
               return
             end
 
-            Core::Errortracking::Component.build(settings, agent_settings, tracer[:tracer])
+            Core::Errortracking::Component.build(settings, tracer[:tracer])
           end
         end
 
@@ -122,7 +122,7 @@ module Datadog
           @remote = Remote::Component.build(settings, agent_settings, logger: @logger, telemetry: telemetry)
           @tracer = self.class.build_tracer(settings, agent_settings, logger: @logger)
           @crashtracker = self.class.build_crashtracker(settings, agent_settings, logger: @logger)
-          @errortracker = self.class.build_errortracker(settings, agent_settings, tracer: @tracer)
+          @errortracker = self.class.build_errortracker(settings, tracer: @tracer)
 
           @profiler, profiler_logger_extra = Datadog::Profiling::Component.build_profiler_component(
             settings: settings,

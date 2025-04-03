@@ -32,7 +32,7 @@ static VALUE _get_gem_name(VALUE file_name) {
     return Qfalse;
   }
   const char *gem_path = gems_pos + strlen(gems_str);
-  const char *dash_pos = strchr(gem_path, '-');
+  const char *dash_pos = strrchr(gem_path, '-');
   if (dash_pos == NULL) {
     return Qfalse;
   }

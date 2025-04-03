@@ -40,6 +40,7 @@ require 'support/synchronization_helpers'
 require 'support/test_helpers'
 require 'support/tracer_helpers'
 require 'support/crashtracking_helpers'
+require 'support/errortracking_helpers'
 
 begin
   # Ignore interpreter warnings from external libraries

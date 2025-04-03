@@ -77,6 +77,7 @@ static void errortracker_init(VALUE errortracking_module) {
   rb_define_attr(errortracker_class, "tracepoint", 1, 1);
   rb_define_attr(errortracker_class, "tracer", 1, 1);
   rb_define_attr(errortracker_class, "collector", 1, 1);
+  rb_define_attr(errortracker_class, "instrumented_files", 1, 1);
 }
 
 static VALUE _add_instrumented_file(VALUE self, VALUE file_name) {
@@ -103,7 +104,6 @@ static VALUE _native_start(int argc, VALUE* argv, VALUE self) {
 
   VALUE filter_function;
   if (RARRAY_LEN(to_instrument_modules) > 0) {
-    rb_define_attr(self, "instrumented_files", 1, 1);
     rb_iv_set(self, "@instrumented_files", rb_hash_new());
     filter_function = generate_filter(self, to_instrument, rb_iv_get(self, "@instrumented_files"));
   } else {
@@ -114,7 +114,11 @@ static VALUE _native_start(int argc, VALUE* argv, VALUE self) {
   double ruby_version = RFLOAT_VALUE(rb_const_get(rb_cObject, rb_intern("RUBY_VERSION")));
   VALUE tracepoint;
   if (ruby_version >= 3.3) {
+    #ifdef RUBY_EVENT_RESCUE
     tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RESCUE, tracepoint_callback, (void*)self);
+    #else
+    tracepoint = Qnil;
+    #endif
   } else {
     tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RAISE, tracepoint_callback, (void*)self);
   }
@@ -167,7 +171,6 @@ static void tracepoint_callback(VALUE tp, void* data) {
   if (RTEST(rb_funcall(filter_function, at_call_id, 1, rescue_file_path))) {
     VALUE span_event = _generate_span_event(self, raised_exception);
     VALUE collector = rb_iv_get(self, "@collector");
-
-        add_span_event(collector, active_span, raised_exception, span_event);
+      add_span_event(collector, active_span, raised_exception, span_event);
     }
 }

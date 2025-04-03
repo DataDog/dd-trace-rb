@@ -10,9 +10,7 @@ module Datadog
           RequireHooks.instance_variable_get(:@to_instrument_modules).each do |module_to_instr|
             next unless path.start_with?(module_to_instr)
 
-            caller_path = caller_locations(1, 1)[0].absolute_path
-            absolute_path = File.expand_path(path, File.dirname(caller_path))
-            self.class._add_instrument_file("#{absolute_path}.rb")
+            Component._add_instrumented_file("#{path}.rb")
           end
           super(path)
         end
@@ -20,14 +18,17 @@ module Datadog
         def require_relative(path)
           caller_path = caller_locations(1, 1)[0].absolute_path
           absolute_path = File.expand_path(path, File.dirname(caller_path))
+
           RequireHooks.instance_variable_get(:@to_instrument_modules).each do |module_to_instr|
-            Component._add_instrumented_file("#{absolute_path}.rb") if path.start_with?(module_to_instr)
+            next unless absolute_path.match?(%r{/#{Regexp.escape(module_to_instr)}(?=/|\z)})
+
+            Component._add_instrumented_file("#{absolute_path}.rb")
           end
           super(absolute_path)
         end
 
         def self.set_modules_to_instrument(modules)
-          @to_instrument_modules = modules.to_set
+          @to_instrument_modules = modules
         end
       end
 
@@ -41,7 +42,11 @@ module Datadog
             e.message
           end
 
-        def self.build(settings, agent_settings, tracer)
+        def self.build(settings, tracer)
+          return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
+          return if !settings.errortracking.to_instrument.empty? &&
+            !['all', 'user', 'third_party'].include?(settings.errortracking.to_instrument)
+
           new(
             tracer: tracer,
             to_instrument: settings.errortracking.to_instrument,
@@ -61,9 +66,10 @@ module Datadog
             to_instrument: @to_instrument,
             to_instrument_modules: @to_instrument_modules
           )
-
-          RequireHooks.set_modules_to_instrument(@to_instrument_modules)
-          Kernel.prepend(RequireHooks) unless @to_instrument_modules.empty?
+          unless @to_instrument_modules.empty?
+            RequireHooks.set_modules_to_instrument(@to_instrument_modules)
+            Kernel.prepend(RequireHooks)
+          end
         end
 
         def stop
