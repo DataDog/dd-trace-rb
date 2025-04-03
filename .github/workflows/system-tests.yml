@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: appsec-56683-rewrite-rails-devise-application
+  SYSTEM_TESTS_REF: main
 
 jobs:
   changes:
