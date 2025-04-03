@@ -14,7 +14,7 @@ module Datadog
 
           attr_reader :api, :logger
 
-          def initialize(api, logger = Datadog.logger)
+          def initialize(api, logger: Datadog.logger)
             @api = api
             @logger = logger
           end
