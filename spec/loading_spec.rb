@@ -48,7 +48,7 @@ RSpec.describe 'loading of products' do
 
       it 'produces no output' do
         out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
-        raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.exitstatus == 0
+        raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.success?
         raise("Test script produced unexpected output: #{out}") unless out.empty?
       end
     end
