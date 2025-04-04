@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [2.14.0] - 2025-04-04
+
+### Added
+
+* Tracing: Add `karafka` instrumentation with 2.3.0 as the minimum supported version. ([#4147][])
+
+### Fixed
+
+* Core: Tracing: default logger arguments for compatibility with previous dd-trace-rb versions ([#4558][])
+* AppSec: Fix `Datadog::Kit::AppSec::Events` SDK methods to correctly handle given string key `usr.login`. ([#4552][])
+
 ## [2.13.0] - 2025-04-02
 
 ### Added
@@ -3167,7 +3178,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.13.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.14.0...master
+[2.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.2...v2.13.0
 [2.12.2]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.1...v2.12.2
 [2.12.1]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.0...v2.12.1
@@ -4630,6 +4642,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4085]: https://github.com/DataDog/dd-trace-rb/issues/4085
 [#4137]: https://github.com/DataDog/dd-trace-rb/issues/4137
 [#4140]: https://github.com/DataDog/dd-trace-rb/issues/4140
+[#4147]: https://github.com/DataDog/dd-trace-rb/issues/4147
 [#4153]: https://github.com/DataDog/dd-trace-rb/issues/4153
 [#4161]: https://github.com/DataDog/dd-trace-rb/issues/4161
 [#4164]: https://github.com/DataDog/dd-trace-rb/issues/4164
@@ -4686,6 +4699,8 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4534]: https://github.com/DataDog/dd-trace-rb/issues/4534
 [#4547]: https://github.com/DataDog/dd-trace-rb/issues/4547
 [#4549]: https://github.com/DataDog/dd-trace-rb/issues/4549
+[#4552]: https://github.com/DataDog/dd-trace-rb/issues/4552
+[#4558]: https://github.com/DataDog/dd-trace-rb/issues/4558
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
