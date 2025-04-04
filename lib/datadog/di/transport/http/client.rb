@@ -16,7 +16,7 @@ module Datadog
         class Client
           attr_reader :api, :logger
 
-          def initialize(api, logger)
+          def initialize(api, logger:)
             @api = api
             @logger = logger
           end

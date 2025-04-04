@@ -53,7 +53,7 @@ module Datadog
       class AgentInfo
         attr_reader :agent_settings, :logger
 
-        def initialize(agent_settings, logger:)
+        def initialize(agent_settings, logger: Datadog.logger)
           @agent_settings = agent_settings
           @logger = logger
           @client = Remote::Transport::HTTP.root(agent_settings: agent_settings, logger: logger)

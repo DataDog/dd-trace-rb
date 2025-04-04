@@ -18,7 +18,7 @@ module Datadog
         # Pass a block to override any settings.
         def default(
           agent_settings:,
-          logger:,
+          logger: Datadog.logger,
           api_version: nil,
           headers: nil
         )
