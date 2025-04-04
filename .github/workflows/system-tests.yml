@@ -41,6 +41,7 @@ jobs:
         with:
           filters: |
             src:
+              - '.github/forced-tests-list.json'
               - '.github/workflows/**'
               - 'lib/**'
               - 'ext/**'
