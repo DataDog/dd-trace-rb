@@ -77,7 +77,18 @@ module Datadog
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Define span resource
-                  quantized_url = OpenSearch::Quantize.format_url(url)
+                  quantized_url = case datadog_configuration[:resource_pattern]
+                                  when 'relative'
+                                    OpenSearch::Quantize.format_url(url.path)
+                                  when 'absolute'
+                                    OpenSearch::Quantize.format_url(url)
+                                  else
+                                    Datadog.logger.warn(
+                                      "Invalid resource pattern: #{datadog_configuration[:resource_pattern]}. " \
+                                      'Set as `absolute` or `relative`. Falling back to default of `absolute`.'
+                                    )
+                                    OpenSearch::Quantize.format_url(url)
+                                  end
                   span.resource = "#{method} #{quantized_url}"
                   Contrib::SpanAttributeSchema.set_peer_service!(span, Ext::PEER_SERVICE_SOURCES)
                 rescue StandardError => e
