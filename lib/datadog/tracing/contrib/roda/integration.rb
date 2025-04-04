@@ -19,6 +19,10 @@ module Datadog
 
           register_as :roda
 
+          def self.gems
+            ['roda']
+          end
+
           def self.version
             Gem.loaded_specs['roda'] && Gem.loaded_specs['roda'].version
           end
