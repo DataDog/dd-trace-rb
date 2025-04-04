@@ -1,6 +1,6 @@
 require 'datadog/tracing/contrib/rails/rails_helper'
 
-RSpec.describe 'Rails tracer' do
+RSpec.describe 'Rails tracer', execute_in_fork: Rails.version.to_i >= 8 do
   include_context 'Rails test application'
 
   before { app }
