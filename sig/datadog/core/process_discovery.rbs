@@ -1,0 +1,16 @@
+module Datadog
+  module Core
+    module ProcessDiscovery
+      def self._native_store_tracer_metadata: (
+        schema_version: Integer,
+        runtime_id: String,
+        tracer_language: String,
+        tracer_version: String,
+        hostname: String,
+        service_name: String,
+        service_env: String,
+        service_version: String
+      ) -> Integer # C file descriptor
+    end
+  end
+end
