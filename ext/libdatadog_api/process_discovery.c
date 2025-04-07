@@ -5,8 +5,8 @@
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 
-void process_discovery_init(VALUE process_discovery_module) {
-  VALUE process_discovery_class = rb_define_class_under(process_discovery_module, "Component", rb_cObject);
+void process_discovery_init(VALUE core_module) {
+  VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
 
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
 }
@@ -35,7 +35,7 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
   ENFORCE_TYPE(service_version, T_STRING);
 
   ddog_Result_TracerMemfdHandle result = ddog_store_tracer_metadata(
-    (uint8_t)schema_version,
+    (uint8_t) NUM2UINT(schema_version),
     char_slice_from_ruby_string(runtime_id),
     char_slice_from_ruby_string(tracer_language),
     char_slice_from_ruby_string(tracer_version),
