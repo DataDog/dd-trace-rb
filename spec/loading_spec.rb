@@ -1,18 +1,28 @@
 require 'shellwords'
+require 'open3'
 
-REQUIRES = {
-  'datadog/appsec' => 'Datadog::AppSec',
-  'datadog/core' => 'Datadog::Core',
-  'datadog/di' => 'Datadog::DI',
-  'datadog/di/preload' => 'Datadog::DI::CodeTracker',
-  'datadog/kit' => 'Datadog::Kit',
-  'datadog/profiling' => 'Datadog::Profiling',
-  'datadog/tracing' => 'Datadog::Tracing',
-}.freeze
+REQUIRES = [
+  ['datadog', 'Datadog::Core'],
+  ['datadog/appsec', 'Datadog::AppSec'],
+  ['datadog/core', 'Datadog::Core'],
+  ['datadog/di', 'Datadog::DI',
+   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
+  ['datadog/di/preload', 'Datadog::DI::CodeTracker',
+   -> { RUBY_VERSION >= '2.6' && RUBY_ENGINE != 'jruby' }],
+  ['datadog/kit', 'Datadog::Kit'],
+  ['datadog/profiling', 'Datadog::Profiling'],
+  ['datadog/tracing', 'Datadog::Tracing'],
+].freeze
 
 RSpec.describe 'loading of products' do
-  REQUIRES.each do |req, const|
+  REQUIRES.each do |(req, const, condition)|
     context req do
+      if condition
+        before do
+          skip 'condition is false' unless condition.call
+        end
+      end
+
       let(:code) do
         <<-E
           if defined?(Datadog)
@@ -34,6 +44,12 @@ RSpec.describe 'loading of products' do
       it 'loads successfully by itself' do
         rv = system("ruby -e #{Shellwords.shellescape(code)}")
         expect(rv).to be true
+      end
+
+      it 'produces no output' do
+        out, status = Open3.capture2e('ruby', '-w', stdin_data: code)
+        raise("Test script failed with exit status #{status.exitstatus}:\n#{out}") unless status.success?
+        raise("Test script produced unexpected output: #{out}") unless out.empty?
       end
     end
   end
