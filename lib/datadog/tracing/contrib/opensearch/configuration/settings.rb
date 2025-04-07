@@ -47,11 +47,21 @@ module Datadog
               o.env Ext::ENV_PEER_SERVICE
             end
 
-            # Default should be changed to 'relative' in 3.0 to match the Elasticsearch integration
             option :resource_pattern do |o|
               o.type :string
               o.env Ext::ENV_RESOURCE_PATTERN
-              o.default 'absolute'
+              o.default Ext::DEFAULT_RESOURCE_PATTERN
+              o.setter do |value|
+                next value if Ext::VALID_RESOURCE_PATTERNS.include?(value)
+
+                Datadog.logger.warn(
+                  "Invalid resource pattern: #{value}. " \
+                  "Supported values are: #{Ext::VALID_RESOURCE_PATTERNS.join(' | ')}. " \
+                  "Using default value: #{Ext::DEFAULT_RESOURCE_PATTERN}."
+                )
+
+                Ext::DEFAULT_RESOURCE_PATTERN
+              end
             end
           end
         end

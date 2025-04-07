@@ -77,16 +77,9 @@ module Datadog
                   span.set_tag(Tracing::Metadata::Ext::TAG_PEER_HOSTNAME, host) if host
 
                   # Define span resource
-                  quantized_url = case datadog_configuration[:resource_pattern]
-                                  when 'relative'
+                  quantized_url = if datadog_configuration[:resource_pattern] == Ext::RELATIVE_RESOURCE_PATTERN
                                     OpenSearch::Quantize.format_url(url.path)
-                                  when 'absolute'
-                                    OpenSearch::Quantize.format_url(url)
-                                  else
-                                    Datadog.logger.warn(
-                                      "Invalid resource pattern: #{datadog_configuration[:resource_pattern]}. " \
-                                      'Set as `absolute` or `relative`. Falling back to default of `absolute`.'
-                                    )
+                                  else # Default to Ext::ABSOLUTE_RESOURCE_PATTERN
                                     OpenSearch::Quantize.format_url(url)
                                   end
                   span.resource = "#{method} #{quantized_url}"

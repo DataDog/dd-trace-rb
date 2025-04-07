@@ -112,7 +112,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       delete_indices
 
@@ -178,7 +178,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       create_indices
 
@@ -228,7 +228,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       index
 
@@ -300,7 +300,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       search
 
@@ -357,7 +357,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       delete
 
@@ -409,7 +409,7 @@ RSpec.describe 'OpenSearch instrumentation' do
 
     it 'sets the correct span resource when the resource name is set to an invalid value' do
       Datadog.configure do |c|
-        c.tracing.instrument :opensearch, resource_pattern: 'random'
+        c.tracing.instrument :opensearch, resource_pattern: 'unknown'
       end
       expect { test_error }.to raise_error(OpenSearch::Transport::Transport::Errors::BadRequest)
 
