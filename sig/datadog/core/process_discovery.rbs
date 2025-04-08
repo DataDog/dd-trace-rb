@@ -1,6 +1,6 @@
 module Datadog
   module Core
-    module ProcessDiscovery
+    class ProcessDiscovery
       def self._native_store_tracer_metadata: (
         schema_version: Integer,
         runtime_id: String,
@@ -12,5 +12,9 @@ module Datadog
         service_version: String
       ) -> Integer # C file descriptor
     end
+
+    def self._native_close_tracer_memfd: (Integer fd) -> nil
+
+    def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> Hash[Symbol, String | Integer]
   end
 end

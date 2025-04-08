@@ -4,11 +4,13 @@
 #include "datadog_ruby_common.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
+static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE fd);
 
 void process_discovery_init(VALUE core_module) {
   VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
 
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
+  rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 1);
 }
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self) {
@@ -52,4 +54,15 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED
   // &result.ok is a ddog_TracerMemfdHandle, which is a struct only containing int fd, which is a file descriptor
   // We should just return the fd to test everything is working
   return INT2FIX(result.ok.fd);
+}
+
+static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE fd) {
+  ENFORCE_TYPE(fd, T_FIXNUM);
+
+  int close_result = close(NUM2INT(fd));
+  if (close_result == -1) {
+    rb_raise(rb_eRuntimeError, "Failed to close the tracer configuration: %s", strerror(errno));
+  }
+
+  return Qnil;
 }
