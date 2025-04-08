@@ -288,6 +288,15 @@ current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
+You can record an exception in the current span. It will add the recorded exception as a span event. If you also want to set the span error tags, you should set `escaped` to true.
+```ruby
+# e.g. recording an exception in the active span
+rescue StandardError => e
+  current_span = Datadog::Tracing.active_span
+  current_span.record_exception(e, attributes={"foo":"bar"}, escaped=False)
+end
+```
+
 You can also get the current active trace using the `active_trace` method. This method will return `nil` if there is no active trace.
 
 ```ruby

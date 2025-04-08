@@ -278,12 +278,19 @@ module Datadog
         set_error_tags(e)
       end
 
-      # Record an exception during the execution of this span by creating a span event.
+      # Record an exception during the execution of this span. Multiple exceptions
+      # can be recorded on a span.
+      # If escaped is true, it will set the span error tags
       #
-      # If escaped is True, it will also set the span error tags
+      # @param [Exception] exception The exception to recorded
+      # @param [optional Hash{String => String, Numeric, Boolean, Array<String, Numeric, Boolean>}]
+      #   attributes One or more key:value pairs, where the keys must be
+      #   strings and the values may be (array of) string, boolean or numeric
+      #   type.
+      # @param [optional Integer] timestamp Time when the exception was raised, in nanoseconds since epoch
+      # @param [optional Boolean] escaped Whether the exception escaped the scope of the span
       #
       # @return [void]
-      # @public_api
       def record_exception(exception, attributes: nil, timestamp: nil, escaped: false)
         exc = Core::Error.build_from(exception)
 
