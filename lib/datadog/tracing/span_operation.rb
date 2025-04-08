@@ -310,7 +310,7 @@ module Datadog
         attrs.merge!(attributes) if attributes
 
         span_event = SpanEvent.new(
-          :exception,
+          'exception',
           attributes: attrs,
           time_unix_nano: timestamp || (Time.now.to_r * 1_000_000_000).to_i
         )

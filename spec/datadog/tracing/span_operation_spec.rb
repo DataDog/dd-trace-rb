@@ -1021,7 +1021,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       record_exception
 
       expect(span_op.span_events.last).to have_attributes(
-        name: :exception,
+        name: 'exception',
         attributes: {
           'exception.type' => error_object.type,
           'exception.message' => error_object.message,
@@ -1051,7 +1051,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         record_exception
 
         expect(span_op.span_events.last).to have_attributes(
-          name: :exception,
+          name: 'exception',
           attributes: {
             'exception.type' => error_object.type,
             'exception.message' => error_object.message,
