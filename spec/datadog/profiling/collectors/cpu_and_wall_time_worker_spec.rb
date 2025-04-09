@@ -379,8 +379,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       after do
-        background_thread.kill
-        background_thread.join
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+        end
       end
 
       it "is able to sample even when the main thread is sleeping" do

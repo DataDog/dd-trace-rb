@@ -1,4 +1,5 @@
 require "datadog/profiling/flush"
+require "datadog/profiling/encoded_profile"
 
 RSpec.describe Datadog::Profiling::Flush do
   describe ".new" do

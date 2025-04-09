@@ -60,9 +60,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   after do
-    [t1, t2, t3].each do |thread|
-      thread.kill
-      thread.join
+    unless RSpec.current_example.skipped?
+      [t1, t2, t3].each do |thread|
+        thread.kill
+        thread.join
+      end
     end
   end
 
