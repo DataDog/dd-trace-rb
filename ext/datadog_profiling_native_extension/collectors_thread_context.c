@@ -1308,7 +1308,7 @@ static long thread_id_for(VALUE thread) {
 }
 
 VALUE enforce_thread_context_collector_instance(VALUE object) {
-  Check_TypedStruct(object, &thread_context_collector_typed_data);
+  ENFORCE_TYPED_DATA(object, &thread_context_collector_typed_data);
   return object;
 }
 

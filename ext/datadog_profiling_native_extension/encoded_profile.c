@@ -64,6 +64,6 @@ static VALUE _native_bytes(VALUE self) {
 }
 
 VALUE enforce_encoded_profile_instance(VALUE object) {
-  Check_TypedStruct(object, &encoded_profile_typed_data);
+  ENFORCE_TYPED_DATA(object, &encoded_profile_typed_data);
   return object;
 }
