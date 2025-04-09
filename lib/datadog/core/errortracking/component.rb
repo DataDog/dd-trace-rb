@@ -5,12 +5,31 @@ module Datadog
     module Errortracking
       module RequireHooks
         @to_instrument_modules = {}
+        @module_load_dirs = {}
 
         def require(path)
           RequireHooks.instance_variable_get(:@to_instrument_modules).each do |module_to_instr|
             next unless path.start_with?(module_to_instr)
 
-            Component._add_instrumented_file("#{path}.rb")
+            # Extract gem name (first part before any slash)
+            gem_name = path.split('/').first
+
+            # Use memoized load_dir if available
+            if RequireHooks.instance_variable_get(:@module_load_dirs)[gem_name]
+              load_dir = RequireHooks.instance_variable_get(:@module_load_dirs)[gem_name]
+              rb_path = File.join(load_dir, "#{path}.rb")
+              Component._add_instrumented_file(rb_path) if File.exist?(rb_path)
+            else
+              # Find and memoize the load_dir for this gem
+              $LOAD_PATH.each do |load_dir|
+                rb_path = File.join(load_dir, "#{path}.rb")
+                next unless File.exist?(rb_path)
+
+                Component._add_instrumented_file(rb_path)
+                RequireHooks.instance_variable_get(:@module_load_dirs)[gem_name] = load_dir
+                break
+              end
+            end
           end
           super(path)
         end
@@ -29,6 +48,11 @@ module Datadog
 
         def self.set_modules_to_instrument(modules)
           @to_instrument_modules = modules
+        end
+
+        def self.clear
+          @to_instrument_modules.clear
+          @module_load_dirs.clear
         end
       end
 
@@ -73,6 +97,7 @@ module Datadog
         end
 
         def stop
+          RequireHooks.clear
           self.class._native_stop
         end
       end
