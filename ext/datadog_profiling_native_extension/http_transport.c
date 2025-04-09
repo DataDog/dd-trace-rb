@@ -79,22 +79,17 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
   ID working_mode = SYM2ID(exporter_working_mode);
 
-  ID agentless_id = rb_intern("agentless");
-  ID agent_id = rb_intern("agent");
-
-  if (working_mode != agentless_id && working_mode != agent_id) {
-    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
-  }
-
-  if (working_mode == agentless_id) {
+  if (working_mode == rb_intern("agentless")) {
     VALUE site = rb_ary_entry(exporter_configuration, 1);
     VALUE api_key = rb_ary_entry(exporter_configuration, 2);
 
     return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
-  } else { // agent_id
+  } else if (working_mode == rb_intern("agent")) {
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
 
     return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+  } else {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 }
 
