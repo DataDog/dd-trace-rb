@@ -192,23 +192,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       finish_timespec_seconds = 1699718400
       finish_timespec_nanoseconds = 123456789
 
-      internal_metadata_json = '{"no_signals_workaround_enabled":true}'
-
-      info_json = '{"application":{"start_time":"2024-01-24T11:17:22Z"},"runtime":{"engine":"ruby"}}'
-
       expect(described_class).to receive(:_native_do_export).with(
         kind_of(Array), # exporter_configuration
         upload_timeout_milliseconds,
+        flush,
         start_timespec_seconds,
         start_timespec_nanoseconds,
         finish_timespec_seconds,
         finish_timespec_nanoseconds,
-        encoded_profile,
-        code_provenance_file_name,
-        code_provenance_data,
-        tags_as_array,
-        internal_metadata_json,
-        info_json,
       ).and_return([:ok, 200])
 
       export
