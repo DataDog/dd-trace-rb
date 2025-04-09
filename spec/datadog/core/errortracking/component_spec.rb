@@ -157,245 +157,178 @@ RSpec.describe Datadog::Core::Errortracking::Component, skip: !ErrortrackingHelp
     end
   end
 
-  shared_examples 'error tracking behavior' do |instrument_setting|
+  shared_examples 'error tracking behavior' do |instrument_setting = nil, modules_to_instrument = [], expected_errors = []|
     before(:all) do
       require 'tmpdir'
       require 'fileutils'
 
-      @gem_dir = Dir.mktmpdir('test')
-      @gem_lib_dir = File.join(@gem_dir, 'gems/my-fake-gem-2.12.2/lib')
+      # Create a mock gem structure
+      @gem_root = Dir.mktmpdir('mock_gem')
+      @gem_lib_dir = File.join(@gem_root, 'gems/mock-gem-2.1.1/lib')
       FileUtils.mkdir_p(@gem_lib_dir)
 
-      fake_gem_file = File.join(@gem_lib_dir, 'rescuer.rb')
-      File.open(fake_gem_file, 'w') do |f|
-        f.write <<~RUBY
-          module FakeGem
-            class ErrorRaiser
-              def self.raise_error
+      # Create a typical gem structure with nested directories
+      FileUtils.mkdir_p(File.join(@gem_lib_dir, 'mock_gem'))
+
+      # Create main file that users would require
+      File.open(File.join(@gem_lib_dir, 'mock_gem.rb'), 'w') do |f|
+        f.write <<-RUBY
+          require 'mock_gem/client'
+          require 'mock_gem/utils'
+
+          module MockGem
+            VERSION = '2.1.1'
+          end
+        RUBY
+      end
+
+      # Create client file in the gem
+      File.open(File.join(@gem_lib_dir, 'mock_gem/client.rb'), 'w') do |f|
+        f.write <<-RUBY
+          module MockGem
+            class Client
+              def self.rescue_error
                 begin
-                  raise StandardError, "gem error"
-                rescue
+                  raise 'mock_gem client error'
+                rescue => e
+                  return e
                 end
               end
             end
           end
         RUBY
       end
-      $LOAD_PATH.unshift(@gem_lib_dir)
 
-      # Only require the file if the module hasn't been defined yet
-      require 'rescuer' unless defined?(FakeGem)
+      # Create utils file in the gem
+      File.open(File.join(@gem_lib_dir, 'mock_gem/utils.rb'), 'w') do |f|
+        f.write <<-RUBY
+          module MockGem
+            module Utils
+              def self.rescue_error
+                begin
+                  raise 'mock_gem utils error'
+                rescue => e
+                  return e
+                end
+              end
+            end
+          end
+        RUBY
+      end
+
+      # Add gem path to load path
+      $LOAD_PATH.unshift(@gem_lib_dir)
     end
 
     after(:all) do
+      # Clean up
       $LOAD_PATH.delete(@gem_lib_dir)
-      FileUtils.remove_entry(@gem_dir) if @gem_dir && Dir.exist?(@gem_dir)
+      FileUtils.remove_entry(@gem_root) if @gem_root && Dir.exist?(@gem_root)
     end
 
     before do
-      settings.errortracking.to_instrument = instrument_setting
+      # Configure settings based on test parameters
+      settings.errortracking.to_instrument = instrument_setting if instrument_setting
+      settings.errortracking.to_instrument_modules = modules_to_instrument if modules_to_instrument.any?
+
       @errortracker = described_class.build(settings, tracer)
+
+      # Require the mock gem files
+      require 'mock_gem'
+
+      # Require all the test modules
+      require_relative 'lib1'
+      require_relative './lib2'
+      require_relative './sublib/sublib1'
+      require_relative './sublib/sublib2'
+
       tracer.enabled = true
 
-      allow(Gem::Specification).to receive(:find_by_name).with('my-fake-gem').and_return(true)
+      allow(Gem::Specification).to receive(:find_by_name).with('mock-gem').and_return(true)
     end
 
     after do
+      $LOADED_FEATURES.reject! { |path| path.include?('mock_gem') }
+      Object.send(:remove_const, :MockGem) if defined?(MockGem)
+
       @errortracker.stop
       tracer.shutdown!
     end
 
-    it "tracks errors according to '#{instrument_setting}' setting" do
+    it 'tracks errors according to settings' do
       span = tracer.trace('operation') do |inner_span|
-        FakeGem::ErrorRaiser.raise_error
         begin
           raise 'user code error'
         rescue
         end
+
+        MockGem::Client.rescue_error
+        MockGem::Utils.rescue_error
+        Lib1.rescue_error
+        Lib2.rescue_error
+        SubLib1.rescue_error
+        SubLib2.rescue_error
+
         inner_span.finish
       end
 
-      expected_events = instrument_setting == 'all' ? 2 : 1
-      expect(span.events.length).to eq(expected_events)
-      if instrument_setting == 'user'
-        expect(span.events[0].attributes['type']).to eq('RuntimeError')
-        expect(span.events[0].attributes['message']).to eq('user code error')
-      elsif instrument_setting == 'third_party'
-        expect(span.events[0].attributes['type']).to eq('StandardError')
-        expect(span.events[0].attributes['message']).to eq('gem error')
-      else
-        expect(span.events[0].attributes['type']).to eq('StandardError')
-        expect(span.events[0].attributes['message']).to eq('gem error')
-
-        expect(span.events[1].attributes['type']).to eq('RuntimeError')
-        expect(span.events[1].attributes['message']).to eq('user code error')
+      if expected_errors.any?
+        # For module-specific tests
+        expect(span.events.length).to eq(expected_errors.length)
+        event_messages = span.events.map { |e| e.attributes['message'] }
+        expected_errors.each do |error|
+          expect(event_messages).to include(error)
+        end
       end
     end
   end
 
   describe 'use errortracking component with different settings' do
     context 'when tracking user code only' do
-      include_examples 'error tracking behavior', 'user'
+      include_examples 'error tracking behavior',
+        'user',
+        [],
+        ['user code error', 'lib1 error', 'lib2 error', 'sublib1 error', 'sublib2 error']
     end
 
     context 'when tracking third_party code' do
-      include_examples 'error tracking behavior', 'third_party'
+      include_examples 'error tracking behavior', 'third_party', [], ['mock_gem client error', 'mock_gem utils error']
     end
 
     context 'when tracking all code' do
-      include_examples 'error tracking behavior', 'all'
+      include_examples 'error tracking behavior',
+        'all',
+        [],
+        ['mock_gem client error', 'mock_gem utils error', 'user code error', 'lib1 error', 'lib2 error', 'sublib1 error',
+         'sublib2 error']
     end
   end
 
   describe 'use errortracking component with module-specific settings' do
-    shared_examples 'module-specific error tracking' do |modules_to_instrument, expected_errors|
-      context "when instrumenting #{modules_to_instrument}" do
-        before do
-          settings.errortracking.to_instrument_modules = modules_to_instrument
-          @errortracker = described_class.build(settings, tracer)
-          tracer.enabled = true
-
-          require_relative 'lib1'
-          require_relative './lib2'
-          require_relative './sublib/sublib1'
-          require_relative './sublib/sublib2'
-        end
-
-        after do
-          tracer.shutdown!
-          @errortracker.stop
-        end
-
-        it 'tracks errors only from instrumented files' do
-          span = tracer.trace('operation') do |inner_span|
-            Lib1.rescue_error
-            Lib2.rescue_error
-            SubLib1.rescue_error
-            SubLib2.rescue_error
-            begin
-              raise 'this is an error'
-            rescue
-            end
-            inner_span.finish
-          end
-
-          expect(span.events.length).to eq(expected_errors.length)
-          event_messages = span.events.map { |e| e.attributes['message'] }
-          expected_errors.each do |error|
-            expect(event_messages).to include(error)
-          end
-        end
-      end
+    context "when instrumenting ['lib1']" do
+      include_examples 'error tracking behavior', nil, ['lib1'], ['lib1 error']
     end
 
-    include_examples 'module-specific error tracking', ['lib1'], ['lib1 error']
-    include_examples 'module-specific error tracking', ['sublib'], ['sublib1 error', 'sublib2 error']
-    include_examples 'module-specific error tracking', ['sublib1', 'lib1'], ['sublib1 error', 'lib1 error']
-    include_examples 'module-specific error tracking', ['sublib', 'lib1'], ['lib1 error', 'sublib1 error', 'sublib2 error']
+    context "when instrumenting ['sublib']" do
+      include_examples 'error tracking behavior', nil, ['sublib'], ['sublib1 error', 'sublib2 error']
+    end
+
+    context "when instrumenting ['sublib1', 'lib1']" do
+      include_examples 'error tracking behavior', nil, ['sublib1', 'lib1'], ['sublib1 error', 'lib1 error']
+    end
+
+    context "when instrumenting ['sublib', 'lib1']" do
+      include_examples 'error tracking behavior', nil, ['sublib', 'lib1'], ['lib1 error', 'sublib1 error', 'sublib2 error']
+    end
   end
 
   describe 'use errortracking component with gem-specific settings' do
-    shared_examples 'gem-specific error tracking' do |gems_to_instrument, expected_errors|
-      context "when instrumenting #{gems_to_instrument}" do
-        before do
-          # Create a mock gem structure
-          @gem_root = Dir.mktmpdir('mock_gem')
-          @gem_lib_dir = File.join(@gem_root, 'gems/mock-gem-2.1.1/lib')
-          FileUtils.mkdir_p(@gem_lib_dir)
-
-          # Create a typical gem structure with nested directories
-          FileUtils.mkdir_p(File.join(@gem_lib_dir, 'mock_gem'))
-
-          # Create main file that users would require
-          File.open(File.join(@gem_lib_dir, 'mock_gem.rb'), 'w') do |f|
-            f.write <<-RUBY
-              require 'mock_gem/client'
-              require 'mock_gem/utils'
-
-              module MockGem
-                VERSION = '2.1.1'
-              end
-            RUBY
-          end
-
-          # Create client file in the gem
-          File.open(File.join(@gem_lib_dir, 'mock_gem/client.rb'), 'w') do |f|
-            f.write <<-RUBY
-              module MockGem
-                class Client
-                  def self.rescue_error
-                    begin
-                      raise 'mock_gem client error'
-                    rescue => e
-                      return e
-                    end
-                  end
-                end
-              end
-            RUBY
-          end
-
-          # Create utils file in the gem
-          File.open(File.join(@gem_lib_dir, 'mock_gem/utils.rb'), 'w') do |f|
-            f.write <<-RUBY
-              module MockGem
-                module Utils
-                  def self.rescue_error
-                    begin
-                      raise 'mock_gem utils error'
-                    rescue => e
-                      return e
-                    end
-                  end
-                end
-              end
-            RUBY
-          end
-
-          # Add gem path to load path
-          $LOAD_PATH.unshift(@gem_lib_dir)
-
-          # Configure errortracking
-          settings.errortracking.to_instrument_modules = gems_to_instrument
-          @errortracker = described_class.build(settings, tracer)
-          tracer.enabled = true
-
-          # Require the mock gem files as a user would typically do
-          require 'mock_gem'
-        end
-
-        after do
-          tracer.shutdown!
-          @errortracker.stop
-
-          # Clean up
-          $LOAD_PATH.delete(@gem_lib_dir)
-          FileUtils.remove_entry(@gem_root)
-          $LOADED_FEATURES.reject! { |path| path.include?('mock_gem') }
-          Object.send(:remove_const, :MockGem) if defined?(MockGem)
-        end
-
-        it 'tracks errors only from instrumented gem files' do
-          span = tracer.trace('operation') do |inner_span|
-            MockGem::Client.rescue_error
-            MockGem::Utils.rescue_error
-            begin
-              raise 'this is an error'
-            rescue
-            end
-            inner_span.finish
-          end
-
-          expect(span.events.length).to eq(expected_errors.length)
-          event_messages = span.events.map { |e| e.attributes['message'] }
-          expected_errors.each do |error|
-            expect(event_messages).to include(error)
-          end
-        end
-      end
+    context "when instrumenting ['mock_gem/client']" do
+      include_examples 'error tracking behavior', nil, ['mock_gem/client'], ['mock_gem client error']
     end
 
-    include_examples 'gem-specific error tracking', ['mock_gem/client'], ['mock_gem client error']
-    include_examples 'gem-specific error tracking', ['mock_gem'], ['mock_gem client error', 'mock_gem utils error']
+    context "when instrumenting ['mock_gem']" do
+      include_examples 'error tracking behavior', nil, ['mock_gem'], ['mock_gem client error', 'mock_gem utils error']
+    end
   end
 end
