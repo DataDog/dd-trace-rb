@@ -129,7 +129,6 @@ static VALUE perform_export(
   ddog_Timespec finish,
   ddog_prof_Exporter_Slice_File files_to_compress_and_export,
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
-  ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
   ddog_CharSlice info
 ) {
@@ -140,7 +139,7 @@ static VALUE perform_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    additional_tags,
+    /* optional_additional_tags: */ NULL,
     endpoints_stats,
     &internal_metadata,
     &info
@@ -224,6 +223,7 @@ static VALUE _native_do_export(
   ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
 
@@ -263,7 +263,6 @@ static VALUE _native_do_export(
     };
   }
 
-  ddog_Vec_Tag *null_additional_tags = NULL;
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
   ddog_CharSlice info = char_slice_from_ruby_string(info_json);
 
@@ -288,7 +287,6 @@ static VALUE _native_do_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    null_additional_tags,
     internal_metadata,
     info
   );
