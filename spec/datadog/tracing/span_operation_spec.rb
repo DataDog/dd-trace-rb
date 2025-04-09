@@ -997,82 +997,77 @@ RSpec.describe Datadog::Tracing::SpanOperation do
   end
 
   describe '#record_exception' do
-    subject(:record_exception) do
+    let(:error) { StandardError.new('test error').tap { |e| e.set_backtrace(['this is a backtrace']) } }
+
+    it 'creates a span event' do
       begin
         raise error
       rescue => e
-        @error_object = Datadog::Core::Error.build_from(e)
-        span_op.record_exception(
-          e,
-          attributes: attributes,
-          timestamp: timestamp,
-          escaped: escaped
-        )
+        span_op.record_exception(e)
       end
-    end
-
-    let(:error) { StandardError.new('test error') }
-    let(:attributes) { nil }
-    let(:timestamp) { nil }
-    let(:escaped) { false }
-    let(:error_object) { @error_object }
-
-    it 'creates a span event with exception details' do
-      record_exception
 
       expect(span_op.span_events.last).to have_attributes(
         name: 'exception',
         attributes: {
-          'exception.type' => error_object.type,
-          'exception.message' => error_object.message,
-          'exception.stacktrace' => error_object.backtrace,
-          'escaped' => false
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
         }
       )
     end
 
-    context 'when escaped is true' do
-      let(:escaped) { true }
-
-      it 'sets error tags on the span' do
-        record_exception
-
-        expect(span_op.status).to eq(Datadog::Tracing::Metadata::Ext::Errors::STATUS)
-        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_TYPE)).to eq(error_object.type)
-        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_MSG)).to eq(error_object.message)
-        expect(span_op.get_tag(Datadog::Tracing::Metadata::Ext::Errors::TAG_STACK)).to eq(error_object.backtrace)
+    it 'provides custom attributes' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(e, attributes: { custom_attr: 'value' })
       end
+
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'custom_attr' => 'value'
+        }
+      )
     end
 
-    context 'with custom attributes' do
-      let(:attributes) { { custom_attr: 'value' } }
-
-      it 'merges custom attributes with exception details' do
-        record_exception
-
-        expect(span_op.span_events.last).to have_attributes(
-          name: 'exception',
+    it 'supports non-primitive types in user-supplied attributes' do
+      begin
+        raise error
+      rescue => e
+        span_op.record_exception(
+          e,
           attributes: {
-            'exception.type' => error_object.type,
-            'exception.message' => error_object.message,
-            'exception.stacktrace' => error_object.backtrace,
-            'escaped' => false,
-            'custom_attr' => 'value'
+            array_attr: [1, 2, 3],
+            str_attr: 'value',
+            int_attr: 0,
+            bool_attr: false,
+            hash_attr: { key: 'value', nested: { foo: 'bar' } },
+            symbol_attr: :symbol_value,
+            time_attr: Time.new(2023, 1, 1, 12, 0, 0),
+            nil_attr: nil
           }
         )
       end
-    end
 
-    context 'with custom timestamp' do
-      let(:timestamp) { 1234567890 }
-
-      it 'uses the provided timestamp' do
-        record_exception
-
-        expect(span_op.span_events.last).to have_attributes(
-          time_unix_nano: 1234567890
-        )
-      end
+      expect(span_op.span_events.last).to have_attributes(
+        name: 'exception',
+        attributes: {
+          'exception.type' => 'StandardError',
+          'exception.message' => 'test error',
+          'exception.stacktrace' => 'this is a backtrace: test error (StandardError)
+',
+          'array_attr' => [1, 2, 3],
+          'str_attr' => 'value',
+          'int_attr' => 0,
+          'bool_attr' => false,
+        }
+      )
     end
   end
 end

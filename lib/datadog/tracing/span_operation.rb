@@ -280,39 +280,28 @@ module Datadog
 
       # Record an exception during the execution of this span. Multiple exceptions
       # can be recorded on a span.
-      # If escaped is true, it will set the span error tags
       #
-      # @param [Exception] exception The exception to recorded
+      # @param [Exception] exception The exception to record
       # @param [optional Hash{String => String, Numeric, Boolean, Array<String, Numeric, Boolean>}]
       #   attributes One or more key:value pairs, where the keys must be
       #   strings and the values may be (array of) string, boolean or numeric
       #   type.
-      # @param [optional Integer] timestamp Time when the exception was raised, in nanoseconds since epoch
-      # @param [optional Boolean] escaped Whether the exception escaped the scope of the span
       #
       # @return [void]
-      def record_exception(exception, attributes: nil, timestamp: nil, escaped: false)
+      def record_exception(exception, attributes: {})
         exc = Core::Error.build_from(exception)
 
-        exc_type = exc.type
-        exc_msg = exc.message
-        exc_stacktrace = exc.backtrace
-
-        set_error(exc) if escaped
-
-        attrs = {
-          'exception.type' => exc_type,
-          'exception.message' => exc_msg,
-          'exception.stacktrace' => exc_stacktrace,
-          'escaped' => escaped
+        event_attributes = {
+          :"exception.type" => exc.type,
+          :"exception.message" => exc.message,
+          :"exception.stacktrace" => exc.backtrace,
         }
 
-        attrs.merge!(attributes) if attributes
+        event_attributes.merge!(attributes)
 
         span_event = SpanEvent.new(
           'exception',
-          attributes: attrs,
-          time_unix_nano: timestamp || (Time.now.to_r * 1_000_000_000).to_i
+          attributes: event_attributes,
         )
         @span_events << span_event
       end

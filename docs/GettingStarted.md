@@ -282,25 +282,27 @@ end
 You can tag additional information to the current active span from any method. Note however that if the method is called and there is no span currently active `active_span` will be nil.
 
 ```ruby
-# e.g. adding tag to active span
+# Example:  adding tag to active span
 
 current_span = Datadog::Tracing.active_span
 current_span.set_tag('my_tag', 'my_value') unless current_span.nil?
 ```
 
-You can record an exception in the current span. It will add the recorded exception as a span event. If you also want to set the span error tags, you should set `escaped` to true.
+You can record an exception in the current span. It adds the recorded exception as a span event.
 ```ruby
-# e.g. recording an exception in the active span
-rescue StandardError => e
+# Example: recording an exception in the active span
+rescue => e
   current_span = Datadog::Tracing.active_span
-  current_span.record_exception(e, attributes={"foo":"bar"}, escaped=False)
+  if !current_span.nil?
+    current_span.record_exception(e, attributes: { foo: "bar" })
+  end
 end
 ```
 
 You can also get the current active trace using the `active_trace` method. This method will return `nil` if there is no active trace.
 
 ```ruby
-# e.g. accessing active trace
+# Example: accessing active trace
 
 current_trace = Datadog::Tracing.active_trace
 ```
