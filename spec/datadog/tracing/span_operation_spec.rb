@@ -64,16 +64,16 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         callback_spy.before_start(*args)
       end
 
+      # on_error
+      # wrap_default
       allow(callback_spy).to receive(:wrap_default)
       events.on_error.wrap_default do |*args|
-        puts 'wra default'
         callback_spy.wrap_default(*args)
       end
 
-      # on_error
+      # subscribe
       allow(callback_spy).to receive(:on_error)
       events.on_error.subscribe do |*args|
-        puts 'hello'
         callback_spy.on_error(*args)
       end
     end
