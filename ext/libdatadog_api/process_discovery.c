@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <ruby.h>
 #include <datadog/common.h>
 
