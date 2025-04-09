@@ -1,15 +1,15 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'zlib'
-
 require_relative 'rate_limiter'
-require_relative '../core/utils/base64'
+require_relative 'compressed_json'
 
 module Datadog
   module AppSec
     # AppSec event
     module Event
+      DERIVATIVE_SCHEMA_KEY_PREFIX = '_dd.appsec.s.'
+      DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE = 25000
       ALLOWED_REQUEST_HEADERS = %w[
         X-Forwarded-For
         X-Client-IP
@@ -37,11 +37,6 @@ module Datadog
         Content-Encoding
         Content-Language
       ].map!(&:downcase).freeze
-
-      MAX_ENCODED_SCHEMA_SIZE = 25000
-      # For more information about this number
-      # please check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747221082
-      MIN_SCHEMA_SIZE_FOR_COMPRESSION = 260
 
       # Record events for a trace
       #
@@ -80,7 +75,6 @@ module Datadog
           end
         end
 
-        # rubocop:disable Metrics/MethodLength
         def build_service_entry_tags(event_group)
           waf_events = []
           entry_tags = event_group.each_with_object({ '_dd.origin' => 'appsec' }) do |event, tags|
@@ -106,26 +100,17 @@ module Datadog
             waf_events += waf_result.events
 
             waf_result.derivatives.each do |key, value|
-              parsed_value = json_parse(value)
-              next unless parsed_value
+              next tags[key] = value unless key.start_with?(DERIVATIVE_SCHEMA_KEY_PREFIX)
 
-              parsed_value_size = parsed_value.size
+              value = CompressedJson.dump(value)
+              next if value.nil?
 
-              schema_value = if parsed_value_size >= MIN_SCHEMA_SIZE_FOR_COMPRESSION
-                               compressed_and_base64_encoded(parsed_value)
-                             else
-                               parsed_value
-                             end
-              next unless schema_value
-
-              if schema_value.size >= MAX_ENCODED_SCHEMA_SIZE
-                Datadog.logger.debug do
-                  "Schema key: #{key} exceeds the max size value. It will not be included as part of the span tags"
-                end
+              if value.size >= DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE
+                Datadog.logger.debug { "AppSec: Schema key '#{key}' will not be included into span tags due to it's size" }
                 next
               end
 
-              tags[key] = schema_value
+              tags[key] = value
             end
 
             tags
@@ -135,7 +120,6 @@ module Datadog
           entry_tags['_dd.appsec.json'] = appsec_events if appsec_events
           entry_tags
         end
-        # rubocop:enable Metrics/MethodLength
 
         def tag_and_keep!(context, waf_result)
           # We want to keep the trace in case of security event
@@ -151,31 +135,13 @@ module Datadog
 
         private
 
-        def compressed_and_base64_encoded(value)
-          Datadog::Core::Utils::Base64.strict_encode64(gzip(value))
-        rescue TypeError => e
-          Datadog.logger.debug do
-            "Failed to compress and encode value when populating AppSec::Event. Error: #{e.message}"
-          end
-          nil
-        end
-
         def json_parse(value)
           JSON.dump(value)
-        rescue ArgumentError => e
+        rescue ArgumentError, JSON::JSONError => e
           Datadog.logger.debug do
             "Failed to parse value to JSON when populating AppSec::Event. Error: #{e.message}"
           end
           nil
-        end
-
-        def gzip(value)
-          sio = StringIO.new
-          # For an in depth comparison of Zlib options check https://github.com/DataDog/dd-trace-rb/pull/3177#issuecomment-1747215473
-          gz = Zlib::GzipWriter.new(sio, Zlib::BEST_SPEED, Zlib::DEFAULT_STRATEGY)
-          gz.write(value)
-          gz.close
-          sio.string
         end
 
         # Propagate to downstream services the information that the current distributed trace is

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'datadog/appsec/spec_helper'
 require 'datadog/appsec/event'
 
@@ -209,7 +211,7 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'JSON payload' do
           it 'uses JSON string when do not exceeds MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 3000)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 3000)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to eq('[{"host":[8],"version":[8]}]')
@@ -218,13 +220,10 @@ RSpec.describe Datadog::AppSec::Event do
 
         context 'Compressed payload' do
           it 'uses compressed value when JSON string is bigger than MIN_SCHEMA_SIZE_FOR_COMPRESSION' do
-            result = 'H4sIAOYoHGUAA4aphwAAAA='
-            stub_const('Datadog::AppSec::Event::MIN_SCHEMA_SIZE_FOR_COMPRESSION', 1)
-            expect(described_class).to receive(:compressed_and_base64_encoded).and_return(result)
+            stub_const('Datadog::AppSec::CompressedJson::MIN_SIZE_FOR_COMPRESSION', 1)
+            allow(Datadog::AppSec::CompressedJson).to receive(:dump).and_return('H4sIAOYoHGUAA4aphwAAAA=')
 
-            meta = top_level_span.meta
-
-            expect(meta['_dd.appsec.s.req.headers']).to eq(result)
+            expect(top_level_span.meta['_dd.appsec.s.req.headers']).to eq('H4sIAOYoHGUAA4aphwAAAA=')
           end
 
           context 'with big derivatives' do
@@ -267,16 +266,14 @@ RSpec.describe Datadog::AppSec::Event do
             end
 
             it 'has no newlines when encoded' do
-              meta = top_level_span.meta
-
-              expect(meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
+              expect(top_level_span.meta['_dd.appsec.s.req.headers']).to_not match(/\n/)
             end
           end
         end
 
-        context 'derivative values exceed Event::MAX_ENCODED_SCHEMA_SIZE value' do
+        context 'derivative values exceed Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE value' do
           it 'do not add derivative key to meta' do
-            stub_const('Datadog::AppSec::Event::MAX_ENCODED_SCHEMA_SIZE', 1)
+            stub_const('Datadog::AppSec::Event::DERIVATIVE_SCHEMA_MAX_COMPRESSED_SIZE', 1)
             meta = top_level_span.meta
 
             expect(meta['_dd.appsec.s.req.headers']).to be_nil
