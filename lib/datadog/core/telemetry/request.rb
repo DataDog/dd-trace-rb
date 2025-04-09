@@ -21,7 +21,7 @@ module Datadog
               request_type: event.type,
               runtime_id: Core::Environment::Identity.id,
               seq_id: seq_id,
-              tracer_time: Time.now.to_i,
+              tracer_time: Core::Utils::Time.now.to_i,
             }
             hash.compact!
             hash
