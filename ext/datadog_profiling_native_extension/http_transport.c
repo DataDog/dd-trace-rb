@@ -4,6 +4,7 @@
 #include "helpers.h"
 #include "libdatadog_helpers.h"
 #include "ruby_helpers.h"
+#include "encoded_profile.h"
 
 // Used to report profiling data to Datadog.
 // This file implements the native bits of the Datadog::Profiling::HttpTransport class
@@ -33,8 +34,7 @@ static VALUE _native_do_export(
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
   VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
+  VALUE encoded_profile,
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
   VALUE tags_as_array,
@@ -48,7 +48,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 13);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -218,8 +218,7 @@ static VALUE _native_do_export(
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
   VALUE finish_timespec_nanoseconds,
-  VALUE pprof_file_name,
-  VALUE pprof_data,
+  VALUE encoded_profile,
   VALUE code_provenance_file_name,
   VALUE code_provenance_data,
   VALUE tags_as_array,
@@ -231,8 +230,7 @@ static VALUE _native_do_export(
   ENFORCE_TYPE(start_timespec_nanoseconds, T_FIXNUM);
   ENFORCE_TYPE(finish_timespec_seconds, T_FIXNUM);
   ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
-  ENFORCE_TYPE(pprof_file_name, T_STRING);
-  ENFORCE_TYPE(pprof_data, T_STRING);
+  enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
@@ -255,6 +253,11 @@ static VALUE _native_do_export(
 
   ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
   ddog_prof_Exporter_Slice_File files_to_export_unmodified = {.ptr = already_compressed, .len = already_compressed_length};
+
+  // TODO: Hardcoding the file name will go away with libdatadog 17
+  VALUE pprof_file_name = rb_str_new_cstr("rubyprofile.pprof");
+  VALUE pprof_data = rb_funcall(encoded_profile, rb_intern("_native_bytes"), 0);
+  ENFORCE_TYPE(pprof_data, T_STRING);
 
   already_compressed[0] = (ddog_prof_Exporter_File) {
     .name = char_slice_from_ruby_string(pprof_file_name),

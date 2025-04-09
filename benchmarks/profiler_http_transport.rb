@@ -41,8 +41,7 @@ class ProfilerHttpTransportBenchmark
     @flush = Datadog::Profiling::Flush.new(
       start: flush_finish - 60,
       finish: flush_finish,
-      pprof_file_name: 'example_pprof_file_name.pprof',
-      pprof_data: '', # Random.new(0).bytes(32_000),
+      encoded_profile: Datadog::Profiling::StackRecorder.for_testing.serialize!,
       code_provenance_file_name: 'example_code_provenance_file_name.json',
       code_provenance_data: '', # Random.new(1).bytes(4_000),
       tags_as_array: [],

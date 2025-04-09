@@ -11,7 +11,6 @@ for file in \
   `dirname "$0"`/profiler_allocation.rb \
   `dirname "$0"`/profiler_gc.rb \
   `dirname "$0"`/profiler_hold_resume_interruptions.rb \
-  `dirname "$0"`/profiler_http_transport.rb \
   `dirname "$0"`/profiler_memory_sample_serialize.rb \
   `dirname "$0"`/profiler_sample_loop_v2.rb \
   `dirname "$0"`/profiler_sample_serialize.rb \

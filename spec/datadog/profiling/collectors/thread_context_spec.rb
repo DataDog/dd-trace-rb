@@ -3,10 +3,12 @@ require "datadog/profiling/collectors/thread_context"
 
 RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   before do
+    @clean_threads_required = false
     skip_if_profiling_not_supported(self)
 
+    @clean_threads_required = true
     [t1, t2, t3].each { ready_queue.pop }
-    expect(Thread.list).to include(Thread.main, t1, t2, t3)
+    expect(Thread.list).to include(t1, t2, t3)
   end
 
   let(:recorder) do
@@ -60,9 +62,11 @@ RSpec.describe Datadog::Profiling::Collectors::ThreadContext do
   end
 
   after do
-    [t1, t2, t3].each do |thread|
-      thread.kill
-      thread.join
+    if @clean_threads_required
+      [t1, t2, t3].each do |thread|
+        thread.kill
+        thread.join
+      end
     end
   end
 

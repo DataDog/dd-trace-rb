@@ -379,8 +379,10 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
       end
 
       after do
-        background_thread.kill
-        background_thread.join
+        unless RSpec.current_example.skipped?
+          background_thread.kill
+          background_thread.join
+        end
       end
 
       it "is able to sample even when the main thread is sleeping" do
@@ -1552,8 +1554,8 @@ RSpec.describe Datadog::Profiling::Collectors::CpuAndWallTimeWorker do
   # and profiler overhead samples is a source of randomness which causes flakiness in the assertions.
   #
   # We have separate specs that assert on these behaviors.
-  def samples_from_pprof_without_gc_and_overhead(pprof_data)
-    samples_from_pprof(pprof_data)
+  def samples_from_pprof_without_gc_and_overhead(encoded_profile)
+    samples_from_pprof(encoded_profile)
       .reject { |it| it.locations.first.path == "Garbage Collection" }
       .reject { |it| it.labels.include?(:"profiler overhead") }
   end

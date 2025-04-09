@@ -8,6 +8,7 @@
 #include "ruby_helpers.h"
 #include "time_helpers.h"
 #include "heap_recorder.h"
+#include "encoded_profile.h"
 
 // Used to wrap a ddog_prof_Profile in a Ruby object and expose Ruby-level serialization APIs
 // This file implements the native bits of the Datadog::Profiling::StackRecorder class
@@ -564,18 +565,17 @@ static VALUE _native_serialize(DDTRACE_UNUSED VALUE _self, VALUE recorder_instan
 
   state->stats_lifetime.serialization_successes++;
 
-  VALUE encoded_pprof = ruby_string_from_vec_u8(serialized_profile.ok.buffer);
+  // Once we wrap this into a Ruby object, our `EncodedProfile` class will automatically manage memory for it
+  VALUE encoded_profile = from_ddog_prof_EncodedProfile(serialized_profile.ok);
 
   ddog_Timespec ddprof_start = serialized_profile.ok.start;
   ddog_Timespec ddprof_finish = serialized_profile.ok.end;
-
-  ddog_prof_EncodedProfile_drop(&serialized_profile.ok);
 
   VALUE start = ruby_time_from(ddprof_start);
   VALUE finish = ruby_time_from(ddprof_finish);
   VALUE profile_stats = build_profile_stats(args.slot, serialization_time_ns, heap_iteration_prep_time_ns, args.heap_profile_build_time_ns);
 
-  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_pprof, profile_stats));
+  return rb_ary_new_from_args(2, ok_symbol, rb_ary_new_from_args(4, start, finish, encoded_profile, profile_stats));
 }
 
 static VALUE ruby_time_from(ddog_Timespec ddprof_time) {
@@ -780,7 +780,7 @@ static void *call_serialize_without_gvl(void *call_args) {
 }
 
 VALUE enforce_recorder_instance(VALUE object) {
-  Check_TypedStruct(object, &stack_recorder_typed_data);
+  ENFORCE_TYPED_DATA(object, &stack_recorder_typed_data);
   return object;
 }
 

@@ -27,6 +27,9 @@
 #define ENFORCE_BOOLEAN(value) \
   { if (RB_UNLIKELY(value != Qtrue && value != Qfalse)) raise_unexpected_type(value, ADD_QUOTES(value), "true or false", __FILE__, __LINE__, __func__); }
 
+#define ENFORCE_TYPED_DATA(value, type) \
+  { if (RB_UNLIKELY(!rb_typeddata_is_kind_of(value, type))) raise_unexpected_type(value, ADD_QUOTES(value), "TypedData of type " ADD_QUOTES(type), __FILE__, __LINE__, __func__); }
+
 NORETURN(void raise_unexpected_type(VALUE value, const char *value_name, const char *type_name, const char *file, int line, const char* function_name));
 
 // Helper to retrieve Datadog::VERSION::STRING
