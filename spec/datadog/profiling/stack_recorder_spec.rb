@@ -854,10 +854,11 @@ RSpec.describe Datadog::Profiling::StackRecorder do
       let(:encoded_profile) { instance_double(Datadog::Profiling::EncodedProfile, _native_bytes: "serialized-data") }
 
       before do
-        expect(described_class).to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
+        expect(described_class)
+          .to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
       end
 
-      it { is_expected.to eq("serialized-data") }
+      it { is_expected.to be encoded_profile }
     end
 
     context "when serialization fails" do

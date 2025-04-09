@@ -62,3 +62,8 @@ static VALUE _native_bytes(VALUE self) {
 
   return rb_str_new((const char *) raw_bytes.ok.ptr, raw_bytes.ok.len);*/
 }
+
+VALUE enforce_encoded_profile_instance(VALUE object) {
+  Check_TypedStruct(object, &encoded_profile_typed_data);
+  return object;
+}

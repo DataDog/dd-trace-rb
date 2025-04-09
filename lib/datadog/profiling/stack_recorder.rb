@@ -67,7 +67,7 @@ module Datadog
 
           Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601}" }
 
-          [start, finish, encoded_profile._native_bytes, profile_stats]
+          [start, finish, encoded_profile, profile_stats]
         else
           error_message = result
 
@@ -84,7 +84,7 @@ module Datadog
         if status == :ok
           _start, _finish, encoded_profile = result
 
-          encoded_profile._native_bytes
+          encoded_profile
         else
           error_message = result
 

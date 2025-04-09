@@ -48,8 +48,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     Datadog::Profiling::Flush.new(
       start: start,
       finish: finish,
-      pprof_file_name: pprof_file_name,
-      pprof_data: pprof_data,
+      encoded_profile: encoded_profile,
       code_provenance_file_name: code_provenance_file_name,
       code_provenance_data: code_provenance_data,
       tags_as_array: tags_as_array,
@@ -61,8 +60,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
   let(:end_timestamp) { "2023-11-11T16:00:00.123456789Z" }
   let(:start) { Time.iso8601(start_timestamp) }
   let(:finish) { Time.iso8601(end_timestamp) }
-  let(:pprof_file_name) { "the_pprof_file_name.pprof" }
-  let(:pprof_data) { "the_pprof_data" }
+  let(:encoded_profile) { Datadog::Profiling::StackRecorder.for_testing.serialize! }
+  let(:pprof_file_name) { "rubyprofile.pprof" }
   let(:code_provenance_file_name) { "the_code_provenance_file_name.json" }
   let(:code_provenance_data) { "the_code_provenance_data" }
   let(:tags_as_array) { [%w[tag_a value_a], %w[tag_b value_b]] }
@@ -204,8 +203,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         start_timespec_nanoseconds,
         finish_timespec_seconds,
         finish_timespec_nanoseconds,
-        pprof_file_name,
-        pprof_data,
+        encoded_profile,
         code_provenance_file_name,
         code_provenance_data,
         tags_as_array,
@@ -339,6 +337,8 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:hostname) { "127.0.0.1" }
     let(:port) { server[:Port] }
 
+    let!(:encoded_profile_bytes) { encoded_profile._native_bytes }
+
     shared_examples "correctly reports profiling data" do
       it "correctly reports profiling data" do
         success = http_transport.export(flush)
@@ -378,7 +378,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
         body = WEBrick::HTTPUtils.parse_form_data(StringIO.new(request.body), boundary)
 
         # The pprof data is compressed in the datadog serializer, nothing to do
-        expect(body.fetch(pprof_file_name)).to eq pprof_data
+        expect(body.fetch(pprof_file_name)).to eq encoded_profile_bytes
         # This one needs to be compressed
         expect(LZ4.decode(body.fetch(code_provenance_file_name))).to eq code_provenance_data
       end
