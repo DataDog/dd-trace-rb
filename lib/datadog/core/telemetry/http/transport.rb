@@ -5,7 +5,7 @@ require_relative '../../environment/ext'
 require_relative '../../transport/ext'
 require_relative 'env'
 require_relative 'ext'
-require_relative 'adapters/net'
+require_relative '../../transport/http/adapters/net'
 
 module Datadog
   module Core
@@ -81,7 +81,16 @@ module Datadog
           end
 
           def adapter
-            @adapter ||= Http::Adapters::Net.new(hostname: @host, port: @port, ssl: @ssl)
+            @adapter ||= begin
+              agent_settings = Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+                adapter: Core::Configuration::Ext::Agent::HTTP::ADAPTER,
+                ssl: @ssl,
+                hostname: @host,
+                port: @port,
+                # TODO get timeout_seconds from somewhere
+              )
+              Core::Transport::HTTP::Adapters::Net.new(agent_settings)
+            end
           end
         end
       end
