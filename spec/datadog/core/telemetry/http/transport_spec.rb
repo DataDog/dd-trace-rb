@@ -58,7 +58,7 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
     subject(:request) { transport.request(request_type: request_type, payload: payload) }
 
     let(:adapter) { instance_double(Datadog::Core::Transport::HTTP::Adapters::Net, post: response) }
-    let(:env) { instance_double(Datadog::Core::Telemetry::Http::Env, body: payload, path: path) }
+    let(:env) { instance_double(Datadog::Core::Transport::HTTP::Env, body: payload, path: path) }
     let(:headers) do
       {
         'Content-Type' => 'application/json',
@@ -82,7 +82,7 @@ RSpec.describe Datadog::Core::Telemetry::Http::Transport do
       Datadog.configuration.agent.host = hostname
       Datadog.configuration.agent.port = port
 
-      allow(Datadog::Core::Telemetry::Http::Env).to receive(:new).and_return(env)
+      allow(Datadog::Core::Transport::HTTP::Env).to receive(:new).and_return(env)
       allow(env).to receive(:path=).with(path)
       allow(env).to receive(:body=).with(payload)
       allow(env).to receive(:headers=).with(headers)
