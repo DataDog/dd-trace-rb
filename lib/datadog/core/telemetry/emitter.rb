@@ -25,7 +25,7 @@ module Datadog
         def request(event)
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
-          res = @http_transport.request(request_type: event.type, payload: payload.to_json)
+          res = @http_transport.send_telemetry(request_type: event.type, payload: payload.to_json)
           Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response: #{res})" }
           res
         rescue => e
