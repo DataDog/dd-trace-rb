@@ -292,9 +292,9 @@ module Datadog
         exc = Core::Error.build_from(exception)
 
         event_attributes = {
-          :"exception.type" => exc.type,
-          :"exception.message" => exc.message,
-          :"exception.stacktrace" => exc.backtrace,
+          'exception.type' => exc.type,
+          'exception.message' => exc.message,
+          'exception.stacktrace' => exc.backtrace,
         }
 
         event_attributes.merge!(attributes)
