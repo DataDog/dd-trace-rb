@@ -2,6 +2,14 @@
 #include "datadog_ruby_common.h"
 #include "collector.h"
 
+// A collector in charge of storing the span_event for every span
+//
+// We do not add directly the span_events to the span for deduplication purpose
+// The collector is also responsible of suscribing the on_finish/on_error events.
+// NOTE: We subscribe to the events here as it is simpler to know when this
+//       the first time we record a handled error for a span
+
+// symbols used within the file
 static ID at_id_id;
 static ID at_add_span_event_id;
 static ID at_values_id;
@@ -23,18 +31,25 @@ static void initialize_constants_collector(void) {
 }
 
 void collector_init(VALUE errortracking_module) {
+  // Define Collector class
   VALUE collector_class = rb_define_class_under(errortracking_module, "Collector", rb_cObject);
   rb_define_method(collector_class, "add_span_event", add_span_event, 3);
   rb_define_method(collector_class, "get_span_events", get_span_events, 1);
   rb_define_private_method(collector_class, "_clear_span", _clear_span, 1);
   rb_define_method(collector_class, "initialize", initialize, 0);
+
+  // Storage is a Hash<span_id[int], Hash<Error, SpanEvent>>
   rb_define_attr(collector_class, "storage", 1, 1);
+
+  // Blocks to execute on on_finish/on_error event.
   rb_define_attr(collector_class, "after_stop_block", 1, 1);
   rb_define_attr(collector_class, "on_error_block", 1, 1);
+
   initialize_constants_collector();
 }
 
 static VALUE after_stop_callback(VALUE span, VALUE self) {
+  // This function will add all the span_events to the span
   VALUE span_id = rb_funcall(span, at_id_id, 0);
   VALUE span_events = get_span_events(self, span_id);
   if (!NIL_P(span_events)) {
@@ -48,6 +63,7 @@ static VALUE after_stop_callback(VALUE span, VALUE self) {
 }
 
 static VALUE on_error_callback(DDTRACE_UNUSED VALUE _yielded_arg, DDTRACE_UNUSED VALUE _self, int argc, const VALUE *argv) {
+  // When an error escapes a span, the tracer will
   if (argc == 2) {
     VALUE span_op = argv[0];
     VALUE span_events = rb_funcall(span_op, at_span_events_id, 0);
@@ -89,6 +105,7 @@ VALUE add_span_event(VALUE self, VALUE active_span, VALUE error, VALUE span_even
   VALUE span_id = rb_funcall(active_span, at_id_id, 0);
   VALUE error_map = rb_hash_lookup(storage, span_id);
 
+  printf("adding a span event\n");
   if (NIL_P(error_map)) {
     error_map = rb_hash_new();
     rb_hash_aset(storage, span_id, error_map);
