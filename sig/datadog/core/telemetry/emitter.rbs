@@ -8,7 +8,7 @@ module Datadog
 
         extend Core::Utils::Forking
         def initialize: (http_transport: Datadog::Core::Telemetry::Http::Transport) -> void
-        def request: (Datadog::Core::Telemetry::Event::Base event) -> (Datadog::Core::Telemetry::Http::Adapters::Net::Response | Datadog::Core::Telemetry::Http::InternalErrorResponse)
+        def request: (Datadog::Core::Telemetry::Event::Base event) -> (Datadog::Core::Transport::HTTP::Adapters::Net::Response | Datadog::Core::Transport::InternalErrorResponse)
         def self.sequence: () -> Datadog::Core::Utils::Sequence
       end
     end
