@@ -2,6 +2,7 @@ require 'spec_helper'
 
 require 'datadog/core/telemetry/worker'
 require 'datadog/core/transport/http/adapters/net'
+require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Worker do
   subject(:worker) do
@@ -265,7 +266,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
       end
 
       context 'when internal error returned by emitter' do
-        let(:response) { Datadog::Core::Telemetry::Http::InternalErrorResponse.new('error') }
+        let(:response) { Datadog::Core::Transport::InternalErrorResponse.new('error') }
 
         it 'does not send heartbeat event' do
           worker.start
