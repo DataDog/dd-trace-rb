@@ -19,6 +19,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :sidekiq
 
+          def self.gems
+            ['sidekiq']
+          end
+
+          def self.gem_load_paths
+            ['sidekiq']
+          end
+
           def self.version
             Gem.loaded_specs['sidekiq'] && Gem.loaded_specs['sidekiq'].version
           end

@@ -78,4 +78,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Integration do
 
     it { is_expected.to be_a_kind_of(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver) }
   end
+
+  it_behaves_like 'a contrib integration'
 end

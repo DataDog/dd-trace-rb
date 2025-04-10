@@ -17,6 +17,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :delayed_job
 
+          def self.gems
+            ['delayed_job']
+          end
+
+          def self.gem_load_paths
+            ['delayed_job']
+          end
+
           def self.version
             Gem.loaded_specs['delayed_job'] && Gem.loaded_specs['delayed_job'].version
           end

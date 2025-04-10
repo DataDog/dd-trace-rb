@@ -99,4 +99,6 @@ RSpec.describe Datadog::Tracing::Contrib::Dalli::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Dalli::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end
