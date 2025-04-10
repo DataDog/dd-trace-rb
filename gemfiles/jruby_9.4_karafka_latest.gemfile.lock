@@ -4,7 +4,7 @@ PATH
     datadog (2.14.0)
       datadog-ruby_core_source (~> 3.4)
       libdatadog (~> 16.0.1.1.0)
-      libddwaf (~> 1.21.0.0.1)
+      libddwaf (~> 1.22.0.0.1)
       logger
       msgpack
 
@@ -46,7 +46,7 @@ GEM
       mini_portile2 (~> 2.6)
       rake (> 12)
     libdatadog (16.0.1.1.0)
-    libddwaf (1.21.0.0.1-java)
+    libddwaf (1.22.0.0.1-java)
       ffi (~> 1.0)
     logger (1.7.0)
     memory_profiler (0.9.14)
