@@ -45,16 +45,10 @@ module Datadog
                           dd_site: settings.site,
                           url_override: settings.telemetry.agentless_url_override,
               )
-                        Datadog::Core::Telemetry::Http::Transport.build_agentless_transport(
-                          api_key: settings.api_key,
-                          dd_site: settings.site,
-                          url_override: settings.telemetry.agentless_url_override
-                        )
                       else
               Telemetry::Transport::HTTP.agent_telemetry(
                 agent_settings: agent_settings, logger: logger,
               )
-                        Datadog::Core::Telemetry::Http::Transport.build_agent_transport(agent_settings)
                       end
             end
 
