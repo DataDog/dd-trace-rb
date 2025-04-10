@@ -184,6 +184,39 @@ module Datadog
                 super(operation, key, polyfill_options)
               end
             end
+
+            # Save the original, user-supplied cache key, before it gets normalized.
+            #
+            # Normalized keys can include internal implementation detail,
+            # for example FileStore keys include temp directory names, which
+            # changes on every run, making it impossible to group by the cache key afterward.
+            # Also, the user is never exposed to the normalized key, and only sets/gets using the
+            # original key.
+            module PreserveOriginalKey
+              # Stores the original keys in the options hash, as an array of keys.
+              # It's important to keep all the keys for multi-key operations.
+              # For single-key operations, the key is stored as an array of a single element.
+              def normalize_key(key, options)
+                orig_keys = options[:dd_original_keys] || []
+                orig_keys << key
+                options[:dd_original_keys] = orig_keys
+
+                super
+              end
+
+              # Ensure we don't pollute the default Store instance `options` in {PreserveOriginalKey#normalize_key}.
+              # In most cases, `merged_options` returns a new hash,
+              # but we check for cases where it reuses the instance hash.
+              def merged_options(call_options)
+                ret = super
+
+                if ret.equal?(options)
+                  ret.dup
+                else
+                  ret
+                end
+              end
+            end
           end
         end
       end
