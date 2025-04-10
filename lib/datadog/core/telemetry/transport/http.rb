@@ -1,57 +1,56 @@
 # frozen_string_literal: true
 
-require 'uri'
-
 require_relative 'telemetry'
 require_relative 'http/api'
-require_relative '../../core/transport/http'
-require_relative '../../../datadog/version'
+require_relative '../../transport/http'
 
 module Datadog
-  module DI
-    module Transport
-      # Namespace for HTTP transport components
-      module HTTP
-        module_function
+  module Core
+    module Telemetry
+      module Transport
+        # Namespace for HTTP transport components
+        module HTTP
+          module_function
 
-        # Builds a new Transport::HTTP::Client with default settings
-        # Pass a block to override any settings.
-        def diagnostics(
-          agent_settings:,
-          logger:,
-          api_version: nil,
-          headers: nil
-        )
-          Core::Transport::HTTP.build(api_instance_class: Diagnostics::API::Instance,
-            logger: logger,
-            agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
-            apis = API.defaults
+          # Builds a new Transport::HTTP::Client with default settings
+          # Pass a block to override any settings.
+          def agentless_telemetry(
+            agent_settings:,
+            logger:,
+            api_version: nil,
+            headers: nil
+          )
+            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+              logger: logger,
+              agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
+              apis = API.defaults
 
-            transport.api API::DIAGNOSTICS, apis[API::DIAGNOSTICS]
+              transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
 
-            # Call block to apply any customization, if provided
-            yield(transport) if block_given?
-          end.to_transport(DI::Transport::Diagnostics::Transport)
-        end
+              # Call block to apply any customization, if provided
+              yield(transport) if block_given?
+            end.to_transport(Telemetry::Transport::Telemetry::Transport)
+          end
 
-        # Builds a new Transport::HTTP::Client with default settings
-        # Pass a block to override any settings.
-        def input(
-          agent_settings:,
-          logger:,
-          api_version: nil,
-          headers: nil
-        )
-          Core::Transport::HTTP.build(api_instance_class: Input::API::Instance,
-            logger: logger,
-            agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
-            apis = API.defaults
+          # Builds a new Transport::HTTP::Client with default settings
+          # Pass a block to override any settings.
+          def agent_telemetry(
+            agent_settings:,
+            logger:,
+            api_version: nil,
+            headers: nil
+          )
+            Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
+              logger: logger,
+              agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
+              apis = API.defaults
 
-            transport.api API::INPUT, apis[API::INPUT]
+              transport.api API::AGENT_TELEMETRY, apis[API::AGENT_TELEMETRY]
 
-            # Call block to apply any customization, if provided
-            yield(transport) if block_given?
-          end.to_transport(DI::Transport::Input::Transport)
+              # Call block to apply any customization, if provided
+              yield(transport) if block_given?
+            end.to_transport(Telemetry::Transport::Telemetry::Transport)
+          end
         end
       end
     end

@@ -35,15 +35,28 @@ module Datadog
             logger.debug { 'Telemetry disabled. Agentless telemetry requires an DD_API_KEY variable to be set.' }
           end
 
-          transport = if agentless_enabled
+          transport = if enabled
+            if agentless_enabled
+              agent_settings = Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+              )
+              Telemetry::Transport::HTTP.agentless_telemetry(
+                agent_settings: agent_settings, logger: logger,
+                          api_key: settings.api_key,
+                          dd_site: settings.site,
+                          url_override: settings.telemetry.agentless_url_override,
+              )
                         Datadog::Core::Telemetry::Http::Transport.build_agentless_transport(
                           api_key: settings.api_key,
                           dd_site: settings.site,
                           url_override: settings.telemetry.agentless_url_override
                         )
                       else
+              Telemetry::Transport::HTTP.agent_telemetry(
+                agent_settings: agent_settings, logger: logger,
+              )
                         Datadog::Core::Telemetry::Http::Transport.build_agent_transport(agent_settings)
                       end
+            end
 
           Telemetry::Component.new(
             http_transport: transport,
