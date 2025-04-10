@@ -1,6 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/worker'
+require 'datadog/core/transport/http/adapters/net'
 
 RSpec.describe Datadog::Core::Telemetry::Worker do
   subject(:worker) do
@@ -26,7 +27,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
   let(:backend_supports_telemetry?) { true }
   let(:response) do
     double(
-      Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+      Datadog::Core::Transport::HTTP::Adapters::Net::Response,
       not_found?: !backend_supports_telemetry?,
       ok?: backend_supports_telemetry?
     )
@@ -126,7 +127,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
               .and_return(
                 double(
-                  Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+                  Datadog::Core::Transport::HTTP::Adapters::Net::Response,
                   not_found?: false,
                   ok?: false
                 )
@@ -162,7 +163,7 @@ RSpec.describe Datadog::Core::Telemetry::Worker do
             expect(emitter).to receive(:request).with(an_instance_of(Datadog::Core::Telemetry::Event::AppStarted))
               .and_return(
                 double(
-                  Datadog::Core::Telemetry::Http::Adapters::Net::Response,
+                  Datadog::Core::Transport::HTTP::Adapters::Net::Response,
                   not_found?: false,
                   ok?: false
                 )
