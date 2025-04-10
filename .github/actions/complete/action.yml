@@ -1,0 +1,20 @@
+name: 'Ensure complete'
+
+description: 'Ensure complete for GitHub Actions'
+
+inputs:
+  needs:
+    description: 'JSON of needs context from workflow'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Check if any needs jobs failed or were skipped
+      shell: bash
+      env:
+        NEEDS: ${{ inputs.needs }}
+      run: ruby ${GITHUB_WORKSPACE}/.github/scripts/check_completion.rb "$NEEDS"
+    - name: Done
+      shell: bash
+      run: echo "DONE!"

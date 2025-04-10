@@ -1,7 +1,7 @@
 name: Publish gem
 
 # TODO: Implement a dry-run mode to verify the checks without publishing
-on: workflow_dispatch # yamllint disable-line rule:truthy
+on: workflow_dispatch
 
 concurrency: "rubygems" # Only one publish job at a time
 
