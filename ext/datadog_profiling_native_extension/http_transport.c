@@ -30,16 +30,11 @@ static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
+  VALUE flush,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE encoded_profile,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data,
-  VALUE tags_as_array,
-  VALUE internal_metadata_json,
-  VALUE info_json
+  VALUE finish_timespec_nanoseconds
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
@@ -48,7 +43,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 12);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 7);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -84,22 +79,17 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_working_mode, T_SYMBOL);
   ID working_mode = SYM2ID(exporter_working_mode);
 
-  ID agentless_id = rb_intern("agentless");
-  ID agent_id = rb_intern("agent");
-
-  if (working_mode != agentless_id && working_mode != agent_id) {
-    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
-  }
-
-  if (working_mode == agentless_id) {
+  if (working_mode == rb_intern("agentless")) {
     VALUE site = rb_ary_entry(exporter_configuration, 1);
     VALUE api_key = rb_ary_entry(exporter_configuration, 2);
 
     return ddog_prof_Endpoint_agentless(char_slice_from_ruby_string(site), char_slice_from_ruby_string(api_key));
-  } else { // agent_id
+  } else if (working_mode == rb_intern("agent")) {
     VALUE base_url = rb_ary_entry(exporter_configuration, 1);
 
     return ddog_prof_Endpoint_agent(char_slice_from_ruby_string(base_url));
+  } else {
+    rb_raise(rb_eArgError, "Failed to initialize transport: Unexpected working mode, expected :agentless or :agent");
   }
 }
 
@@ -139,7 +129,6 @@ static VALUE perform_export(
   ddog_Timespec finish,
   ddog_prof_Exporter_Slice_File files_to_compress_and_export,
   ddog_prof_Exporter_Slice_File files_to_export_unmodified,
-  ddog_Vec_Tag *additional_tags,
   ddog_CharSlice internal_metadata,
   ddog_CharSlice info
 ) {
@@ -150,7 +139,7 @@ static VALUE perform_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    additional_tags,
+    /* optional_additional_tags: */ NULL,
     endpoints_stats,
     &internal_metadata,
     &info
@@ -214,17 +203,19 @@ static VALUE _native_do_export(
   DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
+  VALUE flush,
   VALUE start_timespec_seconds,
   VALUE start_timespec_nanoseconds,
   VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds,
-  VALUE encoded_profile,
-  VALUE code_provenance_file_name,
-  VALUE code_provenance_data,
-  VALUE tags_as_array,
-  VALUE internal_metadata_json,
-  VALUE info_json
+  VALUE finish_timespec_nanoseconds
 ) {
+  VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
+  VALUE code_provenance_file_name = rb_funcall(flush, rb_intern("code_provenance_file_name"), 0);
+  VALUE code_provenance_data = rb_funcall(flush, rb_intern("code_provenance_data"), 0);
+  VALUE tags_as_array = rb_funcall(flush, rb_intern("tags_as_array"), 0);
+  VALUE internal_metadata_json = rb_funcall(flush, rb_intern("internal_metadata_json"), 0);
+  VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
+
   ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
   ENFORCE_TYPE(start_timespec_seconds, T_FIXNUM);
   ENFORCE_TYPE(start_timespec_nanoseconds, T_FIXNUM);
@@ -232,6 +223,7 @@ static VALUE _native_do_export(
   ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
+  ENFORCE_TYPE(tags_as_array, T_ARRAY);
   ENFORCE_TYPE(internal_metadata_json, T_STRING);
   ENFORCE_TYPE(info_json, T_STRING);
 
@@ -271,7 +263,6 @@ static VALUE _native_do_export(
     };
   }
 
-  ddog_Vec_Tag *null_additional_tags = NULL;
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
   ddog_CharSlice info = char_slice_from_ruby_string(info_json);
 
@@ -296,7 +287,6 @@ static VALUE _native_do_export(
     finish,
     files_to_compress_and_export,
     files_to_export_unmodified,
-    null_additional_tags,
     internal_metadata,
     info
   );

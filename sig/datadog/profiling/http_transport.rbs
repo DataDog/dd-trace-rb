@@ -21,38 +21,16 @@ module Datadog
 
       def agentless?: (::String? site, ::String? api_key) -> bool
 
-      def validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
-
       def self._native_validate_exporter: (exporter_configuration_array exporter_configuration) -> [:ok | :error, ::String?]
-
-      def do_export: (
-        exporter_configuration: exporter_configuration_array,
-        upload_timeout_milliseconds: ::Integer,
-        start_timespec_seconds: ::Integer,
-        start_timespec_nanoseconds: ::Integer,
-        finish_timespec_seconds: ::Integer,
-        finish_timespec_nanoseconds: ::Integer,
-        encoded_profile: Datadog::Profiling::EncodedProfile,
-        code_provenance_file_name: ::String,
-        code_provenance_data: ::String?,
-        tags_as_array: Array[[::String, ::String]],
-        internal_metadata_json: ::String,
-        info_json: ::String,
-      ) -> [:ok | :error, ::Integer | ::String]
 
       def self._native_do_export: (
         exporter_configuration_array exporter_configuration,
         ::Integer upload_timeout_milliseconds,
+        Datadog::Profiling::Flush flush,
         ::Integer start_timespec_seconds,
         ::Integer start_timespec_nanoseconds,
         ::Integer finish_timespec_seconds,
         ::Integer finish_timespec_nanoseconds,
-        Datadog::Profiling::EncodedProfile encoded_profile,
-        ::String code_provenance_file_name,
-        ::String? code_provenance_data,
-        Array[[::String, ::String]] tags_as_array,
-        ::String internal_metadata_json,
-        ::String info_json,
       ) -> [:ok | :error, ::Integer | ::String]
 
       def config_without_api_key: () -> ::String
