@@ -1,7 +1,7 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/emitter'
-require 'datadog/core/telemetry/http/response'
+require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(http_transport: http_transport) }
@@ -70,7 +70,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         context 'when call is not successful and debug logging is enabled' do
           let(:response) do
-            Datadog::Core::Telemetry::Http::InternalErrorResponse.new(StandardError.new('Failed call'))
+            Datadog::Core::Transport::InternalErrorResponse.new(StandardError.new('Failed call'))
           end
 
           it 'logs the request correctly' do
