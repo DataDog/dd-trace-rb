@@ -297,7 +297,7 @@ static void otel_without_ddtrace_trace_identifiers_for(
 static otel_span otel_span_from(VALUE otel_context, VALUE otel_current_span_key);
 static uint64_t otel_span_id_to_uint(VALUE otel_span_id);
 static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE key);
-static VALUE _native_reset_monotonic_to_system_state(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
+static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance);
 
 void collectors_thread_context_init(VALUE profiling_module) {
   VALUE collectors_module = rb_define_module_under(profiling_module, "Collectors");
@@ -329,7 +329,7 @@ void collectors_thread_context_init(VALUE profiling_module) {
   rb_define_singleton_method(testing_module, "_native_gc_tracking", _native_gc_tracking, 1);
   rb_define_singleton_method(testing_module, "_native_new_empty_thread", _native_new_empty_thread, 0);
   rb_define_singleton_method(testing_module, "_native_sample_skipped_allocation_samples", _native_sample_skipped_allocation_samples, 2);
-  rb_define_singleton_method(testing_module, "_native_reset_monotonic_to_system_state", _native_reset_monotonic_to_system_state, 1);
+  rb_define_singleton_method(testing_module, "_native_system_epoch_time_now_ns", _native_system_epoch_time_now_ns, 1);
   #ifndef NO_GVL_INSTRUMENTATION
     rb_define_singleton_method(testing_module, "_native_on_gvl_waiting", _native_on_gvl_waiting, 1);
     rb_define_singleton_method(testing_module, "_native_gvl_waiting_at_for", _native_gvl_waiting_at_for, 1);
@@ -2160,11 +2160,12 @@ static VALUE safely_lookup_hash_without_going_into_ruby_code(VALUE hash, VALUE k
   return state.result;
 }
 
-static VALUE _native_reset_monotonic_to_system_state(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
+static VALUE _native_system_epoch_time_now_ns(DDTRACE_UNUSED VALUE self, VALUE collector_instance) {
   thread_context_collector_state *state;
   TypedData_Get_Struct(collector_instance, thread_context_collector_state, &thread_context_collector_typed_data, state);
 
-  state->time_converter_state = (monotonic_to_system_epoch_state) MONOTONIC_TO_SYSTEM_EPOCH_INITIALIZER;
+  long current_monotonic_wall_time_ns = monotonic_wall_time_now_ns(RAISE_ON_FAILURE);
+  long system_epoch_time_ns = monotonic_to_system_epoch_ns(&state->time_converter_state, current_monotonic_wall_time_ns);
 
-  return Qtrue;
+  return LONG2NUM(system_epoch_time_ns);
 }
