@@ -27,6 +27,7 @@ RSpec.describe Datadog::AppSec::Component do
 
         it 'returns a Datadog::AppSec::Component instance with a nil processor' do
           expect(Datadog.logger).to receive(:warn)
+          expect(telemetry).to receive(:report)
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
@@ -38,9 +39,10 @@ RSpec.describe Datadog::AppSec::Component do
 
         it 'returns a Datadog::AppSec::Component instance with a nil processor and does not warn' do
           expect(Datadog.logger).not_to receive(:warn)
+          expect(telemetry).not_to receive(:report)
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
-          expect(component).to be_nil
+          expect(component.processor).to be_a(Datadog::AppSec::Processor)
         end
       end
 
