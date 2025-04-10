@@ -86,7 +86,7 @@ module Datadog
                 ssl: @ssl,
                 hostname: @host,
                 port: @port,
-                # TODO get timeout_seconds from somewhere
+                # TODO: get timeout_seconds from somewhere
               )
               Core::Transport::HTTP::Adapters::Net.new(agent_settings)
             end
