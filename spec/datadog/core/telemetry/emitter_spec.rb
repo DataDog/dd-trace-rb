@@ -1,16 +1,17 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/emitter'
+require 'datadog/core/telemetry/transport/http'
 require 'datadog/core/transport/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(http_transport: http_transport) }
-  let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
+  let(:http_transport) { double(Datadog::Core::Telemetry::Transport::HTTP::Client) }
   let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
 
   before do
-    allow(http_transport).to receive(:request).and_return(response)
+    allow(http_transport).to receive(:send_telemetry).and_return(response)
     emitter.class.sequence.reset!
   end
 
@@ -97,7 +98,7 @@ RSpec.describe Datadog::Core::Telemetry::Emitter do
 
         request
 
-        expect(http_transport).to have_received(:request).with(request_type: request_type, payload: '{"foo":"bar"}')
+        expect(http_transport).to have_received(:send_telemetry).with(request_type: request_type, payload: '{"foo":"bar"}')
       end
     end
   end
