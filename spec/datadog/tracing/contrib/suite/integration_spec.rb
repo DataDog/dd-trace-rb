@@ -143,20 +143,7 @@ RSpec.describe 'contrib integration testing', :integration do
 
       context 'for tracing_header_tags' do
         let(:tracing_header_tags) { [{ 'header' => 'test-header', 'tag_name' => '' }] }
-        let(:port) { @port }
-        let!(:rack) do
-          started = false
-          server = WEBrick::HTTPServer.new(
-            Port: 0,
-            StartCallback: lambda {
-              started = true
-            },
-            Logger: WEBrick::Log.new(StringIO.new)
-          )
-
-          # Find resolved local port
-          @port = server.config[:Port]
-
+        http_server do |http_server|
           app = Rack::Builder.new do
             use Datadog::Tracing::Contrib::Rack::TraceMiddleware
             map '/' do
@@ -165,29 +152,34 @@ RSpec.describe 'contrib integration testing', :integration do
           end.to_app
 
           if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
-            server.mount '/', Rackup::Handler::WEBrick, app
+            http_server.mount '/', Rackup::Handler::WEBrick, app
           else
-            server.mount '/', Rack::Handler::WEBrick, app
+            http_server.mount '/', Rack::Handler::WEBrick, app
           end
-
-          @thread = Thread.new { server.start }
-          try_wait_until { started }
-
-          server
+        end
+        let(:http_server_options) do
+          {
+            Logger: log,
+            AccessLog: access_log,
+          }
+        end
+        let(:log_buffer) do
+          StringIO.new # set to $stderr to debug
+        end
+        let(:log) do
+          WEBrick::Log.new(log_buffer, WEBrick::Log::DEBUG)
+        end
+        let(:access_log) do
+          [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
         end
 
-        let(:uri) { URI("http://localhost:#{port}/") }
+        let(:uri) { URI("http://localhost:#{http_server_port}/") }
         let(:request) { Net::HTTP::Get.new(uri, { 'test-header' => 'test-request' }) }
 
         before do
           Datadog.configure do |c|
             c.tracing.instrument :http
           end
-        end
-
-        after do
-          rack.shutdown
-          @thread.kill
         end
 
         it 'changes the HTTP header tagging for span' do
