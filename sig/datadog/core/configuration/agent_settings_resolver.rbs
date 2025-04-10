@@ -3,7 +3,7 @@ module Datadog
     module Configuration
       class AgentSettingsResolver
         class AgentSettings
-          def initialize: (adapter: untyped, ssl: untyped, hostname: untyped, port: untyped, uds_path: untyped, timeout_seconds: untyped) -> void
+          def initialize: (?adapter: untyped, ?ssl: untyped, ?hostname: untyped, ?port: untyped, ?uds_path: untyped, ?timeout_seconds: untyped) -> void
 
           attr_reader adapter: untyped
           attr_reader ssl: untyped
