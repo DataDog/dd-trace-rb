@@ -3,7 +3,6 @@
 require_relative '../../configuration/settings'
 require_relative '../../environment/ext'
 require_relative '../../transport/ext'
-require_relative 'env'
 require_relative 'ext'
 require_relative '../../transport/http/adapters/net'
 
@@ -53,7 +52,7 @@ module Datadog
           end
 
           def request(request_type:, payload:)
-            env = Http::Env.new
+            env = Core::Transport::HTTP::Env.new(Core::Transport::Request.new)
             env.path = @path
             env.body = payload
             env.headers = headers(request_type: request_type)
