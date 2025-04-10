@@ -1,11 +1,12 @@
 require 'spec_helper'
 
 require 'datadog/core/telemetry/emitter'
+require 'datadog/core/telemetry/http/response'
 
 RSpec.describe Datadog::Core::Telemetry::Emitter do
   subject(:emitter) { described_class.new(http_transport: http_transport) }
   let(:http_transport) { double(Datadog::Core::Telemetry::Http::Transport) }
-  let(:response) { double(Datadog::Core::Telemetry::Http::Adapters::Net::Response) }
+  let(:response) { double(Datadog::Core::Transport::HTTP::Adapters::Net::Response) }
   let(:response_ok) { true }
 
   before do
