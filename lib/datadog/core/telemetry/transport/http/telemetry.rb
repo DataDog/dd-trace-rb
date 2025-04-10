@@ -39,23 +39,24 @@ module Datadog
                 end
               end
 
-            class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
-              HEADER_CONTENT_TYPE = 'Content-Type'
+              class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
+                HEADER_CONTENT_TYPE = 'Content-Type'
 
-              attr_reader \
-                :encoder
+                attr_reader \
+                  :encoder
 
-              def initialize(path, encoder)
-                super(:post, path)
-                @encoder = encoder
-              end
+                def initialize(path, encoder)
+                  super(:post, path)
+                  @encoder = encoder
+                end
 
-              def call(env, &block)
-                # Encode body & type
-                env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
-                env.body = env.request.parcel.data
+                def call(env, &block)
+                  # Encode body & type
+                  env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
+                  env.body = env.request.parcel.data
 
-                super
+                  super
+                end
               end
             end
           end
