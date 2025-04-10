@@ -293,7 +293,7 @@ You can record an exception in the current span. It adds the recorded exception 
 # Example: recording an exception in the active span
 rescue => e
   current_span = Datadog::Tracing.active_span
-  if !current_span.nil?
+  if current_span
     current_span.record_exception(e, attributes: { foo: "bar" })
   end
 end
