@@ -15,26 +15,22 @@ static VALUE error_symbol = Qnil; // :error in Ruby
 static VALUE library_version_string = Qnil;
 
 typedef struct {
-  ddog_prof_Exporter *exporter;
-  ddog_prof_Exporter_Request_BuildResult *build_result;
+  ddog_prof_ProfileExporter *exporter;
+  ddog_prof_Request_Result *build_result;
   ddog_CancellationToken *cancel_token;
-  ddog_prof_Exporter_SendResult result;
+  ddog_prof_Result_HttpStatus result;
   bool send_ran;
 } call_exporter_without_gvl_arguments;
 
 static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string);
 static VALUE _native_validate_exporter(VALUE self, VALUE exporter_configuration);
-static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
-static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result);
+static ddog_prof_ProfileExporter_Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array);
+static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_result);
 static VALUE _native_do_export(
   VALUE self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
-  VALUE flush,
-  VALUE start_timespec_seconds,
-  VALUE start_timespec_nanoseconds,
-  VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds
+  VALUE flush
 );
 static void *call_exporter_without_gvl(void *call_args);
 static void interrupt_exporter_call(void *cancel_token);
@@ -43,7 +39,7 @@ void http_transport_init(VALUE profiling_module) {
   VALUE http_transport_class = rb_define_class_under(profiling_module, "HttpTransport", rb_cObject);
 
   rb_define_singleton_method(http_transport_class, "_native_validate_exporter",  _native_validate_exporter, 1);
-  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 7);
+  rb_define_singleton_method(http_transport_class, "_native_do_export",  _native_do_export, 3);
 
   ok_symbol = ID2SYM(rb_intern_const("ok"));
   error_symbol = ID2SYM(rb_intern_const("error"));
@@ -60,14 +56,14 @@ static inline ddog_ByteSlice byte_slice_from_ruby_string(VALUE string) {
 
 static VALUE _native_validate_exporter(DDTRACE_UNUSED VALUE _self, VALUE exporter_configuration) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
-  ddog_prof_Exporter_NewResult exporter_result = create_exporter(exporter_configuration, rb_ary_new());
+  ddog_prof_ProfileExporter_Result exporter_result = create_exporter(exporter_configuration, rb_ary_new());
 
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
   // We don't actually need the exporter for now -- we just wanted to validate that we could create it with the
   // settings we were given
-  ddog_prof_Exporter_drop(exporter_result.ok);
+  ddog_prof_Exporter_drop(&exporter_result.ok);
 
   return rb_ary_new_from_args(2, ok_symbol, Qnil);
 }
@@ -93,7 +89,7 @@ static ddog_prof_Endpoint endpoint_from(VALUE exporter_configuration) {
   }
 }
 
-static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
+static ddog_prof_ProfileExporter_Result create_exporter(VALUE exporter_configuration, VALUE tags_as_array) {
   ENFORCE_TYPE(exporter_configuration, T_ARRAY);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
 
@@ -107,7 +103,7 @@ static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration
   ddog_CharSlice library_version = char_slice_from_ruby_string(library_version_string);
   ddog_CharSlice profiling_family = DDOG_CHARSLICE_C("ruby");
 
-  ddog_prof_Exporter_NewResult exporter_result =
+  ddog_prof_ProfileExporter_Result exporter_result =
     ddog_prof_Exporter_new(library_name, library_version, profiling_family, &tags, endpoint);
 
   ddog_Vec_Tag_drop(tags);
@@ -115,8 +111,8 @@ static ddog_prof_Exporter_NewResult create_exporter(VALUE exporter_configuration
   return exporter_result;
 }
 
-static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_result) {
-  return exporter_result.tag == DDOG_PROF_EXPORTER_NEW_RESULT_OK ?
+static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_result) {
+  return exporter_result.tag == DDOG_PROF_PROFILE_EXPORTER_RESULT_OK_HANDLE_PROFILE_EXPORTER ?
     Qnil :
     rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&exporter_result.err));
 }
@@ -124,28 +120,23 @@ static VALUE handle_exporter_failure(ddog_prof_Exporter_NewResult exporter_resul
 // Note: This function handles a bunch of libdatadog dynamically-allocated objects, so it MUST not use any Ruby APIs
 // which can raise exceptions, otherwise the objects will be leaked.
 static VALUE perform_export(
-  ddog_prof_Exporter *exporter,
-  ddog_Timespec start,
-  ddog_Timespec finish,
+  ddog_prof_ProfileExporter *exporter,
+  ddog_prof_EncodedProfile *profile,
   ddog_prof_Exporter_Slice_File files_to_compress_and_export,
-  ddog_prof_Exporter_Slice_File files_to_export_unmodified,
   ddog_CharSlice internal_metadata,
   ddog_CharSlice info
 ) {
-  ddog_prof_ProfiledEndpointsStats *endpoints_stats = NULL; // Not in use yet
-  ddog_prof_Exporter_Request_BuildResult build_result = ddog_prof_Exporter_Request_build(
+  ddog_prof_Request_Result build_result = ddog_prof_Exporter_Request_build(
     exporter,
-    start,
-    finish,
+    profile,
     files_to_compress_and_export,
-    files_to_export_unmodified,
+    /* files_to_export_unmodified: */ ddog_prof_Exporter_Slice_File_empty(),
     /* optional_additional_tags: */ NULL,
-    endpoints_stats,
     &internal_metadata,
     &info
   );
 
-  if (build_result.tag == DDOG_PROF_EXPORTER_REQUEST_BUILD_RESULT_ERR) {
+  if (build_result.tag == DDOG_PROF_REQUEST_RESULT_ERR_HANDLE_REQUEST) {
     ddog_prof_Exporter_drop(exporter);
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&build_result.err));
   }
@@ -192,10 +183,10 @@ static VALUE perform_export(
 
   // The request itself does not need to be freed as libdatadog takes ownership of it as part of sending.
 
-  ddog_prof_Exporter_SendResult result = args.result;
+  ddog_prof_Result_HttpStatus result = args.result;
 
-  return result.tag == DDOG_PROF_EXPORTER_SEND_RESULT_HTTP_RESPONSE ?
-    rb_ary_new_from_args(2, ok_symbol, UINT2NUM(result.http_response.code)) :
+  return result.tag == DDOG_PROF_RESULT_HTTP_STATUS_OK_HTTP_STATUS ?
+    rb_ary_new_from_args(2, ok_symbol, UINT2NUM(result.ok.code)) :
     rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&result.err));
 }
 
@@ -203,11 +194,7 @@ static VALUE _native_do_export(
   DDTRACE_UNUSED VALUE _self,
   VALUE exporter_configuration,
   VALUE upload_timeout_milliseconds,
-  VALUE flush,
-  VALUE start_timespec_seconds,
-  VALUE start_timespec_nanoseconds,
-  VALUE finish_timespec_seconds,
-  VALUE finish_timespec_nanoseconds
+  VALUE flush
 ) {
   VALUE encoded_profile = rb_funcall(flush, rb_intern("encoded_profile"), 0);
   VALUE code_provenance_file_name = rb_funcall(flush, rb_intern("code_provenance_file_name"), 0);
@@ -217,10 +204,6 @@ static VALUE _native_do_export(
   VALUE info_json = rb_funcall(flush, rb_intern("info_json"), 0);
 
   ENFORCE_TYPE(upload_timeout_milliseconds, T_FIXNUM);
-  ENFORCE_TYPE(start_timespec_seconds, T_FIXNUM);
-  ENFORCE_TYPE(start_timespec_nanoseconds, T_FIXNUM);
-  ENFORCE_TYPE(finish_timespec_seconds, T_FIXNUM);
-  ENFORCE_TYPE(finish_timespec_nanoseconds, T_FIXNUM);
   enforce_encoded_profile_instance(encoded_profile);
   ENFORCE_TYPE(code_provenance_file_name, T_STRING);
   ENFORCE_TYPE(tags_as_array, T_ARRAY);
@@ -233,28 +216,9 @@ static VALUE _native_do_export(
 
   uint64_t timeout_milliseconds = NUM2ULONG(upload_timeout_milliseconds);
 
-  ddog_Timespec start =
-    {.seconds = NUM2LONG(start_timespec_seconds), .nanoseconds = NUM2UINT(start_timespec_nanoseconds)};
-  ddog_Timespec finish =
-    {.seconds = NUM2LONG(finish_timespec_seconds), .nanoseconds = NUM2UINT(finish_timespec_nanoseconds)};
-
   int to_compress_length = have_code_provenance ? 1 : 0;
   ddog_prof_Exporter_File to_compress[to_compress_length];
-  int already_compressed_length = 1; // pprof
-  ddog_prof_Exporter_File already_compressed[already_compressed_length];
-
   ddog_prof_Exporter_Slice_File files_to_compress_and_export = {.ptr = to_compress, .len = to_compress_length};
-  ddog_prof_Exporter_Slice_File files_to_export_unmodified = {.ptr = already_compressed, .len = already_compressed_length};
-
-  // TODO: Hardcoding the file name will go away with libdatadog 17
-  VALUE pprof_file_name = rb_str_new_cstr("rubyprofile.pprof");
-  VALUE pprof_data = rb_funcall(encoded_profile, rb_intern("_native_bytes"), 0);
-  ENFORCE_TYPE(pprof_data, T_STRING);
-
-  already_compressed[0] = (ddog_prof_Exporter_File) {
-    .name = char_slice_from_ruby_string(pprof_file_name),
-    .file = byte_slice_from_ruby_string(pprof_data),
-  };
 
   if (have_code_provenance) {
     to_compress[0] = (ddog_prof_Exporter_File) {
@@ -266,27 +230,25 @@ static VALUE _native_do_export(
   ddog_CharSlice internal_metadata = char_slice_from_ruby_string(internal_metadata_json);
   ddog_CharSlice info = char_slice_from_ruby_string(info_json);
 
-  ddog_prof_Exporter_NewResult exporter_result = create_exporter(exporter_configuration, tags_as_array);
+  ddog_prof_ProfileExporter_Result exporter_result = create_exporter(exporter_configuration, tags_as_array);
   // Note: Do not add anything that can raise exceptions after this line, as otherwise the exporter memory will leak
 
   VALUE failure_tuple = handle_exporter_failure(exporter_result);
   if (!NIL_P(failure_tuple)) return failure_tuple;
 
-  ddog_prof_MaybeError timeout_result = ddog_prof_Exporter_set_timeout(exporter_result.ok, timeout_milliseconds);
-  if (timeout_result.tag == DDOG_PROF_OPTION_ERROR_SOME_ERROR) {
+  ddog_VoidResult timeout_result = ddog_prof_Exporter_set_timeout(&exporter_result.ok, timeout_milliseconds);
+  if (timeout_result.tag == DDOG_VOID_RESULT_ERR) {
     // NOTE: Seems a bit harsh to fail the upload if we can't set a timeout. OTOH, this is only expected to fail
     // if the exporter is not well built. Because such a situation should already be caught above I think it's
     // preferable to leave this here as a virtually unreachable exception rather than ignoring it.
-    ddog_prof_Exporter_drop(exporter_result.ok);
-    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&timeout_result.some));
+    ddog_prof_Exporter_drop(&exporter_result.ok);
+    return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&timeout_result.err));
   }
 
   return perform_export(
-    exporter_result.ok,
-    start,
-    finish,
+    &exporter_result.ok,
+    to_ddog_prof_EncodedProfile(encoded_profile),
     files_to_compress_and_export,
-    files_to_export_unmodified,
     internal_metadata,
     info
   );
