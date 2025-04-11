@@ -37,7 +37,7 @@ RSpec.describe Datadog::AppSec::Component do
       context 'when ffi is not loaded' do
         before { allow(Gem).to receive(:loaded_specs).and_return({}) }
 
-        it 'returns a Datadog::AppSec::Component instance with a nil processor and does not warn' do
+        it 'returns a Datadog::AppSec::Component with a processor instance and does not warn' do
           expect(Datadog.logger).not_to receive(:warn)
           expect(telemetry).not_to receive(:report)
 
