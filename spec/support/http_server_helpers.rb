@@ -45,7 +45,7 @@ module HttpServerHelpers
       around do |example|
         @server_thread = Thread.new do
           http_server.start
-        rescue Exception
+        rescue Exception # rubocop:disable Lint/RescueException
           http_server_init_signal.push(1)
           raise
         end
