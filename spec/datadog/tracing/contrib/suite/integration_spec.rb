@@ -157,21 +157,6 @@ RSpec.describe 'contrib integration testing', :integration do
             http_server.mount '/', Rack::Handler::WEBrick, app
           end
         end
-        let(:http_server_options) do
-          {
-            Logger: log,
-            AccessLog: access_log,
-          }
-        end
-        let(:log_buffer) do
-          StringIO.new # set to $stderr to debug
-        end
-        let(:log) do
-          WEBrick::Log.new(log_buffer, WEBrick::Log::DEBUG)
-        end
-        let(:access_log) do
-          [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
-        end
 
         let(:uri) { URI("http://localhost:#{http_server_port}/") }
         let(:request) { Net::HTTP::Get.new(uri, { 'test-header' => 'test-request' }) }

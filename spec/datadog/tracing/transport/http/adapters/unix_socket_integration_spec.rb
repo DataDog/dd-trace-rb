@@ -24,21 +24,6 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
     http_server do |http_server|
       http_server.mount_proc('/', &server_proc)
     end
-    let(:http_server_options) do
-      {
-        Logger: log,
-        AccessLog: access_log,
-      }
-    end
-    let(:log_buffer) do
-      StringIO.new # set to $stderr to debug
-    end
-    let(:log) do
-      WEBrick::Log.new(log_buffer, WEBrick::Log::DEBUG)
-    end
-    let(:access_log) do
-      [[log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
-    end
     let(:server_proc) do
       proc do |req, res|
         messages << req
