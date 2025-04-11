@@ -42,7 +42,7 @@ RSpec.describe 'Adapters::UnixSocket integration tests' do
       @unix_server_thread = Thread.start do
         begin
           sock = server.accept
-          # TODO webrick supports UDS listener to replace this manual code
+          # TODO: webrick supports UDS listener to replace this manual code
           http_server.run(sock)
         rescue => e
           puts "UNIX server error!: #{e}"
