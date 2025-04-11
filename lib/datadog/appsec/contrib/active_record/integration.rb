@@ -13,7 +13,7 @@ module Datadog
 
           MINIMUM_VERSION = Gem::Version.new('4')
 
-          register_as :active_record, auto_patch: false
+          register_as :active_record, auto_patch: true
 
           def self.version
             Gem.loaded_specs['activerecord'] && Gem.loaded_specs['activerecord'].version
