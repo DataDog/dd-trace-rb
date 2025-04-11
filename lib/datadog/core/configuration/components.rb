@@ -124,9 +124,7 @@ module Datadog
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery._native_store_tracer_metadata(
-            **Core::ProcessDiscovery.get_metadata(settings)
-          )
+          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings)
 
           self.class.configure_tracing(settings)
         end
