@@ -1293,9 +1293,10 @@ client.cluster.health
 | Key            | Env Var                            | Type     | Description                                                                                                                                                                                    | Default      |
 | -------------- | ---------------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
 | `enabled` | `DD_TRACE_OPENSEARCH_ENABLED` | `Bool` | Whether the integration should create spans. | `true` |
-| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details](#additional-configuration) | `opensearch` |
-| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of external service the application connects to                                                                                                                                           | `nil`        |
-| `quantize`     |                                    | `Hash`   | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize (or `:all` to skip quantization), or `:exclude` with Array of keys to exclude entirely.    | `{}`         |
+| `service_name` | `DD_TRACE_OPENSEARCH_SERVICE_NAME` | `String` | Name of the application running the `opensearch` instrumentation. May be overridden by `global_default_service_name`. [See _Additional Configuration_ for more details.](#additional-configuration) | `opensearch` |
+| `peer_service` | `DD_TRACE_OPENSEARCH_PEER_SERVICE` | `String` | Name of the external service that the application connects to. | `nil` |
+| `resource_pattern` | `DD_TRACE_OPENSEARCH_RESOURCE_PATTERN` | `String` | `absolute` or `relative` depending on whether the resource name should be set to the full or relative URL path. | `absolute` |
+| `quantize` |  | `Hash` | Hash containing options for quantization. May include `:show` with an Array of keys to not quantize, `:all` to skip quantization, or `:exclude` with an Array of keys to exclude entirely. | `{}` |
 
 ### Postgres
 

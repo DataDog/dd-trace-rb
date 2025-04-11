@@ -79,7 +79,7 @@ module Datadog
 
           # @return [String] current time in ISO8601 format
           def date
-            Time.now.utc.iso8601
+            Core::Utils::Time.now.utc.iso8601
           end
 
           # Best portable guess of OS information.

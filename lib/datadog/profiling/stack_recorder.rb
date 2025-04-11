@@ -63,11 +63,11 @@ module Datadog
         status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
 
         if status == :ok
-          start, finish, encoded_pprof, profile_stats = result
+          start, finish, encoded_profile, profile_stats = result
 
           Datadog.logger.debug { "Encoded profile covering #{start.iso8601} to #{finish.iso8601}" }
 
-          [start, finish, encoded_pprof, profile_stats]
+          [start, finish, encoded_profile, profile_stats]
         else
           error_message = result
 
@@ -82,9 +82,9 @@ module Datadog
         status, result = @no_concurrent_synchronize_mutex.synchronize { self.class._native_serialize(self) }
 
         if status == :ok
-          _start, _finish, encoded_pprof = result
+          _start, _finish, encoded_profile = result
 
-          encoded_pprof
+          encoded_profile
         else
           error_message = result
 
