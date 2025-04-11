@@ -22,7 +22,7 @@ permissions: {}
 env:
   REGISTRY: ghcr.io
   REPO: ghcr.io/datadog/dd-trace-rb
-  SYSTEM_TESTS_REF: main
+  SYSTEM_TESTS_REF: ruby-appsec-enable-ssrf-tests
 
 jobs:
   changes:
