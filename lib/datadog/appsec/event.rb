@@ -142,7 +142,10 @@ module Datadog
           context.trace.keep! if context.trace
 
           if context.span
-            context.span.set_tag('appsec.blocked', 'true') if waf_result.actions.key?('block_request')
+            if waf_result.actions.key?('block_request') || waf_result.actions.key?('redirect_request')
+              context.span.set_tag('appsec.blocked', 'true')
+            end
+
             context.span.set_tag('appsec.event', 'true')
           end
 
