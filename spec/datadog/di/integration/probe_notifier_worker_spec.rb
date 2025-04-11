@@ -1,6 +1,5 @@
 require "datadog/di/spec_helper"
 require 'datadog/di'
-require 'webrick'
 
 # standard tries to wreck regular expressions in this fiel
 # rubocop:disable Style/PercentLiteralDelimiters
@@ -23,7 +22,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
   let(:settings) do
     Datadog::Core::Configuration::Settings.new.tap do |settings|
       settings.agent.host = 'localhost'
-      settings.agent.port = test_port
+      settings.agent.port = http_server_port
       settings.agent.use_ssl = false
       settings.agent.timeout_seconds = 1
     end
@@ -31,47 +30,24 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
 
   let(:agent_settings) { Datadog::Core::Configuration::AgentSettingsResolver.call(settings, logger: nil) }
 
-  let(:test_port) { 48485 }
-
   di_logger_double
 
   let(:diagnostics_payloads) { [] }
   let(:input_payloads) { [] }
 
-  let(:server) do
-    WEBrick::HTTPServer.new(
-      Port: test_port,
-    ).tap do |server|
-      @received_snapshot_count = 0
-      @received_snapshot_bytes = 0
+  http_server do |http_server|
+    @received_snapshot_count = 0
+    @received_snapshot_bytes = 0
 
-      server.mount_proc('/debugger/v1/diagnostics') do |req, res|
-        # This request is a multipart form post
-        expect(req.content_type).to match(%r,^multipart/form-data;,)
-        diagnostics_payloads << req.body
-      end
+    http_server.mount_proc('/debugger/v1/diagnostics') do |req, res|
+      # This request is a multipart form post
+      expect(req.content_type).to match(%r,^multipart/form-data;,)
+      diagnostics_payloads << req.body
+    end
 
-      server.mount_proc('/debugger/v1/input') do |req, res|
-        payload = JSON.parse(req.body)
-        input_payloads << payload
-      end
-    end
-  end
-
-  around do |example|
-    @server_thread = Thread.new do
-      server.start
-    end
-    loop do
-      break if server.status == :Running || !@server_thread.alive?
-      sleep 0.5
-    end
-    expect(@server_thread).to be_alive
-    example.run
-    @server_thread.kill
-    loop do
-      break unless @server_thread.alive?
-      sleep 0.5
+    http_server.mount_proc('/debugger/v1/input') do |req, res|
+      payload = JSON.parse(req.body)
+      input_payloads << payload
     end
   end
 

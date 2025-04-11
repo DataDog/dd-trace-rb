@@ -4,6 +4,9 @@ require 'datadog/core/crashtracking/component'
 require 'webrick'
 require 'fiddle'
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
@@ -165,18 +168,10 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
 
     context 'integration testing' do
       shared_context 'HTTP server' do
-        let(:server) do
-          WEBrick::HTTPServer.new(
-            Port: 0,
-            Logger: log,
-            AccessLog: access_log,
-            StartCallback: -> { init_signal.push(1) }
-          )
+        http_server do |http_server|
+          http_server.mount_proc('/', &server_proc)
         end
         let(:hostname) { '127.0.0.1' }
-        let(:log) { WEBrick::Log.new(StringIO.new, WEBrick::Log::WARN) }
-        let(:access_log_buffer) { StringIO.new }
-        let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
         let(:server_proc) do
           proc do |req, res|
             messages << req.tap { req.body } # Read body, store message before socket closes.
@@ -186,30 +181,13 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         let(:init_signal) { Queue.new }
 
         let(:messages) { [] }
-
-        before do
-          server.mount_proc('/', &server_proc)
-          @server_thread = Thread.new { server.start }
-          init_signal.pop
-        end
-
-        after do
-          unless RSpec.current_example.skipped?
-            # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
-            # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
-            # and join to be called on a nil @server_thread
-            server.shutdown
-            @server_thread.join
-          end
-        end
       end
 
       include_context 'HTTP server'
 
       let(:request) { messages.first }
-      let(:port) { server[:Port] }
 
-      let(:agent_base_url) { "http://#{hostname}:#{port}" }
+      let(:agent_base_url) { "http://#{hostname}:#{http_server_port}" }
 
       [:fiddle, :signal].each do |trigger|
         it "reports crashes via http when app crashes with #{trigger}" do
@@ -251,15 +229,14 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
         let(:temporary_directory) { Dir.mktmpdir }
         let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
         let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-        let(:server) do
-          server = WEBrick::HTTPServer.new(
+        define_http_server do |http_server|
+          http_server.listeners << unix_domain_socket
+          http_server.mount_proc('/', &server_proc)
+        end
+        let(:http_server_options) do
+          {
             DoNotListen: true,
-            Logger: log,
-            AccessLog: access_log,
-            StartCallback: -> { init_signal.push(1) }
-          )
-          server.listeners << unix_domain_socket
-          server
+          }
         end
         let(:agent_base_url) { "unix://#{socket_path}" }
 
@@ -340,3 +317,5 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     described_class._native_stop
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet

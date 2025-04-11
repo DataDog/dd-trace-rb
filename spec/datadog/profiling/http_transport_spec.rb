@@ -7,6 +7,9 @@ require "json"
 require "socket"
 require "webrick"
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 # Design note for this class's specs: from the Ruby code side, we're treating the `_native_` methods as an API
 # between the Ruby code and the native methods, and thus in this class we have a bunch of tests to make sure the
 # native methods are invoked correctly.
@@ -282,43 +285,18 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
   context "integration testing" do
     shared_context "HTTP server" do
-      let(:server) do
-        WEBrick::HTTPServer.new(
-          Port: 0,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
+      http_server do |http_server|
+        http_server.mount_proc('/', &server_proc)
       end
       let(:hostname) { "127.0.0.1" }
-      let(:log) { WEBrick::Log.new($stderr, WEBrick::Log::WARN) }
-      let(:access_log_buffer) { StringIO.new }
-      let(:access_log) { [[access_log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]] }
       let(:server_proc) do
         proc do |req, res|
           messages << req.tap { req.body } # Read body, store message before socket closes.
           res.body = "{}"
         end
       end
-      let(:init_signal) { Queue.new }
 
       let(:messages) { [] }
-
-      before do
-        server.mount_proc("/", &server_proc)
-        @server_thread = Thread.new { server.start }
-        init_signal.pop
-      end
-
-      after do
-        unless RSpec.current_example.skipped?
-          # When the test is skipped, server has not been initialized and @server_thread would be nil; thus we only
-          # want to touch them when the test actually run, otherwise we would cause the server to start (incorrectly)
-          # and join to be called on a nil @server_thread
-          server.shutdown
-          @server_thread.join
-        end
-      end
     end
 
     include_context "HTTP server"
@@ -326,7 +304,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     let(:request) { messages.first }
 
     let(:hostname) { "127.0.0.1" }
-    let(:port) { server[:Port] }
+    let(:port) { http_server_port }
 
     let!(:encoded_profile_bytes) { encoded_profile._native_bytes }
 
@@ -416,15 +394,14 @@ RSpec.describe Datadog::Profiling::HttpTransport do
       let(:temporary_directory) { Dir.mktmpdir }
       let(:socket_path) { "#{temporary_directory}/rspec_unix_domain_socket" }
       let(:unix_domain_socket) { UNIXServer.new(socket_path) } # Closing the socket is handled by webrick
-      let(:server) do
-        server = WEBrick::HTTPServer.new(
+      define_http_server do |http_server|
+        http_server.listeners << unix_domain_socket
+        http_server.mount_proc('/', &server_proc)
+      end
+      let(:http_server_options) do
+        {
           DoNotListen: true,
-          Logger: log,
-          AccessLog: access_log,
-          StartCallback: -> { init_signal.push(1) }
-        )
-        server.listeners << unix_domain_socket
-        server
+        }
       end
       let(:adapter) { Datadog::Core::Transport::Ext::UnixSocket::ADAPTER }
       let(:uds_path) { socket_path }
@@ -440,7 +417,7 @@ RSpec.describe Datadog::Profiling::HttpTransport do
 
     context "when agent is down" do
       before do
-        server.shutdown
+        http_server.shutdown
         @server_thread.join
       end
 
@@ -549,3 +526,5 @@ RSpec.describe Datadog::Profiling::HttpTransport do
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet

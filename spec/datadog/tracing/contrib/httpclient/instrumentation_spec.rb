@@ -20,14 +20,8 @@ require 'datadog/tracing/contrib/support/http'
 require 'spec/support/thread_helpers'
 
 RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
-  before(:all) do
-    # TODO: Consolidate mock webserver code
-    @log_buffer = StringIO.new # set to $stderr to debug
-    log = WEBrick::Log.new(@log_buffer, WEBrick::Log::DEBUG)
-    access_log = [[@log_buffer, WEBrick::AccessLog::COMBINED_LOG_FORMAT]]
-
-    server = WEBrick::HTTPServer.new(Port: 0, Logger: log, AccessLog: access_log)
-    server.mount_proc '/' do |req, res|
+  http_server do |http_server|
+    http_server.mount_proc '/' do |req, res|
       body = JSON.parse(req.body)
       res.status = body['code'].to_i
 
@@ -39,18 +33,6 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
 
       res.body = req.body
     end
-
-    ThreadHelpers.with_leaky_thread_creation(:httpclient_test_server) do
-      @thread = Thread.new { server.start }
-    end
-
-    @server = server
-    @port = server[:Port]
-  end
-
-  after(:all) do
-    @server.shutdown
-    @thread.join
   end
 
   let(:configuration_options) { {} }
@@ -73,8 +55,8 @@ RSpec.describe Datadog::Tracing::Contrib::Httpclient::Instrumentation do
     let(:host) { 'localhost' }
     let(:message) { 'OK' }
     let(:path) { '/sample/path' }
-    let(:port) { @port }
-    let(:url) { "http://#{host}:#{@port}#{path}" }
+    let(:port) { http_server_port }
+    let(:url) { "http://#{host}:#{http_server_port}#{path}" }
     let(:body) { { 'message' => message, 'code' => code } }
     let(:headers) { { accept: 'application/json' } }
     let(:client) { HTTPClient.new }

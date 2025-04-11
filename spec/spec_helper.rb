@@ -40,6 +40,7 @@ require 'support/synchronization_helpers'
 require 'support/test_helpers'
 require 'support/tracer_helpers'
 require 'support/crashtracking_helpers'
+require 'support/http_server_helpers'
 
 begin
   # Ignore interpreter warnings from external libraries
@@ -69,6 +70,7 @@ RSpec.configure do |config|
   config.include SynchronizationHelpers
   config.include TracerHelpers
   config.include TestHelpers::RSpec::Integration, :integration
+  config.include HttpServerHelpers
 
   config.expect_with :rspec do |expectations|
     expectations.include_chain_clauses_in_custom_matcher_descriptions = true
