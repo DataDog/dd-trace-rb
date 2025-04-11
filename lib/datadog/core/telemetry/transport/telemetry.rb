@@ -2,6 +2,7 @@
 
 require_relative '../../transport/parcel'
 require_relative 'http/client'
+require_relative 'http/telemetry'
 
 module Datadog
   module Core
@@ -13,6 +14,14 @@ module Datadog
           end
 
           class Request < Datadog::Core::Transport::Request
+            def initialize(request_type, parcel, api_key)
+              @request_type = request_type
+              super(parcel)
+              @api_key = api_key
+            end
+
+            attr_reader :request_type
+            attr_reader :api_key
           end
 
           class Transport
@@ -22,17 +31,13 @@ module Datadog
               @apis = apis
               @logger = logger
 
-              @client = HTTP::Client.new(current_api, logger: logger)
+              @client = HTTP::Client.new(@apis[default_api], logger: logger)
             end
 
-            def current_api
-              @apis[HTTP::API::TELEMETRY]
-            end
-
-            def send_telemetry(payload)
+            def send_telemetry(request_type:, payload:, api_key:)
               json = JSON.dump(payload)
               parcel = EncodedParcel.new(json)
-              request = Request.new(parcel)
+              request = Request.new(request_type, parcel, api_key)
 
               response = @client.send_telemetry_payload(request)
               # Perform no error checking here
