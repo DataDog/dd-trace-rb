@@ -409,9 +409,9 @@ RSpec.describe Datadog::AppSec::Event do
       end
     end
 
-    context 'with block action' do
+    context 'with block_request action' do
       let(:waf_actions) do
-        { 'block_request' => { 'grpc_status_code' => '10', 'status_core' => '403', 'type' => 'auto' } }
+        { 'block_request' => { 'grpc_status_code' => '10', 'status_code' => '403', 'type' => 'auto' } }
       end
 
       it 'adds appsec.blocked tag to span' do
@@ -419,6 +419,17 @@ RSpec.describe Datadog::AppSec::Event do
         expect(context.span.send(:meta)['appsec.event']).to eq('true')
         expect(context.trace.send(:meta)['_dd.p.dm']).to eq('-5')
         expect(context.trace.send(:meta)['_dd.p.ts']).to eq('02')
+      end
+    end
+
+    context 'with redirect_request action' do
+      let(:waf_actions) do
+        { 'redirect_request' => { 'status_code' => '302', 'location' => 'https://datadoghq.com' } }
+      end
+
+      it 'adds appsec.blocked tag to span' do
+        expect(context.span.send(:meta)['appsec.blocked']).to eq('true')
+        expect(context.span.send(:meta)['appsec.event']).to eq('true')
       end
     end
 
