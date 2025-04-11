@@ -53,9 +53,30 @@ module Datadog
                 def call(env, &block)
                   # Encode body & type
                   env.headers[HEADER_CONTENT_TYPE] = encoder.content_type
+                  env.headers.update(headers(
+                    request_type: env.request.request_type,
+                    api_key: env.request.api_key,
+                  ))
                   env.body = env.request.parcel.data
 
                   super
+                end
+
+                def headers(request_type:, api_version: Http::Ext::API_VERSION, api_key:)
+                  {
+                    Core::Transport::Ext::HTTP::HEADER_DD_INTERNAL_UNTRACED_REQUEST => '1',
+                    # Provided by encoder
+                    #'Content-Type' => 'application/json',
+                    'DD-Telemetry-API-Version' => api_version,
+                    'DD-Telemetry-Request-Type' => request_type,
+                    'DD-Client-Library-Language' => Core::Environment::Ext::LANG,
+                    'DD-Client-Library-Version' => Core::Environment::Identity.gem_datadog_version_semver2,
+
+                    # Enable debug mode for telemetry
+                    # 'DD-Telemetry-Debug-Enabled' => 'true',
+                  }.tap do |result|
+                    result['DD-API-KEY'] = api_key unless api_key.nil?
+                  end
                 end
               end
             end

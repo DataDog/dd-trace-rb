@@ -49,7 +49,7 @@ module Datadog
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?
-            end.to_transport(Telemetry::Transport::Telemetry::Transport)
+            end.to_transport(Core::Telemetry::Transport::Telemetry::Transport)
           end
         end
       end

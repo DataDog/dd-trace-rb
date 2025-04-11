@@ -14,7 +14,7 @@ module Datadog
           # Namespace for API components
           module API
             # Default API versions
-            AGENT_TELEMETRY = 'agent_elemetry'
+            AGENT_TELEMETRY = 'agent_telemetry'
             AGENTLESS_TELEMETRY = 'agentless_telemetry'
 
             module_function

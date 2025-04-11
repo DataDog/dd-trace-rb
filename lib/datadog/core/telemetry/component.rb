@@ -6,6 +6,7 @@ require_relative 'http/transport'
 require_relative 'metrics_manager'
 require_relative 'worker'
 require_relative 'logging'
+require_relative 'transport/http'
 
 require_relative '../configuration/ext'
 require_relative '../utils/forking'
@@ -61,7 +62,8 @@ module Datadog
             dependency_collection: settings.telemetry.dependency_collection,
             logger: logger,
             shutdown_timeout_seconds: settings.telemetry.shutdown_timeout_seconds,
-            log_collection_enabled: settings.telemetry.log_collection_enabled
+            log_collection_enabled: settings.telemetry.log_collection_enabled,
+            api_key: settings.api_key,
           )
         end
 
@@ -79,7 +81,8 @@ module Datadog
           shutdown_timeout_seconds:,
           enabled: true,
           metrics_enabled: true,
-          log_collection_enabled: true
+          log_collection_enabled: true,
+          api_key: nil
         )
           @enabled = enabled
           @log_collection_enabled = log_collection_enabled
@@ -94,7 +97,7 @@ module Datadog
             enabled: @enabled,
             heartbeat_interval_seconds: heartbeat_interval_seconds,
             metrics_aggregation_interval_seconds: metrics_aggregation_interval_seconds,
-            emitter: Emitter.new(http_transport: http_transport),
+            emitter: Emitter.new(http_transport: http_transport, api_key: api_key),
             metrics_manager: @metrics_manager,
             dependency_collection: dependency_collection,
             logger: logger,

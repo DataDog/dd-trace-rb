@@ -17,15 +17,19 @@ module Datadog
 
         # @param http_transport [Datadog::Core::Telemetry::Http::Transport] Transport object that can be used to send
         #   telemetry requests via the agent
-        def initialize(http_transport:)
+        def initialize(http_transport:, api_key:)
           @http_transport = http_transport
+          # TODO api_key should be part of transport
+          @api_key = api_key
         end
+
+        attr_reader :api_key
 
         # Retrieves and emits a TelemetryRequest object based on the request type specified
         def request(event)
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
-          res = @http_transport.send_telemetry(request_type: event.type, payload: payload.to_json)
+          res = @http_transport.send_telemetry(request_type: event.type, payload: payload, api_key: api_key)
           Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response: #{res})" }
           res
         rescue => e
