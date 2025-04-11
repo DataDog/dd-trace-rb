@@ -2,6 +2,7 @@
 
 require_relative 'request'
 require_relative 'http/transport'
+require_relative '../transport/response'
 require_relative '../utils/sequence'
 require_relative '../utils/forking'
 
@@ -25,11 +26,11 @@ module Datadog
           seq_id = self.class.sequence.next
           payload = Request.build_payload(event, seq_id)
           res = @http_transport.request(request_type: event.type, payload: payload.to_json)
-          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (code: #{res.code.inspect})" }
+          Datadog.logger.debug { "Telemetry sent for event `#{event.type}` (response: #{res})" }
           res
         rescue => e
           Datadog.logger.debug("Unable to send telemetry request for event `#{event.type rescue 'unknown'}`: #{e}")
-          Telemetry::Http::InternalErrorResponse.new(e)
+          Core::Transport::InternalErrorResponse.new(e)
         end
 
         # Initializes a Sequence object to track seq_id if not already initialized; else returns stored
