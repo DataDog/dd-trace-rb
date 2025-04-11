@@ -147,7 +147,7 @@ static VALUE perform_export(
   }
 
   ddog_CancellationToken cancel_token_request = ddog_CancellationToken_new();
-  ddog_CancellationToken cancel_token_interrupt = ddog_CancellationToken_clone(cancel_token_request);
+  ddog_CancellationToken cancel_token_interrupt = ddog_CancellationToken_clone(&cancel_token_request);
 
   validate_token(cancel_token_request, __FILE__, __LINE__);
   validate_token(cancel_token_interrupt, __FILE__, __LINE__);
