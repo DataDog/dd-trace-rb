@@ -111,6 +111,11 @@ static ddog_prof_ProfileExporter_Result create_exporter(VALUE exporter_configura
   return exporter_result;
 }
 
+static void validate_token(ddog_CancellationToken token, const char *file, int line) {
+  if (token.inner != NULL) return;
+  rb_raise(rb_eRuntimeError, "Unexpected: Validation token was empty at %s:%d", file, line);
+}
+
 static VALUE handle_exporter_failure(ddog_prof_ProfileExporter_Result exporter_result) {
   return exporter_result.tag == DDOG_PROF_PROFILE_EXPORTER_RESULT_OK_HANDLE_PROFILE_EXPORTER ?
     Qnil :
@@ -141,12 +146,16 @@ static VALUE perform_export(
     return rb_ary_new_from_args(2, error_symbol, get_error_details_and_drop(&build_result.err));
   }
 
-  ddog_CancellationToken *cancel_token = ddog_CancellationToken_new();
+  ddog_CancellationToken cancel_token_request = ddog_CancellationToken_new();
+  ddog_CancellationToken cancel_token_interrupt = ddog_CancellationToken_clone(cancel_token_request);
+
+  validate_token(cancel_token_request, __FILE__, __LINE__);
+  validate_token(cancel_token_interrupt, __FILE__, __LINE__);
 
   // We'll release the Global VM Lock while we're calling send, so that the Ruby VM can continue to work while this
   // is pending
   call_exporter_without_gvl_arguments args =
-    {.exporter = exporter, .build_result = &build_result, .cancel_token = cancel_token, .send_ran = false};
+    {.exporter = exporter, .build_result = &build_result, .cancel_token = &cancel_token_request, .send_ran = false};
 
   // We use rb_thread_call_without_gvl2 instead of rb_thread_call_without_gvl as the gvl2 variant never raises any
   // exceptions.
@@ -163,14 +172,15 @@ static VALUE perform_export(
   int pending_exception = 0;
 
   while (!args.send_ran && !pending_exception) {
-    rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, cancel_token);
+    rb_thread_call_without_gvl2(call_exporter_without_gvl, &args, interrupt_exporter_call, &cancel_token_interrupt);
 
     // To make sure we don't leak memory, we never check for pending exceptions if send ran
     if (!args.send_ran) pending_exception = check_if_pending_exception();
   }
 
   // Cleanup exporter and token, no longer needed
-  ddog_CancellationToken_drop(cancel_token);
+  ddog_CancellationToken_drop(&cancel_token_request);
+  ddog_CancellationToken_drop(&cancel_token_interrupt);
   ddog_prof_Exporter_drop(exporter);
 
   if (pending_exception) {
@@ -265,5 +275,7 @@ static void *call_exporter_without_gvl(void *call_args) {
 
 // Called by Ruby when it wants to interrupt call_exporter_without_gvl above, e.g. when the app wants to exit cleanly
 static void interrupt_exporter_call(void *cancel_token) {
+  // TODO: False where may mean it was already cancelled OR it failed completely to cancel. I think we need
+  // to change libdatadog to be able to distinguish between them.
   ddog_CancellationToken_cancel((ddog_CancellationToken *) cancel_token);
 }
