@@ -98,10 +98,17 @@ static VALUE _native_start_or_update_on_fork(int argc, VALUE *argv, DDTRACE_UNUS
     .optional_stdout_filename = {},
   };
 
+  fprintf(stderr, "Crashtracker started in %d\n", getpid());
+
+  // static bool initialized = false;
+  // if (initialized && action == start_action) return Qtrue;
+
   ddog_VoidResult result =
     action == start_action ?
       ddog_crasht_init(config, receiver_config, metadata) :
       ddog_crasht_update_on_fork(config, receiver_config, metadata);
+
+  // initialized = true;
 
   // Clean up before potentially raising any exceptions
   ddog_Vec_Tag_drop(tags);
