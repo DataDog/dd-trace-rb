@@ -11,6 +11,9 @@ require 'rack'
 require 'rackup/handler/webrick' if Gem::Version.new(Rack::RELEASE) >= Gem::Version.new('3')
 require 'webrick'
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 RSpec.describe 'contrib integration testing', :integration do
   around do |example|
     ClimateControl.modify('DD_REMOTE_CONFIGURATION_ENABLED' => nil) { example.run }
@@ -259,3 +262,5 @@ RSpec.describe 'contrib integration testing', :integration do
     end
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet

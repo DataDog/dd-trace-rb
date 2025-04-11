@@ -4,6 +4,9 @@ require 'datadog/core/crashtracking/component'
 require 'webrick'
 require 'fiddle'
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
@@ -314,3 +317,5 @@ RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelp
     described_class._native_stop
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet
