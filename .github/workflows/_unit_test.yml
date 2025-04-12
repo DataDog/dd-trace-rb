@@ -1,6 +1,6 @@
 name: Unit Test Template
 
-on: # yamllint disable-line rule:truthy
+on:
   workflow_call:
     inputs:
       # TODO: Provides concurrency control for each ruby version
