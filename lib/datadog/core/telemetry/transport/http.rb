@@ -17,15 +17,24 @@ module Datadog
           def agentless_telemetry(
             agent_settings:,
             logger:,
+            api_key: nil,
+            dd_site: nil,
+            url_override: nil,
             api_version: nil,
             headers: nil
           )
             Core::Transport::HTTP.build(api_instance_class: Telemetry::API::Instance,
               logger: logger,
-              agent_settings: agent_settings, api_version: api_version, headers: headers) do |transport|
+              agent_settings: agent_settings,
+              api_version: api_version,
+              headers: headers) do |transport|
               apis = API.defaults
 
               transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
+
+              transport.api_key = api_key
+              transport.dd_site = dd_site
+              transport.url_override = url_override
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?

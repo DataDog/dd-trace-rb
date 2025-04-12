@@ -39,6 +39,7 @@ module Datadog
           transport = if enabled
             if agentless_enabled
               agent_settings = Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+                adapter: :net_http,
               )
               Telemetry::Transport::HTTP.agentless_telemetry(
                 agent_settings: agent_settings, logger: logger,
