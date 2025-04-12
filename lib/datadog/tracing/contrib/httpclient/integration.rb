@@ -18,6 +18,14 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :httpclient
 
+          def self.gems
+            ['httpclient']
+          end
+
+          def self.gem_load_paths
+            ['httpclient']
+          end
+
           def self.version
             Gem.loaded_specs['httpclient'] && Gem.loaded_specs['httpclient'].version
           end

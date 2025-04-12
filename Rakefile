@@ -269,9 +269,19 @@ namespace :spec do
     :suite,
     :trilogy
   ].each do |contrib|
+    # Test for each integration. These tests will pollute the environment (e.g. load gems, monkey-patch modules).
     desc '' # "Explicitly hiding from `rake -T`"
     RSpec::Core::RakeTask.new(contrib) do |t, args|
       t.pattern = "spec/datadog/tracing/contrib/#{contrib}/**/*_spec.rb"
+      t.exclude_pattern = "spec/datadog/tracing/contrib/#{contrib}/integration_spec.rb"
+      t.rspec_opts = args.to_a.join(' ')
+    end
+
+    # Tests that have to run with a clean environment, where instrumented gems have
+    # not yet been loaded, and 3rd-party classes and modules have not been patched.
+    desc '' # "Explicitly hiding from `rake -T`"
+    RSpec::Core::RakeTask.new("#{contrib}_clean") do |t, args|
+      t.pattern = "spec/datadog/tracing/contrib/#{contrib}/integration_spec.rb"
       t.rspec_opts = args.to_a.join(' ')
     end
   end

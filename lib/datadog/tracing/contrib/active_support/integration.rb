@@ -19,8 +19,14 @@ module Datadog
 
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :active_support, auto_patch: false
-          def self.gem_name
-            'activesupport'
+
+
+          def self.gems
+            ['activesupport']
+          end
+
+          def self.gem_load_paths
+            ['active_support']
           end
 
           def self.version

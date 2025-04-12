@@ -72,4 +72,6 @@ RSpec.describe Datadog::Tracing::Contrib::ActionCable::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::ActionCable::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

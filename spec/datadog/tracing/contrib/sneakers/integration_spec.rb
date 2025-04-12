@@ -73,4 +73,6 @@ RSpec.describe Datadog::Tracing::Contrib::Sneakers::Integration do
 
     it { is_expected.to be Datadog::Tracing::Contrib::Sneakers::Patcher }
   end
+
+  it_behaves_like 'a contrib integration'
 end

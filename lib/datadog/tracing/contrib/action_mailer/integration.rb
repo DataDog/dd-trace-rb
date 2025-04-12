@@ -18,8 +18,12 @@ module Datadog
           # @public_api Changing the integration name or integration options can cause breaking changes
           register_as :action_mailer, auto_patch: false
 
-          def self.gem_name
-            'actionmailer'
+          def self.gems
+            ['actionmailer']
+          end
+
+          def self.gem_load_paths
+            ['action_mailer']
           end
 
           def self.version
