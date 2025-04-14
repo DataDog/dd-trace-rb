@@ -95,7 +95,9 @@ RSpec.describe Datadog::Tracing::Contrib::ActiveRecord::Integration do
     context 'when there is a resolver' do
       before do
         integration.resolver
-        expect(integration.instance_variable_get('@resolver')).to be_a(Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver)
+        expect(integration.instance_variable_get('@resolver')).to be_a(
+          Datadog::Tracing::Contrib::ActiveRecord::Configuration::Resolver
+        )
       end
 
       it 'does not raise exceptions and calls reset_cache on the resolver' do
