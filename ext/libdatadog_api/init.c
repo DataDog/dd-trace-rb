@@ -12,7 +12,8 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE core_module = rb_define_module_under(datadog_module, "Core");
   VALUE crashtracking_module = rb_define_module_under(core_module, "Crashtracking");
   VALUE di_module = rb_define_module_under(datadog_module, "DI");
+  VALUE vm_access_module = rb_define_module_under(di_module, "VMAccess");
 
   crashtracker_init(crashtracking_module);
-  di_init(di_module);
+  di_init(vm_access_module);
 }

@@ -27,7 +27,7 @@ static int ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void 
     return 0;
 }
 
-static VALUE loaded_file_iseqs(DDTRACE_UNUSED VALUE _self) {
+static VALUE all_iseqs(DDTRACE_UNUSED VALUE _self) {
     struct ddtrace_di_os_each_struct oes;
 
     oes.array = rb_ary_new();
@@ -37,5 +37,5 @@ static VALUE loaded_file_iseqs(DDTRACE_UNUSED VALUE _self) {
 }
 
 void di_init(VALUE di_module) {
-  rb_define_singleton_method(di_module, "loaded_file_iseqs", loaded_file_iseqs, 0);
+  rb_define_singleton_method(di_module, "all_iseqs", all_iseqs, 0);
 }
