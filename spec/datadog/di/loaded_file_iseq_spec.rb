@@ -24,6 +24,9 @@ RSpec.describe 'all_iseqs' do
   end
 
   it 'returns iseqs for all required files' do
+    iseq_paths = iseqs.map(&:path)
+    #pp $LOADED_FEATURES - iseq_paths
+    require'byebug';byebug
     expect(file_iseqs.length).to be >= $LOADED_FEATURES.length
   end
 end
