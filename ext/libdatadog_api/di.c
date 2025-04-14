@@ -2,6 +2,10 @@
 #include <stdbool.h>
 #include "ruby_internal.h"
 
+#ifndef DDTRACE_UNUSED
+#define DDTRACE_UNUSED  __attribute__((unused))
+#endif
+
 #define IMEMO_TYPE_ISEQ 7
 
 struct ddtrace_di_os_each_struct {
@@ -45,7 +49,7 @@ ddtrace_di_os_obj_of_i(void *vstart, void *vend, size_t stride, void *data)
     return 0;
 }
 
-static VALUE loaded_file_iseqs(VALUE self) {
+static VALUE loaded_file_iseqs(DDTRACE_UNUSED VALUE _self) {
     struct ddtrace_di_os_each_struct oes;
 
     oes.array = rb_ary_new();
