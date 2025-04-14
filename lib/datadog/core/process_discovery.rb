@@ -9,8 +9,8 @@ module Datadog
         _native_store_tracer_metadata(**metadata)
       end
 
-      # According to RFC, runtime_id, service_name, service_env, service_version are optional.
-      # ddcommon memfd_create exposer replace empty strings in these fields by None.
+      # According to the RFC, runtime_id, service_name, service_env, service_version are optional.
+      # In the C method exposed by ddcommon, memfd_create replaces empty strings by None for these fields.
       def self.get_metadata(settings)
         {
           schema_version: 1,

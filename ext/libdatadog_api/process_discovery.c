@@ -8,6 +8,13 @@
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE fd);
 
+static VALUE log_error(VALUE error) {
+  VALUE datadog_module = rb_const_get(rb_cObject, rb_intern("Datadog"));
+  VALUE logger = rb_funcall(datadog_module, rb_intern("logger"), 0);
+
+  return rb_funcall(logger, rb_intern("warn"), 1, error);
+}
+
 static const rb_data_type_t tracer_memfd_type = {
   .wrap_struct_name = "Datadog::Core::ProcessDiscovery::TracerMemfd",
   .function = {
@@ -19,7 +26,8 @@ static const rb_data_type_t tracer_memfd_type = {
 
 void process_discovery_init(VALUE core_module) {
   VALUE process_discovery_class = rb_define_class_under(core_module, "ProcessDiscovery", rb_cObject);
-  rb_define_class_under(process_discovery_class, "TracerMemfd", rb_cObject);
+  VALUE tracer_memfd_class = rb_define_class_under(process_discovery_class, "TracerMemfd", rb_cObject);
+  rb_undef_alloc_func(tracer_memfd_class); // Class cannot be instantiated from Ruby
 
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 1);
@@ -60,15 +68,13 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   );
 
   if (result.tag == DDOG_RESULT_TRACER_MEMFD_HANDLE_ERR_TRACER_MEMFD_HANDLE) {
-    rb_raise(rb_eRuntimeError, "Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err));
+    log_error(rb_sprintf("Failed to store the tracer configuration in a memory file descriptor: %"PRIsVALUE, get_error_details_and_drop(&result.err)));
+    return Qnil;
   }
 
   // &result.ok is a ddog_TracerMemfdHandle, which is a struct only containing int fd, which is a file descriptor
   // We should just return the fd
-  int *fd = malloc(sizeof(int));
-  if (!fd) {
-    rb_raise(rb_eRuntimeError, "Failed to allocate memory for file descriptor");
-  }
+  int *fd = ruby_xmalloc(sizeof(int));
 
   *fd = result.ok.fd;
   VALUE tracer_memfd_class = rb_const_get(self, rb_intern("TracerMemfd"));
@@ -80,14 +86,21 @@ static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer
   int *fd;
   TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
   if (fd == NULL) {
-    rb_raise(rb_eRuntimeError, "Failed to get the tracer configuration memory file descriptor: %s", strerror(errno));
+    log_error(rb_sprintf("Failed to get the tracer configuration memory file descriptor: %s", strerror(errno)));
+    return Qnil;
+  }
+
+  if (*fd == -1) {
+    log_error(rb_sprintf("The tracer configuration memory file descriptor has already been closed"));
+    return Qnil;
   }
 
   int close_result = close(*fd);
-  free(fd);
+  *fd = -1;
 
   if (close_result == -1) {
-    rb_raise(rb_eRuntimeError, "Failed to close the tracer configuration memory file descriptor: %s", strerror(errno));
+    log_error(rb_sprintf("Failed to close the tracer configuration memory file descriptor: %s", strerror(errno)));
+    return Qnil;
   }
 
   return Qnil;
