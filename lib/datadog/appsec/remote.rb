@@ -24,6 +24,7 @@ module Datadog
         CAP_ASM_CUSTOM_BLOCKING_RESPONSE  = 1 << 9   # supports custom http code or redirect sa blocking response
         CAP_ASM_TRUSTED_IPS               = 1 << 10  # supports trusted ip
         CAP_ASM_RASP_SSRF                 = 1 << 23  # support for server-side request forgery exploit prevention rules
+        CAP_ASM_RASP_SQLI                 = 1 << 21  # support for SQL injection exploit prevention rules
 
         # TODO: we need to dynamically add CAP_ASM_ACTIVATION once we support it
         ASM_CAPABILITIES = [
@@ -37,6 +38,7 @@ module Datadog
           CAP_ASM_CUSTOM_BLOCKING_RESPONSE,
           CAP_ASM_TRUSTED_IPS,
           CAP_ASM_RASP_SSRF,
+          CAP_ASM_RASP_SQLI,
         ].freeze
 
         ASM_PRODUCTS = [
