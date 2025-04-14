@@ -38,7 +38,6 @@ module Datadog
               end
             end
 
-            # Endpoint for negotiation
             class Endpoint < Datadog::Core::Transport::HTTP::API::Endpoint
               HEADER_CONTENT_TYPE = 'Content-Type'
 

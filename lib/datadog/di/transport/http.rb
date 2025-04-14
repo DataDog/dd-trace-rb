@@ -1,15 +1,9 @@
 # frozen_string_literal: true
 
-require 'uri'
-
-require_relative '../../core/environment/container'
-require_relative '../../core/environment/ext'
-require_relative '../../core/transport/ext'
 require_relative 'diagnostics'
 require_relative 'input'
 require_relative 'http/api'
 require_relative '../../core/transport/http'
-require_relative '../../../datadog/version'
 
 module Datadog
   module DI
