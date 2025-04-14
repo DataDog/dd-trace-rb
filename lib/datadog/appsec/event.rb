@@ -135,12 +135,14 @@ module Datadog
 
         private
 
+        # NOTE: Handling of Encoding::UndefinedConversionError is added as a quick fix to
+        #       the issue between Ruby encoded strings and libddwaf produced events and now
+        #       is under investigation.
         def json_parse(value)
           JSON.dump(value)
-        rescue ArgumentError, JSON::JSONError => e
-          Datadog.logger.debug do
-            "Failed to parse value to JSON when populating AppSec::Event. Error: #{e.message}"
-          end
+        rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
+          AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
+
           nil
         end
 

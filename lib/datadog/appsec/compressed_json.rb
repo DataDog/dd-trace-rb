@@ -20,7 +20,7 @@ module Datadog
         return value if value.bytesize < MIN_SIZE_FOR_COMPRESSION
 
         compress_and_encode(value)
-      rescue ArgumentError, JSON::JSONError => e
+      rescue ArgumentError, Encoding::UndefinedConversionError, JSON::JSONError => e
         AppSec.telemetry.report(e, description: 'AppSec: Failed to convert value into JSON')
 
         nil
