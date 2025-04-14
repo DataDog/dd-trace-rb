@@ -14,11 +14,11 @@ module Datadog
         service_name: String,
         service_env: String,
         service_version: String
-      ) -> TracerMemfd
+      ) -> TracerMemfd?
 
       def self._native_close_tracer_memfd: (TracerMemfd tracer_memfd) -> void
 
-      def self.get_and_store_metadata: (Datadog::Core::Configuration::Settings settings) -> TracerMemfd
+      def self.get_and_store_metadata: (Datadog::Core::Configuration::Settings settings) -> TracerMemfd?
 
       def self.get_metadata: (Datadog::Core::Configuration::Settings settings) -> {
         schema_version: Integer,

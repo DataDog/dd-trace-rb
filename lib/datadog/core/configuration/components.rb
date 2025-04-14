@@ -206,7 +206,7 @@ module Datadog
           telemetry.emit_closing! unless replacement
           telemetry.stop!
 
-          Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd)
+          Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd) if @process_discovery_fd
         end
       end
     end
