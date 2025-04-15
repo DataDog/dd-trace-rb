@@ -95,6 +95,13 @@ module Datadog
           end
         end
 
+        def can_use_uds?
+          # While in theory agentless transport could communicate via UDS,
+          # in practice "agentless" means we are communicating with Datadog
+          # infrastructure which is always remote.
+          false
+        end
+
         def parsed_url
           return @parsed_url if defined?(@parsed_url)
 
