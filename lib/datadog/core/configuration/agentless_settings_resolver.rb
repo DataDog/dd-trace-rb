@@ -24,20 +24,26 @@ module Datadog
         # c.telemetry.agentless_url_override. For the same reason, the
         # +url_override_source+ parameter should be set to the string
         # "c.telemetry.agentless_url_override".
-        def self.call(settings, url_override: nil, url_override_source: nil, logger: Datadog.logger)
-          new(settings, url_override: url_override, url_override_source: url_override_source, logger: logger).send(:call)
+        def self.call(settings, host_prefix:, url_override: nil, url_override_source: nil, logger: Datadog.logger)
+          new(settings, host_prefix: host_prefix, url_override: url_override, url_override_source: url_override_source, logger: logger).send(:call)
         end
 
         private
 
         attr_reader \
+          :host_prefix,
           :url_override,
           :url_override_source
 
-        def initialize(settings, url_override: nil, url_override_source: nil, logger: Datadog.logger)
+        def initialize(settings, host_prefix:, url_override: nil, url_override_source: nil, logger: Datadog.logger)
           super(settings, logger: logger)
+          @host_prefix = host_prefix
           @url_override = url_override
           @url_override_source = url_override_source
+        end
+
+        def hostname
+          configured_hostname || "#{host_prefix}.#{settings.site}"
         end
 
         def configured_hostname
@@ -75,6 +81,16 @@ module Datadog
           end
         end
 
+        def ssl?
+          if configured_hostname
+            configured_ssl
+          else
+            # If no hostname is specified, we are communicating with the
+            # default Datadog intake, which uses TLS.
+            true
+          end
+        end
+
         def configured_ssl
           return @configured_ssl if defined?(@configured_ssl)
 
@@ -82,6 +98,16 @@ module Datadog
             parsed_url_ssl?
           else
             true
+          end
+        end
+
+        def port
+          if configured_hostname
+            configured_port
+          else
+            # If no hostname is specified, we are communicating with the
+            # default Datadog intake, which exists on port 443.
+            443
           end
         end
 
