@@ -18,8 +18,6 @@ module Datadog
             agent_settings:,
             logger:,
             api_key: nil,
-            dd_site: nil,
-            url_override: nil,
             api_version: nil,
             headers: nil
           )
@@ -33,8 +31,6 @@ module Datadog
               transport.api API::AGENTLESS_TELEMETRY, apis[API::AGENTLESS_TELEMETRY]
 
               transport.api_key = api_key
-              transport.dd_site = dd_site
-              transport.url_override = url_override
 
               # Call block to apply any customization, if provided
               yield(transport) if block_given?

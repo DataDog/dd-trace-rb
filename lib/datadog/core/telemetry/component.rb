@@ -38,14 +38,15 @@ module Datadog
 
           transport = if enabled
             if agentless_enabled
-              agent_settings = Core::Configuration::AgentSettingsResolver::AgentSettings.new(
-                adapter: :net_http,
+              agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
+                settings: settings,
+                host_prefix: 'instrumentation-telemetry-intake',
+                url_override: settings.telemetry.agentless_url_override,
+                logger: logger,
               )
               Telemetry::Transport::HTTP.agentless_telemetry(
                 agent_settings: agent_settings, logger: logger,
                           api_key: settings.api_key,
-                          dd_site: settings.site,
-                          url_override: settings.telemetry.agentless_url_override,
               )
                       else
               Telemetry::Transport::HTTP.agent_telemetry(
