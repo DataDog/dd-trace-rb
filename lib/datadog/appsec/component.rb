@@ -16,8 +16,7 @@ module Datadog
           ffi_version = Gem.loaded_specs['ffi'] && Gem.loaded_specs['ffi'].version
           unless ffi_version
             Datadog.logger.warn('FFI gem is not loaded, AppSec will be disabled.')
-
-            telemetry.report(StandardError.new, description: 'AppSec: ffi gem not loaded')
+            telemetry.error('AppSec: Component not loaded, due to missing FFI gem')
 
             return
           end
@@ -28,8 +27,7 @@ module Datadog
               'and will be forcibly disabled due to a memory leak in `ffi`. ' \
               'Please upgrade your `ffi` version to 1.16.0 or higher.'
             )
-
-            telemetry.report(StandardError.new, description: 'AppSec: ffi version is leaky with ruby > 3.3.0')
+            telemetry.error('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
 
             return
           end

@@ -27,8 +27,8 @@ RSpec.describe Datadog::AppSec::Component do
 
         it 'returns nil, warns and reports telemetry' do
           expect(Datadog.logger).to receive(:warn)
-          expect(telemetry).to receive(:report)
-            .with(anything, description: 'AppSec: ffi version is leaky with ruby > 3.3.0')
+          expect(telemetry).to receive(:error)
+            .with('AppSec: Component not loaded, ffi version is leaky with ruby > 3.3.0')
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
@@ -40,7 +40,7 @@ RSpec.describe Datadog::AppSec::Component do
 
         it 'returns nil, warns and reports telemetry' do
           expect(Datadog.logger).to receive(:warn)
-          expect(telemetry).to receive(:report).with(anything, description: 'AppSec: ffi gem not loaded')
+          expect(telemetry).to receive(:error).with('AppSec: Component not loaded, due to missing FFI gem')
 
           component = described_class.build_appsec_component(settings, telemetry: telemetry)
           expect(component).to be_nil
