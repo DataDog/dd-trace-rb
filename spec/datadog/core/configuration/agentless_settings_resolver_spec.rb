@@ -111,4 +111,22 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
       end
     end
   end
+
+  context 'when timeout is overridden' do
+    before do
+      settings.agent.timeout_seconds = 42
+    end
+
+    it 'uses the overridden timeout' do
+      expect(resolved).to eq(
+        Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+          adapter: :net_http,
+          hostname: 'test-host-prefix.test.dog',
+          port: 443,
+          ssl: true,
+          timeout_seconds: 42,
+        )
+      )
+    end
+  end
 end
