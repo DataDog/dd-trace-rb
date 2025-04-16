@@ -9,6 +9,7 @@ require_relative 'logging'
 require_relative 'transport/http'
 
 require_relative '../configuration/ext'
+require_relative '../configuration/agentless_settings_resolver'
 require_relative '../utils/forking'
 
 module Datadog
@@ -39,9 +40,10 @@ module Datadog
           transport = if enabled
             if agentless_enabled
               agent_settings = Core::Configuration::AgentlessSettingsResolver.call(
-                settings: settings,
+                settings,
                 host_prefix: 'instrumentation-telemetry-intake',
                 url_override: settings.telemetry.agentless_url_override,
+                url_override_source: 'c.telemetry.agentless_url_override',
                 logger: logger,
               )
               Telemetry::Transport::HTTP.agentless_telemetry(
