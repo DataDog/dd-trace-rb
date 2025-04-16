@@ -36,6 +36,10 @@ module Datadog
           :url_override_source
 
         def initialize(settings, host_prefix:, url_override: nil, url_override_source: nil, logger: Datadog.logger)
+          if url_override && url_override_source.nil?
+            raise ArgumentError, 'url_override_source must be provided when url_override is provided'
+          end
+
           super(settings, logger: logger)
           @host_prefix = host_prefix
           @url_override = url_override
@@ -76,8 +80,6 @@ module Datadog
 
           @configured_port = if parsed_url
             parsed_url.port
-          else
-            80
           end
         end
 
@@ -96,8 +98,6 @@ module Datadog
 
           @configured_ssl = if parsed_url
             parsed_url_ssl?
-          else
-            true
           end
         end
 
@@ -112,13 +112,8 @@ module Datadog
         end
 
         def configured_uds_path
-          return @configured_uds_path if defined?(@configured_uds_path)
-
-          @configured_uds_path = if parsed_url
-            parsed_url_uds_path
-          else
-            false
-          end
+          # We do not permit UDS, see the note under #can_use_uds?.
+          nil
         end
 
         def can_use_uds?

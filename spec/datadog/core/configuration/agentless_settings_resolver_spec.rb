@@ -24,8 +24,19 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
   let(:url_override_source) { nil }
 
   context 'by default' do
-    it 'returns' do
+    it 'returns expected values' do
+      expect(resolver.send(:can_use_uds?)).to be false
       expect(resolver.send(:should_use_uds?)).to be false
+
+      expect(resolver.send(:parsed_url)).to be nil
+
+      expect(resolver.send(:configured_hostname)).to be nil
+      expect(resolver.send(:hostname)).to eq 'test-host-prefix.test.dog'
+      expect(resolver.send(:configured_port)).to be nil
+      expect(resolver.send(:port)).to eq 443
+      expect(resolver.send(:configured_ssl)).to be nil
+      expect(resolver.send(:ssl?)).to be true
+      expect(resolver.send(:configured_uds_path)).to be nil
 
       expect(resolved).to eq(
         Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
