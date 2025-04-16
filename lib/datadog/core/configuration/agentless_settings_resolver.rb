@@ -41,6 +41,7 @@ module Datadog
           end
 
           super(settings, logger: logger)
+
           @host_prefix = host_prefix
           @url_override = url_override
           @url_override_source = url_override_source
