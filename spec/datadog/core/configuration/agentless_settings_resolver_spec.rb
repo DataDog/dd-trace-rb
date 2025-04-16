@@ -49,4 +49,37 @@ RSpec.describe Datadog::Core::Configuration::AgentlessSettingsResolver do
       )
     end
   end
+
+  context 'when url_override is provided' do
+    let(:url_override_source) { 'setting' }
+
+    context 'url is https' do
+      let(:url_override) { "https://foo.bar" }
+
+      it 'returns expected values' do
+        expect(resolver.send(:can_use_uds?)).to be false
+        expect(resolver.send(:should_use_uds?)).to be false
+
+        expect(resolver.send(:parsed_url)).to eq URI.parse(url_override)
+
+        expect(resolver.send(:configured_hostname)).to eq 'foo.bar'
+        expect(resolver.send(:hostname)).to eq 'foo.bar'
+        expect(resolver.send(:configured_port)).to be 443
+        expect(resolver.send(:port)).to eq 443
+        expect(resolver.send(:configured_ssl)).to be true
+        expect(resolver.send(:ssl?)).to be true
+        expect(resolver.send(:configured_uds_path)).to be nil
+
+        expect(resolved).to eq(
+          Datadog::Core::Configuration::AgentSettingsResolver::AgentSettings.new(
+            adapter: :net_http,
+            hostname: 'foo.bar',
+            port: 443,
+            ssl: true,
+            timeout_seconds: 30,
+          )
+        )
+      end
+    end
+  end
 end
