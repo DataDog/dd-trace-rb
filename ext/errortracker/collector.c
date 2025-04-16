@@ -54,8 +54,9 @@ static VALUE after_stop_callback(VALUE span, VALUE self) {
   VALUE span_events = get_span_events(self, span_id);
   if (!NIL_P(span_events)) {
     long len = RARRAY_LEN(span_events);
+    VALUE* array = RARRAY_PTR(span_events);
     for (long i = 0; i < len; i++) {
-        rb_funcall(span, at_add_span_event_id, 1, rb_ary_entry(span_events, i));
+        rb_funcall(span, at_add_span_event_id, 1, array[i]);
     }
     _clear_span(self, span_id);
   }
@@ -105,7 +106,6 @@ VALUE add_span_event(VALUE self, VALUE active_span, VALUE error, VALUE span_even
   VALUE span_id = rb_funcall(active_span, at_id_id, 0);
   VALUE error_map = rb_hash_lookup(storage, span_id);
 
-  printf("adding a span event\n");
   if (NIL_P(error_map)) {
     error_map = rb_hash_new();
     rb_hash_aset(storage, span_id, error_map);
@@ -113,13 +113,15 @@ VALUE add_span_event(VALUE self, VALUE active_span, VALUE error, VALUE span_even
     // Subscribe events
     VALUE events = rb_funcall(active_span, at_events_id, 0);
     VALUE after_stop_event = rb_funcall(events, at_after_stop_id, 0);
-    VALUE on_error_event = rb_funcall(events, at_on_error_id, 0);
-
     VALUE after_stop_block = rb_iv_get(self, "@after_stop_block");
-    VALUE on_error_block = rb_iv_get(self, "@on_error_block");
-
     rb_funcall_with_block(after_stop_event, at_subscribe_id, 0, NULL , after_stop_block);
-    rb_funcall_with_block(on_error_event, at_subscribe_id, 0, NULL , on_error_block);
+
+    // If we are targetting raise event, the error exiting the span will be recorded
+    #ifndef RUBY_EVENT_RESCUE
+      VALUE on_error_event = rb_funcall(events, at_on_error_id, 0);
+      VALUE on_error_block = rb_iv_get(self, "@on_error_block");
+      rb_funcall_with_block(on_error_event, at_subscribe_id, 0, NULL , on_error_block);
+    #endif
   }
   // Store the span_event directly with the error as key
   rb_hash_aset(error_map, error, span_event);

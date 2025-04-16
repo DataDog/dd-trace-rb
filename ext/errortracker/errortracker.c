@@ -111,17 +111,11 @@ static VALUE _native_start(int argc, VALUE* argv, VALUE self) {
   }
 
   rb_iv_set(self, "@filter_function", filter_function);
-  double ruby_version = RFLOAT_VALUE(rb_const_get(rb_cObject, rb_intern("RUBY_VERSION")));
-  VALUE tracepoint;
-  if (ruby_version >= 3.3) {
-    #ifdef RUBY_EVENT_RESCUE
-    tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RESCUE, tracepoint_callback, (void*)self);
-    #else
-    tracepoint = Qnil;
-    #endif
-  } else {
-    tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RAISE, tracepoint_callback, (void*)self);
-  }
+  #ifdef RUBY_EVENT_RESCUE
+    VALUE tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RESCUE, tracepoint_callback, (void*)self);
+  #else
+    VALUE tracepoint = rb_tracepoint_new(Qnil, RUBY_EVENT_RAISE, tracepoint_callback, (void*)self);
+  #endif
   rb_iv_set(self, "@tracepoint", tracepoint);
   rb_tracepoint_enable(tracepoint);
 
@@ -167,6 +161,8 @@ static void tracepoint_callback(VALUE tp, void* data) {
   VALUE raised_exception = rb_tracearg_raised_exception(rb_tracearg_from_tracepoint(tp));
   VALUE rescue_file_path = rb_tracearg_path(rb_tracearg_from_tracepoint(tp));
   VALUE filter_function = rb_iv_get(self, "@filter_function");
+
+  rb_p(rescue_file_path);
 
   if (RTEST(rb_funcall(filter_function, at_call_id, 1, rescue_file_path))) {
     VALUE span_event = _generate_span_event(self, raised_exception);

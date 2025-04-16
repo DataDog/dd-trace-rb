@@ -13,7 +13,7 @@ static void initialize_constants_filters(void) {
   at_specification_id = rb_intern_const("Specification");
   at_find_by_name_id = rb_intern_const("find_by_name");
   at_include_id = rb_intern_const("include?");
-  ddtrace_str = rb_str_new_cstr("ddtrace");
+  ddtrace_str = rb_str_new_cstr("lib/datadog/");
   rb_gc_register_mark_object(ddtrace_str);
 }
 

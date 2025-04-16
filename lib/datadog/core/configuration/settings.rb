@@ -985,13 +985,13 @@ module Datadog
           option :to_instrument do |o|
             o.type :string, nilable: true
             o.default ''
-            o.env 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS'
+            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS'
           end
 
           option :to_instrument_modules do |o|
             o.type :array
             o.default []
-            o.env 'DD_ERROR_TRACKING_REPORT_HANDLED_ERRORS_MODULES'
+            o.env 'DD_ERROR_TRACKING_HANDLED_ERRORS_MODULES'
           end
         end
         # TODO: Tracing should manage its own settings.
