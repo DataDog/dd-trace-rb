@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       checks: read
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
@@ -47,8 +48,62 @@ jobs:
             echo "Version $GEM_VERSION is not published yet"
           fi
 
-      # TODO: Verify draft release
-      # TODO: Verify milestone
+      # Check if there is a draft release for this version
+      # API: https://docs.github.com/en/rest/releases/releases?apiVersion=2022-11-28#list-releases
+      - name: Verify draft release
+        if: ${{ !inputs.force }}
+        continue-on-error: true # TODO: Remove when figuring out why draft release are not returned from API
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: releases } = await github.rest.repos.listReleases({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            console.log(releases);
+
+            const versionTag = `v${process.env.GEM_VERSION}`;
+            const draftRelease = releases.find(
+              release => release.tag_name === versionTag && release.draft === true
+            );
+
+            if (!draftRelease) {
+              core.setFailed(`No draft release found with tag ${versionTag}. Please create a draft release first.`);
+              return;
+            }
+
+            console.log(`Found draft release with tag ${versionTag} (ID: ${draftRelease.id})`);
+
+      # Check if there is an open milestone for this version
+      # API: https://docs.github.com/en/rest/issues/milestones?apiVersion=2022-11-28#list-milestones
+      - name: Verify milestone
+        if: ${{ !inputs.force }}
+        env:
+          GEM_VERSION: ${{ steps.version.outputs.version }}
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { data: milestones } = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+
+            console.log(milestones);
+
+            const versionMilestone = milestones.find(
+              milestone => milestone.title === process.env.GEM_VERSION
+            );
+
+            if (!versionMilestone) {
+              core.setFailed(`No open milestone found with title ${process.env.GEM_VERSION}. Please create a milestone first.`);
+              return;
+            }
+
+            console.log(`Found open milestone ${process.env.GEM_VERSION} (ID: ${versionMilestone.number})`);
 
       # Check if the commit has passed all Github checks
       # API: https://docs.github.com/en/rest/checks/runs?apiVersion=2022-11-28#list-check-runs-for-a-git-reference
@@ -111,7 +166,7 @@ jobs:
             echo "::error::Status check state is '$STATUS'. See: $COMMIT_URL"
             exit 1
           fi
-      - name: Emergency release notification
+      - name: Warning for bypassing checks
         if: ${{ inputs.force }}
         run: |
           echo "::warning::Bypassing verification checks"
