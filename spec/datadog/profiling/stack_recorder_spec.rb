@@ -238,6 +238,21 @@ RSpec.describe Datadog::Profiling::StackRecorder do
         )
       end
 
+      context "when requesting multiple serializations of empty profiles" do
+        it "correctly sets the profile start timestamp in libdatadog" do
+          # The `start` timestamp returned is tracked locally by us. This test validates that the actual profile
+          # matches it, e.g. that we're passing it along correctly to libdatadog.
+          start_timestamps = []
+          4.times do
+            start, _, profile = stack_recorder.serialize
+            expect(decode_profile(profile).time_nanos).to eq(Datadog::Core::Utils::Time.as_utc_epoch_ns(start))
+
+            start_timestamps << start
+          end
+          expect(start_timestamps.sort).to eq(start_timestamps) # No later timestamp should come before an earlier one
+        end
+      end
+
       it "returns stats reporting no recorded samples" do
         expect(profile_stats).to match(
           hash_including(
@@ -851,11 +866,14 @@ RSpec.describe Datadog::Profiling::StackRecorder do
     subject(:serialize!) { stack_recorder.serialize! }
 
     context "when serialization succeeds" do
+      let(:encoded_profile) { instance_double(Datadog::Profiling::EncodedProfile, _native_bytes: "serialized-data") }
+
       before do
-        expect(described_class).to receive(:_native_serialize).and_return([:ok, %w[start finish serialized-data]])
+        expect(described_class)
+          .to receive(:_native_serialize).and_return([:ok, [:dummy_start, :dummy_finish, encoded_profile]])
       end
 
-      it { is_expected.to eq("serialized-data") }
+      it { is_expected.to be encoded_profile }
     end
 
     context "when serialization fails" do

@@ -26,7 +26,6 @@ module Datadog
           TAG_GIT_REPOSITORY_URL = "git.repository_url"
           TAG_GIT_COMMIT_SHA = "git.commit.sha"
 
-          PPROF_DEFAULT_FILENAME = "rubyprofile.pprof"
           CODE_PROVENANCE_FILENAME = "code-provenance.json"
         end
       end

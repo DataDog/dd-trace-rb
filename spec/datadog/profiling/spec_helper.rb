@@ -38,12 +38,12 @@ module ProfileHelpers
       "Try running `bundle exec rake compile` before running this test."
   end
 
-  def decode_profile(pprof_data)
-    ::Perftools::Profiles::Profile.decode(LZ4.decode(pprof_data))
+  def decode_profile(encoded_profile)
+    ::Perftools::Profiles::Profile.decode(LZ4.decode(encoded_profile._native_bytes))
   end
 
-  def samples_from_pprof(pprof_data)
-    decoded_profile = decode_profile(pprof_data)
+  def samples_from_pprof(encoded_profile)
+    decoded_profile = decode_profile(encoded_profile)
 
     string_table = decoded_profile.string_table
     pretty_sample_types = decoded_profile.sample_type.map { |it| string_table[it.type].to_sym }

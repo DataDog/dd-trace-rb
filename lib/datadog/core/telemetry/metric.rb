@@ -108,9 +108,9 @@ module Datadog
             value = value.to_i
 
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] += value
             end
             nil
@@ -129,9 +129,9 @@ module Datadog
 
           def track(value)
             if values.empty?
-              values << [Time.now.to_i, value]
+              values << [Core::Utils::Time.now.to_i, value]
             else
-              values[0][0] = Time.now.to_i
+              values[0][0] = Core::Utils::Time.now.to_i
               values[0][1] = value
             end
             nil
@@ -155,7 +155,7 @@ module Datadog
 
           def track(value = 1.0)
             @value += value
-            @values = [[Time.now.to_i, @value / interval]]
+            @values = [[Core::Utils::Time.now.to_i, @value / interval]]
             nil
           end
         end
