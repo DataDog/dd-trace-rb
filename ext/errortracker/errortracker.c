@@ -162,8 +162,6 @@ static void tracepoint_callback(VALUE tp, void* data) {
   VALUE rescue_file_path = rb_tracearg_path(rb_tracearg_from_tracepoint(tp));
   VALUE filter_function = rb_iv_get(self, "@filter_function");
 
-  rb_p(rescue_file_path);
-
   if (RTEST(rb_funcall(filter_function, at_call_id, 1, rescue_file_path))) {
     VALUE span_event = _generate_span_event(self, raised_exception);
     VALUE collector = rb_iv_get(self, "@collector");

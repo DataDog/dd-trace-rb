@@ -65,95 +65,105 @@ RSpec.describe Datadog::Core::Errortracking::Component, skip: !ErrortrackingHelp
       @errortracker.stop
     end
 
-    it 'simple begin rescue' do
-      span = tracer.trace('operation') do |inner_span|
-        begin
-          raise 'this is an exception'
-        rescue
+    shared_examples 'captures exception details' do |exception_count|
+      it "captures exception(s) with correct details" do
+        expect(span.events.length).to eq(expected_exceptions.length)
+
+        span.events.each_with_index do |event, index|
+          expect(event.attributes['type']).to eq(expected_exceptions[index][:type])
+          expect(event.attributes['message']).to eq(expected_exceptions[index][:message])
         end
-        inner_span.finish
       end
-      expect(span.events.length).to eq(1)
-      expect(span.events[0].attributes['type']).to eq('RuntimeError')
-      expect(span.events[0].attributes['message']).to eq('this is an exception')
     end
 
-    it 'multiple begin rescue' do
-      span = tracer.trace('operation') do |inner_span|
-        begin
-          raise 'this is an exception'
-        rescue
-        end
-        begin
-          raise StandardError, 'this is another exception'
-        rescue
-        end
-        inner_span.finish
-      end
-      expect(span.events.length).to eq(2)
-
-      expect(span.events[0].attributes['type']).to eq('RuntimeError')
-      expect(span.events[0].attributes['message']).to eq('this is an exception')
-
-      expect(span.events[1].attributes['type']).to eq('StandardError')
-      expect(span.events[1].attributes['message']).to eq('this is another exception')
-    end
-
-    it 'nested begin rescue' do
-      span = tracer.trace('operation') do |inner_span|
-        begin
-          raise 'this is an exception'
-        rescue
+    context 'with a simple begin-rescue block' do
+      let!(:span) do
+        tracer.trace('operation') do |inner_span|
           begin
-            raise 'this is another exception'
+            raise 'this is an exception'
           rescue
           end
+          inner_span.finish
         end
-        inner_span.finish
       end
-      expect(span.events.length).to eq(2)
 
-      expect(span.events[0].attributes['type']).to eq('RuntimeError')
-      expect(span.events[0].attributes['message']).to eq('this is an exception')
+      let(:expected_exceptions) do
+        [{ type: 'RuntimeError', message: 'this is an exception' }]
+      end
 
-      expect(span.events[1].attributes['type']).to eq('RuntimeError')
-      expect(span.events[1].attributes['message']).to eq('this is another exception')
+      include_examples 'captures exception details'
     end
 
-    it 'rescued then reraise then rescued' do
-      span = tracer.trace('operation') do |inner_span|
-        begin
-          begin
-            raise 'this is an exception'
-          rescue StandardError => e
-            raise e
-          end
-        rescue
-        end
-        inner_span.finish
-      end
-      expect(span.events.length).to eq(1)
-
-      expect(span.events[0].attributes['type']).to eq('RuntimeError')
-      expect(span.events[0].attributes['message']).to eq('this is an exception')
-    end
-
-    it 'rescued then raise' do
-      span_op = nil
-      begin
+    context 'with multiple begin-rescue blocks' do
+      let!(:span) do
         tracer.trace('operation') do |inner_span|
-          # Store the span reference before raising the exception
-          span_op = inner_span
           begin
             raise 'this is an exception'
-          rescue StandardError => e
-            raise e
+          rescue
           end
+          begin
+            raise StandardError, 'this is another exception'
+          rescue
+          end
+          inner_span.finish
         end
-      rescue
       end
-      span = span_op.finish
-      expect(span.events.length).to eq(0)
+
+      let(:expected_exceptions) do
+        [
+          { type: 'RuntimeError', message: 'this is an exception' },
+          { type: 'StandardError', message: 'this is another exception' }
+        ]
+      end
+
+      include_examples 'captures exception details'
+    end
+
+    context 'with nested begin-rescue blocks' do
+      let!(:span) do
+        tracer.trace('operation') do |inner_span|
+          begin
+            raise 'this is an exception'
+          rescue
+            begin
+              raise 'this is another exception'
+            rescue
+            end
+          end
+          inner_span.finish
+        end
+      end
+
+      let(:expected_exceptions) do
+        [
+          { type: 'RuntimeError', message: 'this is an exception' },
+          { type: 'RuntimeError', message: 'this is another exception' }
+        ]
+      end
+
+      include_examples 'captures exception details'
+    end
+
+    context 'when an exception is raised multiple times' do
+      let!(:span) do
+        tracer.trace('operation') do |inner_span|
+          begin
+            begin
+              raise 'this is an exception'
+            rescue StandardError => e
+              raise e
+            end
+          rescue
+          end
+          inner_span.finish
+        end
+      end
+
+      let(:expected_exceptions) do
+        [{ type: 'RuntimeError', message: 'this is an exception' }]
+      end
+
+      include_examples 'captures exception details'
     end
   end
 

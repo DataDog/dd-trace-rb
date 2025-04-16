@@ -21,27 +21,31 @@ void filters_init(void) {
   initialize_constants_filters();
 }
 
-static VALUE _get_gem_name(VALUE file_name) {
-  ENFORCE_TYPE(file_name, T_STRING);
-
-  const char *path = StringValueCStr(file_name);
-  const char *gems_str = "gems/";
-  const char *gems_pos = strstr(path, gems_str);
-
-  if (gems_pos == NULL) {
-    return Qfalse;
-  }
-  const char *gem_path = gems_pos + strlen(gems_str);
-  const char *dash_pos = strrchr(gem_path, '-');
-  if (dash_pos == NULL) {
-    return Qfalse;
-  }
-  long gem_name_len = dash_pos - gem_path;
-  VALUE gem_name = rb_str_new(gem_path, gem_name_len);
-
+static VALUE find_by_name(VALUE gem_name) {
   VALUE gem_module = rb_const_get(rb_cObject, at_gem_id);
   VALUE spec_class = rb_const_get(gem_module, at_specification_id);
   return rb_funcall(spec_class, at_find_by_name_id, 1, gem_name);
+}
+
+static VALUE _get_gem_name(VALUE file_name) {
+  ENFORCE_TYPE(file_name, T_STRING);
+
+  VALUE regex = rb_reg_new("gems/([^/]+)-\\d", 15, 0);
+  VALUE match_data = rb_funcall(regex, rb_intern("match"), 1, file_name);
+
+  if (NIL_P(match_data)) {
+    return Qfalse;
+  }
+
+  VALUE gem_name = rb_funcall(match_data, rb_intern("[]"), 1, INT2FIX(1));
+
+  int state = 0;
+  // Find by name will raise an exception if no gem is found
+  VALUE found_gem = rb_protect(find_by_name, gem_name, &state);
+  if (state) {
+    return Qnil;
+  }
+  return found_gem;
 }
 
 static VALUE _is_user_code(VALUE rescue_file_path) {
