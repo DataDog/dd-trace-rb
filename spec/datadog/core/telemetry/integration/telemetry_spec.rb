@@ -2,6 +2,9 @@ require 'spec_helper'
 
 require 'datadog/core/telemetry/component'
 
+# https://github.com/rubocop/rubocop-rspec/issues/2078
+# rubocop:disable RSpec/ScatteredLet
+
 RSpec.describe 'Telemetry integration tests' do
   let(:component) do
     Datadog::Core::Telemetry::Component.build(settings, agent_settings, logger)
@@ -179,3 +182,5 @@ RSpec.describe 'Telemetry integration tests' do
     include_examples 'telemetry'
   end
 end
+
+# rubocop:enable RSpec/ScatteredLet
