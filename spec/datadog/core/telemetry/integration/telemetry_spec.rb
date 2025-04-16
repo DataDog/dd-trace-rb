@@ -17,7 +17,7 @@ RSpec.describe 'Telemetry integration tests' do
   let(:logger) { logger_allowing_debug }
 
   after do
-    # TODO why is there no shutdown! method on telemetry component?
+    # TODO: why is there no shutdown! method on telemetry component?
     component.stop!
   end
 
@@ -31,16 +31,16 @@ RSpec.describe 'Telemetry integration tests' do
     let(:expected_base_headers) do
       {
         # Webrick provides each header value as an array
-        'dd-client-library-language' => %w(ruby),
-        'dd-client-library-version' => %w(2.14.0),
-        'dd-internal-untraced-request' => %w(1),
-        'dd-telemetry-api-version' => %w(v2),
+        'dd-client-library-language' => %w[ruby],
+        'dd-client-library-version' => %w[2.14.0],
+        'dd-internal-untraced-request' => %w[1],
+        'dd-telemetry-api-version' => %w[v2],
       }
     end
 
     let(:expected_agentless_headers) do
       expected_base_headers.merge(
-        'dd-api-key' => %w(1234),
+        'dd-api-key' => %w[1234],
       )
     end
 
@@ -74,7 +74,8 @@ RSpec.describe 'Telemetry integration tests' do
           'tracer_time' => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w(app-started)))
+          expected_headers.merge('dd-telemetry-request-type' => %w[app-started])
+        )
 
         payload = sent_payloads[1]
         expect(payload.fetch(:payload)).to match(
@@ -91,7 +92,8 @@ RSpec.describe 'Telemetry integration tests' do
           'tracer_time' => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w(app-dependencies-loaded)))
+          expected_headers.merge('dd-telemetry-request-type' => %w[app-dependencies-loaded])
+        )
       end
     end
 
@@ -129,13 +131,14 @@ RSpec.describe 'Telemetry integration tests' do
           'tracer_time' => Integer,
         )
         expect(payload.fetch(:headers)).to include(
-          expected_headers.merge('dd-telemetry-request-type' => %w(message-batch)))
+          expected_headers.merge('dd-telemetry-request-type' => %w[message-batch])
+        )
       end
     end
   end
 
   let(:handler_proc) do
-    lambda do |req, res|
+    lambda do |req, _res|
       expect(req.content_type).to eq('application/json')
       payload = JSON.parse(req.body)
       sent_payloads << {
