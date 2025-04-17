@@ -3,6 +3,7 @@
 #include "datadog_ruby_common.h"
 #include "crashtracker.h"
 #include "process_discovery.h"
+#include "library_config.h"
 
 void DDTRACE_EXPORT Init_libdatadog_api(void) {
   VALUE datadog_module = rb_define_module("Datadog");
@@ -10,4 +11,5 @@ void DDTRACE_EXPORT Init_libdatadog_api(void) {
 
   crashtracker_init(core_module);
   process_discovery_init(core_module);
+  library_config_init(core_module);
 }
