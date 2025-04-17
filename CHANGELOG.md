@@ -15,7 +15,7 @@
 
 ### Fixed
 
-* AppSec: Fix for blocked requests not marked correctly when using custom redirect blocking action ([#4580][])
+* AppSec: Fix blocked requests not marked correctly when using custom redirect blocking action ([#4580][])
 * AppSec: Fix UTF-8 unsafe payloads in InApp-WAF causing runtime exceptions ([#4573][])
 
 ## [2.14.0] - 2025-04-04
