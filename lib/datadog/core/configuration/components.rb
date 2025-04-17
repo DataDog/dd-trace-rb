@@ -17,6 +17,7 @@ require_relative '../../di/component'
 require_relative '../crashtracking/component'
 
 require_relative '../environment/agent_info'
+require_relative '../process_discovery'
 
 module Datadog
   module Core
@@ -123,6 +124,7 @@ module Datadog
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
+          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings)
 
           self.class.configure_tracing(settings)
         end
@@ -203,6 +205,8 @@ module Datadog
           # enqueue closing event before stopping telemetry so it will be send out on shutdown
           telemetry.emit_closing! unless replacement
           telemetry.stop!
+
+          Core::ProcessDiscovery._native_close_tracer_memfd(@process_discovery_fd) if @process_discovery_fd
         end
       end
     end
