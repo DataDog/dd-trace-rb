@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+## [2.15.0] - 2025-04-17
+
+### Added
+
+* AppSec: Add auto-patching for `activerecord` with sql injection detection ([#4581][])
+* Tracing: Add option for `opensearch` to set resource with relative path ([#4509][])
+
+### Changed
+
+* AppSec: Update In-App WAF rules, processors, and scanners ([#4568][])
+
+### Fixed
+
+* AppSec: Fix for blocked requests not marked correctly when using custom redirect blocking action ([#4580][])
+* AppSec: Fix UTF-8 unsafe payloads in InApp-WAF causing runtime exceptions ([#4573][])
+
 ## [2.14.0] - 2025-04-04
 
 ### Added
@@ -3178,7 +3194,8 @@ Release notes: https://github.com/DataDog/dd-trace-rb/releases/tag/v0.3.1
 Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 
 
-[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.14.0...master
+[Unreleased]: https://github.com/DataDog/dd-trace-rb/compare/v2.15.0...master
+[2.15.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.14.0...v2.15.0
 [2.14.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.13.0...v2.14.0
 [2.13.0]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.2...v2.13.0
 [2.12.2]: https://github.com/DataDog/dd-trace-rb/compare/v2.12.1...v2.12.2
@@ -4693,6 +4710,7 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4498]: https://github.com/DataDog/dd-trace-rb/issues/4498
 [#4505]: https://github.com/DataDog/dd-trace-rb/issues/4505
 [#4507]: https://github.com/DataDog/dd-trace-rb/issues/4507
+[#4509]: https://github.com/DataDog/dd-trace-rb/issues/4509
 [#4526]: https://github.com/DataDog/dd-trace-rb/issues/4526
 [#4528]: https://github.com/DataDog/dd-trace-rb/issues/4528
 [#4530]: https://github.com/DataDog/dd-trace-rb/issues/4530
@@ -4701,6 +4719,10 @@ Git diff: https://github.com/DataDog/dd-trace-rb/compare/v0.3.0...v0.3.1
 [#4549]: https://github.com/DataDog/dd-trace-rb/issues/4549
 [#4552]: https://github.com/DataDog/dd-trace-rb/issues/4552
 [#4558]: https://github.com/DataDog/dd-trace-rb/issues/4558
+[#4568]: https://github.com/DataDog/dd-trace-rb/issues/4568
+[#4573]: https://github.com/DataDog/dd-trace-rb/issues/4573
+[#4580]: https://github.com/DataDog/dd-trace-rb/issues/4580
+[#4581]: https://github.com/DataDog/dd-trace-rb/issues/4581
 [@AdrianLC]: https://github.com/AdrianLC
 [@Azure7111]: https://github.com/Azure7111
 [@BabyGroot]: https://github.com/BabyGroot
