@@ -6,6 +6,7 @@
 #include "datadog_ruby_common.h"
 
 static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, DDTRACE_UNUSED VALUE _self);
+static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd);
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE fd);
 
 static VALUE log_error(VALUE error) {
@@ -30,6 +31,7 @@ void process_discovery_init(VALUE core_module) {
   rb_undef_alloc_func(tracer_memfd_class); // Class cannot be instantiated from Ruby
 
   rb_define_singleton_method(process_discovery_class, "_native_store_tracer_metadata", _native_store_tracer_metadata, -1);
+  rb_define_singleton_method(process_discovery_class, "_native_to_rb_int", _native_to_rb_int, 1);
   rb_define_singleton_method(process_discovery_class, "_native_close_tracer_memfd", _native_close_tracer_memfd, 1);
 }
 
@@ -80,6 +82,12 @@ static VALUE _native_store_tracer_metadata(int argc, VALUE *argv, VALUE self) {
   VALUE tracer_memfd_class = rb_const_get(self, rb_intern("TracerMemfd"));
   VALUE tracer_memfd = TypedData_Wrap_Struct(tracer_memfd_class, &tracer_memfd_type, fd);
   return tracer_memfd;
+}
+
+static VALUE _native_to_rb_int(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
+  int *fd;
+  TypedData_Get_Struct(tracer_memfd, int, &tracer_memfd_type, fd);
+  return INT2NUM(*fd);
 }
 
 static VALUE _native_close_tracer_memfd(DDTRACE_UNUSED VALUE _self, VALUE tracer_memfd) {
