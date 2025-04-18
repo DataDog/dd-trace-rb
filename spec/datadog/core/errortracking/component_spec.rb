@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'datadog/core/errortracking/component'
 
-RSpec.describe Datadog::Core::Errortracking::Component, skip: !ErrortrackingHelpers.supported? do
+RSpec.describe Datadog::Core::Errortracking::Component do
   let(:tracer) { new_tracer(enabled: false) }
   let(:spans) { tracer.writer.spans(:keep) }
   let(:logger) { Logger.new($stdout) }

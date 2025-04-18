@@ -80,12 +80,6 @@ module Datadog
           def build_errortracker(settings:, tracer:, logger:)
             return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
 
-            if (errortracking_failure = Datadog::Core::Errortracking::Component::ERRORTRACKING_FAILURE)
-              print(errortracking_failure)
-              logger.debug("Cannot enable errortracking: #{errortracking_failure}")
-              return
-            end
-
             Core::Errortracking::Component.build(settings, tracer)
           end
         end

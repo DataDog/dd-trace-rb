@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+require_relative 'errortracker'
 
 module Datadog
   module Core
@@ -58,14 +59,6 @@ module Datadog
 
       # Used to report handled exceptions
       class Component
-        ERRORTRACKING_FAILURE =
-          begin
-            require "errortracker.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
-            nil
-          rescue LoadError => e
-            e.message
-          end
-
         def self.build(settings, tracer)
           return if settings.errortracking.to_instrument.empty? && settings.errortracking.to_instrument_modules.empty?
           return if !settings.errortracking.to_instrument.empty? &&
@@ -79,17 +72,12 @@ module Datadog
         end
 
         def initialize(tracer:, to_instrument:, to_instrument_modules:)
-          @tracer = tracer
-          @to_instrument = to_instrument
           @to_instrument_modules = to_instrument_modules
+          @errortracker = ErrorTracker.new(tracer, to_instrument, to_instrument_modules)
         end
 
         def start
-          self.class._native_start(
-            tracer: @tracer,
-            to_instrument: @to_instrument,
-            to_instrument_modules: @to_instrument_modules
-          )
+          @errortracker.start
           unless @to_instrument_modules.empty?
             RequireHooks.set_modules_to_instrument(@to_instrument_modules)
             Kernel.prepend(RequireHooks)
@@ -97,8 +85,9 @@ module Datadog
         end
 
         def stop
+          @errortracker.stop
           RequireHooks.clear
-          self.class._native_stop
+          # self.class._native_stop
         end
       end
     end
