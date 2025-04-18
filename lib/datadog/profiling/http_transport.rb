@@ -29,12 +29,7 @@ module Datadog
         status, result = self.class._native_do_export(
           exporter_configuration,
           @upload_timeout_milliseconds,
-          flush,
-          # TODO: This is going to be removed once we move to libdatadog 17
-          flush.start.tv_sec,
-          flush.start.tv_nsec,
-          flush.finish.tv_sec,
-          flush.finish.tv_nsec,
+          flush
         )
 
         if status == :ok
