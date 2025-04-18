@@ -69,7 +69,7 @@ module Datadog
           def build_crashtracker(settings, agent_settings, logger:)
             return unless settings.crashtracking.enabled
 
-            if (libdatadog_api_failure = Datadog::Core::Crashtracking::Component::LIBDATADOG_API_FAILURE)
+            if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
               logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
               return
             end
@@ -124,7 +124,7 @@ module Datadog
           @appsec = Datadog::AppSec::Component.build_appsec_component(settings, telemetry: telemetry)
           @dynamic_instrumentation = Datadog::DI::Component.build(settings, agent_settings, @logger, telemetry: telemetry)
           @environment_logger_extra[:dynamic_instrumentation_enabled] = !!@dynamic_instrumentation
-          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings)
+          @process_discovery_fd = Core::ProcessDiscovery.get_and_store_metadata(settings, @logger)
 
           self.class.configure_tracing(settings)
         end

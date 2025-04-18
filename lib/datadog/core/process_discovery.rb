@@ -4,7 +4,11 @@ module Datadog
   module Core
     # Class used to store tracer metadata in a native file descriptor.
     class ProcessDiscovery
-      def self.get_and_store_metadata(settings)
+      def self.get_and_store_metadata(settings, logger)
+        if (libdatadog_api_failure = Datadog::Core::LIBDATADOG_API_FAILURE)
+          logger.debug("Cannot enable crashtracking: #{libdatadog_api_failure}")
+          return
+        end
         metadata = get_metadata(settings)
         _native_store_tracer_metadata(**metadata)
       end

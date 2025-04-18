@@ -18,14 +18,6 @@ module Datadog
       #
       # Methods prefixed with _native_ are implemented in `crashtracker.c`
       class Component
-        LIBDATADOG_API_FAILURE =
-          begin
-            require "libdatadog_api.#{RUBY_VERSION[/\d+.\d+/]}_#{RUBY_PLATFORM}"
-            nil
-          rescue LoadError => e
-            e.message
-          end
-
         ONLY_ONCE = Core::Utils::OnlyOnce.new
 
         def self.build(settings, agent_settings, logger:)
