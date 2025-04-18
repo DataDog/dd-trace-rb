@@ -1,7 +1,7 @@
-require 'datadog/core/crashtracking/component'
+require 'datadog/core'
 require 'support/platform_helpers'
 
-module CrashtrackingHelpers
+module LibdatadogHelpers
   def self.supported?
     # Only works with MRI on Linux
     if PlatformHelpers.mri? && PlatformHelpers.linux?

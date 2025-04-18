@@ -4,7 +4,7 @@ require 'datadog/core/crashtracking/component'
 require 'webrick'
 require 'fiddle'
 
-RSpec.describe Datadog::Core::Crashtracking::Component, skip: !CrashtrackingHelpers.supported? do
+RSpec.describe Datadog::Core::Crashtracking::Component, skip: !LibdatadogHelpers.supported? do
   let(:logger) { Logger.new($stdout) }
 
   describe '.build' do
