@@ -46,6 +46,7 @@ RSpec.describe Datadog::DI::ProbeNotifierWorker do
     end
 
     http_server.mount_proc('/debugger/v1/input') do |req, res|
+      expect(req.content_type).to eq('application/json')
       payload = JSON.parse(req.body)
       input_payloads << payload
     end
