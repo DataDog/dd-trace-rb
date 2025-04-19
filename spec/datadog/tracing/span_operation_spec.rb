@@ -65,8 +65,15 @@ RSpec.describe Datadog::Tracing::SpanOperation do
       end
 
       # on_error
-      allow(callback_spy).to receive(:on_error)
+      # wrap_default
+      allow(callback_spy).to receive(:wrap_default)
       events.on_error.wrap_default do |*args|
+        callback_spy.wrap_default(*args)
+      end
+
+      # subscribe
+      allow(callback_spy).to receive(:on_error)
+      events.on_error.subscribe do |*args|
         callback_spy.on_error(*args)
       end
     end
@@ -437,6 +444,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:wrap_default).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
@@ -469,6 +477,7 @@ RSpec.describe Datadog::Tracing::SpanOperation do
         it do
           expect(callback_spy).to have_received(:before_start).with(span_op).ordered
           expect(callback_spy).to have_received(:after_stop).with(span_op).ordered
+          expect(callback_spy).to have_received(:wrap_default).with(span_op, error).ordered
           expect(callback_spy).to have_received(:on_error).with(span_op, error).ordered
           expect(callback_spy).to have_received(:after_finish).with(kind_of(Datadog::Tracing::Span), span_op).ordered
         end
@@ -1024,6 +1033,7 @@ RSpec.describe Datadog::Tracing::SpanOperation::Events do
 
   describe '#on_error' do
     subject(:on_error) { events.on_error }
-    it { is_expected.to respond_to(:publish) }
+    it { is_expected.to be_a_kind_of(Datadog::Tracing::Event) }
+    it { expect(on_error.name).to be(:on_error) }
   end
 end

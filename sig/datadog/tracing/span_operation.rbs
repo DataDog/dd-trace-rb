@@ -109,12 +109,10 @@ module Datadog
           def initialize: () -> void
         end
 
-        class OnError
+        class OnError < Tracing::Event
           def initialize: (untyped default) -> void
 
           def wrap_default: () { (untyped, untyped) -> untyped } -> untyped
-
-          def publish: (*untyped args) -> true
         end
       end
 
