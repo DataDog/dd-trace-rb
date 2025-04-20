@@ -34,8 +34,8 @@ GEM
     ethon (0.16.0)
       ffi (>= 1.15.0)
     extlz4 (0.3.4)
-    ffi (1.17.1-aarch64-linux-gnu)
-    ffi (1.17.1-x86_64-linux-gnu)
+    ffi (1.17.2-aarch64-linux-gnu)
+    ffi (1.17.2-x86_64-linux-gnu)
     ffi-compiler (1.0.1)
       ffi (>= 1.0.0)
       rake
